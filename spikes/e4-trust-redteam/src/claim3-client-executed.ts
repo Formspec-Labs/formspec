@@ -30,6 +30,7 @@ const surface = {
     {
       id: 'verify',
       path: '/verify',
+      routeClass: 'verification',
       title: 'Verify a receipt',
       slots: [
         {
@@ -44,6 +45,7 @@ const surface = {
     {
       id: 'result',
       path: '/verify/result',
+      routeClass: 'verification',
       title: 'Verification result',
       slots: [
         {

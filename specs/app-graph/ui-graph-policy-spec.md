@@ -478,6 +478,52 @@ prefix evidence is missing, ambiguous, or not admitted. Optional
 `theme.tokenMeta` categories remain metadata and are not authority for this
 gate.
 
+### 5.7 Theme Authority by Route Class
+
+Rules 1 through 9 in §5.6 ask whether a Theme token assignment *resolves*. They
+never ask who is entitled to repaint what. This section adds that question.
+
+A UI Graph Policy is host evidence. In a white-label deployment the host is the
+tenant, so a constraint on tenant theming cannot live in this document — the
+constrained party would be able to edit it. The authority lives on the Surface,
+which the platform ships and the tenant consumes:
+[`surface-spec.md`](../surface/surface-spec.md) §3 Route Class.
+
+**Rule.** A `theme.assignments[]` entry whose `widgetRef` matches a
+`module-widget` slot binding on a target-Surface route with `routeClass` in
+`{proof, ceremony, verification}` is invalid, and MUST be reported as
+`THEME-ROUTE-CLASS`.
+
+The three refusing classes are exactly the surfaces whose rendered appearance a
+third party relies on: an issued artifact, the act of signing one, and the
+independent check of one. `intake` admits tenant chrome theming; `operation`
+carries no substrate trust claim; an unclassified route has stated nothing, so
+no rule keyed on a class can fire against it.
+
+**Grain, and a deliberate over-approximation.** `ThemeTokenAssignment` is
+`{widgetRef, slot, token}` — it is scoped to a *widget*, not to a route, so it
+applies wherever that widget appears. The check is therefore "is this widget
+bound on any protected route", not "is this assignment on a protected route". A
+widget bound on both an `intake` route and a `proof` route makes the assignment
+invalid. That is the safe direction and it is intended: the assignment would in
+fact repaint the widget on the proof route. An author who needs the widget
+themed in one place and fixed in another declares two widget contributions.
+Narrowing this requires route-scoped assignments, which is a UI Graph Policy
+schema revision, not a validator change.
+
+**Independence from §5.6.** This check reads only the loaded Surface document
+and the policy's assignments. It does not require `ModuleResolutionReport`,
+loaded Theme token evidence, or a resolved widget contribution, and it is
+emitted independently of `THEME-TOKEN-*`: an assignment that repaints a proof
+surface is refused whether or not its token resolves. One assignment may
+therefore carry both a `THEME-TOKEN-*` diagnostic and `THEME-ROUTE-CLASS`.
+
+Diagnostic shape: `primarySource` is the policy's
+`/theme/assignments/{index}/widgetRef`; `relatedSources` names every protected
+Surface slot binding that put the widget there. `details` carries `moduleId`,
+`widgetName`, `slot`, `token`, `routeId`, `routeClass`, and
+`reason: "tenant-theming-refused-by-route-class"`.
+
 ## 6. Diagnostic Import
 
 The shared `AppGraphValidator` emits UI Graph Policy Surface/route,
@@ -516,6 +562,7 @@ Initial diagnostic codes:
 | `THEME-TOKEN-REF` | error | A Theme token assignment references a token absent from loaded Theme token evidence. |
 | `THEME-TOKEN-CATEGORY` | error | A Theme token assignment uses a token category not accepted by the declared widget token slot. |
 | `THEME-TOKEN-CATEGORY-REF` | error | A Theme token assignment uses an accepted custom `x-*` category prefix without exactly one admitted ModuleResolver token-category evidence entry. |
+| `THEME-ROUTE-CLASS` | error | A Theme token assignment targets a widget bound on a Surface route whose `routeClass` refuses tenant theming. |
 
 Current executable diagnostics cover `UI-POLICY-SURFACE-TARGET`,
 `UI-POLICY-ROUTE-MISSING`, `UI-POLICY-ROUTE-COLLISION`,
@@ -523,8 +570,8 @@ Current executable diagnostics cover `UI-POLICY-SURFACE-TARGET`,
 `UI-POLICY-HIDDEN-DEFINITION-REF`, `LOCALE-KEY-OWNER`,
 `LOCALE-KEY-OWNER-COLLISION`, `LOCALE-KEY-OWNER-MODULE-MISMATCH`,
 `LOCALE-KEY-OWNER-MODULE-REF`, `THEME-TOKEN-WIDGET`, and
-`THEME-TOKEN-SLOT`, `THEME-TOKEN-REF`, `THEME-TOKEN-CATEGORY`, and
-`THEME-TOKEN-CATEGORY-REF`. Policy source
+`THEME-TOKEN-SLOT`, `THEME-TOKEN-REF`, `THEME-TOKEN-CATEGORY`,
+`THEME-TOKEN-CATEGORY-REF`, and `THEME-ROUTE-CLASS`. Policy source
 pointers MUST use `artifactSlot: "hostEvidence.uiGraphPolicies[N]"`, opaque
 `source`, and `jsonPointer` only. Surface and Locale related sources may use
 normal resolved artifact handle pointers. ModuleResolver related sources may
@@ -547,8 +594,10 @@ or unresolved loaded Theme token evidence and `THEME-TOKEN-CATEGORY` for loaded
 Theme token keys that do not match the declared widget token slot's accepted
 category prefixes. It emits `THEME-TOKEN-CATEGORY-REF` for accepted custom
 `x-*` prefixes when completed ModuleResolver `tokenCategories[]` evidence is
-missing, ambiguous, conflicting, or shape-mismatched. Runtime hidden-state and
-authorization diagnostics are not emitted by this slice.
+missing, ambiguous, conflicting, or shape-mismatched. It emits
+`THEME-ROUTE-CLASS` per §5.7 from the loaded Surface document alone, without
+ModuleResolver or Theme token evidence. Runtime hidden-state and authorization
+diagnostics are not emitted by this slice.
 
 ## 7. Non-Goals and Boundaries
 

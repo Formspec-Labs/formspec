@@ -34,6 +34,7 @@
         {
           "id": "verify",
           "path": "/verify",
+          "routeClass": "verification",
           "title": "Verify a receipt",
           "slots": [
             {
@@ -55,6 +56,7 @@
         {
           "id": "result",
           "path": "/verify/result",
+          "routeClass": "verification",
           "title": "Verification result",
           "slots": [
             {

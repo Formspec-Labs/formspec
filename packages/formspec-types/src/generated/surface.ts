@@ -94,6 +94,10 @@ export interface Route {
    */
   params?: RouteParam[];
   /**
+   * OPTIONAL closed vocabulary naming WHAT THIS ROUTE PRESENTS. `intake` = a Definition-backed capture from a respondent. `proof` = an artifact the platform issued that a third party relies on as evidence (receipt, certificate, disclosure). `ceremony` = the act of signing or attesting. `verification` = independent checking of an issued artifact. `operation` = operator-facing product UI, an affirmative statement that this route carries no substrate trust claim. Names the route's kind, NOT a permission — rules derive from it (theme authority refuses tenant Theme assignments on proof/ceremony/verification routes; see ui-graph-policy-spec.md §5.7, `THEME-ROUTE-CLASS`). Deliberately orthogonal to access posture and route lifecycle; MUST NOT absorb either. NO DEFAULT: an absent routeClass means *unclassified* (nobody has stated what this route is), which is a distinct state from `operation`. Processors MUST NOT treat absence as `operation`. See surface-spec.md §3 Route Class.
+   */
+  routeClass?: 'intake' | 'proof' | 'ceremony' | 'verification' | 'operation';
+  /**
    * Human-readable route title (for navigation chrome, breadcrumbs, etc.).
    */
   title?: string;

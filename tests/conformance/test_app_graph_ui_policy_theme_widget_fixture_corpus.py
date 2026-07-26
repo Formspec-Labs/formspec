@@ -41,6 +41,10 @@ REQUIRED_CASES = {
     "module-resolution-skipped-skips-theme-widget",
     "surface-target-mismatch-skips-theme-widget",
     "widget-owner-module-mismatch",
+    "theme-assignment-on-proof-route-class",
+    "theme-assignment-on-intake-route-class",
+    "theme-assignment-on-unclassified-route",
+    "theme-assignment-spanning-intake-and-proof-route-classes",
 }
 
 EXPECTED_CODES = {
@@ -67,6 +71,10 @@ EXPECTED_CODES = {
     ],
     "surface-target-mismatch-skips-theme-widget": ["UI-POLICY-SURFACE-TARGET"],
     "widget-owner-module-mismatch": ["THEME-TOKEN-WIDGET"],
+    "theme-assignment-on-proof-route-class": ["THEME-ROUTE-CLASS"],
+    "theme-assignment-on-intake-route-class": [],
+    "theme-assignment-on-unclassified-route": [],
+    "theme-assignment-spanning-intake-and-proof-route-classes": ["THEME-ROUTE-CLASS"],
 }
 
 SUMMARY_KEYS = {
@@ -382,6 +390,73 @@ def test_ui_graph_policy_theme_widget_expected_diagnostics_are_policy_owned() ->
                     _assert_theme_pointer(related)
 
 
+def test_theme_route_class_refuses_tenant_theming_on_proof_bearing_routes() -> None:
+    """Route class is authored on Surface; theme authority derives from it.
+
+    The refusing set is `proof | ceremony | verification` — the surfaces whose
+    rendered appearance a third party relies on. `intake` admits tenant chrome
+    theming, `operation` carries no substrate trust claim.
+    """
+    caught = _case("theme-assignment-on-proof-route-class")["expected"]["diagnostics"][0]
+    assert caught["code"] == "THEME-ROUTE-CLASS"
+    # Primary source is the POLICY assignment; related source is the SURFACE
+    # slot binding that put the widget on the protected route. The constraint
+    # lives on the platform's Surface, never on the tenant-authored policy.
+    _assert_policy_pointer(caught["primarySource"])
+    assert caught["primarySource"]["jsonPointer"] == "/theme/assignments/0/widgetRef"
+    assert len(caught["relatedSources"]) == 1
+    _assert_surface_pointer(caught["relatedSources"][0])
+    assert caught["details"] == {
+        "moduleId": "x-reviewer",
+        "widgetName": "x-review-panel",
+        "slot": "accent",
+        "token": "color.accent",
+        "routeId": "certificate",
+        "routeClass": "proof",
+        "reason": "tenant-theming-refused-by-route-class",
+    }
+
+
+def test_theme_route_class_admits_intake_and_distinguishes_unclassified() -> None:
+    """Absence of `routeClass` is *unclassified*, never `operation`.
+
+    Both cases emit nothing, so the fixture alone cannot tell them apart. The
+    documents can: the intake route states a class and the unclassified route
+    states none. Collapsing them — a schema `default`, or a processor reading
+    absence as `operation` — is what this asserts against.
+    """
+    corpus = _corpus()
+    intake_case = _case("theme-assignment-on-intake-route-class")
+    unclassified_case = _case("theme-assignment-on-unclassified-route")
+    assert intake_case["expected"]["diagnostics"] == []
+    assert unclassified_case["expected"]["diagnostics"] == []
+
+    def sole_route(case: dict[str, Any]) -> dict[str, Any]:
+        handle_key = case["request"]["artifacts"]["surfaces"][0]
+        routes = corpus["handles"][handle_key]["document"]["routes"]
+        assert len(routes) == 1
+        return routes[0]
+
+    assert sole_route(intake_case)["routeClass"] == "intake"
+    assert "routeClass" not in sole_route(unclassified_case)
+
+
+def test_theme_route_class_over_approximates_across_mixed_route_classes() -> None:
+    """Assignments are widget-scoped, so one protected binding taints the widget.
+
+    The mixed Surface binds one widget on an `intake` route AND a `proof` route.
+    The assignment is refused, because it would in fact repaint the widget on
+    the proof route. Narrowing this needs route-scoped assignments — a UI Graph
+    Policy schema revision, not a validator change.
+    """
+    case = _case("theme-assignment-spanning-intake-and-proof-route-classes")
+    routes = _corpus()["handles"]["surface-mixed-route-classes"]["document"]["routes"]
+    assert [route["routeClass"] for route in routes] == ["intake", "proof"]
+    diagnostics = case["expected"]["diagnostics"]
+    assert [diagnostic["code"] for diagnostic in diagnostics] == ["THEME-ROUTE-CLASS"]
+    assert diagnostics[0]["details"]["routeClass"] == "proof"
+
+
 def test_ui_graph_policy_theme_widget_fixture_keeps_deferred_families_out() -> None:
     emitted_codes = {
         diagnostic["code"]
@@ -407,6 +482,14 @@ def test_ui_graph_policy_theme_widget_fixture_keeps_deferred_families_out() -> N
             }:
                 assert diagnostic["primarySource"]["jsonPointer"].startswith("/theme/assignments/")
                 assert diagnostic["primarySource"]["jsonPointer"].endswith("/token")
+            if diagnostic["code"] == "THEME-ROUTE-CLASS":
+                assert diagnostic["primarySource"]["jsonPointer"].startswith("/theme/assignments/")
+                assert diagnostic["primarySource"]["jsonPointer"].endswith("/widgetRef")
+                assert diagnostic["details"]["routeClass"] in {
+                    "proof",
+                    "ceremony",
+                    "verification",
+                }
             if diagnostic["code"] == "MODULE-CONTRIBUTION-UNADMITTED":
                 primary = diagnostic["primarySource"]
                 assert set(primary).issubset({"artifactSlot", "source", "jsonPointer"})

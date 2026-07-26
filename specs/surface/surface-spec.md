@@ -136,6 +136,65 @@ Data Sources `route-params` sources may expose resolved route parameters to
 consumers. They do not declare required route parameters and do not satisfy
 Surface edge completeness.
 
+### Route Class
+
+A route MAY declare `routeClass`, a closed vocabulary naming **what the route
+presents**. It is the Surface's answer to a question the route graph could not
+previously express: a certificate route and a form route are otherwise
+structurally identical documents.
+
+| `routeClass` | The route presents | Substrate claim attached |
+|---|---|---|
+| `intake` | A Definition-backed capture from a respondent. | None. Tenant chrome theming is admitted here and only here. |
+| `proof` | An artifact the platform issued that a third party relies on as evidence — receipt, certificate, disclosure. | The rendered artifact is not the tenant's to restyle. |
+| `ceremony` | The act of signing or attesting, as it happens. | The rendered artifact is not the tenant's to restyle. The signer's preimage is the thing signed. |
+| `verification` | Independent checking of an artifact the platform issued. | The rendered artifact is not the tenant's to restyle. Its credibility is that it is not the issuer's or the tenant's voice. |
+| `operation` | Operator-facing product UI — dashboards, admin, developer, authoring, and status surfaces. | None. An affirmative statement that this route carries no substrate trust claim. |
+
+`routeClass` names the route's kind, not a permission. Permissions and other
+rules **derive** from it; they are not restated on the route. A Surface author
+knows what they just built; they cannot be assumed to know every policy keyed
+off it, and a policy that changes must not require editing every document that
+predates the change.
+
+`routeClass` is deliberately orthogonal to two other route axes and MUST NOT
+absorb them:
+
+- **Access posture** — who may reach the route without authenticating. A `proof`
+  route may be bearer-reachable while an `operation` route requires a session
+  and a step-up; both are the same `routeClass` value in the other direction.
+  Access is a floor, not a partition of routes.
+- **Route lifecycle** — preview / stable / deprecated. Any `routeClass` may sit
+  at any lifecycle stage.
+
+**Unclassified routes.** `routeClass` is OPTIONAL and has **no default**. An
+absent `routeClass` means *unclassified* — nobody has stated what this route is.
+Unclassified is a distinct state from `operation`, which is an affirmative "no
+trust claim here". Processors MUST NOT treat an absent `routeClass` as
+`operation`.
+
+The distinction is load-bearing in one direction: rules keyed on a trust-bearing
+class do not fire on an unclassified route, so every Surface document authored
+before this vocabulary existed keeps its exact prior behavior. It is also
+load-bearing forward — because *stated* and *unstated* stay distinguishable, a
+future conformance level, publication gate, or host policy can require
+classification without a schema change. A schema `default` would have collapsed
+the two states permanently.
+
+A Surface whose routes are unclassified is publishable and conformance-coherent.
+It is not *trust-classified*: a host that relies on a `routeClass`-keyed
+guarantee SHOULD require the routes it depends on to state a class, because a
+guarantee cannot be derived from silence.
+
+**Rules keyed on route class are cross-artifact, and they live on the consuming
+artifact's spec, not here.** Surface states what a route is; it does not carry
+the rules. The first is theme authority — a tenant Theme token assignment MUST
+NOT land on a widget bound to a `proof`, `ceremony`, or `verification` route
+([`ui-graph-policy-spec.md`](../app-graph/ui-graph-policy-spec.md) §5.7,
+`THEME-ROUTE-CLASS`). `routeClass` sits on Surface, which the platform ships,
+rather than on UI Graph Policy, which in a white-label deployment the tenant
+authors: a constraint the constrained party can edit is not a constraint.
+
 ## 4. Slot Bindings
 
 ### Slot Binding Validity

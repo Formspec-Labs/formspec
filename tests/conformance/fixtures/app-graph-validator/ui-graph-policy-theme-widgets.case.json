@@ -91,6 +91,130 @@
           "color.accent": "#005ea8"
         }
       }
+    },
+    "surface-proof-certificate": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/certificate",
+      "ref": { "url": "https://example.gov/apps/intake/surfaces/certificate", "version": "1.0.0" },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "certificate",
+        "entry": "certificate",
+        "routes": [
+          {
+            "id": "certificate",
+            "path": "/c/{receiptId}",
+            "routeClass": "proof",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface-intake-form": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/intake",
+      "ref": { "url": "https://example.gov/apps/intake/surfaces/intake", "version": "1.0.0" },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "intake",
+        "entry": "apply",
+        "routes": [
+          {
+            "id": "apply",
+            "path": "/apply",
+            "routeClass": "intake",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface-unclassified": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/unclassified",
+      "ref": { "url": "https://example.gov/apps/intake/surfaces/unclassified", "version": "1.0.0" },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "unclassified",
+        "entry": "panel",
+        "routes": [
+          {
+            "id": "panel",
+            "path": "/panel",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface-mixed-route-classes": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/mixed",
+      "ref": { "url": "https://example.gov/apps/intake/surfaces/mixed", "version": "1.0.0" },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "mixed",
+        "entry": "apply",
+        "routes": [
+          {
+            "id": "apply",
+            "path": "/apply",
+            "routeClass": "intake",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              },
+              {
+                "id": "certificate-preview",
+                "slotType": "embed-route",
+                "binding": { "routeRef": "certificate" }
+              }
+            ]
+          },
+          {
+            "id": "certificate",
+            "path": "/c/{receiptId}",
+            "routeClass": "proof",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   "policies": {
@@ -535,6 +659,82 @@
                 "moduleId": "x-reviewer",
                 "widgetName": "x-review-panel"
               },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "theme-on-proof-route-class": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-on-proof-route-class",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/certificate" },
+        "routePolicies": [{ "routeId": "certificate" }],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "theme-on-intake-route-class": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-on-intake-route-class",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/intake" },
+        "routePolicies": [{ "routeId": "apply" }],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "theme-on-unclassified-route": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-on-unclassified-route",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/unclassified" },
+        "routePolicies": [{ "routeId": "panel" }],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "theme-on-mixed-route-classes": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-on-mixed-route-classes",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/mixed" },
+        "routePolicies": [{ "routeId": "apply" }, { "routeId": "certificate" }],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
               "token": "color.accent"
             }
@@ -2506,6 +2706,188 @@
               "widgetName": "x-review-panel",
               "reason": "owner-module-mismatch",
               "contributionStatuses": ["resolved"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "theme-assignment-on-proof-route-class",
+      "description": "A Theme token assignment is refused when its widget is bound on a route with routeClass \"proof\".",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-proof-certificate"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-on-proof-route-class"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-ROUTE-CLASS",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/theme-on-proof-route-class",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/certificate",
+                "ref": { "url": "https://example.gov/apps/intake/surfaces/certificate", "version": "1.0.0" },
+                "jsonPointer": "/routes/0/slots/0/binding"
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.accent",
+              "routeId": "certificate",
+              "routeClass": "proof",
+              "reason": "tenant-theming-refused-by-route-class"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "theme-assignment-on-intake-route-class",
+      "description": "The same Theme token assignment is admitted when its widget is bound only on a route with routeClass \"intake\".",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-intake-form"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-on-intake-route-class"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "theme-assignment-on-unclassified-route",
+      "description": "The same Theme token assignment is admitted on an unclassified route: absence of routeClass states nothing, so no class-keyed rule fires.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-unclassified"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-on-unclassified-route"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "theme-assignment-spanning-intake-and-proof-route-classes",
+      "description": "A widget bound on both an intake route and a proof route makes the assignment invalid: assignments are widget-scoped, so the refusal over-approximates in the safe direction.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-mixed-route-classes"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-on-mixed-route-classes"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-ROUTE-CLASS",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/theme-on-mixed-route-classes",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/mixed",
+                "ref": { "url": "https://example.gov/apps/intake/surfaces/mixed", "version": "1.0.0" },
+                "jsonPointer": "/routes/1/slots/0/binding"
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.accent",
+              "routeId": "certificate",
+              "routeClass": "proof",
+              "reason": "tenant-theming-refused-by-route-class"
             }
           }
         ]

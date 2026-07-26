@@ -40,6 +40,7 @@ const surface = {
     {
       id: 'form-edit',
       path: '/forms/{formId}/edit',
+      routeClass: 'operation',
       title: 'Edit form',
       params: [{ name: 'formId', type: 'string' }],
       slots: [

@@ -54,6 +54,7 @@
         {
           "id": "form-edit",
           "path": "/forms/{formId}/edit",
+          "routeClass": "operation",
           "title": "Edit form",
           "params": [
             {

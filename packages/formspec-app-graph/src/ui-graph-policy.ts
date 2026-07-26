@@ -33,6 +33,7 @@ type ModuleResolutionWidgetTokenSlot = NonNullable<ModuleResolutionContribution[
 interface SurfaceRoute {
   id: string;
   index: number;
+  routeClass?: string;
   slots: SurfaceRouteSlot[];
   slotsById: Map<string, SurfaceRouteSlot>;
 }
@@ -42,6 +43,7 @@ interface SurfaceRouteSlot {
   index: number;
   slotType: string;
   definitionRef?: string;
+  moduleWidget?: { moduleId: string; widgetName: string };
 }
 
 type RouteA11yPolicy = NonNullable<UiGraphPolicyDocument['routePolicies'][number]['a11y']>;
@@ -168,12 +170,17 @@ function surfaceRoutes(surface: LoadedSurfaceHandle): SurfaceRoute[] {
         index: slotIndex,
         slotType: slot.slotType,
         definitionRef: definitionRefFromSlot(slot),
+        moduleWidget: moduleWidgetFromSlot(slot),
       };
       slots.push(slotView);
       slotsById.set(slot.id, slotView);
     }
-    return { id: route.id, index, slots, slotsById };
+    return { id: route.id, index, routeClass: routeClassOf(route), slots, slotsById };
   });
+}
+
+function routeClassOf(route: { routeClass?: unknown }): string | undefined {
+  return typeof route.routeClass === 'string' ? route.routeClass : undefined;
 }
 
 function definitionRefFromSlot(slot: { binding?: unknown }): string | undefined {
@@ -181,6 +188,17 @@ function definitionRefFromSlot(slot: { binding?: unknown }): string | undefined 
   if (!binding || typeof binding !== 'object') return undefined;
   const definitionRef = (binding as { definitionRef?: unknown }).definitionRef;
   return typeof definitionRef === 'string' ? definitionRef : undefined;
+}
+
+function moduleWidgetFromSlot(
+  slot: { slotType?: unknown; binding?: unknown },
+): { moduleId: string; widgetName: string } | undefined {
+  if (slot.slotType !== 'module-widget') return undefined;
+  const binding = slot.binding;
+  if (!binding || typeof binding !== 'object') return undefined;
+  const { moduleId, widgetName } = binding as { moduleId?: unknown; widgetName?: unknown };
+  if (typeof moduleId !== 'string' || typeof widgetName !== 'string') return undefined;
+  return { moduleId, widgetName };
 }
 
 function policyEvidences(context: AppGraphContext): UiGraphPolicyEvidence[] {
@@ -660,6 +678,77 @@ function validateThemeWidgetRefs(
   });
 }
 
+/**
+ * Route classes whose rendered appearance is not the tenant's to restyle:
+ * an artifact the platform issued, the act of signing one, and the independent
+ * check of one. `intake` admits tenant chrome theming; `operation` carries no
+ * substrate trust claim; an unclassified route has stated nothing, so no rule
+ * keyed on a class fires against it.
+ *
+ * `surface-spec.md` §3 Route Class; `ui-graph-policy-spec.md` §5.7.
+ */
+export const TENANT_THEMING_REFUSING_ROUTE_CLASSES: ReadonlySet<string> = new Set([
+  'proof',
+  'ceremony',
+  'verification',
+]);
+
+/**
+ * Theme authority. A tenant Theme token assignment MUST NOT land on a widget
+ * bound to a proof-bearing route.
+ *
+ * The check is deliberately widget-grained rather than route-grained, because
+ * `ThemeTokenAssignment` is `{widgetRef, slot, token}` and carries no route:
+ * a widget bound on both an `intake` route and a `proof` route makes the
+ * assignment invalid, since the assignment would in fact repaint it on the
+ * proof route. Narrowing this needs route-scoped assignments — a UI Graph
+ * Policy schema revision, not a validator change (§5.7 "Grain").
+ *
+ * Reads only the Surface document and the policy: no ModuleResolver, no Theme
+ * token evidence. An assignment that repaints a proof surface is refused
+ * whether or not its token resolves.
+ */
+function validateThemeRouteClass(
+  evidence: UiGraphPolicyEvidence,
+  surface: LoadedSurfaceHandle,
+  assignments: readonly IndexedThemeTokenAssignment[],
+): AppGraphDiagnostic[] {
+  const protectedRoutes = surfaceRoutes(surface)
+    .filter((route) => route.routeClass !== undefined
+      && TENANT_THEMING_REFUSING_ROUTE_CLASSES.has(route.routeClass));
+  if (protectedRoutes.length === 0) return [];
+
+  return assignments.flatMap((assignment) => {
+    const { widgetRef, slot, token } = assignment.assignment;
+    const bindings = protectedRoutes.flatMap((route) =>
+      route.slots
+        .filter((routeSlot) =>
+          routeSlot.moduleWidget?.moduleId === widgetRef.moduleId
+          && routeSlot.moduleWidget?.widgetName === widgetRef.widgetName)
+        .map((routeSlot) => ({ route, routeSlot }))
+    );
+    if (bindings.length === 0) return [];
+
+    const [first] = bindings;
+    return [diagnostic(
+      'THEME-ROUTE-CLASS',
+      'A Theme token assignment targets a widget bound on a Surface route whose routeClass refuses tenant theming.',
+      evidenceSource(evidence, `/theme/assignments/${assignment.index}/widgetRef`),
+      bindings.map(({ route, routeSlot }) =>
+        surfaceSource(surface, `/routes/${route.index}/slots/${routeSlot.index}/binding`)),
+      {
+        moduleId: widgetRef.moduleId,
+        widgetName: widgetRef.widgetName,
+        slot,
+        token,
+        routeId: first.route.id,
+        routeClass: first.route.routeClass,
+        reason: 'tenant-theming-refused-by-route-class',
+      },
+    )];
+  });
+}
+
 function themeTokens(handle: LoadedThemeHandle): Record<string, unknown> {
   const tokens = handle.document?.tokens;
   return tokens && typeof tokens === 'object' && !Array.isArray(tokens)
@@ -929,6 +1018,7 @@ export function validateUiGraphPolicy(context: AppGraphContext): AppGraphDiagnos
         hostReserved,
       ),
       ...validateLocaleKeyOwners(evidence, locales, context.moduleResolution),
+      ...validateThemeRouteClass(evidence, matchingSurfaces[0], assignments),
       ...[...tokenEvidenceByAssignment.values()].flatMap((tokenEvidence) => tokenEvidence.diagnostics),
       ...validateThemeWidgetRefs(evidence, assignments, context.moduleResolution, tokenEvidenceByAssignment),
     ];

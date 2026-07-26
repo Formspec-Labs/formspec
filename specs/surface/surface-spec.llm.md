@@ -18,6 +18,7 @@ Source schema: `schemas/surface.schema.json`
 
 | Pointer | Required | Type | Guidance | Description |
 |---|---|---|---|---|
+| `#/$defs/Route/properties/routeClass` | no | string | Closed route-class vocabulary; theme authority and other trust rules derive from it. Absence means unclassified, never `operation`. | OPTIONAL closed vocabulary naming WHAT THIS ROUTE PRESENTS. `intake` = a Definition-backed capture from a respondent. `proof` = an artifact the platform issued that a third party relies on as evidence (receipt, certificate, disclosure). `ceremony` = the act of signing or attesting. `verification` = independent checking of an issued artifact. `operation` = operator-facing product UI, an affirmative statement that this route carries no substrate trust claim. Names the route's kind, NOT a permission — rules derive from it (theme authority refuses tenant Theme assignments on proof/ceremony/verification routes; see ui-graph-policy-spec.md §5.7, `THEME-ROUTE-CLASS`). Deliberately orthogonal to access posture and route lifecycle; MUST NOT absorb either. NO DEFAULT: an absent routeClass means *unclassified* (nobody has stated what this route is), which is a distinct state from `operation`. Processors MUST NOT treat absence as `operation`. See surface-spec.md §3 Route Class. |
 | `#/$defs/Slot/properties/slotType` | yes | string | Closed slot-type discriminator pinning binding shape per ADR 0150 §6.2 | Closed v0.1 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Closed at v0.1 — extensions land via the module Registry's `slot-type` contribution category in a future rev. |
 | `#/properties/$formspecSurface` | yes | string | Version pin for surface document compatibility | Surface specification version. MUST be '0.1'. |
 
@@ -28,6 +29,7 @@ Source schema: `schemas/surface.schema.json`
 - Route reachability is local to the Surface document: every route must be reachable from `entry` via transitions or embed-route slots, and unresolved embed-route bindings fail E607.
 - Surface declares transition triggers only. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.
 - Component 1.2 targetSurfaceRoutes[] may target Surface route and slot ids, but Surface does not list mounted Components or own Component membership; cross-artifact resolution belongs to App Manifest resolution and app-graph validation.
+- `routeClass` is an OPTIONAL closed vocabulary (`intake|proof|ceremony|verification|operation`) naming what a route presents. Rules derive from it and are enforced on consuming artifacts, not restated on the route; it is orthogonal to access posture and route lifecycle.
 
 ## Conformance Essentials
 
@@ -37,3 +39,4 @@ Source schema: `schemas/surface.schema.json`
 - Surface `module-widget` slots must resolve their declared `moduleId` and `widgetName` through loaded module contributions; `binding.config` validates against the contributing widget's `widgetShape.props`.
 - Component targetSurfaceRoutes[] claims resolve against Surface route and slot ids in app-graph validation; Surface-local conformance does not synthesize Component membership.
 - App Manifest Surface references use URL/version sibling identity, never local fixture paths, filenames, URL suffix conventions, or implicit sibling discovery.
+- `routeClass` has no default: absence means *unclassified*, a distinct state from `operation`, and processors must not treat absence as `operation`. Unclassified routes are publishable; rules keyed on a trust-bearing class do not fire against them.

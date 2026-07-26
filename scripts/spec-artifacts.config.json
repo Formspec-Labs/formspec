@@ -640,7 +640,8 @@
         "`readSurfaceDraft` may expose non-publishable state with diagnostics; `exportSurfaceDocument` is the fail-closed publication gate for schema shape and Surface-local rules.",
         "Route reachability is local to the Surface document: every route must be reachable from `entry` via transitions or embed-route slots, and unresolved embed-route bindings fail E607.",
         "Surface declares transition triggers only. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.",
-        "Component 1.2 targetSurfaceRoutes[] may target Surface route and slot ids, but Surface does not list mounted Components or own Component membership; cross-artifact resolution belongs to App Manifest resolution and app-graph validation."
+        "Component 1.2 targetSurfaceRoutes[] may target Surface route and slot ids, but Surface does not list mounted Components or own Component membership; cross-artifact resolution belongs to App Manifest resolution and app-graph validation.",
+        "`routeClass` is an OPTIONAL closed vocabulary (`intake|proof|ceremony|verification|operation`) naming what a route presents. Rules derive from it and are enforced on consuming artifacts, not restated on the route; it is orthogonal to access posture and route lifecycle."
       ],
       "conformanceEssentials": [
         "A conforming published Surface document must include `$formspecSurface='0.1'`, `id`, `entry`, and at least one route with at least one slot.",
@@ -648,7 +649,8 @@
         "E606 covers unreachable routes and E607 covers unresolved embed-route slot targets.",
         "Surface `module-widget` slots must resolve their declared `moduleId` and `widgetName` through loaded module contributions; `binding.config` validates against the contributing widget's `widgetShape.props`.",
         "Component targetSurfaceRoutes[] claims resolve against Surface route and slot ids in app-graph validation; Surface-local conformance does not synthesize Component membership.",
-        "App Manifest Surface references use URL/version sibling identity, never local fixture paths, filenames, URL suffix conventions, or implicit sibling discovery."
+        "App Manifest Surface references use URL/version sibling identity, never local fixture paths, filenames, URL suffix conventions, or implicit sibling discovery.",
+        "`routeClass` has no default: absence means *unclassified*, a distinct state from `operation`, and processors must not treat absence as `operation`. Unclassified routes are publishable; rules keyed on a trust-bearing class do not fire against them."
       ]
     },
     {

@@ -23,8 +23,13 @@ const TENANT_MODULE = { id: 'x-northwind-brand', version: '1.0.0' };
 /**
  * Proof Surface. Both routes are trust-claim surfaces in the product's own
  * vocabulary: `/verify` is the independent verifier, `/c/{receiptId}` is the
- * issued certificate. Neither route carries any marker distinguishing it from
- * a tenant-themeable form route — the Surface schema has no such field.
+ * issued certificate.
+ *
+ * At E4 time neither route carried any marker distinguishing it from a
+ * tenant-themeable form route, and that absence WAS the finding. The route-class
+ * slice added `routeClass` to `surface.schema.json` `$defs/Route`, so the two
+ * routes now say what they are and the violation below is refused. The attack
+ * is otherwise byte-identical to the one E4 ran.
  */
 const surface = {
   $formspecSurface: '0.1',
@@ -36,6 +41,7 @@ const surface = {
     {
       id: 'verify',
       path: '/verify',
+      routeClass: 'verification',
       title: 'Verify a receipt',
       slots: [
         {
@@ -49,6 +55,7 @@ const surface = {
     {
       id: 'certificate',
       path: '/c/{receiptId}',
+      routeClass: 'proof',
       title: 'Signing certificate',
       params: [{ name: 'receiptId', type: 'string' }],
       slots: [
@@ -198,12 +205,17 @@ export const themeAuthorityCase = (policy: UiGraphPolicyDocument): RedTeamCase =
     },
   ],
   /**
-   * Nothing to list. There is no diagnostic code anywhere in
-   * `packages/formspec-app-graph/src/` that names a themed proof surface —
-   * the five THEME-* codes all check token/slot/widget *resolution*, never
-   * theming authority. An empty list is the pre-registered prediction.
+   * At E4 time this list was empty: no diagnostic code anywhere in
+   * `packages/formspec-app-graph/src/` named a themed proof surface, because
+   * the five THEME-TOKEN-* codes all check token/slot/widget *resolution*,
+   * never theming authority. The empty list was the pre-registered prediction
+   * and it held.
+   *
+   * `THEME-ROUTE-CLASS` is the code that closes it: a Theme token assignment
+   * whose widget is bound on a `proof`, `ceremony`, or `verification` route is
+   * refused. See `ui-graph-policy-spec.md` §5.7.
    */
-  wouldCatch: [],
+  wouldCatch: ['THEME-ROUTE-CLASS'],
 });
 
 export const CLAIM1_SURFACE_URL = SURFACE_URL;

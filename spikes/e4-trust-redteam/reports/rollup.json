@@ -2,17 +2,28 @@
   "experiment": "E4 — trust-claim red team",
   "date": "2026-07-26",
   "prediction": "All three violations are authorable today, validate cleanly, and are undetectable by any producer diagnostic.",
-  "held": true,
+  "predictionHeldAtE4Time": true,
+  "closedSince": {
+    "claim1-theme-authority": "Route-class slice: `routeClass` on surface.schema.json $defs/Route + THEME-ROUTE-CLASS in validateUiGraphPolicy."
+  },
+  "stillOpen": [
+    "claim2-sensitivity",
+    "claim3-client-executed"
+  ],
+  "matchesExpectation": true,
   "cases": [
     {
       "id": "claim1-theme-authority",
       "v8Finding": 6,
       "claim": "Tenants may theme form chrome and MUST NOT theme receipt, certificate, verifier, or ceremony surfaces — those surfaces' visual immutability is part of the proof claim.",
       "violation": "A tenant-owned Theme is bound as the app's only Theme, and a tenant-authored UI Graph Policy assigns tenant brand tokens to the accent and surface token slots of the certificate widget and the verifier widget.",
-      "verdict": "undetected",
-      "reportOk": true,
-      "diagnosticCount": 0,
-      "diagnosticCodes": [],
+      "verdict": "caught",
+      "expectedVerdict": "caught",
+      "reportOk": false,
+      "diagnosticCount": 3,
+      "diagnosticCodes": [
+        "THEME-ROUTE-CLASS"
+      ],
       "phases": [
         {
           "phase": "artifact-resolution",
@@ -50,6 +61,7 @@
       "claim": "The product ships an AI co-pilot that consumes the same app graph, so the graph must be able to say which data is sensitive before a projection reads it.",
       "violation": "A Data Sources catalog advertises live draft Response state (SSN, DOB) at the co-pilot slot and a webhook signing secret to the co-pilot module, with no field anywhere marking either as sensitive. A fourth source points at a nonexistent route/slot as a control.",
       "verdict": "undetected",
+      "expectedVerdict": "undetected",
       "reportOk": true,
       "diagnosticCount": 0,
       "diagnosticCodes": [],
@@ -90,6 +102,7 @@
       "claim": "The verifier is independent — \"verify without contacting Formspec\" — which requires verification to execute client-side and touch no server.",
       "violation": "The verifier route's only transition triggers an action whose effect chain is hostEvent → evidenceRequest → ledgerAppend: the receipt bundle leaves the browser and a durable server-side ledger event records the verification attempt.",
       "verdict": "undetected",
+      "expectedVerdict": "undetected",
       "reportOk": true,
       "diagnosticCount": 0,
       "diagnosticCodes": [],

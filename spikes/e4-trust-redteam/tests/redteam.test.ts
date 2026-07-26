@@ -2,16 +2,32 @@
  * @filedesc E4 red-team run. Three trust claims, three violating app graphs,
  * real `produceAppGraphValidationReport` with real Ajv schema validators.
  *
- * The assertions ARE the pre-registered prediction: each case asserts that the
- * graph validates and that no diagnostic names the violation. A failing test
- * here is the interesting result — it means the substrate caught something.
+ * The assertions were the pre-registered prediction: each case asserted that
+ * the graph validates and that no diagnostic names the violation. All three
+ * held.
+ *
+ * **Read the assertions before reusing this harness.** The three claims no
+ * longer assert the same thing:
+ *
+ * - **Claim 1 asserts CAUGHT.** The route-class slice landed `routeClass` on
+ *   `surface.schema.json` `$defs/Route` and `THEME-ROUTE-CLASS` in
+ *   `validateUiGraphPolicy`. The violating graph is unchanged apart from the two
+ *   routes now stating what they are, and it is refused. This test failing
+ *   means the guard regressed.
+ * - **Claims 2 and 3 still assert UNDETECTED, deliberately.** Sensitivity
+ *   annotation (v8 finding 27) and execution locality (v8 finding 30) are out
+ *   of the route-class slice's scope; nothing was built for them. Their routes
+ *   ARE now classified — `operation` and `verification` — which strengthens the
+ *   result rather than weakening it: the violations survive a fully classified
+ *   graph. A failing test there is still the interesting result, and it means
+ *   someone shipped a guard.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createWireframesMcp, WireframesMcp } from '@formspec-org/mcp-wireframes';
 import type { AuthorActor, SessionRef } from '@formspec-org/studio-core';
-import { REPORTS_DIR, runCase, type RedTeamOutcome } from '../src/harness.js';
+import { REPORTS_DIR, runCase, type RedTeamOutcome, type Verdict } from '../src/harness.js';
 import { CLAIM1_SURFACE_URL, themeAuthorityCase, violatingPolicy } from '../src/claim1-theme-authority.js';
 import { sensitivityCase } from '../src/claim2-sensitivity.js';
 import { clientExecutedCase } from '../src/claim3-client-executed.js';
@@ -37,9 +53,12 @@ function publishedVerbs(): string[] {
 }
 
 describe('E4 — adversarial red-team of three trust claims', () => {
-  it('claim 1 · theme authority: a tenant restyles the certificate and verifier surfaces', async () => {
-    // Author the violating policy through the SHIPPED verb, not by hand. If the
-    // authoring surface had a theme-authority guard, this is where it would sit.
+  it('claim 1 · theme authority: a tenant restyle of the certificate and verifier surfaces is CAUGHT', async () => {
+    // Author the violating policy through the SHIPPED verb, not by hand. The
+    // authoring verb still accepts it — the guard is a graph-validation guard,
+    // not an authoring-time one, because UI Graph Policy is the tenant's own
+    // document and a constraint the constrained party can edit is not a
+    // constraint. The refusal happens where the platform's Surface is readable.
     const mcp = createWireframesMcp({ authoredBy: author, session });
     const declared = await mcp.declareUiGraphPolicy({
       surfaceUrl: CLAIM1_SURFACE_URL,
@@ -50,7 +69,7 @@ describe('E4 — adversarial red-team of three trust claims', () => {
       theme: violatingPolicy.theme,
     });
 
-    expect(declared.ok, 'declareUiGraphPolicy accepted the tenant theming of proof surfaces').toBe(true);
+    expect(declared.ok, 'declareUiGraphPolicy still accepts the tenant theming of proof surfaces').toBe(true);
     if (!declared.ok) return;
 
     const outcome = await runCase(themeAuthorityCase(declared.value));
@@ -58,9 +77,19 @@ describe('E4 — adversarial red-team of three trust claims', () => {
 
     expect(outcome.phases.find((p) => p.phase === 'schema')?.status).toBe('completed');
     expect(outcome.phases.find((p) => p.phase === 'cross-artifact')?.status).toBe('completed');
-    expect(outcome.diagnostics, 'no diagnostic of any severity').toEqual([]);
-    expect(outcome.ok).toBe(true);
-    expect(outcome.verdict).toBe('undetected');
+    expect(outcome.verdict).toBe('caught');
+    expect(outcome.ok).toBe(false);
+    expect(outcome.diagnosticCodes).toContain('THEME-ROUTE-CLASS');
+
+    // One diagnostic per violating assignment: two repaint the certificate
+    // widget (accent, surface), one repaints the verifier widget.
+    const caught = outcome.diagnostics.filter((d) => d.code === 'THEME-ROUTE-CLASS');
+    expect(caught).toHaveLength(3);
+    expect(caught.map((d) => d.details?.routeClass).sort()).toEqual(['proof', 'proof', 'verification']);
+    for (const diagnostic of caught) {
+      expect(diagnostic.severity).toBe('error');
+      expect(diagnostic.details?.reason).toBe('tenant-theming-refused-by-route-class');
+    }
   });
 
   it('claim 2 · sensitivity: respondent PII and a signing secret are routed to the co-pilot slot', async () => {
@@ -116,18 +145,34 @@ describe('E4 — adversarial red-team of three trust claims', () => {
 
   it('writes the rollup', () => {
     expect(outcomes).toHaveLength(3);
+    // Per-claim expectation, not a blanket one. E4's original prediction held
+    // 3-for-3; the route-class slice closed claim 1 and left 2 and 3 open by
+    // design. `expected` is what each claim asserts TODAY, so a drift in either
+    // direction is a test failure rather than a silent reinterpretation.
+    const expected: Record<string, Verdict> = {
+      'claim1-theme-authority': 'caught',
+      'claim2-sensitivity': 'undetected',
+      'claim3-client-executed': 'undetected',
+    };
     const rollup = {
       experiment: 'E4 — trust-claim red team',
       date: '2026-07-26',
       prediction:
         'All three violations are authorable today, validate cleanly, and are undetectable by any producer diagnostic.',
-      held: outcomes.every((o) => o.verdict === 'undetected' && o.diagnostics.length === 0),
+      predictionHeldAtE4Time: true,
+      closedSince: {
+        'claim1-theme-authority':
+          'Route-class slice: `routeClass` on surface.schema.json $defs/Route + THEME-ROUTE-CLASS in validateUiGraphPolicy.',
+      },
+      stillOpen: ['claim2-sensitivity', 'claim3-client-executed'],
+      matchesExpectation: outcomes.every((o) => o.verdict === expected[o.id]),
       cases: outcomes.map((o) => ({
         id: o.id,
         v8Finding: o.v8Finding,
         claim: o.claim,
         violation: o.violation,
         verdict: o.verdict,
+        expectedVerdict: expected[o.id],
         reportOk: o.ok,
         diagnosticCount: o.diagnostics.length,
         diagnosticCodes: o.diagnosticCodes,
@@ -136,6 +181,6 @@ describe('E4 — adversarial red-team of three trust claims', () => {
     };
     mkdirSync(REPORTS_DIR, { recursive: true });
     writeFileSync(resolve(REPORTS_DIR, 'rollup.json'), JSON.stringify(rollup, null, 2));
-    expect(rollup.held).toBe(true);
+    expect(rollup.matchesExpectation).toBe(true);
   });
 });

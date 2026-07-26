@@ -190,6 +190,7 @@
               {
                 "id": "verify",
                 "path": "/verify",
+                "routeClass": "verification",
                 "title": "Verify a receipt",
                 "slots": [
                   {
@@ -206,6 +207,7 @@
               {
                 "id": "certificate",
                 "path": "/c/{receiptId}",
+                "routeClass": "proof",
                 "title": "Signing certificate",
                 "params": [
                   {
@@ -572,14 +574,14 @@
     }
   },
   "report": {
-    "ok": true,
+    "ok": false,
     "summary": {
       "artifacts": 4,
       "loadedArtifacts": 4,
       "schemaFailures": 0,
       "unvalidatedArtifacts": 0,
-      "graphErrors": 0,
-      "errors": 0,
+      "graphErrors": 3,
+      "errors": 3,
       "warnings": 0,
       "infos": 0,
       "importedDiagnostics": 0,
@@ -630,7 +632,107 @@
         "diagnostics": []
       }
     ],
-    "diagnostics": [],
+    "diagnostics": [
+      {
+        "code": "THEME-ROUTE-CLASS",
+        "severity": "error",
+        "phase": "cross-artifact",
+        "origin": "ui-graph-policy",
+        "message": "A Theme token assignment targets a widget bound on a Surface route whose routeClass refuses tenant theming.",
+        "primarySource": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "source": "e4://claim1/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/0/widgetRef"
+        },
+        "relatedSources": [
+          {
+            "artifactSlot": "surfaces[0]",
+            "artifactKind": "surface",
+            "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof",
+            "jsonPointer": "/routes/1/slots/0/binding",
+            "ref": {
+              "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+              "version": "1.0.0"
+            }
+          }
+        ],
+        "details": {
+          "moduleId": "x-northwind-brand",
+          "widgetName": "x-certificate-sheet",
+          "slot": "accent",
+          "token": "color.accent",
+          "routeId": "certificate",
+          "routeClass": "proof",
+          "reason": "tenant-theming-refused-by-route-class"
+        }
+      },
+      {
+        "code": "THEME-ROUTE-CLASS",
+        "severity": "error",
+        "phase": "cross-artifact",
+        "origin": "ui-graph-policy",
+        "message": "A Theme token assignment targets a widget bound on a Surface route whose routeClass refuses tenant theming.",
+        "primarySource": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "source": "e4://claim1/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/1/widgetRef"
+        },
+        "relatedSources": [
+          {
+            "artifactSlot": "surfaces[0]",
+            "artifactKind": "surface",
+            "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof",
+            "jsonPointer": "/routes/1/slots/0/binding",
+            "ref": {
+              "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+              "version": "1.0.0"
+            }
+          }
+        ],
+        "details": {
+          "moduleId": "x-northwind-brand",
+          "widgetName": "x-certificate-sheet",
+          "slot": "surface",
+          "token": "color.surface",
+          "routeId": "certificate",
+          "routeClass": "proof",
+          "reason": "tenant-theming-refused-by-route-class"
+        }
+      },
+      {
+        "code": "THEME-ROUTE-CLASS",
+        "severity": "error",
+        "phase": "cross-artifact",
+        "origin": "ui-graph-policy",
+        "message": "A Theme token assignment targets a widget bound on a Surface route whose routeClass refuses tenant theming.",
+        "primarySource": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "source": "e4://claim1/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/2/widgetRef"
+        },
+        "relatedSources": [
+          {
+            "artifactSlot": "surfaces[0]",
+            "artifactKind": "surface",
+            "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof",
+            "jsonPointer": "/routes/0/slots/0/binding",
+            "ref": {
+              "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+              "version": "1.0.0"
+            }
+          }
+        ],
+        "details": {
+          "moduleId": "x-northwind-brand",
+          "widgetName": "x-verification-panel",
+          "slot": "accent",
+          "token": "color.accent",
+          "routeId": "verify",
+          "routeClass": "verification",
+          "reason": "tenant-theming-refused-by-route-class"
+        }
+      }
+    ],
     "phases": [
       {
         "phase": "artifact-resolution",
