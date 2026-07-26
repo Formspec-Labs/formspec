@@ -1,7 +1,7 @@
 {
   "title": "Spike v8 surface classification — formspec-cloud Claude Design mockup corpus",
   "corpus": "formspec-cloud/thoughts/concepts/claude-design-handoff/project",
-  "routeAuthority": "surfaces/route-map.html (61 product routes; the corpus draws 36 of them)",
+  "routeAuthority": "surfaces/route-map.html (61 product routes; the 37 corpus files cover 30 distinct routes)",
   "method": "Every corpus file is classified into one pattern family. One exemplar per family was translated into AppGraph artifacts through Wireframes-MCP; the rest are covered at classification level only.",
   "counts": {
     "files": 37,

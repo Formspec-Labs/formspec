@@ -179,6 +179,31 @@ export function mapDiagnostic(
   return fallback;
 }
 
+/**
+ * Counts the workaround strings the persona had to write into slot bindings
+ * because no substrate primitive accepted the shape. One mechanical rule: every
+ * string value anywhere inside an authored slot binding that starts with
+ * `x-spike-v8:`. These are the bindings the validator cannot read.
+ */
+export function countSpikeBindings(routes: RouteSpec[]): { sites: number; distinct: string[] } {
+  const found: string[] = [];
+  const walk = (v: unknown): void => {
+    if (typeof v === 'string') {
+      if (v.startsWith('x-spike-v8:')) found.push(v);
+      return;
+    }
+    if (Array.isArray(v)) {
+      for (const item of v) walk(item);
+      return;
+    }
+    if (v !== null && typeof v === 'object') {
+      for (const item of Object.values(v)) walk(item);
+    }
+  };
+  for (const route of routes) for (const slot of route.slots) walk(slot.binding);
+  return { sites: found.length, distinct: [...new Set(found)].sort() };
+}
+
 export interface SurfaceOutcome {
   script: SurfaceScript;
   phases: Array<{ phase: string; status: string }>;
@@ -186,6 +211,10 @@ export interface SurfaceOutcome {
   diagnosticCodes: string[];
   slotCount: number;
   routeCount: number;
+  /** Workaround bindings the validator cannot read — see countSpikeBindings. */
+  spikeBindings: { sites: number; distinct: string[] };
+  /** Slot types actually authored on this surface. */
+  slotTypes: Record<string, number>;
 }
 
 /**
@@ -333,5 +362,9 @@ export async function runSurface(
     diagnosticCodes: [...new Set(diags.map((d) => d.code))].sort(),
     slotCount: routes.reduce((n, r) => n + r.slots.length, 0),
     routeCount: routes.length,
+    spikeBindings: countSpikeBindings(routes),
+    slotTypes: routes
+      .flatMap((r) => r.slots)
+      .reduce<Record<string, number>>((acc, s) => ({ ...acc, [s.slotType]: (acc[s.slotType] ?? 0) + 1 }), {}),
   };
 }

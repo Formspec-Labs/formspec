@@ -23,7 +23,12 @@
       "diagnosticCodes": [
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "static-content": 1,
+        "module-widget": 4
+      },
+      "spikeBindingSites": 7
     },
     {
       "id": "owner-dashboard",
@@ -46,7 +51,12 @@
       "diagnosticCodes": [
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "static-content": 2,
+        "module-widget": 6
+      },
+      "spikeBindingSites": 7
     },
     {
       "id": "form-detail",
@@ -69,7 +79,13 @@
       "diagnosticCodes": [
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "static-content": 2,
+        "module-widget": 4,
+        "embed-route": 1
+      },
+      "spikeBindingSites": 2
     },
     {
       "id": "form-edit",
@@ -92,7 +108,12 @@
       "diagnosticCodes": [
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "static-content": 1,
+        "module-widget": 5
+      },
+      "spikeBindingSites": 6
     },
     {
       "id": "onboarding",
@@ -116,7 +137,12 @@
         "APP-GRAPH-SURFACE-DEFINITION-SLOT",
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "module-widget": 4,
+        "definition-form": 1
+      },
+      "spikeBindingSites": 3
     },
     {
       "id": "signature-ceremony",
@@ -139,7 +165,12 @@
       "diagnosticCodes": [
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "static-content": 3,
+        "module-widget": 3
+      },
+      "spikeBindingSites": 2
     },
     {
       "id": "admin-billing",
@@ -163,7 +194,12 @@
         "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF",
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "module-widget": 4,
+        "experience-unit": 1
+      },
+      "spikeBindingSites": 3
     },
     {
       "id": "dev-webhooks",
@@ -186,7 +222,12 @@
       "diagnosticCodes": [
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "module-widget": 4,
+        "static-content": 1
+      },
+      "spikeBindingSites": 4
     },
     {
       "id": "trust-center",
@@ -209,7 +250,12 @@
       "diagnosticCodes": [
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "module-widget": 3,
+        "static-content": 2
+      },
+      "spikeBindingSites": 2
     },
     {
       "id": "verifier",
@@ -232,7 +278,12 @@
       "diagnosticCodes": [
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "static-content": 1,
+        "module-widget": 4
+      },
+      "spikeBindingSites": 6
     },
     {
       "id": "responses-index",
@@ -255,7 +306,11 @@
       "diagnosticCodes": [
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "module-widget": 4
+      },
+      "spikeBindingSites": 6
     },
     {
       "id": "form-versions",
@@ -278,7 +333,12 @@
       "diagnosticCodes": [
         "MODULE-CONTRIBUTION-MISSING",
         "MODULE-UNRESOLVED"
-      ]
+      ],
+      "slotTypes": {
+        "static-content": 1,
+        "module-widget": 4
+      },
+      "spikeBindingSites": 5
     }
   ],
   "totals": {
@@ -286,7 +346,16 @@
     "slots": 66,
     "errorDiagnostics": 95,
     "warningDiagnostics": 0,
-    "infoDiagnostics": 0
+    "infoDiagnostics": 0,
+    "slotTypes": {
+      "static-content": 14,
+      "module-widget": 49,
+      "embed-route": 1,
+      "definition-form": 1,
+      "experience-unit": 1
+    },
+    "spikeBindingSites": 53,
+    "spikeBindingsDistinct": 38
   },
   "familyRanking": [
     {

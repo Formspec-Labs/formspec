@@ -69,7 +69,7 @@ findings.record({
   wanted:
     'Declare the data behind each surface: `workspace:forms`, `workspace:responses`, `workspace:envelopes`, `workspace:usage`, `host-status:anchoring`, `catalog:deployment-tiers`. v7 asked for a `workspace:` scope family; the prior question is where a scope string would even be written.',
   got:
-    'The MCP publishes no data-source verb. Every data binding in all twelve translations is a free-form string inside a `module-widget` config (`x-spike-v8:workspace:*`), invisible to the validator: 46 binding sites naming 32 distinct sources, none of them checkable, none of them carrying a schema, a sensitivity class, or a freshness contract.',
+    'The MCP publishes no data-source verb. Every data binding in all twelve translations is a free-form string inside a `module-widget` config (`x-spike-v8:workspace:*`), invisible to the validator: 53 workaround binding sites naming 38 distinct strings, none of them checkable, none of them carrying a schema, a sensitivity class, or a freshness contract.',
   severity: 'reshape-needed',
   why:
     'This is the single highest-frequency gap in the run: every surface, every list, every tile, every chart. Without it the app graph describes layout and nothing about what the layout shows — which is most of what a SaaS product is.',
@@ -231,6 +231,8 @@ describe('rollup', () => {
             phasesCompleted: o.phases.filter((p) => p.status === 'completed').map((p) => p.phase),
             diagnostics: o.diagnostics,
             diagnosticCodes: o.diagnosticCodes,
+            slotTypes: o.slotTypes,
+            spikeBindingSites: o.spikeBindings.sites,
           })),
           totals: {
             routes: outcomes.reduce((n, o) => n + o.routeCount, 0),
@@ -238,6 +240,11 @@ describe('rollup', () => {
             errorDiagnostics: outcomes.reduce((n, o) => n + o.diagnostics.error, 0),
             warningDiagnostics: outcomes.reduce((n, o) => n + o.diagnostics.warning, 0),
             infoDiagnostics: outcomes.reduce((n, o) => n + o.diagnostics.info, 0),
+            slotTypes: outcomes
+              .flatMap((o) => Object.entries(o.slotTypes))
+              .reduce<Record<string, number>>((acc, [k, v]) => ({ ...acc, [k]: (acc[k] ?? 0) + v }), {}),
+            spikeBindingSites: outcomes.reduce((n, o) => n + o.spikeBindings.sites, 0),
+            spikeBindingsDistinct: [...new Set(outcomes.flatMap((o) => o.spikeBindings.distinct))].sort().length,
           },
           familyRanking: findings.familyRanking(),
           v7CrossReference: findings.v7CrossReference(),
