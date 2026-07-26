@@ -42,6 +42,11 @@ REQUIRED_CASES = {
     "surface-target-mismatch-skips-theme-widget",
     "widget-owner-module-mismatch",
     "theme-assignment-on-proof-route-class",
+    "theme-assignment-on-ceremony-route-class",
+    "theme-assignment-on-verification-route-class",
+    "theme-assignment-on-attestation-route-class",
+    "theme-assignment-on-authentication-route-class",
+    "theme-assignment-on-operation-route-class",
     "theme-assignment-on-intake-route-class",
     "theme-assignment-on-unclassified-route",
     "theme-assignment-spanning-intake-and-proof-route-classes",
@@ -73,6 +78,11 @@ EXPECTED_CODES = {
     "surface-target-mismatch-skips-theme-widget": ["UI-POLICY-SURFACE-TARGET"],
     "widget-owner-module-mismatch": ["THEME-TOKEN-WIDGET"],
     "theme-assignment-on-proof-route-class": ["THEME-ROUTE-CLASS"],
+    "theme-assignment-on-ceremony-route-class": ["THEME-ROUTE-CLASS"],
+    "theme-assignment-on-verification-route-class": ["THEME-ROUTE-CLASS"],
+    "theme-assignment-on-attestation-route-class": ["THEME-ROUTE-CLASS"],
+    "theme-assignment-on-authentication-route-class": ["THEME-ROUTE-CLASS"],
+    "theme-assignment-on-operation-route-class": ["THEME-ROUTE-CLASS"],
     "theme-assignment-on-intake-route-class": [],
     "theme-assignment-on-unclassified-route": [],
     "theme-assignment-spanning-intake-and-proof-route-classes": ["THEME-ROUTE-CLASS"],
@@ -131,6 +141,19 @@ UI_POLICY_SCHEMA = load_schema("ui-graph-policy.schema.json")
 UI_POLICY_VALIDATOR = Draft202012Validator(UI_POLICY_SCHEMA)
 MODULE_REPORT_SCHEMA = load_schema("module-resolution-report.schema.json")
 MODULE_REPORT_VALIDATOR = Draft202012Validator(MODULE_REPORT_SCHEMA)
+SURFACE_SCHEMA = load_schema("surface.schema.json")
+
+#: The only route class that admits tenant chrome theming, per `surface-spec.md`
+#: §3 Route Class. The refusing set is derived from the Surface enum rather than
+#: restated, so a value added to the vocabulary is refused here by default —
+#: which is the whole point of the rule reading one bit instead of enumerating
+#: refusers (`ui-graph-policy-spec.md` §5.7).
+THEME_ADMITTING_ROUTE_CLASS = "intake"
+REFUSING_ROUTE_CLASSES = {
+    route_class
+    for route_class in SURFACE_SCHEMA["$defs"]["Route"]["properties"]["routeClass"]["enum"]
+    if route_class != THEME_ADMITTING_ROUTE_CLASS
+}
 
 
 def _corpus() -> dict[str, Any]:
@@ -392,12 +415,41 @@ def test_ui_graph_policy_theme_widget_expected_diagnostics_are_policy_owned() ->
                     _assert_theme_pointer(related)
 
 
+def test_theme_route_class_refuses_every_class_except_intake() -> None:
+    """Exactly one value admits, so every other value needs a refusing case.
+
+    Derived from the Surface enum, not a list here: adding a value to the
+    vocabulary without a fixture proving what it does to theme authority fails
+    this. The closure test that forced `operation` to refuse
+    (`thoughts/experiments/2026-07-26-route-class-closure-test.md`) is exactly
+    the work this test makes cheap to redo.
+    """
+    covered = {
+        diagnostic["details"]["routeClass"]
+        for case in _corpus()["cases"]
+        for diagnostic in case["expected"]["diagnostics"]
+        if diagnostic["code"] == "THEME-ROUTE-CLASS"
+    }
+    assert covered == REFUSING_ROUTE_CLASSES
+
+    admitting = {
+        route["routeClass"]
+        for case in _corpus()["cases"]
+        if case["expected"]["diagnostics"] == []
+        for handle_key in case["request"]["artifacts"].get("surfaces", [])
+        for route in _corpus()["handles"][handle_key]["document"]["routes"]
+        if "routeClass" in route
+    }
+    assert admitting == {THEME_ADMITTING_ROUTE_CLASS}
+
+
 def test_theme_route_class_refuses_tenant_theming_on_proof_bearing_routes() -> None:
     """Route class is authored on Surface; theme authority derives from it.
 
-    The refusing set is `proof | ceremony | verification` — the surfaces whose
-    rendered appearance a third party relies on. `intake` admits tenant chrome
-    theming, `operation` carries no substrate trust claim.
+    `proof` is the original case: an artifact the platform issued whose rendered
+    form a third party relies on. It pins the diagnostic's shape — which pointer
+    is primary, which is related, and what `details` carries — for every value in
+    the refusing set.
     """
     caught = _case("theme-assignment-on-proof-route-class")["expected"]["diagnostics"][0]
     assert caught["code"] == "THEME-ROUTE-CLASS"
@@ -457,16 +509,22 @@ def test_theme_route_class_follows_embed_route_composition() -> None:
 def test_theme_route_class_admits_intake_and_distinguishes_unclassified() -> None:
     """Absence of `routeClass` is *unclassified*, never `operation`.
 
-    Both cases emit nothing, so the fixture alone cannot tell them apart. The
-    documents can: the intake route states a class and the unclassified route
-    states none. Collapsing them — a schema `default`, or a processor reading
-    absence as `operation` — is what this asserts against.
+    The two states now have opposite theme postures, which is what makes the
+    distinction observable in the fixture rather than only in the documents:
+    `operation` refuses and unclassified refuses nothing, because a rule keyed
+    on a class cannot fire against a route that states none. Collapsing them —
+    a schema `default`, or a processor reading absence as `operation` — would
+    make the unclassified case emit `THEME-ROUTE-CLASS`.
     """
     corpus = _corpus()
     intake_case = _case("theme-assignment-on-intake-route-class")
     unclassified_case = _case("theme-assignment-on-unclassified-route")
+    operation_case = _case("theme-assignment-on-operation-route-class")
     assert intake_case["expected"]["diagnostics"] == []
     assert unclassified_case["expected"]["diagnostics"] == []
+    assert [d["code"] for d in operation_case["expected"]["diagnostics"]] == [
+        "THEME-ROUTE-CLASS"
+    ]
 
     def sole_route(case: dict[str, Any]) -> dict[str, Any]:
         handle_key = case["request"]["artifacts"]["surfaces"][0]
@@ -475,6 +533,7 @@ def test_theme_route_class_admits_intake_and_distinguishes_unclassified() -> Non
         return routes[0]
 
     assert sole_route(intake_case)["routeClass"] == "intake"
+    assert sole_route(operation_case)["routeClass"] == "operation"
     assert "routeClass" not in sole_route(unclassified_case)
 
 
@@ -522,11 +581,7 @@ def test_ui_graph_policy_theme_widget_fixture_keeps_deferred_families_out() -> N
             if diagnostic["code"] == "THEME-ROUTE-CLASS":
                 assert diagnostic["primarySource"]["jsonPointer"].startswith("/theme/assignments/")
                 assert diagnostic["primarySource"]["jsonPointer"].endswith("/widgetRef")
-                assert diagnostic["details"]["routeClass"] in {
-                    "proof",
-                    "ceremony",
-                    "verification",
-                }
+                assert diagnostic["details"]["routeClass"] in REFUSING_ROUTE_CLASSES
             if diagnostic["code"] == "MODULE-CONTRIBUTION-UNADMITTED":
                 primary = diagnostic["primarySource"]
                 assert set(primary).issubset({"artifactSlot", "source", "jsonPointer"})

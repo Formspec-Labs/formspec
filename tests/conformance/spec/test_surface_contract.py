@@ -86,6 +86,27 @@ def _route_class_enum() -> list[str]:
     return SURFACE_SCHEMA["$defs"]["Route"]["properties"]["routeClass"]["enum"]
 
 
+def test_surface_route_class_vocabulary_is_the_closed_substrate_set() -> None:
+    """The vocabulary is a decision, not a build detail — pin it literally.
+
+    Every other test here reads the enum, so a widened or narrowed vocabulary
+    passes them all. This is the one place that would go red. The set and its
+    non-extensibility are ADR 0159 §The rendering ring, "Route class — the
+    closed classification vocabulary (Amendment A1)": port-owned trust rules key
+    on these values, so a host cannot mint one and a Registry extension seam is
+    refused. Changing this list means amending that ADR first.
+    """
+    assert sorted(_route_class_enum()) == [
+        "attestation",
+        "authentication",
+        "ceremony",
+        "intake",
+        "operation",
+        "proof",
+        "verification",
+    ]
+
+
 def test_surface_route_class_enum_admits_every_declared_value() -> None:
     """Every value the closed vocabulary declares is authorable.
 

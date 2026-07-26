@@ -146,6 +146,141 @@
         ]
       }
     },
+    "surface-ceremony-signing": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/signing",
+      "ref": { "url": "https://example.gov/apps/intake/surfaces/signing", "version": "1.0.0" },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "signing",
+        "entry": "sign",
+        "routes": [
+          {
+            "id": "sign",
+            "path": "/sign/{envelopeId}",
+            "routeClass": "ceremony",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface-verification-verifier": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/verifier",
+      "ref": { "url": "https://example.gov/apps/intake/surfaces/verifier", "version": "1.0.0" },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "verifier",
+        "entry": "verify",
+        "routes": [
+          {
+            "id": "verify",
+            "path": "/verify",
+            "routeClass": "verification",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface-attestation-trust-matrix": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/trust-matrix",
+      "ref": { "url": "https://example.gov/apps/intake/surfaces/trust-matrix", "version": "1.0.0" },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "trust-matrix",
+        "entry": "capabilities",
+        "routes": [
+          {
+            "id": "capabilities",
+            "path": "/trust/capabilities",
+            "routeClass": "attestation",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface-authentication-signin": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/signin",
+      "ref": { "url": "https://example.gov/apps/intake/surfaces/signin", "version": "1.0.0" },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "signin",
+        "entry": "signin",
+        "routes": [
+          {
+            "id": "signin",
+            "path": "/auth/{flow}",
+            "routeClass": "authentication",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface-operation-console": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/console",
+      "ref": { "url": "https://example.gov/apps/intake/surfaces/console", "version": "1.0.0" },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "console",
+        "entry": "audit",
+        "routes": [
+          {
+            "id": "audit",
+            "path": "/admin/audit",
+            "routeClass": "operation",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              }
+            ]
+          }
+        ]
+      }
+    },
     "surface-unclassified": {
       "slot": "surfaces[0]",
       "artifactKind": "surface",
@@ -736,6 +871,101 @@
         "version": "1.0.0",
         "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/intake" },
         "routePolicies": [{ "routeId": "apply" }],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "theme-on-ceremony-route-class": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-on-ceremony-route-class",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/signing" },
+        "routePolicies": [{ "routeId": "sign" }],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "theme-on-verification-route-class": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-on-verification-route-class",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/verifier" },
+        "routePolicies": [{ "routeId": "verify" }],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "theme-on-attestation-route-class": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-on-attestation-route-class",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/trust-matrix" },
+        "routePolicies": [{ "routeId": "capabilities" }],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "theme-on-authentication-route-class": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-on-authentication-route-class",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/signin" },
+        "routePolicies": [{ "routeId": "signin" }],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "theme-on-operation-route-class": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-on-operation-route-class",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/console" },
+        "routePolicies": [{ "routeId": "audit" }],
         "theme": {
           "assignments": [
             {
@@ -2834,8 +3064,308 @@
       }
     },
     {
+      "id": "theme-assignment-on-ceremony-route-class",
+      "description": "A Theme token assignment is refused when its widget is bound on a route with routeClass \"ceremony\": the signer's preimage is the thing signed, so the rendering is the evidence rather than a view of it.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-ceremony-signing"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-on-ceremony-route-class"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-ROUTE-CLASS",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/theme-on-ceremony-route-class",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/signing",
+                "ref": { "url": "https://example.gov/apps/intake/surfaces/signing", "version": "1.0.0" },
+                "jsonPointer": "/routes/0/slots/0/binding"
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.accent",
+              "routeId": "sign",
+              "routeClass": "ceremony",
+              "embedChain": ["sign"],
+              "reason": "tenant-theming-refused-by-route-class"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "theme-assignment-on-verification-route-class",
+      "description": "A Theme token assignment is refused when its widget is bound on a route with routeClass \"verification\": credibility depends on the surface being neither the issuer's nor the tenant's voice.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-verification-verifier"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-on-verification-route-class"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-ROUTE-CLASS",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/theme-on-verification-route-class",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/verifier",
+                "ref": { "url": "https://example.gov/apps/intake/surfaces/verifier", "version": "1.0.0" },
+                "jsonPointer": "/routes/0/slots/0/binding"
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.accent",
+              "routeId": "verify",
+              "routeClass": "verification",
+              "embedChain": ["verify"],
+              "reason": "tenant-theming-refused-by-route-class"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "theme-assignment-on-attestation-route-class",
+      "description": "A Theme token assignment is refused when its widget is bound on a route with routeClass \"attestation\": the publisher is accountable for the rendered claim, so a tenant restyle transfers reliance to the wrong party.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-attestation-trust-matrix"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-on-attestation-route-class"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-ROUTE-CLASS",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/theme-on-attestation-route-class",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/trust-matrix",
+                "ref": { "url": "https://example.gov/apps/intake/surfaces/trust-matrix", "version": "1.0.0" },
+                "jsonPointer": "/routes/0/slots/0/binding"
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.accent",
+              "routeId": "capabilities",
+              "routeClass": "attestation",
+              "embedChain": ["capabilities"],
+              "reason": "tenant-theming-refused-by-route-class"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "theme-assignment-on-authentication-route-class",
+      "description": "A Theme token assignment is refused when its widget is bound on a route with routeClass \"authentication\": the chrome is the anti-phishing control, so a restylable credential-capture page is a phishing surface.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-authentication-signin"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-on-authentication-route-class"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-ROUTE-CLASS",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/theme-on-authentication-route-class",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/signin",
+                "ref": { "url": "https://example.gov/apps/intake/surfaces/signin", "version": "1.0.0" },
+                "jsonPointer": "/routes/0/slots/0/binding"
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.accent",
+              "routeId": "signin",
+              "routeClass": "authentication",
+              "embedChain": ["signin"],
+              "reason": "tenant-theming-refused-by-route-class"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "theme-assignment-on-operation-route-class",
+      "description": "A Theme token assignment is refused when its widget is bound on a route with routeClass \"operation\". This is the flip the closure test forced: `operation` is the residual value, and a residual value on the permissive side of the only rule keyed on the vocabulary is fail-open.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-operation-console"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-on-operation-route-class"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-ROUTE-CLASS",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/theme-on-operation-route-class",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/console",
+                "ref": { "url": "https://example.gov/apps/intake/surfaces/console", "version": "1.0.0" },
+                "jsonPointer": "/routes/0/slots/0/binding"
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.accent",
+              "routeId": "audit",
+              "routeClass": "operation",
+              "embedChain": ["audit"],
+              "reason": "tenant-theming-refused-by-route-class"
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": "theme-assignment-on-intake-route-class",
-      "description": "The same Theme token assignment is admitted when its widget is bound only on a route with routeClass \"intake\".",
+      "description": "The same Theme token assignment is admitted when its widget is bound only on a route with routeClass \"intake\": after the correction, `intake` is the only admitting value in the vocabulary.",
       "request": {
         "manifest": "manifest",
         "artifacts": {

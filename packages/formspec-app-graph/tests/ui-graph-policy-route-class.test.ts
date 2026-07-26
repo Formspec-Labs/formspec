@@ -241,6 +241,31 @@ describe('UI Graph Policy route-class theme authority', () => {
       .toEqual(Object.keys(ROUTE_CLASS_THEME_AUTHORITY).sort());
   });
 
+  it('admits tenant chrome theming on `intake` and on nothing else', () => {
+    // The rule, as one bit. ADR 0159 §The rendering ring: `intake` is the only
+    // admitting value, which is what makes `surface-spec.md` §3's "admitted here
+    // and only here" true and lets §5.7 stop enumerating refusers. The literal
+    // is deliberate — every other assertion in this file derives from the map,
+    // so a value silently flipped to `admits` would go undetected here.
+    expect(ADMITTING_CLASSES).toEqual(['intake']);
+  });
+
+  it('refuses on the whole closed vocabulary except `intake`', () => {
+    // Pins the corrected set itself, not just its partition. `operation` flipped
+    // from `admits` — a residual bucket on the permissive side of the only rule
+    // keyed on the vocabulary is fail-open (closure test §1) — and `attestation`
+    // / `authentication` are the two values the corpus needed and the shipped
+    // five could not name.
+    expect([...REFUSING_CLASSES].sort()).toEqual([
+      'attestation',
+      'authentication',
+      'ceremony',
+      'operation',
+      'proof',
+      'verification',
+    ]);
+  });
+
   for (const routeClass of REFUSING_CLASSES) {
     it(`refuses a tenant Theme token assignment bound on a ${routeClass}-class route`, () => {
       const report = validateAppGraph(requestFor(routeClass));
