@@ -641,7 +641,7 @@
         "Route reachability is local to the Surface document: every route must be reachable from `entry` via transitions or embed-route slots, and unresolved embed-route bindings fail E607.",
         "Surface declares transition triggers only. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.",
         "Component 1.2 targetSurfaceRoutes[] may target Surface route and slot ids, but Surface does not list mounted Components or own Component membership; cross-artifact resolution belongs to App Manifest resolution and app-graph validation.",
-        "`routeClass` is an OPTIONAL closed vocabulary (`intake|proof|ceremony|verification|operation`) naming what a route presents. Rules derive from it and are enforced on consuming artifacts, not restated on the route; it is orthogonal to access posture and route lifecycle."
+        "`routeClass` is an OPTIONAL closed, non-extensible vocabulary (`intake|proof|ceremony|verification|attestation|authentication|operation`) naming what a route presents. Exactly one value, `intake`, admits tenant chrome theming; every other value refuses. Rules derive from it and are enforced on consuming artifacts, not restated on the route; it is orthogonal to access posture and route lifecycle."
       ],
       "conformanceEssentials": [
         "A conforming published Surface document must include `$formspecSurface='0.1'`, `id`, `entry`, and at least one route with at least one slot.",
@@ -650,7 +650,7 @@
         "Surface `module-widget` slots must resolve their declared `moduleId` and `widgetName` through loaded module contributions; `binding.config` validates against the contributing widget's `widgetShape.props`.",
         "Component targetSurfaceRoutes[] claims resolve against Surface route and slot ids in app-graph validation; Surface-local conformance does not synthesize Component membership.",
         "App Manifest Surface references use URL/version sibling identity, never local fixture paths, filenames, URL suffix conventions, or implicit sibling discovery.",
-        "`routeClass` has no default: absence means *unclassified*, a distinct state from `operation`, and processors must not treat absence as `operation`. Unclassified routes are publishable; rules keyed on a trust-bearing class do not fire against them."
+        "`routeClass` has no default: absence means *unclassified*, a distinct state from `operation`, and processors must not treat absence as `operation`. The two differ observably — `operation` refuses tenant chrome theming while an unclassified route refuses nothing, because a rule keyed on a class cannot fire against a route that states none. Unclassified routes remain publishable."
       ]
     },
     {

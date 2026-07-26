@@ -143,13 +143,29 @@ presents**. It is the Surface's answer to a question the route graph could not
 previously express: a certificate route and a form route are otherwise
 structurally identical documents.
 
-| `routeClass` | The route presents | Substrate claim attached |
-|---|---|---|
-| `intake` | A Definition-backed capture from a respondent. | None. Tenant chrome theming is admitted here and only here. |
-| `proof` | An artifact the platform issued that a third party relies on as evidence — receipt, certificate, disclosure. | The rendered artifact is not the tenant's to restyle. |
-| `ceremony` | The act of signing or attesting, as it happens. | The rendered artifact is not the tenant's to restyle. The signer's preimage is the thing signed. |
-| `verification` | Independent checking of an artifact the platform issued. | The rendered artifact is not the tenant's to restyle. Its credibility is that it is not the issuer's or the tenant's voice. |
-| `operation` | Operator-facing product UI — dashboards, admin, developer, authoring, and status surfaces. | None. An affirmative statement that this route carries no substrate trust claim. |
+| `routeClass` | The route presents | Distinguishing rule — why the value exists | Tenant chrome theming |
+|---|---|---|---|
+| `intake` | A Definition-backed capture from a respondent. | The only value that admits tenant chrome theming: admitted here and only here. That sentence is now true of the whole vocabulary — before `operation` flipped to refusing, this spec said it while the enforced rule contradicted it. | **admits** |
+| `proof` | An artifact the platform issued that a third party relies on as evidence — receipt, certificate, disclosure. | The artifact is issued by a substrate port and relied on off-platform; its rendered form is part of what is relied on. | refuses |
+| `ceremony` | The act of signing or attesting, as it happens. | The signer's preimage **is** the thing signed: the rendering is the evidence, not a view of it. | refuses |
+| `verification` | Independent checking of an artifact the platform issued. | Credibility depends on the surface being neither the issuer's nor the tenant's voice. | refuses |
+| `attestation` | A claim the platform publishes about itself that a third party relies on — trust center, capability matrix, subprocessor list, data-flow disclosure, status. | The accountable party is the **publisher**, not a port. No port issues the artifact, which is exactly why `proof` cannot absorb it. | refuses |
+| `authentication` | A credential exchange binding an actor to an external identity. | The chrome **is** the anti-phishing signal: the appearance is the security control, not a view of one. | refuses |
+| `operation` | Operator-facing product UI — dashboards, admin, developer, authoring. | The only value that discharges a classification gate while attaching no claim — a **negative declaration**, "someone looked and found nothing to declare", which is different information from absence, "no one looked". | refuses |
+
+**The vocabulary is closed and non-extensible, and exactly one value admits.**
+Values are admitted only if they carry a rule no other value shares;
+descriptive convenience is not admission, and this is not a taxonomy of product
+areas. There is deliberately no Registry extension seam
+([`extension-registry.md`](../registry/extension-registry.md)) on `routeClass`:
+rules keyed on these values are stated by the platform, and in a white-label
+deployment the host is the tenant — a constraint the constrained party can edit
+is not a constraint. Where each value's refusal is pinned, and which pins are
+still outstanding, is the pin register in
+[ADR 0159](../../../thoughts/adr/0159-product-substrate-recognition.md)
+§The rendering ring, which also carries the closure evidence that corrected
+`operation` from admitting to refusing and added `attestation` and
+`authentication`.
 
 `routeClass` names the route's kind, not a permission. Permissions and other
 rules **derive** from it; they are not restated on the route. A Surface author
@@ -169,13 +185,15 @@ absorb them:
 
 **Unclassified routes.** `routeClass` is OPTIONAL and has **no default**. An
 absent `routeClass` means *unclassified* — nobody has stated what this route is.
-Unclassified is a distinct state from `operation`, which is an affirmative "no
-trust claim here". Processors MUST NOT treat an absent `routeClass` as
-`operation`.
+Unclassified is a distinct state from `operation`, which is a stated
+classification: someone looked at the route and declared it operator-facing
+product UI. Processors MUST NOT treat an absent `routeClass` as `operation`.
 
-The distinction is load-bearing in one direction: rules keyed on a trust-bearing
-class do not fire on an unclassified route, so every Surface document authored
-before this vocabulary existed keeps its exact prior behavior. It is also
+The two states have opposite theme postures, which is the sharpest reason not to
+collapse them: `operation` refuses tenant chrome theming, and an unclassified
+route refuses nothing, because a rule keyed on a class cannot fire against a
+route that states none. Every Surface document authored before this vocabulary
+existed therefore keeps its exact prior behavior. The distinction is also
 load-bearing forward — because *stated* and *unstated* stay distinguishable, a
 future conformance level, publication gate, or host policy can require
 classification without a schema change. A schema `default` would have collapsed
@@ -189,11 +207,11 @@ guarantee cannot be derived from silence.
 **Rules keyed on route class are cross-artifact, and they live on the consuming
 artifact's spec, not here.** Surface states what a route is; it does not carry
 the rules. The first is theme authority — a tenant Theme token assignment MUST
-NOT land on a widget bound to a `proof`, `ceremony`, or `verification` route
-([`ui-graph-policy-spec.md`](../app-graph/ui-graph-policy-spec.md) §5.7,
-`THEME-ROUTE-CLASS`). `routeClass` sits on Surface, which the platform ships,
-rather than on UI Graph Policy, which in a white-label deployment the tenant
-authors: a constraint the constrained party can edit is not a constraint.
+NOT land on a widget bound to a route whose class is anything other than
+`intake` ([`ui-graph-policy-spec.md`](../app-graph/ui-graph-policy-spec.md)
+§5.7, `THEME-ROUTE-CLASS`). `routeClass` sits on Surface, which the platform
+ships, rather than on UI Graph Policy, which in a white-label deployment the
+tenant authors: a constraint the constrained party can edit is not a constraint.
 
 ## 4. Slot Bindings
 

@@ -705,16 +705,24 @@ function validateThemeWidgetRefs(
 }
 
 /**
- * Whether each route class admits tenant chrome theming. `refuses` names the
- * routes whose rendered appearance is not the tenant's to restyle: an artifact
- * the platform issued, the act of signing one, and the independent check of one.
- * `admits` covers the classes that carry no such reliance — a respondent capture
- * and operator-facing product UI.
+ * Whether each route class admits tenant chrome theming. Exactly one value
+ * admits: `intake`, a Definition-backed capture from a respondent. Every other
+ * class refuses, because a third party relies on what it renders — an artifact
+ * the platform issued, the act of signing one, the independent check of one, a
+ * claim the publisher is accountable for, or a credential exchange whose chrome
+ * is the anti-phishing control. `operation` refuses too: it is a residual value
+ * for routes with nothing to declare, and a residual value on the permissive
+ * side of the only rule keyed on this vocabulary is fail-open.
  *
  * Exhaustive over the schema-generated `RouteClass` union by construction: a new
  * or renamed `routeClass` enum member fails to compile HERE, at the decision
  * site, instead of silently defaulting to admitted. There is no `default` arm,
- * deliberately.
+ * deliberately. Note what that does and does not buy — adding `attestation` and
+ * `authentication` broke the build here as intended, and flipping `operation`
+ * from `admits` to `refuses` did not, because a wrong-but-total map still
+ * compiles. The vocabulary's members are compiler-checked; their postures are
+ * checked by `tests/ui-graph-policy-route-class.test.ts` and by running the
+ * vocabulary over a real route corpus.
  *
  * `surface-spec.md` §3 Route Class; `ui-graph-policy-spec.md` §5.7.
  */
@@ -723,7 +731,9 @@ export const ROUTE_CLASS_THEME_AUTHORITY = {
   proof: 'refuses',
   ceremony: 'refuses',
   verification: 'refuses',
-  operation: 'admits',
+  attestation: 'refuses',
+  authentication: 'refuses',
+  operation: 'refuses',
 } as const satisfies Record<RouteClass, 'admits' | 'refuses'>;
 
 /**
@@ -788,7 +798,10 @@ function widgetBindingsRenderedBy(
 
 /**
  * Theme authority. A tenant Theme token assignment MUST NOT land on a widget
- * rendered by a proof-bearing route.
+ * rendered by a route whose class is anything other than `intake`. The refusing
+ * set is derived from {@link ROUTE_CLASS_THEME_AUTHORITY}, never restated, so
+ * the rule follows the vocabulary rather than an enumeration that can drift
+ * out of step with it.
  *
  * The check is deliberately widget-grained rather than route-grained, because
  * `ThemeTokenAssignment` is `{widgetRef, slot, token}` and carries no route:

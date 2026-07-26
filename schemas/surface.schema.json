@@ -87,12 +87,20 @@
         },
         "routeClass": {
           "type": "string",
-          "enum": ["intake", "proof", "ceremony", "verification", "operation"],
+          "enum": [
+            "intake",
+            "proof",
+            "ceremony",
+            "verification",
+            "attestation",
+            "authentication",
+            "operation"
+          ],
           "examples": ["proof", "intake", "operation"],
-          "description": "OPTIONAL closed vocabulary naming WHAT THIS ROUTE PRESENTS. `intake` = a Definition-backed capture from a respondent. `proof` = an artifact the platform issued that a third party relies on as evidence (receipt, certificate, disclosure). `ceremony` = the act of signing or attesting. `verification` = independent checking of an issued artifact. `operation` = operator-facing product UI, an affirmative statement that this route carries no substrate trust claim. Names the route's kind, NOT a permission — rules derive from it (theme authority refuses tenant Theme assignments on proof/ceremony/verification routes; see ui-graph-policy-spec.md §5.7, `THEME-ROUTE-CLASS`). Deliberately orthogonal to access posture and route lifecycle; MUST NOT absorb either. NO DEFAULT: an absent routeClass means *unclassified* (nobody has stated what this route is), which is a distinct state from `operation`. Processors MUST NOT treat absence as `operation`. See surface-spec.md §3 Route Class.",
+          "description": "OPTIONAL closed, NON-EXTENSIBLE vocabulary naming WHAT THIS ROUTE PRESENTS. `intake` = a Definition-backed capture from a respondent. `proof` = an artifact the platform issued that a third party relies on as evidence (receipt, certificate, disclosure). `ceremony` = the act of signing or attesting, where the signer's preimage IS the thing signed. `verification` = independent checking of an issued artifact. `attestation` = a claim the platform publishes about itself that a third party relies on (trust center, capability matrix, subprocessor list, data-flow disclosure, status) — the accountable party is the publisher, not a port, which is why `proof` cannot absorb it. `authentication` = a credential exchange binding an actor to an external identity, where the chrome IS the anti-phishing control. `operation` = operator-facing product UI (dashboards, admin, developer, authoring) — a negative declaration, \"someone looked and found nothing to declare\", NOT an assertion that the route carries no trust claim. Names the route's kind, NOT a permission — rules derive from it (theme authority admits tenant Theme assignments on `intake` routes and refuses them on every other value; see ui-graph-policy-spec.md §5.7, `THEME-ROUTE-CLASS`). Deliberately orthogonal to access posture and route lifecycle; MUST NOT absorb either. NO DEFAULT: an absent routeClass means *unclassified* (nobody has stated what this route is), which is a distinct state from `operation` and refuses nothing. Processors MUST NOT treat absence as `operation`. See surface-spec.md §3 Route Class.",
           "x-lm": {
             "critical": true,
-            "intent": "Closed route-class vocabulary; theme authority and other trust rules derive from it. Absence means unclassified, never `operation`."
+            "intent": "Closed route-class vocabulary; theme authority and other trust rules derive from it. Exactly one value (`intake`) admits tenant chrome theming. Absence means unclassified, never `operation`."
           }
         },
         "title": {

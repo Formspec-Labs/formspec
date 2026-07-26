@@ -490,20 +490,31 @@ which the platform ships and the tenant consumes:
 [`surface-spec.md`](../surface/surface-spec.md) §3 Route Class.
 
 **Rule.** A `theme.assignments[]` entry whose `widgetRef` matches a
-`module-widget` slot binding *rendered by* a target-Surface route with
-`routeClass` in `{proof, ceremony, verification}` is invalid, and MUST be
+`module-widget` slot binding *rendered by* a target-Surface route whose
+`routeClass` is any declared value other than `intake` is invalid, and MUST be
 reported as `THEME-ROUTE-CLASS`. "Rendered by" is defined under Composition
 below: it is transitive over `embed-route`, not just the route's own `slots[]`.
 
-The three refusing classes are exactly the surfaces whose rendered appearance a
-third party relies on: an issued artifact, the act of signing one, and the
-independent check of one. `intake` admits tenant chrome theming; `operation`
-carries no substrate trust claim; an unclassified route has stated nothing, so
-no rule keyed on a class can fire against it. A `routeClass` value outside the
-closed vocabulary is likewise *unclassified* — the enum in
+**The rule reads one bit, and the bit is `intake`.** Every other value in the
+closed vocabulary refuses, so the rule is stated as one admission rather than an
+enumeration of refusers — which is what
+[`surface-spec.md`](../surface/surface-spec.md) §3 Route Class has always said
+("admitted here and only here") and what this section previously contradicted by
+enumerating three refusers while `operation` admitted. An unclassified route has
+stated nothing, so no rule keyed on a class can fire against it. A `routeClass`
+value outside the closed vocabulary is likewise *unclassified* — the enum in
 [`surface.schema.json`](../../schemas/surface.schema.json) is the only gate on
 the value itself, and a Surface that failed schema validation never reaches
 cross-artifact checks.
+
+**Enumerating refusers is the fail-open shape, and it failed open.** A closed
+vocabulary needs a residual value for routes with nothing to declare, and
+`operation` is it. While the rule enumerated refusers, that residual value sat
+on the permissive side: every route classified `operation` because nothing else
+fit was thereby certified restylable by the tenant. Deriving the rule from the
+single admitting value puts every future addition to the vocabulary on the safe
+side by default, and a new value that genuinely admits has to be argued for at
+the decision site in `ROUTE_CLASS_THEME_AUTHORITY` rather than inherited.
 
 **Composition.** `embed-route` renders another route of the same Surface INSIDE
 the host route ([`surface-spec.md`](../surface/surface-spec.md) §6.2), so the
