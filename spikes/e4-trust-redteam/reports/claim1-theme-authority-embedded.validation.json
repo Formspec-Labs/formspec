@@ -1,7 +1,7 @@
 {
   "claim": "Tenants may theme form chrome and MUST NOT theme receipt, certificate, verifier, or ceremony surfaces — those surfaces' visual immutability is part of the proof claim.",
   "v8Finding": 6,
-  "violation": "A tenant-owned Theme is bound as the app's only Theme, and a tenant-authored UI Graph Policy assigns tenant brand tokens to the accent and surface token slots of the certificate widget and the verifier widget.",
+  "violation": "A tenant-owned Theme is bound as the app's only Theme, and a tenant-authored UI Graph Policy assigns tenant brand tokens to the accent and surface token slots of the certificate widget and the verifier widget. Neither trust route binds a widget directly: each renders an unclassified body route through an embed-route slot, and one body route embeds its host back.",
   "artifactResolutionReport": {
     "ok": true,
     "manifest": {
@@ -13,7 +13,7 @@
         "$formspecBundle": "2.3",
         "version": "1.0.0",
         "id": "https://cloud.formspec.org/apps/proof",
-        "title": "Formspec Cloud — proof surfaces (tenant-themed)",
+        "title": "Formspec Cloud — proof surfaces (embedded bodies)",
         "definitions": [],
         "modules": [
           {
@@ -29,7 +29,7 @@
         ],
         "surfaces": [
           {
-            "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+            "url": "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
             "version": "1.0.0"
           }
         ],
@@ -42,7 +42,7 @@
         "version": "1.0.0",
         "id": "https://cloud.formspec.org/apps/proof"
       },
-      "source": "e4://claim1/app-manifest"
+      "source": "e4://claim1-embedded/app-manifest"
     },
     "artifacts": {
       "theme": [
@@ -168,16 +168,16 @@
         {
           "slot": "surfaces[0]",
           "artifactKind": "surface",
-          "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof",
+          "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
           "ref": {
-            "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+            "url": "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
             "version": "1.0.0"
           },
           "schemaId": "https://formspec.org/schemas/surface/0.1",
           "status": "loaded",
           "document": {
             "$formspecSurface": "0.1",
-            "id": "proof",
+            "id": "proof-embedded",
             "entry": "verify",
             "modules": [
               {
@@ -185,7 +185,6 @@
                 "version": "1.0.0"
               }
             ],
-            "title": "Proof surfaces",
             "routes": [
               {
                 "id": "verify",
@@ -194,12 +193,31 @@
                 "title": "Verify a receipt",
                 "slots": [
                   {
+                    "id": "verify-shell",
+                    "slotType": "embed-route",
+                    "binding": {
+                      "routeRef": "verify-body"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "verify-body",
+                "path": "/verify/body",
+                "slots": [
+                  {
                     "id": "verifier-panel",
                     "slotType": "module-widget",
-                    "title": "Independent verifier",
                     "binding": {
                       "moduleId": "x-northwind-brand",
                       "widgetName": "x-verification-panel"
+                    }
+                  },
+                  {
+                    "id": "verify-back",
+                    "slotType": "embed-route",
+                    "binding": {
+                      "routeRef": "verify"
                     }
                   }
                 ]
@@ -217,9 +235,21 @@
                 ],
                 "slots": [
                   {
-                    "id": "certificate-body",
+                    "id": "cert-shell",
+                    "slotType": "embed-route",
+                    "binding": {
+                      "routeRef": "certificate-body"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "certificate-body",
+                "path": "/c/body",
+                "slots": [
+                  {
+                    "id": "certificate-sheet",
                     "slotType": "module-widget",
-                    "title": "Certificate of completion",
                     "binding": {
                       "moduleId": "x-northwind-brand",
                       "widgetName": "x-certificate-sheet"
@@ -230,7 +260,7 @@
             ]
           },
           "identity": {
-            "id": "proof"
+            "id": "proof-embedded"
           },
           "diagnostics": []
         }
@@ -266,7 +296,7 @@
         "source": {
           "artifactSlot": "app",
           "artifactKind": "appManifest",
-          "source": "e4://claim1/app-manifest",
+          "source": "e4://claim1-embedded/app-manifest",
           "jsonPointer": "/modules/0",
           "module": {
             "id": "x-northwind-brand",
@@ -290,10 +320,10 @@
         "source": {
           "artifactSlot": "surfaces[0]",
           "artifactKind": "surface",
-          "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof",
+          "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
           "jsonPointer": "/modules/0",
           "ref": {
-            "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+            "url": "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
             "version": "1.0.0"
           },
           "module": {
@@ -319,10 +349,10 @@
         "source": {
           "artifactSlot": "surfaces[0]",
           "artifactKind": "surface",
-          "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof",
-          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
+          "jsonPointer": "/routes/1/slots/0/binding/widgetName",
           "ref": {
-            "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+            "url": "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
             "version": "1.0.0"
           }
         },
@@ -370,10 +400,10 @@
         "source": {
           "artifactSlot": "surfaces[0]",
           "artifactKind": "surface",
-          "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof",
-          "jsonPointer": "/routes/1/slots/0/binding/widgetName",
+          "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
+          "jsonPointer": "/routes/3/slots/0/binding/widgetName",
           "ref": {
-            "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+            "url": "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
             "version": "1.0.0"
           }
         },
@@ -421,7 +451,7 @@
         "source": {
           "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
           "artifactKind": "hostEvidence",
-          "source": "e4://claim1/ui-graph-policy",
+          "source": "e4://claim1-embedded/ui-graph-policy",
           "jsonPointer": "/theme/assignments/0/widgetRef"
         },
         "registryCategory": "widget",
@@ -468,7 +498,7 @@
         "source": {
           "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
           "artifactKind": "hostEvidence",
-          "source": "e4://claim1/ui-graph-policy",
+          "source": "e4://claim1-embedded/ui-graph-policy",
           "jsonPointer": "/theme/assignments/1/widgetRef"
         },
         "registryCategory": "widget",
@@ -515,7 +545,7 @@
         "source": {
           "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
           "artifactKind": "hostEvidence",
-          "source": "e4://claim1/ui-graph-policy",
+          "source": "e4://claim1-embedded/ui-graph-policy",
           "jsonPointer": "/theme/assignments/2/widgetRef"
         },
         "registryCategory": "widget",
@@ -626,7 +656,7 @@
       {
         "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
         "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
-        "source": "e4://claim1/ui-graph-policy",
+        "source": "e4://claim1-embedded/ui-graph-policy",
         "status": "completed",
         "ok": true,
         "diagnostics": []
@@ -641,17 +671,17 @@
         "message": "A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.",
         "primarySource": {
           "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
-          "source": "e4://claim1/ui-graph-policy",
+          "source": "e4://claim1-embedded/ui-graph-policy",
           "jsonPointer": "/theme/assignments/0/widgetRef"
         },
         "relatedSources": [
           {
             "artifactSlot": "surfaces[0]",
             "artifactKind": "surface",
-            "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof",
-            "jsonPointer": "/routes/1/slots/0/binding",
+            "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
+            "jsonPointer": "/routes/3/slots/0/binding",
             "ref": {
-              "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+              "url": "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
               "version": "1.0.0"
             }
           }
@@ -664,7 +694,8 @@
           "routeId": "certificate",
           "routeClass": "proof",
           "embedChain": [
-            "certificate"
+            "certificate",
+            "certificate-body"
           ],
           "reason": "tenant-theming-refused-by-route-class"
         }
@@ -677,17 +708,17 @@
         "message": "A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.",
         "primarySource": {
           "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
-          "source": "e4://claim1/ui-graph-policy",
+          "source": "e4://claim1-embedded/ui-graph-policy",
           "jsonPointer": "/theme/assignments/1/widgetRef"
         },
         "relatedSources": [
           {
             "artifactSlot": "surfaces[0]",
             "artifactKind": "surface",
-            "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof",
-            "jsonPointer": "/routes/1/slots/0/binding",
+            "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
+            "jsonPointer": "/routes/3/slots/0/binding",
             "ref": {
-              "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+              "url": "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
               "version": "1.0.0"
             }
           }
@@ -700,7 +731,8 @@
           "routeId": "certificate",
           "routeClass": "proof",
           "embedChain": [
-            "certificate"
+            "certificate",
+            "certificate-body"
           ],
           "reason": "tenant-theming-refused-by-route-class"
         }
@@ -713,17 +745,17 @@
         "message": "A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.",
         "primarySource": {
           "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
-          "source": "e4://claim1/ui-graph-policy",
+          "source": "e4://claim1-embedded/ui-graph-policy",
           "jsonPointer": "/theme/assignments/2/widgetRef"
         },
         "relatedSources": [
           {
             "artifactSlot": "surfaces[0]",
             "artifactKind": "surface",
-            "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof",
-            "jsonPointer": "/routes/0/slots/0/binding",
+            "source": "e4:surface:https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
+            "jsonPointer": "/routes/1/slots/0/binding",
             "ref": {
-              "url": "https://cloud.formspec.org/apps/proof/surfaces/proof",
+              "url": "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
               "version": "1.0.0"
             }
           }
@@ -736,7 +768,8 @@
           "routeId": "verify",
           "routeClass": "verification",
           "embedChain": [
-            "verify"
+            "verify",
+            "verify-body"
           ],
           "reason": "tenant-theming-refused-by-route-class"
         }

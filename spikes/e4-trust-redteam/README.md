@@ -7,15 +7,24 @@ substrate; the point is to make the gaps visible before they ship.
 
 For each claim, `src/claim*.ts` authors a minimal app graph that **violates** it
 and `tests/redteam.test.ts` runs the real
-`produceAppGraphValidationReport()` over it. The assertions are the
-pre-registered prediction: the graph validates and no diagnostic names the
-violation. A **failing** test here is the interesting result.
+`produceAppGraphValidationReport()` over it. E4's pre-registered prediction was
+that every graph validates and no diagnostic names the violation; it held
+3-for-3 at the time. **Read the per-case `expectedVerdict` before reusing the
+harness** — claim 1 asserts `caught` since the route-class slice, and a failing
+test there means the guard regressed, not that a gap was found. On every other
+case a failing test is still the interesting result.
 
-| Case | v8 finding | Violation |
-|---|---|---|
-| `claim1-theme-authority` | 6 | Tenant Theme + UI Graph Policy repaints the certificate and verifier widgets |
-| `claim2-sensitivity` | 27 | Data Sources catalog routes live draft PII and a signing secret to the co-pilot slot |
-| `claim3-client-executed` | 30 | Verifier route's action chain is `hostEvent` → `evidenceRequest` → `ledgerAppend` |
+| Case | v8 finding | Expected | Violation |
+|---|---|---|---|
+| `claim1-theme-authority` | 6 | caught | Tenant Theme + UI Graph Policy repaints the certificate and verifier widgets |
+| `claim1-theme-authority-embedded` | 6 | caught | Same restyle, but every widget sits one `embed-route` hop below the classified route (plus a back-embed cycle) |
+| `claim1-theme-authority-unclassified` | 6 | undetected | Same restyle on routes that state no `routeClass` — the residual hole, since classification is optional |
+| `claim2-sensitivity` | 27 | undetected | Data Sources catalog routes live draft PII and a signing secret to the co-pilot slot |
+| `claim3-client-executed` | 30 | undetected | Verifier route's action chain is `hostEvent` → `evidenceRequest` → `ledgerAppend` |
+
+Claim 1 is recorded in `reports/rollup.json` as **narrowed**, not closed:
+`narrowedSince.claim1-theme-authority` names what now catches it, and
+`stillUndetectedWhen` names the three shapes that still pass.
 
 ## Divergence from v8's harness
 
@@ -34,7 +43,7 @@ whole Data Sources group is unchecked".
 
 ```sh
 npm install
-npm run redteam     # vitest run — 3 violating graphs + control + rollup, 6 tests
+npm run redteam     # vitest run — violating graphs + control + rollup
 npm run typecheck   # tsc --noEmit
 ```
 

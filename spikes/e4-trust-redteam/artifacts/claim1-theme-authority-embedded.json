@@ -1,0 +1,264 @@
+{
+  "claim": "Tenants may theme form chrome and MUST NOT theme receipt, certificate, verifier, or ceremony surfaces — those surfaces' visual immutability is part of the proof claim.",
+  "v8Finding": 6,
+  "violation": "A tenant-owned Theme is bound as the app's only Theme, and a tenant-authored UI Graph Policy assigns tenant brand tokens to the accent and surface token slots of the certificate widget and the verifier widget. Neither trust route binds a widget directly: each renders an unclassified body route through an embed-route slot, and one body route embeds its host back.",
+  "manifest": {
+    "$formspecBundle": "2.3",
+    "version": "1.0.0",
+    "id": "https://cloud.formspec.org/apps/proof",
+    "title": "Formspec Cloud — proof surfaces (embedded bodies)",
+    "definitions": [],
+    "modules": [
+      {
+        "id": "x-northwind-brand",
+        "version": "1.0.0"
+      }
+    ],
+    "registries": [
+      {
+        "url": "https://cloud.formspec.org/apps/proof/registries/tenant-brand",
+        "version": "1.0.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
+        "version": "1.0.0"
+      }
+    ],
+    "theme": {
+      "url": "https://cloud.formspec.org/apps/proof/themes/northwind-tenant",
+      "version": "1.0.0"
+    }
+  },
+  "documents": {
+    "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded": {
+      "$formspecSurface": "0.1",
+      "id": "proof-embedded",
+      "entry": "verify",
+      "modules": [
+        {
+          "id": "x-northwind-brand",
+          "version": "1.0.0"
+        }
+      ],
+      "routes": [
+        {
+          "id": "verify",
+          "path": "/verify",
+          "routeClass": "verification",
+          "title": "Verify a receipt",
+          "slots": [
+            {
+              "id": "verify-shell",
+              "slotType": "embed-route",
+              "binding": {
+                "routeRef": "verify-body"
+              }
+            }
+          ]
+        },
+        {
+          "id": "verify-body",
+          "path": "/verify/body",
+          "slots": [
+            {
+              "id": "verifier-panel",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-northwind-brand",
+                "widgetName": "x-verification-panel"
+              }
+            },
+            {
+              "id": "verify-back",
+              "slotType": "embed-route",
+              "binding": {
+                "routeRef": "verify"
+              }
+            }
+          ]
+        },
+        {
+          "id": "certificate",
+          "path": "/c/{receiptId}",
+          "routeClass": "proof",
+          "title": "Signing certificate",
+          "params": [
+            {
+              "name": "receiptId",
+              "type": "string"
+            }
+          ],
+          "slots": [
+            {
+              "id": "cert-shell",
+              "slotType": "embed-route",
+              "binding": {
+                "routeRef": "certificate-body"
+              }
+            }
+          ]
+        },
+        {
+          "id": "certificate-body",
+          "path": "/c/body",
+          "slots": [
+            {
+              "id": "certificate-sheet",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-northwind-brand",
+                "widgetName": "x-certificate-sheet"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "https://cloud.formspec.org/apps/proof/registries/tenant-brand": {
+      "$formspecRegistry": "1.0",
+      "publisher": {
+        "name": "Northwind Mutual (tenant)"
+      },
+      "published": "2026-07-26T00:00:00Z",
+      "entries": [
+        {
+          "name": "x-northwind-brand",
+          "category": "module",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "Tenant brand module contributing proof-surface widgets.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0"
+          },
+          "contributes": [
+            "x-verification-panel",
+            "x-certificate-sheet"
+          ]
+        },
+        {
+          "name": "x-verification-panel",
+          "category": "widget",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "Renders the receipt verification result.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0"
+          },
+          "widgetShape": {
+            "tokenSlots": [
+              {
+                "name": "accent",
+                "acceptedTokenCategories": [
+                  "color"
+                ]
+              },
+              {
+                "name": "surface",
+                "acceptedTokenCategories": [
+                  "color"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "x-certificate-sheet",
+          "category": "widget",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "Renders the issued certificate of completion.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0"
+          },
+          "widgetShape": {
+            "tokenSlots": [
+              {
+                "name": "accent",
+                "acceptedTokenCategories": [
+                  "color"
+                ]
+              },
+              {
+                "name": "surface",
+                "acceptedTokenCategories": [
+                  "color"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "https://cloud.formspec.org/apps/proof/themes/northwind-tenant": {
+      "$formspecTheme": "1.0",
+      "version": "1.0.0",
+      "name": "northwind-tenant",
+      "targetDefinition": {
+        "url": "https://cloud.formspec.org/apps/proof/definitions/unused"
+      },
+      "tokens": {
+        "color.accent": "#6D28D9",
+        "color.surface": "#F5F3FF"
+      }
+    }
+  },
+  "uiGraphPolicies": [
+    {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "e4://claim1-embedded/ui-graph-policy",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "title": "Northwind tenant branding for proof surfaces",
+        "targetSurface": {
+          "url": "https://cloud.formspec.org/apps/proof/surfaces/proof-embedded",
+          "version": "1.0.0"
+        },
+        "routePolicies": [
+          {
+            "routeId": "verify"
+          },
+          {
+            "routeId": "verify-body"
+          },
+          {
+            "routeId": "certificate"
+          },
+          {
+            "routeId": "certificate-body"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-northwind-brand",
+                "widgetName": "x-certificate-sheet"
+              },
+              "slot": "accent",
+              "token": "color.accent"
+            },
+            {
+              "widgetRef": {
+                "moduleId": "x-northwind-brand",
+                "widgetName": "x-certificate-sheet"
+              },
+              "slot": "surface",
+              "token": "color.surface"
+            },
+            {
+              "widgetRef": {
+                "moduleId": "x-northwind-brand",
+                "widgetName": "x-verification-panel"
+              },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

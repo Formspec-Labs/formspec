@@ -14,6 +14,8 @@ import type { RedTeamCase } from './harness.js';
 
 const APP = 'https://cloud.formspec.org/apps/proof';
 const SURFACE_URL = `${APP}/surfaces/proof`;
+const EMBEDDED_SURFACE_URL = `${APP}/surfaces/proof-embedded`;
+const UNCLASSIFIED_SURFACE_URL = `${APP}/surfaces/proof-unclassified`;
 const REGISTRY_URL = `${APP}/registries/tenant-brand`;
 const THEME_URL = `${APP}/themes/northwind-tenant`;
 
@@ -183,13 +185,16 @@ export const violatingPolicy: UiGraphPolicyDocument = {
   },
 } as UiGraphPolicyDocument;
 
+const CLAIM =
+  'Tenants may theme form chrome and MUST NOT theme receipt, certificate, verifier, or ceremony surfaces — those surfaces\' visual immutability is part of the proof claim.';
+const VIOLATION =
+  'A tenant-owned Theme is bound as the app\'s only Theme, and a tenant-authored UI Graph Policy assigns tenant brand tokens to the accent and surface token slots of the certificate widget and the verifier widget.';
+
 export const themeAuthorityCase = (policy: UiGraphPolicyDocument): RedTeamCase => ({
   id: 'claim1-theme-authority',
-  claim:
-    'Tenants may theme form chrome and MUST NOT theme receipt, certificate, verifier, or ceremony surfaces — those surfaces\' visual immutability is part of the proof claim.',
+  claim: CLAIM,
   v8Finding: 6,
-  violation:
-    'A tenant-owned Theme is bound as the app\'s only Theme, and a tenant-authored UI Graph Policy assigns tenant brand tokens to the accent and surface token slots of the certificate widget and the verifier widget.',
+  violation: VIOLATION,
   manifest,
   manifestSource: 'e4://claim1/app-manifest',
   documents: {
@@ -212,10 +217,144 @@ export const themeAuthorityCase = (policy: UiGraphPolicyDocument): RedTeamCase =
    * and it held.
    *
    * `THEME-ROUTE-CLASS` is the code that closes it: a Theme token assignment
-   * whose widget is bound on a `proof`, `ceremony`, or `verification` route is
-   * refused. See `ui-graph-policy-spec.md` §5.7.
+   * whose widget is rendered by a `proof`, `ceremony`, or `verification` route
+   * is refused. See `ui-graph-policy-spec.md` §5.7.
    */
   wouldCatch: ['THEME-ROUTE-CLASS'],
 });
+
+/** A variant Surface reachable at its own URL, so each case gets its own report. */
+function variantSurface(id: string, routes: unknown[]): unknown {
+  return { $formspecSurface: '0.1', id, entry: 'verify', modules: [TENANT_MODULE], routes };
+}
+
+function variantManifest(title: string, surfaceUrl: string): unknown {
+  return { ...manifest, title, surfaces: [{ url: surfaceUrl, version: '1.0.0' }] };
+}
+
+function variantPolicy(surfaceUrl: string): UiGraphPolicyDocument {
+  return {
+    ...violatingPolicy,
+    targetSurface: { url: surfaceUrl, version: '1.0.0' },
+  } as UiGraphPolicyDocument;
+}
+
+/**
+ * The same attack, hidden behind one `embed-route` hop. Both trust routes still
+ * state what they are; neither binds a widget directly. Each renders an
+ * unclassified body route that does — which is what a Surface author gets for
+ * free by splitting a route into a shell and a body, no adversarial intent
+ * required.
+ *
+ * A `slots[]`-only reading of route class validates this graph clean, which is
+ * why §5.7 defines the rule over what a route RENDERS. The `verify-body` route
+ * also embeds its host back: `routeRef` is constrained to a route id, not to an
+ * acyclic graph, so cycles are part of the shape being defended against.
+ */
+export const embeddedThemeAuthorityCase: RedTeamCase = {
+  id: 'claim1-theme-authority-embedded',
+  claim: CLAIM,
+  v8Finding: 6,
+  violation: `${VIOLATION} Neither trust route binds a widget directly: each renders an unclassified body route through an embed-route slot, and one body route embeds its host back.`,
+  manifest: variantManifest('Formspec Cloud — proof surfaces (embedded bodies)', EMBEDDED_SURFACE_URL),
+  manifestSource: 'e4://claim1-embedded/app-manifest',
+  documents: {
+    [EMBEDDED_SURFACE_URL]: variantSurface('proof-embedded', [
+      {
+        id: 'verify',
+        path: '/verify',
+        routeClass: 'verification',
+        title: 'Verify a receipt',
+        slots: [{ id: 'verify-shell', slotType: 'embed-route', binding: { routeRef: 'verify-body' } }],
+      },
+      {
+        id: 'verify-body',
+        path: '/verify/body',
+        slots: [
+          {
+            id: 'verifier-panel',
+            slotType: 'module-widget',
+            binding: { moduleId: TENANT_MODULE.id, widgetName: 'x-verification-panel' },
+          },
+          { id: 'verify-back', slotType: 'embed-route', binding: { routeRef: 'verify' } },
+        ],
+      },
+      {
+        id: 'certificate',
+        path: '/c/{receiptId}',
+        routeClass: 'proof',
+        title: 'Signing certificate',
+        params: [{ name: 'receiptId', type: 'string' }],
+        slots: [{ id: 'cert-shell', slotType: 'embed-route', binding: { routeRef: 'certificate-body' } }],
+      },
+      {
+        id: 'certificate-body',
+        path: '/c/body',
+        slots: [
+          {
+            id: 'certificate-sheet',
+            slotType: 'module-widget',
+            binding: { moduleId: TENANT_MODULE.id, widgetName: 'x-certificate-sheet' },
+          },
+        ],
+      },
+    ]),
+    [REGISTRY_URL]: registry,
+    [THEME_URL]: theme,
+  },
+  uiGraphPolicies: [
+    {
+      schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+      source: 'e4://claim1-embedded/ui-graph-policy',
+      document: {
+        ...variantPolicy(EMBEDDED_SURFACE_URL),
+        routePolicies: [
+          { routeId: 'verify' },
+          { routeId: 'verify-body' },
+          { routeId: 'certificate' },
+          { routeId: 'certificate-body' },
+        ],
+      } as UiGraphPolicyDocument,
+    },
+  ],
+  wouldCatch: ['THEME-ROUTE-CLASS'],
+};
+
+/**
+ * The residual hole, executed rather than asserted in prose. `routeClass` is
+ * OPTIONAL with no default, so a tenant Surface that simply never classifies its
+ * certificate and verifier routes gets no refusal — the guard is opt-in, and
+ * nothing in the graph requires the opt-in.
+ *
+ * This is why the rollup records claim 1 as NARROWED, not closed. Making it
+ * `required` was rejected in the route-class slice on the grounds that coercing
+ * a claim does not produce a correct one; the price of that (correct) call is
+ * this case, and it is filed here so the price stays visible and is re-measured
+ * on every run.
+ */
+export const unclassifiedThemeAuthorityCase: RedTeamCase = {
+  id: 'claim1-theme-authority-unclassified',
+  claim: CLAIM,
+  v8Finding: 6,
+  violation: `${VIOLATION} Neither route states a routeClass, so no class-keyed rule fires and the original E4 result stands unchanged.`,
+  manifest: variantManifest('Formspec Cloud — proof surfaces (unclassified)', UNCLASSIFIED_SURFACE_URL),
+  manifestSource: 'e4://claim1-unclassified/app-manifest',
+  documents: {
+    [UNCLASSIFIED_SURFACE_URL]: variantSurface(
+      'proof-unclassified',
+      surface.routes.map(({ routeClass: _dropped, ...route }) => route),
+    ),
+    [REGISTRY_URL]: registry,
+    [THEME_URL]: theme,
+  },
+  uiGraphPolicies: [
+    {
+      schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+      source: 'e4://claim1-unclassified/ui-graph-policy',
+      document: variantPolicy(UNCLASSIFIED_SURFACE_URL),
+    },
+  ],
+  wouldCatch: ['THEME-ROUTE-CLASS'],
+};
 
 export const CLAIM1_SURFACE_URL = SURFACE_URL;

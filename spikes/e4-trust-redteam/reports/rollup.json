@@ -3,8 +3,16 @@
   "date": "2026-07-26",
   "prediction": "All three violations are authorable today, validate cleanly, and are undetectable by any producer diagnostic.",
   "predictionHeldAtE4Time": true,
-  "closedSince": {
-    "claim1-theme-authority": "Route-class slice: `routeClass` on surface.schema.json $defs/Route + THEME-ROUTE-CLASS in validateUiGraphPolicy."
+  "narrowedSince": {
+    "claim1-theme-authority": {
+      "by": "Route-class slice: `routeClass` on surface.schema.json $defs/Route + THEME-ROUTE-CLASS in validateUiGraphPolicy, resolved transitively through embed-route composition (ui-graph-policy-spec.md §5.7).",
+      "caughtWhen": "The Surface classifies the route as proof, ceremony, or verification — directly or as the host of an embed-route chain that renders the widget.",
+      "stillUndetectedWhen": [
+        "The Surface never classifies the route. routeClass is OPTIONAL with no default, so the guard is opt-in and nothing in the graph requires the opt-in — see case claim1-theme-authority-unclassified.",
+        "Composition crosses a Surface boundary. embed-route is Surface-local, so a host mounting one Surface's route inside another Surface's chrome composes outside anything either document records.",
+        "A widget renders a protected artifact without sitting on a protected route — a receipt rendered on an intake route is a repainted proof surface that no route classification names."
+      ]
+    }
   },
   "stillOpen": [
     "claim2-sensitivity",
@@ -24,6 +32,90 @@
       "diagnosticCodes": [
         "THEME-ROUTE-CLASS"
       ],
+      "phases": [
+        {
+          "phase": "artifact-resolution",
+          "status": "completed"
+        },
+        {
+          "phase": "schema",
+          "status": "completed"
+        },
+        {
+          "phase": "module-resolution",
+          "status": "completed"
+        },
+        {
+          "phase": "surface-local",
+          "status": "not-run"
+        },
+        {
+          "phase": "cross-artifact",
+          "status": "completed"
+        },
+        {
+          "phase": "authorization-boundary",
+          "status": "not-run"
+        },
+        {
+          "phase": "unsupported",
+          "status": "not-run"
+        }
+      ]
+    },
+    {
+      "id": "claim1-theme-authority-embedded",
+      "v8Finding": 6,
+      "claim": "Tenants may theme form chrome and MUST NOT theme receipt, certificate, verifier, or ceremony surfaces — those surfaces' visual immutability is part of the proof claim.",
+      "violation": "A tenant-owned Theme is bound as the app's only Theme, and a tenant-authored UI Graph Policy assigns tenant brand tokens to the accent and surface token slots of the certificate widget and the verifier widget. Neither trust route binds a widget directly: each renders an unclassified body route through an embed-route slot, and one body route embeds its host back.",
+      "verdict": "caught",
+      "expectedVerdict": "caught",
+      "reportOk": false,
+      "diagnosticCount": 3,
+      "diagnosticCodes": [
+        "THEME-ROUTE-CLASS"
+      ],
+      "phases": [
+        {
+          "phase": "artifact-resolution",
+          "status": "completed"
+        },
+        {
+          "phase": "schema",
+          "status": "completed"
+        },
+        {
+          "phase": "module-resolution",
+          "status": "completed"
+        },
+        {
+          "phase": "surface-local",
+          "status": "not-run"
+        },
+        {
+          "phase": "cross-artifact",
+          "status": "completed"
+        },
+        {
+          "phase": "authorization-boundary",
+          "status": "not-run"
+        },
+        {
+          "phase": "unsupported",
+          "status": "not-run"
+        }
+      ]
+    },
+    {
+      "id": "claim1-theme-authority-unclassified",
+      "v8Finding": 6,
+      "claim": "Tenants may theme form chrome and MUST NOT theme receipt, certificate, verifier, or ceremony surfaces — those surfaces' visual immutability is part of the proof claim.",
+      "violation": "A tenant-owned Theme is bound as the app's only Theme, and a tenant-authored UI Graph Policy assigns tenant brand tokens to the accent and surface token slots of the certificate widget and the verifier widget. Neither route states a routeClass, so no class-keyed rule fires and the original E4 result stands unchanged.",
+      "verdict": "undetected",
+      "expectedVerdict": "undetected",
+      "reportOk": true,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
       "phases": [
         {
           "phase": "artifact-resolution",
