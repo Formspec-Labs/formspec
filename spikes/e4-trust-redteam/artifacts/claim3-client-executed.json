@@ -1,0 +1,128 @@
+{
+  "claim": "The verifier is independent — \"verify without contacting Formspec\" — which requires verification to execute client-side and touch no server.",
+  "v8Finding": 30,
+  "violation": "The verifier route's only transition triggers an action whose effect chain is hostEvent → evidenceRequest → ledgerAppend: the receipt bundle leaves the browser and a durable server-side ledger event records the verification attempt.",
+  "manifest": {
+    "$formspecBundle": "2.3",
+    "version": "1.0.0",
+    "id": "https://cloud.formspec.org/apps/verifier",
+    "title": "Formspec Cloud — independent verifier",
+    "definitions": [
+      {
+        "url": "https://cloud.formspec.org/apps/verifier/definitions/receipt-upload",
+        "version": "1.0.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://cloud.formspec.org/apps/verifier/surfaces/verifier",
+        "version": "1.0.0"
+      }
+    ],
+    "responseActions": {
+      "url": "https://cloud.formspec.org/apps/verifier/response-actions/verifier",
+      "version": "1.0.0"
+    }
+  },
+  "documents": {
+    "https://cloud.formspec.org/apps/verifier/surfaces/verifier": {
+      "$formspecSurface": "0.1",
+      "id": "verifier",
+      "entry": "verify",
+      "title": "Independent receipt verifier",
+      "routes": [
+        {
+          "id": "verify",
+          "path": "/verify",
+          "title": "Verify a receipt",
+          "slots": [
+            {
+              "id": "receipt-input",
+              "slotType": "definition-form",
+              "title": "Paste or upload a receipt bundle",
+              "binding": {
+                "definitionRef": "https://cloud.formspec.org/apps/verifier/definitions/receipt-upload"
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "submit",
+              "to": "result"
+            }
+          ]
+        },
+        {
+          "id": "result",
+          "path": "/verify/result",
+          "title": "Verification result",
+          "slots": [
+            {
+              "id": "result-body",
+              "slotType": "static-content",
+              "title": "Result",
+              "binding": {
+                "kind": "heading",
+                "content": "Verification result",
+                "level": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "https://cloud.formspec.org/apps/verifier/definitions/receipt-upload": {
+      "$formspec": "1.0",
+      "url": "https://cloud.formspec.org/apps/verifier/definitions/receipt-upload",
+      "version": "1.0.0",
+      "status": "active",
+      "title": "Receipt upload",
+      "items": [
+        {
+          "key": "bundle",
+          "type": "field",
+          "dataType": "string",
+          "label": "Receipt bundle"
+        }
+      ]
+    },
+    "https://cloud.formspec.org/apps/verifier/response-actions/verifier": {
+      "$formspecResponseActions": "1.0",
+      "version": "1.0.0",
+      "targetDefinition": {
+        "url": "https://cloud.formspec.org/apps/verifier/definitions/receipt-upload"
+      },
+      "actions": [
+        {
+          "id": "verify-receipt",
+          "intent": "submit",
+          "label": {
+            "literal": "Verify"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "verifier.bundle-uploaded",
+              "detailRef": "bundle"
+            },
+            {
+              "type": "evidenceRequest",
+              "requestRef": "server-side-signature-check",
+              "idempotencyKey": "concat('verify-', bundle)",
+              "onError": "fail"
+            },
+            {
+              "type": "ledgerAppend",
+              "eventKind": "x-verification.attempted",
+              "payloadRef": "bundle",
+              "idempotencyKey": "concat('verify-ledger-', bundle)",
+              "onError": "fail"
+            }
+          ],
+          "onFailure": "stop"
+        }
+      ]
+    }
+  },
+  "uiGraphPolicies": []
+}

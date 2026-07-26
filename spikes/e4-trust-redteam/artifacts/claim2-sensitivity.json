@@ -1,0 +1,257 @@
+{
+  "claim": "The product ships an AI co-pilot that consumes the same app graph, so the graph must be able to say which data is sensitive before a projection reads it.",
+  "v8Finding": 27,
+  "violation": "A Data Sources catalog advertises live draft Response state (SSN, DOB) at the co-pilot slot and a webhook signing secret to the co-pilot module, with no field anywhere marking either as sensitive. A fourth source points at a nonexistent route/slot as a control.",
+  "manifest": {
+    "$formspecBundle": "2.3",
+    "version": "1.0.0",
+    "id": "https://cloud.formspec.org/apps/workspace",
+    "title": "Formspec Cloud — workspace with AI co-pilot",
+    "definitions": [
+      {
+        "url": "https://cloud.formspec.org/definitions/benefits-intake",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-formspec-copilot",
+        "version": "1.0.0"
+      }
+    ],
+    "registries": [
+      {
+        "url": "https://cloud.formspec.org/apps/workspace/registries/copilot",
+        "version": "1.0.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://cloud.formspec.org/apps/workspace/surfaces/workspace",
+        "version": "1.0.0"
+      }
+    ],
+    "dataSources": [
+      {
+        "url": "https://cloud.formspec.org/apps/workspace/data-sources/workspace",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "documents": {
+    "https://cloud.formspec.org/apps/workspace/surfaces/workspace": {
+      "$formspecSurface": "0.1",
+      "id": "workspace",
+      "entry": "form-edit",
+      "modules": [
+        {
+          "id": "x-formspec-copilot",
+          "version": "1.0.0"
+        }
+      ],
+      "title": "Form workspace with AI co-pilot",
+      "routes": [
+        {
+          "id": "form-edit",
+          "path": "/forms/{formId}/edit",
+          "title": "Edit form",
+          "params": [
+            {
+              "name": "formId",
+              "type": "string"
+            }
+          ],
+          "slots": [
+            {
+              "id": "editor",
+              "slotType": "definition-form",
+              "title": "Spec editor",
+              "binding": {
+                "definitionRef": "https://cloud.formspec.org/definitions/benefits-intake"
+              }
+            },
+            {
+              "id": "copilot-panel",
+              "slotType": "module-widget",
+              "title": "Ask the co-pilot",
+              "binding": {
+                "moduleId": "x-formspec-copilot",
+                "widgetName": "x-assistant-panel"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "https://cloud.formspec.org/apps/workspace/registries/copilot": {
+      "$formspecRegistry": "1.0",
+      "publisher": {
+        "name": "Formspec Cloud"
+      },
+      "published": "2026-07-26T00:00:00Z",
+      "entries": [
+        {
+          "name": "x-formspec-copilot",
+          "category": "module",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "AI co-pilot module. Reads the resolved app graph as LLM context.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0"
+          },
+          "contributes": [
+            "x-assistant-panel"
+          ]
+        },
+        {
+          "name": "x-assistant-panel",
+          "category": "widget",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "Conversational assistant panel. Projects every advertised Data Source into prompt context.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0"
+          },
+          "widgetShape": {
+            "tokenSlots": [
+              {
+                "name": "accent",
+                "acceptedTokenCategories": [
+                  "color"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "https://cloud.formspec.org/definitions/benefits-intake": {
+      "$formspec": "1.0",
+      "url": "https://cloud.formspec.org/definitions/benefits-intake",
+      "version": "1.0.0",
+      "status": "active",
+      "title": "Benefits intake",
+      "items": [
+        {
+          "key": "ssn",
+          "type": "field",
+          "dataType": "string",
+          "label": "Social Security Number",
+          "semanticType": "us-gov:ssn"
+        },
+        {
+          "key": "dob",
+          "type": "field",
+          "dataType": "date",
+          "label": "Date of birth"
+        }
+      ]
+    },
+    "https://cloud.formspec.org/apps/workspace/data-sources/workspace": {
+      "$formspecDataSources": "1.0",
+      "id": "https://cloud.formspec.org/apps/workspace/data-sources/workspace",
+      "version": "1.0.0",
+      "title": "Workspace data sources",
+      "sources": [
+        {
+          "id": "response:applicant-draft",
+          "kind": "definition-response",
+          "definitionRef": "https://cloud.formspec.org/definitions/benefits-intake",
+          "owner": "host",
+          "scope": "definition",
+          "description": "Live draft Response for the open intake, including SSN and date of birth.",
+          "availability": {
+            "level": "slot",
+            "surfaceRef": "https://cloud.formspec.org/apps/workspace/surfaces/workspace",
+            "routeRef": "form-edit",
+            "slotId": "copilot-panel"
+          },
+          "runtime": {
+            "delivery": "draft",
+            "cache": {
+              "mode": "draft"
+            },
+            "authorizationBoundary": "module",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "definition-response",
+              "source": "draft-response"
+            }
+          }
+        },
+        {
+          "id": "resource:webhook-signing-secret",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "description": "Current webhook signing secret for the workspace.",
+          "availability": {
+            "level": "module",
+            "moduleId": "x-formspec-copilot"
+          },
+          "runtime": {
+            "delivery": "snapshot",
+            "cache": {
+              "mode": "snapshot",
+              "staleAfter": "PT5M"
+            },
+            "authorizationBoundary": "module",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "vault://workspace/webhook-signing-secret"
+            }
+          }
+        },
+        {
+          "id": "host:respondent-identity",
+          "kind": "host-state",
+          "owner": "host",
+          "scope": "session",
+          "description": "Verified respondent identity attributes for the open session.",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "snapshot",
+            "cache": {
+              "mode": "snapshot"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "host-state",
+              "source": "host://identity/respondent"
+            }
+          }
+        },
+        {
+          "id": "query:dangling-control",
+          "kind": "query-result",
+          "owner": "host",
+          "scope": "route",
+          "description": "Control probe — availability targets a slot and route that do not exist.",
+          "availability": {
+            "level": "slot",
+            "surfaceRef": "https://cloud.formspec.org/apps/workspace/surfaces/workspace",
+            "routeRef": "no-such-route",
+            "slotId": "no-such-slot"
+          },
+          "runtime": {
+            "delivery": "snapshot",
+            "cache": {
+              "mode": "snapshot"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "query-result",
+              "source": "query://nowhere"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "uiGraphPolicies": []
+}

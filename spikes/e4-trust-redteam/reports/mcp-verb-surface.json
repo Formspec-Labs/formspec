@@ -1,0 +1,21 @@
+{
+  "publishedVerbs": [
+    "addComponentNode",
+    "addDefinitionStub",
+    "addExperienceUnit",
+    "addRoute",
+    "bindComponentMembership",
+    "bindSlot",
+    "copyComponentNode",
+    "declareComponent",
+    "declareDefinition",
+    "declareModule",
+    "declareRegistry",
+    "declareUiGraphPolicy",
+    "moveComponentNode",
+    "produceAppGraphValidationReport",
+    "renderPreview",
+    "setComponentLayout",
+    "wireframeFromBrief"
+  ]
+}

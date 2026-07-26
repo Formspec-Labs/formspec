@@ -1,0 +1,24 @@
+{
+  "name": "formspec-e4-trust-redteam",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Experiment E4: adversarial red-team of three trust claims (theme authority, sensitivity annotation, client-executed verification) against the ADR 0153/0154 production app-graph substrate",
+  "type": "module",
+  "scripts": {
+    "redteam": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@formspec-org/app-graph": "file:../../packages/formspec-app-graph",
+    "@formspec-org/studio-core": "file:../../../formspec-studio/packages/formspec-studio-core",
+    "@formspec-org/mcp-wireframes": "file:../../../formspec-studio/packages/formspec-mcp-wireframes",
+    "@formspec-org/types": "file:../../packages/formspec-types",
+    "ajv": "^8.18.0",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.0.0"
+  }
+}
