@@ -10,11 +10,11 @@
 
 **All fourteen of v7's findings recur under real-SaaS demand, and sixteen more appear that an authoring tool never surfaced.** v7's conclusion — the substrate is closed for intake, not for authoring software — was too narrow. The substrate is closed for *the form*, and the product that sells the form is a different animal: sixty-one routes, seven personas, a persistent shell, a data plane, a proof vocabulary rendered six ways, and a trust claim that depends on some routes refusing tenant theming. Twelve translated exemplars produced **36 primary findings across 11 gap families**, 95 error diagnostics, and not one region that both needed a data source and got one.
 
-The shape of the failure is uniform and diagnostic: every exemplar completed `artifact-resolution → schema → module-resolution → cross-artifact`, and every exemplar failed at content. The substrate accepted twelve app graphs whose combined payload is 15 routes, 66 slots, and 46 data-binding sites — of which **49 of 66 slots (74%) are `module-widget` against modules the Registry cannot admit**, and **all 46 data bindings are free-form strings the validator cannot read**. The product is expressible as boxes and inexpressible as meaning.
+The shape of the failure is uniform and diagnostic: every exemplar completed `artifact-resolution → schema → module-resolution → cross-artifact`, and every exemplar failed at content. The substrate accepted twelve app graphs whose combined payload is 15 routes and 66 slots — of which **49 (74%) are `module-widget` against modules the Registry cannot admit** — plus **53 workaround binding strings the validator cannot read** (38 distinct, every one an `x-spike-v8:` tag standing where a declared data source, channel, or sensitivity class should be). The product is expressible as boxes and inexpressible as meaning.
 
 One region in twelve surfaces was a native fit: the onboarding wizard's organization step, which is a `definition-form`. It still failed validation — because no MCP verb mints the Definition it binds to (v7's F14, one missing verb, cheapest promotion in the catalog).
 
-The ranking is the deliverable. **Slot taxonomy is 12 of 36 primary findings** and touches every exemplar; **the data-source gap is 2 findings but 46 binding sites**; **Registry admission is 2 findings but 95 of 97 auto-recorded diagnostics**. Frequency by finding count and frequency by blast radius disagree, and both are in the tracker below.
+The ranking is the deliverable. **Slot taxonomy is 12 of 36 primary findings** and touches every exemplar; **the data-source gap is 2 findings but 53 workaround binding strings**; **the two missing MCP verbs are 2 findings but 94 of 97 auto-recorded diagnostics — 93 from the Registry-admission gap alone**. Frequency by finding count and frequency by blast radius disagree, and both are in the tracker below.
 
 ## Scope Boundary
 
@@ -80,9 +80,13 @@ Every exemplar completed the same four phases — `artifact-resolution`, `schema
 | form-versions | diff-compare | `/forms/:id/versions` | 1 | 5 | 8 | MODULE-* |
 | **Total** | | | **15** | **66** | **95** | 4 distinct codes |
 
-**Schema-phase caveat carries over from v7.** `schemaValidators: () => ({ ok: true })` — the `schema: completed` status means the pipeline reached the phase, not that Ajv validated the authored documents. Cross-artifact and module-resolution carry the substantive weight. Wiring real Ajv needs schema-URL knowledge the persona wall forbids.
+**Schema-phase caveat carries over from v7.** Both `schemaValidators` and `evidenceSchemaValidators` are `() => ({ ok: true })` — the `schema: completed` status means the pipeline reached the phase, not that Ajv validated the authored Surface documents or the UI Graph Policy host evidence that findings 5, 6, 23, 27, and 33 hang off. Cross-artifact and module-resolution carry the substantive weight. Wiring real Ajv needs schema-URL knowledge the persona wall forbids.
 
-**Two diagnostics are the whole story.** `MODULE-UNRESOLVED` + `MODULE-CONTRIBUTION-MISSING` fire on all twelve exemplars because 43 of 66 slots are `module-widget` fallbacks — the substrate correctly refusing modules no Registry admits (finding 18). `APP-GRAPH-SURFACE-DEFINITION-SLOT` (onboarding) and `APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF` (admin-billing) are the two places the persona reached for a *native* primitive and still could not land it — findings 21 and 24, and the two most promotable rows in this catalog.
+**Two diagnostics are the whole story.** `MODULE-UNRESOLVED` + `MODULE-CONTRIBUTION-MISSING` fire on all twelve exemplars because 49 of 66 slots are `module-widget` fallbacks — the substrate correctly refusing modules no Registry admits (finding 18). `APP-GRAPH-SURFACE-DEFINITION-SLOT` (onboarding) and `APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF` (admin-billing) are the two places the persona reached for a *native* primitive and still could not land it — findings 21 and 24, and the two most promotable rows in this catalog.
+
+**Two slot bindings were refused before validation ran.** `bindSlot(embed-route)` rejected `surfaceUrl` and `routeId` (`VALIDATION — EmbedRouteSlot.binding contains unsupported properties`), and `bindSlot(definition-form)` rejected `version` (`unsupported property`). The first is finding 17 answered directly: the embed primitive will not take a cross-bundle target. The second says a `definition-form` slot cannot pin the Definition version it renders — the pinning guarantee the product's own versions surface advertises (finding 36) is not expressible at the slot that binds the form. Both refusals are recorded in [`reports/findings.json`](../../spikes/wireframe-generator-v8/reports/findings.json) (ids 136, 159).
+
+**Harness disclosure.** A refused slot still appears in the Surface document served to the loader, because both the `bindSlot` calls and the loaded document derive from one `SlotSpec[]`. That is deliberate — it keeps the served document honest about what the persona intended — but it means the two refusals above are visible only in the findings record, not as validator diagnostics.
 
 ## MCP Verb Usage Tracker
 
@@ -110,12 +114,14 @@ Eleven families. **Primary** counts distinct findings; **sites** counts where th
 | App composition | 4 | 12 bundles for one app | 1, 3, 16, 20 | Multi-Surface bundle + inherited shell, typed route params, nested/tabbed routes, ordered step flows |
 | Action vocabulary is completion-shaped | 4 | ~20 authored actions, none declarable | 11, 25, 26, 30 | Action targets beyond form submit: `runtime-command`, `artifact-download`, `external-handoff`, `client-executed`; subject selectors for bulk |
 | Capability gating absent | 3 | 4 surfaces need step-up or sensitivity | 5, 23, 27 | Route access posture, identity-assurance precondition, field/binding `sensitivity` class |
-| MCP verb surface | 2 | **95 of 97 diagnostics** | 18, 21 | Registry admission (`declareRegistry`) and `declareDefinition` |
-| Data source | 2 | **46 binding sites, 32 distinct sources** | 2, 29 | `declareDataSource` verb, `workspace:` / `host-status:` / `catalog:` scope families, freshness contract |
+| MCP verb surface | 2 | **94 of 97 diagnostics** (93 from finding 18) | 18, 21 | Registry admission (`declareRegistry`) and `declareDefinition` |
+| Data source | 2 | **53 workaround binding strings, 38 distinct** | 2, 29 | An MCP verb that authors the ratified Data Sources artifact, a `workspace:` scope value, and a `sensitivity` class — see §Post-wall corrections |
 | Read-only display | 1 | 1 experience-unit misuse + every read-mostly panel | 24 | `data-view` slot: data source + layout intent, no Experience, no Definition |
 | Theming authority | 1 | 5 proof-class routes | 6 | `themeAuthority: tenant \| platform \| frozen` on RoutePolicy |
 | a11y profile shape | 1 | 12 identical declarations | 33 | `data-table`, `multi-pane`, `command-surface`, `no-script` profiles |
 | Cross-slot contract | 1 | 6 master-detail surfaces | 19 | Named `publishes` / `consumes` channels validated at graph time |
+
+**Counting rule, and where it is inconsistent.** Diagnostics with one root cause collapse to one primary finding plus auto-records (93 `MODULE-*` diagnostics → finding 18). Findings recorded by the persona do not collapse: 9, 12, and 28 are the same missing primitive — a data-bound, non-prose `static-content` kind — met on three surfaces in three shapes (stat strip, stat tile with delta, capability matrix), and they hold three ids. That inflates slot-taxonomy's headline relative to the diagnostic families. The v7 cross-reference below shows it plainly: all three trace to F13. Read the family ranking as *breadth of demand*, not as a count of distinct primitives.
 
 ## Findings
 
@@ -171,7 +177,7 @@ Eleven families. **Primary** counts distinct findings; **sites** counts where th
 
 ### Data source (2 findings, 46 sites)
 
-- **2 · no data-source verb at all** — cross-cutting · MCP verb surface · → F3, deepened. v7 asked for a `workspace:` scope family; v8 finds there is nowhere to write a scope string. 46 binding sites, 32 distinct sources, zero validatable.
+- **2 · no data-source verb at all** — cross-cutting · MCP verb surface · → F3, deepened. v7 asked for a `workspace:` scope family; the persona found nowhere on the MCP to write a scope string at all. 53 workaround binding strings, 38 distinct, zero validatable. **Partly corrected post-wall — see §Post-wall corrections.**
 - **29 · no freshness contract on compliance facts** — trust-center · `bindSlot` · → F3. A SOC 2 date typed into a heading is a date nobody re-checks, on the surface where staleness is a procurement disqualifier.
 
 ### Single-finding families (4)
@@ -208,13 +214,23 @@ The pattern: v7 found the substrate could not describe *how an authoring tool is
 
 ## What this means
 
-- **The promotion order changes.** v7 ranked slot taxonomy first, and slot taxonomy is still the largest family (12 of 36). But two findings with the smallest counts have the largest blast radius: Registry admission (18) causes 95 of 97 diagnostics, and the data-source verb (2) invalidates 46 binding sites. **Land 18 and 21 first — they are single verbs and they unblock the two places the persona reached for native primitives.** Then 2 (data source), then the slot taxonomy in demand order (`collection`, `stat-strip`, `filter-bar`, `data-view`, `compare`, `tree`).
+- **The promotion order changes.** v7 ranked slot taxonomy first, and slot taxonomy is still the largest family (12 of 36). But two findings with the smallest counts have the largest blast radius: Registry admission (18) causes 93 of 97 diagnostics, and the missing data-source verb (2) leaves 53 binding strings unreadable. **Land 18 and 21 first — they are single verbs and they unblock the two places the persona reached for native primitives.** Then 2, which post-wall turns out to be a facade wrapper over an already-ratified artifact rather than a new contract — cheaper than this catalog first assumed. Then the slot taxonomy in demand order (`collection`, `stat-strip`, `filter-bar`, `data-view`, `compare`, `tree`).
 - **Read-only display (24) is the highest-leverage single slot type.** It closes v7 F4, stops `experience-unit` from being corrupted, and serves the admin, trust, detail, receipt, and certificate families at once.
 - **Three findings are trust-claim-bearing, not ergonomics.** Theme authority (6) protects the visual immutability of proof surfaces; sensitivity annotation (27) keeps secrets out of whatever consumes the graph, including the co-pilot; client-executed actions (30) are the verifier's independence claim. These are cheap hooks with disproportionate downside if deferred — the product ships a white-label story and an AI co-pilot, and both are exactly the pressures that break these rules quietly.
 - **Capability gating stays partly blocked.** Findings 5, 23, 27 split v7's F10 into three hooks. The predicate *slots* can land before the authorization semantics exist; the semantics remain the fine-grained-authorization question v7 left held.
 - **The graph-edit verbs are unexercised, twice.** v7 and v8 both judged Component-tree authoring upstream of slot binding. Two spikes with zero coverage is a coverage claim nobody has tested — worth a targeted probe rather than a third incidental skip.
 
 The substrate is closed for the form. **v7 said it is not closed for authoring software; v8 says it is not closed for the product that sells the form** — which is the same substrate, one layer out, and the layer the company's revenue sits on.
+
+## Post-wall corrections
+
+The persona wall makes findings valid as *authoring-experience* evidence, and it also guarantees some of them misjudge how much substrate already exists. Reviewed against the specs after authoring closed:
+
+- **Finding 2 is a facade gap, not a contract gap.** [`formspec/schemas/data-sources.schema.json`](../../schemas/data-sources.schema.json) already ratifies a `DataSource` shape with `kind`, `owner`, `scope`, `availability` (down to `level: "slot"` with `surfaceRef`/`routeRef`/`slotId`), `runtime` (delivery, cache, failure mode, provenance), and an optional payload `schema`; App Manifest carries `dataSources[]` siblings; ADR 0153 lists Data Sources as **Closed**. What is missing is (a) any verb on Wireframes-MCP that authors it — zero occurrences of `dataSource` in the MCP or studio-core source — and (b) validator/loader wiring, already tracked as `fs-r2od` (availability cross-artifact checks) and `fs-9d5e` (runtime loader). **This strengthens the promotion argument rather than weakening it:** the verb is a wrapper over a closed artifact, not a new contract.
+- **Two thirds of finding 2's ask is already modeled; one third is not.** `runtime.cache.staleAfter` covers most of finding 29's freshness ask. `scope` is `session | route | definition | resource` — no workspace-shaped value, so v7's F3 scope-family point stands unchanged. There is **no sensitivity/classification field anywhere on `DataSource`**, so finding 27's ask is genuinely net-new surface.
+- **Everything else held.** The five-member slot-type union and the four-member `static-content` kind enum are as the persona found them, so findings 7-9, 12-14, 17, 22, 28, 31, 34, and 35 name real absences. The published MCP has no Registry-admission verb and no `declareDefinition`, confirming 18 and 21 exactly.
+
+Nothing in this section was fed back into the persona record: [`reports/findings.json`](../../spikes/wireframe-generator-v8/reports/findings.json) stays as authored, because a corrected record would no longer evidence what the published interface communicates to a competent reader of it. The corrections belong here, in the promotion argument.
 
 ## Verification
 
@@ -231,8 +247,9 @@ npm run typecheck    # tsc --noEmit — clean
 | Corpus files classified | 37 (14 families) |
 | Exemplars translated + validated | 12 |
 | Routes authored | 15 |
-| Slots bound | 66 (49 `module-widget`, 14 `static-content`, 1 `experience-unit`, 1 `definition-form`, 1 `embed-route`) |
-| Data-binding sites | 46 (32 distinct sources, 0 validatable) |
+| Slots bound | 66 (49 `module-widget`, 14 `static-content`, 1 `experience-unit`, 1 `definition-form`, 1 `embed-route`) — `rollup.json:totals.slotTypes` |
+| Workaround binding strings | 53 sites, 38 distinct, 0 validatable — `rollup.json:totals.spikeBindingSites`, counted by `countSpikeBindings()` (every `x-spike-v8:` string inside an authored slot binding) |
+| Bind-time refusals | 2 (`embed-route` rejected `surfaceUrl`+`routeId`; `definition-form` rejected `version`) |
 | Error diagnostics | 95 (4 distinct codes) |
 | Primary findings | 36 across 11 gap families |
 | Diagnostic auto-records | 97 |
