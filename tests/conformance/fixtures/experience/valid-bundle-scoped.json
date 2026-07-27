@@ -1,0 +1,15 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "title": "Workspace shell -- bundle-scoped task intent",
+  "actors": [{ "id": "operator", "title": "Operator" }],
+  "tasks": [{ "id": "triageQueue", "title": "Triage the work queue" }],
+  "units": [
+    {
+      "id": "queueTriage",
+      "kind": "review",
+      "taskRefs": ["triageQueue"],
+      "actorRef": "operator"
+    }
+  ]
+}

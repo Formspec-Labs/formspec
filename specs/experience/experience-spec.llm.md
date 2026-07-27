@@ -7,10 +7,10 @@ Source schema: `schemas/experience.schema.json`
 
 ## Bottom Line Up Front
 
-- This document defines the Experience Document -- an authored sidecar JSON artifact that names abstract task intent for a Formspec Definition: actors, tasks, units, applicability, and typed references to items, concepts, and actions.
-- A valid Experience Document requires `$formspecExperience`, `version`, and `targetDefinition`; at least one populated `actors`, `tasks`, or `units` array is RECOMMENDED, and `units` carries the substantive coverage payload.
+- This document defines the Experience Document -- an authored sidecar JSON artifact that names abstract task intent for a Formspec Definition or an app bundle: actors, tasks, units, applicability, and typed references to items, concepts, and actions.
+- A valid Experience Document requires `$formspecExperience` and `version`; `targetDefinition` is OPTIONAL and sets scope (present = Definition-scoped, absent = bundle-scoped per ADR 0150 §5.2 app envelope). A bundle-scoped document forms no (Definition, Experience) pair, so every step that reads a loaded Definition is inapplicable rather than failing — S10.1 states that once and is the only place it is stated. At least one populated `actors`, `tasks`, or `units` array is RECOMMENDED, and `units` carries the substantive coverage payload.
 - `unit.kind` is a closed, abstract, task-oriented registry -- `data-entry`, `review`, `confirmation`, `evidence-collection`, `attestation`, `error-resolution`, `assistance` -- chosen so units do not become layout containers.
-- Coverage is a static predicate: every Definition item that is required and not statically non-relevant MUST appear in at least one `unit.itemRefs`; Coverage-aware processors MUST report uncovered required items.
+- Coverage is a static predicate over Definition-scoped Experiences: every Definition item that is required and not statically non-relevant MUST appear in at least one `unit.itemRefs`; Coverage-aware processors MUST report uncovered required items. Bundle scope suspends it under S10.1.
 - Experience MUST NOT affect data capture, validation, or the processing model; this BLUF is governed by `schemas/experience.schema.json`, the canonical structural contract.
 
 ## Critical Schema Fields
@@ -19,7 +19,7 @@ Source schema: `schemas/experience.schema.json`
 |---|---|---|---|---|
 | `#/$defs/UnitKind` | no | composite | Closed-core enum + module-extensible x- branch per ADR 0150 §4.5 | Closed-core task-oriented unit kind OR a module-contributed `x-` extension (ADR 0150 §4.5). Closed-core values: data-entry (user provides or revises data), review (read-only display of captured data), confirmation (user affirms accuracy before a transition), evidence-collection (user supplies evidence — attachments, attestations), attestation (user certifies a statement under accountability), error-resolution (user resolves a validation finding), assistance (user receives help). Extension values follow the canonical `^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` regex (§4.8). |
 | `#/properties/$formspecExperience` | yes | string | Version pin for experience document compatibility | Experience specification version. MUST be '1.0'. |
-| `#/properties/targetDefinition` | yes | $ref | Target Definition URL and compatible-versions range | Binding to the target Definition document. Same shape as Theme / Component / Locale. |
+| `#/properties/targetDefinition` | no | $ref | Target Definition URL and compatible-versions range, or — omitted — bundle scope | OPTIONAL binding to the target Definition document. Same shape as Theme / Component / Locale. PRESENT — the Experience is Definition-scoped: processors resolve it against the loaded Definition, verify the URL match and compatibleVersions range, and compute coverage against that Definition. ABSENT — the Experience is bundle-scoped per the ADR 0150 §5.2 app envelope: it names task intent for the bundle whose App Manifest lists it, not for a single Definition, which is the only representable posture when definitions[] is empty (a pure non-form app). A bundle-scoped Experience forms no (Definition, Experience) pair, so every processing step that reads a loaded Definition — target resolution, item-ref resolvability, and coverage — is inapplicable rather than failing and emits no finding (experience-spec S10.1, the single normative statement); a processor MUST NOT infer a binding to whatever Definition is loaded. An Experience carrying Definition-keyed content (units[].itemRefs) SHOULD declare targetDefinition — those paths have no anchor without one. |
 | `#/properties/units` | no | array | Substantive payload; units organize typed references under tasks | Substantive Experience payload. Each Unit organizes typed item, concept, and action references under abstract task intent. |
 | `#/properties/version` | yes | string | Experience document revision identifier | Version of this Experience Document. SemVer is RECOMMENDED. |
 
@@ -33,8 +33,8 @@ Source schema: `schemas/experience.schema.json`
 
 ## Conformance Essentials
 
-- A conforming Experience document must include $formspecExperience=1.0, version, and targetDefinition.
+- A conforming Experience document must include $formspecExperience=1.0 and version; targetDefinition is optional and sets scope — present means Definition-scoped, absent means bundle-scoped over the App Manifest bundle that lists it.
 - Processors must reject schema-invalid documents and out-of-registry unit.kind values.
-- Experience Core processors must verify targetDefinition compatibility, actor/task referential integrity, and ItemRef path resolvability.
-- Experience Coverage-Aware processors must emit EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM findings for required visible Definition fields not referenced by any unit.itemRefs.
+- Experience Core processors must verify targetDefinition compatibility, actor/task referential integrity, and ItemRef path resolvability whenever targetDefinition is present; target resolution is inapplicable, not failing, on a bundle-scoped Experience.
+- Experience Coverage-Aware processors must emit EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM findings for required visible Definition fields not referenced by any unit.itemRefs; they must not pair a bundle-scoped Experience with an arbitrary loaded Definition to manufacture such findings.
 - Extensions may carry x-prefixed metadata, but they must not extend or override the closed unit.kind registry or alter Core semantics.

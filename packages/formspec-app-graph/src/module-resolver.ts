@@ -320,6 +320,27 @@ function registryInputFromHandle(handle: ResolvedArtifactHandle): ModuleResolver
   };
 }
 
+/**
+ * Map a Surface `module-widget` binding's `widgetName` to the RegistryEntry `name` that
+ * carries it.
+ *
+ * **The two `widgetName` fields are different vocabularies, and this asymmetry is
+ * deliberate — do not unify it with {@link uiGraphPolicyUses}.** ADR 0160 §2.4:
+ *
+ * - `surface.schema.json` `$defs/Slot` module-widget `binding.widgetName` carries **no
+ *   pattern** and is documented as "matches `widgetShape.widgetName`". It is the
+ *   module's own (often PascalCase) widget name, NOT a contribution id — so it must be
+ *   mapped here before it can resolve against `RegistryEntry.name`.
+ * - `ui-graph-policy.schema.json` `$defs/WidgetRef.widgetName` carries the pattern
+ *   `^x-[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$` — the SAME vocabulary as
+ *   `RegistryEntry.name`. It is already the contribution id, so `uiGraphPolicyUses`
+ *   uses it directly and MUST NOT route through this function: the lookup keys on
+ *   `widgetShape.widgetName`, would miss, and would silently mis-resolve the day a
+ *   module names a `widgetShape.widgetName` that collides with some contribution id.
+ *
+ * Same JSON key, two schemas, two vocabularies. Conflating them is what v9 finding 41
+ * half-diagnosed.
+ */
 function widgetContributionNameFor(
   moduleId: string,
   widgetName: string,
@@ -497,6 +518,14 @@ function documentInputFromHandle(
   };
 }
 
+/**
+ * `widgetRef.widgetName` is used as the contribution name **verbatim**, unlike the
+ * Surface path at {@link surfaceUses}, which maps through
+ * {@link widgetContributionNameFor}. That is correct, not an oversight: this field's
+ * schema pattern is the `RegistryEntry.name` vocabulary, so it is already the
+ * contribution id. See {@link widgetContributionNameFor} for the full three-vocabulary
+ * discipline (ADR 0160 §2.4) before changing either side.
+ */
 function uiGraphPolicyUses(
   evidence: NonNullable<AppGraphHostEvidence['uiGraphPolicies']>[number],
   evidenceIndex: number,

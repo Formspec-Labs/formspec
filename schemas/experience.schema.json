@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/experience/1.0",
   "title": "Formspec Experience",
-  "description": "A Formspec Experience Document per the Experience specification. A standalone sidecar that names abstract task intent for a Formspec Definition: actors, tasks, units, applicability, and typed references to items, concepts, and actions. Like Theme, Component, Locale, and References documents, an Experience Document targets a Definition but lives alongside it. Multiple Experience Documents MAY target the same Definition (e.g., different actor populations, platforms, or postures). Experience metadata MUST NOT alter core behavioral semantics (required, relevant, readonly, calculate, validation).",
+  "description": "A Formspec Experience Document per the Experience specification. A standalone sidecar that names abstract task intent: actors, tasks, units, applicability, and typed references to items, concepts, and actions. Like Theme, Component, Locale, and References documents, an Experience Document lives alongside the artifacts it describes. Scope is set by targetDefinition: present binds the Experience to one Definition (multiple Experience Documents MAY target the same Definition — different actor populations, platforms, or postures); absent makes the Experience bundle-scoped, naming task intent across the App Manifest bundle rather than one Definition, which is the only representable posture for an app envelope with an empty definitions[] (ADR 0150 §5.2). Experience metadata MUST NOT alter core behavioral semantics (required, relevant, readonly, calculate, validation).",
   "type": "object",
-  "required": ["$formspecExperience", "version", "targetDefinition"],
+  "required": ["$formspecExperience", "version"],
   "additionalProperties": false,
   "patternProperties": {
     "^x-": {}
@@ -42,13 +42,13 @@
     },
     "targetDefinition": {
       "$ref": "#/$defs/TargetDefinition",
-      "description": "Binding to the target Definition document. Same shape as Theme / Component / Locale.",
+      "description": "OPTIONAL binding to the target Definition document. Same shape as Theme / Component / Locale. PRESENT — the Experience is Definition-scoped: processors resolve it against the loaded Definition, verify the URL match and compatibleVersions range, and compute coverage against that Definition. ABSENT — the Experience is bundle-scoped per the ADR 0150 §5.2 app envelope: it names task intent for the bundle whose App Manifest lists it, not for a single Definition, which is the only representable posture when definitions[] is empty (a pure non-form app). A bundle-scoped Experience forms no (Definition, Experience) pair, so every processing step that reads a loaded Definition — target resolution, item-ref resolvability, and coverage — is inapplicable rather than failing and emits no finding (experience-spec S10.1, the single normative statement); a processor MUST NOT infer a binding to whatever Definition is loaded. An Experience carrying Definition-keyed content (units[].itemRefs) SHOULD declare targetDefinition — those paths have no anchor without one.",
       "examples": [
         { "url": "https://example.gov/forms/intake", "compatibleVersions": ">=1.0.0 <2.0.0" }
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Target Definition URL and compatible-versions range"
+        "intent": "Target Definition URL and compatible-versions range, or — omitted — bundle scope"
       }
     },
     "name": {

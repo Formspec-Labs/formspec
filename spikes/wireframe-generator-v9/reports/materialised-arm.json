@@ -1,0 +1,272 @@
+{
+  "arm": "materialised",
+  "adr": "thoughts/adr/0160-mcp-materialisation-verbs.md#7-acceptance-evidence",
+  "exemplars": 12,
+  "slotsUnchanged": {
+    "slots": 66,
+    "routes": 15,
+    "paritySlots": 66,
+    "parityRoutes": 15,
+    "unchanged": true
+  },
+  "bars": {
+    "scope": "verb-family-owned",
+    "artifactMissing": {
+      "target": "<= 1",
+      "measured": 0,
+      "met": true
+    },
+    "themeTokenRef": {
+      "target": "0",
+      "measured": 0,
+      "met": true
+    },
+    "moduleStar": {
+      "target": "0",
+      "measured": 0,
+      "met": true
+    },
+    "crossArtifactCompleted": {
+      "target": "every surface with no out-of-family blocker",
+      "measured": "7 / 7",
+      "met": true,
+      "evaluable": [
+        "forms-index",
+        "owner-dashboard",
+        "form-detail",
+        "form-edit",
+        "dev-webhooks",
+        "responses-index",
+        "form-versions"
+      ]
+    }
+  },
+  "wholeGraph": {
+    "moduleStar": 7,
+    "crossArtifactCompleted": "7 / 12",
+    "errors": 17
+  },
+  "baselinesUnderLandedCode": {
+    "parity": {
+      "moduleUnresolved": 44,
+      "moduleContributionMissingOwned": 45,
+      "moduleContributionMissingWholeGraph": 46,
+      "crossArtifactCompleted": "10 / 12"
+    },
+    "verbOnly": {
+      "artifactMissing": 12,
+      "crossArtifactCompleted": "0 / 12"
+    },
+    "hostCorrected": {
+      "themeTokenRef": 6
+    }
+  },
+  "byScope": {
+    "verb-family": {
+      "errors": 0,
+      "codes": {},
+      "surfaces": []
+    },
+    "host-evidence": {
+      "errors": 12,
+      "codes": {
+        "APP-GRAPH-SCHEMA": 6,
+        "MODULE-CONTRIBUTION-MISSING": 6
+      },
+      "surfaces": [
+        "signature-ceremony",
+        "trust-center",
+        "verifier"
+      ]
+    },
+    "corpus-identifier": {
+      "errors": 4,
+      "codes": {
+        "APP-GRAPH-SCHEMA": 3,
+        "MODULE-CONTRIBUTION-MISSING": 1
+      },
+      "surfaces": [
+        "admin-billing"
+      ]
+    },
+    "surface-composition": {
+      "errors": 1,
+      "codes": {
+        "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE": 1
+      },
+      "surfaces": [
+        "onboarding"
+      ]
+    }
+  },
+  "errorCodeCounts": {
+    "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE": 1,
+    "APP-GRAPH-SCHEMA": 9,
+    "MODULE-CONTRIBUTION-MISSING": 7
+  },
+  "crossArtifact": [
+    {
+      "id": "forms-index",
+      "status": "completed"
+    },
+    {
+      "id": "owner-dashboard",
+      "status": "completed"
+    },
+    {
+      "id": "form-detail",
+      "status": "completed"
+    },
+    {
+      "id": "form-edit",
+      "status": "completed"
+    },
+    {
+      "id": "onboarding",
+      "status": "skipped",
+      "reason": "unresolved-artifacts"
+    },
+    {
+      "id": "signature-ceremony",
+      "status": "skipped",
+      "reason": "schema-errors"
+    },
+    {
+      "id": "admin-billing",
+      "status": "skipped",
+      "reason": "schema-errors"
+    },
+    {
+      "id": "dev-webhooks",
+      "status": "completed"
+    },
+    {
+      "id": "trust-center",
+      "status": "skipped",
+      "reason": "schema-errors"
+    },
+    {
+      "id": "verifier",
+      "status": "skipped",
+      "reason": "schema-errors"
+    },
+    {
+      "id": "responses-index",
+      "status": "completed"
+    },
+    {
+      "id": "form-versions",
+      "status": "completed"
+    }
+  ],
+  "materialisation": [
+    {
+      "id": "forms-index",
+      "registryUrl": "urn:formspec:doc:5c5e7cec98013a1d:registry",
+      "registryEntriesAttempted": 7,
+      "registryEntriesAccepted": 7,
+      "themeTokensAttempted": 0,
+      "themeTokensAccepted": 0,
+      "refusals": []
+    },
+    {
+      "id": "owner-dashboard",
+      "registryUrl": "urn:formspec:doc:50cff56bb958a6d9:registry",
+      "registryEntriesAttempted": 11,
+      "registryEntriesAccepted": 11,
+      "themeTokensAttempted": 0,
+      "themeTokensAccepted": 0,
+      "refusals": []
+    },
+    {
+      "id": "form-detail",
+      "registryUrl": "urn:formspec:doc:10802b0f6085b424:registry",
+      "registryEntriesAttempted": 8,
+      "registryEntriesAccepted": 8,
+      "themeTokensAttempted": 0,
+      "themeTokensAccepted": 0,
+      "refusals": []
+    },
+    {
+      "id": "form-edit",
+      "registryUrl": "urn:formspec:doc:4c16b883ced03ab7:registry",
+      "registryEntriesAttempted": 9,
+      "registryEntriesAccepted": 9,
+      "themeTokensAttempted": 0,
+      "themeTokensAccepted": 0,
+      "refusals": []
+    },
+    {
+      "id": "onboarding",
+      "registryUrl": "urn:formspec:doc:ae29274ef7841c46:registry",
+      "registryEntriesAttempted": 8,
+      "registryEntriesAccepted": 8,
+      "themeTokensAttempted": 0,
+      "themeTokensAccepted": 0,
+      "refusals": []
+    },
+    {
+      "id": "signature-ceremony",
+      "registryUrl": "urn:formspec:doc:304ef2621ec20a49:registry",
+      "registryEntriesAttempted": 6,
+      "registryEntriesAccepted": 6,
+      "themeTokensAttempted": 2,
+      "themeTokensAccepted": 2,
+      "refusals": []
+    },
+    {
+      "id": "admin-billing",
+      "registryUrl": "urn:formspec:doc:92ad26dda891d6eb:registry",
+      "registryEntriesAttempted": 8,
+      "registryEntriesAccepted": 8,
+      "themeTokensAttempted": 0,
+      "themeTokensAccepted": 0,
+      "refusals": []
+    },
+    {
+      "id": "dev-webhooks",
+      "registryUrl": "urn:formspec:doc:d8932459fe312243:registry",
+      "registryEntriesAttempted": 8,
+      "registryEntriesAccepted": 8,
+      "themeTokensAttempted": 0,
+      "themeTokensAccepted": 0,
+      "refusals": []
+    },
+    {
+      "id": "trust-center",
+      "registryUrl": "urn:formspec:doc:e0f135d3a5026449:registry",
+      "registryEntriesAttempted": 6,
+      "registryEntriesAccepted": 6,
+      "themeTokensAttempted": 2,
+      "themeTokensAccepted": 2,
+      "refusals": []
+    },
+    {
+      "id": "verifier",
+      "registryUrl": "urn:formspec:doc:f035e2b8f7dbc595:registry",
+      "registryEntriesAttempted": 7,
+      "registryEntriesAccepted": 7,
+      "themeTokensAttempted": 2,
+      "themeTokensAccepted": 2,
+      "refusals": []
+    },
+    {
+      "id": "responses-index",
+      "registryUrl": "urn:formspec:doc:302537e324a30ed8:registry",
+      "registryEntriesAttempted": 7,
+      "registryEntriesAccepted": 7,
+      "themeTokensAttempted": 0,
+      "themeTokensAccepted": 0,
+      "refusals": []
+    },
+    {
+      "id": "form-versions",
+      "registryUrl": "urn:formspec:doc:ff66daafcf4652bd:registry",
+      "registryEntriesAttempted": 8,
+      "registryEntriesAccepted": 8,
+      "themeTokensAttempted": 0,
+      "themeTokensAccepted": 0,
+      "refusals": []
+    }
+  ]
+}

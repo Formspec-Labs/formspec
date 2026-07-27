@@ -13,8 +13,11 @@
  *
  * Three things changed under the persona since v8, and v9 exists to price them:
  * `declareRegistry`, `declareDefinition`, and `routeClass` + `THEME-ROUTE-CLASS`.
- * The value of this run comes from its ability to come out negative, so nothing
- * below asserts that a diagnostic count improved.
+ * The value of this run comes from its ability to come out negative, so no arm
+ * below asserts that a diagnostic count improved. The one exception is deliberate
+ * and lives outside the arms: the ADR 0160 §7 acceptance block enforces that
+ * ADR's five published bars, because those are that contract's own acceptance
+ * evidence rather than this spike's findings.
  */
 import { describe, it, expect } from 'vitest';
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
@@ -25,6 +28,7 @@ import {
   SPIKE_ROOT,
   runSurface,
   phaseStatus,
+  type DiagnosticScope,
   type SurfaceOutcome,
 } from '../src/harness.js';
 import { formsIndex } from '../src/surfaces/forms-index.js';
@@ -49,6 +53,8 @@ const armA: SurfaceOutcome[] = [];
 const armB: SurfaceOutcome[] = [];
 /** Plus the corrections the validator's own diagnostics named. */
 const armC: SurfaceOutcome[] = [];
+/** ADR 0160 §7.1's fifth arm — Registry and Theme MINTED by the verb family. */
+const armD: SurfaceOutcome[] = [];
 
 const V8_REPORTS = resolve(SPIKE_ROOT, '..', 'wireframe-generator-v8', 'reports');
 
@@ -264,6 +270,201 @@ describe('arm C — host-corrected (the persona reads the diagnostics and fixes 
 // ─────────────────────────────────────────────────────────────────────────
 // Post-run findings — recorded from what the two arms actually produced
 // ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * ADR 0160 §7.1's fifth arm. Everything the host arms hand-author, this arm mints
+ * through the verb family, and it validates with **no host loader at all**.
+ *
+ * Nothing here asserts an improvement: §7.1's bars are checked in the acceptance
+ * block below, against the numbers this arm actually produced. An arm that has to be
+ * tuned to clear a bar has stopped measuring.
+ */
+describe('arm D — materialised (ADR 0160 verb family, no host loader)', () => {
+  for (const { script, fallback } of exemplars) {
+    it(`re-runs ${script.id} with a kernel-minted Registry and Theme`, async () => {
+      const outcome = await runSurface(script, findings, fallback, 'materialised');
+      armD.push(outcome);
+      expect(outcome.slotCount).toBeGreaterThan(0);
+    });
+  }
+});
+
+/**
+ * ADR 0160 §7's bars are scoped to the paths verb family v1 OWNS, and the same
+ * numbers are reported unscoped beside them. Neither view can be read without the
+ * other: `bars` says what the family did with what it can reach, `wholeGraph` says
+ * what the corpus still carries, and `byScope` reconciles them diagnostic for
+ * diagnostic. Scope is read off each diagnostic's own `primarySource` (harness
+ * `scopeOfDiagnostic`) — there is no per-surface exclusion list to tune.
+ */
+describe('ADR 0160 §7 acceptance bars — measured, then enforced', () => {
+  const count = (arm: SurfaceOutcome[], code: string): number =>
+    arm.reduce((total, outcome) => total + (outcome.errorCodeCounts[code] ?? 0), 0);
+  const countScoped = (arm: SurfaceOutcome[], scope: DiagnosticScope, code: string): number =>
+    arm.reduce((total, outcome) => total + (outcome.errorCodeCountsByScope[scope][code] ?? 0), 0);
+  /** Errors on this surface that no member of verb family v1 can reach. */
+  const outOfFamilyErrors = (o: SurfaceOutcome): number =>
+    (['host-evidence', 'corpus-identifier', 'surface-composition'] as const).reduce(
+      (n, scope) => n + Object.values(o.errorCodeCountsByScope[scope]).reduce((a, b) => a + b, 0),
+      0,
+    );
+
+  it('holds the materialised arm to every §7 bar, scoped and unscoped', () => {
+    const artifactMissing = count(armD, 'ARTIFACT-MISSING');
+    const themeTokenRef = count(armD, 'THEME-TOKEN-REF');
+    const crossArtifactCompleted = armD.filter((o) => o.crossArtifactStatus === 'completed').length;
+    const moduleStar = count(armD, 'MODULE-UNRESOLVED') + count(armD, 'MODULE-CONTRIBUTION-MISSING');
+    // Verb-scoped: the same two counts restricted to diagnostics the family owns.
+    const moduleStarOwned =
+      countScoped(armD, 'verb-family', 'MODULE-UNRESOLVED')
+      + countScoped(armD, 'verb-family', 'MODULE-CONTRIBUTION-MISSING');
+    // The denominator narrows, the numerator does not: a surface is evaluable for
+    // the family only when nothing outside the family is blocking it.
+    const evaluable = armD.filter((o) => outOfFamilyErrors(o) === 0);
+    const evaluableCompleted = evaluable.filter((o) => o.crossArtifactStatus === 'completed').length;
+    const slots = armD.reduce((n, o) => n + o.slotCount, 0);
+    const routes = armD.reduce((n, o) => n + o.routeCount, 0);
+    const paritySlots = armParity.reduce((n, o) => n + o.slotCount, 0);
+    const parityRoutes = armParity.reduce((n, o) => n + o.routeCount, 0);
+
+    /**
+     * ADR 0160 §7's five bars, each carrying the scope §7's own prose gives it —
+     * not one scope label stretched over the block. `ARTIFACT-MISSING`,
+     * `THEME-TOKEN-REF` and `slotsUnchanged` are met WHOLE-GRAPH (§7: scoping them
+     * "would buy nothing and cost a reader's trust"), so they read `count`.
+     * `MODULE-*` and `cross-artifact` are verb-family-scoped, so they read
+     * `countScoped` and the out-of-family-blocker denominator. Label and
+     * measurement move together: a bar labelled `whole-graph` that quietly counted
+     * scoped is exactly the overclaim §7's scope note exists to prevent.
+     */
+    const bars = {
+      artifactMissing: {
+        scope: 'whole-graph',
+        target: '<= 1',
+        measured: artifactMissing,
+        met: artifactMissing <= 1,
+      },
+      themeTokenRef: {
+        scope: 'whole-graph',
+        target: '0',
+        measured: themeTokenRef,
+        met: themeTokenRef === 0,
+      },
+      // v9's own control. The arm must author the SAME corpus; an arm that dropped
+      // slots would clear every error bar by authoring less.
+      slotsUnchanged: {
+        scope: 'whole-graph',
+        target: 'same corpus as the parity arm',
+        measured: `${slots} slots / ${routes} routes`,
+        met: slots === paritySlots && routes === parityRoutes,
+        slots,
+        routes,
+        paritySlots,
+        parityRoutes,
+      },
+      moduleStar: {
+        scope: 'verb-family',
+        target: '0',
+        measured: moduleStarOwned,
+        met: moduleStarOwned === 0,
+      },
+      crossArtifactCompleted: {
+        scope: 'verb-family',
+        target: 'every surface with no out-of-family blocker',
+        measured: `${evaluableCompleted} / ${evaluable.length}`,
+        met: evaluableCompleted === evaluable.length,
+        evaluable: evaluable.map((o) => o.script.id),
+      },
+    };
+
+    // All five bars are ASSERTED, not merely written to the report. A bar that only
+    // lands in a JSON file is a number nothing can regress against, and asserting
+    // `slotsUnchanged` alone would let every error bar rot while the control stayed
+    // green — the arm would still be authoring the same corpus, just worse.
+    expect(bars.artifactMissing.met).toBe(true);
+    expect(bars.themeTokenRef.met).toBe(true);
+    expect(bars.slotsUnchanged.met).toBe(true);
+    expect(bars.moduleStar.met).toBe(true);
+    expect(bars.crossArtifactCompleted.met).toBe(true);
+
+    const byScope = (['verb-family', 'host-evidence', 'corpus-identifier', 'surface-composition'] as const)
+      .reduce<Record<string, { errors: number; codes: Record<string, number>; surfaces: string[] }>>((acc, scope) => {
+        const codes: Record<string, number> = {};
+        const surfaces: string[] = [];
+        for (const o of armD) {
+          const entries = Object.entries(o.errorCodeCountsByScope[scope]);
+          if (entries.length > 0) surfaces.push(o.script.id);
+          for (const [code, n] of entries) codes[code] = (codes[code] ?? 0) + n;
+        }
+        acc[scope] = { errors: Object.values(codes).reduce((a, b) => a + b, 0), codes, surfaces };
+        return acc;
+      }, {});
+
+    mkdirSync(REPORTS_DIR, { recursive: true });
+    writeFileSync(
+      resolve(REPORTS_DIR, 'materialised-arm.json'),
+      JSON.stringify(
+        {
+          arm: 'materialised',
+          adr: 'thoughts/adr/0160-mcp-materialisation-verbs.md#7-acceptance-evidence',
+          exemplars: armD.length,
+          /**
+           * §7's five bars, every one asserted above. Each carries its OWN `scope`:
+           * three are whole-graph, two are verb-family-scoped, per §7's scope note.
+           */
+          bars,
+          /** The same run, unscoped. §7's table carries both columns side by side. */
+          wholeGraph: {
+            moduleStar,
+            crossArtifactCompleted: `${crossArtifactCompleted} / ${armD.length}`,
+            errors: armD.reduce((n, o) => n + o.diagnostics.error, 0),
+          },
+          /**
+           * The floors arm D is measured against, taken from THIS process — same
+           * code, same corpus, same run. The committed `*.v8-parity.*` /
+           * `*.validation.json` files are v9's ORIGINAL baseline and are left
+           * untouched, but they no longer reproduce byte-for-byte: §4.4's
+           * bundle-local loader now serves the Surface on every arm, which shifts
+           * `primarySource.source` and makes the Experience a validated artifact
+           * on the legacy arms too. Citing a delta needs both ends measured under
+           * one code state, so both ends are recorded here.
+           */
+          baselinesUnderLandedCode: {
+            parity: {
+              moduleUnresolved: countScoped(armParity, 'verb-family', 'MODULE-UNRESOLVED'),
+              moduleContributionMissingOwned: countScoped(armParity, 'verb-family', 'MODULE-CONTRIBUTION-MISSING'),
+              moduleContributionMissingWholeGraph: count(armParity, 'MODULE-CONTRIBUTION-MISSING'),
+              crossArtifactCompleted: `${armParity.filter((o) => o.crossArtifactStatus === 'completed').length} / ${armParity.length}`,
+            },
+            verbOnly: {
+              artifactMissing: count(armA, 'ARTIFACT-MISSING'),
+              crossArtifactCompleted: `${armA.filter((o) => o.crossArtifactStatus === 'completed').length} / ${armA.length}`,
+            },
+            hostCorrected: {
+              themeTokenRef: count(armC, 'THEME-TOKEN-REF'),
+            },
+          },
+          /** Reconciles the two: every error in exactly one scope. */
+          byScope,
+          errorCodeCounts: armD.reduce<Record<string, number>>((acc, o) => {
+            for (const [code, n] of Object.entries(o.errorCodeCounts)) acc[code] = (acc[code] ?? 0) + n;
+            return acc;
+          }, {}),
+          crossArtifact: armD.map((o) => ({ id: o.script.id, status: o.crossArtifactStatus, reason: o.crossArtifactReason })),
+          materialisation: armD.map((o) => ({
+            id: o.script.id,
+            // The URN the kernel minted — the arm's proof the Registry was never
+            // a host reference (ADR 0160 §4.3).
+            registryUrl: o.declareRegistryUrl ?? null,
+            ...o.materialisation,
+          })),
+        },
+        null,
+        2,
+      ),
+    );
+  });
+});
 
 describe('v9 findings', () => {
   it('records the new findings the delta exposed', () => {

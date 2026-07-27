@@ -721,6 +721,47 @@ mod tests {
         );
     }
 
+    /// `targetDefinition` is OPTIONAL: absent = bundle-scoped (theme-spec §2.2.1,
+    /// ADR 0150 §5.2 app envelope). A Definition-less bundle must be representable.
+    #[test]
+    fn bundle_scoped_theme_produces_no_e101() {
+        let theme = json!({
+            "$formspecTheme": "1.0",
+            "version": "1.0.0",
+            "tokens": { "color.primary": "#0057B7" }
+        });
+        let diags = validate_schema(&theme, DocumentType::Theme);
+        assert!(
+            diags.is_empty(),
+            "Bundle-scoped theme should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    /// Experience mirrors Theme: absent `targetDefinition` = bundle-scoped
+    /// (experience-spec S2.1), not an unresolvable target.
+    #[test]
+    fn bundle_scoped_experience_produces_no_e101() {
+        let experience = json!({
+            "$formspecExperience": "1.0",
+            "version": "1.0.0",
+            "actors": [{ "id": "operator" }],
+            "units": [{ "id": "queueTriage", "kind": "review", "actorRef": "operator" }]
+        });
+        let diags = validate_schema(&experience, DocumentType::Experience);
+        assert!(
+            diags.is_empty(),
+            "Bundle-scoped experience should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
     #[test]
     fn valid_ontology_produces_no_e101() {
         let ontology = json!({

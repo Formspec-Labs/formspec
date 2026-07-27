@@ -26,7 +26,7 @@ export type UnitKind =
   | string;
 
 /**
- * A Formspec Experience Document per the Experience specification. A standalone sidecar that names abstract task intent for a Formspec Definition: actors, tasks, units, applicability, and typed references to items, concepts, and actions. Like Theme, Component, Locale, and References documents, an Experience Document targets a Definition but lives alongside it. Multiple Experience Documents MAY target the same Definition (e.g., different actor populations, platforms, or postures). Experience metadata MUST NOT alter core behavioral semantics (required, relevant, readonly, calculate, validation).
+ * A Formspec Experience Document per the Experience specification. A standalone sidecar that names abstract task intent: actors, tasks, units, applicability, and typed references to items, concepts, and actions. Like Theme, Component, Locale, and References documents, an Experience Document lives alongside the artifacts it describes. Scope is set by targetDefinition: present binds the Experience to one Definition (multiple Experience Documents MAY target the same Definition — different actor populations, platforms, or postures); absent makes the Experience bundle-scoped, naming task intent across the App Manifest bundle rather than one Definition, which is the only representable posture for an app envelope with an empty definitions[] (ADR 0150 §5.2). Experience metadata MUST NOT alter core behavioral semantics (required, relevant, readonly, calculate, validation).
  */
 export interface ExperienceDocument {
   /**
@@ -41,7 +41,7 @@ export interface ExperienceDocument {
    * Version of this Experience Document. SemVer is RECOMMENDED.
    */
   version: string;
-  targetDefinition: TargetDefinition;
+  targetDefinition?: TargetDefinition;
   name?: string;
   title?: string;
   description?: string;

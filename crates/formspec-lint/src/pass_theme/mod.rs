@@ -17,9 +17,21 @@ use crate::types::LintDiagnostic;
 pub(crate) const PASS: u8 = 6;
 
 /// Validate a theme document and return all diagnostics.
-/// When `definition` is provided, cross-artifact checks (W705-W707) are enabled.
+///
+/// When `definition` is provided AND the theme is Definition-scoped, cross-artifact checks
+/// (W705-W707) are enabled. A theme declaring no `targetDefinition` is bundle-scoped
+/// (theme-spec §2.2.1) and names no Definition, so all three are suspended — not W707 alone.
+/// W705 / W706 resolve `items` keys and `pages[].regions[].key` against the paired Definition;
+/// running them under bundle scope would resolve item keys against a Definition the pass has
+/// just declined to bind, manufacturing findings the author never claimed. See theme-spec
+/// §7.2, which is the single normative statement of what bundle scope suspends.
 pub fn lint_theme(theme: &Value, definition: Option<&Value>) -> Vec<LintDiagnostic> {
     let mut diags = Vec::new();
+    let definition = definition.filter(|_| {
+        theme
+            .get("targetDefinition")
+            .is_some_and(|target| !target.is_null())
+    });
 
     let token_names: HashSet<String> = theme
         .get("tokens")

@@ -121,7 +121,7 @@ export type TokenType =
   | 'shadow'
   | 'number';
 /**
- * A Formspec Theme document — a sidecar JSON file that controls the visual presentation of a Formspec Definition without modifying it. A Theme binds to a Definition by URL, overrides inline Tier 1 presentation hints through a three-level cascade (defaults → selectors → item overrides), assigns widgets with typed configuration and fallback chains, defines page layout on a 12-column grid, and provides design tokens for visual consistency. Multiple Theme documents MAY target the same Definition, enabling platform-specific rendering (web, mobile, PDF, kiosk). A Theme MUST NOT affect data collection, validation, or behavioral semantics — it controls only how items are displayed.
+ * A Formspec Theme document — a sidecar JSON file that controls visual presentation without modifying the artifacts it presents. A Theme overrides inline Tier 1 presentation hints through a three-level cascade (defaults → selectors → item overrides), assigns widgets with typed configuration and fallback chains, defines page layout on a 12-column grid, and provides design tokens for visual consistency. Scope is set by targetDefinition: present binds the Theme to one Definition by URL (multiple Theme documents MAY target the same Definition, enabling platform-specific rendering — web, mobile, PDF, kiosk); absent makes the Theme bundle-scoped, applying to the App Manifest bundle whose theme slot names it, which is the only representable posture for an app envelope with an empty definitions[] (ADR 0150 §5.2). A Theme MUST NOT affect data collection, validation, or behavioral semantics — it controls only how items are displayed.
  */
 export interface ThemeDocument {
   /**
@@ -152,7 +152,7 @@ export interface ThemeDocument {
    * Human-readable description of the theme's purpose and target audience.
    */
   description?: string;
-  targetDefinition: TargetDefinition;
+  targetDefinition?: TargetDefinition;
   /**
    * Target rendering platform. Informational — processors that do not recognize a platform value SHOULD apply the theme regardless. Well-known values: 'web' (desktop/mobile browsers), 'mobile' (native apps), 'pdf' (PDF rendering), 'print' (print-optimized), 'kiosk' (public terminals), 'universal' (no platform assumptions, implicit default).
    */

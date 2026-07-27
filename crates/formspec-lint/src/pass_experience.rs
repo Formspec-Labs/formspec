@@ -16,6 +16,17 @@ use crate::types::LintDiagnostic;
 pub(crate) const PASS: u8 = 9;
 
 pub(crate) fn lint_experience(doc: &Value, definition: Option<&Value>) -> Vec<LintDiagnostic> {
+    // experience-spec S10.1: an Experience that declares no `targetDefinition` is
+    // bundle-scoped and forms no (Definition, Experience) pair. Every step that reads a
+    // loaded Definition — target resolution, item-ref resolvability, coverage — is
+    // inapplicable, not failing. Dropping the pair here enforces that once: each of those
+    // checks already returns early with no paired Definition, and the document-internal
+    // checks (referential integrity) never consulted one. A caller that pairs a Definition
+    // anyway does not get findings against a Definition the author never claimed.
+    let definition = definition.filter(|_| {
+        doc.get("targetDefinition")
+            .is_some_and(|target| !target.is_null())
+    });
     let mut analyzer = Analyzer {
         doc,
         definition,
@@ -503,6 +514,80 @@ mod tests {
     fn clean_experience_has_no_semantic_diagnostics() {
         let diagnostics = lint_experience(&clean_experience(), Some(&definition()));
         assert!(diagnostics.is_empty(), "got {diagnostics:?}");
+    }
+
+    /// experience-spec S10.1: a bundle-scoped Experience (no `targetDefinition`) forms no
+    /// (Definition, Experience) pair, so every Definition-reading step is inapplicable.
+    ///
+    /// The pass — not the caller — enforces this, because the pass IS the processor S10
+    /// governs and it is embedded via WASM / PyO3 by hosts this repo does not control.
+    /// The test pairs a Definition in *deliberately*: that is the case the rule exists for.
+    /// `itemRefs` here name real Definition paths and coverage is complete, so the assertion
+    /// is not "no findings happened to fire" — the mismatched-URL and uncovered-item cases
+    /// below prove the same checks fire loudly under Definition scope.
+    #[test]
+    fn bundle_scoped_experience_skips_every_definition_reading_check() {
+        let mut experience = clean_experience();
+        experience
+            .as_object_mut()
+            .unwrap()
+            .remove("targetDefinition");
+        // Definition-keyed content the paired Definition cannot resolve, and a required
+        // item no unit covers: under Definition scope these are W1702 + W1703.
+        experience["units"][0]["itemRefs"] = json!([{ "path": "nonexistentField" }]);
+
+        for definition in [Some(definition()), None] {
+            let diagnostics = lint_experience(&experience, definition.as_ref());
+            assert!(
+                diagnostics.is_empty(),
+                "bundle-scoped Experience must emit no Definition-relative finding; got {diagnostics:?}"
+            );
+        }
+    }
+
+    /// The other half of S10.1: document-internal checks (step 3) run under both scopes.
+    /// Bundle scope suspends the pair, not the whole pass.
+    #[test]
+    fn bundle_scoped_experience_still_reports_referential_integrity() {
+        let mut experience = clean_experience();
+        experience
+            .as_object_mut()
+            .unwrap()
+            .remove("targetDefinition");
+        experience["units"][0]["actorRef"] = json!("ghost");
+
+        let diagnostics = lint_experience(&experience, Some(&definition()));
+        let codes = diagnostics
+            .iter()
+            .map(|diag| diag.code)
+            .collect::<HashSet<_>>();
+        assert!(
+            codes.contains(&crate::LintCode::W1701),
+            "got {diagnostics:?}"
+        );
+    }
+
+    /// Control for the gate above: the same `itemRefs` payload under Definition scope
+    /// fires W1702 and W1703. Without this, `skips_every_definition_reading_check` could
+    /// pass against a pass that never checked anything.
+    #[test]
+    fn definition_scoped_experience_reports_what_bundle_scope_skips() {
+        let mut experience = clean_experience();
+        experience["units"][0]["itemRefs"] = json!([{ "path": "nonexistentField" }]);
+
+        let diagnostics = lint_experience(&experience, Some(&definition()));
+        let codes = diagnostics
+            .iter()
+            .map(|diag| diag.code)
+            .collect::<HashSet<_>>();
+        assert!(
+            codes.contains(&crate::LintCode::W1702),
+            "got {diagnostics:?}"
+        );
+        assert!(
+            codes.contains(&crate::LintCode::W1703),
+            "got {diagnostics:?}"
+        );
     }
 
     #[test]

@@ -534,6 +534,7 @@ fn no_breakpoints_declared_all_responsive_keys_warn() {
 #[test]
 fn w712_theme_select_multichoice_requires_multiple() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "items": {
             "tags": { "widget": "Select" }
         }
@@ -551,6 +552,7 @@ fn w712_theme_select_multichoice_requires_multiple() {
 #[test]
 fn select_multichoice_multiple_true_no_w712() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "items": {
             "tags": {
                 "widget": "Select",
@@ -622,6 +624,7 @@ fn selector_select_multichoice_multiple_true_no_w712() {
 #[test]
 fn w712_theme_widget_incompatible_with_definition_data_type() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "items": {
             "age": { "widget": "Toggle" }
         }
@@ -642,6 +645,7 @@ fn w712_theme_widget_incompatible_with_definition_data_type() {
 #[test]
 fn w705_theme_item_key_not_in_definition() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "items": {
             "name": { "widget": "TextInput" },
             "ghost": { "widget": "TextInput", "widgetConfig": { "maxLines": 4 } }
@@ -660,6 +664,7 @@ fn w705_theme_item_key_not_in_definition() {
 #[test]
 fn w705_all_keys_match_no_warning() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "items": { "name": { "widget": "TextInput" } }
     });
     let def = json!({
@@ -682,6 +687,7 @@ fn w705_skipped_without_definition() {
 #[test]
 fn w706_region_key_not_in_definition() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "pages": [{
             "id": "p1",
             "regions": [
@@ -733,6 +739,58 @@ fn w707_matching_url_no_warning() {
     assert!(with_code(&diags, "W707").is_empty());
 }
 
+/// theme-spec §7.2: a bundle-scoped Theme (no `targetDefinition`, ADR 0150 §5.2 app
+/// envelope) forms no (Definition, Theme) pair, so EVERY Definition-reading check is
+/// suspended — not W707 alone. W705 / W706 / item-level W712 all resolve Theme content
+/// against the Definition the pass has just declined to bind; running them would
+/// manufacture findings against a Definition the author never claimed.
+///
+/// The Definition is paired in deliberately: that is the case the rule exists for.
+/// Every key here is unresolvable and the widget is dataType-incompatible, so under
+/// Definition scope this same payload fires W705, W706, and W712 (asserted below).
+#[test]
+fn bundle_scoped_theme_skips_every_definition_reading_check() {
+    let theme = json!({
+        "items": { "ghost": { "widget": "Toggle" }, "spectre": { "widget": "TextInput" } },
+        "pages": [{ "id": "p1", "regions": [{ "key": "phantom", "span": 6 }] }]
+    });
+    let def = json!({
+        "$formspec": "1.0",
+        "url": "https://example.com/forms/budget",
+        "items": [{ "key": "ghost", "type": "field", "dataType": "integer" }]
+    });
+    let diags = lint_theme(&theme, Some(&def));
+    for code in ["W705", "W706", "W707", "W712"] {
+        assert!(
+            with_code(&diags, code).is_empty(),
+            "bundle-scoped theme must emit no {code}; got {diags:?}"
+        );
+    }
+}
+
+/// Control for the gate above: the same payload under Definition scope fires all three.
+/// Without this, the skip assertion could pass against a pass that never checked anything.
+#[test]
+fn definition_scoped_theme_reports_what_bundle_scope_skips() {
+    let theme = json!({
+        "targetDefinition": { "url": "https://example.com/forms/budget" },
+        "items": { "ghost": { "widget": "Toggle" }, "spectre": { "widget": "TextInput" } },
+        "pages": [{ "id": "p1", "regions": [{ "key": "phantom", "span": 6 }] }]
+    });
+    let def = json!({
+        "$formspec": "1.0",
+        "url": "https://example.com/forms/budget",
+        "items": [{ "key": "ghost", "type": "field", "dataType": "integer" }]
+    });
+    let diags = lint_theme(&theme, Some(&def));
+    for code in ["W705", "W706", "W712"] {
+        assert!(
+            !with_code(&diags, code).is_empty(),
+            "Definition-scoped theme must emit {code}; got {diags:?}"
+        );
+    }
+}
+
 #[test]
 fn w707_skipped_when_definition_has_no_url() {
     let theme = json!({
@@ -767,6 +825,7 @@ fn all_diagnostics_are_pass_6() {
 #[test]
 fn w705_finds_nested_child_keys() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "items": {
             "amount": { "widget": "NumberInput" }
         }
@@ -789,6 +848,7 @@ fn w705_finds_nested_child_keys() {
 #[test]
 fn w705_dotted_nested_path_matches() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "items": {
             "lines.amount": { "widget": "NumberInput" }
         }
@@ -811,6 +871,7 @@ fn w705_dotted_nested_path_matches() {
 #[test]
 fn w705_invalid_dotted_path_warns() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "items": {
             "lines.ghost": { "widget": "NumberInput" }
         }
@@ -834,6 +895,7 @@ fn w705_invalid_dotted_path_warns() {
 #[test]
 fn w705_deep_dotted_path_matches() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "items": {
             "section.group.field": { "widget": "TextInput" }
         }
@@ -973,6 +1035,7 @@ fn whitespace_between_number_and_unit_rejected() {
 #[test]
 fn region_without_key_skipped_in_w706() {
     let theme = json!({
+        "targetDefinition": { "url": "https://example.gov/forms/themed" },
         "pages": [{
             "id": "p1",
             "regions": [

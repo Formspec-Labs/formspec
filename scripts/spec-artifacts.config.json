@@ -15,9 +15,9 @@
         "When preferred widgets are unavailable, apply declared fallback chains before reverting to renderer-native defaults."
       ],
       "conformanceEssentials": [
-        "A conforming theme document must include $formspecTheme=1.0, version, and targetDefinition.",
+        "A conforming theme document must include $formspecTheme=1.0 and version; targetDefinition is optional and sets scope — present means Definition-scoped, absent means bundle-scoped over the App Manifest bundle whose theme slot names it.",
         "Renderers must not let theme content alter core data semantics, validation semantics, or response payload shape.",
-        "Implementations should validate targetDefinition compatibility ranges and warn on mismatch rather than hard-failing rendering."
+        "Implementations should validate targetDefinition compatibility ranges and warn on mismatch rather than hard-failing rendering; a theme with no targetDefinition must not be treated as bound to whatever definition happens to be loaded."
       ]
     },
     {
@@ -421,10 +421,10 @@
         "Coverage and referential findings are reportable diagnostics for generation and review; they do not invalidate Responses or block Core operations."
       ],
       "conformanceEssentials": [
-        "A conforming Experience document must include $formspecExperience=1.0, version, and targetDefinition.",
+        "A conforming Experience document must include $formspecExperience=1.0 and version; targetDefinition is optional and sets scope — present means Definition-scoped, absent means bundle-scoped over the App Manifest bundle that lists it.",
         "Processors must reject schema-invalid documents and out-of-registry unit.kind values.",
-        "Experience Core processors must verify targetDefinition compatibility, actor/task referential integrity, and ItemRef path resolvability.",
-        "Experience Coverage-Aware processors must emit EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM findings for required visible Definition fields not referenced by any unit.itemRefs.",
+        "Experience Core processors must verify targetDefinition compatibility, actor/task referential integrity, and ItemRef path resolvability whenever targetDefinition is present; target resolution is inapplicable, not failing, on a bundle-scoped Experience.",
+        "Experience Coverage-Aware processors must emit EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM findings for required visible Definition fields not referenced by any unit.itemRefs; they must not pair a bundle-scoped Experience with an arbitrary loaded Definition to manufacture such findings.",
         "Extensions may carry x-prefixed metadata, but they must not extend or override the closed unit.kind registry or alter Core semantics."
       ]
     },

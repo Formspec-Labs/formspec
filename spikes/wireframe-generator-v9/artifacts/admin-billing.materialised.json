@@ -1,0 +1,215 @@
+{
+  "mockup": "surfaces/admin-billing.html",
+  "family": "settings-admin",
+  "route": "/admin/billing",
+  "registryArm": "materialised",
+  "declareRegistry": {
+    "ok": true,
+    "url": "urn:formspec:doc:92ad26dda891d6eb:registry",
+    "mintedBundleLocal": true
+  },
+  "routeClassOutcomes": [
+    {
+      "routeId": "billing",
+      "wanted": "operation",
+      "verbOk": true,
+      "persisted": true
+    }
+  ],
+  "surfaceExport": {
+    "publishable": true,
+    "diagnostics": []
+  },
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/console/admin-billing",
+    "title": "Billing",
+    "definitions": [],
+    "experience": {
+      "url": "urn:formspec:doc:92ad26dda891d6eb:experience"
+    },
+    "registries": [
+      {
+        "url": "urn:formspec:doc:92ad26dda891d6eb:registry",
+        "version": "1.0.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-admin-nav",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-quota-meters",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-payment-method",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-invoice-table",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "billing",
+    "routes": [
+      {
+        "id": "billing",
+        "path": "/admin/billing",
+        "slots": [
+          {
+            "id": "adminNav",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-admin-nav",
+              "widgetName": "AdminSectionNav",
+              "config": {
+                "sections": [
+                  "members",
+                  "billing",
+                  "audit",
+                  "retention",
+                  "ai-policy",
+                  "residency",
+                  "sso",
+                  "org"
+                ],
+                "counts": {
+                  "members": 12
+                }
+              }
+            },
+            "position": "top",
+            "title": "Admin"
+          },
+          {
+            "id": "planPanel",
+            "slotType": "experience-unit",
+            "binding": {
+              "unitRef": "currentPlanPanel"
+            },
+            "position": "main",
+            "title": "Current plan"
+          },
+          {
+            "id": "usageMeters",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-quota-meters",
+              "widgetName": "QuotaMeters",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:usage",
+                "meters": [
+                  "responses",
+                  "signature-envelopes",
+                  "api-requests",
+                  "object-storage"
+                ],
+                "projection": true
+              }
+            },
+            "position": "main",
+            "title": "Usage"
+          },
+          {
+            "id": "paymentMethod",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-payment-method",
+              "widgetName": "PaymentMethod",
+              "config": {
+                "externalHandoff": "x-spike-v9:external:payment-processor"
+              }
+            },
+            "position": "right",
+            "title": "Payment method"
+          },
+          {
+            "id": "invoices",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-invoice-table",
+              "widgetName": "InvoiceTable",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:invoices",
+                "columns": [
+                  "invoice",
+                  "period",
+                  "amount",
+                  "date",
+                  "status"
+                ],
+                "rowActions": [
+                  "download-pdf"
+                ]
+              }
+            },
+            "position": "main",
+            "title": "Invoices"
+          }
+        ],
+        "title": "Billing",
+        "routeClass": "operation"
+      }
+    ],
+    "entry": "billing"
+  },
+  "registryDocument": null,
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Admin billing policy",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "billing",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "adminNav",
+      "slotType": "module-widget",
+      "mockupRegion": "admin section nav with member count badge"
+    },
+    {
+      "slot": "planPanel",
+      "slotType": "experience-unit",
+      "mockupRegion": "current plan panel — Regulated, $1 200/mo, renewal terms, cancel / change plan"
+    },
+    {
+      "slot": "usageMeters",
+      "slotType": "module-widget",
+      "mockupRegion": "four quota meters with ceilings, projections, and an approaching-limit warning"
+    },
+    {
+      "slot": "paymentMethod",
+      "slotType": "module-widget",
+      "mockupRegion": "payment method panel owned by the processor + billing email / tax id / address"
+    },
+    {
+      "slot": "invoices",
+      "slotType": "module-widget",
+      "mockupRegion": "invoice table with per-row PDF download and a download-all action"
+    }
+  ]
+}

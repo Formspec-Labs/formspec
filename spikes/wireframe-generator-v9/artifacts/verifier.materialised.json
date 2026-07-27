@@ -1,0 +1,222 @@
+{
+  "mockup": "surfaces/verifier.html",
+  "family": "interactive-tool",
+  "route": "/verify",
+  "registryArm": "materialised",
+  "declareRegistry": {
+    "ok": true,
+    "url": "urn:formspec:doc:f035e2b8f7dbc595:registry",
+    "mintedBundleLocal": true
+  },
+  "routeClassOutcomes": [
+    {
+      "routeId": "verify",
+      "wanted": "verification",
+      "verbOk": true,
+      "persisted": true
+    }
+  ],
+  "surfaceExport": {
+    "publishable": true,
+    "diagnostics": []
+  },
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/trust/verifier",
+    "title": "Verifier",
+    "definitions": [],
+    "theme": {
+      "url": "urn:formspec:doc:f035e2b8f7dbc595:theme",
+      "version": "1.0.0"
+    },
+    "registries": [
+      {
+        "url": "urn:formspec:doc:f035e2b8f7dbc595:registry",
+        "version": "1.0.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/trust/verifier/surfaces/verify",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-artifact-input",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-verification-result",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-computation-log",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "verify",
+    "routes": [
+      {
+        "id": "verify",
+        "path": "/verify",
+        "slots": [
+          {
+            "id": "assurance",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "text",
+              "content": "Runs entirely in this tab — no data leaves your browser. The verifier recomputes the response hash, checks the signature chain, and confirms the Trellis anchor locally, without contacting Formspec Cloud."
+            },
+            "position": "top",
+            "title": "Verify a Receipt"
+          },
+          {
+            "id": "receiptInput",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-artifact-input",
+              "widgetName": "ReceiptInput",
+              "config": {
+                "accepts": [
+                  "application/json",
+                  ".receipt.json"
+                ],
+                "schema": "https://formspec.org/schemas/receipt/1.0",
+                "persist": false,
+                "publishes": "x-spike-v9:channel:receipt-bytes"
+              }
+            },
+            "position": "main",
+            "title": "Receipt input"
+          },
+          {
+            "id": "verifyAction",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-verification-result",
+              "widgetName": "VerifyButton",
+              "config": {
+                "consumes": "x-spike-v9:channel:receipt-bytes",
+                "executor": "x-spike-v9:client-only",
+                "emits": "x-spike-v9:channel:verification-result"
+              }
+            },
+            "position": "main",
+            "title": "Verify locally"
+          },
+          {
+            "id": "result",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-verification-result",
+              "widgetName": "VerificationResult",
+              "config": {
+                "consumes": "x-spike-v9:channel:verification-result",
+                "checks": [
+                  "response-hash",
+                  "definition-pin",
+                  "signature-chain",
+                  "anchor-present",
+                  "inclusion-proof",
+                  "schema-conformance"
+                ]
+              }
+            },
+            "position": "main",
+            "title": "Verification result"
+          },
+          {
+            "id": "computationLog",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-computation-log",
+              "widgetName": "ComputationLog",
+              "config": {
+                "consumes": "x-spike-v9:channel:verification-result",
+                "streaming": true
+              }
+            },
+            "position": "bottom",
+            "title": "Computation log"
+          }
+        ],
+        "title": "Verify a Receipt",
+        "routeClass": "verification"
+      }
+    ],
+    "entry": "verify"
+  },
+  "registryDocument": null,
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Verifier policy",
+    "description": "Anonymous route. Tenant theming must never reach it — the verifier's independence from any tenant is the claim it exists to make. Not assertable in the current policy shape (finding 6).",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/trust/verifier/surfaces/verify",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "verify",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ],
+    "theme": {
+      "assignments": [
+        {
+          "widgetRef": {
+            "moduleId": "x-cloud-verification-result",
+            "widgetName": "VerificationResult"
+          },
+          "slot": "accent",
+          "token": "color.accent"
+        },
+        {
+          "widgetRef": {
+            "moduleId": "x-cloud-computation-log",
+            "widgetName": "ComputationLog"
+          },
+          "slot": "surface",
+          "token": "color.surface"
+        }
+      ]
+    }
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "assurance",
+      "slotType": "static-content",
+      "mockupRegion": "chrome assurance line + explainer"
+    },
+    {
+      "slot": "receiptInput",
+      "slotType": "module-widget",
+      "mockupRegion": "paste/upload receipt box with size, type, schema-validity readout"
+    },
+    {
+      "slot": "verifyAction",
+      "slotType": "module-widget",
+      "mockupRegion": "\"Verify locally\" action — client-executed, no host call"
+    },
+    {
+      "slot": "result",
+      "slotType": "module-widget",
+      "mockupRegion": "six-check result panel with per-check evidence and PASS badges"
+    },
+    {
+      "slot": "computationLog",
+      "slotType": "module-widget",
+      "mockupRegion": "timestamped computation log streaming local operations"
+    }
+  ]
+}

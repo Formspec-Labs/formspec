@@ -160,12 +160,12 @@ No additional members are permitted.
 | Source kind | Identity tuple | Notes |
 |---|---|---|
 | `definition` | `{ url: string, version: string }` | Definition declares its own identity. |
-| `experience` | `{ sourceRef: string, targetDefinitionUrl: string, version: string }` | Experience has no top-level document id; `sourceRef` is the builder or host locator. |
+| `experience` | `{ sourceRef: string, targetDefinitionUrl?: string, version: string }` | Experience has no top-level document id; `sourceRef` is the builder or host locator. `targetDefinitionUrl` is OPTIONAL and mirrors the document's own scope: present = Definition-scoped, absent = bundle-scoped (experience-spec S2.1, ADR 0150 §5.2). A bundle-scoped Experience names no Definition, so requiring the field would make it unrepresentable in a TraceIndex. |
 | `responseActions` | `{ sourceRef: string, targetDefinitionUrl: string, version: string }` | Response Actions has no top-level document id; `sourceRef` is the builder or host locator. |
 | `component` | `{ sourceRef: string, targetDefinitionUrl: string, version: string, url?: string }` | Component may declare `url`; `sourceRef` remains the concrete locator. |
 | `ontology` | `{ sourceRef: string, targetDefinitionUrl: string, version: string }` | Required when `concept-refs-item` edges are emitted. |
 
-Identity tuples are closed per kind. Trace MUST NOT accept a sidecar `"id"` as a substitute for `sourceRef`.
+Identity tuples are closed per kind. Trace MUST NOT accept a sidecar `"id"` as a substitute for `sourceRef`. `sourceRef` and `version` are REQUIRED on every sidecar kind, including a bundle-scoped `experience`: `sourceRef` is the only stable identity such a document has.
 
 ### 3.4 Source-Set Completeness
 

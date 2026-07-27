@@ -35,5 +35,5 @@
   },
   "expectSchemaValid": true,
   "expectedAdmission": "admit",
-  "note": "`theme.declaration` is the §4.2 pending-op row: declaring it is legal, and nothing enforces it until `declareTheme` lands."
+  "note": "`theme.declaration` maps to `StudioCoreKernel.declareTheme` (ADR 0160 §5.1); the §4.2 pending-op marker is discharged, so this declaration is enforced."
 }

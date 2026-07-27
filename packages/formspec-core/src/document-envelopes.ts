@@ -15,11 +15,18 @@ export function withComponentEnvelope(body: ComponentState, definitionUrl: strin
   } as ComponentDocument;
 }
 
-export function withThemeEnvelope(body: ThemeState, definitionUrl: string): ThemeDocument {
+/**
+ * Merge working Theme state with the required Theme envelope fields.
+ *
+ * Unlike {@link withComponentEnvelope} this mints NO `targetDefinition` default:
+ * theme-spec §2.2.1 makes an absent `targetDefinition` a declaration of bundle scope,
+ * and `theme.schema.json` no longer requires it. Defaulting here would rewrite every
+ * bundle-scoped Theme into a Definition-scoped one at export.
+ */
+export function withThemeEnvelope(body: ThemeState): ThemeDocument {
   return {
     $formspecTheme: '1.0',
     version: '0.1.0',
-    targetDefinition: { url: definitionUrl },
     ...body,
   } as ThemeDocument;
 }

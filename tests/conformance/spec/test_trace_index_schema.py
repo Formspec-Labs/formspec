@@ -574,10 +574,44 @@ def test_sidecar_identity_missing_required_field_rejected(
 ) -> None:
     for missing in ("sourceRef", "targetDefinitionUrl", "version"):
         ident = {
-            "sourceRef": "experience.json",
+            "sourceRef": "actions.json",
             "targetDefinitionUrl": "https://x.test",
             "version": "1.0.0",
         }
+        del ident[missing]
+        doc = _minimal_doc(sources=[{
+            "kind": "responseActions",
+            "identity": ident,
+            "digest": _VALID_DIGEST,
+        }])
+        assert not validator.is_valid(doc), (
+            f"sidecar identity must require {missing}"
+        )
+
+
+def test_experience_identity_admits_bundle_scope(
+    validator: Draft202012Validator,
+) -> None:
+    """§3.3: `experience` is the one sidecar kind whose `targetDefinitionUrl` is
+    OPTIONAL — a bundle-scoped Experience (experience-spec S2.1, ADR 0150 §5.2)
+    names no Definition and would otherwise be unrepresentable in a TraceIndex."""
+    doc = _minimal_doc(sources=[{
+        "kind": "experience",
+        "identity": {"sourceRef": "experience.json", "version": "1.0.0"},
+        "digest": _VALID_DIGEST,
+    }])
+    assert validator.is_valid(doc), (
+        "bundle-scoped experience source must validate without targetDefinitionUrl"
+    )
+
+
+def test_experience_identity_still_requires_source_ref_and_version(
+    validator: Draft202012Validator,
+) -> None:
+    """Bundle scope drops the target, not the locator: `sourceRef` is the only
+    stable identity a bundle-scoped Experience has (§3.3)."""
+    for missing in ("sourceRef", "version"):
+        ident = {"sourceRef": "experience.json", "version": "1.0.0"}
         del ident[missing]
         doc = _minimal_doc(sources=[{
             "kind": "experience",
@@ -585,7 +619,23 @@ def test_sidecar_identity_missing_required_field_rejected(
             "digest": _VALID_DIGEST,
         }])
         assert not validator.is_valid(doc), (
-            f"sidecar identity must require {missing}"
+            f"experience identity must require {missing} under both scopes"
+        )
+
+
+def test_bundle_scope_does_not_leak_to_other_sidecar_kinds(
+    validator: Draft202012Validator,
+) -> None:
+    """Only Experience admits bundle scope. Response Actions and Ontology keep the
+    required tuple — dropping `targetDefinitionUrl` there is still non-conforming."""
+    for kind in ("responseActions", "ontology", "component"):
+        doc = _minimal_doc(sources=[{
+            "kind": kind,
+            "identity": {"sourceRef": f"{kind}.json", "version": "1.0.0"},
+            "digest": _VALID_DIGEST,
+        }])
+        assert not validator.is_valid(doc), (
+            f"{kind} identity must still require targetDefinitionUrl"
         )
 
 

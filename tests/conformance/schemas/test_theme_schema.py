@@ -57,6 +57,26 @@ class TestSchemaValid:
     def test_minimal(self):
         _valid(_minimal_theme())
 
+    def test_bundle_scoped_theme(self):
+        """targetDefinition is OPTIONAL — absent means bundle-scoped (theme-spec §2.2.1).
+
+        Definition-less app bundles are the ADR 0150 §5.2 app envelope's empty
+        definitions[] case; requiring targetDefinition made every such bundle
+        unrepresentable. Cross-stack ADR 0160 §4.2 names this the hard dependency.
+        """
+        _valid({"$formspecTheme": "1.0", "version": "1.0.0"})
+
+    def test_bundle_scoped_theme_carries_tokens_and_cascade(self):
+        _valid({
+            "$formspecTheme": "1.0",
+            "version": "1.0.0",
+            "tokens": {"color.primary": "#0057B7"},
+            "defaults": {"style": {"color": "$token.color.primary"}},
+        })
+
+    def test_target_definition_absent_from_required(self):
+        assert THEME_SCHEMA["required"] == ["$formspecTheme", "version"]
+
     def test_with_url(self):
         _valid(_minimal_theme(url="https://example.com/themes/dark"))
 
@@ -251,8 +271,9 @@ class TestSchemaInvalid:
     def test_missing_version(self):
         _invalid({"$formspecTheme": "1.0", "targetDefinition": {"url": "https://x.com/f"}})
 
-    def test_missing_target_definition(self):
-        _invalid({"$formspecTheme": "1.0", "version": "1.0.0"})
+    def test_target_definition_null_rejected(self):
+        """Absent is bundle scope; explicit null is neither scope and stays invalid."""
+        _invalid({"$formspecTheme": "1.0", "version": "1.0.0", "targetDefinition": None})
 
     def test_wrong_formspec_version(self):
         _invalid({"$formspecTheme": "2.0", "version": "1.0.0", "targetDefinition": {"url": "https://x.com/f"}})

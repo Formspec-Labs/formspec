@@ -1,0 +1,696 @@
+{
+  "artifactResolutionReport": {
+    "ok": false,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/onboarding",
+        "title": "Get started",
+        "definitions": [
+          {
+            "url": "https://formspec.cloud/definitions/onboarding-org",
+            "version": "1.0.0"
+          }
+        ],
+        "registries": [
+          {
+            "url": "urn:formspec:doc:ae29274ef7841c46:registry",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-step-rail",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-tier-cards",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-region-picker",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-form-genesis",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/onboarding"
+      },
+      "source": "spike-v9://onboarding/materialised/app-manifest"
+    },
+    "artifacts": {
+      "definitions": [
+        {
+          "slot": "definitions[0]",
+          "artifactKind": "definition",
+          "source": "studio-core:bundle-local:definitions[0]",
+          "ref": {
+            "url": "https://formspec.cloud/definitions/onboarding-org",
+            "version": "1.0.0"
+          },
+          "status": "loaded",
+          "document": {
+            "$formspec": "1.0",
+            "url": "https://formspec.cloud/definitions/onboarding-org",
+            "version": "1.0.0",
+            "status": "draft",
+            "title": "",
+            "items": [
+              {
+                "key": "organizationName",
+                "type": "field",
+                "label": "Organization name",
+                "dataType": "text"
+              },
+              {
+                "key": "workspaceName",
+                "type": "field",
+                "label": "Workspace name",
+                "dataType": "text"
+              },
+              {
+                "key": "workType",
+                "type": "field",
+                "label": "What kind of work?",
+                "dataType": "text"
+              }
+            ]
+          },
+          "identity": {
+            "url": "https://formspec.cloud/definitions/onboarding-org",
+            "version": "1.0.0"
+          },
+          "diagnostics": []
+        }
+      ],
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "studio-core:bundle-local:registries[0]",
+          "ref": {
+            "url": "urn:formspec:doc:ae29274ef7841c46:registry",
+            "version": "1.0.0"
+          },
+          "status": "loaded",
+          "document": {
+            "$formspecRegistry": "1.0",
+            "publisher": {
+              "name": "Get started"
+            },
+            "published": "2026-07-26T00:00:00Z",
+            "entries": [
+              {
+                "name": "x-cloud-form-genesis",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-form-genesis.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-cloud-form-genesis-form-genesis"
+                ]
+              },
+              {
+                "name": "x-cloud-form-genesis-form-genesis",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget FormGenesis contributed by x-cloud-form-genesis.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "props": {
+                    "type": "object"
+                  },
+                  "childrenPolicy": "no-children",
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ],
+                  "widgetName": "FormGenesis"
+                }
+              },
+              {
+                "name": "x-cloud-region-picker",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-region-picker.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-cloud-region-picker-region-picker"
+                ]
+              },
+              {
+                "name": "x-cloud-region-picker-region-picker",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget RegionPicker contributed by x-cloud-region-picker.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "props": {
+                    "type": "object"
+                  },
+                  "childrenPolicy": "no-children",
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ],
+                  "widgetName": "RegionPicker"
+                }
+              },
+              {
+                "name": "x-cloud-step-rail",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-step-rail.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-cloud-step-rail-step-rail"
+                ]
+              },
+              {
+                "name": "x-cloud-step-rail-step-rail",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget StepRail contributed by x-cloud-step-rail.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "props": {
+                    "type": "object"
+                  },
+                  "childrenPolicy": "no-children",
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ],
+                  "widgetName": "StepRail"
+                }
+              },
+              {
+                "name": "x-cloud-tier-cards",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-tier-cards.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-cloud-tier-cards-tier-comparison"
+                ]
+              },
+              {
+                "name": "x-cloud-tier-cards-tier-comparison",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget TierComparison contributed by x-cloud-tier-cards.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "props": {
+                    "type": "object"
+                  },
+                  "childrenPolicy": "no-children",
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ],
+                  "widgetName": "TierComparison"
+                }
+              }
+            ]
+          },
+          "identity": {
+            "url": "urn:formspec:doc:ae29274ef7841c46:registry",
+            "version": "1.0.0"
+          },
+          "diagnostics": []
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "studio-core:bundle-local:surfaces[0]",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          },
+          "status": "x-studio-bundle-local-unpublishable",
+          "diagnostics": [
+            {
+              "code": "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE",
+              "severity": "error",
+              "phase": "artifact-resolution",
+              "origin": "artifact-resolver",
+              "message": "Bundle-local Surface 'https://formspec.cloud/apps/console/onboarding/surfaces/wizard' is not publishable; addRoute + bindSlot fill it.",
+              "primarySource": {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "studio-core:bundle-local:surfaces[0]",
+                "ref": {
+                  "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+                  "version": "1.0.0"
+                }
+              },
+              "details": {
+                "slot": "surfaces[0]",
+                "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+                "fillWith": [
+                  "addRoute",
+                  "bindSlot"
+                ],
+                "kernelCode": "VALIDATION",
+                "kernelMessage": "Surface 'wizard' is not publishable.",
+                "kernelDetails": {
+                  "operation": "exportSurfaceDocument",
+                  "surfaceId": "wizard",
+                  "diagnostics": [
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'tier' is not reachable from entry 'organization'.",
+                      "details": {
+                        "surfaceId": "wizard",
+                        "routeId": "tier",
+                        "entry": "organization"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'region' is not reachable from entry 'organization'.",
+                      "details": {
+                        "surfaceId": "wizard",
+                        "routeId": "region",
+                        "entry": "organization"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'first-form' is not reachable from entry 'organization'.",
+                      "details": {
+                        "surfaceId": "wizard",
+                        "routeId": "first-form",
+                        "entry": "organization"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE",
+        "severity": "error",
+        "phase": "artifact-resolution",
+        "origin": "artifact-resolver",
+        "message": "Bundle-local Surface 'https://formspec.cloud/apps/console/onboarding/surfaces/wizard' is not publishable; addRoute + bindSlot fill it.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "studio-core:bundle-local:surfaces[0]",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "slot": "surfaces[0]",
+          "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "fillWith": [
+            "addRoute",
+            "bindSlot"
+          ],
+          "kernelCode": "VALIDATION",
+          "kernelMessage": "Surface 'wizard' is not publishable.",
+          "kernelDetails": {
+            "operation": "exportSurfaceDocument",
+            "surfaceId": "wizard",
+            "diagnostics": [
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'tier' is not reachable from entry 'organization'.",
+                "details": {
+                  "surfaceId": "wizard",
+                  "routeId": "tier",
+                  "entry": "organization"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'region' is not reachable from entry 'organization'.",
+                "details": {
+                  "surfaceId": "wizard",
+                  "routeId": "region",
+                  "entry": "organization"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'first-form' is not reachable from entry 'organization'.",
+                "details": {
+                  "surfaceId": "wizard",
+                  "routeId": "first-form",
+                  "entry": "organization"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "summary": {
+      "declaredRefs": 3,
+      "loadedArtifacts": 2,
+      "missingArtifacts": 0,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-step-rail",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://onboarding/materialised/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-step-rail",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-tier-cards",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://onboarding/materialised/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-tier-cards",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-region-picker",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://onboarding/materialised/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-region-picker",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-form-genesis",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://onboarding/materialised/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-form-genesis",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      }
+    ],
+    "documents": [],
+    "contributions": [],
+    "diagnostics": [],
+    "summary": {
+      "modules": 4,
+      "admittedModules": 4,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 0,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": false,
+    "summary": {
+      "artifacts": 4,
+      "loadedArtifacts": 3,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 1,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 1
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "definitions[0]",
+        "artifactKind": "definition",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "registries[0]",
+        "artifactKind": "registry",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://onboarding/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE",
+        "severity": "error",
+        "phase": "artifact-resolution",
+        "origin": "artifact-resolver",
+        "message": "Bundle-local Surface 'https://formspec.cloud/apps/console/onboarding/surfaces/wizard' is not publishable; addRoute + bindSlot fill it.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "studio-core:bundle-local:surfaces[0]",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "slot": "surfaces[0]",
+          "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "fillWith": [
+            "addRoute",
+            "bindSlot"
+          ],
+          "kernelCode": "VALIDATION",
+          "kernelMessage": "Surface 'wizard' is not publishable.",
+          "kernelDetails": {
+            "operation": "exportSurfaceDocument",
+            "surfaceId": "wizard",
+            "diagnostics": [
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'tier' is not reachable from entry 'organization'.",
+                "details": {
+                  "surfaceId": "wizard",
+                  "routeId": "tier",
+                  "entry": "organization"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'region' is not reachable from entry 'organization'.",
+                "details": {
+                  "surfaceId": "wizard",
+                  "routeId": "region",
+                  "entry": "organization"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'first-form' is not reachable from entry 'organization'.",
+                "details": {
+                  "surfaceId": "wizard",
+                  "routeId": "first-form",
+                  "entry": "organization"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "skipped",
+        "reason": "unresolved-artifacts"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

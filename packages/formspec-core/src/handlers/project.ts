@@ -75,12 +75,18 @@ export const projectHandlers = {
       state.responseActions = p.responseActions ?? null;
     }
 
-    // Sync targetDefinition URLs
+    // Sync targetDefinition URLs.
+    //
+    // Component's schema still REQUIRES targetDefinition, so an imported Component
+    // without one is completed here. Theme's does not: theme-spec §2.2.1 makes an
+    // absent targetDefinition a declaration of BUNDLE scope, so minting one on import
+    // would rewrite a bundle-scoped Theme into a Definition-scoped one — the exact
+    // MUST NOT the scope rev introduced. Sync the URL when the Theme declares a target;
+    // otherwise leave the Theme alone.
     const url = state.definition.url;
     if (!state.component.targetDefinition) state.component.targetDefinition = { url };
     else state.component.targetDefinition.url = url;
-    if (!state.theme.targetDefinition) state.theme.targetDefinition = { url };
-    else state.theme.targetDefinition.url = url;
+    if (state.theme.targetDefinition) state.theme.targetDefinition.url = url;
 
     const needsTreeRebuild = !!importedDefinition || !!p.component;
     return { rebuildComponentTree: needsTreeRebuild, clearHistory: false };

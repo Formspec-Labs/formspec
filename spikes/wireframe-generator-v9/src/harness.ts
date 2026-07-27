@@ -52,8 +52,22 @@ import type { UiGraphPolicyDocument } from '@formspec-org/types';
 import type { FindingsCollector, GapFamily, V7Ref, Disposition } from './findings.js';
 
 export const SPIKE_ROOT = resolve(import.meta.dirname, '..');
-export const ARTIFACTS_DIR = resolve(SPIKE_ROOT, 'artifacts');
-export const REPORTS_DIR = resolve(SPIKE_ROOT, 'reports');
+
+/**
+ * Output root. Defaults to the spike dir, so a deliberate re-measurement rewrites the
+ * checked-in evidence — which is the point of a re-measurement.
+ *
+ * `V9_OUTPUT_ROOT` redirects it. **Use it for any run that is not a re-measurement.**
+ * The reports and artifacts in this spike are the numbers ADR 0160 §7 cites as its
+ * baseline; a run that executes only to prove the harness still compiles must not
+ * overwrite them, and a run that fails partway must not leave a half-written baseline
+ * behind that reads as a measurement.
+ */
+const OUTPUT_ROOT = process.env.V9_OUTPUT_ROOT
+  ? resolve(process.env.V9_OUTPUT_ROOT)
+  : SPIKE_ROOT;
+export const ARTIFACTS_DIR = resolve(OUTPUT_ROOT, 'artifacts');
+export const REPORTS_DIR = resolve(OUTPUT_ROOT, 'reports');
 const SCHEMAS_DIR = resolve(SPIKE_ROOT, '..', '..', 'schemas');
 
 /** The workaround marker. Every string the validator cannot read starts with this. */
@@ -524,7 +538,36 @@ export function widgetsByModule(surfaceDocument: unknown): Map<string, Set<strin
  *   journey and the host, and it is the arm that answers whether the theming
  *   guard can fire at all.
  */
-export type RegistryArm = 'v8-parity' | 'verb-only' | 'host-authored' | 'host-corrected';
+export type RegistryArm =
+  | 'v8-parity'
+  | 'verb-only'
+  | 'host-authored'
+  | 'host-corrected'
+  /**
+   * ADR 0160 §7.1's fifth arm. The Registry and the Theme are MINTED by the verb
+   * family and owned by the kernel: `declareRegistry` with no `url`,
+   * `addRegistryEntry` per contribution, `declareTheme` + `setThemeToken` per
+   * assigned token. **No host loader is wired at all** and `hostDocuments` stays
+   * empty — the claim under measurement is that a bundle authored only through
+   * verbs resolves with nothing behind it.
+   */
+  | 'materialised';
+
+/**
+ * The `^x-[a-z]…` contribution id for a module's widget — ADR 0160 §2.4's first
+ * vocabulary. It is NOT the Surface binding's `widgetName` (second vocabulary), which
+ * `addRegistryEntry` puts in `widgetShape.widgetName`; conflating them re-files v9
+ * finding 41 instead of closing it. Module-prefixed so ids are globally unique, which
+ * is what the schema's `(name, version)` uniqueness scope assumes.
+ */
+export function contributionIdFor(moduleId: string, widgetName: string): string {
+  const kebab = widgetName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/[^A-Za-z0-9]+/g, '-')
+    .toLowerCase()
+    .replace(/^-+|-+$/g, '');
+  return `${moduleId}-${kebab}`;
+}
 
 /**
  * Widget-name normalization the persona applies ONLY in `host-corrected`, and
@@ -561,6 +604,57 @@ export function normalizeBinding(binding: unknown): unknown {
   return walk(binding);
 }
 
+/**
+ * Which authority owns a diagnostic — the axis ADR 0160 §7's acceptance bars are
+ * scoped on. The verb family v1 is closed (§4.1), so a diagnostic on a path no
+ * member of it can reach is not evidence about the family either way. The split
+ * is structural, read off the diagnostic's own `primarySource`, so it cannot be
+ * tuned: every error lands in exactly one bucket and the buckets sum to the
+ * whole-graph total, which stays reported beside them.
+ *
+ * - `verb-family` — reachable by `declareRegistry` / `addRegistryEntry` /
+ *   `declareTheme` / `setThemeToken` plus the bundle-local loader: the manifest
+ *   `modules[]` index, Surface `module-widget` bindings, and resolution of every
+ *   bundle-local artifact. **The `MODULE-*` and `cross-artifact` bars are scoped
+ *   here.** `ARTIFACT-MISSING` and `THEME-TOKEN-REF` stay unscoped — arm D meets
+ *   both whole-graph, so scoping them would buy nothing.
+ * - `host-evidence` — supplied by the host as evidence (`hostEvidence.*`), not a
+ *   bundle artifact. §6 excludes policy authoring from v1: no verb writes it.
+ *   `THEME-TOKEN-REF` originates here too, which is why arm D reaching 0 on it is
+ *   a claim about the minted Theme rather than about the policy.
+ * - `corpus-identifier` — an identifier the persona authored through a
+ *   pre-existing verb that no materialisation verb can make valid (v9's
+ *   `x-spike-v9:` unit-kind marker). §4.2(b) made it visible; it did not cause it.
+ * - `surface-composition` — a bundle-local Surface that will not publish. §7 row
+ *   1a pre-registered this as the out-of-scope twelfth surface.
+ */
+export type DiagnosticScope =
+  | 'verb-family'
+  | 'host-evidence'
+  | 'corpus-identifier'
+  | 'surface-composition';
+
+/** Minimal diagnostic shape the scope split reads. */
+interface ScopedDiagnostic {
+  code: string;
+  primarySource?: { artifactSlot?: string; artifactKind?: string; jsonPointer?: string };
+}
+
+const EXPERIENCE_UNIT_KIND_POINTER = /^\/units\/\d+\/kind$/;
+
+/** See {@link DiagnosticScope}. Structural — no code list, no surface list. */
+export function scopeOfDiagnostic(d: ScopedDiagnostic): DiagnosticScope {
+  const src = d.primarySource ?? {};
+  if ((src.artifactSlot ?? '').startsWith('hostEvidence.')) return 'host-evidence';
+  if (src.artifactKind === 'experience' && EXPERIENCE_UNIT_KIND_POINTER.test(src.jsonPointer ?? '')) {
+    return 'corpus-identifier';
+  }
+  if (d.code === 'ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE' && src.artifactKind === 'surface') {
+    return 'surface-composition';
+  }
+  return 'verb-family';
+}
+
 export interface SurfaceOutcome {
   script: SurfaceScript;
   arm: RegistryArm;
@@ -573,6 +667,12 @@ export interface SurfaceOutcome {
   diagnosticCodes: string[];
   /** Error diagnostics by code — the unit the v8 delta is computed over. */
   errorCodeCounts: Record<string, number>;
+  /**
+   * The same errors split by {@link DiagnosticScope}, then by code. Sums back to
+   * `errorCodeCounts` exactly, so the scoped view can never be read as fewer
+   * errors than the graph actually carries.
+   */
+  errorCodeCountsByScope: Record<DiagnosticScope, Record<string, number>>;
   slotCount: number;
   routeCount: number;
   /** Workaround bindings the validator cannot read — see countSpikeBindings. */
@@ -589,6 +689,27 @@ export interface SurfaceOutcome {
   surfaceExport: SurfaceExportOutcome;
   declareRegistryOk: boolean;
   declareRegistryError?: string;
+  /**
+   * The URL `declareRegistry` returned. On the `materialised` arm this is the
+   * bundle-scoped URN the kernel minted (§4.3), which is the evidence that the
+   * Registry was never a host reference. Absent on `v8-parity`, which declares none.
+   */
+  declareRegistryUrl?: string;
+  /** What the `materialised` arm's verbs actually accepted. Zeroed on other arms. */
+  materialisation: MaterialisationOutcome;
+}
+
+/**
+ * The `materialised` arm's own census. Attempted-vs-accepted is the honest unit:
+ * a verb that refuses is data, and a run that silently authored fewer entries than
+ * the corpus needs would otherwise read as a clean zero on MODULE-*.
+ */
+export interface MaterialisationOutcome {
+  registryEntriesAttempted: number;
+  registryEntriesAccepted: number;
+  themeTokensAttempted: number;
+  themeTokensAccepted: number;
+  refusals: Array<{ verb: string; target: string; code: string; message: string }>;
 }
 
 /**
@@ -603,7 +724,25 @@ export async function runSurface(
   arm: RegistryArm,
 ): Promise<SurfaceOutcome> {
   await ensureEngine();
-  const mcp = createWireframesMcp(personaContext(`${script.id}:${arm}`));
+
+  // ADR 0160 §4.4 — the host ArtifactLoader is DEPLOYMENT-scoped: it is wired at MCP
+  // construction, and `produceAppGraphValidationReport` no longer takes a per-call
+  // `loader` (passing one throws). Declaration-time refusal (§4.2a) cannot ask a
+  // question that is only answered at validation time.
+  //
+  // The harness's host documents are not known until after authoring — the Surface
+  // document is the kernel's own export, and the composed Registry needs the declared
+  // module set. So the loader closes over a record the harness fills later; the closure
+  // reads it at resolution time, which is what a real deployment's loader does anyway.
+  const hostDocuments: Record<string, unknown> = {};
+  // §7.2's proof: the materialised arm validates with NO host loader at all. Wiring
+  // one "just in case" would make the arm unfalsifiable — every bundle-local miss
+  // would fall through to the host and the measurement would say nothing.
+  const mcp = createWireframesMcp(
+    personaContext(`${script.id}:${arm}`),
+    undefined,
+    arm === 'materialised' ? {} : { artifactLoader: makeLoader(hostDocuments) },
+  );
   const registryUrl = `${script.bundleId}/registries/product-modules`;
 
   const create = await mcp.wireframeFromBrief({
@@ -621,7 +760,11 @@ export async function runSurface(
   const registry =
     arm === 'v8-parity'
       ? ({ ok: true, value: undefined } as const)
-      : await mcp.declareRegistry({ url: registryUrl, version: '1.0.0' });
+      : arm === 'materialised'
+        // §4.1's reshaped signature: `url` omitted mints a bundle-local Registry the
+        // kernel owns, fills through `addRegistryEntry`, and serves with no host.
+        ? await mcp.declareRegistry({ version: '1.0.0' })
+        : await mcp.declareRegistry({ url: registryUrl, version: '1.0.0' });
 
   const classOutcomes: RouteClassOutcome[] = [];
 
@@ -764,14 +907,97 @@ export async function runSurface(
       outcome.wanted !== null && persistedClasses.get(outcome.routeId) === outcome.wanted;
   }
 
-  const documents: Record<string, unknown> = { [script.surfaceUrl]: surfaceDoc };
+  // ── ADR 0160 §7.1 fifth arm: MATERIALISE, through verbs only ─────────────
+  //
+  // Everything the host arms hand-author as a document, this arm mints. Nothing
+  // is written into `hostDocuments`: there is no host loader on this arm, so a
+  // miss is a miss. Refusals are recorded on the outcome rather than thrown —
+  // a verb that cannot express the corpus is the measurement, not a crash.
+  const materialisation: MaterialisationOutcome = {
+    registryEntriesAttempted: 0,
+    registryEntriesAccepted: 0,
+    themeTokensAttempted: 0,
+    themeTokensAccepted: 0,
+    refusals: [],
+  };
+  if (arm === 'materialised') {
+    for (const [moduleId, widgets] of [...widgetsByModule(surfaceDoc)].sort(([a], [b]) => a.localeCompare(b))) {
+      const sorted = [...widgets].sort();
+      const contributions = sorted.map((widget) => contributionIdFor(moduleId, widget));
+      // The module entry names its contributions; the widget entries carry them.
+      // §2.4's three vocabularies stay apart: `name` is the x- contribution id,
+      // `widgetName` is the Surface binding's own (PascalCase) name.
+      materialisation.registryEntriesAttempted += 1 + sorted.length;
+      const moduleEntry = await mcp.addRegistryEntry({
+        entry: {
+          name: moduleId,
+          category: 'module',
+          version: '0.1.0',
+          status: 'stable',
+          description: `Formspec Cloud product module ${moduleId}.`,
+          compatibility: { formspecVersion: '>=1.0.0' },
+          ...(contributions.length > 0 ? { contributes: contributions } : {}),
+        },
+      });
+      if (moduleEntry.ok) materialisation.registryEntriesAccepted += 1;
+      else materialisation.refusals.push({ verb: 'addRegistryEntry(module)', target: moduleId, code: moduleEntry.error.code, message: moduleEntry.error.message });
+
+      for (const widget of sorted) {
+        const entry = await mcp.addRegistryEntry({
+          entry: {
+            name: contributionIdFor(moduleId, widget),
+            category: 'widget',
+            version: '0.1.0',
+            status: 'stable',
+            description: `Widget ${widget} contributed by ${moduleId}.`,
+            compatibility: { formspecVersion: '>=1.0.0' },
+            widgetShape: {
+              props: { type: 'object' },
+              childrenPolicy: 'no-children',
+              tokenSlots: [
+                { name: 'accent', acceptedTokenCategories: ['color'] },
+                { name: 'surface', acceptedTokenCategories: ['color'] },
+              ],
+            },
+          },
+          // The verb's ONE shaping obligation (§4.1) — lands in
+          // `widgetShape.widgetName`, never in `entry.name`.
+          widgetName: widget,
+        });
+        if (entry.ok) materialisation.registryEntriesAccepted += 1;
+        else materialisation.refusals.push({ verb: 'addRegistryEntry(widget)', target: widget, code: entry.error.code, message: entry.error.message });
+      }
+    }
+
+    // Finding 42's closure: `declareUiGraphPolicy` could assign Theme tokens with
+    // no verb to declare a Theme, so THEME-TOKEN-REF fired on every assignment for
+    // want of loaded Theme evidence. Mint the Theme and carry the assigned tokens.
+    const assignedTokens = [...new Set((probe ?? []).map((assignment) => assignment.token))].sort();
+    if (assignedTokens.length > 0) {
+      const theme = await mcp.declareTheme({ version: '1.0.0' });
+      if (!theme.ok) {
+        materialisation.refusals.push({ verb: 'declareTheme', target: script.bundleId, code: theme.error.code, message: theme.error.message });
+      } else {
+        for (const token of assignedTokens) {
+          materialisation.themeTokensAttempted += 1;
+          const written = await mcp.setThemeToken({ key: token, value: '#0057B7' });
+          if (written.ok) materialisation.themeTokensAccepted += 1;
+          else materialisation.refusals.push({ verb: 'setThemeToken', target: token, code: written.error.code, message: written.error.message });
+        }
+      }
+    }
+  }
+
+  // Fill the record the construction-time loader closed over (see `hostDocuments`).
+  // The materialised arm deliberately leaves it empty — see its construction above.
+  if (arm !== 'materialised') hostDocuments[script.surfaceUrl] = surfaceDoc;
   if (arm === 'host-authored' || corrected) {
     const manifestForModules = await mcp.renderPreview();
     const declaredModules =
       manifestForModules.ok && manifestForModules.value !== null && typeof manifestForModules.value === 'object'
         ? (((manifestForModules.value as { modules?: unknown }).modules ?? []) as ManifestModule[])
         : [];
-    documents[registryUrl] = composeRegistry(declaredModules, widgetsByModule(surfaceDoc), corrected);
+    hostDocuments[registryUrl] = composeRegistry(declaredModules, widgetsByModule(surfaceDoc), corrected);
   }
 
   const report = await mcp.produceAppGraphValidationReport({
@@ -779,7 +1005,6 @@ export async function runSurface(
     schemaId: SCHEMA_ID_BY_KIND.appManifest,
     schemaValidators: realSchemaValidators(),
     evidenceSchemaValidators: realEvidenceSchemaValidators(),
-    loader: makeLoader(documents),
     uiGraphPolicies: [
       {
         schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
@@ -810,17 +1035,28 @@ export async function runSurface(
         family: script.family,
         route: script.route,
         registryArm: arm,
+        // The URL the verb RETURNED, never the one the harness would have asked
+        // for. On the materialised arm no `url` is passed and the kernel mints a
+        // bundle-scoped URN (§4.3); echoing `registryUrl` there would record an
+        // https URL the run never used and hide the one piece of evidence that
+        // says the Registry was bundle-local.
         declareRegistry:
           arm === 'v8-parity'
             ? { skipped: 'v8-parity arm does not declare a Registry' }
             : registry.ok
-              ? { ok: true, url: registryUrl }
+              ? {
+                  ok: true,
+                  url: registry.value?.url ?? registryUrl,
+                  ...(arm === 'materialised'
+                    ? { mintedBundleLocal: true }
+                    : { requestedUrl: registryUrl }),
+                }
               : { ok: false, error: registry.error },
         routeClassOutcomes: classOutcomes,
         surfaceExport,
         manifest: manifest.ok ? manifest.value : null,
         surface: surfaceDoc,
-        registryDocument: documents[registryUrl] ?? null,
+        registryDocument: hostDocuments[registryUrl] ?? null,
         uiGraphPolicy: policy,
         slotMockupRegions: routes.flatMap((r) =>
           r.slots.map((s) => ({ slot: s.id, slotType: s.slotType, mockupRegion: s.mockupRegion })),
@@ -872,6 +1108,14 @@ export async function runSurface(
       (acc, d) => ({ ...acc, [d.code]: (acc[d.code] ?? 0) + 1 }),
       {},
     ),
+    errorCodeCountsByScope: errors.reduce<Record<DiagnosticScope, Record<string, number>>>(
+      (acc, d) => {
+        const scope = scopeOfDiagnostic(d as ScopedDiagnostic);
+        acc[scope][d.code] = (acc[scope][d.code] ?? 0) + 1;
+        return acc;
+      },
+      { 'verb-family': {}, 'host-evidence': {}, 'corpus-identifier': {}, 'surface-composition': {} },
+    ),
     slotCount: routes.reduce((n, r) => n + r.slots.length, 0),
     routeCount: routes.length,
     spikeBindings: countSpikeBindings(routes),
@@ -883,6 +1127,11 @@ export async function runSurface(
     surfaceExport,
     themeAuthorityDiagnostics: [...new Set(diags.filter((d) => d.code === 'THEME-ROUTE-CLASS').map((d) => d.code))],
     declareRegistryOk: registry.ok,
-    ...(registry.ok ? {} : { declareRegistryError: `${registry.error.code} — ${registry.error.message}` }),
+    ...(registry.ok
+      ? registry.value !== undefined
+        ? { declareRegistryUrl: registry.value.url }
+        : {}
+      : { declareRegistryError: `${registry.error.code} — ${registry.error.message}` }),
+    materialisation,
   };
 }

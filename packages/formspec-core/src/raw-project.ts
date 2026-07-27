@@ -250,10 +250,12 @@ function createDefaultState(options?: ProjectOptions): ProjectState {
   const url = definition.url;
   const componentState = normalizeComponentState(options?.seed?.component, url);
 
-  const theme: ThemeState = options?.seed?.theme ?? {};
-  if (!theme.targetDefinition) {
-    theme.targetDefinition = { url };
-  }
+  // theme-spec §2.2.1: a Theme that declares no `targetDefinition` is BUNDLE-SCOPED —
+  // absence is a declaration, not an omission, and minting one silently rewrites the
+  // author's scope. A seed Theme is therefore taken exactly as supplied. A project
+  // created with no seed Theme at all gets the Definition-scoped default: P0 authoring
+  // owns one Definition (ADR 0150 §5.2) and the default Theme themes it.
+  const theme: ThemeState = options?.seed?.theme ?? { targetDefinition: { url } };
 
   const mappings: Record<string, MappingState> = options?.seed?.mappings ?? {};
   const selectedMappingId = options?.seed?.selectedMappingId ?? (Object.keys(mappings)[0] || 'default');
@@ -443,6 +445,10 @@ export class RawProject implements IProjectCore {
     const { tree, ...restComponent } = this._state.component as Record<string, unknown>;
     const cleanedTree = tree ? cleanTreeForExport(tree as Record<string, unknown>, this._state.definition, '') : null;
     const { targetDefinition: themeTarget, ...restTheme } = this._state.theme;
+    // theme-spec §2.2.1: preserve absent = bundle scope. Never `themeTarget ?? { url }`.
+    const exportTheme: ThemeState = themeTarget
+      ? { ...restTheme, targetDefinition: themeTarget }
+      : restTheme;
 
     const exportMappings: Record<string, MappingDocument> = {};
     for (const [id, m] of Object.entries(this._state.mappings)) {
@@ -461,10 +467,7 @@ export class RawProject implements IProjectCore {
         ),
       },
       theme: {
-        ...withThemeEnvelope(
-          { ...restTheme, targetDefinition: themeTarget ?? { url } },
-          url,
-        ),
+        ...withThemeEnvelope(exportTheme),
       },
       mappings: exportMappings,
     };

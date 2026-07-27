@@ -1,0 +1,39 @@
+{
+  "id": "valid-theme-declaration-protected",
+  "description": "The deployment that ADR 0152 \u00a74.2's `theme.declaration` row exists to serve: only humans may mint the bundle-local Theme, while `theme.assignment` stays open so a tenant service can restyle the Theme the platform declared.",
+  "adrRow": "\u00a74.2 `theme.declaration` \u2192 `declareTheme` (ADR 0160 \u00a75.1). Declaration and assignment are two handles because they are two authorities.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/valid-theme-declaration-protected.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "theme.declaration",
+            "writableBy": {
+              "kinds": [
+                "human"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "admit",
+  "note": "Enforcement lives in formspec-studio: `ProposalManagerFacade.declareTheme` calls the \u00a75.2 check before any bundle read, and `theme.declare` maps to this handle on replay (`actor-posture-admission.ts`)."
+}

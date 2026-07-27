@@ -1147,6 +1147,54 @@ Work that has been researched and decided against for now. Tracked here so it is
 
 <!-- tk:end -->
 
+## Scope-rev follow-ups (`targetDefinition` OPTIONAL)
+
+Hand-edited. Residue of the Theme / Experience bundle-scope rev that
+[cross-stack ADR 0160](../thoughts/adr/0160-mcp-materialisation-verbs.md) §4.2 required —
+`targetDefinition` became OPTIONAL on `theme.schema.json` and `experience.schema.json` so a
+Definition-less app envelope ([ADR 0150](../thoughts/adr/0150-formspec-as-layered-ui-substrate.md) §5.2)
+is representable.
+
+### Theme / Experience SHOULD-diagnostics — distinguish "forgot the binding" from "chose bundle scope"
+
+**What the work is.** Two SHOULDs landed in the rev with no diagnostic and nothing that
+enforces them:
+
+- [theme-spec §2.2.1](specs/theme/theme-spec.md): *"A Theme that carries `items` keys or
+  `pages[].regions[].key` SHOULD declare `targetDefinition`."*
+- [experience-spec S2.1](specs/experience/experience-spec.md): *"A bundle-scoped Experience
+  carrying `units[].itemRefs` SHOULD declare `targetDefinition`."*
+
+Emit a warning per document — proposed `W708` (Theme, pass 6) and `W1704` (Experience, pass 9) —
+when the document declares no `targetDefinition` **and** carries Definition-keyed content. Both
+are single-document checks: they read only the document, so unlike W705 / W706 / W1702 / W1703
+they survive the pairing rule that suspends every Definition-reading check under bundle scope
+([theme-spec §7.2](specs/theme/theme-spec.md), [experience-spec S10.1](specs/experience/experience-spec.md)).
+
+**Why it matters.** Bundle scope made a previously-impossible document schema-valid, and the
+two readings of it are opposite. An author who *chose* bundle scope wants silence. An author
+who *forgot* the binding now gets silence too — the E101 that used to catch a missing
+`targetDefinition` is gone, and the pairing rule deliberately suppresses every downstream
+finding that would otherwise have surfaced the mistake. The keys are the discriminator: a
+document with `items` / `itemRefs` and no target is asking to resolve paths against a Definition
+it never named, which is the forgot-the-binding shape and nothing else. Without this warning the
+rev trades one loud failure for a silent one.
+
+**What done looks like.**
+
+- `W708` / `W1704` registered in the lint code table with spec refs to the two SHOULD lines.
+- Fires: bundle-scoped Theme with a non-empty `items` or any `pages[].regions[].key`;
+  bundle-scoped Experience with any `units[].itemRefs`.
+- Does not fire: bundle-scoped document carrying only scope-neutral content (Theme with tokens /
+  defaults / selectors only; Experience with actors / tasks / units and no `itemRefs`) — that is
+  the chose-bundle-scope posture and it is correct.
+- Does not fire on any Definition-scoped document, paired or unpaired.
+- Rust unit tests in `crates/formspec-lint/src/pass_theme/tests.rs` and
+  `crates/formspec-lint/src/pass_experience.rs` covering fires / does-not-fire on both axes,
+  plus a conformance fixture per document type.
+- Warning severity, never error: the spec says SHOULD, and a bundle-scoped Theme that carries
+  item keys is still a conforming document.
+
 ## Track / Monitor
 
 Hand-edited monitoring entries — non-actionable items kept for visibility. Not tk-managed (low churn, structural notes rather than tickets).

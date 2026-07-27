@@ -1,4 +1,4 @@
 - This document defines the Tier 2 sidecar theme model for Formspec presentation behavior.
-- A valid theme requires `$formspecTheme`, `version`, and `targetDefinition`.
+- A valid theme requires `$formspecTheme` and `version`. `targetDefinition` is OPTIONAL and sets scope: present = Definition-scoped, absent = bundle-scoped (ADR 0150 §5.2 app envelope).
 - Effective rendering is resolved through a 3-level cascade: `defaults` -> `selectors` -> `items`.
 - This BLUF is governed by `schemas/theme.schema.json`; generated tables should be treated as canonical structural reference.

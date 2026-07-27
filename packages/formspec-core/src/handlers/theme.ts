@@ -196,10 +196,17 @@ export const themeHandlers = {
     return { rebuildComponentTree: false };
   },
 
+  /**
+   * `compatibleVersions` is a member of `targetDefinition` and means nothing without
+   * one. On a bundle-scoped Theme (no `targetDefinition`, theme-spec §2.2.1) this
+   * command binds the Theme to the project's Definition — an explicit scope change the
+   * caller asked for by naming a compatible-version range. It uses the real Definition
+   * URL, never the empty string, which would only produce a schema-invalid document.
+   */
   'theme.setTargetCompatibility': (state, payload) => {
     const { compatibleVersions } = payload as { compatibleVersions: string };
     if (!state.theme.targetDefinition) {
-      state.theme.targetDefinition = { url: '' };
+      state.theme.targetDefinition = { url: state.definition.url };
     }
     state.theme.targetDefinition.compatibleVersions = compatibleVersions;
     return { rebuildComponentTree: false };

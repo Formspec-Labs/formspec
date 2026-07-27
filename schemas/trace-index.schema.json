@@ -49,6 +49,17 @@
       },
       "description": "Source identity tuple for sidecar sources without top-level document ids."
     },
+    "ExperienceSourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceRef", "version"],
+      "properties": {
+        "sourceRef": { "type": "string", "minLength": 1 },
+        "targetDefinitionUrl": { "type": "string", "format": "uri" },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "description": "Experience source identity tuple. Diverges from SidecarSourceIdentity in one place: targetDefinitionUrl is OPTIONAL, because Experience alone among the sidecar kinds admits bundle scope (experience-spec S2.1). PRESENT — the Experience is Definition-scoped and this is the Definition it names. ABSENT — the Experience is bundle-scoped: it names task intent for the App Manifest bundle rather than one Definition, which is the only representable posture when definitions[] is empty (ADR 0150 §5.2). sourceRef stays REQUIRED under both scopes; it is the builder or host locator and the only stable identity a bundle-scoped Experience has. Response Actions and Ontology keep the required tuple — neither admits bundle scope."
+    },
     "ComponentSourceIdentity": {
       "type": "object",
       "additionalProperties": false,
@@ -102,7 +113,7 @@
           },
           "then": {
             "properties": {
-              "identity": { "$ref": "#/$defs/SidecarSourceIdentity" }
+              "identity": { "$ref": "#/$defs/ExperienceSourceIdentity" }
             }
           }
         },

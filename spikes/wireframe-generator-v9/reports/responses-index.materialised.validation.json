@@ -1,0 +1,746 @@
+{
+  "artifactResolutionReport": {
+    "ok": true,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/responses",
+        "title": "Responses",
+        "definitions": [],
+        "registries": [
+          {
+            "url": "urn:formspec:doc:302537e324a30ed8:registry",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/console/responses/surfaces/responses",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-stat-tiles",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-filter-bar",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-response-table",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/responses"
+      },
+      "source": "spike-v9://responses-index/materialised/app-manifest"
+    },
+    "artifacts": {
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "studio-core:bundle-local:registries[0]",
+          "ref": {
+            "url": "urn:formspec:doc:302537e324a30ed8:registry",
+            "version": "1.0.0"
+          },
+          "status": "loaded",
+          "document": {
+            "$formspecRegistry": "1.0",
+            "publisher": {
+              "name": "Responses"
+            },
+            "published": "2026-07-26T00:00:00Z",
+            "entries": [
+              {
+                "name": "x-cloud-filter-bar",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-filter-bar.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-cloud-filter-bar-response-filters"
+                ]
+              },
+              {
+                "name": "x-cloud-filter-bar-response-filters",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget ResponseFilters contributed by x-cloud-filter-bar.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "props": {
+                    "type": "object"
+                  },
+                  "childrenPolicy": "no-children",
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ],
+                  "widgetName": "ResponseFilters"
+                }
+              },
+              {
+                "name": "x-cloud-response-table",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-response-table.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-cloud-response-table-response-table",
+                  "x-cloud-response-table-view-controls"
+                ]
+              },
+              {
+                "name": "x-cloud-response-table-response-table",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget ResponseTable contributed by x-cloud-response-table.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "props": {
+                    "type": "object"
+                  },
+                  "childrenPolicy": "no-children",
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ],
+                  "widgetName": "ResponseTable"
+                }
+              },
+              {
+                "name": "x-cloud-response-table-view-controls",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget ViewControls contributed by x-cloud-response-table.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "props": {
+                    "type": "object"
+                  },
+                  "childrenPolicy": "no-children",
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ],
+                  "widgetName": "ViewControls"
+                }
+              },
+              {
+                "name": "x-cloud-stat-tiles",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-stat-tiles.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-cloud-stat-tiles-proof-stat-strip"
+                ]
+              },
+              {
+                "name": "x-cloud-stat-tiles-proof-stat-strip",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget ProofStatStrip contributed by x-cloud-stat-tiles.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "props": {
+                    "type": "object"
+                  },
+                  "childrenPolicy": "no-children",
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ],
+                  "widgetName": "ProofStatStrip"
+                }
+              }
+            ]
+          },
+          "identity": {
+            "url": "urn:formspec:doc:302537e324a30ed8:registry",
+            "version": "1.0.0"
+          },
+          "diagnostics": []
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "studio-core:bundle-local:surfaces[0]",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/responses/surfaces/responses",
+            "version": "1.0.0"
+          },
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "responses",
+            "routes": [
+              {
+                "id": "responses",
+                "path": "/forms/:id/responses",
+                "slots": [
+                  {
+                    "id": "proofStats",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-stat-tiles",
+                      "widgetName": "ProofStatStrip",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:forms/:id/response-metrics",
+                        "categories": [
+                          "proof_ready",
+                          "awaiting_signature",
+                          "proof_pending",
+                          "anchor_stalled"
+                        ]
+                      }
+                    },
+                    "position": "top",
+                    "title": "Responses"
+                  },
+                  {
+                    "id": "filters",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-filter-bar",
+                      "widgetName": "ResponseFilters",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:forms/:id/responses",
+                        "facets": [
+                          "version",
+                          "submitted",
+                          "proof",
+                          "signature"
+                        ],
+                        "publishes": "x-spike-v9:channel:response-query"
+                      }
+                    },
+                    "position": "top",
+                    "title": "Filters"
+                  },
+                  {
+                    "id": "viewControls",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-response-table",
+                      "widgetName": "ViewControls",
+                      "config": {
+                        "columns": [
+                          "respondent",
+                          "submitted",
+                          "proof",
+                          "signature",
+                          "totalBudget",
+                          "version",
+                          "hash",
+                          "ein",
+                          "source",
+                          "reviewer",
+                          "timeOnForm"
+                        ],
+                        "viewState": "x-spike-v9:user-scoped:saved-views",
+                        "actions": [
+                          "export"
+                        ]
+                      }
+                    },
+                    "position": "top",
+                    "title": "Columns & views"
+                  },
+                  {
+                    "id": "table",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-response-table",
+                      "widgetName": "ResponseTable",
+                      "config": {
+                        "consumes": "x-spike-v9:channel:response-query",
+                        "dataSource": "x-spike-v9:workspace:forms/:id/responses",
+                        "pagination": {
+                          "pageSize": 12,
+                          "total": 4218
+                        },
+                        "rowActions": [
+                          "open-response",
+                          "open-receipt"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Responses"
+                  }
+                ],
+                "title": "Responses",
+                "routeClass": "operation"
+              }
+            ],
+            "entry": "responses"
+          },
+          "identity": {
+            "url": "https://formspec.cloud/apps/console/responses/surfaces/responses",
+            "version": "1.0.0"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [],
+    "summary": {
+      "declaredRefs": 2,
+      "loadedArtifacts": 2,
+      "missingArtifacts": 0,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-stat-tiles",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://responses-index/materialised/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-stat-tiles",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-filter-bar",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://responses-index/materialised/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-filter-bar",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-response-table",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://responses-index/materialised/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-response-table",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-cloud-stat-tiles-proof-stat-strip",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "studio-core:bundle-local:surfaces[0]",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/responses/surfaces/responses",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-stat-tiles",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "studio-core:bundle-local:registries[0]",
+              "jsonPointer": "/entries/6/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "studio-core:bundle-local:registries[0]",
+              "jsonPointer": "/entries/6/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-cloud-filter-bar-response-filters",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "studio-core:bundle-local:surfaces[0]",
+          "jsonPointer": "/routes/0/slots/1/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/responses/surfaces/responses",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-filter-bar",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "studio-core:bundle-local:registries[0]",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "studio-core:bundle-local:registries[0]",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-cloud-response-table-view-controls",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "studio-core:bundle-local:surfaces[0]",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/responses/surfaces/responses",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-response-table",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "studio-core:bundle-local:registries[0]",
+              "jsonPointer": "/entries/4/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "studio-core:bundle-local:registries[0]",
+              "jsonPointer": "/entries/4/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-cloud-response-table-response-table",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "studio-core:bundle-local:surfaces[0]",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/responses/surfaces/responses",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-response-table",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "studio-core:bundle-local:registries[0]",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "studio-core:bundle-local:registries[0]",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      }
+    ],
+    "diagnostics": [],
+    "summary": {
+      "modules": 3,
+      "admittedModules": 3,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 4,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": true,
+    "summary": {
+      "artifacts": 3,
+      "loadedArtifacts": 3,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 0,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 0
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "registries[0]",
+        "artifactKind": "registry",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://responses-index/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "completed"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

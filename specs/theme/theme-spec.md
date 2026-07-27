@@ -37,7 +37,8 @@ This specification defines a **sidecar theme document** — a separate
 JSON file that controls the visual presentation of a Formspec Definition.
 A Theme Document:
 
-- References a Definition by URL.
+- References a Definition by URL, or declares no target and scopes to the
+  bundle instead (§2.2.1).
 - Overrides inline presentation hints with a selector cascade.
 - Assigns widgets with typed configuration and fallback chains.
 - Defines page layout with a 12-column grid.
@@ -84,7 +85,7 @@ Section references (§N) refer to this document unless prefixed with
 
 <!-- bluf:start file=theme-spec.bluf.md -->
 - This document defines the Tier 2 sidecar theme model for Formspec presentation behavior.
-- A valid theme requires `$formspecTheme`, `version`, and `targetDefinition`.
+- A valid theme requires `$formspecTheme` and `version`. `targetDefinition` is OPTIONAL and sets scope: present = Definition-scoped, absent = bundle-scoped (ADR 0150 §5.2 app envelope).
 - Effective rendering is resolved through a 3-level cascade: `defaults` -> `selectors` -> `items`.
 - This BLUF is governed by `schemas/theme.schema.json`; generated tables should be treated as canonical structural reference.
 <!-- bluf:end -->
@@ -139,7 +140,7 @@ that omits a REQUIRED property.
 | `#/properties/platform` | `platform` | <code>string</code> | no | — | Target rendering platform. Informational — processors that do not recognize a platform value SHOULD apply the theme regardless. Well-known values: 'web' (desktop/mobile browsers), 'mobile' (native apps), 'pdf' (PDF rendering), 'print' (print-optimized), 'kiosk' (public terminals), 'universal' (no platform assumptions, implicit default). |
 | `#/properties/selectors` | `selectors` | <code>array</code> | no | critical | Cascade level 2: type/dataType-based presentation overrides. Each selector has a 'match' (criteria) and 'apply' (PresentationBlock). Selectors are evaluated in document order — all matching selectors apply, with later matches overriding earlier ones per-property. Overrides defaults (level 1); overridden by items (level 3). |
 | `#/properties/stylesheets` | `stylesheets` | <code>array</code> | no | — | External CSS stylesheet URIs. Web renderers SHOULD load these before rendering the form. Loaded in array order — later sheets take CSS precedence over earlier sheets. Renderers MUST NOT fail if a stylesheet cannot be loaded; they SHOULD warn and continue. Non-web renderers (PDF, native) MAY ignore stylesheets. Subject to host application security policy (CSP, CORS). |
-| `#/properties/targetDefinition` | `targetDefinition` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/TargetDefinition</code>; critical | Binding to the target Formspec Definition and compatible version range. The theme will only be applied to Definitions matching this target. If compatibleVersions is present and the Definition version falls outside the range, the processor SHOULD warn and MAY fall back to Tier 1 hints only (null theme). The processor MUST NOT fail on a version mismatch. |
+| `#/properties/targetDefinition` | `targetDefinition` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/TargetDefinition</code>; critical | OPTIONAL binding to the target Formspec Definition and compatible version range. PRESENT — the theme is Definition-scoped and will only be applied to Definitions matching this target; if compatibleVersions is present and the Definition version falls outside the range, the processor SHOULD warn and MAY fall back to Tier 1 hints only (null theme), and the processor MUST NOT fail on a version mismatch. ABSENT — the theme is bundle-scoped per the ADR 0150 §5.2 app envelope: it scopes to the bundle whose App Manifest theme slot names it, not to a single Definition, which is the only representable posture when definitions[] is empty (a pure non-form app). A bundle-scoped Theme is resolved through the App Manifest; a Definition-scoped processor handed a Theme with no targetDefinition MUST NOT infer a binding to the loaded Definition. A Theme carrying Definition-keyed content (items keys, pages[].regions[].key) SHOULD declare targetDefinition — those keys have no anchor without one. |
 | `#/properties/title` | `title` | <code>string</code> | no | — | Human-readable display name for the theme. |
 | `#/properties/tokenMeta` | `tokenMeta` | <code>object</code> | no | — | Metadata for custom tokens introduced by this theme. Follows the Token Registry category schema. Platform tokens MUST NOT be redefined here — the platform registry provides their metadata. See the Token Registry Specification for details. |
 | `#/properties/tokens` | `tokens` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Tokens</code>; critical | Design tokens — named values (colors, spacing, typography, borders) that promote visual consistency. Defined once here, referenced throughout the theme via '$token.<key>' syntax in style and widgetConfig string values. Token keys use dot-delimited category prefixes (e.g., 'color.primary', 'spacing.md'). Values MUST be strings or numbers. Token references MUST NOT be recursive. UI Graph Policy graph-visible widget token slots accept platform prefixes from token-registry.json plus custom x-* prefixes; broader Theme token-map prefixes such as typography, border, and elevation are metadata vocabulary unless a later graph policy gate promotes them. |
@@ -151,17 +152,47 @@ The generated table above is the canonical structural contract for top-level pro
 
 ### 2.2 Target Definition Binding
 
-The `targetDefinition` object binds this theme to a specific Definition.
+The `targetDefinition` object is OPTIONAL and sets the theme's **scope**.
 
 | Property | Type | Cardinality | Description |
 |---|---|---|---|
-| `url` | string (URI) | **1..1** (REQUIRED) | Canonical URL of the target Definition (`url` property from the Definition). |
+| `url` | string (URI) | **1..1** (REQUIRED when `targetDefinition` is present) | Canonical URL of the target Definition (`url` property from the Definition). |
 | `compatibleVersions` | string | **0..1** (OPTIONAL) | Semver range expression using node/npm-style range syntax (e.g., `">=1.0.0 <2.0.0"`) describing which Definition versions this theme supports. When absent, the theme is assumed compatible with any version. |
 
 When `compatibleVersions` is present, a processor SHOULD verify that the
 Definition's `version` satisfies the range before applying the theme.
 A processor MUST NOT fail if the range is unsatisfied; it SHOULD warn
 and MAY fall back to Tier 1 hints.
+
+#### 2.2.1 Definition scope and bundle scope
+
+A Theme with `targetDefinition` is **Definition-scoped**: it applies to the
+Definition at that URL, and the checks above are in force.
+
+A Theme without `targetDefinition` is **bundle-scoped**: it applies to the App
+Manifest bundle whose `theme` slot names it, not to any single Definition. This
+is the only representable posture for an app envelope whose `definitions[]` is
+empty — a pure non-form app (cross-stack ADR 0150 §5.2). The same posture lets a
+multi-Definition bundle carry one Theme instead of one per Definition, which is
+what the App Manifest's singular `theme` slot already assumes.
+
+Scope is resolution, not presentation. The cascade
+(`defaults` → `selectors` → `items`) evaluates identically under both scopes;
+what changes is who is entitled to apply the Theme:
+
+1. A processor that resolves Themes through an App Manifest applies a
+   bundle-scoped Theme to the artifacts of that bundle.
+2. A Definition-scoped processor — one handed a Definition and a Theme with no
+   bundle context — MUST NOT infer a binding from a Theme that declares none.
+   Absent `targetDefinition` is the author declining to name a Definition, not
+   a wildcard; treating it as one would apply an unrelated bundle's Theme to
+   whatever Definition happens to be loaded.
+
+**Which processing steps bundle scope suspends is stated once, in §7.2.**
+
+`items` keys and `pages[].regions[].key` address Definition item paths. A Theme
+that carries either SHOULD declare `targetDefinition`; without one those keys
+have no anchor, and under §7.2 nothing resolves them.
 
 ### 2.3 Platform Declaration
 
@@ -875,13 +906,28 @@ A processor loading a Theme Document MUST:
 
 ### 7.2 Target Definition Compatibility Check
 
-After loading, the processor SHOULD verify that the theme’s
-`targetDefinition.url` matches the Definition being rendered. If
+If `targetDefinition` is present, the processor SHOULD verify after loading that
+the theme’s `targetDefinition.url` matches the Definition being rendered. If
 `compatibleVersions` is present, the processor SHOULD verify that the
 Definition’s `version` satisfies the semver range.
 
 If the compatibility check fails, the processor MUST NOT fail. It
 SHOULD warn and MAY fall back to Tier 1 hints only (null theme).
+
+If `targetDefinition` is absent the theme is **bundle-scoped** (§2.2.1) and forms
+no (Definition, Theme) pair. **Every check that reads the Definition being
+rendered is then inapplicable, not failing:** this compatibility check, and the
+resolution of `items` keys and `pages[].regions[].key` against Definition item
+paths. None of them run, and none emits a diagnostic — a processor MUST NOT
+resolve Definition-keyed Theme content against whatever Definition happens to be
+loaded, which is §2.2.1 rule 2 restated at the layer that enforces it. Checks
+that do not read a Definition — schema validation, token-reference integrity,
+page/breakpoint integrity, widget/dataType compatibility on `selectors` — run
+unchanged under both scopes.
+
+Whether a Definition is paired in at all is the caller's decision, keyed on
+`targetDefinition.url`; the processor is nonetheless bound by this rule when a
+caller pairs one anyway.
 
 ### 7.3 Full Resolution Algorithm
 

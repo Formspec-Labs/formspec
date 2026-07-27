@@ -49,10 +49,10 @@ Additional terms:
 ## Bottom Line Up Front
 
 <!-- bluf:start file=experience-spec.bluf.md -->
-- This document defines the Experience Document -- an authored sidecar JSON artifact that names abstract task intent for a Formspec Definition: actors, tasks, units, applicability, and typed references to items, concepts, and actions.
-- A valid Experience Document requires `$formspecExperience`, `version`, and `targetDefinition`; at least one populated `actors`, `tasks`, or `units` array is RECOMMENDED, and `units` carries the substantive coverage payload.
+- This document defines the Experience Document -- an authored sidecar JSON artifact that names abstract task intent for a Formspec Definition or an app bundle: actors, tasks, units, applicability, and typed references to items, concepts, and actions.
+- A valid Experience Document requires `$formspecExperience` and `version`; `targetDefinition` is OPTIONAL and sets scope (present = Definition-scoped, absent = bundle-scoped per ADR 0150 §5.2 app envelope). A bundle-scoped document forms no (Definition, Experience) pair, so every step that reads a loaded Definition is inapplicable rather than failing — S10.1 states that once and is the only place it is stated. At least one populated `actors`, `tasks`, or `units` array is RECOMMENDED, and `units` carries the substantive coverage payload.
 - `unit.kind` is a closed, abstract, task-oriented registry -- `data-entry`, `review`, `confirmation`, `evidence-collection`, `attestation`, `error-resolution`, `assistance` -- chosen so units do not become layout containers.
-- Coverage is a static predicate: every Definition item that is required and not statically non-relevant MUST appear in at least one `unit.itemRefs`; Coverage-aware processors MUST report uncovered required items.
+- Coverage is a static predicate over Definition-scoped Experiences: every Definition item that is required and not statically non-relevant MUST appear in at least one `unit.itemRefs`; Coverage-aware processors MUST report uncovered required items. Bundle scope suspends it under S10.1.
 - Experience MUST NOT affect data capture, validation, or the processing model; this BLUF is governed by `schemas/experience.schema.json`, the canonical structural contract.
 <!-- bluf:end -->
 
@@ -62,7 +62,7 @@ Additional terms:
 
 ### 1.1 Purpose and Scope
 
-The Formspec Experience Specification defines an authored sidecar document that names **abstract task intent** for a Formspec Definition. An Experience Document groups typed references to Definition items, concepts, and actions under named **Units**, each describing what a user is trying to do -- not how a renderer should draw it.
+The Formspec Experience Specification defines an authored sidecar document that names **abstract task intent** for a Formspec Definition, or -- when it declares no `targetDefinition` (S2.1) -- for an app bundle. An Experience Document groups typed references to Definition items, concepts, and actions under named **Units**, each describing what a user is trying to do -- not how a renderer should draw it.
 
 Experience exists so that generators, reviewers, and tools can:
 
@@ -109,7 +109,7 @@ This specification defines two conformance levels:
 | **Experience Core** | MUST schema-validate; MUST resolve `targetDefinition` against a loaded Definition. |
 | **Experience Coverage-Aware** | All of Core, plus MUST compute and report the coverage predicate (S8) on every loaded (Definition, Experience) pair. |
 
-A conformant Core processor MAY ignore Experience entirely. A conformant Extended processor that loads Experience MUST validate it against the schema in S11 and MUST verify `targetDefinition.url` matches the loaded Definition's `url`.
+A conformant Core processor MAY ignore Experience entirely. A conformant Extended processor that loads Experience MUST validate it against the schema in S11 and MUST verify `targetDefinition.url` matches the loaded Definition's `url`. A bundle-scoped Experience (S2.1) forms no pair; **S10.1 is the single normative statement of which requirements that suspends.**
 
 #### 1.4.1 Conformance Prohibitions
 
@@ -117,7 +117,7 @@ A conformant processor MUST NOT:
 
 1. Use Experience to alter data capture, validation, requiredness, relevance, calculation, or any other Core semantics.
 2. Treat Experience as authoritative for layout, widget selection, or page composition.
-3. Substitute Experience for a missing Definition; an Experience without a resolvable target is invalid (S2).
+3. Substitute Experience for a missing Definition. An Experience that **declares** a `targetDefinition` the processor cannot resolve is invalid (S2). An Experience that declares none is bundle-scoped (S2.1), not unresolvable — and a processor MUST NOT bind it to whatever Definition is loaded (S10.1).
 4. Add `unit.kind` values outside the registry (S5.2). Custom semantics belong in `extensions`; they MUST NOT extend or override the closed `kind` registry.
 
 ## 2. Document Structure
@@ -128,7 +128,7 @@ An Experience Document is a JSON object at the top level with the following prop
 |----------|------|----------|-------------|
 | `$formspecExperience` | string (`const: "1.0"`) | REQUIRED | Document type marker; pins to spec major version. |
 | `version` | string (semver) | REQUIRED | Version of this Experience Document. |
-| `targetDefinition` | object | REQUIRED | `{ url, compatibleVersions }` binding to a Definition (same shape as Theme / Component / Locale). |
+| `targetDefinition` | object | OPTIONAL | `{ url, compatibleVersions }` binding to a Definition (same shape as Theme / Component / Locale). Present = Definition-scoped; absent = bundle-scoped (S2.1). |
 | `name` | string | OPTIONAL | Machine-readable short name. |
 | `title` | string | OPTIONAL | Human-readable display name. |
 | `description` | string | OPTIONAL | Free-form description of audience and purpose. |
@@ -167,6 +167,36 @@ At least one of `actors`, `tasks`, or `units` SHOULD be populated; a document wi
   ]
 }
 ```
+
+### 2.1 Document Scope
+
+`targetDefinition` sets the document's **scope**, and its absence is a declaration, not an omission.
+
+| `targetDefinition` | Scope | Meaning |
+|---|---|---|
+| present | **Definition-scoped** | The Experience names task intent for the Definition at `targetDefinition.url`. Every S10 step applies. |
+| absent | **Bundle-scoped** | The Experience names task intent for the App Manifest bundle that lists it, across whatever Definitions the bundle holds. |
+
+Bundle scope is the only representable posture for an app envelope whose
+`definitions[]` is empty — a pure non-form app (cross-stack ADR 0150 §5.2). A
+bundle-scoped Experience is still a full Experience Document: actors, tasks,
+units, applicability, and `unit.kind` semantics are unchanged. What changes is
+what a processor may resolve it against:
+
+1. A processor with App Manifest context resolves a bundle-scoped Experience
+   against the bundle.
+2. A processor handed a Definition and an Experience with no bundle context MUST
+   NOT infer a binding. Absent `targetDefinition` is the author declining to name
+   a Definition, not a wildcard.
+
+**Which processing steps that suspends is stated once, in S10.1** — a
+bundle-scoped Experience forms no (Definition, Experience) pair, so every step
+that reads a loaded Definition is inapplicable rather than failing. This section
+sets the scope; S10.1 says what a processor does with it.
+
+`unit.itemRefs[].path` addresses Definition item paths (S6.1). A bundle-scoped
+Experience carrying `itemRefs` SHOULD declare `targetDefinition` — those paths
+have no anchor without one, and under S10.1 nothing resolves them.
 
 ## 3. Actors
 
@@ -327,7 +357,7 @@ Coverage is the **load-bearing static predicate** that protects against the §9 
 
 ### 8.1 The Coverage Predicate
 
-Given a Definition `D` and an Experience `E` whose `targetDefinition.url` matches `D.url`:
+Given a Definition `D` and an Experience `E` whose `targetDefinition.url` matches `D.url` — a bundle-scoped Experience (S2.1) names no `D`, so this predicate does not run against it (S10.1):
 
 Derive the set of target paths from `D.binds`, not from properties embedded on Items. For every top-level Bind `b` in `D.binds` and the Definition field Item `i` resolved by `b.path`, where:
 
@@ -386,7 +416,7 @@ Experience has a minimal processing model. The four-phase Core cycle (Core S2.4)
 An **Experience Core** processor MUST:
 
 1. **Load.** Parse the Experience Document as JSON and validate it against the schema in S11.
-2. **Resolve target.** Read `targetDefinition.url` and verify it matches the loaded Definition's `url`. If `compatibleVersions` is present, the loaded Definition's `version` MUST satisfy the semver range.
+2. **Resolve target.** Read `targetDefinition.url` and verify it matches the loaded Definition's `url`; if `compatibleVersions` is present, the loaded Definition's `version` MUST satisfy the semver range.
 3. **Verify referential integrity.** Every `actorRef`, `task.actorRefs[]`, `applicability.actorRefs[]`, `unit.actorRef`, and `unit.taskRefs[]` MUST resolve within the document. Unresolvable references MUST produce an `EXP-REFERENTIAL-INTEGRITY` finding.
 4. **Verify item-ref resolvability.** Every `ItemRef.path` MUST resolve to an Item in the loaded Definition using Core FieldRef path syntax. Unresolvable paths MUST produce an `EXP-ITEM-REF-UNRESOLVED` finding.
 
@@ -394,6 +424,35 @@ An **Experience Coverage-Aware** processor MUST additionally:
 
 5. **Compute coverage.** Apply the predicate in S8.1 over the loaded Definition's top-level `binds[]` and the Experience's `units[].itemRefs[]`.
 6. **Emit coverage findings.** For every uncovered required visible item, emit an `EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` finding (S8.2).
+
+### 10.1 Pairing rule — what bundle scope skips
+
+**This is the normative statement of bundle-scope processing. Every other mention of
+bundle scope in this specification points here and adds nothing.**
+
+Steps 2 and 4–6 above are defined over a **(Definition, Experience) pair**. A
+bundle-scoped Experience (S2.1) declares no `targetDefinition`, so it **forms no
+pair** — there is no Definition it named, and a processor MUST NOT substitute one.
+
+| Step | Reads a loaded Definition? | Bundle-scoped Experience |
+|---|---|---|
+| 1 Load / schema-validate | no | **runs** |
+| 2 Resolve target | yes | **does not run** |
+| 3 Referential integrity | no (document-internal) | **runs** |
+| 4 Item-ref resolvability | yes | **does not run** |
+| 5–6 Coverage | yes | **does not run** |
+
+A step that does not run is **inapplicable, not failing**: it emits no finding of
+any kind — not `EXP-ITEM-REF-UNRESOLVED`, not
+`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM`, and no substitute diagnostic reporting the
+absent target. A processor MUST NOT reach the skipped steps by pairing the document
+with whatever Definition happens to be loaded; that is the S2.1 rule 2 prohibition
+restated at the layer that enforces it.
+
+Whether a Definition is paired in at all is the *caller's* decision, keyed on
+`targetDefinition.url`; the processor is nonetheless bound by this rule when a
+caller pairs one anyway, because a wrong pair MUST NOT become findings against the
+author.
 
 There is no Experience evaluation pipeline. The document is metadata; processors read it, validate it, and consult it for generation, review, and coverage. They do not "evaluate" it in the Core sense.
 
@@ -419,12 +478,14 @@ A conformant **Experience Core** processor MUST:
 5. Resolve every `ItemRef.path` against the loaded Definition using Core FieldRef path syntax.
 6. Emit findings (`EXP-REFERENTIAL-INTEGRITY`, `EXP-ITEM-REF-UNRESOLVED`) for unresolved references; processors MUST NOT silently drop unresolved references.
 
+Requirements 2, 3, and 5 are pair-scoped. On a bundle-scoped document (S2.1) they are suspended per S10.1, which is the only place that suspension is defined; requirements 1, 4, and 6's referential half hold under both scopes.
+
 #### 11.1.2 Experience Coverage-Aware
 
 A conformant **Experience Coverage-Aware** processor MUST:
 
 1. Satisfy all Experience Core requirements.
-2. Compute the coverage predicate of S8.1 for every loaded (Definition, Experience) pair.
+2. Compute the coverage predicate of S8.1 for every loaded (Definition, Experience) pair. A bundle-scoped Experience (S2.1) is not such a pair — see S10.1.
 3. Emit an `EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` finding for every uncovered required visible item.
 4. NOT block validation, submission, or any Core operation on the basis of coverage findings. Coverage is reportable, not blocking.
 
@@ -441,7 +502,7 @@ A conformant **Experience Coverage-Aware** processor MUST:
 | `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
 | `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3. |
 | `#/properties/name` | `name` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9_\-]*&#36;</code> | — |
-| `#/properties/targetDefinition` | `targetDefinition` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/TargetDefinition</code>; critical | Binding to the target Definition document. Same shape as Theme / Component / Locale. |
+| `#/properties/targetDefinition` | `targetDefinition` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/TargetDefinition</code>; critical | OPTIONAL binding to the target Definition document. Same shape as Theme / Component / Locale. PRESENT — the Experience is Definition-scoped: processors resolve it against the loaded Definition, verify the URL match and compatibleVersions range, and compute coverage against that Definition. ABSENT — the Experience is bundle-scoped per the ADR 0150 §5.2 app envelope: it names task intent for the bundle whose App Manifest lists it, not for a single Definition, which is the only representable posture when definitions[] is empty (a pure non-form app). A bundle-scoped Experience forms no (Definition, Experience) pair, so every processing step that reads a loaded Definition — target resolution, item-ref resolvability, and coverage — is inapplicable rather than failing and emits no finding (experience-spec S10.1, the single normative statement); a processor MUST NOT infer a binding to whatever Definition is loaded. An Experience carrying Definition-keyed content (units[].itemRefs) SHOULD declare targetDefinition — those paths have no anchor without one. |
 | `#/properties/tasks` | `tasks` | <code>array</code> | no | — | — |
 | `#/properties/title` | `title` | <code>string</code> | no | — | — |
 | `#/properties/units` | `units` | <code>array</code> | no | critical | Substantive Experience payload. Each Unit organizes typed item, concept, and action references under abstract task intent. |

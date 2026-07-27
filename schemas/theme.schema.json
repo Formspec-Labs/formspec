@@ -2,12 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/theme/1.0",
   "title": "Formspec Theme Document",
-  "description": "A Formspec Theme document — a sidecar JSON file that controls the visual presentation of a Formspec Definition without modifying it. A Theme binds to a Definition by URL, overrides inline Tier 1 presentation hints through a three-level cascade (defaults → selectors → item overrides), assigns widgets with typed configuration and fallback chains, defines page layout on a 12-column grid, and provides design tokens for visual consistency. Multiple Theme documents MAY target the same Definition, enabling platform-specific rendering (web, mobile, PDF, kiosk). A Theme MUST NOT affect data collection, validation, or behavioral semantics — it controls only how items are displayed.",
+  "description": "A Formspec Theme document — a sidecar JSON file that controls visual presentation without modifying the artifacts it presents. A Theme overrides inline Tier 1 presentation hints through a three-level cascade (defaults → selectors → item overrides), assigns widgets with typed configuration and fallback chains, defines page layout on a 12-column grid, and provides design tokens for visual consistency. Scope is set by targetDefinition: present binds the Theme to one Definition by URL (multiple Theme documents MAY target the same Definition, enabling platform-specific rendering — web, mobile, PDF, kiosk); absent makes the Theme bundle-scoped, applying to the App Manifest bundle whose theme slot names it, which is the only representable posture for an app envelope with an empty definitions[] (ADR 0150 §5.2). A Theme MUST NOT affect data collection, validation, or behavioral semantics — it controls only how items are displayed.",
   "type": "object",
   "required": [
     "$formspecTheme",
-    "version",
-    "targetDefinition"
+    "version"
   ],
   "patternProperties": {
     "^x-": true
@@ -84,7 +83,7 @@
     },
     "targetDefinition": {
       "$ref": "#/$defs/TargetDefinition",
-      "description": "Binding to the target Formspec Definition and compatible version range. The theme will only be applied to Definitions matching this target. If compatibleVersions is present and the Definition version falls outside the range, the processor SHOULD warn and MAY fall back to Tier 1 hints only (null theme). The processor MUST NOT fail on a version mismatch.",
+      "description": "OPTIONAL binding to the target Formspec Definition and compatible version range. PRESENT — the theme is Definition-scoped and will only be applied to Definitions matching this target; if compatibleVersions is present and the Definition version falls outside the range, the processor SHOULD warn and MAY fall back to Tier 1 hints only (null theme), and the processor MUST NOT fail on a version mismatch. ABSENT — the theme is bundle-scoped per the ADR 0150 §5.2 app envelope: it scopes to the bundle whose App Manifest theme slot names it, not to a single Definition, which is the only representable posture when definitions[] is empty (a pure non-form app). A bundle-scoped Theme is resolved through the App Manifest; a Definition-scoped processor handed a Theme with no targetDefinition MUST NOT infer a binding to the loaded Definition. A Theme carrying Definition-keyed content (items keys, pages[].regions[].key) SHOULD declare targetDefinition — those keys have no anchor without one.",
       "examples": [
         {
           "url": "https://agency.gov/forms/budget",
@@ -96,7 +95,7 @@
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Declares which form definition this theme can be applied to. Prevents accidental application to unrelated definitions."
+        "intent": "Declares which form definition this theme can be applied to, or — omitted — that the theme scopes to the whole bundle. Prevents accidental application to unrelated definitions."
       }
     },
     "platform": {

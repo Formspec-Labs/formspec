@@ -49,12 +49,27 @@ class TestExperienceSchemaValid:
         errors = list(validator.iter_errors(doc))
         assert errors == [], f"Expected no errors, got: {[e.message for e in errors]}"
 
+    def test_bundle_scoped_experience_passes(self, validator):
+        """targetDefinition is OPTIONAL — absent means bundle-scoped (spec S2.1).
+
+        Definition-less app bundles are the ADR 0150 §5.2 app envelope's empty
+        definitions[] case; requiring targetDefinition made every such bundle
+        unrepresentable. Cross-stack ADR 0160 §4.2 names this the hard dependency.
+        """
+        doc = _load("valid-bundle-scoped.json")
+        errors = list(validator.iter_errors(doc))
+        assert errors == [], f"Expected no errors, got: {[e.message for e in errors]}"
+
+    def test_target_definition_absent_from_required(self, schema):
+        assert schema["required"] == ["$formspecExperience", "version"]
+
 
 class TestExperienceSchemaInvalid:
-    def test_missing_target_definition_rejected(self, validator):
-        doc = _load("invalid-missing-target.json")
+    def test_declared_target_definition_still_requires_url(self, validator):
+        """Optional does not mean unconstrained: a declared binding must name a URL."""
+        doc = {**_load("valid-minimal.json"), "targetDefinition": {"compatibleVersions": ">=1.0.0"}}
         errors = list(validator.iter_errors(doc))
-        assert any("targetDefinition" in e.message for e in errors), errors
+        assert any("url" in e.message for e in errors), errors
 
     def test_bad_unit_kind_rejected(self, validator):
         doc = _load("invalid-bad-unit-kind.json")
