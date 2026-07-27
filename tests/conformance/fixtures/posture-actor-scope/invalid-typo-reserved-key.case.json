@@ -1,0 +1,39 @@
+{
+  "id": "invalid-typo-reserved-key",
+  "description": "`x-formspec-actorscope` — one missing hyphen. Without a closed `x-formspec-` sub-namespace this typo would ride the open `^x-` seam as an unvalidated passthrough key: schema-valid, parsed by nobody, enforcing nothing, while the author believes the deployment is protected.",
+  "adrRow": "§5.1 unknown `x-formspec-*` key in `extensions` → `posture-config-invalid`; the gate scans the reserved sub-namespace, and §9's schema rev closes the same key at the schema.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-typo-reserved-key.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actorscope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "surface.routeClass",
+            "writableBy": {
+              "kinds": [
+                "human"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid",
+  "note": "Both layers refuse, from opposite directions, and the pair is the design record. The schema closes the reserved `x-formspec-` sub-namespace so the typo cannot ride the open `^x-` seam; the branch-open gate scans the same sub-namespace (ADR 0152 §5.1) rather than looking up two exact keys, so a reserved key it cannot map fails closed as `posture-config-invalid` instead of falling back to binary admission. Scanning is what makes the gate see a misspelling of a key it never reads — the earlier exact-key lookup could not, which is why this row used to diverge."
+}

@@ -314,7 +314,7 @@
         "authorizationBoundary": {
           "type": "string",
           "enum": ["host", "formspec-session", "module"],
-          "description": "Coarse boundary that owns admission before this source is exposed. Fine-grained actor, route, operation, widget, or field authorization remains forbidden until ADR 0152."
+          "description": "Coarse boundary that owns admission before this source is exposed. Fine-grained actor, route, operation, widget, or field authorization stays forbidden here by decision: runtime data-access authorization is server-side engine territory (ADR 0117, Zanzibar-lineage behind AuthorizationPort), and ADR 0152 covers authoring-time write authority only."
         },
         "failureMode": {
           "type": "string",

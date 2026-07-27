@@ -1,0 +1,37 @@
+{
+  "id": "valid-freeze-empty-selector-arrays",
+  "description": "The second freeze spelling: `{kinds: [], ids: []}` rather than `{}`. Both arrays present and empty selects no actor, so the handle is frozen exactly as `writableBy: {}` freezes it — the union of two empty sets is empty.",
+  "adrRow": "§5.1 empty selector (`writableBy: {}`, or every listed array empty) → valid freeze.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/valid-freeze-empty-selector-arrays.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "surface.routeClass",
+            "writableBy": {
+              "kinds": [],
+              "ids": []
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "admit"
+}

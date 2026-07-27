@@ -1,0 +1,35 @@
+{
+  "id": "invalid-array-payload",
+  "description": "A bare `protects`-style array with no version pin. Arrays are non-canonical for this hook and fail closed.",
+  "adrRow": "§5.1 every other non-object payload rejects as above.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-array-payload.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": [
+        {
+          "vocabulary": "surface.routeClass",
+          "writableBy": {
+            "kinds": [
+              "human"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid"
+}

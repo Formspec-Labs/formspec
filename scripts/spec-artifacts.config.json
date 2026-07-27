@@ -604,7 +604,7 @@
         "Source ids MUST be unique and their prefixes MUST match source kind.",
         "Live delivery requires subscribe cache mode; draft delivery requires a Definition-response source with draft cache; cache mode none forbids staleAfter.",
         "Provenance kind MUST match source kind, and surface, route, or slot availability without surfaceRef is invalid.",
-        "Fine-grained authorization fields remain rejected until ADR 0152 supplies the authorization contract."
+        "Fine-grained authorization fields remain rejected permanently, not pending a contract: runtime data-access authorization is ADR 0117 engine territory, and ADR 0152 declines the axis."
       ]
     },
     {

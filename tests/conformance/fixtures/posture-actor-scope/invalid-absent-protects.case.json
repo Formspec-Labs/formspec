@@ -1,0 +1,28 @@
+{
+  "id": "invalid-absent-protects",
+  "description": "A v1 document without `protects` is malformed — deliberately distinct from `protects: []`, which is a valid no-op.",
+  "adrRow": "§5.1 `protects` key absent → `posture-config-invalid` (malformed v1 document).",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-absent-protects.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0"
+      }
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid"
+}

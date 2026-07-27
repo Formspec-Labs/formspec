@@ -1,0 +1,29 @@
+{
+  "id": "invalid-non-extension-key",
+  "description": "An extensions key without the `x-` prefix. The namespace is open to extensions, not to arbitrary posture fields the closed root deliberately refuses.",
+  "adrRow": "§9 schema rev — the `^x-` namespace is the seam; `additionalProperties: false` still governs the posture root.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-non-extension-key.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "telemetry": {
+        "enabled": true
+      }
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "binary-fallback",
+  "note": "The two verdicts diverge by design: this is a malformed posture DOCUMENT, not a malformed actor scope. Strict posture handling (§5.3) refuses it at document validation, upstream of branch-open; the branch-open gate reads no actor-scope key and would fall back to binary admission."
+}

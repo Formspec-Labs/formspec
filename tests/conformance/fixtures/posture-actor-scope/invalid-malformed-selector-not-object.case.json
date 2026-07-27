@@ -1,0 +1,36 @@
+{
+  "id": "invalid-malformed-selector-not-object",
+  "description": "A bare array where a selector belongs. `writableBy` is an object with `kinds` / `ids`; shorthand is not admitted.",
+  "adrRow": "§5.1 malformed selector → `posture-config-invalid`.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-malformed-selector-not-object.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "surface.routeClass",
+            "writableBy": [
+              "human"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid"
+}

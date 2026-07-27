@@ -1,0 +1,38 @@
+{
+  "id": "invalid-unknown-vocabulary-handle",
+  "description": "`surface.sensitivity` is a §8 re-open candidate, not a registry v1 handle. The registry is closed; growing it is an ADR amendment, not a schema edit.",
+  "adrRow": "§4.2 an evaluator encountering an unknown handle MUST fail closed.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-unknown-vocabulary-handle.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "surface.sensitivity",
+            "writableBy": {
+              "kinds": [
+                "human"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid"
+}

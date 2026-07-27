@@ -1,0 +1,27 @@
+{
+  "id": "invalid-empty-object-payload",
+  "description": "Key present, nothing else. Key presence alone is declared intent whose version cannot be read, and undeclarable intent fails closed.",
+  "adrRow": "§5.1 `{}` payload → `posture-config-invalid`.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-empty-object-payload.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {}
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid",
+  "note": "Schema rejects it too (`$actorScope` and `protects` are both required), so both layers agree. Deployments meaning 'no actor scope' omit the key."
+}

@@ -1,0 +1,23 @@
+{
+  "id": "valid-absent-hook-binary-fallback",
+  "description": "No `extensions` object at all — the pre-ADR-0152 posture document, unchanged. The new property is optional and additive.",
+  "adrRow": "§5.1 hook absent → binary `posture.allowedActors[]` admission only, unchanged.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/valid-absent-hook-binary-fallback.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ]
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "binary-fallback"
+}

@@ -1,0 +1,45 @@
+{
+  "id": "invalid-values-on-operation-handle",
+  "description": "`theme.assignment` is an operation-kind handle — it protects an act, not a closed value set, so there is nothing for `values` to key on.",
+  "adrRow": "§5.1 `values` on an operation handle (§4.2) → `posture-config-invalid`.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-values-on-operation-handle.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "theme.assignment",
+            "writableBy": {
+              "kinds": [
+                "human"
+              ]
+            },
+            "values": {
+              "intake": {
+                "kinds": [
+                  "human"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid"
+}

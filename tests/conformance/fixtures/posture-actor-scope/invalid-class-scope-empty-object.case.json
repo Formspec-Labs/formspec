@@ -1,0 +1,27 @@
+{
+  "id": "invalid-class-scope-empty-object",
+  "description": "`x-formspec-class-scope: {}` — key present, nothing declared. Both layers refuse it: key presence alone is declared intent whose content cannot be read, and undeclarable intent fails closed.",
+  "adrRow": "§5.1 `x-formspec-class-scope` … `null` ≡ absent; `{}` → `posture-config-invalid` at both layers (schema-invalid, gate-refused).",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-class-scope-empty-object.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-class-scope": {}
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid",
+  "note": "Both layers agree, and the agreement is the design record. Evaluation used to read `{}` as not-configured (a key-counting presence test), so branch-open never fired `class-scope-deferred` and fell back to binary `allowedActors[]` admission — the silent skip. ADR 0152 §5.1 replaces that read: `{}` is `posture-config-invalid` at the gate as well as at the schema. Its sibling `valid-class-scope-null-explicit-no-config` draws the other half of the line — `null` is declared absence, admitted by both layers, because there is nothing to enforce and nothing that can fail open. Deployments meaning 'no class scope' omit the key or declare null."
+}

@@ -1,0 +1,33 @@
+{
+  "id": "valid-non-urn-id-not-schema-pinned",
+  "description": "A selector id outside the `urn:formspec:actor:` space. It can never match an actor, but the schema does not refuse it.",
+  "adrRow": "§4.1 `writableBy.ids` — exact actor URNs. The URN shape is authoring convention here, not a schema constraint.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/valid-non-urn-id-not-schema-pinned.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": ["urn:formspec:sig-method:ed25519-cose-sign1@1"],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "surface.routeClass",
+            "writableBy": { "ids": ["tenant-admin"] }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "admit",
+  "note": "Deliberate: `allowedActors[]` pins `^urn:formspec:actor:.+` but `writableBy.ids` does not, so schema validity and studio-core's `parseSelector` (non-empty string only) return the same verdict for the same document. Pinning the pattern here is a compatible tightening ONLY if studio-core tightens in the same change; otherwise CI lint and branch-open disagree about one document, which is exactly the drift §5.2's determinism claim forbids."
+}

@@ -1,0 +1,38 @@
+{
+  "id": "valid-minimal-declaration",
+  "description": "Version pin plus one route-class rule — the §4.1 canonical shape at its smallest enforceable size.",
+  "adrRow": "§5.1 valid v1 declaration → branch opens, parsed rules attach to the branch context.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/valid-minimal-declaration.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "surface.routeClass",
+            "writableBy": {
+              "kinds": [
+                "human"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "admit"
+}

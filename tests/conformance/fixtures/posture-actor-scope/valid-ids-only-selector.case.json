@@ -1,0 +1,39 @@
+{
+  "id": "valid-ids-only-selector",
+  "description": "A selector may list ids without kinds. Match is the union of `kinds` and `ids`, so either half alone is a complete selector.",
+  "adrRow": "§4.1 `writableBy` — `kinds` and/or `ids`; match is the union.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/valid-ids-only-selector.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "theme.declaration",
+            "writableBy": {
+              "ids": [
+                "urn:formspec:actor:human:tenant-admin:acme"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "admit",
+  "note": "`theme.declaration` is the §4.2 pending-op row: declaring it is legal, and nothing enforces it until `declareTheme` lands."
+}

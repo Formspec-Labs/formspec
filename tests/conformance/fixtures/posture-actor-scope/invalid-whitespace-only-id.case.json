@@ -1,0 +1,38 @@
+{
+  "id": "invalid-whitespace-only-id",
+  "description": "An `ids` entry that is non-empty but all whitespace. `minLength: 1` alone admits it; studio-core's `parseSelector` refuses it (`id.trim() === ''`). The `\\S` pattern makes both layers return the same verdict for the same document.",
+  "adrRow": "§4.1 `ids` — exact actor URNs, non-blank strings; the schema pins `\\S` so schema validity and evaluation agree.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-whitespace-only-id.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "surface.routeClass",
+            "writableBy": {
+              "ids": [
+                "   "
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid"
+}

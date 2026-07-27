@@ -1,0 +1,28 @@
+{
+  "id": "valid-unknown-extension-key-passthrough",
+  "description": "An unrelated `x-`-prefixed key rides through unvalidated. The extension namespace is the open seam; only `x-formspec-actor-scope` is constrained.",
+  "adrRow": "§9 schema rev — the `^x-` namespace admits other extensions unconstrained (ADR 0056 open-seam rule).",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/valid-unknown-extension-key-passthrough.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-acme-deployment-notes": {
+        "ticket": "OPS-1"
+      }
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "binary-fallback"
+}

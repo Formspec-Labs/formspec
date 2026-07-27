@@ -1,0 +1,47 @@
+{
+  "id": "duplicate-vocabulary-handles",
+  "description": "Two entries protect `surface.routeClass`. There are no merge semantics, so evaluation rejects — but JSON Schema cannot express uniqueness over a keyed field of an array item.",
+  "adrRow": "§5.1 duplicate `vocabulary` entries in `protects[]` → `posture-config-invalid`. No merge semantics.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/duplicate-vocabulary-handles.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "surface.routeClass",
+            "writableBy": {
+              "kinds": [
+                "human"
+              ]
+            }
+          },
+          {
+            "vocabulary": "surface.routeClass",
+            "writableBy": {
+              "kinds": [
+                "service"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "posture-config-invalid",
+  "note": "NOT schema-expressible. This fixture is the machine-readable record of the gap: schema admits, evaluation refuses. If a future schema rev closes it, `expectSchemaValid` flips and this note is deleted."
+}

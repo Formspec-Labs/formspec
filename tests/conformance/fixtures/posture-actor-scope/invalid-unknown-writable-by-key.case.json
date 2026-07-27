@@ -1,0 +1,41 @@
+{
+  "id": "invalid-unknown-writable-by-key",
+  "description": "`except` is not part of the selector vocabulary. §4.3 refuses pattern matching and context conditions outright, so an unknown selector key is a malformation, not an extension point.",
+  "adrRow": "§5.1 unknown sibling keys — beside `$actorScope`/`protects`, or inside `writableBy` — are malformed.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-unknown-writable-by-key.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "surface.routeClass",
+            "writableBy": {
+              "kinds": [
+                "human"
+              ],
+              "except": [
+                "urn:formspec:actor:human:temp"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid"
+}

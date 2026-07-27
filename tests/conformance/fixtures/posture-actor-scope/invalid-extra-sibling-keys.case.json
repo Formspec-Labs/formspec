@@ -1,0 +1,30 @@
+{
+  "id": "invalid-extra-sibling-keys",
+  "description": "An unrecognized sibling of `$actorScope` / `protects` is malformed, not ignorable — the reader cannot tell whether the key carried authority it is silently dropping.",
+  "adrRow": "§5.1 unknown sibling keys are malformed; the §9 schema rev closes them with `additionalProperties: false`.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/invalid-extra-sibling-keys.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [],
+        "enforcement": "advisory"
+      }
+    }
+  },
+  "expectSchemaValid": false,
+  "expectedAdmission": "posture-config-invalid"
+}

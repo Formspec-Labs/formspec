@@ -383,8 +383,12 @@ Lint sidecar, `formspec-server` `posture_declaration_json`, and studio
 References/Ontology in the publish payload; standalone Experience/App Manifest
 documents require CI lint on the full bundle. Branch-open checks the opening
 actor (and session index when wired); `allowedModules[]` is not evaluated at
-branch-open. Non-empty `posture.extensions.x-formspec-actor-scope` or
-`x-formspec-class-scope` fail closed at branch-open until ADR 0152 evaluation.
+branch-open. `posture.extensions.x-formspec-actor-scope` is **validated** at
+branch-open per ADR 0152 §5.1 — a valid v1 declaration opens the branch with
+its parsed rules attached and enforces them at op-admission (§5.2,
+`vocabulary-protected`); an unenforceable one refuses with
+`posture-config-invalid`. `x-formspec-class-scope` still fails closed
+(`class-scope-deferred`) on any non-empty payload, pending ADR 0152 pass 2.
 Static E609 scans embedded URNs at lint/publish time — not duplicated on
 changeset close.
 

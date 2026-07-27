@@ -1,0 +1,26 @@
+{
+  "id": "valid-null-payload-binary-fallback",
+  "description": "`null` is the JSON idiom for explicit no-config. Nothing can fail open, so it degrades to binary `allowedActors[]` admission rather than rejecting.",
+  "adrRow": "§5.1 `null` payload → treated as absent (binary fallback), deliberately.",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/valid-null-payload-binary-fallback.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": null
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "binary-fallback"
+}

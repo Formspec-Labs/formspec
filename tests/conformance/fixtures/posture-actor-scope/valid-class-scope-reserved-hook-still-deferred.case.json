@@ -1,0 +1,31 @@
+{
+  "id": "valid-class-scope-reserved-hook-still-deferred",
+  "description": "The reserved per-widget-class hook is declared but shape-open: the schema constrains presence only (non-empty object), leaving the inner shape to pass 2. Branch-open still refuses any non-empty payload.",
+  "adrRow": "§5.1 `x-formspec-class-scope` non-empty → still rejects `class-scope-deferred`, unchanged (§8).",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/valid-class-scope-reserved-hook-still-deferred.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-class-scope": {
+        "restrict": [
+          "SignaturePad"
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "class-scope-deferred",
+  "note": "Schema-valid by design: pinning the inner shape now would freeze pass 2 before it has a consumer, so the schema constrains presence only. The refusal is evaluation-side (`class-scope-deferred`). The sibling `invalid-class-scope-empty-object` covers the one payload the schema does reject."
+}

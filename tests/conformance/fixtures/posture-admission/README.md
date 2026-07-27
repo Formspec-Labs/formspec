@@ -16,4 +16,6 @@ Maps each case file to the gate that consumes it. Branch-open admission (studio)
 
 **TS matcher corpus (vitest):** `@formspec-org/app-graph` `posture-admission-conformance.test.ts` — module/actor matchers vs `expectedCodes` / `forbiddenCodes` on this directory.
 
-**Studio-only (vitest):** `actor-scope-deferred`, `class-scope-deferred`, `session-not-indexed`, `actor-required` — `assertBranchOpenPostureAdmission` in `@formspec-org/studio-core`.
+**Studio-only (vitest):** `class-scope-deferred`, `session-not-indexed`, `actor-required` — `assertBranchOpenPostureAdmission` in `@formspec-org/studio-core`.
+
+**Fine-grained actor scope (ADR 0152):** `posture.extensions.x-formspec-actor-scope` declaration validity and the §5.1 fail-closed matrix are the sibling corpus, [`../posture-actor-scope/`](../posture-actor-scope/). It replaces the blanket `actor-scope-deferred` rejection this directory's gate used to carry.

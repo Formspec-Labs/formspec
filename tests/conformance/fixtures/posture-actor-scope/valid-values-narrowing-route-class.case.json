@@ -1,0 +1,45 @@
+{
+  "id": "valid-values-narrowing-route-class",
+  "description": "Value grain on the one vocabulary-kind handle: any admitted human classifies routes, a named actor governs `intake` (the only class that unlocks tenant theming).",
+  "adrRow": "§4.1 `values` — legal on handles backed by a closed vocabulary (§4.2).",
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.org/posture/adr-0152/valid-values-narrowing-route-class.json",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": true
+    },
+    "allowedActors": [
+      "urn:formspec:actor:human:tenant-admin:acme",
+      "urn:formspec:actor:ai-agent:wireframes"
+    ],
+    "extensions": {
+      "x-formspec-actor-scope": {
+        "$actorScope": "1.0",
+        "protects": [
+          {
+            "vocabulary": "surface.routeClass",
+            "writableBy": {
+              "kinds": [
+                "human"
+              ]
+            },
+            "values": {
+              "intake": {
+                "ids": [
+                  "urn:formspec:actor:human:tenant-admin:acme"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedAdmission": "admit"
+}

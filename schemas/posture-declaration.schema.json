@@ -126,6 +126,152 @@
       },
       "description": "Deployment allowlist of authoring-identity URNs admitted by this posture. Per ADR 0150 §5.4: actor admission is binary (allowed / not), not provenance-pinned the way modules are — a flat URN list, not a ModuleRef shape. A deployment refuses authoring acts from actors whose URN isn't in the allowlist.",
       "x-lm": { "critical": true, "intent": "Binary actor admission — URN present in list admits the act; URN absent refuses it. URN pattern enforces `urn:formspec:actor:` prefix; product nuance (kind, channel) rides URN-encoded in the id segment." }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "description": "Extension key grammar. (a) every key is an `x-` identifier in lower-kebab; (b) the `x-formspec-` sub-namespace is RESERVED and closed to the two hooks ADR 0150 §5.4 minted — a near-miss like `x-formspec-actorscope` is a typo that would otherwise ride the open seam through unvalidated and unenforced, so it is a schema error, not a passthrough key.",
+        "allOf": [
+          {
+            "title": "`x-` identifier grammar (lower-kebab segments)",
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          },
+          {
+            "title": "Reserved `x-formspec-` sub-namespace is closed (ADR 0152 §4)",
+            "if": { "pattern": "^x-formspec-" },
+            "then": { "enum": ["x-formspec-actor-scope", "x-formspec-class-scope"] }
+          }
+        ]
+      },
+      "description": "Extension namespace for this posture declaration — the sole open seam on an otherwise closed document (ADR 0056). Every key MUST be an `x-`-prefixed lower-kebab identifier. The `x-formspec-` sub-namespace is reserved and closed to `x-formspec-actor-scope` (constrained here per ADR 0152 §4) and `x-formspec-class-scope` (shape-open, presence-constrained per ADR 0152 §8 — see its own entry). Every other `x-` key rides through unvalidated.",
+      "properties": {
+        "x-formspec-actor-scope": { "$ref": "#/$defs/ActorScope" },
+        "x-formspec-class-scope": { "$ref": "#/$defs/ClassScope" }
+      },
+      "x-lm": { "critical": true, "intent": "Open seam on a closed schema, with a CLOSED x-formspec- sub-namespace: a misspelled reserved key is a schema error, not an unvalidated passthrough. Unknown non-formspec x- keys are admitted unconstrained and are NOT a licence to fail open at evaluation." },
+      "examples": [
+        {
+          "x-formspec-actor-scope": {
+            "$actorScope": "1.0",
+            "protects": [{ "vocabulary": "surface.routeClass", "writableBy": { "kinds": ["human"] } }]
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "ClassScope": {
+      "title": "Per-widget-class write scope — RESERVED, deferred to ADR 0152 pass 2",
+      "type": ["object", "null"],
+      "minProperties": 1,
+      "description": "Per ADR 0152 §8: zero consumers, so the inner shape stays UNCONSTRAINED — pass 2 owns it, and pinning it now would freeze a shape no consumer has asked for. Only presence is constrained. `null` is the JSON idiom for explicit no-config and is VALID — identical to absence, the same idiom `x-formspec-actor-scope` uses (§5.1), and the branch-open gate already reads it as not-configured. `{}` is invalid: `minProperties` bites on the object branch only, and `{}` is neither an enforceable declaration nor an absence — studio-core's presence test reads it as not-configured, so an author who meant to declare something would be silently skipped. Any non-empty payload validates here and is refused at branch-open with `class-scope-deferred` until pass 2 lands. Deployments meaning 'no class scope' omit the key or write `null`.",
+      "x-lm": { "critical": true, "intent": "Presence-only constraint over an object-or-null type. `null` ≡ absent (explicit no-config, matching actor-scope). `{}` is a schema error — it silently reads as not-configured downstream. Any non-empty object validates here and is refused at branch-open until pass 2." },
+      "examples": [{ "restrict": ["SignaturePad"] }, null]
+    },
+    "ActorScope": {
+      "title": "Actor write authority over authored vocabularies",
+      "type": ["object", "null"],
+      "required": ["$actorScope", "protects"],
+      "additionalProperties": false,
+      "description": "Per ADR 0152 §4.1: binds closed vocabulary handles to actor selectors. `null` is the JSON idiom for explicit no-config — treated as absent, leaving binary `allowedActors[]` admission only (§5.1). Every other non-conforming payload (including `{}`, which is declared intent whose version cannot be read) is `posture-config-invalid`: a declaration that cannot be enforced admits nobody. Declaring this extension obliges the deployment to run strict posture handling — the non-strict fail-open is incompatible with it (§5.3). The posture document is host-supplied and author-immutable within a session; no kernel op writes it.",
+      "x-lm": { "critical": true, "intent": "Fail-closed by construction. `null` degrades to binary admission; anything else malformed rejects the whole declaration rather than degrading. Never treat an unparseable actor scope as absent." },
+      "examples": [
+        {
+          "$actorScope": "1.0",
+          "protects": [
+            { "vocabulary": "surface.routeClass", "writableBy": { "kinds": ["human"] } },
+            {
+              "vocabulary": "theme.assignment",
+              "writableBy": { "kinds": ["human"], "ids": ["urn:formspec:actor:human:tenant-admin:acme"] }
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "$actorScope": {
+          "type": "string",
+          "const": "1.0",
+          "description": "Version pin for the actor-scope extension. An unknown value makes the whole declaration unenforceable, so it fails closed rather than degrading to binary admission (ADR 0152 §5.1).",
+          "x-lm": { "critical": true, "intent": "Unknown version rejects the declaration — it does NOT fall back to binary allowedActors[] admission." },
+          "examples": ["1.0"]
+        },
+        "protects": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ProtectedVocabulary" },
+          "description": "One entry per protected vocabulary handle. A handle absent from this list is governed by binary `allowedActors[]` admission only, unchanged. `[]` is a valid no-op declaration; the key being absent entirely is a malformed v1 document — the distinction is deliberate (ADR 0152 §5.1). Duplicate `vocabulary` values are `posture-config-invalid` with no merge semantics; JSON Schema cannot express that uniqueness constraint, so evaluation enforces it.",
+          "x-lm": { "critical": true, "intent": "Empty array = valid no-op; absent key = malformed. Duplicate-handle rejection is NOT schema-expressible — evaluation owns it." },
+          "examples": [[{ "vocabulary": "surface.routeClass", "writableBy": { "kinds": ["human"] } }]]
+        }
+      }
+    },
+    "ProtectedVocabulary": {
+      "title": "One vocabulary handle bound to the actors permitted to write it",
+      "type": "object",
+      "required": ["vocabulary", "writableBy"],
+      "additionalProperties": false,
+      "description": "Per ADR 0152 §4.1. Authority rules say WHO may write; graph rules (e.g. `THEME-ROUTE-CLASS`) say what is valid once written. This entry MUST NOT absorb graph validation, context conditions, or read/disclosure authority (§4.3).",
+      "properties": {
+        "vocabulary": { "$ref": "#/$defs/VocabularyHandle" },
+        "writableBy": { "$ref": "#/$defs/ActorSelector" },
+        "values": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/ActorSelector" },
+          "description": "OPTIONAL value-grain rule: vocabulary value → its own selector (e.g. any admitted human may set non-theming route classes, only named actors may set `intake`). Composition is **REPLACE**, pinned by ADR 0152 §4.1: a `values[<value>]` selector REPLACES the entry's `writableBy` for that value — it is not intersected with it. Absent values fall back to `writableBy`, and evaluation consults exactly one selector per write. Replace admits narrowing AND deliberate divergence: a freeze entry (`writableBy: {}`) plus per-value overrides expresses default-deny-with-allowlist, which intersection cannot. A value selector that admits an actor the entry selector excludes is declared authority, not an accident. Legal only on vocabulary-kind handles; on an operation handle it is `posture-config-invalid` (ADR 0152 §4.2/§5.1). A key outside the handle's closed vocabulary is `posture-config-invalid`.",
+          "x-lm": { "critical": true, "intent": "REPLACE, not intersect: a values[v] selector fully supplants writableBy for value v, so it can widen as well as narrow. Widening is declared authority, not a bug." },
+          "examples": [{ "intake": { "ids": ["urn:formspec:actor:human:tenant-admin:acme"] } }]
+        }
+      },
+      "allOf": [
+        {
+          "title": "Value grain is legal only on the vocabulary-kind handle `surface.routeClass` (ADR 0152 §4.2)",
+          "if": {
+            "properties": { "vocabulary": { "const": "surface.routeClass" } },
+            "required": ["vocabulary"]
+          },
+          "then": {
+            "properties": {
+              "values": {
+                "propertyNames": {
+                  "enum": ["intake", "proof", "ceremony", "verification", "attestation", "authentication", "operation"],
+                  "description": "Closed `Route.routeClass` vocabulary (surface.schema.json). Only `intake` admits tenant theming — see `ROUTE_CLASS_THEME_AUTHORITY`."
+                }
+              }
+            }
+          },
+          "else": {
+            "not": { "required": ["values"] }
+          }
+        }
+      ]
+    },
+    "VocabularyHandle": {
+      "type": "string",
+      "enum": ["surface.routeClass", "theme.declaration", "theme.assignment"],
+      "description": "Vocabulary-handle registry v1 (ADR 0152 §4.2), CLOSED. `surface.routeClass` is a vocabulary-kind handle (value grain legal) protecting `Route.routeClass` writes. `theme.declaration` and `theme.assignment` are operation-kind handles (no `values`) protecting Theme declaration and theme token/ref assignment respectively. `theme.declaration` is a pending-op row: `declareTheme` does not exist yet, so declaring it binds the obligation but enforces nothing until that op lands. Growing this list is an amendment to ADR 0152, not a schema edit; an evaluator meeting an unknown handle MUST fail closed.",
+      "x-lm": { "critical": true, "intent": "Closed registry — unknown handle rejects the whole declaration. `theme.declaration` currently has no landing op, so it declares intent without enforcement." },
+      "examples": ["surface.routeClass"]
+    },
+    "ActorSelector": {
+      "title": "Actor selector — union match over kind and id",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Per ADR 0152 §4.1: an actor writes iff its `kind` appears in `kinds` OR its id appears in `ids`. No prefix or pattern matching. An empty selector — `{}`, or every listed array empty — is a valid FREEZE: no actor writes that vocabulary. Locking a vocabulary outright is a legitimate deployment stance, not a malformation (§5.1). Unknown keys are malformed.",
+      "x-lm": { "critical": true, "intent": "`{}` is a deliberate freeze, not a no-op and not an error. Union semantics across kinds/ids — never intersection." },
+      "examples": [{ "kinds": ["human"] }, {}],
+      "properties": {
+        "kinds": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["human", "ai-agent", "service"] },
+          "description": "Subset of the terminal-closed `AuthorActor.kind` vocabulary. Closed by the kernel actor model, not extensible here.",
+          "examples": [["human"]]
+        },
+        "ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "description": "Exact authoring identities, matched byte-for-byte — no prefix or pattern matching. Authors SHOULD use the `allowedActors[]` URN space (`urn:formspec:actor:…`); the URN shape is deliberately NOT pinned here so schema validity and studio-core's `parseSelector` return the same verdict for the same document. An id outside the actor URN space is dead config, not a schema error. `\\S` IS pinned, because `parseSelector` rejects whitespace-only ids (`id.trim() === ''`) — without it the two layers would disagree on `\" \"` (ADR 0152 §4.1).",
+          "examples": [["urn:formspec:actor:human:tenant-admin:acme"]]
+        }
+      }
     }
   }
 }
