@@ -489,6 +489,19 @@ constrained party would be able to edit it. The authority lives on the Surface,
 which the platform ships and the tenant consumes:
 [`surface-spec.md`](../surface/surface-spec.md) §3 Route Class.
 
+**Surface states the class; it does not originate the refusals either.** Each
+refusal is stated by the specification that owns the artifact being protected,
+and this section is only the mechanism that enforces it:
+[`respondent-ledger-spec.md`](../audit/respondent-ledger-spec.md) §13A.2 for
+`proof` and §13A.3 for `verification`;
+[`wysiwys-ceremony-spec.md`](../registry/wysiwys-ceremony-spec.md) §3 for
+`ceremony`. Two values are enforced here without such a statement behind them:
+`authentication`, whose owning concern exists but states no
+appearance-dependent guarantee yet, and `attestation`, which no owning
+specification claims at all. Both are recorded as open in
+[ADR 0161](../../../thoughts/adr/0161-route-class-and-rendering-ring-boundary.md)
+§5 pin register, which is the index of where every value's refusal is stated.
+
 **Rule.** A `theme.assignments[]` entry whose `widgetRef` matches a
 `module-widget` slot binding *rendered by* a target-Surface route whose
 `routeClass` is any declared value other than `intake` is invalid, and MUST be

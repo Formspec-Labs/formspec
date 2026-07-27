@@ -6,10 +6,10 @@ depends_on:
   - specs/audit/deletion-receipt-spec.md
 ---
 
-# Respondent Ledger Add-On Specification v0.3
+# Respondent Ledger Add-On Specification v0.4
 
 **Status:** Draft  
-**Last updated:** 2026-05-26
+**Last updated:** 2026-07-26
 **Audience:** Formspec add-on editors, platform engineers, runtime implementers, trust/compliance reviewers  
 **Normative language:** The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119 / RFC 8174 when, and only when, they appear in all capitals.
 
@@ -1252,6 +1252,87 @@ certificate checks live in Trellis profile validators.
 
 ---
 
+## 13A. Evidence presentation
+
+### 13A.1 Why presentation is in scope here
+
+Sections 12 and 13 make ledger evidence tamper-evident. They say nothing about
+the surface a relying party actually reads. Evidence is relied on **as
+presented**, and every presented artifact carries an attribution — *who is
+telling me this* — that no hash covers. A chain that verifies byte-for-byte
+still misleads if the surface showing it names the wrong accountable party.
+
+This section states the presentation constraints the rest of this specification
+depends on, and nothing else. It does not define routes, widgets, tokens,
+layout, or any rendering mechanism; those belong to the renderer. Where a
+constraint is machine-enforced, the enforcing rule lives on the consuming
+artifact's spec and is named below.
+
+### 13A.2 Issued-proof surfaces
+
+An **issued-proof surface** presents evidence this specification defines, or an
+artifact derived from it, to a party who relies on the evidence rather than
+authoring it: a submission or completion receipt, an integrity checkpoint or its
+anchor, a derived certificate or disclosure, or a deletion receipt
+([`deletion-receipt-spec.md`](deletion-receipt-spec.md)).
+
+The rendered form of such evidence is part of what is relied on. An
+implementation presenting an issued-proof surface:
+
+- **MUST** present it under chrome attributable to the party that issued the
+  evidence;
+- **MUST NOT** let a deploying tenant, host, or embedder restyle that chrome
+  into its own;
+- **MUST NOT** state or imply that the presented artifact is
+  independently checkable when the party controlling its appearance is also the
+  party the evidence is being relied on against.
+
+*Why this is normative rather than advisory.* A tenant-restyled receipt or
+certificate is indistinguishable from a document the tenant itself issued, so
+the relying party's reliance transfers to the tenant. The issuing party's
+guarantee then no longer describes what was relied on, and §2.4's obligation to
+disclose which conditions an evidentiary claim rests on becomes undischargeable:
+the disclosed conditions describe an artifact nobody was shown.
+
+*Mechanism, stated elsewhere by design.* Where a renderer composes surfaces from
+a Formspec app graph, the class of a route is declared by
+[`surface-spec.md`](../surface/surface-spec.md) §3 Route Class as
+`routeClass: proof`, and the refusal is enforced as `THEME-ROUTE-CLASS` by
+[`ui-graph-policy-spec.md`](../app-graph/ui-graph-policy-spec.md) §5.7. Those
+artifacts carry and enforce the constraint; this section is the constraint's
+source of truth. Recorded as an INTEGRITY pin over a Rendering-ring property in
+[ADR 0161](../../../thoughts/adr/0161-route-class-and-rendering-ring-boundary.md)
+§5 pin register.
+
+### 13A.3 Independent-verification surfaces
+
+An **independent-verification surface** re-checks evidence — hashes, chains,
+checkpoints, anchors, signatures — without the issuing platform's
+participation. Its entire value is that it is not the issuer speaking. An
+implementation presenting one:
+
+- **MUST** present it under chrome owned by neither the deploying tenant nor
+  the issuing party whose evidence is being checked;
+- **MUST NOT** let a deploying tenant, host, or embedder restyle that chrome;
+- **MUST NOT** present a verifier whose verdict depends on contacting the
+  issuing platform as an independent check.
+
+*Why this is normative rather than advisory.* A tenant-restyled verifier reads
+as the tenant's endorsement of the tenant's own evidence, so *"independent
+check"* is false of the surface performing it. The failure is also
+unrecoverable by the reader: a respondent handed a verifier the tenant styled
+has no signal distinguishing it from a spoof the tenant controls, which is the
+same reason §2.4 forbids implying that integrity alone settles sufficiency.
+
+*Mechanism, stated elsewhere by design.* Route class `verification`
+([`surface-spec.md`](../surface/surface-spec.md) §3), enforced as
+`THEME-ROUTE-CLASS` ([`ui-graph-policy-spec.md`](../app-graph/ui-graph-policy-spec.md)
+§5.7). Pin recorded in
+[ADR 0161](../../../thoughts/adr/0161-route-class-and-rendering-ring-boundary.md)
+§5 pin register.
+
+---
+
 ## 14. Recommended JSON shape
 
 The following non-exhaustive example shows one possible document layout:
@@ -1510,6 +1591,8 @@ A processor claiming conformance to the Respondent Ledger add-on:
 11. **SHOULD** support privacy-bounded retention using hashes, summaries, or redaction metadata where necessary.
 12. **MUST** enforce `integrityProfile` hash obligations when chaining or Trellis wrapping is declared, and **SHOULD** support checkpointing for higher-assurance environments.
 13. **MAY** emit any of the §8.2 optional event types when the corresponding respondent or processor act occurs. If an implementation emits an optional event type defined in §8.7–§8.13 (the Batch A respondent-act event types), it **MUST** populate the event-specific `data` block defined for that event type in this specification and **MUST NOT** invent a parallel payload shape under `extensions`.
+14. **MUST** present issued-proof surfaces under chrome attributable to the issuing party, and **MUST NOT** let a deploying tenant, host, or embedder restyle that chrome (§13A.2).
+15. **MUST** present independent-verification surfaces under chrome owned by neither the deploying tenant nor the issuing party, and **MUST NOT** present a verifier whose verdict depends on contacting the issuing platform as an independent check (§13A.3).
 
 ---
 
@@ -1526,6 +1609,7 @@ Companion JSON Schemas for the top-level ledger document and standalone event ob
 
 ### 17.1 Changelog
 
+- **0.4.0-draft (2026-07-26)** — Added §13A evidence presentation: normative chrome-attribution constraints for issued-proof surfaces (§13A.2) and independent-verification surfaces (§13A.3), plus conformance items 14–15. These discharge the two outstanding INTEGRITY pins over Rendering-ring theme authority registered in [ADR 0161](../../../thoughts/adr/0161-route-class-and-rendering-ring-boundary.md) §5 — the `proof` and `verification` route-class refusals previously had no port-owned statement, only the Rendering-ring specs that enforce them. This document is the constraint's source of truth; `surface-spec.md` §3 and `ui-graph-policy-spec.md` §5.7 carry and enforce it. No wire-format change: `$formspecRespondentLedger` is unchanged at `"0.1"` and no schema field was added.
 - **0.3.0-draft (2026-05-26)** — EXT-5 Batch A: added seven optional respondent-act event types (`response.declined`, `response.withdrawn`, `response.dispute-attached`, `consent.revoked`, `data.erased`, `disclosure.presented`, `field.flagged-by-respondent`) with normative per-event payload shapes (§8.7–§8.13), schema `$defs`, and conformance fixtures. Batch B event `submission.duress-signaled` was retired with stack-root ADR-0156 withdrawal the same day — no payload shape ratified. The wire-format literal `$formspecRespondentLedger` is unchanged at `"0.1"`.
 - **0.2.0-draft (2026-04-15)** — Added normative L1–L4 assurance taxonomy (§6.6.1); promoted §6.7 to a normative independence invariant between disclosure tier and assurance level; added §6.8 distinguishing authored signatures from recorded attestations; added §2.4 legal-sufficiency disclosure. The wire-format literal `$formspecRespondentLedger` is unchanged at `"0.1"`; a wire-format version bump is a separate compatibility decision.
 - **0.1.0-draft (2026-03-22)** — Initial draft.

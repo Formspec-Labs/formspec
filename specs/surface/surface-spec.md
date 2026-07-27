@@ -162,10 +162,9 @@ rules keyed on these values are stated by the platform, and in a white-label
 deployment the host is the tenant — a constraint the constrained party can edit
 is not a constraint. Where each value's refusal is pinned, and which pins are
 still outstanding, is the pin register in
-[ADR 0159](../../../thoughts/adr/0159-product-substrate-recognition.md)
-§The rendering ring, which also carries the closure evidence that corrected
-`operation` from admitting to refusing and added `attestation` and
-`authentication`.
+[ADR 0161](../../../thoughts/adr/0161-route-class-and-rendering-ring-boundary.md)
+§5, whose §6.1 carries the closure evidence that corrected `operation` from
+admitting to refusing and added `attestation` and `authentication`.
 
 `routeClass` names the route's kind, not a permission. Permissions and other
 rules **derive** from it; they are not restated on the route. A Surface author
