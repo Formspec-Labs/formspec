@@ -29,12 +29,12 @@ export interface WalkthroughInput {
 }
 
 const STAGE_TITLES: Record<string, { label: string; plain: string }> = {
-  idea: { label: 'Idea', plain: 'Somebody describes the job' },
+  idea: { label: 'Idea', plain: 'Someone describes the job' },
   plan: { label: 'Plan', plain: 'It becomes a real form' },
-  build: { label: 'Build', plain: 'A person takes the pen' },
-  'sign-off': { label: 'Sign-off', plain: 'On the record, and signed' },
-  release: { label: 'Release', plain: 'What the tenant may restyle' },
-  feedback: { label: 'Feedback', plain: 'It changes, and regenerates' },
+  build: { label: 'Build', plain: 'A person takes over' },
+  'sign-off': { label: 'Sign-off', plain: 'It gets signed, on the record' },
+  release: { label: 'Release', plain: 'The brand goes on, where it is allowed' },
+  feedback: { label: 'Feedback', plain: 'A change request rebuilds it' },
 };
 
 function esc(value: unknown): string {
@@ -57,19 +57,19 @@ function beatHtml(beat: Beat): string {
         ? '<span class="chip chip--admitted">Allowed</span>'
         : '<span class="chip chip--noted">Noted</span>';
   const who =
-    beat.actor === 'ai-agent' ? 'The AI' : beat.actor === 'human' ? 'A person' : 'The substrate';
-  // Attribution matters here: an `admitted`/`refused` message is the substrate's
-  // own words, quoted verbatim; a `recorded` message is the walk's note about
-  // something the substrate did NOT say. Labelling both "the substrate said"
+    beat.actor === 'ai-agent' ? 'The AI' : beat.actor === 'human' ? 'A person' : 'The system';
+  // Attribution matters here: an `admitted`/`refused` message is the system's
+  // own words, quoted verbatim; a `recorded` message is the run's note about
+  // something the system did NOT say. Labelling both "the system's response"
   // would put words in its mouth, which is the one thing this page must not do.
   const quote = beat.message
     ? `<blockquote class="said said--${beat.outcome === 'recorded' ? 'walk' : 'substrate'}">`
-      + `<span class="said__who">${beat.outcome === 'recorded' ? 'What the walk found' : 'The substrate said'}</span>`
+      + `<span class="said__who">${beat.outcome === 'recorded' ? 'What we found when we checked' : "The system's actual response"}</span>`
       + `<code>${esc(beat.message)}</code></blockquote>`
     : '';
   const detail =
     beat.details && Object.keys(beat.details).length > 0
-      ? `<details class="detail"><summary>What this looks like underneath</summary><pre>${json(beat.details)}</pre></details>`
+      ? `<details class="detail"><summary>The technical detail</summary><pre>${json(beat.details)}</pre></details>`
       : '';
   return `<li class="beat beat--${beat.outcome}">
   <div class="beat__head">
@@ -98,7 +98,7 @@ function stageHtml(stage: StageRecord, index: number): string {
   <p class="stage__narration">${esc(stage.narration)}</p>
   <ol class="beats">${stage.beats.map(beatHtml).join('\n')}</ol>
   <details class="detail detail--state">
-    <summary>What exists in the substrate after this stage</summary>
+    <summary>What the app contains at this point</summary>
     <pre>${json(stage.substrateState)}</pre>
   </details>
 </section>`;
@@ -329,11 +329,11 @@ export function renderWalkthrough(input: WalkthroughInput): string {
   <header class="masthead">
     <p class="eyebrow">One application &middot; six stages &middot; nothing hidden</p>
     <h1>${esc(input.exemplar.title)}</h1>
-    <p class="standfirst">Watch one small government application go from a sentence somebody said, to a signed release, to a change request that rebuilds it &mdash; and see exactly what the machinery allowed, refused, and lost along the way.</p>
+    <p class="standfirst">One small government form, from the sentence someone said out loud to a signed release to a change request that rebuilds it. Everything below is what actually happened &mdash; what the system allowed, what it refused, and what it lost.</p>
   </header>
 
   <section class="brief">
-    <h2>The brief it started from</h2>
+    <h2>What someone asked for</h2>
     <ol>
       ${input.exemplar.brief.map((line) => `<li><span class="tag">${esc(line.id)}</span><span>${esc(line.text)}</span></li>`).join('\n      ')}
     </ol>
@@ -354,24 +354,26 @@ export function renderWalkthrough(input: WalkthroughInput): string {
   </div>
 
   <section class="seal">
-    <h2>The signature</h2>
-    <p class="seal__sub">Checked from the files alone &mdash; nothing running</p>
+    <h2>The sign-off</h2>
+    <p class="seal__sub">Checked from the saved files alone, with nothing running</p>
     <p class="seal__affirm">&ldquo;${esc(signature.record?.affirmationText ?? '')}&rdquo;</p>
+    <p>A named person put their name to this release. Anyone can re-check that sign-off from the files below &mdash; on their own machine, without asking us, years from now.</p>
     <dl class="facts">
       <dt>Signed by</dt><dd>${esc(signature.record?.signerName ?? '')}</dd>
-      <dt>Covers</dt><dd>every byte of the exported app, canonicalised as <code>${esc(signature.record?.signedPayload?.canonicalization ?? '')}</code></dd>
+      <dt>What it covers</dt><dd>every byte of the finished app, packed in a fixed order so the check repeats exactly: <code>${esc(signature.record?.signedPayload?.canonicalization ?? '')}</code></dd>
       <dt>Fingerprint</dt><dd>${esc(signature.record?.signedPayload?.digest ?? '')}</dd>
-      <dt>Method</dt><dd>${esc(verification.methodUriFromEnvelope ?? '')}</dd>
-      <dt>Verdict</dt><dd class="verdict-inline${verification.result === 'verified' ? '' : ' verdict-inline--bad'}">${esc(verification.result ?? '')}</dd>
-      <dt>Tampered copy</dt><dd class="verdict-inline${verification.tamperResult === 'failed' ? '' : ' verdict-inline--bad'}">${esc(verification.tamperResult ?? '')} &mdash; one changed byte and the signature stops verifying</dd>
+      <dt>How it was signed</dt><dd>${esc(verification.methodUriFromEnvelope ?? '')}</dd>
+      <dt>Result</dt><dd class="verdict-inline${verification.result === 'verified' ? '' : ' verdict-inline--bad'}">${esc(verification.result ?? '')}</dd>
+      <dt>Same file, one byte changed</dt><dd class="verdict-inline${verification.tamperResult === 'failed' ? '' : ' verdict-inline--bad'}">${esc(verification.tamperResult ?? '')} &mdash; change one byte and the sign-off no longer holds</dd>
     </dl>
     <details class="detail"><summary>Everything the check read</summary><pre>${json(verification.inputsRead ?? [])}</pre></details>
   </section>
 
   <section class="moat">
-    <h2>Did the designer's two edits survive?</h2>
-    <p class="moat__sub">${esc(moat.survivingEdits ?? 0)} of ${esc(moat.totalEdits ?? 0)} survived</p>
-    <p>This is the claim the whole platform rests on: when an AI rebuilds an app, the changes a person made by hand are supposed to be kept, not flattened. Here is what actually happened.</p>
+    <h2>The one promise we cannot make yet</h2>
+    <p class="moat__sub">${esc(moat.survivingEdits ?? 0)} of the designer's ${esc(moat.totalEdits ?? 0)} changes survived</p>
+    <p>When the AI rebuilds the app after a change request, the changes a person made by hand are supposed to survive it. That is the claim this product rests on. We tested it here, and it did not hold.</p>
+    <p>So we went looking for the step that is meant to keep those changes, across every part of the product that ships. This is what the search returned:</p>
     <p class="moat__why">${esc(moat.mergeAttempt?.outcome ?? '')}</p>
     <ul class="edits">
       ${(moat.edits ?? [])
@@ -383,11 +385,11 @@ export function renderWalkthrough(input: WalkthroughInput): string {
         )
         .join('\n      ')}
     </ul>
-    <details class="detail"><summary>Why &mdash; the full measurement</summary><pre>${json(input.moat)}</pre></details>
+    <details class="detail"><summary>The full measurement</summary><pre>${json(input.moat)}</pre></details>
   </section>
 
   <footer>
-    <p>Every sentence above is read out of <code>evidence/lifecycle.json</code>, written by the run itself. Nothing on this page was typed by hand from memory.</p>
+    <p>Every sentence on this page was written by the run itself, from its own records &mdash; nothing was typed from memory. Source: <code>evidence/lifecycle.json</code>.</p>
     <p>Spike v10 &middot; <code>${esc(input.exemplar.bundleId)}</code></p>
   </footer>
 </div>

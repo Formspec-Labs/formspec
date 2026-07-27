@@ -246,6 +246,9 @@ describe('spike v10 — the lifecycle demo', () => {
     const routeClassRefusals = allBeats.filter(
       (b) => b.verb === 'addRoute' && b.outcome === 'refused' && b.actor === 'ai-agent',
     );
+    // Counted, never typed: bar 3's headline states how many times the AI was
+    // told no, and a hardcoded number would go stale the first time a beat moves.
+    const aiRefusals = allBeats.filter((b) => b.outcome === 'refused' && b.actor === 'ai-agent').length;
     const themeRefusal = allBeats.find((b) => b.verb === 'declareTheme' && b.outcome === 'refused');
     const themeAdmission = allBeats.find((b) => b.verb === 'declareTheme' && b.outcome === 'admitted');
     const legible = (b: { message?: string } | undefined, vocab: string, value?: string): boolean =>
@@ -319,13 +322,13 @@ describe('spike v10 — the lifecycle demo', () => {
     const bars: BarResult[] = [
       {
         id: 'BAR 1',
-        title: 'Everything traces back to the brief',
+        title: 'Everything traces back to the original request',
         met: bar1Met,
         qualifier:
-          `Met, and narrower than it sounds: only ${mountedUnits} of the ${totalUnits} journey entries is mounted on a page at all, so the unit-to-page hop holds over ${mountedUnits} of ${totalUnits}. `
-          + 'The other three are unmountable on a Definition-bearing bundle — `APP-GRAPH-SURFACE-EXPERIENCE-UNIT-DEFINITION` requires any route mounting a unit to also carry a `definition-form` slot for the Experience\'s `targetDefinition`. The chain is connected; it is not four parallel chains.',
+          `Met, and narrower than it sounds: only ${mountedUnits} of the ${totalUnits} journey steps is shown on a page at all, so that one link was tested over ${mountedUnits} of ${totalUnits}. `
+          + 'The other three cannot be put on a page in an app that collects answers — a rule we found and reported rather than worked around. The chain is connected end to end; it is not four parallel chains.',
         criterion:
-          'Each hop from a brief sentence to a page, a question and a rendered field is either an edge the substrate itself recorded, or a reference physically present in the exported files.',
+          'Every step from a sentence in the original request to a page, a question, and the field a person actually fills in is either a link the system recorded itself, or a reference sitting in the shipped files.',
         evidence: {
           mountedUnits,
           totalUnits,
@@ -338,10 +341,10 @@ describe('spike v10 — the lifecycle demo', () => {
       },
       {
         id: 'BAR 2',
-        title: 'The signature checks out with nothing running',
+        title: 'The sign-off can be verified by anyone, offline, forever',
         met: bar2Met,
         criterion:
-          'The release signature verifies from the committed files alone, and a single changed byte makes it stop verifying.',
+          'The sign-off checks out from the saved files alone, with nothing running and no need to contact us — and changing a single byte of the app makes it stop checking out.',
         evidence: {
           verification,
           tamperedByte: `${tamperTarget} .id -> "tampered"`,
@@ -359,10 +362,10 @@ describe('spike v10 — the lifecycle demo', () => {
       },
       {
         id: 'BAR 3',
-        title: 'The authorization rules fire in the middle of the story',
+        title: `The AI was refused ${aiRefusals} times — and kept working`,
         met: bar3Met,
         criterion:
-          'The AI is refused the page classifications and the theme declaration, each refusal naming what was refused and who was refused; it keeps working; nothing leaks through; and a person succeeds at both under the same deployment rule.',
+          "The AI is refused every page label and the app's look. Each refusal names what was blocked and who was blocked. The AI carries on building. Nothing slips through. A person then does both, under the very same rule.",
         evidence: {
           routeClassRefusals: routeClassRefusals.length,
           routeClassRefusalMessages: routeClassRefusals.map((b) => b.message),
@@ -376,10 +379,10 @@ describe('spike v10 — the lifecycle demo', () => {
       },
       {
         id: 'BAR 4',
-        title: 'Tenant branding stops at the receipt',
+        title: 'Your brand goes on your form, never on the receipt',
         met: bar4Met,
         criterion:
-          'In the release report, the tenant colour is allowed on the application form and refused on the receipt, with the substrate naming the reason.',
+          "The organisation's brand colour is allowed on the application form and refused on the receipt a court reads, with the system stating the reason in its own words.",
         evidence: {
           crossArtifactStatus: crossArtifact?.status,
           perRoute: ROUTES.map((r) => ({
@@ -393,26 +396,27 @@ describe('spike v10 — the lifecycle demo', () => {
       },
       {
         id: 'BAR 5',
-        title: "The designer's edits survive a rebuild",
+        title: "A designer's hand-made changes survive an AI rebuild — NOT YET TRUE, and we measured exactly why",
         met: bar5Met,
         criterion:
-          'After the change request rebuilds the app, both hand-made edits are still there, put there by the substrate\'s own three-way merge.',
+          "After the AI rebuilds the app, both hand-made changes are still in it — kept by the product's own merging step, not put back by us.",
         evidence: moat,
         ...(bar5Met
           ? {}
           : {
               finding:
-                `No regeneration merge exists to run. ${moat.mergeAttempt.outcome} `
-                + `Both designer edits are therefore lost on rebuild: ${edits.map((e) => `${e.id} (${e.deltaClass})`).join(', ')}. `
-                + `This was the pre-registered prediction, and it is ADR 0159's own falsifier firing — the moat is specified, fixtured, and unbuilt.`,
+                'The step that would keep those changes does not exist yet. We searched every part of the product that ships and found nothing that does the merging — the pieces it would need are there, the step that uses them is not. '
+                + 'The design is written down, the test cases are written down, and nothing runs them. '
+                + `So both hand-made changes were lost the moment the app was rebuilt (${edits.map((e) => e.id).join(' and ')}). `
+                + 'We predicted this before the run and measured it anyway. The full search is below, and it is the most important thing on this page.',
             }),
       },
       {
         id: 'BAR 6',
-        title: 'The materialisation guarantees still hold here',
+        title: 'The finished app passed every automated check',
         met: bar6Met,
         criterion:
-          'The five ADR 0160 acceptance bars stay met on this new app, authored entirely through the verb family with no host wiring.',
+          'The five structural checks the product commits to all still pass on this app — which was built end to end by the AI and one person, with nothing wired in by hand behind the scenes.',
         evidence: {
           rows: bar6Rows,
           wholeGraphErrorsByCode: whole,

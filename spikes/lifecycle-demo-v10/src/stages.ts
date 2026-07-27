@@ -60,6 +60,23 @@ import {
   type UnitSpec,
 } from './exemplar.js';
 
+/**
+ * Reader-facing English for each page label, used everywhere a beat narrates a
+ * classification. The page's spine never prints the label itself — a reader who
+ * has to learn a word before the sentence lands has already stopped reading.
+ */
+const PLAIN_ROUTE_CLASS: Record<RouteSpec['routeClass'], string> = {
+  intake: 'an everyday form people fill in',
+  ceremony: 'a signing ceremony',
+  proof: 'legal proof that someone else relies on',
+  verification: 'a page that checks a claim',
+  attestation: 'a page where someone swears something is true',
+  authentication: 'a page that proves who you are',
+  operation: 'an internal staff screen',
+};
+
+const plainClass = (route: RouteSpec): string => PLAIN_ROUTE_CLASS[route.routeClass];
+
 let engineReady: Promise<void> | undefined;
 export function ensureEngine(): Promise<void> {
   engineReady ??= (async () => {
@@ -340,7 +357,7 @@ export interface WalkState {
 export async function stageIdea(ev: Evidence, state: WalkState): Promise<void> {
   ev.openStage(
     'idea',
-    'Someone describes the job in four sentences. Before a single field exists, the AI writes down who is involved and what each of them is trying to get done — one entry per sentence of the brief.',
+    'Someone describes the job in four sentences. Before a single question exists, the AI writes down who is involved and what each person is trying to get done — one entry per sentence.',
   );
 
   const created = await state.agent.wireframeFromBrief({
@@ -354,7 +371,7 @@ export async function stageIdea(ev: Evidence, state: WalkState): Promise<void> {
   ev.beat({
     actor: 'ai-agent',
     verb: 'wireframeFromBrief',
-    intent: 'Start an app from the brief.',
+    intent: 'Start a new app from what the person asked for.',
     outcome: created.ok ? 'admitted' : 'refused',
     ...(created.ok ? {} : { message: created.error.message }),
     details: { bundleId: BUNDLE_ID, briefLines: BRIEF.length },
@@ -364,11 +381,15 @@ export async function stageIdea(ev: Evidence, state: WalkState): Promise<void> {
   ev.beat({
     actor: 'system',
     verb: 'wireframeFromBrief',
-    intent: 'Keep the brief text itself, so later stages can point back at it.',
+    intent: 'Keep the request itself, so later steps can point back at the words someone wrote.',
     outcome: 'recorded',
     message:
-      'The brief is accepted as an argument and discarded. `wireframeFromBrief` forwards only id, version and title to `createBundle`; no verb persists the brief text. It survives into the substrate only as the units it produced.',
-    details: { finding: 'no-brief-persistence' },
+      'It does not. The request is read, used once, and thrown away — nothing stores the original words. What survives is the four journey entries it produced. A gap we found and reported, rather than papered over.',
+    details: {
+      finding: 'no-brief-persistence',
+      technical:
+        '`wireframeFromBrief` accepts the brief as an argument and discards it — it forwards only id, version and title to `createBundle`, and no verb persists the brief text. It survives into the substrate only as the units it produced.',
+    },
   });
 
   for (const unit of UNITS) {
@@ -382,7 +403,7 @@ export async function stageIdea(ev: Evidence, state: WalkState): Promise<void> {
     ev.beat({
       actor: 'ai-agent',
       verb: 'addExperienceUnit',
-      intent: `Write down: "${unit.title}" — ${unit.actorRef} needs to ${unit.taskRefs.join(', ')}.`,
+      intent: `Write down one step of the journey: "${unit.title}" — this is for the ${unit.actorRef}.`,
       outcome: added.ok ? 'admitted' : 'refused',
       ...(added.ok ? {} : { message: added.error.message }),
       details: { unitId: unit.unitId, kind: unit.kind, actorRef: unit.actorRef, taskRefs: unit.taskRefs, fromBrief: unit.fromBrief },
@@ -415,14 +436,14 @@ export async function stageIdea(ev: Evidence, state: WalkState): Promise<void> {
 export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
   ev.openStage(
     'plan',
-    'The AI turns the journey into a real form: the questions people will answer, and the four pages the app has. Then it tries to say what kind of page each one is — and the deployment stops it. Deciding that a page is "a receipt a court relies on" is a call a person makes, not a machine.',
+    'The AI turns that into a real form: the questions people will answer, and the four pages the app has. Then it tries to label each page — this one is an everyday form, this one is a signing ceremony, this one is legal proof a court can read. The system refuses every time. Calling a page legal proof is a claim about the real world, and here only a person is allowed to make it.',
   );
 
   const declared = await state.agent.declareDefinition({ url: DEFINITION_URL, version: '1.0.0' });
   ev.beat({
     actor: 'ai-agent',
     verb: 'declareDefinition',
-    intent: 'Create the form that holds the questions.',
+    intent: 'Create the form that will hold the questions.',
     outcome: declared.ok ? 'admitted' : 'refused',
     ...(declared.ok ? {} : { message: declared.error.message }),
     details: { url: DEFINITION_URL },
@@ -452,11 +473,16 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
   ev.beat({
     actor: 'system',
     verb: '(none)',
-    intent: 'Connect the journey entries to the questions they collect.',
+    intent: 'Link each step of the journey to the questions it collects.',
     outcome: 'recorded',
     message:
-      'No kernel op writes `unit.itemRefs` after a unit exists — `bindActor` and `bindTask` exist, `bindItem` does not, and `addUnit` conflicts on re-add. The Experience-to-Definition link the ADR 0159 Plan row describes is unreachable through the verb surface; the two meet on the Surface route that binds both instead.',
-    details: { finding: 'no-bindItem-verb', availableBinders: ['bindActor', 'bindTask'] },
+      'There is no way to do it. Once a journey step exists, nothing can attach questions to it. The two only meet later, on the page that shows both. Another gap we found and reported.',
+    details: {
+      finding: 'no-bindItem-verb',
+      availableBinders: ['bindActor', 'bindTask'],
+      technical:
+        'No kernel op writes `unit.itemRefs` after a unit exists — `bindActor` and `bindTask` exist, `bindItem` does not, and `addUnit` conflicts on re-add. The Experience-to-Definition link is unreachable through the verb surface; the two meet on the Surface route that binds both instead.',
+    },
   });
 
   const action = await declareSubmitAction(state.agent);
@@ -474,15 +500,17 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
   ev.beat({
     actor: 'system',
     verb: '(check)',
-    intent: 'Confirm the app now says what Submit does.',
+    intent: 'Check that the finished app can still find what Submit does.',
     outcome: 'recorded',
     message:
       (afterAction as { responseActions?: unknown }).responseActions === undefined
-        ? 'The Response Actions document was minted and no manifest slot names it. `readAppManifest` emits no `responseActions` key and `exportBundle` does not serialise it, so nothing in the graph can resolve the Submit behaviour — the transitions that fire it stay unresolved. This is ADR 0160 §4.2(b) ("no mint without a declaration") firing on a kind that ADR 0160 §6.5 does NOT list as deliberately excluded: it fixed the identical defect for `ensureExperience` and left this one.'
-        : 'The app manifest names the Response Actions document.',
+        ? 'It cannot. The Submit behaviour was created, but the app\'s own index never lists it, so it is left out of the shipped package. A page that fires Submit would have nothing to point at. A third gap we found and reported, not patched.'
+        : 'It can. The app lists the Submit behaviour in its index.',
     details: {
       finding: 'response-actions-minted-but-undeclared',
       manifestSlots: Object.keys(afterAction),
+      technical:
+        'The Response Actions document was minted and no manifest slot names it. `readAppManifest` emits no `responseActions` key and `exportBundle` does not serialise it, so nothing in the graph can resolve the Submit behaviour — the transitions that fire it stay unresolved.',
       adr0160: '§4.2(b) mirror of the fixed `ensureExperience` defect; §6.5 excludes Locale, Mapping and Data Sources — not Response Actions',
     },
   });
@@ -491,7 +519,7 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
   ev.beat({
     actor: 'ai-agent',
     verb: 'addSurface',
-    intent: 'Give staff their own app. A caseworker queue is not a page an applicant can walk to.',
+    intent: 'Give staff their own app. A caseworker queue is not a page an applicant should ever reach.',
     outcome: staff.ok ? 'admitted' : 'refused',
     ...(staff.ok ? {} : { message: staff.error.message }),
     details: { surfaceUrl: STAFF_SURFACE_URL, surfaceId: STAFF_SURFACE_ID },
@@ -509,7 +537,7 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
     ev.beat({
       actor: 'ai-agent',
       verb: 'addRoute',
-      intent: `Say that ${route.path} is a "${route.routeClass}" page — ${route.why}`,
+      intent: `Label ${route.path} as ${plainClass(route)}. ${route.why} In this deployment, only a person may make that call.`,
       outcome: attempt.ok ? 'admitted' : 'refused',
       ...(attempt.ok ? {} : { message: attempt.error.message }),
       details: {
@@ -528,7 +556,7 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
     ev.beat({
       actor: 'ai-agent',
       verb: 'addRoute',
-      intent: `Add ${route.path} without saying what kind of page it is, and keep working.`,
+      intent: `Add ${route.path} without the label, and carry on. The refusal stopped one field, not the work.`,
       outcome: unclassified.ok ? 'admitted' : 'refused',
       ...(unclassified.ok ? {} : { message: unclassified.error.message }),
       details: { routeId: route.routeId, routeClass: null },
@@ -549,7 +577,7 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
     ev.beat({
       actor: 'ai-agent',
       verb: 'bindSlot',
-      intent: `Fill ${route.path} with what belongs on it.`,
+      intent: `Put on ${route.path} the things that belong there.`,
       outcome: 'admitted',
       details: { routeId: route.routeId, slots: route.slots.map((s) => ({ id: s.slotId, type: s.slotType })) },
     });
@@ -587,14 +615,14 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
 export async function stageBuild(ev: Evidence, state: WalkState): Promise<void> {
   ev.openStage(
     'build',
-    'The app gets its parts list and its look. The AI is stopped again — declaring the theme is a decision about who controls appearance, and appearance is load-bearing on three of these four pages. A person takes over, declares it, and then makes two small edits of their own. Those two edits are the thing the last stage is about.',
+    "The app gets its parts list and its look. The AI is stopped again: creating the app's look decides who controls how pages appear, and on three of these four pages appearance is part of what people rely on. A person takes over, creates it, and then makes two small changes of their own. Those two changes are what the last stage is about.",
   );
 
   const agentTheme = await state.agent.declareTheme({ version: '1.0.0' });
   ev.beat({
     actor: 'ai-agent',
     verb: 'declareTheme',
-    intent: 'Create the theme that controls how the app looks.',
+    intent: "Create the app's look — the colours and styling every page uses.",
     outcome: agentTheme.ok ? 'admitted' : 'refused',
     ...(agentTheme.ok ? {} : { message: agentTheme.error.message }),
     details: agentTheme.ok ? {} : { errorCode: agentTheme.error.code, ...(agentTheme.error.details as Record<string, unknown> ?? {}) },
@@ -604,11 +632,11 @@ export async function stageBuild(ev: Evidence, state: WalkState): Promise<void> 
   ev.beat({
     actor: 'system',
     verb: '(check)',
-    intent: 'Confirm the refused write left nothing behind.',
+    intent: 'Check that the refusal left nothing half-written behind.',
     outcome: 'recorded',
     message: agentManifest.theme === undefined
-      ? 'No theme slot on the app manifest. The refused declaration wrote nothing.'
-      : 'A theme slot exists despite the refusal — the refusal leaked.',
+      ? "It did not. The app still has no look of its own. The refused change wrote nothing at all — a refusal here means nothing happened, not that something happened quietly."
+      : 'A look exists despite the refusal — the refusal leaked.',
     details: { check: 'refused-theme-declaration-left-no-state', themeSlot: agentManifest.theme ?? null },
   });
 
@@ -621,14 +649,22 @@ export async function stageBuild(ev: Evidence, state: WalkState): Promise<void> 
     intent: 'Hand the half-built app from the AI to a person.',
     outcome: 'recorded',
     message:
-      "No verb transfers an in-flight artifact between actors. The kernel reads the acting actor from its construction context, and supplying a kernel together with posture options is a construction-time error, so one kernel is one actor. The handoff is modelled as a new session replaying the authored state; the replay is checked against the AI's own exported documents rather than assumed.",
-    details: { from: AI_AGENT_URN, to: HUMAN_URN, replayMatchedAgentExport: replayMatched, ...(divergence ? { divergence } : {}), finding: 'no-actor-handoff-verb' },
+      "There is no built-in way to pass a half-built app from one pair of hands to another. So we did it the way a real deployment would have to: the person opened their own session and the AI's work was rebuilt under their name. We then compared the two, file by file, to prove the person ended up with the AI's app and not a lookalike. A fourth gap we found and reported.",
+    details: {
+      from: AI_AGENT_URN,
+      to: HUMAN_URN,
+      replayMatchedAgentExport: replayMatched,
+      ...(divergence ? { divergence } : {}),
+      finding: 'no-actor-handoff-verb',
+      technical:
+        "No verb transfers an in-flight artifact between actors. The kernel reads the acting actor from its construction context, and supplying a kernel together with posture options is a construction-time error, so one kernel is one actor. The handoff is modelled as a new session replaying the authored state; the replay is checked against the AI's own exported documents rather than assumed.",
+    },
   });
   ev.beat({
     actor: 'human',
     verb: 'addRoute',
     intent:
-      `Change what kind of page ${AMEND_TARGET.path} is — from "${AMEND_TARGET.routeClass}" to "${AMEND_TO_ROUTE_CLASS}". The route already exists, and the person is the actor the deployment admits, so nothing but the route itself is left to say no.`,
+      `Change ${AMEND_TARGET.path} from ${PLAIN_ROUTE_CLASS[AMEND_TARGET.routeClass]} to ${PLAIN_ROUTE_CLASS[AMEND_TO_ROUTE_CLASS]}. The page already exists, and this person is allowed to make that call — so the only thing left that could say no is the page itself.`,
     outcome: 'refused',
     message: amendAttempt.onAdmittedActor.message,
     details: {
@@ -653,7 +689,7 @@ export async function stageBuild(ev: Evidence, state: WalkState): Promise<void> 
   ev.beat({
     actor: 'human',
     verb: 'declareTheme',
-    intent: 'Create the theme — the same call the AI was refused.',
+    intent: "Create the app's look — the exact thing the AI was refused a moment ago.",
     outcome: humanTheme.ok ? 'admitted' : 'refused',
     ...(humanTheme.ok ? {} : { message: humanTheme.error.message }),
     details: { url: humanTheme.ok ? humanTheme.value.url : null, samePostureAsRefusal: true },
@@ -664,7 +700,7 @@ export async function stageBuild(ev: Evidence, state: WalkState): Promise<void> 
   ev.beat({
     actor: 'human',
     verb: 'setThemeToken',
-    intent: `Set the tenant's brand colour (${TENANT_TOKEN_VALUE}).`,
+    intent: `Set the organisation's brand colour (${TENANT_TOKEN_VALUE}).`,
     outcome: token.ok ? 'admitted' : 'refused',
     ...(token.ok ? {} : { message: token.error.message }),
     details: { key: TENANT_TOKEN, value: TENANT_TOKEN_VALUE },
@@ -675,7 +711,7 @@ export async function stageBuild(ev: Evidence, state: WalkState): Promise<void> 
   ev.beat({
     actor: 'human',
     verb: 'declareRegistry + addRegistryEntry',
-    intent: 'Register the building blocks the pages are made of.',
+    intent: 'Register the building blocks the pages are made from.',
     outcome: 'admitted',
     details: { registryUrl: registry.registryUrl, entries: registry.entries, hostDocumentsWired: 0 },
   });
@@ -692,7 +728,7 @@ export async function stageBuild(ev: Evidence, state: WalkState): Promise<void> 
   ev.beat({
     actor: 'human',
     verb: 'bindSlot',
-    intent: `Add one sentence the AI never wrote: "${String((DESIGNER_INSERTION.binding as { content: string }).content)}"`,
+    intent: `Add one line of reassurance the AI never thought to write: "${String((DESIGNER_INSERTION.binding as { content: string }).content)}"`,
     outcome: inserted.ok ? 'admitted' : 'refused',
     ...(inserted.ok ? {} : { message: inserted.error.message }),
     details: { edit: 'DESIGNER-EDIT-1', deltaClass: 'designer-inserted', slotId: DESIGNER_INSERTION.slotId },
@@ -712,7 +748,7 @@ export async function stageBuild(ev: Evidence, state: WalkState): Promise<void> 
   ev.beat({
     actor: 'human',
     verb: 'removeSlot + bindSlot',
-    intent: `Rename the AI's "${DESIGNER_RETITLE.generatedTitle}" to "${DESIGNER_RETITLE.designerTitle}" — words an applicant actually understands.`,
+    intent: `Rename the AI's "${DESIGNER_RETITLE.generatedTitle}" to "${DESIGNER_RETITLE.designerTitle}" — words a worried applicant actually understands.`,
     outcome: retitled.ok ? 'admitted' : 'refused',
     ...(retitled.ok ? {} : { message: retitled.error.message }),
     details: {
@@ -855,7 +891,7 @@ export async function stageSignOff(ev: Evidence, state: WalkState): Promise<{ bu
 
   ev.openStage(
     'sign-off',
-    'A person states, on the record, what each page is: an intake form, a signing ceremony, a receipt a court reads, a staff queue. Then they sign the whole thing — not a screenshot of it, the exact bytes. The same deployment rule that stopped the AI lets the person through.',
+    'A person states, on the record, what each page is: an application form, a signing ceremony, a receipt a court can read, a staff queue. Then they sign the whole thing — not a picture of it, the exact file that ships. The same rule that stopped the AI lets the person straight through.',
   );
 
   // The classes are read back out of the kernel's own exported Surface, never
@@ -871,7 +907,7 @@ export async function stageSignOff(ev: Evidence, state: WalkState): Promise<{ bu
     ev.beat({
       actor: 'human',
       verb: 'addRoute(routeClass)',
-      intent: `Put it on the record: ${route.path} is a "${route.routeClass}" page. ${route.why}`,
+      intent: `Put it on the record: ${route.path} is ${plainClass(route)}. ${route.why}`,
       outcome: actual === route.routeClass ? 'admitted' : 'refused',
       ...(actual === route.routeClass
         ? {}
@@ -891,7 +927,7 @@ export async function stageSignOff(ev: Evidence, state: WalkState): Promise<{ bu
   ev.beat({
     actor: 'human',
     verb: 'exportBundle',
-    intent: 'Produce the exact package that will ship.',
+    intent: 'Produce the exact package that will ship — every file, final.',
     outcome: exported.ok ? 'admitted' : 'refused',
     ...(exported.ok ? {} : { message: exported.error.message }),
     details: exported.ok
@@ -928,7 +964,7 @@ export async function stageRelease(ev: Evidence, state: WalkState): Promise<Rele
 
   ev.openStage(
     'release',
-    'The tenant pushes their brand colour onto all four pages. The substrate lets it through on the application form and refuses it on the other three — because on a receipt, a signing screen and a staff console, how it looks is part of what people rely on. Then the signature is checked from the files alone, with nothing running.',
+    'The organisation puts its brand colour on all four pages. The system allows it on the application form and refuses it on the other three — because on a receipt, a signing screen and a staff console, how the page looks is part of what people rely on. Then the sign-off is re-checked from the saved files alone, with nothing running.',
   );
 
   const policyInputs = tenantThemedPolicyInputs();
@@ -941,7 +977,7 @@ export async function stageRelease(ev: Evidence, state: WalkState): Promise<Rele
   ev.beat({
     actor: 'human',
     verb: 'declareUiGraphPolicy',
-    intent: 'Push the tenant brand colour onto all four pages.',
+    intent: "Put the organisation's brand colour on all four pages.",
     outcome: 'admitted',
     details: {
       assignments: policyInputs.reduce((n, p) => n + p.theme.assignments.length, 0),
@@ -971,7 +1007,7 @@ export async function stageRelease(ev: Evidence, state: WalkState): Promise<Rele
     ev.beat({
       actor: 'system',
       verb: 'THEME-ROUTE-CLASS',
-      intent: `Decide whether the tenant may restyle ${route.path} (a "${route.routeClass}" page).`,
+      intent: `Decide whether the organisation's brand may go on ${route.path} — ${plainClass(route)}.`,
       outcome: fired.length === 0 ? 'admitted' : 'refused',
       ...(fired.length > 0 ? { message: fired[0]!.message ?? '(no message)' } : {}),
       details: {
@@ -1015,7 +1051,7 @@ export function scopeOfDiagnostic(d: { code: string; primarySource?: { artifactS
 export async function stageFeedback(ev: Evidence, state: WalkState): Promise<void> {
   ev.openStage(
     'feedback',
-    'Two weeks in, caseworkers report a missing question. The brief grows by one line, and the AI regenerates the app from it. The only question that matters here: are the two things the designer wrote still in the app afterwards?',
+    'Two weeks in, caseworkers report a missing question. The request grows by one line, and the AI rebuilds the app from it. Only one question matters here: are the two changes the designer made by hand still in the app afterwards?',
   );
 
   ev.beat({
@@ -1045,7 +1081,7 @@ export async function stageFeedback(ev: Evidence, state: WalkState): Promise<voi
   ev.beat({
     actor: 'ai-agent',
     verb: 'regenerate',
-    intent: 'Rebuild the app from the amended brief.',
+    intent: 'Rebuild the app from the updated request.',
     outcome: 'admitted',
     details: {
       units: UNITS.length + 1,

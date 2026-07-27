@@ -203,11 +203,11 @@
   <header class="masthead">
     <p class="eyebrow">One application &middot; six stages &middot; nothing hidden</p>
     <h1>Rent assistance application</h1>
-    <p class="standfirst">Watch one small government application go from a sentence somebody said, to a signed release, to a change request that rebuilds it &mdash; and see exactly what the machinery allowed, refused, and lost along the way.</p>
+    <p class="standfirst">One small government form, from the sentence someone said out loud to a signed release to a change request that rebuilds it. Everything below is what actually happened &mdash; what the system allowed, what it refused, and what it lost.</p>
   </header>
 
   <section class="brief">
-    <h2>The brief it started from</h2>
+    <h2>What someone asked for</h2>
     <ol>
       <li><span class="tag">B1</span><span>A tenant behind on rent tells us about their household and what went wrong.</span></li>
       <li><span class="tag">B2</span><span>Before it counts, they sign a declaration that what they said is true.</span></li>
@@ -227,9 +227,9 @@
     <span class="bar__id">BAR 1</span>
     <span class="bar__verdict">Met</span>
   </header>
-  <h3 class="bar__title">Everything traces back to the brief</h3>
-  <p class="bar__qualifier">Met, and narrower than it sounds: only 1 of the 4 journey entries is mounted on a page at all, so the unit-to-page hop holds over 1 of 4. The other three are unmountable on a Definition-bearing bundle — `APP-GRAPH-SURFACE-EXPERIENCE-UNIT-DEFINITION` requires any route mounting a unit to also carry a `definition-form` slot for the Experience's `targetDefinition`. The chain is connected; it is not four parallel chains.</p>
-  <p class="bar__criterion">Each hop from a brief sentence to a page, a question and a rendered field is either an edge the substrate itself recorded, or a reference physically present in the exported files.</p>
+  <h3 class="bar__title">Everything traces back to the original request</h3>
+  <p class="bar__qualifier">Met, and narrower than it sounds: only 1 of the 4 journey steps is shown on a page at all, so that one link was tested over 1 of 4. The other three cannot be put on a page in an app that collects answers — a rule we found and reported rather than worked around. The chain is connected end to end; it is not four parallel chains.</p>
+  <p class="bar__criterion">Every step from a sentence in the original request to a page, a question, and the field a person actually fills in is either a link the system recorded itself, or a reference sitting in the shipped files.</p>
   
   <details class="detail"><summary>Evidence</summary><pre>{
   &quot;mountedUnits&quot;: 1,
@@ -290,9 +290,9 @@
     <span class="bar__id">BAR 2</span>
     <span class="bar__verdict">Met</span>
   </header>
-  <h3 class="bar__title">The signature checks out with nothing running</h3>
+  <h3 class="bar__title">The sign-off can be verified by anyone, offline, forever</h3>
   
-  <p class="bar__criterion">The release signature verifies from the committed files alone, and a single changed byte makes it stop verifying.</p>
+  <p class="bar__criterion">The sign-off checks out from the saved files alone, with nothing running and no need to contact us — and changing a single byte of the app makes it stop checking out.</p>
   
   <details class="detail"><summary>Evidence</summary><pre>{
   &quot;verification&quot;: {
@@ -331,9 +331,9 @@
     <span class="bar__id">BAR 3</span>
     <span class="bar__verdict">Met</span>
   </header>
-  <h3 class="bar__title">The authorization rules fire in the middle of the story</h3>
+  <h3 class="bar__title">The AI was refused 5 times — and kept working</h3>
   
-  <p class="bar__criterion">The AI is refused the page classifications and the theme declaration, each refusal naming what was refused and who was refused; it keeps working; nothing leaks through; and a person succeeds at both under the same deployment rule.</p>
+  <p class="bar__criterion">The AI is refused every page label and the app's look. Each refusal names what was blocked and who was blocked. The AI carries on building. Nothing slips through. A person then does both, under the very same rule.</p>
   
   <details class="detail"><summary>Evidence</summary><pre>{
   &quot;routeClassRefusals&quot;: 4,
@@ -356,9 +356,9 @@
     <span class="bar__id">BAR 4</span>
     <span class="bar__verdict">Met</span>
   </header>
-  <h3 class="bar__title">Tenant branding stops at the receipt</h3>
+  <h3 class="bar__title">Your brand goes on your form, never on the receipt</h3>
   
-  <p class="bar__criterion">In the release report, the tenant colour is allowed on the application form and refused on the receipt, with the substrate naming the reason.</p>
+  <p class="bar__criterion">The organisation's brand colour is allowed on the application form and refused on the receipt a court reads, with the system stating the reason in its own words.</p>
   
   <details class="detail"><summary>Evidence</summary><pre>{
   &quot;crossArtifactStatus&quot;: &quot;completed&quot;,
@@ -396,10 +396,10 @@
     <span class="bar__id">BAR 5</span>
     <span class="bar__verdict">Not met</span>
   </header>
-  <h3 class="bar__title">The designer's edits survive a rebuild</h3>
+  <h3 class="bar__title">A designer's hand-made changes survive an AI rebuild — NOT YET TRUE, and we measured exactly why</h3>
   
-  <p class="bar__criterion">After the change request rebuilds the app, both hand-made edits are still there, put there by the substrate's own three-way merge.</p>
-  <p class="bar__finding">No regeneration merge exists to run. No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it. Both designer edits are therefore lost on rebuild: DESIGNER-EDIT-1 (designer-inserted), DESIGNER-EDIT-2 (designer-modified). This was the pre-registered prediction, and it is ADR 0159's own falsifier firing — the moat is specified, fixtured, and unbuilt.</p>
+  <p class="bar__criterion">After the AI rebuilds the app, both hand-made changes are still in it — kept by the product's own merging step, not put back by us.</p>
+  <p class="bar__finding">The step that would keep those changes does not exist yet. We searched every part of the product that ships and found nothing that does the merging — the pieces it would need are there, the step that uses them is not. The design is written down, the test cases are written down, and nothing runs them. So both hand-made changes were lost the moment the app was rebuilt (DESIGNER-EDIT-1 and DESIGNER-EDIT-2). We predicted this before the run and measured it anyway. The full search is below, and it is the most important thing on this page.</p>
   <details class="detail"><summary>Evidence</summary><pre>{
   &quot;inputs&quot;: {
     &quot;oldGenerated&quot;: &quot;evidence/bar5-old-generated.surface.json&quot;,
@@ -409,7 +409,7 @@
   &quot;mergeAttempt&quot;: {
     &quot;attempted&quot;: true,
     &quot;entryPoint&quot;: null,
-    &quot;outcome&quot;: &quot;No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it.&quot;
+    &quot;outcome&quot;: &quot;No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 14 further files name the corpus without executing it.&quot;
   },
   &quot;apiProbe&quot;: {
     &quot;packagesProbed&quot;: [
@@ -486,12 +486,17 @@
       &quot;crates/formspec-lint/src/pass_modules.rs&quot;,
       &quot;crates/formspec-lint/src/types.rs&quot;,
       &quot;crates/formspec-py/src/document.rs&quot;,
+      &quot;spikes/lifecycle-demo-v10/evidence/bar5-moat-measurement.json&quot;,
+      &quot;spikes/lifecycle-demo-v10/evidence/lifecycle.json&quot;,
+      &quot;spikes/lifecycle-demo-v10/lifecycle-walkthrough.html&quot;,
+      &quot;spikes/lifecycle-demo-v10/src/regeneration.ts&quot;,
       &quot;tests/conformance/COMP-BUNDLE-ID-MIGRATION.md&quot;,
       &quot;tests/conformance/tools/comp_bundle_id_audit.py&quot;,
       &quot;thoughts/archive/plans/2026-05-22-bundle-manifest.md&quot;,
       &quot;thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md&quot;,
       &quot;thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md&quot;,
-      &quot;thoughts/plans/2026-05-22-regeneration-merge.md&quot;
+      &quot;thoughts/plans/2026-05-22-regeneration-merge.md&quot;,
+      &quot;thoughts/spikes/2026-07-26-lifecycle-demo-v10.md&quot;
     ],
     &quot;collectedTests&quot;: [
       &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_id_and_version&quot;,
@@ -549,9 +554,9 @@
     <span class="bar__id">BAR 6</span>
     <span class="bar__verdict">Met</span>
   </header>
-  <h3 class="bar__title">The materialisation guarantees still hold here</h3>
+  <h3 class="bar__title">The finished app passed every automated check</h3>
   
-  <p class="bar__criterion">The five ADR 0160 acceptance bars stay met on this new app, authored entirely through the verb family with no host wiring.</p>
+  <p class="bar__criterion">The five structural checks the product commits to all still pass on this app — which was built end to end by the AI and one person, with nothing wired in by hand behind the scenes.</p>
   
   <details class="detail"><summary>Evidence</summary><pre>{
   &quot;rows&quot;: {
@@ -594,34 +599,35 @@
     <span class="stage__num">1</span>
     <div>
       <h2 class="stage__title">Idea</h2>
-      <p class="stage__sub">Somebody describes the job</p>
+      <p class="stage__sub">Someone describes the job</p>
     </div>
     
   </header>
-  <p class="stage__narration">Someone describes the job in four sentences. Before a single field exists, the AI writes down who is involved and what each of them is trying to get done — one entry per sentence of the brief.</p>
+  <p class="stage__narration">Someone describes the job in four sentences. Before a single question exists, the AI writes down who is involved and what each person is trying to get done — one entry per sentence.</p>
   <ol class="beats"><li class="beat beat--admitted">
   <div class="beat__head">
     <span class="beat__who">The AI</span>
     <code class="beat__verb">wireframeFromBrief</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Start an app from the brief.</p>
+  <p class="beat__intent">Start a new app from what the person asked for.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;bundleId&quot;: &quot;https://benefits.example.gov/apps/assistance&quot;,
   &quot;briefLines&quot;: 4
 }</pre></details>
 </li>
 <li class="beat beat--recorded">
   <div class="beat__head">
-    <span class="beat__who">The substrate</span>
+    <span class="beat__who">The system</span>
     <code class="beat__verb">wireframeFromBrief</code>
     <span class="chip chip--noted">Noted</span>
   </div>
-  <p class="beat__intent">Keep the brief text itself, so later stages can point back at it.</p>
-  <blockquote class="said said--walk"><span class="said__who">What the walk found</span><code>The brief is accepted as an argument and discarded. `wireframeFromBrief` forwards only id, version and title to `createBundle`; no verb persists the brief text. It survives into the substrate only as the units it produced.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
-  &quot;finding&quot;: &quot;no-brief-persistence&quot;
+  <p class="beat__intent">Keep the request itself, so later steps can point back at the words someone wrote.</p>
+  <blockquote class="said said--walk"><span class="said__who">What we found when we checked</span><code>It does not. The request is read, used once, and thrown away — nothing stores the original words. What survives is the four journey entries it produced. A gap we found and reported, rather than papered over.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
+  &quot;finding&quot;: &quot;no-brief-persistence&quot;,
+  &quot;technical&quot;: &quot;`wireframeFromBrief` accepts the brief as an argument and discards it — it forwards only id, version and title to `createBundle`, and no verb persists the brief text. It survives into the substrate only as the units it produced.&quot;
 }</pre></details>
 </li>
 <li class="beat beat--admitted">
@@ -630,9 +636,9 @@
     <code class="beat__verb">addExperienceUnit</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Write down: &quot;Tell us about your household&quot; — applicant needs to submitApplication.</p>
+  <p class="beat__intent">Write down one step of the journey: &quot;Tell us about your household&quot; — this is for the applicant.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;unitId&quot;: &quot;applyForHelp&quot;,
   &quot;kind&quot;: &quot;data-entry&quot;,
   &quot;actorRef&quot;: &quot;applicant&quot;,
@@ -648,9 +654,9 @@
     <code class="beat__verb">addExperienceUnit</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Write down: &quot;Sign your declaration&quot; — applicant needs to certifyTruth.</p>
+  <p class="beat__intent">Write down one step of the journey: &quot;Sign your declaration&quot; — this is for the applicant.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;unitId&quot;: &quot;certifyDeclaration&quot;,
   &quot;kind&quot;: &quot;attestation&quot;,
   &quot;actorRef&quot;: &quot;applicant&quot;,
@@ -666,9 +672,9 @@
     <code class="beat__verb">addExperienceUnit</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Write down: &quot;Keep your receipt&quot; — applicant needs to proveSubmission.</p>
+  <p class="beat__intent">Write down one step of the journey: &quot;Keep your receipt&quot; — this is for the applicant.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;unitId&quot;: &quot;collectReceipt&quot;,
   &quot;kind&quot;: &quot;confirmation&quot;,
   &quot;actorRef&quot;: &quot;applicant&quot;,
@@ -684,9 +690,9 @@
     <code class="beat__verb">addExperienceUnit</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Write down: &quot;Work the queue&quot; — caseworker needs to decideApplication.</p>
+  <p class="beat__intent">Write down one step of the journey: &quot;Work the queue&quot; — this is for the caseworker.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;unitId&quot;: &quot;reviewApplication&quot;,
   &quot;kind&quot;: &quot;review&quot;,
   &quot;actorRef&quot;: &quot;caseworker&quot;,
@@ -697,7 +703,7 @@
 }</pre></details>
 </li></ol>
   <details class="detail detail--state">
-    <summary>What exists in the substrate after this stage</summary>
+    <summary>What the app contains at this point</summary>
     <pre>{
   &quot;hasExperience&quot;: true,
   &quot;experienceUrl&quot;: &quot;urn:formspec:doc:1feb5fb90254133a:experience&quot;,
@@ -753,16 +759,16 @@
     </div>
     <span class="stage__flag">4 refusals</span>
   </header>
-  <p class="stage__narration">The AI turns the journey into a real form: the questions people will answer, and the four pages the app has. Then it tries to say what kind of page each one is — and the deployment stops it. Deciding that a page is &quot;a receipt a court relies on&quot; is a call a person makes, not a machine.</p>
+  <p class="stage__narration">The AI turns that into a real form: the questions people will answer, and the four pages the app has. Then it tries to label each page — this one is an everyday form, this one is a signing ceremony, this one is legal proof a court can read. The system refuses every time. Calling a page legal proof is a claim about the real world, and here only a person is allowed to make it.</p>
   <ol class="beats"><li class="beat beat--admitted">
   <div class="beat__head">
     <span class="beat__who">The AI</span>
     <code class="beat__verb">declareDefinition</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Create the form that holds the questions.</p>
+  <p class="beat__intent">Create the form that will hold the questions.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;url&quot;: &quot;https://benefits.example.gov/apps/assistance/definitions/rent-assistance&quot;
 }</pre></details>
 </li>
@@ -774,7 +780,7 @@
   </div>
   <p class="beat__intent">Write the questions people will answer: &quot;Household size&quot;, &quot;Monthly rent&quot;, &quot;Months behind on rent&quot;, &quot;What happened&quot;.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;items&quot;: [
     {
       &quot;path&quot;: &quot;householdSize&quot;,
@@ -801,18 +807,19 @@
 </li>
 <li class="beat beat--recorded">
   <div class="beat__head">
-    <span class="beat__who">The substrate</span>
+    <span class="beat__who">The system</span>
     <code class="beat__verb">(none)</code>
     <span class="chip chip--noted">Noted</span>
   </div>
-  <p class="beat__intent">Connect the journey entries to the questions they collect.</p>
-  <blockquote class="said said--walk"><span class="said__who">What the walk found</span><code>No kernel op writes `unit.itemRefs` after a unit exists — `bindActor` and `bindTask` exist, `bindItem` does not, and `addUnit` conflicts on re-add. The Experience-to-Definition link the ADR 0159 Plan row describes is unreachable through the verb surface; the two meet on the Surface route that binds both instead.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Link each step of the journey to the questions it collects.</p>
+  <blockquote class="said said--walk"><span class="said__who">What we found when we checked</span><code>There is no way to do it. Once a journey step exists, nothing can attach questions to it. The two only meet later, on the page that shows both. Another gap we found and reported.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;finding&quot;: &quot;no-bindItem-verb&quot;,
   &quot;availableBinders&quot;: [
     &quot;bindActor&quot;,
     &quot;bindTask&quot;
-  ]
+  ],
+  &quot;technical&quot;: &quot;No kernel op writes `unit.itemRefs` after a unit exists — `bindActor` and `bindTask` exist, `bindItem` does not, and `addUnit` conflicts on re-add. The Experience-to-Definition link is unreachable through the verb surface; the two meet on the Surface route that binds both instead.&quot;
 }</pre></details>
 </li>
 <li class="beat beat--admitted">
@@ -823,7 +830,7 @@
   </div>
   <p class="beat__intent">Say what happens when somebody presses Submit.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;actionId&quot;: &quot;submitApplication&quot;,
   &quot;intent&quot;: &quot;submit&quot;,
   &quot;note&quot;: &quot;No declareResponseActions verb exists in the ADR 0160 v1 family; the kernel op mints the document on first call.&quot;
@@ -831,13 +838,13 @@
 </li>
 <li class="beat beat--recorded">
   <div class="beat__head">
-    <span class="beat__who">The substrate</span>
+    <span class="beat__who">The system</span>
     <code class="beat__verb">(check)</code>
     <span class="chip chip--noted">Noted</span>
   </div>
-  <p class="beat__intent">Confirm the app now says what Submit does.</p>
-  <blockquote class="said said--walk"><span class="said__who">What the walk found</span><code>The Response Actions document was minted and no manifest slot names it. `readAppManifest` emits no `responseActions` key and `exportBundle` does not serialise it, so nothing in the graph can resolve the Submit behaviour — the transitions that fire it stay unresolved. This is ADR 0160 §4.2(b) (&quot;no mint without a declaration&quot;) firing on a kind that ADR 0160 §6.5 does NOT list as deliberately excluded: it fixed the identical defect for `ensureExperience` and left this one.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Check that the finished app can still find what Submit does.</p>
+  <blockquote class="said said--walk"><span class="said__who">What we found when we checked</span><code>It cannot. The Submit behaviour was created, but the app's own index never lists it, so it is left out of the shipped package. A page that fires Submit would have nothing to point at. A third gap we found and reported, not patched.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;finding&quot;: &quot;response-actions-minted-but-undeclared&quot;,
   &quot;manifestSlots&quot;: [
     &quot;$formspecBundle&quot;,
@@ -851,6 +858,7 @@
     &quot;modules&quot;,
     &quot;sessions&quot;
   ],
+  &quot;technical&quot;: &quot;The Response Actions document was minted and no manifest slot names it. `readAppManifest` emits no `responseActions` key and `exportBundle` does not serialise it, so nothing in the graph can resolve the Submit behaviour — the transitions that fire it stay unresolved.&quot;,
   &quot;adr0160&quot;: &quot;§4.2(b) mirror of the fixed `ensureExperience` defect; §6.5 excludes Locale, Mapping and Data Sources — not Response Actions&quot;
 }</pre></details>
 </li>
@@ -860,9 +868,9 @@
     <code class="beat__verb">addSurface</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Give staff their own app. A caseworker queue is not a page an applicant can walk to.</p>
+  <p class="beat__intent">Give staff their own app. A caseworker queue is not a page an applicant should ever reach.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;surfaceUrl&quot;: &quot;https://benefits.example.gov/apps/assistance/surfaces/staff&quot;,
   &quot;surfaceId&quot;: &quot;staff&quot;
 }</pre></details>
@@ -873,9 +881,9 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Say that /apply is a &quot;intake&quot; page — A Definition-backed capture from the person applying. The one class that admits a tenant putting their own brand on the page.</p>
-  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'intake'; deployment posture protects it.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Label /apply as an everyday form people fill in. It collects answers from the person applying. It is the one kind of page where an organisation may put its own brand. In this deployment, only a person may make that call.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'intake'; deployment posture protects it.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;apply&quot;,
   &quot;wantedRouteClass&quot;: &quot;intake&quot;,
   &quot;errorCode&quot;: &quot;VALIDATION&quot;,
@@ -894,9 +902,9 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Add /apply without saying what kind of page it is, and keep working.</p>
+  <p class="beat__intent">Add /apply without the label, and carry on. The refusal stopped one field, not the work.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;apply&quot;,
   &quot;routeClass&quot;: null
 }</pre></details>
@@ -907,9 +915,9 @@
     <code class="beat__verb">bindSlot</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Fill /apply with what belongs on it.</p>
+  <p class="beat__intent">Put on /apply the things that belong there.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;apply&quot;,
   &quot;slots&quot;: [
     {
@@ -933,9 +941,9 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Say that /certify is a &quot;ceremony&quot; page — The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it.</p>
-  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'ceremony'; deployment posture protects it.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Label /certify as a signing ceremony. The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it. In this deployment, only a person may make that call.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'ceremony'; deployment posture protects it.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;certify&quot;,
   &quot;wantedRouteClass&quot;: &quot;ceremony&quot;,
   &quot;errorCode&quot;: &quot;VALIDATION&quot;,
@@ -954,9 +962,9 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Add /certify without saying what kind of page it is, and keep working.</p>
+  <p class="beat__intent">Add /certify without the label, and carry on. The refusal stopped one field, not the work.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;certify&quot;,
   &quot;routeClass&quot;: null
 }</pre></details>
@@ -967,9 +975,9 @@
     <code class="beat__verb">bindSlot</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Fill /certify with what belongs on it.</p>
+  <p class="beat__intent">Put on /certify the things that belong there.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;certify&quot;,
   &quot;slots&quot;: [
     {
@@ -989,9 +997,9 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Say that /receipt/:caseRef is a &quot;proof&quot; page — The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so a tenant cannot restyle it.</p>
-  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Label /receipt/:caseRef as legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it. In this deployment, only a person may make that call.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;receipt&quot;,
   &quot;wantedRouteClass&quot;: &quot;proof&quot;,
   &quot;errorCode&quot;: &quot;VALIDATION&quot;,
@@ -1010,9 +1018,9 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Add /receipt/:caseRef without saying what kind of page it is, and keep working.</p>
+  <p class="beat__intent">Add /receipt/:caseRef without the label, and carry on. The refusal stopped one field, not the work.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;receipt&quot;,
   &quot;routeClass&quot;: null
 }</pre></details>
@@ -1023,9 +1031,9 @@
     <code class="beat__verb">bindSlot</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Fill /receipt/:caseRef with what belongs on it.</p>
+  <p class="beat__intent">Put on /receipt/:caseRef the things that belong there.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;receipt&quot;,
   &quot;slots&quot;: [
     {
@@ -1045,9 +1053,9 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Say that /queue is a &quot;operation&quot; page — Staff-facing product UI. It makes no claim to anyone outside the building — which is a statement in itself, not an absence of one.</p>
-  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'operation'; deployment posture protects it.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Label /queue as an internal staff screen. A screen only staff see. It makes no claim to anyone outside the building — which is itself a statement, not the absence of one. In this deployment, only a person may make that call.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'operation'; deployment posture protects it.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;queue&quot;,
   &quot;wantedRouteClass&quot;: &quot;operation&quot;,
   &quot;errorCode&quot;: &quot;VALIDATION&quot;,
@@ -1066,9 +1074,9 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Add /queue without saying what kind of page it is, and keep working.</p>
+  <p class="beat__intent">Add /queue without the label, and carry on. The refusal stopped one field, not the work.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;queue&quot;,
   &quot;routeClass&quot;: null
 }</pre></details>
@@ -1079,9 +1087,9 @@
     <code class="beat__verb">bindSlot</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Fill /queue with what belongs on it.</p>
+  <p class="beat__intent">Put on /queue the things that belong there.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;queue&quot;,
   &quot;slots&quot;: [
     {
@@ -1096,7 +1104,7 @@
 }</pre></details>
 </li></ol>
   <details class="detail detail--state">
-    <summary>What exists in the substrate after this stage</summary>
+    <summary>What the app contains at this point</summary>
     <pre>{
   &quot;routes&quot;: [
     {
@@ -1128,20 +1136,20 @@
     <span class="stage__num">3</span>
     <div>
       <h2 class="stage__title">Build</h2>
-      <p class="stage__sub">A person takes the pen</p>
+      <p class="stage__sub">A person takes over</p>
     </div>
     <span class="stage__flag">2 refusals</span>
   </header>
-  <p class="stage__narration">The app gets its parts list and its look. The AI is stopped again — declaring the theme is a decision about who controls appearance, and appearance is load-bearing on three of these four pages. A person takes over, declares it, and then makes two small edits of their own. Those two edits are the thing the last stage is about.</p>
+  <p class="stage__narration">The app gets its parts list and its look. The AI is stopped again: creating the app's look decides who controls how pages appear, and on three of these four pages appearance is part of what people rely on. A person takes over, creates it, and then makes two small changes of their own. Those two changes are what the last stage is about.</p>
   <ol class="beats"><li class="beat beat--refused">
   <div class="beat__head">
     <span class="beat__who">The AI</span>
     <code class="beat__verb">declareTheme</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Create the theme that controls how the app looks.</p>
-  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'theme.declaration'; deployment posture protects it.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Create the app's look — the colours and styling every page uses.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'theme.declaration'; deployment posture protects it.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;errorCode&quot;: &quot;VALIDATION&quot;,
   &quot;operation&quot;: &quot;declareTheme&quot;,
   &quot;reason&quot;: &quot;vocabulary-protected&quot;,
@@ -1152,30 +1160,31 @@
 </li>
 <li class="beat beat--recorded">
   <div class="beat__head">
-    <span class="beat__who">The substrate</span>
+    <span class="beat__who">The system</span>
     <code class="beat__verb">(check)</code>
     <span class="chip chip--noted">Noted</span>
   </div>
-  <p class="beat__intent">Confirm the refused write left nothing behind.</p>
-  <blockquote class="said said--walk"><span class="said__who">What the walk found</span><code>No theme slot on the app manifest. The refused declaration wrote nothing.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Check that the refusal left nothing half-written behind.</p>
+  <blockquote class="said said--walk"><span class="said__who">What we found when we checked</span><code>It did not. The app still has no look of its own. The refused change wrote nothing at all — a refusal here means nothing happened, not that something happened quietly.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;check&quot;: &quot;refused-theme-declaration-left-no-state&quot;,
   &quot;themeSlot&quot;: null
 }</pre></details>
 </li>
 <li class="beat beat--recorded">
   <div class="beat__head">
-    <span class="beat__who">The substrate</span>
+    <span class="beat__who">The system</span>
     <code class="beat__verb">(handoff)</code>
     <span class="chip chip--noted">Noted</span>
   </div>
   <p class="beat__intent">Hand the half-built app from the AI to a person.</p>
-  <blockquote class="said said--walk"><span class="said__who">What the walk found</span><code>No verb transfers an in-flight artifact between actors. The kernel reads the acting actor from its construction context, and supplying a kernel together with posture options is a construction-time error, so one kernel is one actor. The handoff is modelled as a new session replaying the authored state; the replay is checked against the AI's own exported documents rather than assumed.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <blockquote class="said said--walk"><span class="said__who">What we found when we checked</span><code>There is no built-in way to pass a half-built app from one pair of hands to another. So we did it the way a real deployment would have to: the person opened their own session and the AI's work was rebuilt under their name. We then compared the two, file by file, to prove the person ended up with the AI's app and not a lookalike. A fourth gap we found and reported.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;from&quot;: &quot;urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10&quot;,
   &quot;to&quot;: &quot;urn:formspec:actor:human:product-owner:lifecycle-v10&quot;,
   &quot;replayMatchedAgentExport&quot;: true,
-  &quot;finding&quot;: &quot;no-actor-handoff-verb&quot;
+  &quot;finding&quot;: &quot;no-actor-handoff-verb&quot;,
+  &quot;technical&quot;: &quot;No verb transfers an in-flight artifact between actors. The kernel reads the acting actor from its construction context, and supplying a kernel together with posture options is a construction-time error, so one kernel is one actor. The handoff is modelled as a new session replaying the authored state; the replay is checked against the AI's own exported documents rather than assumed.&quot;
 }</pre></details>
 </li>
 <li class="beat beat--refused">
@@ -1184,9 +1193,9 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Change what kind of page /apply is — from &quot;intake&quot; to &quot;proof&quot;. The route already exists, and the person is the actor the deployment admits, so nothing but the route itself is left to say no.</p>
-  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Surface route 'apply' already exists.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Change /apply from an everyday form people fill in to legal proof that someone else relies on. The page already exists, and this person is allowed to make that call — so the only thing left that could say no is the page itself.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>Surface route 'apply' already exists.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;finding&quot;: &quot;route-class-is-write-once&quot;,
   &quot;probedOnWhoseKernel&quot;: &quot;the human's — the actor this posture ADMITS, which is what makes the quoted refusal evidence of write-once rather than a second copy of the ADR 0152 refusal&quot;,
   &quot;routeId&quot;: &quot;apply&quot;,
@@ -1223,9 +1232,9 @@
     <code class="beat__verb">declareTheme</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Create the theme — the same call the AI was refused.</p>
+  <p class="beat__intent">Create the app's look — the exact thing the AI was refused a moment ago.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;url&quot;: &quot;urn:formspec:doc:1feb5fb90254133a:theme&quot;,
   &quot;samePostureAsRefusal&quot;: true
 }</pre></details>
@@ -1236,9 +1245,9 @@
     <code class="beat__verb">setThemeToken</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Set the tenant's brand colour (#7A1F3D).</p>
+  <p class="beat__intent">Set the organisation's brand colour (#7A1F3D).</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;key&quot;: &quot;color.accent&quot;,
   &quot;value&quot;: &quot;#7A1F3D&quot;
 }</pre></details>
@@ -1249,9 +1258,9 @@
     <code class="beat__verb">declareRegistry + addRegistryEntry</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Register the building blocks the pages are made of.</p>
+  <p class="beat__intent">Register the building blocks the pages are made from.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;registryUrl&quot;: &quot;urn:formspec:doc:1feb5fb90254133a:registry&quot;,
   &quot;entries&quot;: 5,
   &quot;hostDocumentsWired&quot;: 0
@@ -1263,9 +1272,9 @@
     <code class="beat__verb">bindSlot</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Add one sentence the AI never wrote: &quot;You can apply even if you have already received help this year.&quot;</p>
+  <p class="beat__intent">Add one line of reassurance the AI never thought to write: &quot;You can apply even if you have already received help this year.&quot;</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;edit&quot;: &quot;DESIGNER-EDIT-1&quot;,
   &quot;deltaClass&quot;: &quot;designer-inserted&quot;,
   &quot;slotId&quot;: &quot;applyReassurance&quot;
@@ -1277,9 +1286,9 @@
     <code class="beat__verb">removeSlot + bindSlot</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Rename the AI's &quot;Application form&quot; to &quot;About your household&quot; — words an applicant actually understands.</p>
+  <p class="beat__intent">Rename the AI's &quot;Application form&quot; to &quot;About your household&quot; — words a worried applicant actually understands.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;edit&quot;: &quot;DESIGNER-EDIT-2&quot;,
   &quot;deltaClass&quot;: &quot;designer-modified&quot;,
   &quot;slotId&quot;: &quot;applyForm&quot;,
@@ -1289,7 +1298,7 @@
 }</pre></details>
 </li></ol>
   <details class="detail detail--state">
-    <summary>What exists in the substrate after this stage</summary>
+    <summary>What the app contains at this point</summary>
     <pre>{
   &quot;themeDeclaredBy&quot;: &quot;human&quot;,
   &quot;themeToken&quot;: {
@@ -1317,20 +1326,20 @@
     <span class="stage__num">4</span>
     <div>
       <h2 class="stage__title">Sign-off</h2>
-      <p class="stage__sub">On the record, and signed</p>
+      <p class="stage__sub">It gets signed, on the record</p>
     </div>
     
   </header>
-  <p class="stage__narration">A person states, on the record, what each page is: an intake form, a signing ceremony, a receipt a court reads, a staff queue. Then they sign the whole thing — not a screenshot of it, the exact bytes. The same deployment rule that stopped the AI lets the person through.</p>
+  <p class="stage__narration">A person states, on the record, what each page is: an application form, a signing ceremony, a receipt a court can read, a staff queue. Then they sign the whole thing — not a picture of it, the exact file that ships. The same rule that stopped the AI lets the person straight through.</p>
   <ol class="beats"><li class="beat beat--admitted">
   <div class="beat__head">
     <span class="beat__who">A person</span>
     <code class="beat__verb">addRoute(routeClass)</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Put it on the record: /apply is a &quot;intake&quot; page. A Definition-backed capture from the person applying. The one class that admits a tenant putting their own brand on the page.</p>
+  <p class="beat__intent">Put it on the record: /apply is an everyday form people fill in. It collects answers from the person applying. It is the one kind of page where an organisation may put its own brand.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;apply&quot;,
   &quot;routeClass&quot;: &quot;intake&quot;,
   &quot;persistedRouteClass&quot;: &quot;intake&quot;,
@@ -1344,9 +1353,9 @@
     <code class="beat__verb">addRoute(routeClass)</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Put it on the record: /certify is a &quot;ceremony&quot; page. The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it.</p>
+  <p class="beat__intent">Put it on the record: /certify is a signing ceremony. The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;certify&quot;,
   &quot;routeClass&quot;: &quot;ceremony&quot;,
   &quot;persistedRouteClass&quot;: &quot;ceremony&quot;,
@@ -1360,9 +1369,9 @@
     <code class="beat__verb">addRoute(routeClass)</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Put it on the record: /receipt/:caseRef is a &quot;proof&quot; page. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so a tenant cannot restyle it.</p>
+  <p class="beat__intent">Put it on the record: /receipt/:caseRef is legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;receipt&quot;,
   &quot;routeClass&quot;: &quot;proof&quot;,
   &quot;persistedRouteClass&quot;: &quot;proof&quot;,
@@ -1376,9 +1385,9 @@
     <code class="beat__verb">addRoute(routeClass)</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Put it on the record: /queue is a &quot;operation&quot; page. Staff-facing product UI. It makes no claim to anyone outside the building — which is a statement in itself, not an absence of one.</p>
+  <p class="beat__intent">Put it on the record: /queue is an internal staff screen. A screen only staff see. It makes no claim to anyone outside the building — which is itself a statement, not the absence of one.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;queue&quot;,
   &quot;routeClass&quot;: &quot;operation&quot;,
   &quot;persistedRouteClass&quot;: &quot;operation&quot;,
@@ -1392,9 +1401,9 @@
     <code class="beat__verb">exportBundle</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Produce the exact package that will ship.</p>
+  <p class="beat__intent">Produce the exact package that will ship — every file, final.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;documents&quot;: 6,
   &quot;keys&quot;: [
     &quot;https://benefits.example.gov/apps/assistance/surfaces/respondent&quot;,
@@ -1407,7 +1416,7 @@
 }</pre></details>
 </li></ol>
   <details class="detail detail--state">
-    <summary>What exists in the substrate after this stage</summary>
+    <summary>What the app contains at this point</summary>
     <pre>{
   &quot;routeClasses&quot;: [
     {
@@ -1444,20 +1453,20 @@
     <span class="stage__num">5</span>
     <div>
       <h2 class="stage__title">Release</h2>
-      <p class="stage__sub">What the tenant may restyle</p>
+      <p class="stage__sub">The brand goes on, where it is allowed</p>
     </div>
     <span class="stage__flag">3 refusals</span>
   </header>
-  <p class="stage__narration">The tenant pushes their brand colour onto all four pages. The substrate lets it through on the application form and refuses it on the other three — because on a receipt, a signing screen and a staff console, how it looks is part of what people rely on. Then the signature is checked from the files alone, with nothing running.</p>
+  <p class="stage__narration">The organisation puts its brand colour on all four pages. The system allows it on the application form and refuses it on the other three — because on a receipt, a signing screen and a staff console, how the page looks is part of what people rely on. Then the sign-off is re-checked from the saved files alone, with nothing running.</p>
   <ol class="beats"><li class="beat beat--admitted">
   <div class="beat__head">
     <span class="beat__who">A person</span>
     <code class="beat__verb">declareUiGraphPolicy</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Push the tenant brand colour onto all four pages.</p>
+  <p class="beat__intent">Put the organisation's brand colour on all four pages.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;assignments&quot;: 4,
   &quot;surfaces&quot;: [
     &quot;https://benefits.example.gov/apps/assistance/surfaces/respondent&quot;,
@@ -1467,29 +1476,29 @@
 </li>
 <li class="beat beat--admitted">
   <div class="beat__head">
-    <span class="beat__who">The substrate</span>
+    <span class="beat__who">The system</span>
     <code class="beat__verb">THEME-ROUTE-CLASS</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Decide whether the tenant may restyle /apply (a &quot;intake&quot; page).</p>
+  <p class="beat__intent">Decide whether the organisation's brand may go on /apply — an everyday form people fill in.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;apply&quot;,
   &quot;routeClass&quot;: &quot;intake&quot;,
   &quot;widget&quot;: &quot;x-intake-banner&quot;,
   &quot;fires&quot;: 0,
-  &quot;why&quot;: &quot;A Definition-backed capture from the person applying. The one class that admits a tenant putting their own brand on the page.&quot;
+  &quot;why&quot;: &quot;It collects answers from the person applying. It is the one kind of page where an organisation may put its own brand.&quot;
 }</pre></details>
 </li>
 <li class="beat beat--refused">
   <div class="beat__head">
-    <span class="beat__who">The substrate</span>
+    <span class="beat__who">The system</span>
     <code class="beat__verb">THEME-ROUTE-CLASS</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Decide whether the tenant may restyle /certify (a &quot;ceremony&quot; page).</p>
-  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Decide whether the organisation's brand may go on /certify — a signing ceremony.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;certify&quot;,
   &quot;routeClass&quot;: &quot;ceremony&quot;,
   &quot;widget&quot;: &quot;x-ceremony-frame&quot;,
@@ -1500,40 +1509,40 @@
 </li>
 <li class="beat beat--refused">
   <div class="beat__head">
-    <span class="beat__who">The substrate</span>
+    <span class="beat__who">The system</span>
     <code class="beat__verb">THEME-ROUTE-CLASS</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Decide whether the tenant may restyle /receipt/:caseRef (a &quot;proof&quot; page).</p>
-  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Decide whether the organisation's brand may go on /receipt/:caseRef — legal proof that someone else relies on.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;receipt&quot;,
   &quot;routeClass&quot;: &quot;proof&quot;,
   &quot;widget&quot;: &quot;x-receipt-panel&quot;,
   &quot;fires&quot;: 1,
   &quot;reason&quot;: &quot;tenant-theming-refused-by-route-class&quot;,
-  &quot;why&quot;: &quot;The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so a tenant cannot restyle it.&quot;
+  &quot;why&quot;: &quot;The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it.&quot;
 }</pre></details>
 </li>
 <li class="beat beat--refused">
   <div class="beat__head">
-    <span class="beat__who">The substrate</span>
+    <span class="beat__who">The system</span>
     <code class="beat__verb">THEME-ROUTE-CLASS</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Decide whether the tenant may restyle /queue (a &quot;operation&quot; page).</p>
-  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.</code></blockquote>
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <p class="beat__intent">Decide whether the organisation's brand may go on /queue — an internal staff screen.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;queue&quot;,
   &quot;routeClass&quot;: &quot;operation&quot;,
   &quot;widget&quot;: &quot;x-queue-panel&quot;,
   &quot;fires&quot;: 1,
   &quot;reason&quot;: &quot;tenant-theming-refused-by-route-class&quot;,
-  &quot;why&quot;: &quot;Staff-facing product UI. It makes no claim to anyone outside the building — which is a statement in itself, not an absence of one.&quot;
+  &quot;why&quot;: &quot;A screen only staff see. It makes no claim to anyone outside the building — which is itself a statement, not the absence of one.&quot;
 }</pre></details>
 </li></ol>
   <details class="detail detail--state">
-    <summary>What exists in the substrate after this stage</summary>
+    <summary>What the app contains at this point</summary>
     <pre>{
   &quot;crossArtifactStatus&quot;: &quot;completed&quot;,
   &quot;diagnosticCounts&quot;: {
@@ -1550,11 +1559,11 @@
     <span class="stage__num">6</span>
     <div>
       <h2 class="stage__title">Feedback</h2>
-      <p class="stage__sub">It changes, and regenerates</p>
+      <p class="stage__sub">A change request rebuilds it</p>
     </div>
     
   </header>
-  <p class="stage__narration">Two weeks in, caseworkers report a missing question. The brief grows by one line, and the AI regenerates the app from it. The only question that matters here: are the two things the designer wrote still in the app afterwards?</p>
+  <p class="stage__narration">Two weeks in, caseworkers report a missing question. The request grows by one line, and the AI rebuilds the app from it. Only one question matters here: are the two changes the designer made by hand still in the app afterwards?</p>
   <ol class="beats"><li class="beat beat--recorded">
   <div class="beat__head">
     <span class="beat__who">A person</span>
@@ -1563,7 +1572,7 @@
   </div>
   <p class="beat__intent">People are dropping out halfway through. Split the form: ask about the household on one page and about the money on the next. And we need to know whether any children live in the household.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;id&quot;: &quot;CR1&quot;,
   &quot;from&quot;: &quot;Caseworker feedback after two weeks live&quot;,
   &quot;addsItem&quot;: &quot;childrenInHousehold&quot;,
@@ -1576,9 +1585,9 @@
     <code class="beat__verb">regenerate</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Rebuild the app from the amended brief.</p>
+  <p class="beat__intent">Rebuild the app from the updated request.</p>
   
-  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;units&quot;: 5,
   &quot;items&quot;: 5,
   &quot;newItem&quot;: &quot;childrenInHousehold&quot;,
@@ -1588,7 +1597,7 @@
 }</pre></details>
 </li></ol>
   <details class="detail detail--state">
-    <summary>What exists in the substrate after this stage</summary>
+    <summary>What the app contains at this point</summary>
     <pre>{
   &quot;changeRequest&quot;: &quot;CR1&quot;,
   &quot;threeWayInputs&quot;: {
@@ -1603,16 +1612,17 @@
   </div>
 
   <section class="seal">
-    <h2>The signature</h2>
-    <p class="seal__sub">Checked from the files alone &mdash; nothing running</p>
+    <h2>The sign-off</h2>
+    <p class="seal__sub">Checked from the saved files alone, with nothing running</p>
     <p class="seal__affirm">&ldquo;I have reviewed this release and I stand behind what each page in it claims to be.&rdquo;</p>
+    <p>A named person put their name to this release. Anyone can re-check that sign-off from the files below &mdash; on their own machine, without asking us, years from now.</p>
     <dl class="facts">
       <dt>Signed by</dt><dd>R. Okonjo, Product Owner</dd>
-      <dt>Covers</dt><dd>every byte of the exported app, canonicalised as <code>formspec-spike-v10-bundle-export-signing-v1</code></dd>
+      <dt>What it covers</dt><dd>every byte of the finished app, packed in a fixed order so the check repeats exactly: <code>formspec-spike-v10-bundle-export-signing-v1</code></dd>
       <dt>Fingerprint</dt><dd>35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba</dd>
-      <dt>Method</dt><dd>urn:formspec:sig-method:ed25519-cose-sign1@1</dd>
-      <dt>Verdict</dt><dd class="verdict-inline">verified</dd>
-      <dt>Tampered copy</dt><dd class="verdict-inline">failed &mdash; one changed byte and the signature stops verifying</dd>
+      <dt>How it was signed</dt><dd>urn:formspec:sig-method:ed25519-cose-sign1@1</dd>
+      <dt>Result</dt><dd class="verdict-inline">verified</dd>
+      <dt>Same file, one byte changed</dt><dd class="verdict-inline">failed &mdash; change one byte and the sign-off no longer holds</dd>
     </dl>
     <details class="detail"><summary>Everything the check read</summary><pre>[
   &quot;evidence/stage-4-signoff.bundle-export.json&quot;,
@@ -1622,10 +1632,11 @@
   </section>
 
   <section class="moat">
-    <h2>Did the designer's two edits survive?</h2>
-    <p class="moat__sub">0 of 2 survived</p>
-    <p>This is the claim the whole platform rests on: when an AI rebuilds an app, the changes a person made by hand are supposed to be kept, not flattened. Here is what actually happened.</p>
-    <p class="moat__why">No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it.</p>
+    <h2>The one promise we cannot make yet</h2>
+    <p class="moat__sub">0 of the designer's 2 changes survived</p>
+    <p>When the AI rebuilds the app after a change request, the changes a person made by hand are supposed to survive it. That is the claim this product rests on. We tested it here, and it did not hold.</p>
+    <p>So we went looking for the step that is meant to keep those changes, across every part of the product that ships. This is what the search returned:</p>
+    <p class="moat__why">No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 14 further files name the corpus without executing it.</p>
     <ul class="edits">
       <li>
         <span class="what">the sentence &quot;You can apply even if you have already received help this year.&quot;</span>
@@ -1636,7 +1647,7 @@
         <span class="verdict" style="color: var(--accent)">Lost</span>
       </li>
     </ul>
-    <details class="detail"><summary>Why &mdash; the full measurement</summary><pre>{
+    <details class="detail"><summary>The full measurement</summary><pre>{
   &quot;inputs&quot;: {
     &quot;oldGenerated&quot;: &quot;evidence/bar5-old-generated.surface.json&quot;,
     &quot;designerEdited&quot;: &quot;evidence/bar5-designer-edited.surface.json&quot;,
@@ -1645,7 +1656,7 @@
   &quot;mergeAttempt&quot;: {
     &quot;attempted&quot;: true,
     &quot;entryPoint&quot;: null,
-    &quot;outcome&quot;: &quot;No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it.&quot;
+    &quot;outcome&quot;: &quot;No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 14 further files name the corpus without executing it.&quot;
   },
   &quot;apiProbe&quot;: {
     &quot;packagesProbed&quot;: [
@@ -1722,12 +1733,17 @@
       &quot;crates/formspec-lint/src/pass_modules.rs&quot;,
       &quot;crates/formspec-lint/src/types.rs&quot;,
       &quot;crates/formspec-py/src/document.rs&quot;,
+      &quot;spikes/lifecycle-demo-v10/evidence/bar5-moat-measurement.json&quot;,
+      &quot;spikes/lifecycle-demo-v10/evidence/lifecycle.json&quot;,
+      &quot;spikes/lifecycle-demo-v10/lifecycle-walkthrough.html&quot;,
+      &quot;spikes/lifecycle-demo-v10/src/regeneration.ts&quot;,
       &quot;tests/conformance/COMP-BUNDLE-ID-MIGRATION.md&quot;,
       &quot;tests/conformance/tools/comp_bundle_id_audit.py&quot;,
       &quot;thoughts/archive/plans/2026-05-22-bundle-manifest.md&quot;,
       &quot;thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md&quot;,
       &quot;thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md&quot;,
-      &quot;thoughts/plans/2026-05-22-regeneration-merge.md&quot;
+      &quot;thoughts/plans/2026-05-22-regeneration-merge.md&quot;,
+      &quot;thoughts/spikes/2026-07-26-lifecycle-demo-v10.md&quot;
     ],
     &quot;collectedTests&quot;: [
       &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_id_and_version&quot;,
@@ -1782,7 +1798,7 @@
   </section>
 
   <footer>
-    <p>Every sentence above is read out of <code>evidence/lifecycle.json</code>, written by the run itself. Nothing on this page was typed by hand from memory.</p>
+    <p>Every sentence on this page was written by the run itself, from its own records &mdash; nothing was typed from memory. Source: <code>evidence/lifecycle.json</code>.</p>
     <p>Spike v10 &middot; <code>https://benefits.example.gov/apps/assistance</code></p>
   </footer>
 </div>

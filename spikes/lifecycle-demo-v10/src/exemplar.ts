@@ -139,7 +139,7 @@ export const ROUTES: readonly RouteSpec[] = [
     path: '/apply',
     title: 'Apply for rent assistance',
     routeClass: 'intake',
-    why: 'A Definition-backed capture from the person applying. The one class that admits a tenant putting their own brand on the page.',
+    why: 'It collects answers from the person applying. It is the one kind of page where an organisation may put its own brand.',
     chromeWidget: 'x-intake-banner',
     slots: [
       { slotId: 'applyForm', slotType: 'definition-form', binding: { definitionRef: DEFINITION_URL }, title: 'Application form' },
@@ -168,7 +168,7 @@ export const ROUTES: readonly RouteSpec[] = [
     path: '/receipt/:caseRef',
     title: 'Your receipt',
     routeClass: 'proof',
-    why: 'The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so a tenant cannot restyle it.',
+    why: 'The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it.',
     chromeWidget: 'x-receipt-panel',
     slots: [
       { slotId: 'receiptJourney', slotType: 'static-content', binding: { kind: 'heading', content: 'What you submitted', level: 1 }, title: 'What you submitted' },
@@ -181,7 +181,7 @@ export const ROUTES: readonly RouteSpec[] = [
     path: '/queue',
     title: 'Caseworker queue',
     routeClass: 'operation',
-    why: 'Staff-facing product UI. It makes no claim to anyone outside the building — which is a statement in itself, not an absence of one.',
+    why: 'A screen only staff see. It makes no claim to anyone outside the building — which is itself a statement, not the absence of one.',
     chromeWidget: 'x-queue-panel',
     slots: [
       { slotId: 'queueJourney', slotType: 'static-content', binding: { kind: 'heading', content: 'Applications waiting for a decision', level: 1 }, title: 'The queue' },
@@ -233,7 +233,7 @@ export const REGENERATED_ROUTES: readonly RouteSpec[] = ROUTES.flatMap((route) =
       path: '/apply/money',
       title: 'Rent and income',
       routeClass: 'intake' as const,
-      why: 'The second half of the same Definition-backed capture.',
+      why: 'The second half of the same set of questions.',
       chromeWidget: 'x-intake-banner',
       slots: [
         { slotId: 'moneyForm', slotType: 'definition-form' as const, binding: { definitionRef: DEFINITION_URL }, title: 'Rent and income' },

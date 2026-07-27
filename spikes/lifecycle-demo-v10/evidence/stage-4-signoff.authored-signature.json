@@ -3,7 +3,7 @@
     "signatureId": "sig-lifecycle-v10-ceremony-v10-0001",
     "documentId": "rentAssistanceRelease",
     "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1",
-    "signatureValue": "0oRYSKMBJwRQUyvaTtTn/D7hSYKiQWm4mzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEDJbiYXQGLRCu8s0wSzO9iWDypPcyvOeK3DO4kLseKzyKfjgTZkrOsNjnTJNYNAvARzqLQ/ZtUGNvt2rzsYFKMJ",
+    "signatureValue": "0oRYSKMBJwRQqiYoaWyUebCFEns9FhfnwzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WECpggqVofh0sdeECbXFkIY7T+rYWTxjPUI6Yvoj5+vL451LFlQ0cSsGKFJ/3+Zh6/A34a1jFB6DF/EZ+b+24aQA",
     "signerId": "product-owner",
     "signerName": "R. Okonjo, Product Owner",
     "consentAccepted": true,
@@ -25,9 +25,9 @@
     "signatureProvider": "urn:formspec:spike-v10:signature:provider:in-repo-ed25519",
     "ceremonyId": "ceremony-v10-0001"
   },
-  "coseSign1Base64": "0oRYSKMBJwRQUyvaTtTn/D7hSYKiQWm4mzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEDJbiYXQGLRCu8s0wSzO9iWDypPcyvOeK3DO4kLseKzyKfjgTZkrOsNjnTJNYNAvARzqLQ/ZtUGNvt2rzsYFKMJ",
-  "publicKeyBase64": "aDoONTJMe9lgehuAVrEt1YamDnWkQUvGH4NBNgMpV7A=",
-  "kidBase64": "UyvaTtTn/D7hSYKiQWm4mw==",
+  "coseSign1Base64": "0oRYSKMBJwRQqiYoaWyUebCFEns9FhfnwzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WECpggqVofh0sdeECbXFkIY7T+rYWTxjPUI6Yvoj5+vL451LFlQ0cSsGKFJ/3+Zh6/A34a1jFB6DF/EZ+b+24aQA",
+  "publicKeyBase64": "7hliE+qE4bXVM8kzjQMVKYBXuCKbJYlOfP5pj0AwfcA=",
+  "kidBase64": "qiYoaWyUebCFEns9Fhfnww==",
   "schemaValid": false,
   "schemaIssues": [
     {

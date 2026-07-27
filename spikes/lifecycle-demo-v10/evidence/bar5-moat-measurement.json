@@ -7,7 +7,7 @@
   "mergeAttempt": {
     "attempted": true,
     "entryPoint": null,
-    "outcome": "No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it."
+    "outcome": "No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 14 further files name the corpus without executing it."
   },
   "apiProbe": {
     "packagesProbed": [
@@ -84,12 +84,17 @@
       "crates/formspec-lint/src/pass_modules.rs",
       "crates/formspec-lint/src/types.rs",
       "crates/formspec-py/src/document.rs",
+      "spikes/lifecycle-demo-v10/evidence/bar5-moat-measurement.json",
+      "spikes/lifecycle-demo-v10/evidence/lifecycle.json",
+      "spikes/lifecycle-demo-v10/lifecycle-walkthrough.html",
+      "spikes/lifecycle-demo-v10/src/regeneration.ts",
       "tests/conformance/COMP-BUNDLE-ID-MIGRATION.md",
       "tests/conformance/tools/comp_bundle_id_audit.py",
       "thoughts/archive/plans/2026-05-22-bundle-manifest.md",
       "thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md",
       "thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md",
-      "thoughts/plans/2026-05-22-regeneration-merge.md"
+      "thoughts/plans/2026-05-22-regeneration-merge.md",
+      "thoughts/spikes/2026-07-26-lifecycle-demo-v10.md"
     ],
     "collectedTests": [
       "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_id_and_version",
