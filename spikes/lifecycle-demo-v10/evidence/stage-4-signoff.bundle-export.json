@@ -1,0 +1,416 @@
+{
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://benefits.example.gov/apps/assistance",
+    "title": "Rent assistance application",
+    "definitions": [
+      {
+        "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance",
+        "version": "1.0.0"
+      }
+    ],
+    "experience": {
+      "url": "urn:formspec:doc:1feb5fb90254133a:experience"
+    },
+    "theme": {
+      "url": "urn:formspec:doc:1feb5fb90254133a:theme",
+      "version": "1.0.0"
+    },
+    "registries": [
+      {
+        "url": "urn:formspec:doc:1feb5fb90254133a:registry",
+        "version": "1.0.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://benefits.example.gov/apps/assistance/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      {
+        "url": "https://benefits.example.gov/apps/assistance/surfaces/staff",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-formspec-tenant-chrome",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "documents": {
+    "https://benefits.example.gov/apps/assistance/surfaces/respondent": {
+      "$formspecSurface": "0.1",
+      "id": "respondent",
+      "routes": [
+        {
+          "id": "apply",
+          "path": "/apply",
+          "slots": [
+            {
+              "id": "applyJourney",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "applyForHelp"
+              },
+              "title": "Where you are"
+            },
+            {
+              "id": "applyChrome",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "x-intake-banner"
+              }
+            },
+            {
+              "id": "applyReassurance",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "You can apply even if you have already received help this year."
+              },
+              "title": "Before you start"
+            },
+            {
+              "id": "applyForm",
+              "slotType": "definition-form",
+              "binding": {
+                "definitionRef": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+              },
+              "title": "About your household"
+            }
+          ],
+          "title": "Apply for rent assistance",
+          "routeClass": "intake",
+          "transitions": [
+            {
+              "trigger": "submit",
+              "to": "certify"
+            }
+          ]
+        },
+        {
+          "id": "certify",
+          "path": "/certify",
+          "slots": [
+            {
+              "id": "certifyJourney",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "heading",
+                "content": "Your declaration",
+                "level": 1
+              },
+              "title": "Your declaration"
+            },
+            {
+              "id": "certifyChrome",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "x-ceremony-frame"
+              }
+            }
+          ],
+          "title": "Sign your declaration",
+          "routeClass": "ceremony",
+          "transitions": [
+            {
+              "trigger": "submit",
+              "to": "receipt"
+            }
+          ]
+        },
+        {
+          "id": "receipt",
+          "path": "/receipt/:caseRef",
+          "slots": [
+            {
+              "id": "receiptJourney",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "heading",
+                "content": "What you submitted",
+                "level": 1
+              },
+              "title": "What you submitted"
+            },
+            {
+              "id": "receiptChrome",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "x-receipt-panel"
+              }
+            }
+          ],
+          "title": "Your receipt",
+          "routeClass": "proof"
+        }
+      ],
+      "entry": "apply"
+    },
+    "https://benefits.example.gov/apps/assistance/surfaces/staff": {
+      "$formspecSurface": "0.1",
+      "id": "staff",
+      "routes": [
+        {
+          "id": "queue",
+          "path": "/queue",
+          "slots": [
+            {
+              "id": "queueJourney",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "heading",
+                "content": "Applications waiting for a decision",
+                "level": 1
+              },
+              "title": "The queue"
+            },
+            {
+              "id": "queueChrome",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "x-queue-panel"
+              }
+            }
+          ],
+          "title": "Caseworker queue",
+          "routeClass": "operation"
+        }
+      ],
+      "entry": "queue"
+    },
+    "https://benefits.example.gov/apps/assistance/definitions/rent-assistance": {
+      "$formspec": "1.0",
+      "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance",
+      "version": "1.0.0",
+      "status": "draft",
+      "title": "",
+      "items": [
+        {
+          "key": "householdSize",
+          "type": "field",
+          "label": "Household size",
+          "dataType": "integer",
+          "presentation": {
+            "widgetHint": "NumberInput"
+          }
+        },
+        {
+          "key": "monthlyRent",
+          "type": "field",
+          "label": "Monthly rent",
+          "dataType": "decimal",
+          "presentation": {
+            "widgetHint": "NumberInput"
+          }
+        },
+        {
+          "key": "monthsBehind",
+          "type": "field",
+          "label": "Months behind on rent",
+          "dataType": "integer",
+          "presentation": {
+            "widgetHint": "NumberInput"
+          }
+        },
+        {
+          "key": "hardshipReason",
+          "type": "field",
+          "label": "What happened",
+          "dataType": "text"
+        }
+      ]
+    },
+    "urn:formspec:doc:1feb5fb90254133a:experience": {
+      "$formspecExperience": "1.0",
+      "version": "1.0.0",
+      "actors": [],
+      "tasks": [],
+      "units": [
+        {
+          "id": "applyForHelp",
+          "kind": "data-entry",
+          "title": "Tell us about your household",
+          "taskRefs": [
+            "submitApplication"
+          ],
+          "actorRef": "applicant"
+        },
+        {
+          "id": "certifyDeclaration",
+          "kind": "attestation",
+          "title": "Sign your declaration",
+          "taskRefs": [
+            "certifyTruth"
+          ],
+          "actorRef": "applicant"
+        },
+        {
+          "id": "collectReceipt",
+          "kind": "confirmation",
+          "title": "Keep your receipt",
+          "taskRefs": [
+            "proveSubmission"
+          ],
+          "actorRef": "applicant"
+        },
+        {
+          "id": "reviewApplication",
+          "kind": "review",
+          "title": "Work the queue",
+          "taskRefs": [
+            "decideApplication"
+          ],
+          "actorRef": "caseworker"
+        }
+      ],
+      "targetDefinition": {
+        "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+      }
+    },
+    "urn:formspec:doc:1feb5fb90254133a:theme": {
+      "$formspecTheme": "1.0",
+      "version": "1.0.0",
+      "url": "urn:formspec:doc:1feb5fb90254133a:theme",
+      "targetDefinition": {
+        "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+      },
+      "tokens": {
+        "color.accent": "#7A1F3D"
+      }
+    },
+    "urn:formspec:doc:1feb5fb90254133a:registry": {
+      "$formspecRegistry": "1.0",
+      "publisher": {
+        "name": "Rent assistance application"
+      },
+      "published": "2026-07-27T09:00:00Z",
+      "entries": [
+        {
+          "name": "x-formspec-tenant-chrome",
+          "category": "module",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Tenant chrome module for the rent-assistance app.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0"
+          },
+          "contributes": [
+            "x-intake-banner",
+            "x-ceremony-frame",
+            "x-receipt-panel",
+            "x-queue-panel"
+          ]
+        },
+        {
+          "name": "x-intake-banner",
+          "category": "widget",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Widget x-intake-banner contributed by x-formspec-tenant-chrome.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0"
+          },
+          "widgetShape": {
+            "props": {
+              "type": "object"
+            },
+            "childrenPolicy": "no-children",
+            "tokenSlots": [
+              {
+                "name": "surface",
+                "acceptedTokenCategories": [
+                  "color"
+                ]
+              }
+            ],
+            "widgetName": "x-intake-banner"
+          }
+        },
+        {
+          "name": "x-ceremony-frame",
+          "category": "widget",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Widget x-ceremony-frame contributed by x-formspec-tenant-chrome.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0"
+          },
+          "widgetShape": {
+            "props": {
+              "type": "object"
+            },
+            "childrenPolicy": "no-children",
+            "tokenSlots": [
+              {
+                "name": "surface",
+                "acceptedTokenCategories": [
+                  "color"
+                ]
+              }
+            ],
+            "widgetName": "x-ceremony-frame"
+          }
+        },
+        {
+          "name": "x-receipt-panel",
+          "category": "widget",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Widget x-receipt-panel contributed by x-formspec-tenant-chrome.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0"
+          },
+          "widgetShape": {
+            "props": {
+              "type": "object"
+            },
+            "childrenPolicy": "no-children",
+            "tokenSlots": [
+              {
+                "name": "surface",
+                "acceptedTokenCategories": [
+                  "color"
+                ]
+              }
+            ],
+            "widgetName": "x-receipt-panel"
+          }
+        },
+        {
+          "name": "x-queue-panel",
+          "category": "widget",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Widget x-queue-panel contributed by x-formspec-tenant-chrome.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0"
+          },
+          "widgetShape": {
+            "props": {
+              "type": "object"
+            },
+            "childrenPolicy": "no-children",
+            "tokenSlots": [
+              {
+                "name": "surface",
+                "acceptedTokenCategories": [
+                  "color"
+                ]
+              }
+            ],
+            "widgetName": "x-queue-panel"
+          }
+        }
+      ]
+    }
+  }
+}

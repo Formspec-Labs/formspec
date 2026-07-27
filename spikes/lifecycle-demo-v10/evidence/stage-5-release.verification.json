@@ -1,0 +1,32 @@
+{
+  "verification": {
+    "result": "verified",
+    "recomputedDigest": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+    "digestMatches": true,
+    "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
+    "methodRegistryVersion": "1.1.0",
+    "adapter": {
+      "id": "urn:integrity-stack:adapter:webcrypto@1",
+      "version": "0.1.0"
+    },
+    "inputsRead": [
+      "evidence/stage-4-signoff.bundle-export.json",
+      "evidence/stage-4-signoff.authored-signature.json",
+      "formspec/registries/signature-method-registry.json"
+    ]
+  },
+  "tamperCheck": {
+    "result": "failed",
+    "recomputedDigest": "3c96a483dd657e2ed4c5b017733985b3a83a3c066ab80a9fce6bf2d67926d3cd",
+    "digestMatches": false,
+    "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
+    "methodRegistryVersion": "1.1.0",
+    "adapter": {
+      "id": "urn:integrity-stack:adapter:webcrypto@1",
+      "version": "0.1.0"
+    },
+    "inputsRead": [
+      "(tampered copy of the export, held in memory)"
+    ]
+  }
+}

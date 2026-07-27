@@ -1,0 +1,143 @@
+{
+  "inputs": {
+    "oldGenerated": "evidence/bar5-old-generated.surface.json",
+    "designerEdited": "evidence/bar5-designer-edited.surface.json",
+    "newGenerated": "evidence/bar5-new-generated.surface.json"
+  },
+  "mergeAttempt": {
+    "attempted": true,
+    "entryPoint": null,
+    "outcome": "No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it."
+  },
+  "apiProbe": {
+    "packagesProbed": [
+      "@formspec-org/studio-core",
+      "@formspec-org/mcp-wireframes",
+      "@formspec-org/app-graph",
+      "@formspec-org/engine",
+      "@formspec-org/types"
+    ],
+    "exportsSeen": 332,
+    "patternsScanned": {
+      "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
+      "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
+    },
+    "matches": [],
+    "anchorVocabulary": [
+      {
+        "pkg": "@formspec-org/studio-core",
+        "name": "emptyAnchorMappingsDocument",
+        "type": "function"
+      },
+      {
+        "pkg": "@formspec-org/studio-core",
+        "name": "validateAnchorMappingsDocument",
+        "type": "function"
+      },
+      {
+        "pkg": "@formspec-org/studio-core",
+        "name": "appendAnchorMapping",
+        "type": "function"
+      },
+      {
+        "pkg": "@formspec-org/studio-core",
+        "name": "anchorString",
+        "type": "function"
+      },
+      {
+        "pkg": "@formspec-org/studio-core",
+        "name": "anchorsOf",
+        "type": "function"
+      },
+      {
+        "pkg": "@formspec-org/studio-core",
+        "name": "computeAnchorGroups",
+        "type": "function"
+      },
+      {
+        "pkg": "@formspec-org/studio-core",
+        "name": "reanchorEntries",
+        "type": "function"
+      }
+    ],
+    "noMergeEntryPoint": true
+  },
+  "fixtureProbe": {
+    "fixtureDir": "formspec/tests/conformance/fixtures/regeneration-merge",
+    "scenarios": 17,
+    "completeTriples": 17,
+    "assertingPreservation": 10,
+    "preservationScenarios": [
+      "designer-only-property",
+      "designer-precedes",
+      "orphan-broken-binding",
+      "orphan-cascade",
+      "orphan-detached",
+      "orphan-node-resolved-refs",
+      "property-conflict",
+      "rename-no-anchor-mapping",
+      "subtree-children-add",
+      "widget-swap"
+    ],
+    "executesFixtures": [],
+    "mentionsOnly": [
+      "crates/formspec-lint/src/pass_modules.rs",
+      "crates/formspec-lint/src/types.rs",
+      "crates/formspec-py/src/document.rs",
+      "tests/conformance/COMP-BUNDLE-ID-MIGRATION.md",
+      "tests/conformance/tools/comp_bundle_id_audit.py",
+      "thoughts/archive/plans/2026-05-22-bundle-manifest.md",
+      "thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md",
+      "thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md",
+      "thoughts/plans/2026-05-22-regeneration-merge.md"
+    ],
+    "collectedTests": [
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_id_and_version",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_required_top_level_arrays",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_required_fields",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_code_enum",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_code_severity_constraints",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_has_property_deltas",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_report_arrays_use_role_specific_entries",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_role_specific_code_placement",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_entry_has_reattachment_fields",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_conflict_entry_is_role_specific",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_valid_report_instance",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_role_specific_codes_are_rejected",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_wrong_code_severity_is_rejected",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_metadata_is_required",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_cascade_code_requires_cascade_flags",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_detached_code_requires_detached_flags",
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_exp_two_hop_join_documented"
+    ],
+    "collectedTestFiles": [
+      "tests/conformance/spec/test_regeneration_merge_report_schema.py"
+    ],
+    "specStatus": "Draft 1.0.0-draft.1",
+    "schemaExists": true
+  },
+  "edits": [
+    {
+      "id": "DESIGNER-EDIT-1",
+      "what": "the sentence \"You can apply even if you have already received help this year.\"",
+      "deltaClass": "designer-inserted",
+      "presentInOldGenerated": false,
+      "presentInDesignerEdited": true,
+      "presentInNewGenerated": false,
+      "presentInMerged": null,
+      "survived": false
+    },
+    {
+      "id": "DESIGNER-EDIT-2",
+      "what": "the plain-English heading \"About your household\" (the AI wrote \"Application form\")",
+      "deltaClass": "designer-modified",
+      "presentInOldGenerated": false,
+      "presentInDesignerEdited": true,
+      "presentInNewGenerated": false,
+      "presentInMerged": null,
+      "survived": false
+    }
+  ],
+  "survivingEdits": 0,
+  "totalEdits": 2
+}

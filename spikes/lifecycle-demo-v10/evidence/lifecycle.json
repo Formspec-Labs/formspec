@@ -1,0 +1,1502 @@
+{
+  "$spike": "formspec-lifecycle-demo-v10",
+  "exemplar": {
+    "title": "Rent assistance application",
+    "bundleId": "https://benefits.example.gov/apps/assistance",
+    "brief": [
+      {
+        "id": "B1",
+        "text": "A tenant behind on rent tells us about their household and what went wrong.",
+        "unitId": "applyForHelp"
+      },
+      {
+        "id": "B2",
+        "text": "Before it counts, they sign a declaration that what they said is true.",
+        "unitId": "certifyDeclaration"
+      },
+      {
+        "id": "B3",
+        "text": "They get a receipt they can show a landlord or a court.",
+        "unitId": "collectReceipt"
+      },
+      {
+        "id": "B4",
+        "text": "A caseworker works through the queue and decides.",
+        "unitId": "reviewApplication"
+      }
+    ]
+  },
+  "generatedAt": "2026-07-27T09:00:00Z",
+  "stages": [
+    {
+      "stage": "idea",
+      "narration": "Someone describes the job in four sentences. Before a single field exists, the AI writes down who is involved and what each of them is trying to get done — one entry per sentence of the brief.",
+      "substrateState": {
+        "hasExperience": true,
+        "experienceUrl": "urn:formspec:doc:1feb5fb90254133a:experience",
+        "units": [
+          {
+            "id": "applyForHelp",
+            "title": "Tell us about your household",
+            "actor": "applicant",
+            "tasks": [
+              "submitApplication"
+            ],
+            "fromBrief": "B1"
+          },
+          {
+            "id": "certifyDeclaration",
+            "title": "Sign your declaration",
+            "actor": "applicant",
+            "tasks": [
+              "certifyTruth"
+            ],
+            "fromBrief": "B2"
+          },
+          {
+            "id": "collectReceipt",
+            "title": "Keep your receipt",
+            "actor": "applicant",
+            "tasks": [
+              "proveSubmission"
+            ],
+            "fromBrief": "B3"
+          },
+          {
+            "id": "reviewApplication",
+            "title": "Work the queue",
+            "actor": "caseworker",
+            "tasks": [
+              "decideApplication"
+            ],
+            "fromBrief": "B4"
+          }
+        ],
+        "hasDefinition": false,
+        "artifact": "evidence/stage-1-idea.experience.json"
+      },
+      "beats": [
+        {
+          "seq": 1,
+          "stage": "idea",
+          "actor": "ai-agent",
+          "verb": "wireframeFromBrief",
+          "intent": "Start an app from the brief.",
+          "outcome": "admitted",
+          "details": {
+            "bundleId": "https://benefits.example.gov/apps/assistance",
+            "briefLines": 4
+          }
+        },
+        {
+          "seq": 2,
+          "stage": "idea",
+          "actor": "system",
+          "verb": "wireframeFromBrief",
+          "intent": "Keep the brief text itself, so later stages can point back at it.",
+          "outcome": "recorded",
+          "message": "The brief is accepted as an argument and discarded. `wireframeFromBrief` forwards only id, version and title to `createBundle`; no verb persists the brief text. It survives into the substrate only as the units it produced.",
+          "details": {
+            "finding": "no-brief-persistence"
+          }
+        },
+        {
+          "seq": 3,
+          "stage": "idea",
+          "actor": "ai-agent",
+          "verb": "addExperienceUnit",
+          "intent": "Write down: \"Tell us about your household\" — applicant needs to submitApplication.",
+          "outcome": "admitted",
+          "details": {
+            "unitId": "applyForHelp",
+            "kind": "data-entry",
+            "actorRef": "applicant",
+            "taskRefs": [
+              "submitApplication"
+            ],
+            "fromBrief": "B1"
+          }
+        },
+        {
+          "seq": 4,
+          "stage": "idea",
+          "actor": "ai-agent",
+          "verb": "addExperienceUnit",
+          "intent": "Write down: \"Sign your declaration\" — applicant needs to certifyTruth.",
+          "outcome": "admitted",
+          "details": {
+            "unitId": "certifyDeclaration",
+            "kind": "attestation",
+            "actorRef": "applicant",
+            "taskRefs": [
+              "certifyTruth"
+            ],
+            "fromBrief": "B2"
+          }
+        },
+        {
+          "seq": 5,
+          "stage": "idea",
+          "actor": "ai-agent",
+          "verb": "addExperienceUnit",
+          "intent": "Write down: \"Keep your receipt\" — applicant needs to proveSubmission.",
+          "outcome": "admitted",
+          "details": {
+            "unitId": "collectReceipt",
+            "kind": "confirmation",
+            "actorRef": "applicant",
+            "taskRefs": [
+              "proveSubmission"
+            ],
+            "fromBrief": "B3"
+          }
+        },
+        {
+          "seq": 6,
+          "stage": "idea",
+          "actor": "ai-agent",
+          "verb": "addExperienceUnit",
+          "intent": "Write down: \"Work the queue\" — caseworker needs to decideApplication.",
+          "outcome": "admitted",
+          "details": {
+            "unitId": "reviewApplication",
+            "kind": "review",
+            "actorRef": "caseworker",
+            "taskRefs": [
+              "decideApplication"
+            ],
+            "fromBrief": "B4"
+          }
+        }
+      ]
+    },
+    {
+      "stage": "plan",
+      "narration": "The AI turns the journey into a real form: the questions people will answer, and the four pages the app has. Then it tries to say what kind of page each one is — and the deployment stops it. Deciding that a page is \"a receipt a court relies on\" is a call a person makes, not a machine.",
+      "substrateState": {
+        "routes": [
+          {
+            "id": "apply",
+            "routeClass": null
+          },
+          {
+            "id": "certify",
+            "routeClass": null
+          },
+          {
+            "id": "receipt",
+            "routeClass": null
+          }
+        ],
+        "classifiedRoutes": 0,
+        "items": [
+          "householdSize",
+          "monthlyRent",
+          "monthsBehind",
+          "hardshipReason"
+        ],
+        "artifact": "evidence/stage-2-plan.surface.json"
+      },
+      "beats": [
+        {
+          "seq": 7,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "declareDefinition",
+          "intent": "Create the form that holds the questions.",
+          "outcome": "admitted",
+          "details": {
+            "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+          }
+        },
+        {
+          "seq": 8,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addDefinitionStub",
+          "intent": "Write the questions people will answer: \"Household size\", \"Monthly rent\", \"Months behind on rent\", \"What happened\".",
+          "outcome": "admitted",
+          "details": {
+            "items": [
+              {
+                "path": "householdSize",
+                "dataType": "integer",
+                "fromBrief": "B1"
+              },
+              {
+                "path": "monthlyRent",
+                "dataType": "decimal",
+                "fromBrief": "B1"
+              },
+              {
+                "path": "monthsBehind",
+                "dataType": "integer",
+                "fromBrief": "B1"
+              },
+              {
+                "path": "hardshipReason",
+                "dataType": "text",
+                "fromBrief": "B1"
+              }
+            ]
+          }
+        },
+        {
+          "seq": 9,
+          "stage": "plan",
+          "actor": "system",
+          "verb": "(none)",
+          "intent": "Connect the journey entries to the questions they collect.",
+          "outcome": "recorded",
+          "message": "No kernel op writes `unit.itemRefs` after a unit exists — `bindActor` and `bindTask` exist, `bindItem` does not, and `addUnit` conflicts on re-add. The Experience-to-Definition link the ADR 0159 Plan row describes is unreachable through the verb surface; the two meet on the Surface route that binds both instead.",
+          "details": {
+            "finding": "no-bindItem-verb",
+            "availableBinders": [
+              "bindActor",
+              "bindTask"
+            ]
+          }
+        },
+        {
+          "seq": 10,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addAction",
+          "intent": "Say what happens when somebody presses Submit.",
+          "outcome": "admitted",
+          "details": {
+            "actionId": "submitApplication",
+            "intent": "submit",
+            "note": "No declareResponseActions verb exists in the ADR 0160 v1 family; the kernel op mints the document on first call."
+          }
+        },
+        {
+          "seq": 11,
+          "stage": "plan",
+          "actor": "system",
+          "verb": "(check)",
+          "intent": "Confirm the app now says what Submit does.",
+          "outcome": "recorded",
+          "message": "The Response Actions document was minted and no manifest slot names it. `readAppManifest` emits no `responseActions` key and `exportBundle` does not serialise it, so nothing in the graph can resolve the Submit behaviour — the transitions that fire it stay unresolved. This is ADR 0160 §4.2(b) (\"no mint without a declaration\") firing on a kind that ADR 0160 §6.5 does NOT list as deliberately excluded: it fixed the identical defect for `ensureExperience` and left this one.",
+          "details": {
+            "finding": "response-actions-minted-but-undeclared",
+            "manifestSlots": [
+              "$formspecBundle",
+              "version",
+              "id",
+              "title",
+              "definitions",
+              "experience",
+              "registries",
+              "surfaces",
+              "modules",
+              "sessions"
+            ],
+            "adr0160": "§4.2(b) mirror of the fixed `ensureExperience` defect; §6.5 excludes Locale, Mapping and Data Sources — not Response Actions"
+          }
+        },
+        {
+          "seq": 12,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addSurface",
+          "intent": "Give staff their own app. A caseworker queue is not a page an applicant can walk to.",
+          "outcome": "admitted",
+          "details": {
+            "surfaceUrl": "https://benefits.example.gov/apps/assistance/surfaces/staff",
+            "surfaceId": "staff"
+          }
+        },
+        {
+          "seq": 13,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Say that /apply is a \"intake\" page — A Definition-backed capture from the person applying. The one class that admits a tenant putting their own brand on the page.",
+          "outcome": "refused",
+          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'intake'; deployment posture protects it.",
+          "details": {
+            "routeId": "apply",
+            "wantedRouteClass": "intake",
+            "errorCode": "VALIDATION",
+            "operation": "addRoute",
+            "surfaceId": "respondent",
+            "reason": "vocabulary-protected",
+            "vocabulary": "surface.routeClass",
+            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+            "actorKind": "ai-agent",
+            "value": "intake"
+          }
+        },
+        {
+          "seq": 14,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Add /apply without saying what kind of page it is, and keep working.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "apply",
+            "routeClass": null
+          }
+        },
+        {
+          "seq": 15,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "bindSlot",
+          "intent": "Fill /apply with what belongs on it.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "apply",
+            "slots": [
+              {
+                "id": "applyForm",
+                "type": "definition-form"
+              },
+              {
+                "id": "applyJourney",
+                "type": "experience-unit"
+              },
+              {
+                "id": "applyChrome",
+                "type": "module-widget"
+              }
+            ]
+          }
+        },
+        {
+          "seq": 16,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Say that /certify is a \"ceremony\" page — The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it.",
+          "outcome": "refused",
+          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'ceremony'; deployment posture protects it.",
+          "details": {
+            "routeId": "certify",
+            "wantedRouteClass": "ceremony",
+            "errorCode": "VALIDATION",
+            "operation": "addRoute",
+            "surfaceId": "respondent",
+            "reason": "vocabulary-protected",
+            "vocabulary": "surface.routeClass",
+            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+            "actorKind": "ai-agent",
+            "value": "ceremony"
+          }
+        },
+        {
+          "seq": 17,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Add /certify without saying what kind of page it is, and keep working.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "certify",
+            "routeClass": null
+          }
+        },
+        {
+          "seq": 18,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "bindSlot",
+          "intent": "Fill /certify with what belongs on it.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "certify",
+            "slots": [
+              {
+                "id": "certifyJourney",
+                "type": "static-content"
+              },
+              {
+                "id": "certifyChrome",
+                "type": "module-widget"
+              }
+            ]
+          }
+        },
+        {
+          "seq": 19,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Say that /receipt/:caseRef is a \"proof\" page — The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so a tenant cannot restyle it.",
+          "outcome": "refused",
+          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.",
+          "details": {
+            "routeId": "receipt",
+            "wantedRouteClass": "proof",
+            "errorCode": "VALIDATION",
+            "operation": "addRoute",
+            "surfaceId": "respondent",
+            "reason": "vocabulary-protected",
+            "vocabulary": "surface.routeClass",
+            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+            "actorKind": "ai-agent",
+            "value": "proof"
+          }
+        },
+        {
+          "seq": 20,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Add /receipt/:caseRef without saying what kind of page it is, and keep working.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "receipt",
+            "routeClass": null
+          }
+        },
+        {
+          "seq": 21,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "bindSlot",
+          "intent": "Fill /receipt/:caseRef with what belongs on it.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "receipt",
+            "slots": [
+              {
+                "id": "receiptJourney",
+                "type": "static-content"
+              },
+              {
+                "id": "receiptChrome",
+                "type": "module-widget"
+              }
+            ]
+          }
+        },
+        {
+          "seq": 22,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Say that /queue is a \"operation\" page — Staff-facing product UI. It makes no claim to anyone outside the building — which is a statement in itself, not an absence of one.",
+          "outcome": "refused",
+          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'operation'; deployment posture protects it.",
+          "details": {
+            "routeId": "queue",
+            "wantedRouteClass": "operation",
+            "errorCode": "VALIDATION",
+            "operation": "addRoute",
+            "surfaceId": "staff",
+            "reason": "vocabulary-protected",
+            "vocabulary": "surface.routeClass",
+            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+            "actorKind": "ai-agent",
+            "value": "operation"
+          }
+        },
+        {
+          "seq": 23,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Add /queue without saying what kind of page it is, and keep working.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "queue",
+            "routeClass": null
+          }
+        },
+        {
+          "seq": 24,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "bindSlot",
+          "intent": "Fill /queue with what belongs on it.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "queue",
+            "slots": [
+              {
+                "id": "queueJourney",
+                "type": "static-content"
+              },
+              {
+                "id": "queueChrome",
+                "type": "module-widget"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stage": "build",
+      "narration": "The app gets its parts list and its look. The AI is stopped again — declaring the theme is a decision about who controls appearance, and appearance is load-bearing on three of these four pages. A person takes over, declares it, and then makes two small edits of their own. Those two edits are the thing the last stage is about.",
+      "substrateState": {
+        "themeDeclaredBy": "human",
+        "themeToken": {
+          "color.accent": "#7A1F3D"
+        },
+        "registryEntries": 5,
+        "designerEdits": [
+          {
+            "id": "DESIGNER-EDIT-1",
+            "deltaClass": "designer-inserted",
+            "what": "You can apply even if you have already received help this year."
+          },
+          {
+            "id": "DESIGNER-EDIT-2",
+            "deltaClass": "designer-modified",
+            "what": "slot title \"Application form\" → \"About your household\""
+          }
+        ],
+        "artifact": "evidence/stage-3-build.surface.json"
+      },
+      "beats": [
+        {
+          "seq": 25,
+          "stage": "build",
+          "actor": "ai-agent",
+          "verb": "declareTheme",
+          "intent": "Create the theme that controls how the app looks.",
+          "outcome": "refused",
+          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'theme.declaration'; deployment posture protects it.",
+          "details": {
+            "errorCode": "VALIDATION",
+            "operation": "declareTheme",
+            "reason": "vocabulary-protected",
+            "vocabulary": "theme.declaration",
+            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+            "actorKind": "ai-agent"
+          }
+        },
+        {
+          "seq": 26,
+          "stage": "build",
+          "actor": "system",
+          "verb": "(check)",
+          "intent": "Confirm the refused write left nothing behind.",
+          "outcome": "recorded",
+          "message": "No theme slot on the app manifest. The refused declaration wrote nothing.",
+          "details": {
+            "check": "refused-theme-declaration-left-no-state",
+            "themeSlot": null
+          }
+        },
+        {
+          "seq": 27,
+          "stage": "build",
+          "actor": "system",
+          "verb": "(handoff)",
+          "intent": "Hand the half-built app from the AI to a person.",
+          "outcome": "recorded",
+          "message": "No verb transfers an in-flight artifact between actors. The kernel reads the acting actor from its construction context, and supplying a kernel together with posture options is a construction-time error, so one kernel is one actor. The handoff is modelled as a new session replaying the authored state; the replay is checked against the AI's own exported documents rather than assumed.",
+          "details": {
+            "from": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+            "to": "urn:formspec:actor:human:product-owner:lifecycle-v10",
+            "replayMatchedAgentExport": true,
+            "finding": "no-actor-handoff-verb"
+          }
+        },
+        {
+          "seq": 28,
+          "stage": "build",
+          "actor": "human",
+          "verb": "addRoute",
+          "intent": "Change what kind of page /apply is — from \"intake\" to \"proof\". The route already exists, and the person is the actor the deployment admits, so nothing but the route itself is left to say no.",
+          "outcome": "refused",
+          "message": "Surface route 'apply' already exists.",
+          "details": {
+            "finding": "route-class-is-write-once",
+            "probedOnWhoseKernel": "the human's — the actor this posture ADMITS, which is what makes the quoted refusal evidence of write-once rather than a second copy of the ADR 0152 refusal",
+            "routeId": "apply",
+            "alreadyWrittenRouteClass": "intake",
+            "attemptedRouteClass": "proof",
+            "errorCode": "CONFLICT",
+            "refusalDetails": {
+              "operation": "addRoute",
+              "surfaceId": "respondent",
+              "routeId": "apply"
+            },
+            "sameCallOnTheAgentsKernel": {
+              "code": "VALIDATION",
+              "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it."
+            },
+            "whyTheAgentsRefusalIsNotTheEvidence": "`ProposalManagerFacade.addRoute` checks the ADR 0152 posture as its first statement, before it resolves the Surface draft. On the agent's kernel the posture answers first, so the agent gets the stage-2 refusal again — a message about WHO may write `surface.routeClass`, which says nothing about whether an existing route's class can change.",
+            "surfaceOps": [
+              "addRoute",
+              "bindSlot",
+              "removeSlot",
+              "addTransition"
+            ],
+            "missing": [
+              "removeRoute",
+              "setRouteClass",
+              "updateRoute"
+            ],
+            "consequence": "`addRoute` is the only Surface op that writes a class, and it CONFLICTs on an id that already exists — so a route's class is fixed at the moment the route is created. ADR 0152's 'the refusal is legible, not fatal' therefore holds inside one session and breaks across the handoff: a route the agent was refused a class on is created unclassified, and nothing can classify it afterwards. The person must author the routes themselves, which is what this walk does."
+          }
+        },
+        {
+          "seq": 29,
+          "stage": "build",
+          "actor": "human",
+          "verb": "declareTheme",
+          "intent": "Create the theme — the same call the AI was refused.",
+          "outcome": "admitted",
+          "details": {
+            "url": "urn:formspec:doc:1feb5fb90254133a:theme",
+            "samePostureAsRefusal": true
+          }
+        },
+        {
+          "seq": 30,
+          "stage": "build",
+          "actor": "human",
+          "verb": "setThemeToken",
+          "intent": "Set the tenant's brand colour (#7A1F3D).",
+          "outcome": "admitted",
+          "details": {
+            "key": "color.accent",
+            "value": "#7A1F3D"
+          }
+        },
+        {
+          "seq": 31,
+          "stage": "build",
+          "actor": "human",
+          "verb": "declareRegistry + addRegistryEntry",
+          "intent": "Register the building blocks the pages are made of.",
+          "outcome": "admitted",
+          "details": {
+            "registryUrl": "urn:formspec:doc:1feb5fb90254133a:registry",
+            "entries": 5,
+            "hostDocumentsWired": 0
+          }
+        },
+        {
+          "seq": 32,
+          "stage": "build",
+          "actor": "human",
+          "verb": "bindSlot",
+          "intent": "Add one sentence the AI never wrote: \"You can apply even if you have already received help this year.\"",
+          "outcome": "admitted",
+          "details": {
+            "edit": "DESIGNER-EDIT-1",
+            "deltaClass": "designer-inserted",
+            "slotId": "applyReassurance"
+          }
+        },
+        {
+          "seq": 33,
+          "stage": "build",
+          "actor": "human",
+          "verb": "removeSlot + bindSlot",
+          "intent": "Rename the AI's \"Application form\" to \"About your household\" — words an applicant actually understands.",
+          "outcome": "admitted",
+          "details": {
+            "edit": "DESIGNER-EDIT-2",
+            "deltaClass": "designer-modified",
+            "slotId": "applyForm",
+            "from": "Application form",
+            "to": "About your household",
+            "note": "Two calls, not one: re-binding an existing slot id is a CONFLICT, so an edit is a remove plus an add."
+          }
+        }
+      ]
+    },
+    {
+      "stage": "sign-off",
+      "narration": "A person states, on the record, what each page is: an intake form, a signing ceremony, a receipt a court reads, a staff queue. Then they sign the whole thing — not a screenshot of it, the exact bytes. The same deployment rule that stopped the AI lets the person through.",
+      "substrateState": {
+        "routeClasses": [
+          {
+            "routeId": "apply",
+            "routeClass": "intake"
+          },
+          {
+            "routeId": "certify",
+            "routeClass": "ceremony"
+          },
+          {
+            "routeId": "receipt",
+            "routeClass": "proof"
+          },
+          {
+            "routeId": "queue",
+            "routeClass": "operation"
+          }
+        ],
+        "exportedDocuments": [
+          "https://benefits.example.gov/apps/assistance/surfaces/respondent",
+          "https://benefits.example.gov/apps/assistance/surfaces/staff",
+          "https://benefits.example.gov/apps/assistance/definitions/rent-assistance",
+          "urn:formspec:doc:1feb5fb90254133a:experience",
+          "urn:formspec:doc:1feb5fb90254133a:theme",
+          "urn:formspec:doc:1feb5fb90254133a:registry"
+        ],
+        "artifact": "evidence/stage-4-signoff.bundle-export.json"
+      },
+      "beats": [
+        {
+          "seq": 34,
+          "stage": "sign-off",
+          "actor": "human",
+          "verb": "addRoute(routeClass)",
+          "intent": "Put it on the record: /apply is a \"intake\" page. A Definition-backed capture from the person applying. The one class that admits a tenant putting their own brand on the page.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "apply",
+            "routeClass": "intake",
+            "persistedRouteClass": "intake",
+            "samePostureThatRefusedTheAgent": true,
+            "readBackFrom": "kernel exportSurfaceDocument"
+          }
+        },
+        {
+          "seq": 35,
+          "stage": "sign-off",
+          "actor": "human",
+          "verb": "addRoute(routeClass)",
+          "intent": "Put it on the record: /certify is a \"ceremony\" page. The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "certify",
+            "routeClass": "ceremony",
+            "persistedRouteClass": "ceremony",
+            "samePostureThatRefusedTheAgent": true,
+            "readBackFrom": "kernel exportSurfaceDocument"
+          }
+        },
+        {
+          "seq": 36,
+          "stage": "sign-off",
+          "actor": "human",
+          "verb": "addRoute(routeClass)",
+          "intent": "Put it on the record: /receipt/:caseRef is a \"proof\" page. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so a tenant cannot restyle it.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "receipt",
+            "routeClass": "proof",
+            "persistedRouteClass": "proof",
+            "samePostureThatRefusedTheAgent": true,
+            "readBackFrom": "kernel exportSurfaceDocument"
+          }
+        },
+        {
+          "seq": 37,
+          "stage": "sign-off",
+          "actor": "human",
+          "verb": "addRoute(routeClass)",
+          "intent": "Put it on the record: /queue is a \"operation\" page. Staff-facing product UI. It makes no claim to anyone outside the building — which is a statement in itself, not an absence of one.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "queue",
+            "routeClass": "operation",
+            "persistedRouteClass": "operation",
+            "samePostureThatRefusedTheAgent": true,
+            "readBackFrom": "kernel exportSurfaceDocument"
+          }
+        },
+        {
+          "seq": 38,
+          "stage": "sign-off",
+          "actor": "human",
+          "verb": "exportBundle",
+          "intent": "Produce the exact package that will ship.",
+          "outcome": "admitted",
+          "details": {
+            "documents": 6,
+            "keys": [
+              "https://benefits.example.gov/apps/assistance/surfaces/respondent",
+              "https://benefits.example.gov/apps/assistance/surfaces/staff",
+              "https://benefits.example.gov/apps/assistance/definitions/rent-assistance",
+              "urn:formspec:doc:1feb5fb90254133a:experience",
+              "urn:formspec:doc:1feb5fb90254133a:theme",
+              "urn:formspec:doc:1feb5fb90254133a:registry"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stage": "release",
+      "narration": "The tenant pushes their brand colour onto all four pages. The substrate lets it through on the application form and refuses it on the other three — because on a receipt, a signing screen and a staff console, how it looks is part of what people rely on. Then the signature is checked from the files alone, with nothing running.",
+      "substrateState": {
+        "crossArtifactStatus": "completed",
+        "diagnosticCounts": {
+          "THEME-ROUTE-CLASS": 3,
+          "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER": 2
+        },
+        "themeRouteClassFires": 3,
+        "artifact": "evidence/stage-5-release.validation-report.json"
+      },
+      "beats": [
+        {
+          "seq": 39,
+          "stage": "release",
+          "actor": "human",
+          "verb": "declareUiGraphPolicy",
+          "intent": "Push the tenant brand colour onto all four pages.",
+          "outcome": "admitted",
+          "details": {
+            "assignments": 4,
+            "surfaces": [
+              "https://benefits.example.gov/apps/assistance/surfaces/respondent",
+              "https://benefits.example.gov/apps/assistance/surfaces/staff"
+            ]
+          }
+        },
+        {
+          "seq": 40,
+          "stage": "release",
+          "actor": "system",
+          "verb": "THEME-ROUTE-CLASS",
+          "intent": "Decide whether the tenant may restyle /apply (a \"intake\" page).",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "apply",
+            "routeClass": "intake",
+            "widget": "x-intake-banner",
+            "fires": 0,
+            "why": "A Definition-backed capture from the person applying. The one class that admits a tenant putting their own brand on the page."
+          }
+        },
+        {
+          "seq": 41,
+          "stage": "release",
+          "actor": "system",
+          "verb": "THEME-ROUTE-CLASS",
+          "intent": "Decide whether the tenant may restyle /certify (a \"ceremony\" page).",
+          "outcome": "refused",
+          "message": "A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.",
+          "details": {
+            "routeId": "certify",
+            "routeClass": "ceremony",
+            "widget": "x-ceremony-frame",
+            "fires": 1,
+            "reason": "tenant-theming-refused-by-route-class",
+            "why": "The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it."
+          }
+        },
+        {
+          "seq": 42,
+          "stage": "release",
+          "actor": "system",
+          "verb": "THEME-ROUTE-CLASS",
+          "intent": "Decide whether the tenant may restyle /receipt/:caseRef (a \"proof\" page).",
+          "outcome": "refused",
+          "message": "A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.",
+          "details": {
+            "routeId": "receipt",
+            "routeClass": "proof",
+            "widget": "x-receipt-panel",
+            "fires": 1,
+            "reason": "tenant-theming-refused-by-route-class",
+            "why": "The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so a tenant cannot restyle it."
+          }
+        },
+        {
+          "seq": 43,
+          "stage": "release",
+          "actor": "system",
+          "verb": "THEME-ROUTE-CLASS",
+          "intent": "Decide whether the tenant may restyle /queue (a \"operation\" page).",
+          "outcome": "refused",
+          "message": "A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.",
+          "details": {
+            "routeId": "queue",
+            "routeClass": "operation",
+            "widget": "x-queue-panel",
+            "fires": 1,
+            "reason": "tenant-theming-refused-by-route-class",
+            "why": "Staff-facing product UI. It makes no claim to anyone outside the building — which is a statement in itself, not an absence of one."
+          }
+        }
+      ]
+    },
+    {
+      "stage": "feedback",
+      "narration": "Two weeks in, caseworkers report a missing question. The brief grows by one line, and the AI regenerates the app from it. The only question that matters here: are the two things the designer wrote still in the app afterwards?",
+      "substrateState": {
+        "changeRequest": "CR1",
+        "threeWayInputs": {
+          "oldGenerated": "evidence/bar5-old-generated.surface.json",
+          "designerEdited": "evidence/bar5-designer-edited.surface.json",
+          "newGenerated": "evidence/bar5-new-generated.surface.json"
+        },
+        "artifact": "evidence/stage-6-feedback.regenerated.surface.json"
+      },
+      "beats": [
+        {
+          "seq": 44,
+          "stage": "feedback",
+          "actor": "human",
+          "verb": "(change request)",
+          "intent": "People are dropping out halfway through. Split the form: ask about the household on one page and about the money on the next. And we need to know whether any children live in the household.",
+          "outcome": "recorded",
+          "details": {
+            "id": "CR1",
+            "from": "Caseworker feedback after two weeks live",
+            "addsItem": "childrenInHousehold",
+            "addsUnit": "declareChildren"
+          }
+        },
+        {
+          "seq": 45,
+          "stage": "feedback",
+          "actor": "ai-agent",
+          "verb": "regenerate",
+          "intent": "Rebuild the app from the amended brief.",
+          "outcome": "admitted",
+          "details": {
+            "units": 5,
+            "items": 5,
+            "newItem": "childrenInHousehold",
+            "routesBefore": 4,
+            "routesAfter": 5,
+            "newRoute": "/apply/money"
+          }
+        }
+      ]
+    }
+  ],
+  "bars": [
+    {
+      "id": "BAR 1",
+      "title": "Everything traces back to the brief",
+      "met": true,
+      "qualifier": "Met, and narrower than it sounds: only 1 of the 4 journey entries is mounted on a page at all, so the unit-to-page hop holds over 1 of 4. The other three are unmountable on a Definition-bearing bundle — `APP-GRAPH-SURFACE-EXPERIENCE-UNIT-DEFINITION` requires any route mounting a unit to also carry a `definition-form` slot for the Experience's `targetDefinition`. The chain is connected; it is not four parallel chains.",
+      "criterion": "Each hop from a brief sentence to a page, a question and a rendered field is either an edge the substrate itself recorded, or a reference physically present in the exported files.",
+      "evidence": {
+        "mountedUnits": 1,
+        "totalUnits": 4,
+        "hops": [
+          {
+            "from": "brief sentence",
+            "to": "Experience unit",
+            "holds": true,
+            "via": "exported Experience document",
+            "note": "All 4 brief sentences appear as units in the exported Experience. The brief TEXT is not persisted by any verb; the units are what survives it."
+          },
+          {
+            "from": "Experience unit",
+            "to": "task",
+            "holds": true,
+            "via": "TraceIndex edge `unit-serves-task`",
+            "note": "4 unit-serves-task edges, built by the kernel's own trace builder and digest-verified fresh."
+          },
+          {
+            "from": "Experience unit",
+            "to": "Surface route",
+            "holds": true,
+            "via": "exported Surface `experience-unit` slot binding",
+            "note": "1 of 4 units are mounted on a route, and every mounted `unitRef` names a unit that exists in the Experience. The other units are NOT mountable: `APP-GRAPH-SURFACE-EXPERIENCE-UNIT-DEFINITION` requires any route mounting a unit to also carry a `definition-form` slot for the Experience's `targetDefinition`, which the kernel stamps automatically once a Definition is declared. On a Definition-bearing bundle that makes a receipt, a signing screen and a staff queue unmountable — the rule reads `targetDefinition` as \"every unit collects for this form\", which is false of `attestation`, `confirmation` and `review` units."
+          },
+          {
+            "from": "Surface route",
+            "to": "Definition",
+            "holds": true,
+            "via": "exported Surface `definition-form` slot binding",
+            "note": "The intake route binds the Definition by URL. This route is ALSO where the Experience meets the Definition: no kernel op writes `unit.itemRefs` after a unit exists, so the Experience-to-item link the ADR 0159 Plan row describes runs through the route rather than through the Experience."
+          },
+          {
+            "from": "Definition item",
+            "to": "rendered Component node",
+            "holds": true,
+            "via": "TraceIndex edge `component-renders-item`",
+            "note": "Every one of the 4 questions has a component-renders-item edge."
+          }
+        ],
+        "traceIndexFresh": true,
+        "traceEdgeKinds": [
+          "action-emits-effect",
+          "component-renders-item",
+          "unit-serves-task"
+        ],
+        "traceSources": [
+          "component",
+          "definition",
+          "experience",
+          "responseActions"
+        ]
+      }
+    },
+    {
+      "id": "BAR 2",
+      "title": "The signature checks out with nothing running",
+      "met": true,
+      "criterion": "The release signature verifies from the committed files alone, and a single changed byte makes it stop verifying.",
+      "evidence": {
+        "verification": {
+          "result": "verified",
+          "recomputedDigest": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+          "digestMatches": true,
+          "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
+          "methodRegistryVersion": "1.1.0",
+          "adapter": {
+            "id": "urn:integrity-stack:adapter:webcrypto@1",
+            "version": "0.1.0"
+          },
+          "inputsRead": [
+            "evidence/stage-4-signoff.bundle-export.json",
+            "evidence/stage-4-signoff.authored-signature.json",
+            "formspec/registries/signature-method-registry.json"
+          ]
+        },
+        "tamperedByte": "https://benefits.example.gov/apps/assistance/surfaces/respondent .id -> \"tampered\"",
+        "tamperResult": "failed",
+        "tamperDigestMatches": false,
+        "authoredSignatureSchemaValid": false,
+        "authoredSignatureSchemaIssues": [
+          {
+            "code": "AUTHORED-SIGNATURE-SCHEMA",
+            "message": "/signedPayload/canonicalization must be equal to constant",
+            "path": "/signedPayload/canonicalization"
+          }
+        ],
+        "schemaFinding": "The record conforms to `response.schema.json` $defs/AuthoredSignature on every field EXCEPT `signedPayload.canonicalization`, which is `const: \"formspec-response-signing-v1\"`. The shipped authored-signature record cannot describe a signature over anything but a Response. Claiming that const for bundle-export bytes would be the cross-domain reuse ADR 0111 forbids, so the record states its true profile and fails the schema there. Widening it is a spec change, not a spike fix.",
+        "recordedChoice": "ADR 0083 profile signs a Response; this signs a bundle export, so the spike mints one spike-local domain tag and reuses every shipped primitive (JCS, COSE_Sign1, the shipped method registry, the WebCrypto adapter). The tag is not a promotion candidate."
+      }
+    },
+    {
+      "id": "BAR 3",
+      "title": "The authorization rules fire in the middle of the story",
+      "met": true,
+      "criterion": "The AI is refused the page classifications and the theme declaration, each refusal naming what was refused and who was refused; it keeps working; nothing leaks through; and a person succeeds at both under the same deployment rule.",
+      "evidence": {
+        "routeClassRefusals": 4,
+        "routeClassRefusalMessages": [
+          "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'intake'; deployment posture protects it.",
+          "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'ceremony'; deployment posture protects it.",
+          "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.",
+          "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'operation'; deployment posture protects it."
+        ],
+        "themeDeclarationRefusal": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'theme.declaration'; deployment posture protects it.",
+        "themeDeclarationAdmittedFor": "human",
+        "agentKeptWorkingAfterRefusal": true,
+        "classifiedRoutesInAgentSession": 0,
+        "themeSlotAfterRefusal": null,
+        "onePostureDrivesBoth": true
+      }
+    },
+    {
+      "id": "BAR 4",
+      "title": "Tenant branding stops at the receipt",
+      "met": true,
+      "criterion": "In the release report, the tenant colour is allowed on the application form and refused on the receipt, with the substrate naming the reason.",
+      "evidence": {
+        "crossArtifactStatus": "completed",
+        "perRoute": [
+          {
+            "routeId": "apply",
+            "routeClass": "intake",
+            "fires": 0,
+            "reason": null
+          },
+          {
+            "routeId": "certify",
+            "routeClass": "ceremony",
+            "fires": 1,
+            "reason": "tenant-theming-refused-by-route-class"
+          },
+          {
+            "routeId": "receipt",
+            "routeClass": "proof",
+            "fires": 1,
+            "reason": "tenant-theming-refused-by-route-class"
+          },
+          {
+            "routeId": "queue",
+            "routeClass": "operation",
+            "fires": 1,
+            "reason": "tenant-theming-refused-by-route-class"
+          }
+        ],
+        "totalFires": 3
+      }
+    },
+    {
+      "id": "BAR 5",
+      "title": "The designer's edits survive a rebuild",
+      "met": false,
+      "criterion": "After the change request rebuilds the app, both hand-made edits are still there, put there by the substrate's own three-way merge.",
+      "evidence": {
+        "inputs": {
+          "oldGenerated": "evidence/bar5-old-generated.surface.json",
+          "designerEdited": "evidence/bar5-designer-edited.surface.json",
+          "newGenerated": "evidence/bar5-new-generated.surface.json"
+        },
+        "mergeAttempt": {
+          "attempted": true,
+          "entryPoint": null,
+          "outcome": "No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it."
+        },
+        "apiProbe": {
+          "packagesProbed": [
+            "@formspec-org/studio-core",
+            "@formspec-org/mcp-wireframes",
+            "@formspec-org/app-graph",
+            "@formspec-org/engine",
+            "@formspec-org/types"
+          ],
+          "exportsSeen": 332,
+          "patternsScanned": {
+            "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
+            "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
+          },
+          "matches": [],
+          "anchorVocabulary": [
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "emptyAnchorMappingsDocument",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "validateAnchorMappingsDocument",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "appendAnchorMapping",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "anchorString",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "anchorsOf",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "computeAnchorGroups",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "reanchorEntries",
+              "type": "function"
+            }
+          ],
+          "noMergeEntryPoint": true
+        },
+        "fixtureProbe": {
+          "fixtureDir": "formspec/tests/conformance/fixtures/regeneration-merge",
+          "scenarios": 17,
+          "completeTriples": 17,
+          "assertingPreservation": 10,
+          "preservationScenarios": [
+            "designer-only-property",
+            "designer-precedes",
+            "orphan-broken-binding",
+            "orphan-cascade",
+            "orphan-detached",
+            "orphan-node-resolved-refs",
+            "property-conflict",
+            "rename-no-anchor-mapping",
+            "subtree-children-add",
+            "widget-swap"
+          ],
+          "executesFixtures": [],
+          "mentionsOnly": [
+            "crates/formspec-lint/src/pass_modules.rs",
+            "crates/formspec-lint/src/types.rs",
+            "crates/formspec-py/src/document.rs",
+            "tests/conformance/COMP-BUNDLE-ID-MIGRATION.md",
+            "tests/conformance/tools/comp_bundle_id_audit.py",
+            "thoughts/archive/plans/2026-05-22-bundle-manifest.md",
+            "thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md",
+            "thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md",
+            "thoughts/plans/2026-05-22-regeneration-merge.md"
+          ],
+          "collectedTests": [
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_id_and_version",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_required_top_level_arrays",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_required_fields",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_code_enum",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_code_severity_constraints",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_has_property_deltas",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_report_arrays_use_role_specific_entries",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_role_specific_code_placement",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_entry_has_reattachment_fields",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_conflict_entry_is_role_specific",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_valid_report_instance",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_role_specific_codes_are_rejected",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_wrong_code_severity_is_rejected",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_metadata_is_required",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_cascade_code_requires_cascade_flags",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_detached_code_requires_detached_flags",
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_exp_two_hop_join_documented"
+          ],
+          "collectedTestFiles": [
+            "tests/conformance/spec/test_regeneration_merge_report_schema.py"
+          ],
+          "specStatus": "Draft 1.0.0-draft.1",
+          "schemaExists": true
+        },
+        "edits": [
+          {
+            "id": "DESIGNER-EDIT-1",
+            "what": "the sentence \"You can apply even if you have already received help this year.\"",
+            "deltaClass": "designer-inserted",
+            "presentInOldGenerated": false,
+            "presentInDesignerEdited": true,
+            "presentInNewGenerated": false,
+            "presentInMerged": null,
+            "survived": false
+          },
+          {
+            "id": "DESIGNER-EDIT-2",
+            "what": "the plain-English heading \"About your household\" (the AI wrote \"Application form\")",
+            "deltaClass": "designer-modified",
+            "presentInOldGenerated": false,
+            "presentInDesignerEdited": true,
+            "presentInNewGenerated": false,
+            "presentInMerged": null,
+            "survived": false
+          }
+        ],
+        "survivingEdits": 0,
+        "totalEdits": 2
+      },
+      "finding": "No regeneration merge exists to run. No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it. Both designer edits are therefore lost on rebuild: DESIGNER-EDIT-1 (designer-inserted), DESIGNER-EDIT-2 (designer-modified). This was the pre-registered prediction, and it is ADR 0159's own falsifier firing — the moat is specified, fixtured, and unbuilt."
+    },
+    {
+      "id": "BAR 6",
+      "title": "The materialisation guarantees still hold here",
+      "met": true,
+      "criterion": "The five ADR 0160 acceptance bars stay met on this new app, authored entirely through the verb family with no host wiring.",
+      "evidence": {
+        "rows": {
+          "ARTIFACT-MISSING <= 1 (whole graph)": true,
+          "THEME-TOKEN-REF = 0 (whole graph)": true,
+          "MODULE-* = 0 (verb-family scope)": true,
+          "cross-artifact completed": true,
+          "slotsUnchanged (authored census == exported census)": true
+        },
+        "wholeGraphErrorsByCode": {
+          "THEME-ROUTE-CLASS": 3,
+          "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER": 2
+        },
+        "errorsByScope": {
+          "host-evidence": {
+            "THEME-ROUTE-CLASS": 3
+          },
+          "verb-family": {
+            "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER": 2
+          }
+        },
+        "census": {
+          "routes": 4,
+          "slots": 10,
+          "authoredSlots": 10
+        },
+        "hostArtifactLoadersWired": 0,
+        "namedResiduals": {
+          "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER": "Verb-family-scoped and OUTSIDE the five §7 bars. `addAction` mints a Response Actions document that no manifest slot names and `exportBundle` does not serialise, so the `submit` transitions cannot resolve. ADR 0160 §4.2(b) fixed exactly this defect for `ensureExperience`; §6.5 excludes Locale, Mapping and Data Sources from v1 and does NOT list Response Actions, so this is a gap rather than a decision.",
+          "THEME-ROUTE-CLASS": "3 — these are the guard WORKING (bar 4), not a defect. Host-evidence-scoped because the UI Graph Policy is host evidence."
+        }
+      }
+    }
+  ],
+  "signature": {
+    "record": {
+      "signatureId": "sig-lifecycle-v10-ceremony-v10-0001",
+      "documentId": "rentAssistanceRelease",
+      "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1",
+      "signatureValue": "0oRYSKMBJwRQUyvaTtTn/D7hSYKiQWm4mzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEDJbiYXQGLRCu8s0wSzO9iWDypPcyvOeK3DO4kLseKzyKfjgTZkrOsNjnTJNYNAvARzqLQ/ZtUGNvt2rzsYFKMJ",
+      "signerId": "product-owner",
+      "signerName": "R. Okonjo, Product Owner",
+      "consentAccepted": true,
+      "consentTextRef": "urn:formspec:spike-v10:consent:release-sign-off:v1",
+      "consentVersion": "1.0.0",
+      "affirmationText": "I have reviewed this release and I stand behind what each page in it claims to be.",
+      "signedPayload": {
+        "canonicalization": "formspec-spike-v10-bundle-export-signing-v1",
+        "digestAlgorithm": "sha-256",
+        "digest": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+        "responseId": "https://benefits.example.gov/apps/assistance",
+        "definitionUrl": "https://benefits.example.gov/apps/assistance",
+        "definitionVersion": "1.0.0",
+        "signedAt": "2026-07-27T09:30:00Z",
+        "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1"
+      },
+      "documentHash": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+      "documentHashAlgorithm": "sha-256",
+      "signatureProvider": "urn:formspec:spike-v10:signature:provider:in-repo-ed25519",
+      "ceremonyId": "ceremony-v10-0001"
+    },
+    "publicKeyBase64": "aDoONTJMe9lgehuAVrEt1YamDnWkQUvGH4NBNgMpV7A=",
+    "schemaValid": false
+  },
+  "verification": {
+    "result": "verified",
+    "recomputedDigest": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+    "digestMatches": true,
+    "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
+    "methodRegistryVersion": "1.1.0",
+    "adapter": {
+      "id": "urn:integrity-stack:adapter:webcrypto@1",
+      "version": "0.1.0"
+    },
+    "inputsRead": [
+      "evidence/stage-4-signoff.bundle-export.json",
+      "evidence/stage-4-signoff.authored-signature.json",
+      "formspec/registries/signature-method-registry.json"
+    ],
+    "tamperResult": "failed"
+  },
+  "moat": {
+    "inputs": {
+      "oldGenerated": "evidence/bar5-old-generated.surface.json",
+      "designerEdited": "evidence/bar5-designer-edited.surface.json",
+      "newGenerated": "evidence/bar5-new-generated.surface.json"
+    },
+    "mergeAttempt": {
+      "attempted": true,
+      "entryPoint": null,
+      "outcome": "No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it."
+    },
+    "apiProbe": {
+      "packagesProbed": [
+        "@formspec-org/studio-core",
+        "@formspec-org/mcp-wireframes",
+        "@formspec-org/app-graph",
+        "@formspec-org/engine",
+        "@formspec-org/types"
+      ],
+      "exportsSeen": 332,
+      "patternsScanned": {
+        "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
+        "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
+      },
+      "matches": [],
+      "anchorVocabulary": [
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "emptyAnchorMappingsDocument",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "validateAnchorMappingsDocument",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "appendAnchorMapping",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "anchorString",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "anchorsOf",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "computeAnchorGroups",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "reanchorEntries",
+          "type": "function"
+        }
+      ],
+      "noMergeEntryPoint": true
+    },
+    "fixtureProbe": {
+      "fixtureDir": "formspec/tests/conformance/fixtures/regeneration-merge",
+      "scenarios": 17,
+      "completeTriples": 17,
+      "assertingPreservation": 10,
+      "preservationScenarios": [
+        "designer-only-property",
+        "designer-precedes",
+        "orphan-broken-binding",
+        "orphan-cascade",
+        "orphan-detached",
+        "orphan-node-resolved-refs",
+        "property-conflict",
+        "rename-no-anchor-mapping",
+        "subtree-children-add",
+        "widget-swap"
+      ],
+      "executesFixtures": [],
+      "mentionsOnly": [
+        "crates/formspec-lint/src/pass_modules.rs",
+        "crates/formspec-lint/src/types.rs",
+        "crates/formspec-py/src/document.rs",
+        "tests/conformance/COMP-BUNDLE-ID-MIGRATION.md",
+        "tests/conformance/tools/comp_bundle_id_audit.py",
+        "thoughts/archive/plans/2026-05-22-bundle-manifest.md",
+        "thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md",
+        "thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md",
+        "thoughts/plans/2026-05-22-regeneration-merge.md"
+      ],
+      "collectedTests": [
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_id_and_version",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_required_top_level_arrays",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_required_fields",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_code_enum",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_code_severity_constraints",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_has_property_deltas",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_report_arrays_use_role_specific_entries",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_role_specific_code_placement",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_entry_has_reattachment_fields",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_conflict_entry_is_role_specific",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_valid_report_instance",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_role_specific_codes_are_rejected",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_wrong_code_severity_is_rejected",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_metadata_is_required",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_cascade_code_requires_cascade_flags",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_detached_code_requires_detached_flags",
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py::test_exp_two_hop_join_documented"
+      ],
+      "collectedTestFiles": [
+        "tests/conformance/spec/test_regeneration_merge_report_schema.py"
+      ],
+      "specStatus": "Draft 1.0.0-draft.1",
+      "schemaExists": true
+    },
+    "edits": [
+      {
+        "id": "DESIGNER-EDIT-1",
+        "what": "the sentence \"You can apply even if you have already received help this year.\"",
+        "deltaClass": "designer-inserted",
+        "presentInOldGenerated": false,
+        "presentInDesignerEdited": true,
+        "presentInNewGenerated": false,
+        "presentInMerged": null,
+        "survived": false
+      },
+      {
+        "id": "DESIGNER-EDIT-2",
+        "what": "the plain-English heading \"About your household\" (the AI wrote \"Application form\")",
+        "deltaClass": "designer-modified",
+        "presentInOldGenerated": false,
+        "presentInDesignerEdited": true,
+        "presentInNewGenerated": false,
+        "presentInMerged": null,
+        "survived": false
+      }
+    ],
+    "survivingEdits": 0,
+    "totalEdits": 2
+  },
+  "corpus": {
+    "units": 4,
+    "items": 4,
+    "routes": 4
+  }
+}

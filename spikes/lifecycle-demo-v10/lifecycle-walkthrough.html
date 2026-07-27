@@ -1,0 +1,1790 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rent assistance application — the whole life of one app</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground: #EDEEE9;
+    --surface: #F7F7F4;
+    --surface-sunk: #E3E5DE;
+    --ink: #20211D;
+    --ink-soft: #55584F;
+    --ink-faint: #8A8D83;
+    --rule: #D0D3C9;
+    --accent: #7A1F3D;
+    --accent-soft: #F0E2E7;
+    --affirm: #2F6B4F;
+    --affirm-soft: #DFEBE4;
+    --note: #6B6455;
+    --shadow: 0 1px 0 rgba(32, 33, 29, .06), 0 8px 24px -18px rgba(32, 33, 29, .5);
+
+    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #171916;
+      --surface: #1F221D;
+      --surface-sunk: #141610;
+      --ink: #E7E9E0;
+      --ink-soft: #A9AC9F;
+      --ink-faint: #767A6D;
+      --rule: #343829;
+      --accent: #D48DA0;
+      --accent-soft: #3A2229;
+      --affirm: #7CC29B;
+      --affirm-soft: #1E2E25;
+      --note: #B5AB93;
+      --shadow: 0 1px 0 rgba(0,0,0,.4), 0 10px 30px -20px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #171916; --surface: #1F221D; --surface-sunk: #141610;
+    --ink: #E7E9E0; --ink-soft: #A9AC9F; --ink-faint: #767A6D; --rule: #343829;
+    --accent: #D48DA0; --accent-soft: #3A2229; --affirm: #7CC29B; --affirm-soft: #1E2E25;
+    --note: #B5AB93;
+    --shadow: 0 1px 0 rgba(0,0,0,.4), 0 10px 30px -20px rgba(0,0,0,.9);
+  }
+  :root[data-theme="light"] {
+    --ground: #EDEEE9; --surface: #F7F7F4; --surface-sunk: #E3E5DE;
+    --ink: #20211D; --ink-soft: #55584F; --ink-faint: #8A8D83; --rule: #D0D3C9;
+    --accent: #7A1F3D; --accent-soft: #F0E2E7; --affirm: #2F6B4F; --affirm-soft: #DFEBE4;
+    --note: #6B6455;
+    --shadow: 0 1px 0 rgba(32, 33, 29, .06), 0 8px 24px -18px rgba(32, 33, 29, .5);
+  }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 50rem; margin: 0 auto; padding: 3.5rem 1.25rem 6rem; }
+  @media (min-width: 60rem) { .wrap { padding-left: 2rem; padding-right: 2rem; } }
+
+  /* ── masthead ─────────────────────────────────────────────────── */
+  .masthead { border-bottom: 2px solid var(--ink); padding-bottom: 1.5rem; margin-bottom: 2.5rem; }
+  .eyebrow {
+    font-family: var(--mono); font-size: .7rem; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 .9rem;
+  }
+  h1 {
+    font-family: var(--serif); font-weight: 600; font-size: clamp(2rem, 6vw, 3.1rem);
+    line-height: 1.08; letter-spacing: -.015em; margin: 0 0 .7rem; text-wrap: balance;
+  }
+  .standfirst {
+    font-family: var(--serif); font-size: 1.14rem; line-height: 1.55;
+    color: var(--ink-soft); margin: 0; max-width: 40ch;
+  }
+
+  /* ── brief ────────────────────────────────────────────────────── */
+  .brief { margin: 0 0 3rem; padding: 1.4rem 1.5rem; background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow); }
+  .brief h2 { font-family: var(--mono); font-size: .7rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 .9rem; font-weight: 500; }
+  .brief ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .6rem; }
+  .brief li { font-family: var(--serif); font-size: 1.05rem; display: flex; gap: .85rem; align-items: baseline; }
+  .brief .tag { font-family: var(--mono); font-size: .68rem; color: var(--accent); flex: none; padding-top: .2em; }
+
+  /* ── verdict board ────────────────────────────────────────────── */
+  .board { margin: 0 0 3.5rem; }
+  .board__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--rule); padding-bottom: .6rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .board__head h2 { font-family: var(--serif); font-size: 1.45rem; margin: 0; font-weight: 600; }
+  .tally { font-family: var(--mono); font-size: .8rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  /* minmax(0,1fr) + min-width:0 — grid and flex children default to
+     min-width:auto, so one long unbreakable string inside a card widens the
+     whole track and pushes the page sideways on a phone. */
+  .bars { display: grid; gap: .9rem; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 46rem) { .bars { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+  .bar { min-width: 0; background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--affirm); padding: 1rem 1.1rem; }
+  .bar > * { min-width: 0; overflow-wrap: anywhere; }
+  .bar--unmet { border-left-color: var(--accent); }
+  .bar__head { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+  .bar__id { font-family: var(--mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+  .bar__verdict { font-family: var(--mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--affirm); font-weight: 600; }
+  .bar--unmet .bar__verdict { color: var(--accent); }
+  .bar__title { font-family: var(--serif); font-size: 1.06rem; margin: .35rem 0 .4rem; font-weight: 600; line-height: 1.3; }
+  /* A limit on a met verdict reads at headline weight, not footnote weight —
+     it is part of the claim, so it sits above the criterion and in serif. */
+  .bar__qualifier {
+    font-family: var(--serif); font-size: .95rem; font-style: italic; line-height: 1.45;
+    color: var(--note); margin: 0 0 .5rem; padding-left: .7rem; border-left: 2px solid var(--note);
+  }
+  .bar__criterion { font-size: .87rem; color: var(--ink-soft); margin: 0; }
+  .bar__finding { font-size: .87rem; margin: .6rem 0 0; padding: .6rem .75rem; background: var(--accent-soft); border-left: 2px solid var(--accent); color: var(--ink); }
+
+  /* ── stages ───────────────────────────────────────────────────── */
+  .stages { display: flex; flex-direction: column; gap: 3rem; }
+  .stages > * { min-width: 0; }
+  .stage { min-width: 0; }
+  .stage__head { display: flex; align-items: flex-start; gap: 1rem; border-bottom: 1px solid var(--rule); padding-bottom: .75rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
+  .stage__num {
+    font-family: var(--mono); font-size: .8rem; font-weight: 600;
+    width: 2rem; height: 2rem; flex: none; display: grid; place-items: center;
+    border: 1px solid var(--ink); border-radius: 50%; font-variant-numeric: tabular-nums;
+  }
+  .stage__title { font-family: var(--serif); font-size: 1.6rem; margin: 0; font-weight: 600; line-height: 1.1; }
+  .stage__sub { font-family: var(--mono); font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); margin: .2rem 0 0; }
+  .stage__flag { margin-left: auto; font-family: var(--mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); align-self: center; }
+  .stage__narration { font-family: var(--serif); font-size: 1.14rem; line-height: 1.62; margin: 0 0 1.5rem; max-width: 62ch; }
+
+  .beats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem; }
+  .beat { min-width: 0; background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--rule); padding: .8rem .95rem; }
+  .beat--admitted { border-left-color: var(--affirm); }
+  .beat--refused { border-left-color: var(--accent); }
+  .beat--recorded { border-left-color: var(--note); }
+  .beat__head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+  .beat__who { font-size: .78rem; font-weight: 600; letter-spacing: .01em; }
+  .beat__verb { font-family: var(--mono); font-size: .72rem; color: var(--ink-faint); }
+  .chip { margin-left: auto; font-family: var(--mono); font-size: .64rem; letter-spacing: .1em; text-transform: uppercase; padding: .18em .5em; border: 1px solid currentColor; }
+  .chip--admitted { color: var(--affirm); }
+  .chip--refused { color: var(--accent); }
+  .chip--noted { color: var(--note); }
+  .beat__intent { font-family: var(--serif); font-size: 1.02rem; margin: .4rem 0 0; line-height: 1.5; overflow-wrap: anywhere; }
+  .beat__verb { overflow-wrap: anywhere; }
+
+  .said { margin: .7rem 0 0; padding: .7rem .85rem; background: var(--surface-sunk); border-left: 2px solid var(--accent); }
+  .said--walk { border-left-color: var(--note); border-left-style: dashed; }
+  .said__who { display: block; font-family: var(--mono); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: .35rem; }
+  .said code { font-family: var(--mono); font-size: .8rem; line-height: 1.55; color: var(--ink); overflow-wrap: anywhere; }
+
+  /* ── seal (the signature) ─────────────────────────────────────── */
+  .seal { margin: 3.5rem 0; padding: 1.6rem 1.5rem; background: var(--surface); border: 1px solid var(--ink); box-shadow: var(--shadow); }
+  .seal h2 { font-family: var(--serif); font-size: 1.45rem; margin: 0 0 .3rem; font-weight: 600; }
+  .seal__sub { font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 1.1rem; }
+  .seal__affirm { font-family: var(--serif); font-size: 1.1rem; font-style: italic; margin: 0 0 1.2rem; padding-left: 1rem; border-left: 2px solid var(--accent); max-width: 52ch; }
+  .facts { display: grid; gap: .55rem; margin: 0; }
+  @media (min-width: 40rem) { .facts { grid-template-columns: 12rem 1fr; align-items: baseline; } }
+  .facts dt { font-family: var(--mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+  .facts dd { font-family: var(--mono); font-size: .82rem; margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .verdict-inline { font-weight: 600; color: var(--affirm); }
+  .verdict-inline--bad { color: var(--accent); }
+
+  /* ── moat ─────────────────────────────────────────────────────── */
+  .moat { margin: 3.5rem 0 0; padding: 1.6rem 1.5rem; background: var(--accent-soft); border: 1px solid var(--accent); }
+  .moat h2 { font-family: var(--serif); font-size: 1.45rem; margin: 0 0 .3rem; font-weight: 600; }
+  .moat__sub { font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 1.1rem; }
+  .moat p { max-width: 62ch; }
+  .moat__why { overflow-wrap: anywhere; font-family: var(--mono); font-size: .78rem; line-height: 1.65; background: var(--surface); border: 1px solid var(--rule); padding: .8rem .9rem; margin: 1.2rem 0 0; }
+  .edits { list-style: none; margin: 1.2rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+  .edits li { min-width: 0; background: var(--surface); border: 1px solid var(--rule); padding: .75rem .9rem; display: flex; gap: .8rem; align-items: baseline; flex-wrap: wrap; }
+  .edits .what { font-family: var(--serif); font-size: 1rem; flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
+  .edits .verdict { font-family: var(--mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; }
+
+  /* ── details ──────────────────────────────────────────────────── */
+  .detail { margin-top: .7rem; }
+  .detail summary {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink-faint); cursor: pointer; padding: .15rem 0; list-style: none; display: inline-flex; gap: .45rem; align-items: center;
+  }
+  .detail summary::-webkit-details-marker { display: none; }
+  .detail summary::before { content: "+"; font-size: .9rem; line-height: 1; }
+  .detail[open] summary::before { content: "\2212"; }
+  .detail summary:hover, .detail summary:focus-visible { color: var(--accent); }
+  .detail pre {
+    margin: .55rem 0 0; padding: .8rem .9rem; background: var(--surface-sunk); border: 1px solid var(--rule);
+    font-family: var(--mono); font-size: .74rem; line-height: 1.5; overflow-x: auto; color: var(--ink-soft);
+  }
+  .detail--state summary { color: var(--ink-soft); }
+
+  footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: .72rem; color: var(--ink-faint); line-height: 1.7; }
+  footer code { overflow-wrap: anywhere; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">One application &middot; six stages &middot; nothing hidden</p>
+    <h1>Rent assistance application</h1>
+    <p class="standfirst">Watch one small government application go from a sentence somebody said, to a signed release, to a change request that rebuilds it &mdash; and see exactly what the machinery allowed, refused, and lost along the way.</p>
+  </header>
+
+  <section class="brief">
+    <h2>The brief it started from</h2>
+    <ol>
+      <li><span class="tag">B1</span><span>A tenant behind on rent tells us about their household and what went wrong.</span></li>
+      <li><span class="tag">B2</span><span>Before it counts, they sign a declaration that what they said is true.</span></li>
+      <li><span class="tag">B3</span><span>They get a receipt they can show a landlord or a court.</span></li>
+      <li><span class="tag">B4</span><span>A caseworker works through the queue and decides.</span></li>
+    </ol>
+  </section>
+
+  <section class="board">
+    <div class="board__head">
+      <h2>What we set out to prove, and what happened</h2>
+      <span class="tally">5 of 6 met</span>
+    </div>
+    <div class="bars">
+      <article class="bar bar--met">
+  <header class="bar__head">
+    <span class="bar__id">BAR 1</span>
+    <span class="bar__verdict">Met</span>
+  </header>
+  <h3 class="bar__title">Everything traces back to the brief</h3>
+  <p class="bar__qualifier">Met, and narrower than it sounds: only 1 of the 4 journey entries is mounted on a page at all, so the unit-to-page hop holds over 1 of 4. The other three are unmountable on a Definition-bearing bundle — `APP-GRAPH-SURFACE-EXPERIENCE-UNIT-DEFINITION` requires any route mounting a unit to also carry a `definition-form` slot for the Experience's `targetDefinition`. The chain is connected; it is not four parallel chains.</p>
+  <p class="bar__criterion">Each hop from a brief sentence to a page, a question and a rendered field is either an edge the substrate itself recorded, or a reference physically present in the exported files.</p>
+  
+  <details class="detail"><summary>Evidence</summary><pre>{
+  &quot;mountedUnits&quot;: 1,
+  &quot;totalUnits&quot;: 4,
+  &quot;hops&quot;: [
+    {
+      &quot;from&quot;: &quot;brief sentence&quot;,
+      &quot;to&quot;: &quot;Experience unit&quot;,
+      &quot;holds&quot;: true,
+      &quot;via&quot;: &quot;exported Experience document&quot;,
+      &quot;note&quot;: &quot;All 4 brief sentences appear as units in the exported Experience. The brief TEXT is not persisted by any verb; the units are what survives it.&quot;
+    },
+    {
+      &quot;from&quot;: &quot;Experience unit&quot;,
+      &quot;to&quot;: &quot;task&quot;,
+      &quot;holds&quot;: true,
+      &quot;via&quot;: &quot;TraceIndex edge `unit-serves-task`&quot;,
+      &quot;note&quot;: &quot;4 unit-serves-task edges, built by the kernel's own trace builder and digest-verified fresh.&quot;
+    },
+    {
+      &quot;from&quot;: &quot;Experience unit&quot;,
+      &quot;to&quot;: &quot;Surface route&quot;,
+      &quot;holds&quot;: true,
+      &quot;via&quot;: &quot;exported Surface `experience-unit` slot binding&quot;,
+      &quot;note&quot;: &quot;1 of 4 units are mounted on a route, and every mounted `unitRef` names a unit that exists in the Experience. The other units are NOT mountable: `APP-GRAPH-SURFACE-EXPERIENCE-UNIT-DEFINITION` requires any route mounting a unit to also carry a `definition-form` slot for the Experience's `targetDefinition`, which the kernel stamps automatically once a Definition is declared. On a Definition-bearing bundle that makes a receipt, a signing screen and a staff queue unmountable — the rule reads `targetDefinition` as \&quot;every unit collects for this form\&quot;, which is false of `attestation`, `confirmation` and `review` units.&quot;
+    },
+    {
+      &quot;from&quot;: &quot;Surface route&quot;,
+      &quot;to&quot;: &quot;Definition&quot;,
+      &quot;holds&quot;: true,
+      &quot;via&quot;: &quot;exported Surface `definition-form` slot binding&quot;,
+      &quot;note&quot;: &quot;The intake route binds the Definition by URL. This route is ALSO where the Experience meets the Definition: no kernel op writes `unit.itemRefs` after a unit exists, so the Experience-to-item link the ADR 0159 Plan row describes runs through the route rather than through the Experience.&quot;
+    },
+    {
+      &quot;from&quot;: &quot;Definition item&quot;,
+      &quot;to&quot;: &quot;rendered Component node&quot;,
+      &quot;holds&quot;: true,
+      &quot;via&quot;: &quot;TraceIndex edge `component-renders-item`&quot;,
+      &quot;note&quot;: &quot;Every one of the 4 questions has a component-renders-item edge.&quot;
+    }
+  ],
+  &quot;traceIndexFresh&quot;: true,
+  &quot;traceEdgeKinds&quot;: [
+    &quot;action-emits-effect&quot;,
+    &quot;component-renders-item&quot;,
+    &quot;unit-serves-task&quot;
+  ],
+  &quot;traceSources&quot;: [
+    &quot;component&quot;,
+    &quot;definition&quot;,
+    &quot;experience&quot;,
+    &quot;responseActions&quot;
+  ]
+}</pre></details>
+</article>
+      <article class="bar bar--met">
+  <header class="bar__head">
+    <span class="bar__id">BAR 2</span>
+    <span class="bar__verdict">Met</span>
+  </header>
+  <h3 class="bar__title">The signature checks out with nothing running</h3>
+  
+  <p class="bar__criterion">The release signature verifies from the committed files alone, and a single changed byte makes it stop verifying.</p>
+  
+  <details class="detail"><summary>Evidence</summary><pre>{
+  &quot;verification&quot;: {
+    &quot;result&quot;: &quot;verified&quot;,
+    &quot;recomputedDigest&quot;: &quot;35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba&quot;,
+    &quot;digestMatches&quot;: true,
+    &quot;methodUriFromEnvelope&quot;: &quot;urn:formspec:sig-method:ed25519-cose-sign1@1&quot;,
+    &quot;methodRegistryVersion&quot;: &quot;1.1.0&quot;,
+    &quot;adapter&quot;: {
+      &quot;id&quot;: &quot;urn:integrity-stack:adapter:webcrypto@1&quot;,
+      &quot;version&quot;: &quot;0.1.0&quot;
+    },
+    &quot;inputsRead&quot;: [
+      &quot;evidence/stage-4-signoff.bundle-export.json&quot;,
+      &quot;evidence/stage-4-signoff.authored-signature.json&quot;,
+      &quot;formspec/registries/signature-method-registry.json&quot;
+    ]
+  },
+  &quot;tamperedByte&quot;: &quot;https://benefits.example.gov/apps/assistance/surfaces/respondent .id -&gt; \&quot;tampered\&quot;&quot;,
+  &quot;tamperResult&quot;: &quot;failed&quot;,
+  &quot;tamperDigestMatches&quot;: false,
+  &quot;authoredSignatureSchemaValid&quot;: false,
+  &quot;authoredSignatureSchemaIssues&quot;: [
+    {
+      &quot;code&quot;: &quot;AUTHORED-SIGNATURE-SCHEMA&quot;,
+      &quot;message&quot;: &quot;/signedPayload/canonicalization must be equal to constant&quot;,
+      &quot;path&quot;: &quot;/signedPayload/canonicalization&quot;
+    }
+  ],
+  &quot;schemaFinding&quot;: &quot;The record conforms to `response.schema.json` $defs/AuthoredSignature on every field EXCEPT `signedPayload.canonicalization`, which is `const: \&quot;formspec-response-signing-v1\&quot;`. The shipped authored-signature record cannot describe a signature over anything but a Response. Claiming that const for bundle-export bytes would be the cross-domain reuse ADR 0111 forbids, so the record states its true profile and fails the schema there. Widening it is a spec change, not a spike fix.&quot;,
+  &quot;recordedChoice&quot;: &quot;ADR 0083 profile signs a Response; this signs a bundle export, so the spike mints one spike-local domain tag and reuses every shipped primitive (JCS, COSE_Sign1, the shipped method registry, the WebCrypto adapter). The tag is not a promotion candidate.&quot;
+}</pre></details>
+</article>
+      <article class="bar bar--met">
+  <header class="bar__head">
+    <span class="bar__id">BAR 3</span>
+    <span class="bar__verdict">Met</span>
+  </header>
+  <h3 class="bar__title">The authorization rules fire in the middle of the story</h3>
+  
+  <p class="bar__criterion">The AI is refused the page classifications and the theme declaration, each refusal naming what was refused and who was refused; it keeps working; nothing leaks through; and a person succeeds at both under the same deployment rule.</p>
+  
+  <details class="detail"><summary>Evidence</summary><pre>{
+  &quot;routeClassRefusals&quot;: 4,
+  &quot;routeClassRefusalMessages&quot;: [
+    &quot;Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'intake'; deployment posture protects it.&quot;,
+    &quot;Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'ceremony'; deployment posture protects it.&quot;,
+    &quot;Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.&quot;,
+    &quot;Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'operation'; deployment posture protects it.&quot;
+  ],
+  &quot;themeDeclarationRefusal&quot;: &quot;Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'theme.declaration'; deployment posture protects it.&quot;,
+  &quot;themeDeclarationAdmittedFor&quot;: &quot;human&quot;,
+  &quot;agentKeptWorkingAfterRefusal&quot;: true,
+  &quot;classifiedRoutesInAgentSession&quot;: 0,
+  &quot;themeSlotAfterRefusal&quot;: null,
+  &quot;onePostureDrivesBoth&quot;: true
+}</pre></details>
+</article>
+      <article class="bar bar--met">
+  <header class="bar__head">
+    <span class="bar__id">BAR 4</span>
+    <span class="bar__verdict">Met</span>
+  </header>
+  <h3 class="bar__title">Tenant branding stops at the receipt</h3>
+  
+  <p class="bar__criterion">In the release report, the tenant colour is allowed on the application form and refused on the receipt, with the substrate naming the reason.</p>
+  
+  <details class="detail"><summary>Evidence</summary><pre>{
+  &quot;crossArtifactStatus&quot;: &quot;completed&quot;,
+  &quot;perRoute&quot;: [
+    {
+      &quot;routeId&quot;: &quot;apply&quot;,
+      &quot;routeClass&quot;: &quot;intake&quot;,
+      &quot;fires&quot;: 0,
+      &quot;reason&quot;: null
+    },
+    {
+      &quot;routeId&quot;: &quot;certify&quot;,
+      &quot;routeClass&quot;: &quot;ceremony&quot;,
+      &quot;fires&quot;: 1,
+      &quot;reason&quot;: &quot;tenant-theming-refused-by-route-class&quot;
+    },
+    {
+      &quot;routeId&quot;: &quot;receipt&quot;,
+      &quot;routeClass&quot;: &quot;proof&quot;,
+      &quot;fires&quot;: 1,
+      &quot;reason&quot;: &quot;tenant-theming-refused-by-route-class&quot;
+    },
+    {
+      &quot;routeId&quot;: &quot;queue&quot;,
+      &quot;routeClass&quot;: &quot;operation&quot;,
+      &quot;fires&quot;: 1,
+      &quot;reason&quot;: &quot;tenant-theming-refused-by-route-class&quot;
+    }
+  ],
+  &quot;totalFires&quot;: 3
+}</pre></details>
+</article>
+      <article class="bar bar--unmet">
+  <header class="bar__head">
+    <span class="bar__id">BAR 5</span>
+    <span class="bar__verdict">Not met</span>
+  </header>
+  <h3 class="bar__title">The designer's edits survive a rebuild</h3>
+  
+  <p class="bar__criterion">After the change request rebuilds the app, both hand-made edits are still there, put there by the substrate's own three-way merge.</p>
+  <p class="bar__finding">No regeneration merge exists to run. No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it. Both designer edits are therefore lost on rebuild: DESIGNER-EDIT-1 (designer-inserted), DESIGNER-EDIT-2 (designer-modified). This was the pre-registered prediction, and it is ADR 0159's own falsifier firing — the moat is specified, fixtured, and unbuilt.</p>
+  <details class="detail"><summary>Evidence</summary><pre>{
+  &quot;inputs&quot;: {
+    &quot;oldGenerated&quot;: &quot;evidence/bar5-old-generated.surface.json&quot;,
+    &quot;designerEdited&quot;: &quot;evidence/bar5-designer-edited.surface.json&quot;,
+    &quot;newGenerated&quot;: &quot;evidence/bar5-new-generated.surface.json&quot;
+  },
+  &quot;mergeAttempt&quot;: {
+    &quot;attempted&quot;: true,
+    &quot;entryPoint&quot;: null,
+    &quot;outcome&quot;: &quot;No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it.&quot;
+  },
+  &quot;apiProbe&quot;: {
+    &quot;packagesProbed&quot;: [
+      &quot;@formspec-org/studio-core&quot;,
+      &quot;@formspec-org/mcp-wireframes&quot;,
+      &quot;@formspec-org/app-graph&quot;,
+      &quot;@formspec-org/engine&quot;,
+      &quot;@formspec-org/types&quot;
+    ],
+    &quot;exportsSeen&quot;: 332,
+    &quot;patternsScanned&quot;: {
+      &quot;mergeEntryPoint&quot;: &quot;/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i&quot;,
+      &quot;anchorIdentity&quot;: &quot;/anchor|x-?generation|generationmarker|designeredit|preservation/i&quot;
+    },
+    &quot;matches&quot;: [],
+    &quot;anchorVocabulary&quot;: [
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;emptyAnchorMappingsDocument&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;validateAnchorMappingsDocument&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;appendAnchorMapping&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;anchorString&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;anchorsOf&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;computeAnchorGroups&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;reanchorEntries&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      }
+    ],
+    &quot;noMergeEntryPoint&quot;: true
+  },
+  &quot;fixtureProbe&quot;: {
+    &quot;fixtureDir&quot;: &quot;formspec/tests/conformance/fixtures/regeneration-merge&quot;,
+    &quot;scenarios&quot;: 17,
+    &quot;completeTriples&quot;: 17,
+    &quot;assertingPreservation&quot;: 10,
+    &quot;preservationScenarios&quot;: [
+      &quot;designer-only-property&quot;,
+      &quot;designer-precedes&quot;,
+      &quot;orphan-broken-binding&quot;,
+      &quot;orphan-cascade&quot;,
+      &quot;orphan-detached&quot;,
+      &quot;orphan-node-resolved-refs&quot;,
+      &quot;property-conflict&quot;,
+      &quot;rename-no-anchor-mapping&quot;,
+      &quot;subtree-children-add&quot;,
+      &quot;widget-swap&quot;
+    ],
+    &quot;executesFixtures&quot;: [],
+    &quot;mentionsOnly&quot;: [
+      &quot;crates/formspec-lint/src/pass_modules.rs&quot;,
+      &quot;crates/formspec-lint/src/types.rs&quot;,
+      &quot;crates/formspec-py/src/document.rs&quot;,
+      &quot;tests/conformance/COMP-BUNDLE-ID-MIGRATION.md&quot;,
+      &quot;tests/conformance/tools/comp_bundle_id_audit.py&quot;,
+      &quot;thoughts/archive/plans/2026-05-22-bundle-manifest.md&quot;,
+      &quot;thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md&quot;,
+      &quot;thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md&quot;,
+      &quot;thoughts/plans/2026-05-22-regeneration-merge.md&quot;
+    ],
+    &quot;collectedTests&quot;: [
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_id_and_version&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_required_top_level_arrays&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_required_fields&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_code_enum&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_code_severity_constraints&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_has_property_deltas&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_report_arrays_use_role_specific_entries&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_role_specific_code_placement&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_entry_has_reattachment_fields&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_conflict_entry_is_role_specific&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_valid_report_instance&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_role_specific_codes_are_rejected&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_wrong_code_severity_is_rejected&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_metadata_is_required&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_cascade_code_requires_cascade_flags&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_detached_code_requires_detached_flags&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_exp_two_hop_join_documented&quot;
+    ],
+    &quot;collectedTestFiles&quot;: [
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py&quot;
+    ],
+    &quot;specStatus&quot;: &quot;Draft 1.0.0-draft.1&quot;,
+    &quot;schemaExists&quot;: true
+  },
+  &quot;edits&quot;: [
+    {
+      &quot;id&quot;: &quot;DESIGNER-EDIT-1&quot;,
+      &quot;what&quot;: &quot;the sentence \&quot;You can apply even if you have already received help this year.\&quot;&quot;,
+      &quot;deltaClass&quot;: &quot;designer-inserted&quot;,
+      &quot;presentInOldGenerated&quot;: false,
+      &quot;presentInDesignerEdited&quot;: true,
+      &quot;presentInNewGenerated&quot;: false,
+      &quot;presentInMerged&quot;: null,
+      &quot;survived&quot;: false
+    },
+    {
+      &quot;id&quot;: &quot;DESIGNER-EDIT-2&quot;,
+      &quot;what&quot;: &quot;the plain-English heading \&quot;About your household\&quot; (the AI wrote \&quot;Application form\&quot;)&quot;,
+      &quot;deltaClass&quot;: &quot;designer-modified&quot;,
+      &quot;presentInOldGenerated&quot;: false,
+      &quot;presentInDesignerEdited&quot;: true,
+      &quot;presentInNewGenerated&quot;: false,
+      &quot;presentInMerged&quot;: null,
+      &quot;survived&quot;: false
+    }
+  ],
+  &quot;survivingEdits&quot;: 0,
+  &quot;totalEdits&quot;: 2
+}</pre></details>
+</article>
+      <article class="bar bar--met">
+  <header class="bar__head">
+    <span class="bar__id">BAR 6</span>
+    <span class="bar__verdict">Met</span>
+  </header>
+  <h3 class="bar__title">The materialisation guarantees still hold here</h3>
+  
+  <p class="bar__criterion">The five ADR 0160 acceptance bars stay met on this new app, authored entirely through the verb family with no host wiring.</p>
+  
+  <details class="detail"><summary>Evidence</summary><pre>{
+  &quot;rows&quot;: {
+    &quot;ARTIFACT-MISSING &lt;= 1 (whole graph)&quot;: true,
+    &quot;THEME-TOKEN-REF = 0 (whole graph)&quot;: true,
+    &quot;MODULE-* = 0 (verb-family scope)&quot;: true,
+    &quot;cross-artifact completed&quot;: true,
+    &quot;slotsUnchanged (authored census == exported census)&quot;: true
+  },
+  &quot;wholeGraphErrorsByCode&quot;: {
+    &quot;THEME-ROUTE-CLASS&quot;: 3,
+    &quot;APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER&quot;: 2
+  },
+  &quot;errorsByScope&quot;: {
+    &quot;host-evidence&quot;: {
+      &quot;THEME-ROUTE-CLASS&quot;: 3
+    },
+    &quot;verb-family&quot;: {
+      &quot;APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER&quot;: 2
+    }
+  },
+  &quot;census&quot;: {
+    &quot;routes&quot;: 4,
+    &quot;slots&quot;: 10,
+    &quot;authoredSlots&quot;: 10
+  },
+  &quot;hostArtifactLoadersWired&quot;: 0,
+  &quot;namedResiduals&quot;: {
+    &quot;APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER&quot;: &quot;Verb-family-scoped and OUTSIDE the five §7 bars. `addAction` mints a Response Actions document that no manifest slot names and `exportBundle` does not serialise, so the `submit` transitions cannot resolve. ADR 0160 §4.2(b) fixed exactly this defect for `ensureExperience`; §6.5 excludes Locale, Mapping and Data Sources from v1 and does NOT list Response Actions, so this is a gap rather than a decision.&quot;,
+    &quot;THEME-ROUTE-CLASS&quot;: &quot;3 — these are the guard WORKING (bar 4), not a defect. Host-evidence-scoped because the UI Graph Policy is host evidence.&quot;
+  }
+}</pre></details>
+</article>
+    </div>
+  </section>
+
+  <div class="stages">
+    <section class="stage" id="stage-idea">
+  <header class="stage__head">
+    <span class="stage__num">1</span>
+    <div>
+      <h2 class="stage__title">Idea</h2>
+      <p class="stage__sub">Somebody describes the job</p>
+    </div>
+    
+  </header>
+  <p class="stage__narration">Someone describes the job in four sentences. Before a single field exists, the AI writes down who is involved and what each of them is trying to get done — one entry per sentence of the brief.</p>
+  <ol class="beats"><li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">wireframeFromBrief</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Start an app from the brief.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;bundleId&quot;: &quot;https://benefits.example.gov/apps/assistance&quot;,
+  &quot;briefLines&quot;: 4
+}</pre></details>
+</li>
+<li class="beat beat--recorded">
+  <div class="beat__head">
+    <span class="beat__who">The substrate</span>
+    <code class="beat__verb">wireframeFromBrief</code>
+    <span class="chip chip--noted">Noted</span>
+  </div>
+  <p class="beat__intent">Keep the brief text itself, so later stages can point back at it.</p>
+  <blockquote class="said said--walk"><span class="said__who">What the walk found</span><code>The brief is accepted as an argument and discarded. `wireframeFromBrief` forwards only id, version and title to `createBundle`; no verb persists the brief text. It survives into the substrate only as the units it produced.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;finding&quot;: &quot;no-brief-persistence&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addExperienceUnit</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Write down: &quot;Tell us about your household&quot; — applicant needs to submitApplication.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;unitId&quot;: &quot;applyForHelp&quot;,
+  &quot;kind&quot;: &quot;data-entry&quot;,
+  &quot;actorRef&quot;: &quot;applicant&quot;,
+  &quot;taskRefs&quot;: [
+    &quot;submitApplication&quot;
+  ],
+  &quot;fromBrief&quot;: &quot;B1&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addExperienceUnit</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Write down: &quot;Sign your declaration&quot; — applicant needs to certifyTruth.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;unitId&quot;: &quot;certifyDeclaration&quot;,
+  &quot;kind&quot;: &quot;attestation&quot;,
+  &quot;actorRef&quot;: &quot;applicant&quot;,
+  &quot;taskRefs&quot;: [
+    &quot;certifyTruth&quot;
+  ],
+  &quot;fromBrief&quot;: &quot;B2&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addExperienceUnit</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Write down: &quot;Keep your receipt&quot; — applicant needs to proveSubmission.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;unitId&quot;: &quot;collectReceipt&quot;,
+  &quot;kind&quot;: &quot;confirmation&quot;,
+  &quot;actorRef&quot;: &quot;applicant&quot;,
+  &quot;taskRefs&quot;: [
+    &quot;proveSubmission&quot;
+  ],
+  &quot;fromBrief&quot;: &quot;B3&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addExperienceUnit</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Write down: &quot;Work the queue&quot; — caseworker needs to decideApplication.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;unitId&quot;: &quot;reviewApplication&quot;,
+  &quot;kind&quot;: &quot;review&quot;,
+  &quot;actorRef&quot;: &quot;caseworker&quot;,
+  &quot;taskRefs&quot;: [
+    &quot;decideApplication&quot;
+  ],
+  &quot;fromBrief&quot;: &quot;B4&quot;
+}</pre></details>
+</li></ol>
+  <details class="detail detail--state">
+    <summary>What exists in the substrate after this stage</summary>
+    <pre>{
+  &quot;hasExperience&quot;: true,
+  &quot;experienceUrl&quot;: &quot;urn:formspec:doc:1feb5fb90254133a:experience&quot;,
+  &quot;units&quot;: [
+    {
+      &quot;id&quot;: &quot;applyForHelp&quot;,
+      &quot;title&quot;: &quot;Tell us about your household&quot;,
+      &quot;actor&quot;: &quot;applicant&quot;,
+      &quot;tasks&quot;: [
+        &quot;submitApplication&quot;
+      ],
+      &quot;fromBrief&quot;: &quot;B1&quot;
+    },
+    {
+      &quot;id&quot;: &quot;certifyDeclaration&quot;,
+      &quot;title&quot;: &quot;Sign your declaration&quot;,
+      &quot;actor&quot;: &quot;applicant&quot;,
+      &quot;tasks&quot;: [
+        &quot;certifyTruth&quot;
+      ],
+      &quot;fromBrief&quot;: &quot;B2&quot;
+    },
+    {
+      &quot;id&quot;: &quot;collectReceipt&quot;,
+      &quot;title&quot;: &quot;Keep your receipt&quot;,
+      &quot;actor&quot;: &quot;applicant&quot;,
+      &quot;tasks&quot;: [
+        &quot;proveSubmission&quot;
+      ],
+      &quot;fromBrief&quot;: &quot;B3&quot;
+    },
+    {
+      &quot;id&quot;: &quot;reviewApplication&quot;,
+      &quot;title&quot;: &quot;Work the queue&quot;,
+      &quot;actor&quot;: &quot;caseworker&quot;,
+      &quot;tasks&quot;: [
+        &quot;decideApplication&quot;
+      ],
+      &quot;fromBrief&quot;: &quot;B4&quot;
+    }
+  ],
+  &quot;hasDefinition&quot;: false,
+  &quot;artifact&quot;: &quot;evidence/stage-1-idea.experience.json&quot;
+}</pre>
+  </details>
+</section>
+    <section class="stage" id="stage-plan">
+  <header class="stage__head">
+    <span class="stage__num">2</span>
+    <div>
+      <h2 class="stage__title">Plan</h2>
+      <p class="stage__sub">It becomes a real form</p>
+    </div>
+    <span class="stage__flag">4 refusals</span>
+  </header>
+  <p class="stage__narration">The AI turns the journey into a real form: the questions people will answer, and the four pages the app has. Then it tries to say what kind of page each one is — and the deployment stops it. Deciding that a page is &quot;a receipt a court relies on&quot; is a call a person makes, not a machine.</p>
+  <ol class="beats"><li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">declareDefinition</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Create the form that holds the questions.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;url&quot;: &quot;https://benefits.example.gov/apps/assistance/definitions/rent-assistance&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addDefinitionStub</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Write the questions people will answer: &quot;Household size&quot;, &quot;Monthly rent&quot;, &quot;Months behind on rent&quot;, &quot;What happened&quot;.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;items&quot;: [
+    {
+      &quot;path&quot;: &quot;householdSize&quot;,
+      &quot;dataType&quot;: &quot;integer&quot;,
+      &quot;fromBrief&quot;: &quot;B1&quot;
+    },
+    {
+      &quot;path&quot;: &quot;monthlyRent&quot;,
+      &quot;dataType&quot;: &quot;decimal&quot;,
+      &quot;fromBrief&quot;: &quot;B1&quot;
+    },
+    {
+      &quot;path&quot;: &quot;monthsBehind&quot;,
+      &quot;dataType&quot;: &quot;integer&quot;,
+      &quot;fromBrief&quot;: &quot;B1&quot;
+    },
+    {
+      &quot;path&quot;: &quot;hardshipReason&quot;,
+      &quot;dataType&quot;: &quot;text&quot;,
+      &quot;fromBrief&quot;: &quot;B1&quot;
+    }
+  ]
+}</pre></details>
+</li>
+<li class="beat beat--recorded">
+  <div class="beat__head">
+    <span class="beat__who">The substrate</span>
+    <code class="beat__verb">(none)</code>
+    <span class="chip chip--noted">Noted</span>
+  </div>
+  <p class="beat__intent">Connect the journey entries to the questions they collect.</p>
+  <blockquote class="said said--walk"><span class="said__who">What the walk found</span><code>No kernel op writes `unit.itemRefs` after a unit exists — `bindActor` and `bindTask` exist, `bindItem` does not, and `addUnit` conflicts on re-add. The Experience-to-Definition link the ADR 0159 Plan row describes is unreachable through the verb surface; the two meet on the Surface route that binds both instead.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;finding&quot;: &quot;no-bindItem-verb&quot;,
+  &quot;availableBinders&quot;: [
+    &quot;bindActor&quot;,
+    &quot;bindTask&quot;
+  ]
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addAction</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Say what happens when somebody presses Submit.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;actionId&quot;: &quot;submitApplication&quot;,
+  &quot;intent&quot;: &quot;submit&quot;,
+  &quot;note&quot;: &quot;No declareResponseActions verb exists in the ADR 0160 v1 family; the kernel op mints the document on first call.&quot;
+}</pre></details>
+</li>
+<li class="beat beat--recorded">
+  <div class="beat__head">
+    <span class="beat__who">The substrate</span>
+    <code class="beat__verb">(check)</code>
+    <span class="chip chip--noted">Noted</span>
+  </div>
+  <p class="beat__intent">Confirm the app now says what Submit does.</p>
+  <blockquote class="said said--walk"><span class="said__who">What the walk found</span><code>The Response Actions document was minted and no manifest slot names it. `readAppManifest` emits no `responseActions` key and `exportBundle` does not serialise it, so nothing in the graph can resolve the Submit behaviour — the transitions that fire it stay unresolved. This is ADR 0160 §4.2(b) (&quot;no mint without a declaration&quot;) firing on a kind that ADR 0160 §6.5 does NOT list as deliberately excluded: it fixed the identical defect for `ensureExperience` and left this one.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;finding&quot;: &quot;response-actions-minted-but-undeclared&quot;,
+  &quot;manifestSlots&quot;: [
+    &quot;$formspecBundle&quot;,
+    &quot;version&quot;,
+    &quot;id&quot;,
+    &quot;title&quot;,
+    &quot;definitions&quot;,
+    &quot;experience&quot;,
+    &quot;registries&quot;,
+    &quot;surfaces&quot;,
+    &quot;modules&quot;,
+    &quot;sessions&quot;
+  ],
+  &quot;adr0160&quot;: &quot;§4.2(b) mirror of the fixed `ensureExperience` defect; §6.5 excludes Locale, Mapping and Data Sources — not Response Actions&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addSurface</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Give staff their own app. A caseworker queue is not a page an applicant can walk to.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;surfaceUrl&quot;: &quot;https://benefits.example.gov/apps/assistance/surfaces/staff&quot;,
+  &quot;surfaceId&quot;: &quot;staff&quot;
+}</pre></details>
+</li>
+<li class="beat beat--refused">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addRoute</code>
+    <span class="chip chip--refused">Refused</span>
+  </div>
+  <p class="beat__intent">Say that /apply is a &quot;intake&quot; page — A Definition-backed capture from the person applying. The one class that admits a tenant putting their own brand on the page.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'intake'; deployment posture protects it.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;apply&quot;,
+  &quot;wantedRouteClass&quot;: &quot;intake&quot;,
+  &quot;errorCode&quot;: &quot;VALIDATION&quot;,
+  &quot;operation&quot;: &quot;addRoute&quot;,
+  &quot;surfaceId&quot;: &quot;respondent&quot;,
+  &quot;reason&quot;: &quot;vocabulary-protected&quot;,
+  &quot;vocabulary&quot;: &quot;surface.routeClass&quot;,
+  &quot;actor&quot;: &quot;urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10&quot;,
+  &quot;actorKind&quot;: &quot;ai-agent&quot;,
+  &quot;value&quot;: &quot;intake&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addRoute</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Add /apply without saying what kind of page it is, and keep working.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;apply&quot;,
+  &quot;routeClass&quot;: null
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">bindSlot</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Fill /apply with what belongs on it.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;apply&quot;,
+  &quot;slots&quot;: [
+    {
+      &quot;id&quot;: &quot;applyForm&quot;,
+      &quot;type&quot;: &quot;definition-form&quot;
+    },
+    {
+      &quot;id&quot;: &quot;applyJourney&quot;,
+      &quot;type&quot;: &quot;experience-unit&quot;
+    },
+    {
+      &quot;id&quot;: &quot;applyChrome&quot;,
+      &quot;type&quot;: &quot;module-widget&quot;
+    }
+  ]
+}</pre></details>
+</li>
+<li class="beat beat--refused">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addRoute</code>
+    <span class="chip chip--refused">Refused</span>
+  </div>
+  <p class="beat__intent">Say that /certify is a &quot;ceremony&quot; page — The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'ceremony'; deployment posture protects it.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;certify&quot;,
+  &quot;wantedRouteClass&quot;: &quot;ceremony&quot;,
+  &quot;errorCode&quot;: &quot;VALIDATION&quot;,
+  &quot;operation&quot;: &quot;addRoute&quot;,
+  &quot;surfaceId&quot;: &quot;respondent&quot;,
+  &quot;reason&quot;: &quot;vocabulary-protected&quot;,
+  &quot;vocabulary&quot;: &quot;surface.routeClass&quot;,
+  &quot;actor&quot;: &quot;urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10&quot;,
+  &quot;actorKind&quot;: &quot;ai-agent&quot;,
+  &quot;value&quot;: &quot;ceremony&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addRoute</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Add /certify without saying what kind of page it is, and keep working.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;certify&quot;,
+  &quot;routeClass&quot;: null
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">bindSlot</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Fill /certify with what belongs on it.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;certify&quot;,
+  &quot;slots&quot;: [
+    {
+      &quot;id&quot;: &quot;certifyJourney&quot;,
+      &quot;type&quot;: &quot;static-content&quot;
+    },
+    {
+      &quot;id&quot;: &quot;certifyChrome&quot;,
+      &quot;type&quot;: &quot;module-widget&quot;
+    }
+  ]
+}</pre></details>
+</li>
+<li class="beat beat--refused">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addRoute</code>
+    <span class="chip chip--refused">Refused</span>
+  </div>
+  <p class="beat__intent">Say that /receipt/:caseRef is a &quot;proof&quot; page — The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so a tenant cannot restyle it.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;receipt&quot;,
+  &quot;wantedRouteClass&quot;: &quot;proof&quot;,
+  &quot;errorCode&quot;: &quot;VALIDATION&quot;,
+  &quot;operation&quot;: &quot;addRoute&quot;,
+  &quot;surfaceId&quot;: &quot;respondent&quot;,
+  &quot;reason&quot;: &quot;vocabulary-protected&quot;,
+  &quot;vocabulary&quot;: &quot;surface.routeClass&quot;,
+  &quot;actor&quot;: &quot;urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10&quot;,
+  &quot;actorKind&quot;: &quot;ai-agent&quot;,
+  &quot;value&quot;: &quot;proof&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addRoute</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Add /receipt/:caseRef without saying what kind of page it is, and keep working.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;receipt&quot;,
+  &quot;routeClass&quot;: null
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">bindSlot</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Fill /receipt/:caseRef with what belongs on it.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;receipt&quot;,
+  &quot;slots&quot;: [
+    {
+      &quot;id&quot;: &quot;receiptJourney&quot;,
+      &quot;type&quot;: &quot;static-content&quot;
+    },
+    {
+      &quot;id&quot;: &quot;receiptChrome&quot;,
+      &quot;type&quot;: &quot;module-widget&quot;
+    }
+  ]
+}</pre></details>
+</li>
+<li class="beat beat--refused">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addRoute</code>
+    <span class="chip chip--refused">Refused</span>
+  </div>
+  <p class="beat__intent">Say that /queue is a &quot;operation&quot; page — Staff-facing product UI. It makes no claim to anyone outside the building — which is a statement in itself, not an absence of one.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'operation'; deployment posture protects it.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;queue&quot;,
+  &quot;wantedRouteClass&quot;: &quot;operation&quot;,
+  &quot;errorCode&quot;: &quot;VALIDATION&quot;,
+  &quot;operation&quot;: &quot;addRoute&quot;,
+  &quot;surfaceId&quot;: &quot;staff&quot;,
+  &quot;reason&quot;: &quot;vocabulary-protected&quot;,
+  &quot;vocabulary&quot;: &quot;surface.routeClass&quot;,
+  &quot;actor&quot;: &quot;urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10&quot;,
+  &quot;actorKind&quot;: &quot;ai-agent&quot;,
+  &quot;value&quot;: &quot;operation&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">addRoute</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Add /queue without saying what kind of page it is, and keep working.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;queue&quot;,
+  &quot;routeClass&quot;: null
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">bindSlot</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Fill /queue with what belongs on it.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;queue&quot;,
+  &quot;slots&quot;: [
+    {
+      &quot;id&quot;: &quot;queueJourney&quot;,
+      &quot;type&quot;: &quot;static-content&quot;
+    },
+    {
+      &quot;id&quot;: &quot;queueChrome&quot;,
+      &quot;type&quot;: &quot;module-widget&quot;
+    }
+  ]
+}</pre></details>
+</li></ol>
+  <details class="detail detail--state">
+    <summary>What exists in the substrate after this stage</summary>
+    <pre>{
+  &quot;routes&quot;: [
+    {
+      &quot;id&quot;: &quot;apply&quot;,
+      &quot;routeClass&quot;: null
+    },
+    {
+      &quot;id&quot;: &quot;certify&quot;,
+      &quot;routeClass&quot;: null
+    },
+    {
+      &quot;id&quot;: &quot;receipt&quot;,
+      &quot;routeClass&quot;: null
+    }
+  ],
+  &quot;classifiedRoutes&quot;: 0,
+  &quot;items&quot;: [
+    &quot;householdSize&quot;,
+    &quot;monthlyRent&quot;,
+    &quot;monthsBehind&quot;,
+    &quot;hardshipReason&quot;
+  ],
+  &quot;artifact&quot;: &quot;evidence/stage-2-plan.surface.json&quot;
+}</pre>
+  </details>
+</section>
+    <section class="stage" id="stage-build">
+  <header class="stage__head">
+    <span class="stage__num">3</span>
+    <div>
+      <h2 class="stage__title">Build</h2>
+      <p class="stage__sub">A person takes the pen</p>
+    </div>
+    <span class="stage__flag">2 refusals</span>
+  </header>
+  <p class="stage__narration">The app gets its parts list and its look. The AI is stopped again — declaring the theme is a decision about who controls appearance, and appearance is load-bearing on three of these four pages. A person takes over, declares it, and then makes two small edits of their own. Those two edits are the thing the last stage is about.</p>
+  <ol class="beats"><li class="beat beat--refused">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">declareTheme</code>
+    <span class="chip chip--refused">Refused</span>
+  </div>
+  <p class="beat__intent">Create the theme that controls how the app looks.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'theme.declaration'; deployment posture protects it.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;errorCode&quot;: &quot;VALIDATION&quot;,
+  &quot;operation&quot;: &quot;declareTheme&quot;,
+  &quot;reason&quot;: &quot;vocabulary-protected&quot;,
+  &quot;vocabulary&quot;: &quot;theme.declaration&quot;,
+  &quot;actor&quot;: &quot;urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10&quot;,
+  &quot;actorKind&quot;: &quot;ai-agent&quot;
+}</pre></details>
+</li>
+<li class="beat beat--recorded">
+  <div class="beat__head">
+    <span class="beat__who">The substrate</span>
+    <code class="beat__verb">(check)</code>
+    <span class="chip chip--noted">Noted</span>
+  </div>
+  <p class="beat__intent">Confirm the refused write left nothing behind.</p>
+  <blockquote class="said said--walk"><span class="said__who">What the walk found</span><code>No theme slot on the app manifest. The refused declaration wrote nothing.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;check&quot;: &quot;refused-theme-declaration-left-no-state&quot;,
+  &quot;themeSlot&quot;: null
+}</pre></details>
+</li>
+<li class="beat beat--recorded">
+  <div class="beat__head">
+    <span class="beat__who">The substrate</span>
+    <code class="beat__verb">(handoff)</code>
+    <span class="chip chip--noted">Noted</span>
+  </div>
+  <p class="beat__intent">Hand the half-built app from the AI to a person.</p>
+  <blockquote class="said said--walk"><span class="said__who">What the walk found</span><code>No verb transfers an in-flight artifact between actors. The kernel reads the acting actor from its construction context, and supplying a kernel together with posture options is a construction-time error, so one kernel is one actor. The handoff is modelled as a new session replaying the authored state; the replay is checked against the AI's own exported documents rather than assumed.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;from&quot;: &quot;urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10&quot;,
+  &quot;to&quot;: &quot;urn:formspec:actor:human:product-owner:lifecycle-v10&quot;,
+  &quot;replayMatchedAgentExport&quot;: true,
+  &quot;finding&quot;: &quot;no-actor-handoff-verb&quot;
+}</pre></details>
+</li>
+<li class="beat beat--refused">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">addRoute</code>
+    <span class="chip chip--refused">Refused</span>
+  </div>
+  <p class="beat__intent">Change what kind of page /apply is — from &quot;intake&quot; to &quot;proof&quot;. The route already exists, and the person is the actor the deployment admits, so nothing but the route itself is left to say no.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>Surface route 'apply' already exists.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;finding&quot;: &quot;route-class-is-write-once&quot;,
+  &quot;probedOnWhoseKernel&quot;: &quot;the human's — the actor this posture ADMITS, which is what makes the quoted refusal evidence of write-once rather than a second copy of the ADR 0152 refusal&quot;,
+  &quot;routeId&quot;: &quot;apply&quot;,
+  &quot;alreadyWrittenRouteClass&quot;: &quot;intake&quot;,
+  &quot;attemptedRouteClass&quot;: &quot;proof&quot;,
+  &quot;errorCode&quot;: &quot;CONFLICT&quot;,
+  &quot;refusalDetails&quot;: {
+    &quot;operation&quot;: &quot;addRoute&quot;,
+    &quot;surfaceId&quot;: &quot;respondent&quot;,
+    &quot;routeId&quot;: &quot;apply&quot;
+  },
+  &quot;sameCallOnTheAgentsKernel&quot;: {
+    &quot;code&quot;: &quot;VALIDATION&quot;,
+    &quot;message&quot;: &quot;Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.&quot;
+  },
+  &quot;whyTheAgentsRefusalIsNotTheEvidence&quot;: &quot;`ProposalManagerFacade.addRoute` checks the ADR 0152 posture as its first statement, before it resolves the Surface draft. On the agent's kernel the posture answers first, so the agent gets the stage-2 refusal again — a message about WHO may write `surface.routeClass`, which says nothing about whether an existing route's class can change.&quot;,
+  &quot;surfaceOps&quot;: [
+    &quot;addRoute&quot;,
+    &quot;bindSlot&quot;,
+    &quot;removeSlot&quot;,
+    &quot;addTransition&quot;
+  ],
+  &quot;missing&quot;: [
+    &quot;removeRoute&quot;,
+    &quot;setRouteClass&quot;,
+    &quot;updateRoute&quot;
+  ],
+  &quot;consequence&quot;: &quot;`addRoute` is the only Surface op that writes a class, and it CONFLICTs on an id that already exists — so a route's class is fixed at the moment the route is created. ADR 0152's 'the refusal is legible, not fatal' therefore holds inside one session and breaks across the handoff: a route the agent was refused a class on is created unclassified, and nothing can classify it afterwards. The person must author the routes themselves, which is what this walk does.&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">declareTheme</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Create the theme — the same call the AI was refused.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;url&quot;: &quot;urn:formspec:doc:1feb5fb90254133a:theme&quot;,
+  &quot;samePostureAsRefusal&quot;: true
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">setThemeToken</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Set the tenant's brand colour (#7A1F3D).</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;key&quot;: &quot;color.accent&quot;,
+  &quot;value&quot;: &quot;#7A1F3D&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">declareRegistry + addRegistryEntry</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Register the building blocks the pages are made of.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;registryUrl&quot;: &quot;urn:formspec:doc:1feb5fb90254133a:registry&quot;,
+  &quot;entries&quot;: 5,
+  &quot;hostDocumentsWired&quot;: 0
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">bindSlot</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Add one sentence the AI never wrote: &quot;You can apply even if you have already received help this year.&quot;</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;edit&quot;: &quot;DESIGNER-EDIT-1&quot;,
+  &quot;deltaClass&quot;: &quot;designer-inserted&quot;,
+  &quot;slotId&quot;: &quot;applyReassurance&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">removeSlot + bindSlot</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Rename the AI's &quot;Application form&quot; to &quot;About your household&quot; — words an applicant actually understands.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;edit&quot;: &quot;DESIGNER-EDIT-2&quot;,
+  &quot;deltaClass&quot;: &quot;designer-modified&quot;,
+  &quot;slotId&quot;: &quot;applyForm&quot;,
+  &quot;from&quot;: &quot;Application form&quot;,
+  &quot;to&quot;: &quot;About your household&quot;,
+  &quot;note&quot;: &quot;Two calls, not one: re-binding an existing slot id is a CONFLICT, so an edit is a remove plus an add.&quot;
+}</pre></details>
+</li></ol>
+  <details class="detail detail--state">
+    <summary>What exists in the substrate after this stage</summary>
+    <pre>{
+  &quot;themeDeclaredBy&quot;: &quot;human&quot;,
+  &quot;themeToken&quot;: {
+    &quot;color.accent&quot;: &quot;#7A1F3D&quot;
+  },
+  &quot;registryEntries&quot;: 5,
+  &quot;designerEdits&quot;: [
+    {
+      &quot;id&quot;: &quot;DESIGNER-EDIT-1&quot;,
+      &quot;deltaClass&quot;: &quot;designer-inserted&quot;,
+      &quot;what&quot;: &quot;You can apply even if you have already received help this year.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;DESIGNER-EDIT-2&quot;,
+      &quot;deltaClass&quot;: &quot;designer-modified&quot;,
+      &quot;what&quot;: &quot;slot title \&quot;Application form\&quot; → \&quot;About your household\&quot;&quot;
+    }
+  ],
+  &quot;artifact&quot;: &quot;evidence/stage-3-build.surface.json&quot;
+}</pre>
+  </details>
+</section>
+    <section class="stage" id="stage-sign-off">
+  <header class="stage__head">
+    <span class="stage__num">4</span>
+    <div>
+      <h2 class="stage__title">Sign-off</h2>
+      <p class="stage__sub">On the record, and signed</p>
+    </div>
+    
+  </header>
+  <p class="stage__narration">A person states, on the record, what each page is: an intake form, a signing ceremony, a receipt a court reads, a staff queue. Then they sign the whole thing — not a screenshot of it, the exact bytes. The same deployment rule that stopped the AI lets the person through.</p>
+  <ol class="beats"><li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">addRoute(routeClass)</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Put it on the record: /apply is a &quot;intake&quot; page. A Definition-backed capture from the person applying. The one class that admits a tenant putting their own brand on the page.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;apply&quot;,
+  &quot;routeClass&quot;: &quot;intake&quot;,
+  &quot;persistedRouteClass&quot;: &quot;intake&quot;,
+  &quot;samePostureThatRefusedTheAgent&quot;: true,
+  &quot;readBackFrom&quot;: &quot;kernel exportSurfaceDocument&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">addRoute(routeClass)</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Put it on the record: /certify is a &quot;ceremony&quot; page. The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;certify&quot;,
+  &quot;routeClass&quot;: &quot;ceremony&quot;,
+  &quot;persistedRouteClass&quot;: &quot;ceremony&quot;,
+  &quot;samePostureThatRefusedTheAgent&quot;: true,
+  &quot;readBackFrom&quot;: &quot;kernel exportSurfaceDocument&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">addRoute(routeClass)</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Put it on the record: /receipt/:caseRef is a &quot;proof&quot; page. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so a tenant cannot restyle it.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;receipt&quot;,
+  &quot;routeClass&quot;: &quot;proof&quot;,
+  &quot;persistedRouteClass&quot;: &quot;proof&quot;,
+  &quot;samePostureThatRefusedTheAgent&quot;: true,
+  &quot;readBackFrom&quot;: &quot;kernel exportSurfaceDocument&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">addRoute(routeClass)</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Put it on the record: /queue is a &quot;operation&quot; page. Staff-facing product UI. It makes no claim to anyone outside the building — which is a statement in itself, not an absence of one.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;queue&quot;,
+  &quot;routeClass&quot;: &quot;operation&quot;,
+  &quot;persistedRouteClass&quot;: &quot;operation&quot;,
+  &quot;samePostureThatRefusedTheAgent&quot;: true,
+  &quot;readBackFrom&quot;: &quot;kernel exportSurfaceDocument&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">exportBundle</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Produce the exact package that will ship.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;documents&quot;: 6,
+  &quot;keys&quot;: [
+    &quot;https://benefits.example.gov/apps/assistance/surfaces/respondent&quot;,
+    &quot;https://benefits.example.gov/apps/assistance/surfaces/staff&quot;,
+    &quot;https://benefits.example.gov/apps/assistance/definitions/rent-assistance&quot;,
+    &quot;urn:formspec:doc:1feb5fb90254133a:experience&quot;,
+    &quot;urn:formspec:doc:1feb5fb90254133a:theme&quot;,
+    &quot;urn:formspec:doc:1feb5fb90254133a:registry&quot;
+  ]
+}</pre></details>
+</li></ol>
+  <details class="detail detail--state">
+    <summary>What exists in the substrate after this stage</summary>
+    <pre>{
+  &quot;routeClasses&quot;: [
+    {
+      &quot;routeId&quot;: &quot;apply&quot;,
+      &quot;routeClass&quot;: &quot;intake&quot;
+    },
+    {
+      &quot;routeId&quot;: &quot;certify&quot;,
+      &quot;routeClass&quot;: &quot;ceremony&quot;
+    },
+    {
+      &quot;routeId&quot;: &quot;receipt&quot;,
+      &quot;routeClass&quot;: &quot;proof&quot;
+    },
+    {
+      &quot;routeId&quot;: &quot;queue&quot;,
+      &quot;routeClass&quot;: &quot;operation&quot;
+    }
+  ],
+  &quot;exportedDocuments&quot;: [
+    &quot;https://benefits.example.gov/apps/assistance/surfaces/respondent&quot;,
+    &quot;https://benefits.example.gov/apps/assistance/surfaces/staff&quot;,
+    &quot;https://benefits.example.gov/apps/assistance/definitions/rent-assistance&quot;,
+    &quot;urn:formspec:doc:1feb5fb90254133a:experience&quot;,
+    &quot;urn:formspec:doc:1feb5fb90254133a:theme&quot;,
+    &quot;urn:formspec:doc:1feb5fb90254133a:registry&quot;
+  ],
+  &quot;artifact&quot;: &quot;evidence/stage-4-signoff.bundle-export.json&quot;
+}</pre>
+  </details>
+</section>
+    <section class="stage" id="stage-release">
+  <header class="stage__head">
+    <span class="stage__num">5</span>
+    <div>
+      <h2 class="stage__title">Release</h2>
+      <p class="stage__sub">What the tenant may restyle</p>
+    </div>
+    <span class="stage__flag">3 refusals</span>
+  </header>
+  <p class="stage__narration">The tenant pushes their brand colour onto all four pages. The substrate lets it through on the application form and refuses it on the other three — because on a receipt, a signing screen and a staff console, how it looks is part of what people rely on. Then the signature is checked from the files alone, with nothing running.</p>
+  <ol class="beats"><li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">declareUiGraphPolicy</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Push the tenant brand colour onto all four pages.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;assignments&quot;: 4,
+  &quot;surfaces&quot;: [
+    &quot;https://benefits.example.gov/apps/assistance/surfaces/respondent&quot;,
+    &quot;https://benefits.example.gov/apps/assistance/surfaces/staff&quot;
+  ]
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The substrate</span>
+    <code class="beat__verb">THEME-ROUTE-CLASS</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Decide whether the tenant may restyle /apply (a &quot;intake&quot; page).</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;apply&quot;,
+  &quot;routeClass&quot;: &quot;intake&quot;,
+  &quot;widget&quot;: &quot;x-intake-banner&quot;,
+  &quot;fires&quot;: 0,
+  &quot;why&quot;: &quot;A Definition-backed capture from the person applying. The one class that admits a tenant putting their own brand on the page.&quot;
+}</pre></details>
+</li>
+<li class="beat beat--refused">
+  <div class="beat__head">
+    <span class="beat__who">The substrate</span>
+    <code class="beat__verb">THEME-ROUTE-CLASS</code>
+    <span class="chip chip--refused">Refused</span>
+  </div>
+  <p class="beat__intent">Decide whether the tenant may restyle /certify (a &quot;ceremony&quot; page).</p>
+  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;certify&quot;,
+  &quot;routeClass&quot;: &quot;ceremony&quot;,
+  &quot;widget&quot;: &quot;x-ceremony-frame&quot;,
+  &quot;fires&quot;: 1,
+  &quot;reason&quot;: &quot;tenant-theming-refused-by-route-class&quot;,
+  &quot;why&quot;: &quot;The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it.&quot;
+}</pre></details>
+</li>
+<li class="beat beat--refused">
+  <div class="beat__head">
+    <span class="beat__who">The substrate</span>
+    <code class="beat__verb">THEME-ROUTE-CLASS</code>
+    <span class="chip chip--refused">Refused</span>
+  </div>
+  <p class="beat__intent">Decide whether the tenant may restyle /receipt/:caseRef (a &quot;proof&quot; page).</p>
+  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;receipt&quot;,
+  &quot;routeClass&quot;: &quot;proof&quot;,
+  &quot;widget&quot;: &quot;x-receipt-panel&quot;,
+  &quot;fires&quot;: 1,
+  &quot;reason&quot;: &quot;tenant-theming-refused-by-route-class&quot;,
+  &quot;why&quot;: &quot;The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so a tenant cannot restyle it.&quot;
+}</pre></details>
+</li>
+<li class="beat beat--refused">
+  <div class="beat__head">
+    <span class="beat__who">The substrate</span>
+    <code class="beat__verb">THEME-ROUTE-CLASS</code>
+    <span class="chip chip--refused">Refused</span>
+  </div>
+  <p class="beat__intent">Decide whether the tenant may restyle /queue (a &quot;operation&quot; page).</p>
+  <blockquote class="said said--substrate"><span class="said__who">The substrate said</span><code>A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.</code></blockquote>
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;routeId&quot;: &quot;queue&quot;,
+  &quot;routeClass&quot;: &quot;operation&quot;,
+  &quot;widget&quot;: &quot;x-queue-panel&quot;,
+  &quot;fires&quot;: 1,
+  &quot;reason&quot;: &quot;tenant-theming-refused-by-route-class&quot;,
+  &quot;why&quot;: &quot;Staff-facing product UI. It makes no claim to anyone outside the building — which is a statement in itself, not an absence of one.&quot;
+}</pre></details>
+</li></ol>
+  <details class="detail detail--state">
+    <summary>What exists in the substrate after this stage</summary>
+    <pre>{
+  &quot;crossArtifactStatus&quot;: &quot;completed&quot;,
+  &quot;diagnosticCounts&quot;: {
+    &quot;THEME-ROUTE-CLASS&quot;: 3,
+    &quot;APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER&quot;: 2
+  },
+  &quot;themeRouteClassFires&quot;: 3,
+  &quot;artifact&quot;: &quot;evidence/stage-5-release.validation-report.json&quot;
+}</pre>
+  </details>
+</section>
+    <section class="stage" id="stage-feedback">
+  <header class="stage__head">
+    <span class="stage__num">6</span>
+    <div>
+      <h2 class="stage__title">Feedback</h2>
+      <p class="stage__sub">It changes, and regenerates</p>
+    </div>
+    
+  </header>
+  <p class="stage__narration">Two weeks in, caseworkers report a missing question. The brief grows by one line, and the AI regenerates the app from it. The only question that matters here: are the two things the designer wrote still in the app afterwards?</p>
+  <ol class="beats"><li class="beat beat--recorded">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">(change request)</code>
+    <span class="chip chip--noted">Noted</span>
+  </div>
+  <p class="beat__intent">People are dropping out halfway through. Split the form: ask about the household on one page and about the money on the next. And we need to know whether any children live in the household.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;id&quot;: &quot;CR1&quot;,
+  &quot;from&quot;: &quot;Caseworker feedback after two weeks live&quot;,
+  &quot;addsItem&quot;: &quot;childrenInHousehold&quot;,
+  &quot;addsUnit&quot;: &quot;declareChildren&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">regenerate</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Rebuild the app from the amended brief.</p>
+  
+  <details class="detail"><summary>What this looks like underneath</summary><pre>{
+  &quot;units&quot;: 5,
+  &quot;items&quot;: 5,
+  &quot;newItem&quot;: &quot;childrenInHousehold&quot;,
+  &quot;routesBefore&quot;: 4,
+  &quot;routesAfter&quot;: 5,
+  &quot;newRoute&quot;: &quot;/apply/money&quot;
+}</pre></details>
+</li></ol>
+  <details class="detail detail--state">
+    <summary>What exists in the substrate after this stage</summary>
+    <pre>{
+  &quot;changeRequest&quot;: &quot;CR1&quot;,
+  &quot;threeWayInputs&quot;: {
+    &quot;oldGenerated&quot;: &quot;evidence/bar5-old-generated.surface.json&quot;,
+    &quot;designerEdited&quot;: &quot;evidence/bar5-designer-edited.surface.json&quot;,
+    &quot;newGenerated&quot;: &quot;evidence/bar5-new-generated.surface.json&quot;
+  },
+  &quot;artifact&quot;: &quot;evidence/stage-6-feedback.regenerated.surface.json&quot;
+}</pre>
+  </details>
+</section>
+  </div>
+
+  <section class="seal">
+    <h2>The signature</h2>
+    <p class="seal__sub">Checked from the files alone &mdash; nothing running</p>
+    <p class="seal__affirm">&ldquo;I have reviewed this release and I stand behind what each page in it claims to be.&rdquo;</p>
+    <dl class="facts">
+      <dt>Signed by</dt><dd>R. Okonjo, Product Owner</dd>
+      <dt>Covers</dt><dd>every byte of the exported app, canonicalised as <code>formspec-spike-v10-bundle-export-signing-v1</code></dd>
+      <dt>Fingerprint</dt><dd>35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba</dd>
+      <dt>Method</dt><dd>urn:formspec:sig-method:ed25519-cose-sign1@1</dd>
+      <dt>Verdict</dt><dd class="verdict-inline">verified</dd>
+      <dt>Tampered copy</dt><dd class="verdict-inline">failed &mdash; one changed byte and the signature stops verifying</dd>
+    </dl>
+    <details class="detail"><summary>Everything the check read</summary><pre>[
+  &quot;evidence/stage-4-signoff.bundle-export.json&quot;,
+  &quot;evidence/stage-4-signoff.authored-signature.json&quot;,
+  &quot;formspec/registries/signature-method-registry.json&quot;
+]</pre></details>
+  </section>
+
+  <section class="moat">
+    <h2>Did the designer's two edits survive?</h2>
+    <p class="moat__sub">0 of 2 survived</p>
+    <p>This is the claim the whole platform rests on: when an AI rebuilds an app, the changes a person made by hand are supposed to be kept, not flattened. Here is what actually happened.</p>
+    <p class="moat__why">No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it.</p>
+    <ul class="edits">
+      <li>
+        <span class="what">the sentence &quot;You can apply even if you have already received help this year.&quot;</span>
+        <span class="verdict" style="color: var(--accent)">Lost</span>
+      </li>
+      <li>
+        <span class="what">the plain-English heading &quot;About your household&quot; (the AI wrote &quot;Application form&quot;)</span>
+        <span class="verdict" style="color: var(--accent)">Lost</span>
+      </li>
+    </ul>
+    <details class="detail"><summary>Why &mdash; the full measurement</summary><pre>{
+  &quot;inputs&quot;: {
+    &quot;oldGenerated&quot;: &quot;evidence/bar5-old-generated.surface.json&quot;,
+    &quot;designerEdited&quot;: &quot;evidence/bar5-designer-edited.surface.json&quot;,
+    &quot;newGenerated&quot;: &quot;evidence/bar5-new-generated.surface.json&quot;
+  },
+  &quot;mergeAttempt&quot;: {
+    &quot;attempted&quot;: true,
+    &quot;entryPoint&quot;: null,
+    &quot;outcome&quot;: &quot;No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 9 further files name the corpus without executing it.&quot;
+  },
+  &quot;apiProbe&quot;: {
+    &quot;packagesProbed&quot;: [
+      &quot;@formspec-org/studio-core&quot;,
+      &quot;@formspec-org/mcp-wireframes&quot;,
+      &quot;@formspec-org/app-graph&quot;,
+      &quot;@formspec-org/engine&quot;,
+      &quot;@formspec-org/types&quot;
+    ],
+    &quot;exportsSeen&quot;: 332,
+    &quot;patternsScanned&quot;: {
+      &quot;mergeEntryPoint&quot;: &quot;/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i&quot;,
+      &quot;anchorIdentity&quot;: &quot;/anchor|x-?generation|generationmarker|designeredit|preservation/i&quot;
+    },
+    &quot;matches&quot;: [],
+    &quot;anchorVocabulary&quot;: [
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;emptyAnchorMappingsDocument&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;validateAnchorMappingsDocument&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;appendAnchorMapping&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;anchorString&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;anchorsOf&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;computeAnchorGroups&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      },
+      {
+        &quot;pkg&quot;: &quot;@formspec-org/studio-core&quot;,
+        &quot;name&quot;: &quot;reanchorEntries&quot;,
+        &quot;type&quot;: &quot;function&quot;
+      }
+    ],
+    &quot;noMergeEntryPoint&quot;: true
+  },
+  &quot;fixtureProbe&quot;: {
+    &quot;fixtureDir&quot;: &quot;formspec/tests/conformance/fixtures/regeneration-merge&quot;,
+    &quot;scenarios&quot;: 17,
+    &quot;completeTriples&quot;: 17,
+    &quot;assertingPreservation&quot;: 10,
+    &quot;preservationScenarios&quot;: [
+      &quot;designer-only-property&quot;,
+      &quot;designer-precedes&quot;,
+      &quot;orphan-broken-binding&quot;,
+      &quot;orphan-cascade&quot;,
+      &quot;orphan-detached&quot;,
+      &quot;orphan-node-resolved-refs&quot;,
+      &quot;property-conflict&quot;,
+      &quot;rename-no-anchor-mapping&quot;,
+      &quot;subtree-children-add&quot;,
+      &quot;widget-swap&quot;
+    ],
+    &quot;executesFixtures&quot;: [],
+    &quot;mentionsOnly&quot;: [
+      &quot;crates/formspec-lint/src/pass_modules.rs&quot;,
+      &quot;crates/formspec-lint/src/types.rs&quot;,
+      &quot;crates/formspec-py/src/document.rs&quot;,
+      &quot;tests/conformance/COMP-BUNDLE-ID-MIGRATION.md&quot;,
+      &quot;tests/conformance/tools/comp_bundle_id_audit.py&quot;,
+      &quot;thoughts/archive/plans/2026-05-22-bundle-manifest.md&quot;,
+      &quot;thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md&quot;,
+      &quot;thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md&quot;,
+      &quot;thoughts/plans/2026-05-22-regeneration-merge.md&quot;
+    ],
+    &quot;collectedTests&quot;: [
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_id_and_version&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_required_top_level_arrays&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_required_fields&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_code_enum&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_code_severity_constraints&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_entry_has_property_deltas&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_report_arrays_use_role_specific_entries&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_role_specific_code_placement&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_entry_has_reattachment_fields&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_conflict_entry_is_role_specific&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_valid_report_instance&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_role_specific_codes_are_rejected&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_wrong_code_severity_is_rejected&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_metadata_is_required&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_cascade_code_requires_cascade_flags&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_orphan_detached_code_requires_detached_flags&quot;,
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py::test_exp_two_hop_join_documented&quot;
+    ],
+    &quot;collectedTestFiles&quot;: [
+      &quot;tests/conformance/spec/test_regeneration_merge_report_schema.py&quot;
+    ],
+    &quot;specStatus&quot;: &quot;Draft 1.0.0-draft.1&quot;,
+    &quot;schemaExists&quot;: true
+  },
+  &quot;edits&quot;: [
+    {
+      &quot;id&quot;: &quot;DESIGNER-EDIT-1&quot;,
+      &quot;what&quot;: &quot;the sentence \&quot;You can apply even if you have already received help this year.\&quot;&quot;,
+      &quot;deltaClass&quot;: &quot;designer-inserted&quot;,
+      &quot;presentInOldGenerated&quot;: false,
+      &quot;presentInDesignerEdited&quot;: true,
+      &quot;presentInNewGenerated&quot;: false,
+      &quot;presentInMerged&quot;: null,
+      &quot;survived&quot;: false
+    },
+    {
+      &quot;id&quot;: &quot;DESIGNER-EDIT-2&quot;,
+      &quot;what&quot;: &quot;the plain-English heading \&quot;About your household\&quot; (the AI wrote \&quot;Application form\&quot;)&quot;,
+      &quot;deltaClass&quot;: &quot;designer-modified&quot;,
+      &quot;presentInOldGenerated&quot;: false,
+      &quot;presentInDesignerEdited&quot;: true,
+      &quot;presentInNewGenerated&quot;: false,
+      &quot;presentInMerged&quot;: null,
+      &quot;survived&quot;: false
+    }
+  ],
+  &quot;survivingEdits&quot;: 0,
+  &quot;totalEdits&quot;: 2
+}</pre></details>
+  </section>
+
+  <footer>
+    <p>Every sentence above is read out of <code>evidence/lifecycle.json</code>, written by the run itself. Nothing on this page was typed by hand from memory.</p>
+    <p>Spike v10 &middot; <code>https://benefits.example.gov/apps/assistance</code></p>
+  </footer>
+</div>
+</body>
+</html>

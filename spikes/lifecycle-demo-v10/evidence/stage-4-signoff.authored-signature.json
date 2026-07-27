@@ -1,0 +1,39 @@
+{
+  "record": {
+    "signatureId": "sig-lifecycle-v10-ceremony-v10-0001",
+    "documentId": "rentAssistanceRelease",
+    "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1",
+    "signatureValue": "0oRYSKMBJwRQUyvaTtTn/D7hSYKiQWm4mzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEDJbiYXQGLRCu8s0wSzO9iWDypPcyvOeK3DO4kLseKzyKfjgTZkrOsNjnTJNYNAvARzqLQ/ZtUGNvt2rzsYFKMJ",
+    "signerId": "product-owner",
+    "signerName": "R. Okonjo, Product Owner",
+    "consentAccepted": true,
+    "consentTextRef": "urn:formspec:spike-v10:consent:release-sign-off:v1",
+    "consentVersion": "1.0.0",
+    "affirmationText": "I have reviewed this release and I stand behind what each page in it claims to be.",
+    "signedPayload": {
+      "canonicalization": "formspec-spike-v10-bundle-export-signing-v1",
+      "digestAlgorithm": "sha-256",
+      "digest": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+      "responseId": "https://benefits.example.gov/apps/assistance",
+      "definitionUrl": "https://benefits.example.gov/apps/assistance",
+      "definitionVersion": "1.0.0",
+      "signedAt": "2026-07-27T09:30:00Z",
+      "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1"
+    },
+    "documentHash": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+    "documentHashAlgorithm": "sha-256",
+    "signatureProvider": "urn:formspec:spike-v10:signature:provider:in-repo-ed25519",
+    "ceremonyId": "ceremony-v10-0001"
+  },
+  "coseSign1Base64": "0oRYSKMBJwRQUyvaTtTn/D7hSYKiQWm4mzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEDJbiYXQGLRCu8s0wSzO9iWDypPcyvOeK3DO4kLseKzyKfjgTZkrOsNjnTJNYNAvARzqLQ/ZtUGNvt2rzsYFKMJ",
+  "publicKeyBase64": "aDoONTJMe9lgehuAVrEt1YamDnWkQUvGH4NBNgMpV7A=",
+  "kidBase64": "UyvaTtTn/D7hSYKiQWm4mw==",
+  "schemaValid": false,
+  "schemaIssues": [
+    {
+      "code": "AUTHORED-SIGNATURE-SCHEMA",
+      "message": "/signedPayload/canonicalization must be equal to constant",
+      "path": "/signedPayload/canonicalization"
+    }
+  ]
+}

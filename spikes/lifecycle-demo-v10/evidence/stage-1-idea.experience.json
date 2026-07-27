@@ -1,0 +1,44 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "actors": [],
+  "tasks": [],
+  "units": [
+    {
+      "id": "applyForHelp",
+      "kind": "data-entry",
+      "title": "Tell us about your household",
+      "taskRefs": [
+        "submitApplication"
+      ],
+      "actorRef": "applicant"
+    },
+    {
+      "id": "certifyDeclaration",
+      "kind": "attestation",
+      "title": "Sign your declaration",
+      "taskRefs": [
+        "certifyTruth"
+      ],
+      "actorRef": "applicant"
+    },
+    {
+      "id": "collectReceipt",
+      "kind": "confirmation",
+      "title": "Keep your receipt",
+      "taskRefs": [
+        "proveSubmission"
+      ],
+      "actorRef": "applicant"
+    },
+    {
+      "id": "reviewApplication",
+      "kind": "review",
+      "title": "Work the queue",
+      "taskRefs": [
+        "decideApplication"
+      ],
+      "actorRef": "caseworker"
+    }
+  ]
+}

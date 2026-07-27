@@ -1,0 +1,30 @@
+{
+  "name": "formspec-lifecycle-demo-v10",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Spike v10: ONE Experience-backed app walked idea → plan → build → sign-off → release → feedback, with substrate state, Formspec-native authored signatures, and a clickable walkthrough",
+  "type": "module",
+  "scripts": {
+    "spike": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@formspec-org/app-graph": "file:../../packages/formspec-app-graph",
+    "@formspec-org/engine": "file:../../packages/formspec-engine",
+    "@formspec-org/mcp-wireframes": "file:../../../formspec-studio/packages/formspec-mcp-wireframes",
+    "@formspec-org/studio-core": "file:../../../formspec-studio/packages/formspec-studio-core",
+    "@formspec-org/types": "file:../../packages/formspec-types",
+    "@integrity-stack/cose": "file:../../../integrity-stack/packages/integrity-cose",
+    "@integrity-stack/signature-adapter-webcrypto": "file:../../../integrity-stack/packages/integrity-signature-adapter-webcrypto",
+    "@integrity-stack/signature-port": "file:../../../integrity-stack/packages/integrity-signature-port",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "canonicalize": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.0.0"
+  }
+}

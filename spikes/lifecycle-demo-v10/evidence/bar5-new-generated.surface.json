@@ -1,0 +1,129 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "respondent",
+  "routes": [
+    {
+      "id": "apply",
+      "path": "/apply",
+      "slots": [
+        {
+          "id": "applyForm",
+          "slotType": "definition-form",
+          "binding": {
+            "definitionRef": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+          },
+          "title": "Application form"
+        },
+        {
+          "id": "applyJourney",
+          "slotType": "experience-unit",
+          "binding": {
+            "unitRef": "applyForHelp"
+          },
+          "title": "Where you are"
+        },
+        {
+          "id": "applyChrome",
+          "slotType": "module-widget",
+          "binding": {
+            "moduleId": "x-formspec-tenant-chrome",
+            "widgetName": "x-intake-banner"
+          }
+        }
+      ],
+      "title": "About your household",
+      "transitions": [
+        {
+          "trigger": "submit",
+          "to": "applyMoney"
+        }
+      ]
+    },
+    {
+      "id": "applyMoney",
+      "path": "/apply/money",
+      "slots": [
+        {
+          "id": "moneyForm",
+          "slotType": "definition-form",
+          "binding": {
+            "definitionRef": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+          },
+          "title": "Rent and income"
+        },
+        {
+          "id": "moneyChrome",
+          "slotType": "module-widget",
+          "binding": {
+            "moduleId": "x-formspec-tenant-chrome",
+            "widgetName": "x-intake-banner"
+          }
+        }
+      ],
+      "title": "Rent and income",
+      "transitions": [
+        {
+          "trigger": "submit",
+          "to": "certify"
+        }
+      ]
+    },
+    {
+      "id": "certify",
+      "path": "/certify",
+      "slots": [
+        {
+          "id": "certifyJourney",
+          "slotType": "static-content",
+          "binding": {
+            "kind": "heading",
+            "content": "Your declaration",
+            "level": 1
+          },
+          "title": "Your declaration"
+        },
+        {
+          "id": "certifyChrome",
+          "slotType": "module-widget",
+          "binding": {
+            "moduleId": "x-formspec-tenant-chrome",
+            "widgetName": "x-ceremony-frame"
+          }
+        }
+      ],
+      "title": "Sign your declaration",
+      "transitions": [
+        {
+          "trigger": "submit",
+          "to": "receipt"
+        }
+      ]
+    },
+    {
+      "id": "receipt",
+      "path": "/receipt/:caseRef",
+      "slots": [
+        {
+          "id": "receiptJourney",
+          "slotType": "static-content",
+          "binding": {
+            "kind": "heading",
+            "content": "What you submitted",
+            "level": 1
+          },
+          "title": "What you submitted"
+        },
+        {
+          "id": "receiptChrome",
+          "slotType": "module-widget",
+          "binding": {
+            "moduleId": "x-formspec-tenant-chrome",
+            "widgetName": "x-receipt-panel"
+          }
+        }
+      ],
+      "title": "Your receipt"
+    }
+  ],
+  "entry": "apply"
+}
