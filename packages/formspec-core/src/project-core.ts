@@ -29,6 +29,8 @@ import type {
   Diagnostics,
   ResponseSchemaRow,
   Command,
+  AnyCommand,
+  InternalCommand,
 } from './types.js';
 
 /**
@@ -58,6 +60,13 @@ export interface IProjectCore {
   redo(): boolean;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
+  /**
+   * The command the next `undo()` reverses / the next `redo()` re-executes,
+   * or `null` when that stack is empty. Peeking is what lets a caller refuse
+   * a history step before the state moves (ADR 0152 §5.2 — replay is write).
+   */
+  readonly nextUndoCommand: AnyCommand | InternalCommand | null;
+  readonly nextRedoCommand: AnyCommand | InternalCommand | null;
   readonly log: readonly LogEntry[];
   resetHistory(): void;
 

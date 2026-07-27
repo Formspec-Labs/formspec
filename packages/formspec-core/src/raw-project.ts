@@ -301,7 +301,7 @@ function createDefaultState(options?: ProjectOptions): ProjectState {
  */
 export class RawProject implements IProjectCore {
   private _state: ProjectState;
-  private _history: HistoryManager<ProjectState>;
+  private _history: HistoryManager<ProjectState, AnyCommand | InternalCommand>;
   private _listeners: Set<ChangeListener> = new Set();
   private _pipeline: CommandPipeline;
   private _schemaValidator: ProjectOptions['schemaValidator'];
@@ -508,6 +508,26 @@ export class RawProject implements IProjectCore {
   get canRedo(): boolean { return this._history.canRedo; }
   get log(): readonly LogEntry[] { return this._history.log; }
 
+  /**
+   * The command the next {@link undo} reverses, or `null` when the undo stack
+   * is empty. Multi-command dispatches report the same synthetic `batch` /
+   * `batchWithRebuild` envelope the log records, so callers see every command
+   * in the step they are about to walk back.
+   *
+   * Exposed so a caller can decide whether an undo is permitted *before* the
+   * state moves — ADR 0152 §5.2 gates replay of protected-vocabulary writes on
+   * exactly this, and a post-hoc undo-then-redo probe would fire listeners and
+   * corrupt the redo stack.
+   */
+  get nextUndoCommand(): AnyCommand | InternalCommand | null {
+    return this._history.nextUndoLabel ?? null;
+  }
+
+  /** The command the next {@link redo} re-executes, or `null` when none. */
+  get nextRedoCommand(): AnyCommand | InternalCommand | null {
+    return this._history.nextRedoLabel ?? null;
+  }
+
   resetHistory(): void { this._history.clear(); }
 
   /**
@@ -614,11 +634,20 @@ export class RawProject implements IProjectCore {
 
     normalizeState(newState);
 
+    // Computed before the history push so the undo slot and the log entry carry
+    // the same command identity — `nextUndoCommand` reads that slot.
+    const allCommands = phases.flat();
+    const logCommand: AnyCommand | InternalCommand = allCommands.length === 1
+      ? allCommands[0]
+      : phases.length > 1
+        ? { type: 'batchWithRebuild', payload: { phases } } as InternalCommand
+        : { type: 'batch', payload: { commands: allCommands } } as InternalCommand;
+
     if (results.some(r => r.clearHistory)) {
       this._history.clear();
       this._history.clearLog();
     } else {
-      this._history.push(snapshot);
+      this._history.push(snapshot, logCommand);
     }
 
     this._state = newState;
@@ -627,12 +656,6 @@ export class RawProject implements IProjectCore {
       this._syncComponentTree(this._state);
     }
 
-    const allCommands = phases.flat();
-    const logCommand: AnyCommand | InternalCommand = allCommands.length === 1
-      ? allCommands[0]
-      : phases.length > 1
-        ? { type: 'batchWithRebuild', payload: { phases } } as InternalCommand
-        : { type: 'batch', payload: { commands: allCommands } } as InternalCommand;
     this._history.appendLog({ command: logCommand, timestamp: Date.now() });
 
     const source = allCommands.length === 1 ? 'dispatch' : 'batch';
