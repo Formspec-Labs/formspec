@@ -4,10 +4,13 @@
  *
  * Pre-registration lives in
  * `formspec/thoughts/spikes/2026-07-26-lifecycle-demo-v10.md` §Pre-registered
- * bars, written before this file ran. **Bar 5 is expected to fail**; it is
- * asserted as a MEASUREMENT (the three probes ran and agree) rather than as a
- * demonstration, so a regression in the measuring apparatus fails the suite
- * while the honest negative result stands.
+ * bars, written before this file ran. Bar 5 was pre-registered as expected to
+ * FAIL, and on 2026-07-26 it did: nothing in the substrate merged a rebuild
+ * against a designer's edits. The merge shipped on 2026-07-27
+ * (`kernel.regenerateSurfaceDocument` over `@formspec-org/core`'s
+ * `regenerationMerge`), so bar 5 is now asserted as a demonstration — and its
+ * measuring apparatus is asserted alongside it, so a bar that passes because
+ * the probes broke still fails the suite.
  *
  * No host `ArtifactLoader` is wired anywhere in this file. Every artifact the
  * graph validates is bundle-local, served by `kernel.resolveBundleLocal`
@@ -156,6 +159,8 @@ describe('spike v10 — the lifecycle demo', () => {
     const oldGenerated = state.oldGeneratedSurface;
     const designerEdited = state.designerEditedSurface;
     const newGenerated = state.newGeneratedSurface;
+    const merge = state.merge!;
+    const merged = state.mergedSurface;
 
     const edits: EditProbe[] = [
       {
@@ -165,7 +170,7 @@ describe('spike v10 — the lifecycle demo', () => {
         presentInOldGenerated: slotPresent(oldGenerated, 'apply', DESIGNER_INSERTION.slotId),
         presentInDesignerEdited: slotPresent(designerEdited, 'apply', DESIGNER_INSERTION.slotId),
         presentInNewGenerated: slotPresent(newGenerated, 'apply', DESIGNER_INSERTION.slotId),
-        presentInMerged: null,
+        presentInMerged: slotPresent(merged, 'apply', DESIGNER_INSERTION.slotId),
         survived: false,
       },
       {
@@ -175,30 +180,43 @@ describe('spike v10 — the lifecycle demo', () => {
         presentInOldGenerated: slotTitle(oldGenerated, 'apply', DESIGNER_RETITLE.slotId) === DESIGNER_RETITLE.designerTitle,
         presentInDesignerEdited: slotTitle(designerEdited, 'apply', DESIGNER_RETITLE.slotId) === DESIGNER_RETITLE.designerTitle,
         presentInNewGenerated: slotTitle(newGenerated, 'apply', DESIGNER_RETITLE.slotId) === DESIGNER_RETITLE.designerTitle,
-        presentInMerged: null,
+        presentInMerged: slotTitle(merged, 'apply', DESIGNER_RETITLE.slotId) === DESIGNER_RETITLE.designerTitle,
         survived: false,
       },
     ];
-    // No merge ran, so "what a consumer receives" IS `new-generated`.
-    for (const edit of edits) edit.survived = edit.presentInNewGenerated;
+    // The merge ran, so "what a consumer receives" IS `merged`.
+    for (const edit of edits) edit.survived = edit.presentInMerged === true;
+
+    // The rebuild's OWN work has to land too. A merge that preserved the
+    // designer by discarding the AI's update would clear this bar while making
+    // the product useless, so the new route the change request asked for is
+    // checked in the same breath as the two preserved edits.
+    const regeneratedWorkLanded =
+      (merged as { routes?: Array<{ id: string }> }).routes?.some((r) => r.id === 'applyMoney') === true;
 
     const moat = {
       inputs: {
         oldGenerated: 'evidence/bar5-old-generated.surface.json',
         designerEdited: 'evidence/bar5-designer-edited.surface.json',
         newGenerated: 'evidence/bar5-new-generated.surface.json',
+        merged: 'evidence/stage-6-feedback.merged.surface.json',
       },
       mergeAttempt: {
         attempted: true,
-        entryPoint: apiProbe.matches[0]?.name ?? null,
+        entryPoint: merge.entryPoint,
         outcome: apiProbe.noMergeEntryPoint
-          ? `No merge entry point exists. ${apiProbe.exportsSeen} runtime exports across ${apiProbe.packagesProbed.length} substrate packages were enumerated and scanned twice. `
-            + `Zero carry a regeneration-merge entry-point name (${apiProbe.patternsScanned.mergeEntryPoint}). `
-            + `${apiProbe.anchorVocabulary.length} carry the merge spec's own §3/§9 identity vocabulary (${apiProbe.patternsScanned.anchorIdentity}) — ${apiProbe.anchorVocabulary.map((m) => m.name).join(', ')}, all in ${[...new Set(apiProbe.anchorVocabulary.map((m) => m.pkg))].join(', ')}. `
-            + `So the merge's identity and rename primitives ship; the merge that would compose them does not. `
-            + `The spec is ${fixtureProbe.specStatus}, the report schema ships, ${fixtureProbe.completeTriples} three-way fixture scenarios ship carrying expected merge OUTPUTS, ${fixtureProbe.assertingPreservation} of which assert that a designer-only value survives — and ${fixtureProbe.executesFixtures.length === 0 ? 'NO test in the repo reads any of those expected outputs' : `they are read by ${fixtureProbe.executesFixtures.join(', ')}`}. The conformance suite collects ${fixtureProbe.collectedTests.length} tests under \`-k regeneration\`, all of them in ${fixtureProbe.collectedTestFiles.join(', ')} — which validates the report SCHEMA and never runs a merge. ${fixtureProbe.mentionsOnly.length} further files name the corpus without executing it.`
-          : `A merge entry point exists: ${apiProbe.matches.map((m) => `${m.pkg}.${m.name}`).join(', ')}.`,
+          ? `The merge ran through ${merge.entryPoint}, but the export sweep found no merge entry point — the two halves of this probe disagree, which is a broken measurement, not a result.`
+          : `The merge ran through ${merge.entryPoint}, which composes ${apiProbe.matches.map((m) => `${m.pkg}.${m.name}`).join(', ')}. `
+            + `${apiProbe.exportsSeen} runtime exports across ${apiProbe.packagesProbed.length} substrate packages were enumerated and scanned twice; ${apiProbe.matches.length} carry a regeneration-merge entry-point name (${apiProbe.patternsScanned.mergeEntryPoint}) and ${apiProbe.anchorVocabulary.length} carry the merge spec's own §3/§9 identity vocabulary (${apiProbe.patternsScanned.anchorIdentity}). `
+            + `The spec is ${fixtureProbe.specStatus}, the report schema ships, and ${fixtureProbe.completeTriples} three-way fixture scenarios ship carrying expected merge OUTPUTS, ${fixtureProbe.assertingPreservation} of which assert that a designer-only value survives. `
+            + `This run replayed ${fixtureProbe.executedHere} of them through the shipped entry point: ${fixtureProbe.reproducedExpectedMerged} reproduced the expected merged document and ${fixtureProbe.reproducedExpectedReport} reproduced the expected report${fixtureProbe.failures.length === 0 ? '' : ` (failures: ${fixtureProbe.failures.join(', ')})`}. `
+            + `${fixtureProbe.executesFixtures.length === 0 ? 'No committed test reads those expected outputs' : `They are executed by ${fixtureProbe.executesFixtures.join(', ')}`}. `
+            + `The Python conformance suite still collects ${fixtureProbe.collectedTests.length} tests under \`-k regeneration\`, all of them in ${fixtureProbe.collectedTestFiles.join(', ')} — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. `
+            + `${fixtureProbe.mentionsOnly.length} further files name the corpus without executing it.`,
       },
+      mergeReport: merge.report,
+      reviewQueue: merge.reviewQueue,
+      regeneratedWorkLanded,
       apiProbe,
       fixtureProbe,
       edits,
@@ -316,8 +334,13 @@ describe('spike v10 — the lifecycle demo', () => {
       && verification.digestMatches
       && tamperCheck.result === 'failed';
 
-    // Bar 5 — the moat.
-    const bar5Met = moat.survivingEdits === moat.totalEdits;
+    // Bar 5 — the moat. Both hand-made changes survive, the rebuild's own new
+    // page lands, and the corpus that defines "correct" passes end to end.
+    const bar5Met =
+      moat.survivingEdits === moat.totalEdits
+      && regeneratedWorkLanded
+      && fixtureProbe.reproducedExpectedMerged === fixtureProbe.completeTriples
+      && fixtureProbe.reproducedExpectedReport === fixtureProbe.completeTriples;
 
     const bars: BarResult[] = [
       {
@@ -396,8 +419,12 @@ describe('spike v10 — the lifecycle demo', () => {
       },
       {
         id: 'BAR 5',
-        title: "A designer's hand-made changes survive an AI rebuild — NOT YET TRUE, and we measured exactly why",
+        title: "A designer's hand-made changes survive an AI rebuild",
         met: bar5Met,
+        qualifier:
+          'Measured missing on 2026-07-26 and closed on 2026-07-27. The first run of this bar found no merging step anywhere in the product, and both hand-made changes were lost the moment the app was rebuilt. '
+          + `The step now ships and runs here: ${merge.entryPoint} kept the designer's wording and the sentence they added, took the AI's new page and its updated links, and put the ${merge.report.pendingReview.length} genuinely new pieces in a review list instead of into the app unannounced. `
+          + `The ${fixtureProbe.completeTriples} written-down test cases that define "correct" for this step now run, and all of them pass.`,
         criterion:
           "After the AI rebuilds the app, both hand-made changes are still in it — kept by the product's own merging step, not put back by us.",
         evidence: moat,
@@ -405,10 +432,9 @@ describe('spike v10 — the lifecycle demo', () => {
           ? {}
           : {
               finding:
-                'The step that would keep those changes does not exist yet. We searched every part of the product that ships and found nothing that does the merging — the pieces it would need are there, the step that uses them is not. '
-                + 'The design is written down, the test cases are written down, and nothing runs them. '
-                + `So both hand-made changes were lost the moment the app was rebuilt (${edits.map((e) => e.id).join(' and ')}). `
-                + 'We predicted this before the run and measured it anyway. The full search is below, and it is the most important thing on this page.',
+                `Preserved ${moat.survivingEdits} of ${moat.totalEdits} hand-made changes; the rebuild's own new page ${regeneratedWorkLanded ? 'landed' : 'did NOT land'}; `
+                + `${fixtureProbe.reproducedExpectedMerged}/${fixtureProbe.completeTriples} written-down test cases reproduced the expected app and ${fixtureProbe.reproducedExpectedReport}/${fixtureProbe.completeTriples} the expected report`
+                + `${fixtureProbe.failures.length === 0 ? '' : ` (${fixtureProbe.failures.join(', ')})`}.`,
             }),
       },
       {
@@ -460,9 +486,9 @@ describe('spike v10 — the lifecycle demo', () => {
     console.log(bars.map((b) => `  ${b.id} ${b.met ? 'MET    ' : 'NOT MET'} — ${b.title}`).join('\n'));
 
     // ── Assertions ─────────────────────────────────────────────────────────
-    // Bars 1-4 and 6 are asserted as claims. Bar 5 is asserted as a
-    // MEASUREMENT: the three probes must have run and agreed, so a broken
-    // apparatus fails loudly while the honest negative result stands.
+    // All six bars are now asserted as claims. Bar 5's apparatus is asserted
+    // too — the probes must still have run and agreed, so a broken measurement
+    // fails loudly rather than passing the bar for the wrong reason.
     expect(bar2Met, 'BAR 2 — offline signature verification').toBe(true);
     expect(bar3Met, 'BAR 3 — the 0152 beats').toBe(true);
     expect(bar4Met, 'BAR 4 — THEME-ROUTE-CLASS').toBe(true);
@@ -470,12 +496,19 @@ describe('spike v10 — the lifecycle demo', () => {
     expect(bar1Met, `BAR 1 — trace connectivity: ${JSON.stringify(hops.filter((h) => !h.holds))}`).toBe(true);
 
     expect(moat.apiProbe.packagesProbed.length, 'bar 5a probed the substrate packages').toBeGreaterThan(0);
-    expect(moat.fixtureProbe.completeTriples, 'bar 5b found the shipped fixture corpus').toBeGreaterThan(0);
+    expect(moat.apiProbe.noMergeEntryPoint, 'bar 5a found the shipped merge entry point').toBe(false);
+    expect(moat.fixtureProbe.completeTriples, 'bar 5b found the shipped fixture corpus').toBe(17);
+    expect(moat.fixtureProbe.failures, 'bar 5b — every corpus scenario reproduced').toEqual([]);
+    expect(moat.fixtureProbe.reproducedExpectedMerged, 'bar 5b — expected merged documents').toBe(17);
+    expect(moat.fixtureProbe.reproducedExpectedReport, 'bar 5b — expected merge reports').toBe(17);
     expect(moat.totalEdits, 'bar 5c measured both designer edits').toBe(2);
     for (const edit of edits) {
       expect(edit.presentInDesignerEdited, `${edit.id} was actually made at build`).toBe(true);
       expect(edit.presentInOldGenerated, `${edit.id} was not in the AI's first output`).toBe(false);
+      expect(edit.presentInNewGenerated, `${edit.id} is NOT in the rebuild — the merge is what saves it`).toBe(false);
+      expect(edit.presentInMerged, `${edit.id} survived the merge`).toBe(true);
     }
+    expect(bar5Met, `BAR 5 — the moat: ${JSON.stringify({ survivingEdits: moat.survivingEdits, regeneratedWorkLanded })}`).toBe(true);
   }, 120_000);
 });
 

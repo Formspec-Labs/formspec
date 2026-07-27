@@ -20,7 +20,7 @@ It is **generated from [`evidence/lifecycle.json`](evidence/lifecycle.json)**, w
 
 ## Result
 
-**5 of 6 pre-registered bars met.**
+**6 of 6 pre-registered bars met** (2026-07-27). The first run, 2026-07-26, met 5 of 6.
 
 | Bar | | |
 |---|---|---|
@@ -28,10 +28,10 @@ It is **generated from [`evidence/lifecycle.json`](evidence/lifecycle.json)**, w
 | 2 | The signature verifies offline, and fails on a tampered byte | met |
 | 3 | The ADR 0152 refusals fire legibly mid-journey | met |
 | 4 | Tenant branding admitted on `intake`, refused on `proof` | met |
-| 5 | **The designer's edits survive a rebuild** | **NOT MET** |
+| 5 | **The designer's edits survive a rebuild** | met — **NOT MET on 2026-07-26** |
 | 6 | ADR 0160's five acceptance bars hold on this exemplar | met |
 
-**Bar 5 is the finding, and it was pre-registered as the likely outcome.** No regeneration merge exists to run: 332 runtime exports across five substrate packages scanned twice — **zero** carry a merge entry-point name, **seven** carry the merge spec's own §3/§9 anchor-identity vocabulary, so the primitives ship and nothing composes them. The spec is Draft; 17 fixture scenarios ship with expected merge outputs and 10 preservation assertions; and no test in the repo reads any of them. Both designer edits are destroyed on rebuild. **The moat is specified, fixtured, and unbuilt.**
+**Bar 5 was pre-registered as the likely failure, failed, and then closed — and the arc is the point.** On 2026-07-26 no regeneration merge existed to run: 332 runtime exports scanned twice, **zero** carrying a merge entry-point name, 17 fixture scenarios shipping with expected merge outputs that **no test in the repo read**, and both designer edits destroyed on rebuild. On 2026-07-27 the merge shipped — `regenerationMerge` / `regenerationMergeSurface` in `@formspec-org/core`, reached through `kernel.regenerateSurfaceDocument` — and the same probes report `survivingEdits: 2 / 2` with **17 / 17** corpus scenarios reproducing both their expected merged document and their expected report. Neither the probes nor the bar's criterion were softened; 5b was widened to actually *run* the corpus rather than only count it. See the tracker's PART 3 addendum.
 
 Nine further findings are in the tracker's §Findings, each measured rather than inferred.
 
@@ -80,11 +80,11 @@ The `V10_OUTPUT_ROOT` guard exists for the same reason v9's does: a run that exe
 - **Real Ajv over the shipped `formspec/schemas/*.json`.** No stubs.
 - **Served documents are the kernel's own exports**, never spike-derived projections — v9's correction, kept.
 - **All cryptography is shipped substrate.** The only spike-local element is a dev key and one domain tag, recorded in `src/signing.ts` and in the tracker's bar 2.
-- **Bars 1–4 and 6 are asserted. Bar 5 is asserted as a measurement** — the three probes must have run and agreed, so a broken apparatus fails the suite while the honest negative result stands.
+- **All six bars are asserted, and bar 5's measuring apparatus is asserted alongside it** — the three probes must still have run and agreed, so a bar that passes because the probes broke fails the suite. Bar 5 was asserted as a measurement while it failed; that framing is preserved in the tracker's Part 2.
 
 ## Out of scope
 
 - Trellis. WOS. Any ledger anchoring, case event, or export manifest.
 - Rendering. The walkthrough renders the *story*, not the app.
 - Any modification to a substrate package. A gap this spike finds is reported, not patched.
-- Implementing regeneration merge. A spike-local merge would make bar 5 unfalsifiable — the claim under test is what the *substrate* does.
+- Implementing regeneration merge **in this spike**. A spike-local merge would make bar 5 unfalsifiable — the claim under test is what the *substrate* does. The merge that closed bar 5 ships in `@formspec-org/core`; this spike calls it and carries no merge logic of its own.

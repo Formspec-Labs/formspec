@@ -24,6 +24,7 @@
 import { initFormspecEngine, initFormspecEngineTools } from '@formspec-org/engine';
 import { createWireframesMcp, type WireframesMcp, type WireframesUiGraphPolicyInput } from '@formspec-org/mcp-wireframes';
 import type { UiGraphPolicyDocument } from '@formspec-org/types';
+import { mergeThroughSubstrate, type SubstrateMergeResult } from './regeneration.js';
 import {
   AI_AGENT_URN,
   HUMAN_URN,
@@ -349,6 +350,10 @@ export interface WalkState {
   designerEditedSurface?: unknown;
   /** The Surface a fresh kernel produces from the amended brief. */
   newGeneratedSurface?: unknown;
+  /** What the substrate's merge hands back — `merged` for bar 5. */
+  mergedSurface?: unknown;
+  /** The merge's review artifact, carried into the bar-5 evidence. */
+  merge?: SubstrateMergeResult;
   bundleExport?: { manifest: unknown; documents: Record<string, unknown> };
   policy?: UiGraphPolicyDocument;
   baseline?: AuthoredBaseline;
@@ -1093,6 +1098,35 @@ export async function stageFeedback(ev: Evidence, state: WalkState): Promise<voi
     },
   });
 
+  // The merge. The regenerating session owns `new_generated`, and the host
+  // hands back the retained baseline plus the designer's version (merge spec
+  // §2.2). Every decision below is the substrate's; this file supplies inputs
+  // and stores outputs.
+  const merge = await mergeThroughSubstrate(regenerator.kernel, {
+    surfaceId: SURFACE_ID,
+    oldGenerated: state.oldGeneratedSurface,
+    designerEdited: state.designerEditedSurface,
+  });
+  state.merge = merge;
+  state.mergedSurface = structuredClone(merge.merged);
+  writeArtifact('stage-6-feedback.merged.surface.json', merge.merged);
+  writeArtifact('bar5-merge-report.json', merge.report);
+
+  ev.beat({
+    actor: 'ai-agent',
+    verb: 'merge',
+    intent: "Keep the designer's hand-made changes through the rebuild.",
+    outcome: 'admitted',
+    details: {
+      entryPoint: merge.entryPoint,
+      survived: merge.report.surviving.length,
+      preservedAsOrphan: merge.report.orphaned.filter((e) => e.code === 'COMP-REGENERATION-ORPHAN-NODE').length,
+      regenerated: merge.report.regenerated.length,
+      newAndAwaitingReview: merge.report.pendingReview.length,
+      conflicts: merge.report.conflicts.length,
+    },
+  });
+
   ev.closeStage({
     changeRequest: CHANGE_REQUEST.id,
     threeWayInputs: {
@@ -1100,6 +1134,11 @@ export async function stageFeedback(ev: Evidence, state: WalkState): Promise<voi
       designerEdited: 'evidence/bar5-designer-edited.surface.json',
       newGenerated: 'evidence/bar5-new-generated.surface.json',
     },
-    artifact: 'evidence/stage-6-feedback.regenerated.surface.json',
+    mergeEntryPoint: merge.entryPoint,
+    artifacts: [
+      'evidence/stage-6-feedback.regenerated.surface.json',
+      'evidence/stage-6-feedback.merged.surface.json',
+      'evidence/bar5-merge-report.json',
+    ],
   });
 }

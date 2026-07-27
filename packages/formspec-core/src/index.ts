@@ -42,6 +42,33 @@ export {
 export type { NormalizedBinds, FlatTreeItem } from './queries/public.js';
 export type { ResolvedPageStructure, ResolvedPage, ResolvedRegion, PageDiagnostic, PageStructureInput } from './page-resolution.js';
 
+// Regeneration merge (specs/component/regeneration-merge-spec.md §2-§9)
+export {
+  regenerationMerge,
+  regenerationMergeSurface,
+  regenerationMergeWithAdapter,
+  componentMergeAdapter,
+  surfaceMergeAdapter,
+  computeAnchorSet,
+  mergeReviewQueue,
+  RegenerationMergeInputError,
+} from './regeneration-merge.js';
+export type {
+  MergeCode,
+  MergeSeverity,
+  MergeEntry,
+  OrphanEntry,
+  MergeReport,
+  MergeNode,
+  MergeDocumentAdapter,
+  AnchorMappingsInput,
+  RegenerationMergeContext,
+  RegenerationMergeInputs,
+  RegenerationMergeResult,
+  ComponentDocumentLike,
+  SurfaceDocumentLike,
+} from './regeneration-merge.js';
+
 // Schema-derived types (from formspec-types, re-exported via types.ts)
 export type {
   FormItem, FormBind, FormShape, FormVariable, FormInstance, FormOption,

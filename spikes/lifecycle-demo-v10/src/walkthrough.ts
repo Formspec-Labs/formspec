@@ -121,7 +121,28 @@ function barHtml(bar: BarResult): string {
 export function renderWalkthrough(input: WalkthroughInput): string {
   const met = input.bars.filter((b) => b.met).length;
   const verification = input.verification as { result?: string; digestMatches?: boolean; recomputedDigest?: string; methodUriFromEnvelope?: string; inputsRead?: string[]; tamperResult?: string };
-  const moat = input.moat as { survivingEdits?: number; totalEdits?: number; mergeAttempt?: { entryPoint?: string | null; outcome?: string }; edits?: Array<{ id: string; what: string; survived: boolean; deltaClass: string }> };
+  const moat = input.moat as {
+    survivingEdits?: number;
+    totalEdits?: number;
+    regeneratedWorkLanded?: boolean;
+    mergeAttempt?: { entryPoint?: string | null; outcome?: string };
+    mergeReport?: { orphaned?: unknown[]; pendingReview?: unknown[]; conflicts?: unknown[]; regenerated?: unknown[] };
+    edits?: Array<{ id: string; what: string; survived: boolean; deltaClass: string }>;
+  };
+  // The moat section tells the positive story only when the run earned it. The
+  // negative telling stays in the file, because a page that can only render the
+  // good outcome is not evidence of anything.
+  const moatHeld = (moat.totalEdits ?? 0) > 0 && moat.survivingEdits === moat.totalEdits;
+  const pendingCount = moat.mergeReport?.pendingReview?.length ?? 0;
+  const conflictCount = moat.mergeReport?.conflicts?.length ?? 0;
+  const orphanCount = (moat.mergeReport?.orphaned ?? []).filter(
+    (entry) => (entry as { code?: string }).code === 'COMP-REGENERATION-ORPHAN-NODE',
+  ).length;
+  // A regenerated entry with property deltas is the rebuild actually changing
+  // something; the ones without are nodes it re-emitted unchanged.
+  const updatedCount = (moat.mergeReport?.regenerated ?? []).filter(
+    (entry) => ((entry as { propertyDeltas?: unknown[] }).propertyDeltas ?? []).length > 0,
+  ).length;
   const signature = input.signature as { record?: { signerName?: string; affirmationText?: string; signedPayload?: { digest?: string; canonicalization?: string } } };
 
   return `<!doctype html>
@@ -297,6 +318,7 @@ export function renderWalkthrough(input: WalkthroughInput): string {
   .moat__sub { font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 1.1rem; }
   .moat p { max-width: 62ch; }
   .moat__why { overflow-wrap: anywhere; font-family: var(--mono); font-size: .78rem; line-height: 1.65; background: var(--surface); border: 1px solid var(--rule); padding: .8rem .9rem; margin: 1.2rem 0 0; }
+  .moat__history { border-left: 3px solid var(--accent); padding-left: .9rem; color: var(--ink-soft); }
   .edits { list-style: none; margin: 1.2rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
   .edits li { min-width: 0; background: var(--surface); border: 1px solid var(--rule); padding: .75rem .9rem; display: flex; gap: .8rem; align-items: baseline; flex-wrap: wrap; }
   .edits .what { font-family: var(--serif); font-size: 1rem; flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
@@ -329,7 +351,7 @@ export function renderWalkthrough(input: WalkthroughInput): string {
   <header class="masthead">
     <p class="eyebrow">One application &middot; six stages &middot; nothing hidden</p>
     <h1>${esc(input.exemplar.title)}</h1>
-    <p class="standfirst">One small government form, from the sentence someone said out loud to a signed release to a change request that rebuilds it. Everything below is what actually happened &mdash; what the system allowed, what it refused, and what it lost.</p>
+    <p class="standfirst">One small government form, from the sentence someone said out loud to a signed release to a change request that rebuilds it. Everything below is what actually happened &mdash; what the system allowed, what it refused, and what it ${moatHeld ? 'kept when the AI rebuilt it' : 'lost'}.</p>
   </header>
 
   <section class="brief">
@@ -370,10 +392,14 @@ export function renderWalkthrough(input: WalkthroughInput): string {
   </section>
 
   <section class="moat">
-    <h2>The one promise we cannot make yet</h2>
+    <h2>${moatHeld ? "The promise the whole product rests on" : "The one promise we cannot make yet"}</h2>
     <p class="moat__sub">${esc(moat.survivingEdits ?? 0)} of the designer's ${esc(moat.totalEdits ?? 0)} changes survived</p>
-    <p>When the AI rebuilds the app after a change request, the changes a person made by hand are supposed to survive it. That is the claim this product rests on. We tested it here, and it did not hold.</p>
-    <p>So we went looking for the step that is meant to keep those changes, across every part of the product that ships. This is what the search returned:</p>
+    ${moatHeld
+      ? `<p>When the AI rebuilds the app after a change request, the changes a person made by hand are supposed to survive it. That is the claim this product rests on. We tested it here, and it held: every hand-made change came through the rebuild, and the AI's new work came through with it.</p>
+    <p class="moat__history"><strong>How this line read before.</strong> On 26 July 2026 this section said &ldquo;the one promise we cannot make yet&rdquo;, because it was true: nothing in the product did this, and both hand-made changes were lost the moment the app was rebuilt. The step shipped on 27 July 2026. We are leaving the old reading on the page, because a claim is worth more when you can see the day it was not yet earned.</p>
+    <p>Here is what the rebuild did, checked the same way it was checked when it failed:</p>`
+      : `<p>When the AI rebuilds the app after a change request, the changes a person made by hand are supposed to survive it. That is the claim this product rests on. We tested it here, and it did not hold.</p>
+    <p>So we went looking for the step that is meant to keep those changes, across every part of the product that ships. This is what the search returned:</p>`}
     <p class="moat__why">${esc(moat.mergeAttempt?.outcome ?? '')}</p>
     <ul class="edits">
       ${(moat.edits ?? [])
@@ -385,6 +411,12 @@ export function renderWalkthrough(input: WalkthroughInput): string {
         )
         .join('\n      ')}
     </ul>
+    ${moatHeld ? `<dl class="facts">
+      <dt>The AI's own updates still landed</dt><dd>${esc(updatedCount)} ${updatedCount === 1 ? 'part of the app was' : 'parts of the app were'} rewritten by the rebuild and kept that way, and the whole new page the change request asked for ${esc(moat.regeneratedWorkLanded ? 'is there' : 'is NOT there')}</dd>
+      <dt>Put in front of a person, not into the app</dt><dd>${esc(pendingCount)} newly written ${pendingCount === 1 ? 'piece is' : 'pieces are'} waiting to be looked at rather than added quietly</dd>
+      <dt>Kept, and flagged</dt><dd>${esc(orphanCount)} of the designer's own additions no longer ${orphanCount === 1 ? 'matches' : 'match'} anything the AI produces, so ${orphanCount === 1 ? 'it was' : 'they were'} kept and marked for a second look</dd>
+      <dt>Disagreements the rebuild could not settle on its own</dt><dd>${esc(conflictCount)}</dd>
+    </dl>` : ''}
     <details class="detail"><summary>The full measurement</summary><pre>${json(input.moat)}</pre></details>
   </section>
 

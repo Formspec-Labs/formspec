@@ -1,0 +1,176 @@
+{
+  "version": "1.0",
+  "surviving": [
+    {
+      "anchors": [
+        "route:apply"
+      ],
+      "nodePath": "/routes/0",
+      "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+      "severity": "info",
+      "reason": "Non-conflicting designer edits survived in the merged node.",
+      "propertyDeltas": [
+        "/routeClass",
+        "/slots"
+      ]
+    },
+    {
+      "anchors": [
+        "slot:applyForm"
+      ],
+      "nodePath": "/routes/0/slots/2",
+      "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+      "severity": "info",
+      "reason": "Non-conflicting designer edits survived in the merged node.",
+      "propertyDeltas": [
+        "/title"
+      ]
+    },
+    {
+      "anchors": [
+        "route:certify"
+      ],
+      "nodePath": "/routes/2",
+      "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+      "severity": "info",
+      "reason": "Non-conflicting designer edits survived in the merged node.",
+      "propertyDeltas": [
+        "/routeClass"
+      ]
+    },
+    {
+      "anchors": [
+        "route:receipt"
+      ],
+      "nodePath": "/routes/3",
+      "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+      "severity": "info",
+      "reason": "Non-conflicting designer edits survived in the merged node.",
+      "propertyDeltas": [
+        "/routeClass"
+      ]
+    }
+  ],
+  "regenerated": [
+    {
+      "anchors": [
+        "surface:respondent"
+      ],
+      "nodePath": "/",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    },
+    {
+      "anchors": [
+        "route:apply"
+      ],
+      "nodePath": "/routes/0",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Generated property updates from new_generated remained in the merged node.",
+      "propertyDeltas": [
+        "/title",
+        "/transitions"
+      ]
+    },
+    {
+      "anchors": [
+        "slot:applyJourney"
+      ],
+      "nodePath": "/routes/0/slots/0",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    },
+    {
+      "anchors": [
+        "slot:applyChrome"
+      ],
+      "nodePath": "/routes/0/slots/1",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    },
+    {
+      "anchors": [
+        "slot:certifyJourney"
+      ],
+      "nodePath": "/routes/2/slots/0",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    },
+    {
+      "anchors": [
+        "slot:certifyChrome"
+      ],
+      "nodePath": "/routes/2/slots/1",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    },
+    {
+      "anchors": [
+        "slot:receiptJourney"
+      ],
+      "nodePath": "/routes/3/slots/0",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    },
+    {
+      "anchors": [
+        "slot:receiptChrome"
+      ],
+      "nodePath": "/routes/3/slots/1",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    }
+  ],
+  "orphaned": [
+    {
+      "anchors": [
+        "slot:applyReassurance"
+      ],
+      "nodePath": "/routes/0/slots/3",
+      "code": "COMP-REGENERATION-ORPHAN-NODE",
+      "severity": "warning",
+      "reason": "Designer-authored subtree had no deterministic match in new_generated and was preserved by orphan reattachment.",
+      "reattachedTo": "/routes/0",
+      "cascaded": false,
+      "detached": false
+    }
+  ],
+  "pendingReview": [
+    {
+      "anchors": [
+        "route:applyMoney"
+      ],
+      "nodePath": "/routes/1",
+      "code": "COMP-REGENERATION-PENDING-REVIEW",
+      "severity": "info",
+      "reason": "New generated node has no deterministic old or designer match."
+    },
+    {
+      "anchors": [
+        "slot:moneyForm"
+      ],
+      "nodePath": "/routes/1/slots/0",
+      "code": "COMP-REGENERATION-PENDING-REVIEW",
+      "severity": "info",
+      "reason": "New generated node has no deterministic old or designer match."
+    },
+    {
+      "anchors": [
+        "slot:moneyChrome"
+      ],
+      "nodePath": "/routes/1/slots/1",
+      "code": "COMP-REGENERATION-PENDING-REVIEW",
+      "severity": "info",
+      "reason": "New generated node has no deterministic old or designer match."
+    }
+  ],
+  "conflicts": []
+}

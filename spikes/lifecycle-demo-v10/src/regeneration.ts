@@ -3,27 +3,32 @@
  *
  * ADR 0159 §The technical move nobody else has: *"Regeneration with edit
  * preservation. Source anchors on every generated node. Three-way merge on
- * source change… This is the substrate's load-bearing wedge."* That claim has
- * never been demonstrated on any artifact, which is why ADR 0159's own promotion
- * condition 3 names it.
+ * source change… This is the substrate's load-bearing wedge."*
  *
- * This module does NOT implement a merge. Writing one here would make the bar
- * unfalsifiable: the claim under test is what the *substrate* does, and a
- * spike-local merge is not the substrate. Instead it measures three things a
- * reader can independently re-derive:
+ * 2026-07-26 — the first run of this module measured that claim as UNMET: no
+ * merge entry point shipped, no test executed the conformance corpus, and both
+ * designer edits were lost on rebuild. 2026-07-27 — the merge shipped
+ * (`regenerationMerge` / `regenerationMergeSurface` in `@formspec-org/core`,
+ * re-exported by `@formspec-org/studio-core`, reached through
+ * `kernel.regenerateSurfaceDocument`), and the same three probes now measure it
+ * as MET. The probes did not change shape; their answers did.
+ *
+ * This module still does NOT implement a merge. Writing one here would make the
+ * bar unfalsifiable: the claim under test is what the *substrate* does, and a
+ * spike-local merge is not the substrate. It measures three things a reader can
+ * independently re-derive:
  *
  * - **5a** — what the substrate's own package exports actually contain.
- * - **5b** — what the shipped conformance corpus contains, and what executes it.
+ * - **5b** — what the shipped conformance corpus contains, what executes it,
+ *   and — by running every scenario through the shipped entry point — whether
+ *   the corpus actually passes.
  * - **5c** — what a consumer of the substrate as it ships today actually
  *   receives when regeneration runs over a designer-edited artifact.
- *
- * Each part can independently falsify the pre-registered prediction that this
- * bar fails. If 5a finds a merge entry point, the prediction is wrong and this
- * module says so.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { resolve, relative } from 'node:path';
+import { regenerationMerge, type MergeReport } from '@formspec-org/studio-core';
 import { SPIKE_ROOT } from './harness.js';
 
 const FORMSPEC_ROOT = resolve(SPIKE_ROOT, '..', '..');
@@ -137,10 +142,24 @@ export interface FixtureProbeResult {
   executesFixtures: string[];
   /** Files that name the corpus without running it (plans, lint exclusions, notes). */
   mentionsOnly: string[];
-  /** Every test the conformance suite collects under `-k regeneration`. */
+  /** Every test the Python conformance suite collects under `-k regeneration`. */
   collectedTests: string[];
   /** The files those collected tests live in. */
   collectedTestFiles: string[];
+  /** Scenarios this spike replayed through the SHIPPED merge entry point. */
+  executedHere: number;
+  /** Of those, how many reproduced `expected-merged.json` byte-for-byte. */
+  reproducedExpectedMerged: number;
+  /**
+   * Of those, how many reproduced `expected-report.json` on every field the
+   * spec makes normative — array placement, entry order, `code`, `severity`,
+   * `anchors`, `nodePath`, `propertyDeltas`, and the orphan reattachment flags.
+   * `reason` is free-form review prose (§11.3 requires the field, §7 gives it
+   * no wording), so it is checked for presence, not for text.
+   */
+  reproducedExpectedReport: number;
+  /** Scenarios that did not reproduce, named so a failure is not a number. */
+  failures: string[];
   specStatus: string;
   schemaExists: boolean;
 }
@@ -186,8 +205,76 @@ export function probeFixtureCorpus(): FixtureProbeResult {
     assertingPreservation: preservationScenarios.length,
     preservationScenarios: preservationScenarios.sort(),
     ...findFixtureConsumers(),
+    ...replayCorpus(fixtureDir, scenarioDirs),
     specStatus: `${draft} ${versionLine}`.trim(),
     schemaExists: existsSync(resolve(FORMSPEC_ROOT, 'schemas', 'regeneration-merge-report.schema.json')),
+  };
+}
+
+/**
+ * Replays every scenario through the SHIPPED merge entry point and compares
+ * against the corpus's own expected outputs.
+ *
+ * This is the part 5b could not do while no merge shipped. It is not a second
+ * conformance suite — `formspec/packages/formspec-core/tests/regeneration-merge-conformance.test.ts`
+ * is that — it is the same corpus driven from OUTSIDE the package that
+ * implements it, through the public export, so the walkthrough's number is not
+ * the implementation grading its own homework.
+ */
+function replayCorpus(
+  fixtureDir: string,
+  scenarioDirs: string[],
+): Pick<FixtureProbeResult, 'executedHere' | 'reproducedExpectedMerged' | 'reproducedExpectedReport' | 'failures'> {
+  let executedHere = 0;
+  let reproducedExpectedMerged = 0;
+  let reproducedExpectedReport = 0;
+  const failures: string[] = [];
+
+  for (const name of scenarioDirs.sort()) {
+    const dir = resolve(fixtureDir, name);
+    const read = (file: string): unknown => JSON.parse(readFileSync(resolve(dir, file), 'utf8'));
+    const contextPath = resolve(dir, 'context.json');
+    const { merged, report } = regenerationMerge(
+      {
+        oldGenerated: read('old-generated.json') as never,
+        designerEdited: read('designer-edited.json') as never,
+        newGenerated: read('new-generated.json') as never,
+      },
+      existsSync(contextPath) ? { anchorMappings: read('context.json') as never } : {},
+    );
+    executedHere += 1;
+    const mergedOk = JSON.stringify(sortKeys(merged)) === JSON.stringify(sortKeys(read('expected-merged.json')));
+    const reportOk =
+      JSON.stringify(reportWithoutProse(report))
+      === JSON.stringify(reportWithoutProse(read('expected-report.json') as MergeReport));
+    if (mergedOk) reproducedExpectedMerged += 1;
+    if (reportOk) reproducedExpectedReport += 1;
+    if (!mergedOk || !reportOk) {
+      failures.push(`${name}${mergedOk ? '' : ' (merged)'}${reportOk ? '' : ' (report)'}`);
+    }
+  }
+  return { executedHere, reproducedExpectedMerged, reproducedExpectedReport, failures };
+}
+
+/** Key-order-insensitive JSON view, so member order is not a false failure. */
+function sortKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortKeys);
+  if (value === null || typeof value !== 'object') return value;
+  const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : 1));
+  return Object.fromEntries(entries.map(([k, v]) => [k, sortKeys(v)]));
+}
+
+/** Every normative report field, with the free-form `reason` dropped. */
+function reportWithoutProse(report: MergeReport): unknown {
+  const strip = (entries: ReadonlyArray<{ reason: string }>): unknown[] =>
+    entries.map(({ reason: _reason, ...rest }) => sortKeys(rest));
+  return {
+    version: report.version,
+    surviving: strip(report.surviving),
+    regenerated: strip(report.regenerated),
+    orphaned: strip(report.orphaned),
+    pendingReview: strip(report.pendingReview),
+    conflicts: strip(report.conflicts),
   };
 }
 
@@ -224,9 +311,14 @@ function preservesDesignerOnlyValue(designer: string, regenerated: string, merge
  * The distinction is the whole point of 5b: a plan, a migration note and a lint
  * exclusion list all name the fixture directory, and none of them runs a merge.
  * `expected-merged.json` is the discriminator — it is the merge OUTPUT fixture,
- * so only something that executes a merge has a reason to read it. Uses
- * `git grep` over the tracked tree so the answer is about the repo rather than
- * about one package's node_modules.
+ * so only something that executes a merge has a reason to read it.
+ *
+ * Walks the working tree rather than `git grep`. The question is what code is
+ * present and runs, and staging state is not part of that question — a merge
+ * runner that exists and passes is a consumer of the corpus whether or not it
+ * has been committed yet. Build output, dependencies and virtualenvs are
+ * skipped so the answer is about the repo rather than about one package's
+ * `node_modules`.
  */
 function findFixtureConsumers(): {
   executesFixtures: string[];
@@ -235,24 +327,43 @@ function findFixtureConsumers(): {
   collectedTestFiles: string[];
 } {
   const IS_TEST = /(^|\/)test_[^/]+\.py$|\.(test|spec)\.(ts|tsx|js|mjs)$/;
-  const grep = (pattern: string): string[] => {
-    try {
-      return execFileSync('git', ['grep', '-l', '--', pattern], { cwd: FORMSPEC_ROOT, encoding: 'utf8' })
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0 && !l.includes('tests/conformance/fixtures/regeneration-merge/'));
-    } catch {
-      return []; // git grep exits 1 on no match
-    }
+  const SKIP_DIR = /^(node_modules|dist|target|\.git|\.venv|\.claude|coverage|wasm-pkg.*|build)$/;
+  const SEARCHABLE = /\.(ts|tsx|js|mjs|cjs|py|rs|md|json|html)$/;
+
+  const scan = (): Array<{ path: string; text: string }> => {
+    const out: Array<{ path: string; text: string }> = [];
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = resolve(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (!SKIP_DIR.test(entry.name)) walk(full);
+          continue;
+        }
+        if (!SEARCHABLE.test(entry.name)) continue;
+        const rel = relative(FORMSPEC_ROOT, full);
+        if (rel.includes('tests/conformance/fixtures/regeneration-merge/')) continue;
+        try {
+          out.push({ path: rel, text: readFileSync(full, 'utf8') });
+        } catch {
+          // unreadable file — not a consumer
+        }
+      }
+    };
+    walk(FORMSPEC_ROOT);
+    return out;
   };
+  const files = scan();
+  const matching = (pattern: string): string[] =>
+    files.filter((f) => f.text.includes(pattern)).map((f) => f.path);
+
   // A file that merely NAMES the corpus is not a consumer of it. The first pass
   // of this probe counted `tests/conformance/tools/comp_bundle_id_audit.py`,
   // whose only match is an EXCLUDED_TREES entry that skips the corpus — the
   // opposite of executing it. So the discriminator is: reads the merge OUTPUT
   // fixture AND is itself a test.
-  const executes = new Set(grep('expected-merged').filter((f) => IS_TEST.test(f)));
+  const executes = new Set(matching('expected-merged').filter((f) => IS_TEST.test(f)));
   const mentions = new Set(
-    [...grep('fixtures/regeneration-merge'), ...grep('expected-merged')].filter((f) => !executes.has(f)),
+    [...matching('fixtures/regeneration-merge'), ...matching('expected-merged')].filter((f) => !executes.has(f)),
   );
 
   // The decisive fact, taken from the test runner rather than from grep: what
@@ -310,6 +421,53 @@ export interface LiveMergeResult {
   edits: EditProbe[];
   survivingEdits: number;
   totalEdits: number;
+}
+
+/** The shipped merge, reached through the kernel op the regeneration path owns. */
+export interface SubstrateMergeResult {
+  /** The kernel op that ran, quoted into the walkthrough. */
+  entryPoint: string;
+  merged: unknown;
+  report: MergeReport;
+  /** Non-`info` findings — what a review surface would put in front of a human. */
+  reviewQueue: Array<{ code: string; severity: string; nodePath: string }>;
+}
+
+/** The kernel surface this spike drives. Structural, so no MCP type is imported. */
+interface RegenerationCapableKernel {
+  regenerateSurfaceDocument(input: {
+    surfaceId: string;
+    oldGenerated: unknown;
+    designerEdited: unknown;
+  }): Promise<
+    | { ok: true; value: { merged: unknown; report: MergeReport; reviewQueue: Array<{ code: string; severity: string; nodePath: string }> } }
+    | { ok: false; error: { code: string; message: string } }
+  >;
+}
+
+/**
+ * Runs the merge THROUGH THE SUBSTRATE — `kernel.regenerateSurfaceDocument`,
+ * the op the regeneration path owns. The session's own re-authored Surface is
+ * `new_generated`; the host hands back the retained baseline and the designer's
+ * version (merge spec §2.2).
+ *
+ * There is no merge logic in this file. If the kernel op disappears, this throws
+ * and bar 5 fails — which is the property that makes the bar worth reporting.
+ */
+export async function mergeThroughSubstrate(
+  kernel: RegenerationCapableKernel,
+  input: { surfaceId: string; oldGenerated: unknown; designerEdited: unknown },
+): Promise<SubstrateMergeResult> {
+  const result = await kernel.regenerateSurfaceDocument(input);
+  if (!result.ok) {
+    throw new Error(`kernel.regenerateSurfaceDocument refused: ${result.error.code} — ${result.error.message}`);
+  }
+  return {
+    entryPoint: 'kernel.regenerateSurfaceDocument',
+    merged: result.value.merged,
+    report: result.value.report,
+    reviewQueue: result.value.reviewQueue,
+  };
 }
 
 /** Does this exact slot exist on this route of this Surface document? */

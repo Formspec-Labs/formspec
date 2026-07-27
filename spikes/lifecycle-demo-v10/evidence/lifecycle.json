@@ -929,7 +929,12 @@
           "designerEdited": "evidence/bar5-designer-edited.surface.json",
           "newGenerated": "evidence/bar5-new-generated.surface.json"
         },
-        "artifact": "evidence/stage-6-feedback.regenerated.surface.json"
+        "mergeEntryPoint": "kernel.regenerateSurfaceDocument",
+        "artifacts": [
+          "evidence/stage-6-feedback.regenerated.surface.json",
+          "evidence/stage-6-feedback.merged.surface.json",
+          "evidence/bar5-merge-report.json"
+        ]
       },
       "beats": [
         {
@@ -960,6 +965,22 @@
             "routesBefore": 4,
             "routesAfter": 5,
             "newRoute": "/apply/money"
+          }
+        },
+        {
+          "seq": 46,
+          "stage": "feedback",
+          "actor": "ai-agent",
+          "verb": "merge",
+          "intent": "Keep the designer's hand-made changes through the rebuild.",
+          "outcome": "admitted",
+          "details": {
+            "entryPoint": "kernel.regenerateSurfaceDocument",
+            "survived": 4,
+            "preservedAsOrphan": 1,
+            "regenerated": 8,
+            "newAndAwaitingReview": 3,
+            "conflicts": 0
           }
         }
       ]
@@ -1122,20 +1143,213 @@
     },
     {
       "id": "BAR 5",
-      "title": "A designer's hand-made changes survive an AI rebuild — NOT YET TRUE, and we measured exactly why",
-      "met": false,
+      "title": "A designer's hand-made changes survive an AI rebuild",
+      "met": true,
+      "qualifier": "Measured missing on 2026-07-26 and closed on 2026-07-27. The first run of this bar found no merging step anywhere in the product, and both hand-made changes were lost the moment the app was rebuilt. The step now ships and runs here: kernel.regenerateSurfaceDocument kept the designer's wording and the sentence they added, took the AI's new page and its updated links, and put the 3 genuinely new pieces in a review list instead of into the app unannounced. The 17 written-down test cases that define \"correct\" for this step now run, and all of them pass.",
       "criterion": "After the AI rebuilds the app, both hand-made changes are still in it — kept by the product's own merging step, not put back by us.",
       "evidence": {
         "inputs": {
           "oldGenerated": "evidence/bar5-old-generated.surface.json",
           "designerEdited": "evidence/bar5-designer-edited.surface.json",
-          "newGenerated": "evidence/bar5-new-generated.surface.json"
+          "newGenerated": "evidence/bar5-new-generated.surface.json",
+          "merged": "evidence/stage-6-feedback.merged.surface.json"
         },
         "mergeAttempt": {
           "attempted": true,
-          "entryPoint": null,
-          "outcome": "No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 14 further files name the corpus without executing it."
+          "entryPoint": "kernel.regenerateSurfaceDocument",
+          "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 341 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
         },
+        "mergeReport": {
+          "version": "1.0",
+          "surviving": [
+            {
+              "anchors": [
+                "route:apply"
+              ],
+              "nodePath": "/routes/0",
+              "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+              "severity": "info",
+              "reason": "Non-conflicting designer edits survived in the merged node.",
+              "propertyDeltas": [
+                "/routeClass",
+                "/slots"
+              ]
+            },
+            {
+              "anchors": [
+                "slot:applyForm"
+              ],
+              "nodePath": "/routes/0/slots/2",
+              "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+              "severity": "info",
+              "reason": "Non-conflicting designer edits survived in the merged node.",
+              "propertyDeltas": [
+                "/title"
+              ]
+            },
+            {
+              "anchors": [
+                "route:certify"
+              ],
+              "nodePath": "/routes/2",
+              "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+              "severity": "info",
+              "reason": "Non-conflicting designer edits survived in the merged node.",
+              "propertyDeltas": [
+                "/routeClass"
+              ]
+            },
+            {
+              "anchors": [
+                "route:receipt"
+              ],
+              "nodePath": "/routes/3",
+              "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+              "severity": "info",
+              "reason": "Non-conflicting designer edits survived in the merged node.",
+              "propertyDeltas": [
+                "/routeClass"
+              ]
+            }
+          ],
+          "regenerated": [
+            {
+              "anchors": [
+                "surface:respondent"
+              ],
+              "nodePath": "/",
+              "code": "COMP-REGENERATION-REGENERATED",
+              "severity": "info",
+              "reason": "Clean generated node matched old and designer."
+            },
+            {
+              "anchors": [
+                "route:apply"
+              ],
+              "nodePath": "/routes/0",
+              "code": "COMP-REGENERATION-REGENERATED",
+              "severity": "info",
+              "reason": "Generated property updates from new_generated remained in the merged node.",
+              "propertyDeltas": [
+                "/title",
+                "/transitions"
+              ]
+            },
+            {
+              "anchors": [
+                "slot:applyJourney"
+              ],
+              "nodePath": "/routes/0/slots/0",
+              "code": "COMP-REGENERATION-REGENERATED",
+              "severity": "info",
+              "reason": "Clean generated node matched old and designer."
+            },
+            {
+              "anchors": [
+                "slot:applyChrome"
+              ],
+              "nodePath": "/routes/0/slots/1",
+              "code": "COMP-REGENERATION-REGENERATED",
+              "severity": "info",
+              "reason": "Clean generated node matched old and designer."
+            },
+            {
+              "anchors": [
+                "slot:certifyJourney"
+              ],
+              "nodePath": "/routes/2/slots/0",
+              "code": "COMP-REGENERATION-REGENERATED",
+              "severity": "info",
+              "reason": "Clean generated node matched old and designer."
+            },
+            {
+              "anchors": [
+                "slot:certifyChrome"
+              ],
+              "nodePath": "/routes/2/slots/1",
+              "code": "COMP-REGENERATION-REGENERATED",
+              "severity": "info",
+              "reason": "Clean generated node matched old and designer."
+            },
+            {
+              "anchors": [
+                "slot:receiptJourney"
+              ],
+              "nodePath": "/routes/3/slots/0",
+              "code": "COMP-REGENERATION-REGENERATED",
+              "severity": "info",
+              "reason": "Clean generated node matched old and designer."
+            },
+            {
+              "anchors": [
+                "slot:receiptChrome"
+              ],
+              "nodePath": "/routes/3/slots/1",
+              "code": "COMP-REGENERATION-REGENERATED",
+              "severity": "info",
+              "reason": "Clean generated node matched old and designer."
+            }
+          ],
+          "orphaned": [
+            {
+              "anchors": [
+                "slot:applyReassurance"
+              ],
+              "nodePath": "/routes/0/slots/3",
+              "code": "COMP-REGENERATION-ORPHAN-NODE",
+              "severity": "warning",
+              "reason": "Designer-authored subtree had no deterministic match in new_generated and was preserved by orphan reattachment.",
+              "reattachedTo": "/routes/0",
+              "cascaded": false,
+              "detached": false
+            }
+          ],
+          "pendingReview": [
+            {
+              "anchors": [
+                "route:applyMoney"
+              ],
+              "nodePath": "/routes/1",
+              "code": "COMP-REGENERATION-PENDING-REVIEW",
+              "severity": "info",
+              "reason": "New generated node has no deterministic old or designer match."
+            },
+            {
+              "anchors": [
+                "slot:moneyForm"
+              ],
+              "nodePath": "/routes/1/slots/0",
+              "code": "COMP-REGENERATION-PENDING-REVIEW",
+              "severity": "info",
+              "reason": "New generated node has no deterministic old or designer match."
+            },
+            {
+              "anchors": [
+                "slot:moneyChrome"
+              ],
+              "nodePath": "/routes/1/slots/1",
+              "code": "COMP-REGENERATION-PENDING-REVIEW",
+              "severity": "info",
+              "reason": "New generated node has no deterministic old or designer match."
+            }
+          ],
+          "conflicts": []
+        },
+        "reviewQueue": [
+          {
+            "anchors": [
+              "slot:applyReassurance"
+            ],
+            "nodePath": "/routes/0/slots/3",
+            "code": "COMP-REGENERATION-ORPHAN-NODE",
+            "severity": "warning",
+            "reason": "Designer-authored subtree had no deterministic match in new_generated and was preserved by orphan reattachment.",
+            "reattachedTo": "/routes/0",
+            "cascaded": false,
+            "detached": false
+          }
+        ],
+        "regeneratedWorkLanded": true,
         "apiProbe": {
           "packagesProbed": [
             "@formspec-org/studio-core",
@@ -1144,12 +1358,33 @@
             "@formspec-org/engine",
             "@formspec-org/types"
           ],
-          "exportsSeen": 332,
+          "exportsSeen": 341,
           "patternsScanned": {
             "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
             "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
           },
-          "matches": [],
+          "matches": [
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "regenerationMerge",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "regenerationMergeSurface",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "regenerationMergeWithAdapter",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "RegenerationMergeInputError",
+              "type": "function"
+            }
+          ],
           "anchorVocabulary": [
             {
               "pkg": "@formspec-org/studio-core",
@@ -1173,6 +1408,16 @@
             },
             {
               "pkg": "@formspec-org/studio-core",
+              "name": "computeAnchorSet",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
+              "name": "anchorMappingsContext",
+              "type": "function"
+            },
+            {
+              "pkg": "@formspec-org/studio-core",
               "name": "anchorsOf",
               "type": "function"
             },
@@ -1187,7 +1432,7 @@
               "type": "function"
             }
           ],
-          "noMergeEntryPoint": true
+          "noMergeEntryPoint": false
         },
         "fixtureProbe": {
           "fixtureDir": "formspec/tests/conformance/fixtures/regeneration-merge",
@@ -1206,11 +1451,14 @@
             "subtree-children-add",
             "widget-swap"
           ],
-          "executesFixtures": [],
+          "executesFixtures": [
+            "packages/formspec-core/tests/regeneration-merge-conformance.test.ts"
+          ],
           "mentionsOnly": [
             "crates/formspec-lint/src/pass_modules.rs",
             "crates/formspec-lint/src/types.rs",
             "crates/formspec-py/src/document.rs",
+            "packages/formspec-core/src/regeneration-merge.ts",
             "spikes/lifecycle-demo-v10/evidence/bar5-moat-measurement.json",
             "spikes/lifecycle-demo-v10/evidence/lifecycle.json",
             "spikes/lifecycle-demo-v10/lifecycle-walkthrough.html",
@@ -1245,6 +1493,10 @@
           "collectedTestFiles": [
             "tests/conformance/spec/test_regeneration_merge_report_schema.py"
           ],
+          "executedHere": 17,
+          "reproducedExpectedMerged": 17,
+          "reproducedExpectedReport": 17,
+          "failures": [],
           "specStatus": "Draft 1.0.0-draft.1",
           "schemaExists": true
         },
@@ -1256,8 +1508,8 @@
             "presentInOldGenerated": false,
             "presentInDesignerEdited": true,
             "presentInNewGenerated": false,
-            "presentInMerged": null,
-            "survived": false
+            "presentInMerged": true,
+            "survived": true
           },
           {
             "id": "DESIGNER-EDIT-2",
@@ -1266,14 +1518,13 @@
             "presentInOldGenerated": false,
             "presentInDesignerEdited": true,
             "presentInNewGenerated": false,
-            "presentInMerged": null,
-            "survived": false
+            "presentInMerged": true,
+            "survived": true
           }
         ],
-        "survivingEdits": 0,
+        "survivingEdits": 2,
         "totalEdits": 2
-      },
-      "finding": "The step that would keep those changes does not exist yet. We searched every part of the product that ships and found nothing that does the merging — the pieces it would need are there, the step that uses them is not. The design is written down, the test cases are written down, and nothing runs them. So both hand-made changes were lost the moment the app was rebuilt (DESIGNER-EDIT-1 and DESIGNER-EDIT-2). We predicted this before the run and measured it anyway. The full search is below, and it is the most important thing on this page."
+      }
     },
     {
       "id": "BAR 6",
@@ -1318,7 +1569,7 @@
       "signatureId": "sig-lifecycle-v10-ceremony-v10-0001",
       "documentId": "rentAssistanceRelease",
       "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1",
-      "signatureValue": "0oRYSKMBJwRQqiYoaWyUebCFEns9FhfnwzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WECpggqVofh0sdeECbXFkIY7T+rYWTxjPUI6Yvoj5+vL451LFlQ0cSsGKFJ/3+Zh6/A34a1jFB6DF/EZ+b+24aQA",
+      "signatureValue": "0oRYSKMBJwRQGtNOUvLbdq+SiKXHuMIR8DoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEA7B/ZZOJtEIAbMC0rRpZMOljHDlPse7ZqwVQGnq6/yZBGDS1eJLsTNVjzK1t1URQvVFyMj3w5xYBGS4Ya1xuIG",
       "signerId": "product-owner",
       "signerName": "R. Okonjo, Product Owner",
       "consentAccepted": true,
@@ -1340,7 +1591,7 @@
       "signatureProvider": "urn:formspec:spike-v10:signature:provider:in-repo-ed25519",
       "ceremonyId": "ceremony-v10-0001"
     },
-    "publicKeyBase64": "7hliE+qE4bXVM8kzjQMVKYBXuCKbJYlOfP5pj0AwfcA=",
+    "publicKeyBase64": "JYq5BXe9AWQAJhrSQko00N5BrEN+6SFhM1nwFf8r/v0=",
     "schemaValid": false
   },
   "verification": {
@@ -1364,13 +1615,205 @@
     "inputs": {
       "oldGenerated": "evidence/bar5-old-generated.surface.json",
       "designerEdited": "evidence/bar5-designer-edited.surface.json",
-      "newGenerated": "evidence/bar5-new-generated.surface.json"
+      "newGenerated": "evidence/bar5-new-generated.surface.json",
+      "merged": "evidence/stage-6-feedback.merged.surface.json"
     },
     "mergeAttempt": {
       "attempted": true,
-      "entryPoint": null,
-      "outcome": "No merge entry point exists. 332 runtime exports across 5 substrate packages were enumerated and scanned twice. Zero carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i). 7 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i) — emptyAnchorMappingsDocument, validateAnchorMappingsDocument, appendAnchorMapping, anchorString, anchorsOf, computeAnchorGroups, reanchorEntries, all in @formspec-org/studio-core. So the merge's identity and rename primitives ship; the merge that would compose them does not. The spec is Draft 1.0.0-draft.1, the report schema ships, 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives — and NO test in the repo reads any of those expected outputs. The conformance suite collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — which validates the report SCHEMA and never runs a merge. 14 further files name the corpus without executing it."
+      "entryPoint": "kernel.regenerateSurfaceDocument",
+      "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 341 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
     },
+    "mergeReport": {
+      "version": "1.0",
+      "surviving": [
+        {
+          "anchors": [
+            "route:apply"
+          ],
+          "nodePath": "/routes/0",
+          "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+          "severity": "info",
+          "reason": "Non-conflicting designer edits survived in the merged node.",
+          "propertyDeltas": [
+            "/routeClass",
+            "/slots"
+          ]
+        },
+        {
+          "anchors": [
+            "slot:applyForm"
+          ],
+          "nodePath": "/routes/0/slots/2",
+          "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+          "severity": "info",
+          "reason": "Non-conflicting designer edits survived in the merged node.",
+          "propertyDeltas": [
+            "/title"
+          ]
+        },
+        {
+          "anchors": [
+            "route:certify"
+          ],
+          "nodePath": "/routes/2",
+          "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+          "severity": "info",
+          "reason": "Non-conflicting designer edits survived in the merged node.",
+          "propertyDeltas": [
+            "/routeClass"
+          ]
+        },
+        {
+          "anchors": [
+            "route:receipt"
+          ],
+          "nodePath": "/routes/3",
+          "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+          "severity": "info",
+          "reason": "Non-conflicting designer edits survived in the merged node.",
+          "propertyDeltas": [
+            "/routeClass"
+          ]
+        }
+      ],
+      "regenerated": [
+        {
+          "anchors": [
+            "surface:respondent"
+          ],
+          "nodePath": "/",
+          "code": "COMP-REGENERATION-REGENERATED",
+          "severity": "info",
+          "reason": "Clean generated node matched old and designer."
+        },
+        {
+          "anchors": [
+            "route:apply"
+          ],
+          "nodePath": "/routes/0",
+          "code": "COMP-REGENERATION-REGENERATED",
+          "severity": "info",
+          "reason": "Generated property updates from new_generated remained in the merged node.",
+          "propertyDeltas": [
+            "/title",
+            "/transitions"
+          ]
+        },
+        {
+          "anchors": [
+            "slot:applyJourney"
+          ],
+          "nodePath": "/routes/0/slots/0",
+          "code": "COMP-REGENERATION-REGENERATED",
+          "severity": "info",
+          "reason": "Clean generated node matched old and designer."
+        },
+        {
+          "anchors": [
+            "slot:applyChrome"
+          ],
+          "nodePath": "/routes/0/slots/1",
+          "code": "COMP-REGENERATION-REGENERATED",
+          "severity": "info",
+          "reason": "Clean generated node matched old and designer."
+        },
+        {
+          "anchors": [
+            "slot:certifyJourney"
+          ],
+          "nodePath": "/routes/2/slots/0",
+          "code": "COMP-REGENERATION-REGENERATED",
+          "severity": "info",
+          "reason": "Clean generated node matched old and designer."
+        },
+        {
+          "anchors": [
+            "slot:certifyChrome"
+          ],
+          "nodePath": "/routes/2/slots/1",
+          "code": "COMP-REGENERATION-REGENERATED",
+          "severity": "info",
+          "reason": "Clean generated node matched old and designer."
+        },
+        {
+          "anchors": [
+            "slot:receiptJourney"
+          ],
+          "nodePath": "/routes/3/slots/0",
+          "code": "COMP-REGENERATION-REGENERATED",
+          "severity": "info",
+          "reason": "Clean generated node matched old and designer."
+        },
+        {
+          "anchors": [
+            "slot:receiptChrome"
+          ],
+          "nodePath": "/routes/3/slots/1",
+          "code": "COMP-REGENERATION-REGENERATED",
+          "severity": "info",
+          "reason": "Clean generated node matched old and designer."
+        }
+      ],
+      "orphaned": [
+        {
+          "anchors": [
+            "slot:applyReassurance"
+          ],
+          "nodePath": "/routes/0/slots/3",
+          "code": "COMP-REGENERATION-ORPHAN-NODE",
+          "severity": "warning",
+          "reason": "Designer-authored subtree had no deterministic match in new_generated and was preserved by orphan reattachment.",
+          "reattachedTo": "/routes/0",
+          "cascaded": false,
+          "detached": false
+        }
+      ],
+      "pendingReview": [
+        {
+          "anchors": [
+            "route:applyMoney"
+          ],
+          "nodePath": "/routes/1",
+          "code": "COMP-REGENERATION-PENDING-REVIEW",
+          "severity": "info",
+          "reason": "New generated node has no deterministic old or designer match."
+        },
+        {
+          "anchors": [
+            "slot:moneyForm"
+          ],
+          "nodePath": "/routes/1/slots/0",
+          "code": "COMP-REGENERATION-PENDING-REVIEW",
+          "severity": "info",
+          "reason": "New generated node has no deterministic old or designer match."
+        },
+        {
+          "anchors": [
+            "slot:moneyChrome"
+          ],
+          "nodePath": "/routes/1/slots/1",
+          "code": "COMP-REGENERATION-PENDING-REVIEW",
+          "severity": "info",
+          "reason": "New generated node has no deterministic old or designer match."
+        }
+      ],
+      "conflicts": []
+    },
+    "reviewQueue": [
+      {
+        "anchors": [
+          "slot:applyReassurance"
+        ],
+        "nodePath": "/routes/0/slots/3",
+        "code": "COMP-REGENERATION-ORPHAN-NODE",
+        "severity": "warning",
+        "reason": "Designer-authored subtree had no deterministic match in new_generated and was preserved by orphan reattachment.",
+        "reattachedTo": "/routes/0",
+        "cascaded": false,
+        "detached": false
+      }
+    ],
+    "regeneratedWorkLanded": true,
     "apiProbe": {
       "packagesProbed": [
         "@formspec-org/studio-core",
@@ -1379,12 +1822,33 @@
         "@formspec-org/engine",
         "@formspec-org/types"
       ],
-      "exportsSeen": 332,
+      "exportsSeen": 341,
       "patternsScanned": {
         "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
         "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
       },
-      "matches": [],
+      "matches": [
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "regenerationMerge",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "regenerationMergeSurface",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "regenerationMergeWithAdapter",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "RegenerationMergeInputError",
+          "type": "function"
+        }
+      ],
       "anchorVocabulary": [
         {
           "pkg": "@formspec-org/studio-core",
@@ -1408,6 +1872,16 @@
         },
         {
           "pkg": "@formspec-org/studio-core",
+          "name": "computeAnchorSet",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
+          "name": "anchorMappingsContext",
+          "type": "function"
+        },
+        {
+          "pkg": "@formspec-org/studio-core",
           "name": "anchorsOf",
           "type": "function"
         },
@@ -1422,7 +1896,7 @@
           "type": "function"
         }
       ],
-      "noMergeEntryPoint": true
+      "noMergeEntryPoint": false
     },
     "fixtureProbe": {
       "fixtureDir": "formspec/tests/conformance/fixtures/regeneration-merge",
@@ -1441,11 +1915,14 @@
         "subtree-children-add",
         "widget-swap"
       ],
-      "executesFixtures": [],
+      "executesFixtures": [
+        "packages/formspec-core/tests/regeneration-merge-conformance.test.ts"
+      ],
       "mentionsOnly": [
         "crates/formspec-lint/src/pass_modules.rs",
         "crates/formspec-lint/src/types.rs",
         "crates/formspec-py/src/document.rs",
+        "packages/formspec-core/src/regeneration-merge.ts",
         "spikes/lifecycle-demo-v10/evidence/bar5-moat-measurement.json",
         "spikes/lifecycle-demo-v10/evidence/lifecycle.json",
         "spikes/lifecycle-demo-v10/lifecycle-walkthrough.html",
@@ -1480,6 +1957,10 @@
       "collectedTestFiles": [
         "tests/conformance/spec/test_regeneration_merge_report_schema.py"
       ],
+      "executedHere": 17,
+      "reproducedExpectedMerged": 17,
+      "reproducedExpectedReport": 17,
+      "failures": [],
       "specStatus": "Draft 1.0.0-draft.1",
       "schemaExists": true
     },
@@ -1491,8 +1972,8 @@
         "presentInOldGenerated": false,
         "presentInDesignerEdited": true,
         "presentInNewGenerated": false,
-        "presentInMerged": null,
-        "survived": false
+        "presentInMerged": true,
+        "survived": true
       },
       {
         "id": "DESIGNER-EDIT-2",
@@ -1501,11 +1982,11 @@
         "presentInOldGenerated": false,
         "presentInDesignerEdited": true,
         "presentInNewGenerated": false,
-        "presentInMerged": null,
-        "survived": false
+        "presentInMerged": true,
+        "survived": true
       }
     ],
-    "survivingEdits": 0,
+    "survivingEdits": 2,
     "totalEdits": 2
   },
   "corpus": {

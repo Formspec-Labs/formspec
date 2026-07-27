@@ -149,7 +149,9 @@ After the feedback stage triggers a regeneration, the deliberate human edit made
 
 # PART 2 — RESULTS
 
-*Written after the run. Numbers are read from `evidence/lifecycle.json`, not from memory.*
+*Written after the run of **2026-07-26**. Numbers are read from `evidence/lifecycle.json`, not from memory.*
+
+> **Everything in Part 2 is the 2026-07-26 measurement and stands as written.** Bar 5 closed on 2026-07-27 — the merge shipped and the same probes now report it met. The re-measurement is [PART 3](#part-3--addendum-2026-07-27--the-moat-closed); it does not amend the numbers below, and the committed evidence under `evidence/` is now the 2026-07-27 run.
 
 ## Verdict
 
@@ -240,3 +242,80 @@ npm run spike                            # deliberate re-measurement — rewrite
 ```
 
 **Rebuild the substrate packages first.** The spike imports built output; `vitest` and `tsc` do not refresh it.
+
+---
+
+# PART 3 — ADDENDUM 2026-07-27 — the moat closed
+
+*Appended after a second run. Part 1 (pre-registration) and Part 2 (the 2026-07-26 results) are untouched: the arc — measured missing, then closed — is the finding, and rewriting the negative would delete the evidence that the bar was falsifiable.*
+
+## Verdict
+
+**6 of 6 bars met.** Bar 5 flipped from NOT MET to MET. Bars 1–4 and 6 re-ran unchanged.
+
+| Bar | 2026-07-26 | 2026-07-27 |
+|---|---|---|
+| 5 **The moat** | NOT MET — `survivingEdits: 0 / 2`, no merge entry point, 0 tests executing the corpus | **MET** — `survivingEdits: 2 / 2`, entry point `kernel.regenerateSurfaceDocument`, 17 / 17 corpus scenarios reproduce their expected merged document *and* their expected report |
+
+## What shipped
+
+Follow-up 1 ("implement regeneration merge against the 17 shipped scenarios") is done, in the order the follow-up named: the corpus grades the implementation, not the other way round.
+
+- **The engine** — [`packages/formspec-core/src/regeneration-merge.ts`](../../packages/formspec-core/src/regeneration-merge.ts). `regeneration-merge-spec.md` §2–§9, conformance §11 Levels 1–3 (algorithm, report shape, invariants). It lives in `formspec-core` rather than `studio-core` for two reasons that both point the same way: the merge is renderer-independent by §1.2, and the acceptance corpus is formspec-side, so the runner and the thing it grades sit in one repo with no cross-submodule test dependency.
+- **The seam** — §6's identity, children and node-type live behind a `MergeDocumentAdapter`. `componentMergeAdapter` reads `x-generation.anchors[]`; `surfaceMergeAdapter` derives `surface:` / `route:` / `slot:` anchors from the spec-required stable ids, because the Surface family carries no `x-generation` and this walk's artifact is a Surface. Nothing in the algorithm is adapter-aware — the Component corpus and the Surface walk exercise the same code.
+- **The runner** — [`packages/formspec-core/tests/regeneration-merge-conformance.test.ts`](../../packages/formspec-core/tests/regeneration-merge-conformance.test.ts). 97 assertions over the 17 scenarios: expected merged document, expected report, report-schema validity, determinism, no-mutation, convergence, and the 10 preservation scenarios asserted mechanically rather than by directory name.
+- **The shipped path** — `kernel.regenerateSurfaceDocument` on [`StudioCoreKernel`](../../../formspec-studio/packages/formspec-studio-core/src/kernel/StudioCoreKernel.ts), implemented in `ProposalManagerFacade`. The regenerating session's own Surface *is* `new_generated`; the host supplies the §2.4 common ancestor and the designer's version. The op composes the §9 `$formspecAnchorMappings` document the Project already persisted — the primitive that shipped in 2026-07-26's 5a probe with nothing calling it.
+
+## Bar 5 re-measured, same three probes
+
+The probes were not softened. Two changed shape and both changes are recorded here as widenings, in the same spirit as Part 2's second-pass note.
+
+- **5a, API surface.** **341** runtime exports across the same five packages. **4** now match the entry-point pattern (`regenerationMerge`, `regenerationMergeSurface`, `regenerationMergeWithAdapter`, `RegenerationMergeInputError`) where 2026-07-26 found 0; **9** match the §3/§9 identity vocabulary where it found 7. Pattern unchanged. The suite now asserts `noMergeEntryPoint === false`, so a merge that stops shipping fails the bar rather than quietly re-passing it.
+- **5b, the shipped corpus — widened to actually run it.** The 2026-07-26 probe could only *count* the corpus and grep for who read it. It now replays all 17 scenarios through the shipped export, from outside the package that implements it: **17 reproduced the expected merged document, 17 the expected report, 0 failures.** `reason` is compared for presence, not text — §11.3 requires the field and §7 gives it no normative wording, so pinning generated prose to fixture prose would grade the copywriting. Every other field is compared exactly, entry order included.
+  The consumer scan also moved from `git grep` to a working-tree walk. The question 5b asks is what code is present and runs; staging state is not part of that question, and a runner that exists and passes is a consumer of the corpus whether or not it has been committed. Build output, dependencies and virtualenvs are skipped, so the answer is still about the repo rather than one package's `node_modules`.
+- **5c, live.** Same triple, same two edits, same change request splitting the form across two pages. `survivingEdits: 2 / 2`. The designer's inserted sentence is preserved as an orphan under its original parent; the designer's plain-English heading beats the regenerator's. The rebuild's own work still lands — the new `/apply/money` page, the updated page title, the rewritten transitions — which the suite asserts separately, because a merge that preserved the designer by discarding the AI would clear this bar while making the product useless.
+
+## The falsification pass
+
+The gate was checked against itself once. Disabling the two preservation steps in the engine — the designer-value overlay in §6.5 and the §6.7 orphan reattachment — and re-running both gates:
+
+| | preservation on | preservation off |
+|---|---|---|
+| Conformance runner | 97 / 97 pass | **29 fail**, 68 pass |
+| Corpus replay in the spike | 17 merged, 17 reports | **8 merged, 11 reports** (9 scenarios fail) |
+| Bar 5 | MET, `2 / 2` | **NOT MET**, `0 / 2` |
+
+Both steps were restored and both gates re-verified green. The bar can fail, which is what makes it worth reporting.
+
+## Spec-versus-fixture calls made during implementation
+
+The corpus is the acceptance suite, so where the fixtures and the §6 prose could be read two ways, the fixtures decided. Each call is recorded because each is a candidate spec clarification, not an implementation detail.
+
+1. **A widget swap takes the designer node whole.** §6.5 reads as a property-by-property overlay that would also emit `COMP-REGENERATION-DESIGNER-SURVIVED` for the swapped node's other property changes. `widget-swap/expected-report.json` emits `COMP-REGENERATION-WIDGET-SWAP` alone. Implemented as the fixture: a swap changes the node's property vocabulary, so overlaying properties across two different widgets is not meaningful. `COMP-REGENERATION-PROPERTY-CONFLICT` still fires on the swapped node when designer and generator both moved the same property to different values.
+2. **A child-array delta counts against "clean regenerated" only when it changes what the generated assembly places.** `designer-precedes` and `orphan-broken-binding` both have a `childAdd` on `/tree`, and the corpus reports `COMP-REGENERATION-REGENERATED` for the parent in the second and not the first. The discriminator that reconciles every scenario: the added child resolves in `new_index` (a real assembly change) versus it does not (orphan-pass business). `orphan-cascade` fixes the other half — a child the designer only *moved* is not a removal, because it still exists in `designer_index`.
+3. **The merged root is never designer-removed.** §6.4's designer-removed row returns no merged node, but §2.3 requires the merged document to have a root. `orphan-detached` has a designer root that matches nothing, and its expected merged document carries the generated root with no report entry for it. Implemented as: the root always materializes from `new_generated`, and the unmatched designer root is surfaced by the §6.7 orphan pass — which is exactly what that fixture's two `orphaned[]` entries are.
+4. **`nodePath` for `COMP-REGENERATION-DESIGNER-REMOVED` is the merged parent.** The node does not exist in `merged`, so it has no path of its own; `designer-removed/expected-report.json` anchors the finding at `/tree`. The merged parent is the nearest surviving location a reviewer can open.
+5. **`propertyDeltas` descend into objects.** `rename-migrated` reports `/x-generation/source` and `/x-generation/anchors`, not `/x-generation`. Arrays compare atomically, consistent with §5.2's "array order is significant".
+6. **§3.3 duplicate disambiguation is per-document and only for actual duplicates.** Extending every key with the parent chain would break `orphan-cascade`, where the designer moved a node under a new parent and the corpus still expects it matched. The key extends only when the raw anchor set repeats within that document, which is what §3.3 says ("the match key **first** extends to…").
+7. **`AnchorMappingsDocument.kind` is studio-local.** The shipped [`project-anchor-mappings.ts`](../../../formspec-studio/packages/formspec-studio-core/src/project-anchor-mappings.ts) requires `kind` on every entry; §9.1's shape is `{from, to}` and `rename-migrated/context.json` carries no `kind`. The engine reads only `from` / `to`, so both shapes pass structurally and `validateAnchorMappingsDocument` keeps its stricter studio-side contract. **Candidate spec note:** §9.1 should say explicitly that additional members are ignored, since §9.1 currently says processors "MUST NOT infer rename semantics from additional members" without saying whether their presence is an error.
+8. **`orphan-cascade` silently drops a designer-authored container.** Post-run verification found `designerWrapper` (anchors `['concept:x-designer-wrapper']`) absent from `expected-merged.json` with NO report entry anywhere — the corpus expects a designer-authored node to vanish without a trace, which sits uneasily beside §7's every-outcome-is-reported posture. The engine matches the corpus. **Candidate spec note:** either the fixture owes the node a report row, or §7 should name the case where a designer container dissolves when its children are reclaimed.
+
+## Deferred, honestly
+
+- **§11 Level 4 (resolver composition) is not implemented.** The merge is report-only and never invokes the Component / Component Reference Fields / Experience resolvers. §7.1 and §8.4 make that a *runtime* obligation on the conforming host, and the fixtures' `_base/` peer documents are unused by the algorithm. The `RegenerationMergeContext` carries the peer documents so the composition has somewhere to land, and the §11.5 two-hop `path → item:<path> → anchors` join belongs to the review surface that consumes the report.
+- **§10's DOM contract is not implemented.** `data-merge-status` / `data-merge-anchors` are review-surface obligations; no review surface consumes `MergeReport` yet.
+- **Custom-component sub-trees are not merged.** The engine walks the main tree. §3.4 mentions `/components/address/tree/...` paths and no fixture exercises them; a second adapter pass over `components[]` is the shape when one does.
+- **The merged draft is not written back into the kernel's sidecar draft store.** Committing it would replay designer `routeClass` values through a path that never ran ADR 0152 actor write authority — the exact seam Part 2's finding 3 is about. The op returns a proposal and the decision to accept belongs to a review surface holding the actor that authored the merge. **This is a real follow-up, not a design position:** until it closes, the merge preserves edits for a consumer that reads the returned document, and does not yet preserve them *in the project*.
+- **No Python runner.** The corpus executes TypeScript-side. A Python runner would need a second full implementation of §6, which is not cheap; the Python suite still collects the same 17 report-schema tests under `-k regeneration` and still runs no merge. The walkthrough says so in those words rather than implying the corpus is dual-run.
+
+## Follow-ups this addendum adds
+
+Numbered continuing Part 2's list. Part 2's follow-up 1 is closed; 2–7 stand.
+
+8. **Commit the merged draft through an authority-carrying path.** `regenerateSurfaceDocument` is report-only for the ADR 0152 reason above. The accept path needs an actor and a write route, and it is the difference between "the merge preserves edits" and "the project preserves edits".
+9. **Promote `regeneration-merge-spec.md` out of Draft.** §11's conformance levels now have an implementation that passes Levels 1–3 against the shipped corpus. The eight calls above are the clarification list; the honest gate for promotion is Level 4, which needs a review surface.
+10. **Give the Surface family real source anchors.** The Surface adapter derives identity from stable ids because Surfaces carry no `x-generation`. ADR 0159's GENERATION discipline says source anchors go on *every produced node*; a generated Surface that carried them would let a route survive being renamed, which id-identity cannot.
+
+## Re-measurement provenance
+
+Both gates were run scratch-first under `V10_OUTPUT_ROOT` before the committed evidence was rewritten. The walkthrough regenerates from `evidence/lifecycle.json` as before — its moat section now tells the positive story **and keeps a dated line naming the day the promise was not yet earned**, because the arc is part of the claim.
