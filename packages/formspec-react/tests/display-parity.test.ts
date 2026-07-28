@@ -39,6 +39,12 @@ describe('Display component skin parity', () => {
         );
     });
 
+    it('puts the brand accent on the root stack every rendered form contains', () => {
+        expect(
+            extractRuleProp(layoutCSS, '.formspec-container > .formspec-stack', 'border-inline-start'),
+        ).toBe('3px solid var(--formspec-default-primary)');
+    });
+
     it('ships dark-mode alert foreground overrides with higher-contrast colors', () => {
         expect(layoutCSS).toContain('.formspec-container.formspec-appearance-dark');
         expect(layoutCSS).toContain('--formspec-default-info-text: #d7eaff;');

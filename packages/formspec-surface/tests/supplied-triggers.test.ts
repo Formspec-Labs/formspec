@@ -12,7 +12,11 @@ import { describe, expect, it } from 'vitest';
 import { composeSurfaceApp } from '../src/composition.js';
 import { createWidgetRegistry } from '../src/registry.js';
 import { planRoute, type SlotPlan } from '../src/slot-plan.js';
-import { planTransitions, slotSuppliedTriggers } from '../src/transitions.js';
+import {
+  planTransitions,
+  responseActionsDocumentForDefinition,
+  slotSuppliedTriggers,
+} from '../src/transitions.js';
 import type { FormDefinition } from '@formspec-org/types';
 import { route, slot, surface } from './fixtures.js';
 
@@ -59,30 +63,37 @@ describe('slotSuppliedTriggers', () => {
     // D13's first half: a shell that scans only a route's own slots[] reports a
     // working page as dead.
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      { actions: [{ id: 'submitApplication', intent: 'submit' }] },
+      {
+        targetDefinition: { url: DEF },
+        actions: [{ id: 'submitApplication', intent: 'submit' }],
+      },
     ]);
     expect([...supplied].sort()).toEqual(['submit', 'submitApplication']);
   });
 
-  it('supplies an intent that is NOT `submit`', () => {
-    // D13's second half: a hardcoded intent reports every other intent as dead.
+  it('does not claim a non-submit action that the shipped form renderer cannot place', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      { actions: [{ id: 'sendForReview', intent: 'review' }] },
+      {
+        targetDefinition: { url: DEF },
+        actions: [{ id: 'sendForReview', intent: 'review' }],
+      },
     ]);
-    expect(supplied.has('review')).toBe(true);
-    expect(supplied.has('sendForReview')).toBe(true);
+    expect([...supplied]).toEqual([]);
   });
 
-  it('supplies an action by id even when it publishes no closed-core intent', () => {
+  it('does not claim an action id when no submit control will be rendered', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      { actions: [{ id: 'countersign' }] },
+      { targetDefinition: { url: DEF }, actions: [{ id: 'countersign' }] },
     ]);
-    expect(supplied.has('countersign')).toBe(true);
+    expect([...supplied]).toEqual([]);
   });
 
   it('does not supply an intent two actions both publish — that is ambiguous, not available', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      { actions: [{ id: 'a', intent: 'submit' }, { id: 'b', intent: 'submit' }] },
+      {
+        targetDefinition: { url: DEF },
+        actions: [{ id: 'a', intent: 'submit' }, { id: 'b', intent: 'submit' }],
+      },
     ]);
     expect(supplied.has('submit')).toBe(false);
   });
@@ -104,7 +115,10 @@ describe('slotSuppliedTriggers', () => {
       }),
     ]);
     const supplied = slotSuppliedTriggers(slotsFor(nonForm, 'r'), [
-      { actions: [{ id: 'submitApplication', intent: 'submit' }] },
+      {
+        targetDefinition: { url: DEF },
+        actions: [{ id: 'submitApplication', intent: 'submit' }],
+      },
     ]);
     expect([...supplied]).toEqual([]);
   });
@@ -120,7 +134,10 @@ describe('slotSuppliedTriggers', () => {
       }),
     ]);
     const supplied = slotSuppliedTriggers(slotsFor(dangling, 'r'), [
-      { actions: [{ id: 'x', intent: 'submit' }] },
+      {
+        targetDefinition: { url: 'urn:absent' },
+        actions: [{ id: 'x', intent: 'submit' }],
+      },
     ]);
     expect([...supplied]).toEqual([]);
   });
@@ -136,13 +153,49 @@ describe('slotSuppliedTriggers', () => {
   it('supplies nothing when no Response Actions document is loaded', () => {
     expect([...slotSuppliedTriggers(slotsFor(embedding, 'host'), [])]).toEqual([]);
   });
+
+  it('supplies nothing when more than one document targets the same Definition', () => {
+    const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
+      {
+        targetDefinition: { url: DEF },
+        actions: [{ id: 'one', intent: 'submit' }],
+      },
+      {
+        targetDefinition: { url: DEF },
+        actions: [{ id: 'two', intent: 'submit' }],
+      },
+    ]);
+    expect([...supplied]).toEqual([]);
+  });
+
+  it('uses the same exact-one document selection the renderer consumes', () => {
+    const selected = responseActionsDocumentForDefinition(
+      [
+        {
+          targetDefinition: { url: OTHER_DEF },
+          actions: [{ id: 'other', intent: 'submit' }],
+        },
+        {
+          targetDefinition: { url: DEF },
+          actions: [{ id: 'submitApplication', intent: 'submit' }],
+        },
+      ],
+      DEF,
+    );
+    expect(selected?.actions?.[0]?.id).toBe('submitApplication');
+  });
 });
 
 describe('the walk, wired into planTransitions', () => {
   it('classifies a transition fired from inside an embed as supplied-by-slot', () => {
     const app = composeSurfaceApp([embedding]);
     const handle = app.routes.find((candidate) => candidate.routeId === 'host')!;
-    const responseActions = [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }];
+    const responseActions = [
+      {
+        targetDefinition: { url: DEF },
+        actions: [{ id: 'submitApplication', intent: 'submit' }],
+      },
+    ];
     const { transitions, diagnostics } = planTransitions({
       handle,
       app,

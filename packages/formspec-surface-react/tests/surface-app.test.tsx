@@ -84,7 +84,7 @@ describe('every diagnostic reaches the host (§7.1, D4)', () => {
     expect(codes()).toContain('WIDGET-UNDECLARED');
     expect(codes()).toContain('EMBED-ROUTE-UNRESOLVED');
     expect(codes()).toContain('EXPERIENCE-UNIT-UNRESOLVED');
-    expect(codes()).toContain('SLOT-BINDING-INCOMPLETE');
+    expect(codes()).toContain('STATIC-CONTENT-KIND-UNKNOWN');
   });
 
   it('delivers the theme-grant diagnostic', () => {
@@ -220,5 +220,31 @@ describe('navigation', () => {
     const { container } = mount({ bundle: withActions, onFireTransition });
     expect(container.querySelector('.fs-surface-transition__button')).not.toBeNull();
     expect(onFireTransition).not.toHaveBeenCalled();
+  });
+
+  it('reports an unsupplied navigation parameter and renders no marker-bearing link', () => {
+    const parameterSurface = {
+      ...surface,
+      routes: [
+        ...surface.routes,
+        {
+          id: 'receipt',
+          path: '/receipt/{caseRef}',
+          params: [{ name: 'caseRef', type: 'string' }],
+          title: 'Receipt',
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const parameterBundle = { ...bundle, surfaces: [parameterSurface] };
+    const onNavigate = vi.fn();
+    const { container, codes } = mount({ bundle: parameterBundle, onNavigate });
+
+    expect(codes()).toContain('ROUTE-PARAM-UNSUPPLIED');
+    expect(container.querySelector('a[href*="{caseRef}"]')).toBeNull();
+    const unavailable = container.querySelector('[data-nav-route="receipt"]');
+    expect(unavailable?.tagName).toBe('SPAN');
+    expect(unavailable?.getAttribute('aria-disabled')).toBe('true');
+    expect(onNavigate).not.toHaveBeenCalled();
   });
 });

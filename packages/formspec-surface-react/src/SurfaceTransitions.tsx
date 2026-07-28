@@ -53,7 +53,11 @@ export function SurfaceTransitions({
   // A `supplied-by-slot` transition already has its control on the page — the
   // form's own submit button. Drawing a second one beside it would give a person
   // two things that look like the same act.
-  const shown = transitions.filter((transition) => transition.status !== 'supplied-by-slot');
+  const shown = transitions.filter(
+    (transition) =>
+      transition.status !== 'supplied-by-slot' &&
+      transition.status !== 'condition-false',
+  );
   if (shown.length === 0) return null;
   const text = strings ?? resolveSurfaceStrings();
   return (

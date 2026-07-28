@@ -116,7 +116,7 @@ describe('planStaticContent', () => {
       site,
     });
     expect(plan).toBeUndefined();
-    expect(diagnostics.map((d) => d.code)).toEqual(['SLOT-BINDING-INCOMPLETE']);
+    expect(diagnostics.map((d) => d.code)).toEqual(['STATIC-CONTENT-KIND-UNKNOWN']);
   });
 
   it('renders empty content as empty rather than throwing', () => {

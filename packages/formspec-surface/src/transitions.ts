@@ -3,13 +3,14 @@
  *
  * ## The question
  *
- * The spike's `/apply` route declares `transitions: [{trigger: "submit", to:
- * "certify"}]`. The bundle carries no Response Actions document, so nothing can
- * fire it: the shipped renderer injects a submit button only when a Response
- * Actions document publishes an Action with `submit` intent. The transition is
- * authored, schema-valid and signed, and the app as described cannot leave its
- * own first page. The spike hand-built a "Continue" button and recorded it as
- * gap ledger `transition-has-no-trigger-source`, with the open question:
+ * The spike's `/certify` route declares
+ * `transitions: [{trigger: "submit", to: "receipt"}]`. The bundle does carry a
+ * Response Actions document, but this route renders only static content and a
+ * module widget. Neither loaded artifact declares a control that can invoke the
+ * submit action. The transition is authored, schema-valid and signed, yet the
+ * route cannot traverse it. The spike hand-built a "Continue" button and
+ * recorded it as gap ledger `transition-has-no-trigger-source`, with the
+ * question:
  * **does the shell own a default trigger affordance, or must the bundle declare
  * one?**
  *
@@ -47,16 +48,14 @@
  * fact the person on the page, and the author who signed it, should both be able
  * to see.
  *
- * ## What this leaves open, and where it belongs
+ * ## What validation catches before runtime
  *
- * Nothing checks, before signing, that a transition trigger has anything that
- * could produce it. Surface lint walks the route graph for reachability (E606)
- * and never asks whether an edge can be traversed;
- * `validateSurfaceResponseActionTriggers` does ask — but only when a Response
- * Actions document is loaded, so a bundle carrying none has no trigger to
- * contradict. That check belongs in lint or the app-graph validator, and it
- * would have caught this bundle before the signing ceremony. Recorded in the gap
- * ledger; not a renderer's to fix.
+ * Surface lint walks the route graph for reachability (E606). App-graph
+ * validation separately emits E611 when a resolved trigger has no
+ * validator-readable control source on the route, including one reached through
+ * an embed. E611 is a warning because validation cannot see a host executor or
+ * private widget behaviour. Runtime planning still fails closed and reports the
+ * actual posture.
  */
 import { CLOSED_RESPONSE_ACTION_INTENTS } from '@formspec-org/app-graph';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
@@ -75,7 +74,11 @@ export type TransitionStatus =
    * success.
    */
   | 'supplied-by-slot'
-  /** The bundle carries no Response Actions document, so no trigger can resolve. */
+  /** The authored FEL condition evaluated false. The edge is dormant, not broken. */
+  | 'condition-false'
+  /** No host evaluator could determine the authored FEL condition. */
+  | 'condition-unevaluable'
+  /** No Response Actions document is loaded, so no trigger can resolve. */
   | 'no-response-actions-document'
   /** A Response Actions document exists and does not publish this trigger. */
   | 'trigger-unresolved'
@@ -95,6 +98,8 @@ export interface PlannedTransition {
   target?: SurfaceRouteHandle;
   /** The Response Actions action id that would run, when one resolves. */
   actionId?: string;
+  /** Exception text from the host evaluator, retained for the diagnostic. */
+  conditionFailureReason?: string;
 }
 
 /**
@@ -112,6 +117,17 @@ export type TransitionExecutor = (request: {
   from: SurfaceRouteHandle;
 }) => Promise<{ advanced: boolean; reason?: string }>;
 
+/**
+ * Evaluates a Surface FEL condition against validated bundle state owned by the
+ * host. `undefined` means the host could not evaluate the expression.
+ */
+export type TransitionConditionEvaluator = (request: {
+  expression: string;
+  transition: { trigger: string; to: string; when: string };
+  from: SurfaceRouteHandle;
+  params: Readonly<Record<string, string>>;
+}) => boolean | undefined;
+
 /** Minimal read of a Response Actions document — the fields a trigger resolves against. */
 export interface ResponseActionsDocumentLike {
   /** The Definition this document binds to. `E611`'s "targeting the Definition that slot binds". */
@@ -125,6 +141,10 @@ export interface TransitionPlanInput {
   responseActions?: readonly ResponseActionsDocumentLike[] | undefined;
   /** Whether the host supplied an executor. The shell never assumes one. */
   hasExecutor: boolean;
+  /** Host-owned FEL evaluation over the validated bundle state. */
+  evaluateCondition?: TransitionConditionEvaluator | undefined;
+  /** Route parameters available to the FEL evaluator. */
+  params?: Readonly<Record<string, string>> | undefined;
   /**
    * Triggers a slot on this route already renders a control for. Compute it
    * with {@link slotSuppliedTriggers} rather than by hand — a binding that
@@ -172,6 +192,23 @@ function targetDefinitionUrl(document: ResponseActionsDocumentLike): string | un
 }
 
 /**
+ * The one Response Actions document the form renderer may use for a Definition.
+ *
+ * Missing and repeated targets both fail closed. Choosing the first document
+ * would let `slotSuppliedTriggers` claim one control while the binding renders
+ * another, which recreates the silent dead edge this check exists to prevent.
+ */
+export function responseActionsDocumentForDefinition(
+  documents: readonly ResponseActionsDocumentLike[],
+  definitionRef: string,
+): ResponseActionsDocumentLike | undefined {
+  const matching = documents.filter(
+    (document) => targetDefinitionUrl(document) === definitionRef,
+  );
+  return matching.length === 1 ? matching[0] : undefined;
+}
+
+/**
  * Every trigger a control **already on this route** can raise.
  *
  * `surface-shell-spec.md` §5.3: "Resolving `supplied-by-slot` is a walk, not a
@@ -184,10 +221,11 @@ function targetDefinitionUrl(document: ResponseActionsDocumentLike): string | un
  *    control the host route renders — the same transitivity §4.4 applies to the
  *    theme grant. A shell that scans only a route's own `slots[]` reports a
  *    working page as dead.
- * 2. **Triggers resolve through the loaded Response Actions documents**, not
- *    against a hardcoded intent string: every `actions[*].id`, plus every
- *    closed-core intent published by exactly one action. A shell that hardcodes
- *    `submit` reports every other intent as dead.
+ * 2. **The check follows the control this binding actually places.**
+ *    `FormspecForm` auto-places one submit-intent Action and no other action.
+ *    A plan that credited every published action would report a control that
+ *    does not exist. The selected document and submit Action must each be
+ *    unique, and the document must target the rendered Definition.
  *
  * Only `definition-form` slots contribute (§5.2). A `module-widget` cannot:
  * the Registry `widget` contribution has no channel to declare that a widget
@@ -217,19 +255,17 @@ export function slotSuppliedTriggers(
       // form, so it renders no control and supplies no trigger.
       if (entry.status !== 'ready') continue;
 
-      for (const document of responseActions) {
-        const target = targetDefinitionUrl(document);
-        // A Response Actions document that names its target Definition only
-        // supplies triggers to the slot bound to that Definition (§5.4). One
-        // that names none is the pre-`targetDefinition` shape and applies to
-        // any form slot — the honest read of a document that declined to say.
-        if (target !== undefined && target !== entry.definitionRef) continue;
-        const index = indexTriggers([document]);
-        for (const id of index.actionIds) supplied.add(id);
-        for (const [intent, publishers] of index.byIntent) {
-          if (publishers.length === 1) supplied.add(intent);
-        }
-      }
+      const document = responseActionsDocumentForDefinition(
+        responseActions,
+        entry.definitionRef,
+      );
+      if (!document) continue;
+      const submitActions = (document.actions ?? []).filter(
+        (action) => action.intent === 'submit' && typeof action.id === 'string',
+      );
+      if (submitActions.length !== 1) continue;
+      supplied.add('submit');
+      supplied.add(submitActions[0]!.id as string);
     }
   };
 
@@ -252,6 +288,37 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
     const base: PlannedTransition = { trigger, to, status: 'fireable', reason: '' };
     if (typeof authored.when === 'string') base.when = authored.when;
     if (target) base.target = target;
+
+    if (typeof authored.when === 'string') {
+      let condition: boolean | undefined;
+      let reason: string | undefined;
+      try {
+        condition = input.evaluateCondition?.({
+          expression: authored.when,
+          transition: { trigger, to, when: authored.when },
+          from: handle,
+          params: input.params ?? {},
+        });
+      } catch (error) {
+        reason = error instanceof Error ? error.message : String(error);
+      }
+
+      if (condition === false) {
+        return {
+          ...base,
+          status: 'condition-false',
+          reason: 'This transition is dormant because its condition is false.',
+        };
+      }
+      if (condition !== true) {
+        return {
+          ...base,
+          status: 'condition-unevaluable',
+          reason: 'This transition is unavailable because its condition could not be evaluated.',
+          ...(reason === undefined ? {} : { conditionFailureReason: reason }),
+        };
+      }
+    }
 
     if (!target) {
       return {
@@ -311,7 +378,34 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
   });
 
   for (const transition of transitions) {
-    if (transition.status === 'fireable' || transition.status === 'supplied-by-slot') continue;
+    if (
+      transition.status === 'fireable' ||
+      transition.status === 'supplied-by-slot' ||
+      transition.status === 'condition-false'
+    ) {
+      continue;
+    }
+    if (transition.status === 'condition-unevaluable') {
+      const reason =
+        'conditionFailureReason' in transition &&
+        typeof transition.conditionFailureReason === 'string'
+          ? transition.conditionFailureReason
+          : undefined;
+      diagnostics.push(
+        surfaceDiagnostic(
+          'TRANSITION-CONDITION-UNEVALUABLE',
+          `Route "${handle.surfaceId}/${handle.routeId}" declares a condition on its "${transition.trigger}" transition that the host could not evaluate. The transition is unavailable.`,
+          { surfaceId: handle.surfaceId, routeId: handle.routeId },
+          {
+            trigger: transition.trigger,
+            to: transition.to,
+            when: transition.when,
+            ...(reason === undefined ? {} : { reason }),
+          },
+        ),
+      );
+      continue;
+    }
     diagnostics.push(
       surfaceDiagnostic(
         'TRANSITION-UNFIREABLE',

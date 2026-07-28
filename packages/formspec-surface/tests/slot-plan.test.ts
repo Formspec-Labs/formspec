@@ -170,6 +170,30 @@ describe('planRoute — dispatch over the closed taxonomy', () => {
     expect(plan.diagnostics.map((d) => d.code)).toContain('WIDGET-UNIMPLEMENTED');
   });
 
+  it('returns an unavailable plan for an unknown runtime slot type instead of throwing', () => {
+    const malformed = surface('s', 'r', [
+      route({
+        id: 'r',
+        path: '/r',
+        slots: [
+          {
+            id: 'future',
+            slotType: 'video-player',
+            binding: {},
+          },
+        ] as never,
+      }),
+    ]);
+
+    const plan = planRoute(contextFor(malformed, 'r'));
+    expect(plan.slots[0]).toMatchObject({
+      slotId: 'future',
+      slotType: 'unknown',
+      authoredSlotType: 'video-player',
+    });
+    expect(plan.diagnostics.map((d) => d.code)).toEqual(['SLOT-TYPE-UNKNOWN']);
+  });
+
   it('carries binding.config through as the only authored widget channel', () => {
     const configured = surface('s', 'r', [
       route({

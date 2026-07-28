@@ -107,23 +107,17 @@ describe('theme authority — structural refusal', () => {
 });
 
 describe('theme authority — token vocabulary', () => {
-  it('reports a tenant token the platform vocabulary does not carry', () => {
+  it('does not read the tooling-only platform token registry at runtime', () => {
     const authority = createThemeAuthority({ tenantTheme });
-    const unknown = authority.diagnostics.filter((d) => d.code === 'THEME-TOKEN-UNKNOWN');
-    expect(unknown.map((d) => d.details?.token)).toContain('color.accent');
+    expect(authority.diagnostics).toEqual([]);
   });
 
-  it('says nothing about a registered token', () => {
-    const authority = createThemeAuthority({ tenantTheme });
-    expect(authority.diagnostics.map((d) => d.details?.token)).not.toContain('color.primary');
-  });
-
-  it('accepts a host alias and stops reporting the aliased token', () => {
+  it('accepts a host alias without treating that alias as platform vocabulary', () => {
     const authority = createThemeAuthority({
       tenantTheme,
       tokenAliases: { 'color.accent': ['color.primary'] },
     });
-    expect(authority.diagnostics.filter((d) => d.code === 'THEME-TOKEN-UNKNOWN')).toEqual([]);
+    expect(authority.diagnostics).toEqual([]);
     const grant = authority.grantFor(route({ id: 'r', path: '/r', routeClass: 'intake', slots: [] as never }));
     expect(tokensOf(grant)['color.primary']).toBe(TENANT_SENTINEL_VALUE);
   });

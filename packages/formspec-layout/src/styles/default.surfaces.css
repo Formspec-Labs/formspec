@@ -153,6 +153,14 @@ hr.formspec-divider {
   padding-inline-start: 0.6rem;
 }
 
+/* Every rendered form has this direct root stack. Keep one brand-bearing
+ * surface even when the Definition contains only plain fields and therefore
+ * has no section heading, legend, or submit control. */
+.formspec-container > .formspec-stack {
+  border-inline-start: 3px solid var(--formspec-default-primary);
+  padding-inline-start: var(--formspec-spacing-md, 0.75rem);
+}
+
 .formspec-card-title {
   margin-bottom: 0;
 }

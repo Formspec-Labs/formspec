@@ -121,10 +121,12 @@ export {
 
 export {
   planTransitions,
+  responseActionsDocumentForDefinition,
   slotSuppliedTriggers,
   type PlannedTransition,
   type ResponseActionsDocumentLike,
   type TransitionExecutor,
+  type TransitionConditionEvaluator,
   type TransitionPlanInput,
   type TransitionPlanResult,
   type TransitionStatus,

@@ -63,6 +63,7 @@ import {
   type SurfaceStringOverrides,
   type SurfaceStrings,
   type ThemeAuthority,
+  type TransitionConditionEvaluator,
   type WidgetRegistry,
 } from '@formspec-org/surface';
 import type { RegistryEntry } from '@formspec-org/types';
@@ -143,6 +144,8 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
    * transition renders a control. See `SurfaceTransitions`.
    */
   onFireTransition?: FireTransition | undefined;
+  /** Evaluates transition `when` expressions against validated bundle state. */
+  evaluateTransitionCondition?: TransitionConditionEvaluator | undefined;
   showExperienceNeeds?: boolean | undefined;
   /** Shows the theme-posture sentence on the page. Default false (§4.3.1). */
   showThemeNotice?: boolean | undefined;
@@ -223,6 +226,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
       responseActions: bundle.responseActions,
       themeAuthority: model.themeAuthority,
       hasExecutor: props.onFireTransition !== undefined,
+      evaluateCondition: props.evaluateTransitionCondition,
       headingBaseLevel: props.headingBaseLevel ?? 2,
       strings,
     });
@@ -232,9 +236,18 @@ export function SurfaceApp(props: SurfaceAppProps) {
     bundle,
     props.routeParams,
     props.onFireTransition,
+    props.evaluateTransitionCondition,
     props.headingBaseLevel,
     strings,
   ]);
+
+  const navigationDiagnostics = useMemo(
+    () =>
+      model.app.routes.flatMap(
+        (handle) => routeHref(handle, props.routeParams ?? {}).diagnostics,
+      ),
+    [model.app, props.routeParams],
+  );
 
   // Read after the route's `useLayoutEffect` has emitted its own tokens, so a
   // property found here is one something ELSE wrote globally. `join` is the
@@ -252,10 +265,17 @@ export function SurfaceApp(props: SurfaceAppProps) {
     return [
       ...model.diagnostics,
       ...resolution.diagnostics,
+      ...navigationDiagnostics,
       ...(routePlan?.diagnostics ?? []),
       ...(rootDiagnostic ? [rootDiagnostic] : []),
     ];
-  }, [model.diagnostics, resolution, routePlan, rootProperties]);
+  }, [
+    model.diagnostics,
+    resolution,
+    navigationDiagnostics,
+    routePlan,
+    rootProperties,
+  ]);
 
   useEffect(() => {
     onDiagnostics?.(diagnostics);
@@ -290,13 +310,18 @@ export function SurfaceApp(props: SurfaceAppProps) {
             widgetData={props.widgetData}
             showExperienceNeeds={props.showExperienceNeeds}
             showThemeNotice={props.showThemeNotice}
-            responseActionsDocument={bundle.responseActions[0]}
+            responseActionsDocuments={bundle.responseActions}
             onFireTransition={props.onFireTransition}
             onAdvance={(transition) => {
               // Reached only after the action reported success. The shell
               // navigates; it never decides that the action succeeded.
               if (!transition.target) return;
-              onNavigate(routeHref(transition.target, props.routeParams ?? {}).href);
+              const destination = routeHref(
+                transition.target,
+                props.routeParams ?? {},
+              );
+              if (destination.diagnostics.length > 0) return;
+              onNavigate(destination.href);
             }}
           />
         ) : (
@@ -324,21 +349,31 @@ export function SurfaceNav({ app, location, routeParams, onNavigate, label }: Su
         <div className="fs-surface-nav__group" key={group.surfaceId}>
           {showGroupLabels && <p className="fs-surface-nav__label">{group.label}</p>}
           <ul className="fs-surface-nav__list">
-            {group.routes.map((handle) => {
-              const { href } = routeHref(handle, routeParams ?? {});
+            {group.routes.map((handle, index) => {
+              const { href, diagnostics } = routeHref(handle, routeParams ?? {});
               return (
-                <li key={`${handle.surfaceId}/${handle.routeId}`}>
-                  <a
-                    href={href}
-                    data-nav-route={handle.routeId}
-                    aria-current={href === location ? 'page' : undefined}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      onNavigate(href);
-                    }}
-                  >
-                    {handle.route.title ?? handle.routeId}
-                  </a>
+                <li key={`${handle.surfaceId}/${handle.routeId}/${index}`}>
+                  {diagnostics.length > 0 ? (
+                    <span
+                      data-nav-route={handle.routeId}
+                      data-nav-unavailable="route-params"
+                      aria-disabled="true"
+                    >
+                      {handle.route.title ?? handle.routeId}
+                    </span>
+                  ) : (
+                    <a
+                      href={href}
+                      data-nav-route={handle.routeId}
+                      aria-current={href === location ? 'page' : undefined}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        onNavigate(href);
+                      }}
+                    >
+                      {handle.route.title ?? handle.routeId}
+                    </a>
+                  )}
                 </li>
               );
             })}

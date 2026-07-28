@@ -28,7 +28,7 @@
  * of which classes admit. A shell that restated the map would be a shell that
  * could disagree with the validator that signed the bundle off.
  */
-import { PLATFORM_TOKEN_KEYS, ROUTE_CLASS_THEME_AUTHORITY } from '@formspec-org/app-graph';
+import { ROUTE_CLASS_THEME_AUTHORITY } from '@formspec-org/app-graph';
 import { buildPlatformTheme } from '@formspec-org/layout';
 import type { SurfaceDocument, ThemeDocument } from '@formspec-org/types';
 import {
@@ -124,18 +124,10 @@ export interface ThemeAuthorityInput {
   /**
    * Host-supplied token aliases: authored key → platform key(s).
    *
-   * NOT a platform rule and deliberately not populated by default. The
-   * surface-render-v10 spike measured a tenant authoring `color.accent` against
-   * a platform vocabulary whose brand token is `color.primary`, with nothing
-   * mapping between them — accepted by authoring, passed by validation, signed,
-   * emitted, and read by nothing (gap ledger `theme-token-vocabulary-bridge`).
-   * Shipping a default alias table here would paper over a vocabulary decision
-   * that belongs to the token registry and the authoring tools. What this
-   * package does instead is refuse to be silent: an unaliased token outside
-   * `PLATFORM_TOKEN_KEYS` raises `THEME-TOKEN-UNKNOWN` — the render-time twin
-   * of the authoring-time `THEME-TOKEN-UNREGISTERED`
-   * (`token-registry-spec.md` §5.3). Same fact, two moments: a bundle can be
-   * validated before a host adds an alias and rendered after.
+   * This is a host compatibility seam, not platform vocabulary. It is empty by
+   * default. Token registration belongs to validation-time tooling:
+   * token-registry-spec §5.2 forbids a renderer from depending on the registry
+   * at runtime, and AppGraphValidator reports `THEME-TOKEN-UNREGISTERED`.
    */
   tokenAliases?: Readonly<Record<string, readonly string[]>> | undefined;
 }
@@ -166,8 +158,6 @@ function tokensOf(theme: ThemeDocument | undefined): ThemeTokens {
 export function createThemeAuthority(input: ThemeAuthorityInput = {}): ThemeAuthority {
   const platformTheme = input.platformTheme ?? (buildPlatformTheme() as ThemeDocument);
   const platformTokens = tokensOf(platformTheme);
-  const diagnostics: SurfaceDiagnostic[] = [];
-
   // The tenant Theme is read exactly here, into a plain token map. Nothing
   // below this line holds the document.
   const authored = tokensOf(input.tenantTheme);
@@ -178,22 +168,6 @@ export function createThemeAuthority(input: ThemeAuthorityInput = {}): ThemeAuth
     tenantTokens[key] = value;
     for (const target of aliases[key] ?? []) {
       if (tenantTokens[target] === undefined) tenantTokens[target] = value;
-    }
-    // The platform's declared vocabulary, imported rather than derived from
-    // whichever tokens `buildPlatformTheme()` happens to emit — those are the
-    // platform's VALUES; `PLATFORM_TOKEN_KEYS` is the registry's declared KEY
-    // set, which is the thing an authored token is or is not a member of.
-    const knownToPlatform = PLATFORM_TOKEN_KEYS.has(key) || key.startsWith('x-');
-    const aliased = (aliases[key] ?? []).length > 0;
-    if (!knownToPlatform && !aliased) {
-      diagnostics.push(
-        surfaceDiagnostic(
-          'THEME-TOKEN-UNKNOWN',
-          `The tenant theme sets "${key}", which the platform token vocabulary does not carry. It will be emitted and read by nothing.`,
-          { source: 'theme' },
-          { token: key },
-        ),
-      );
     }
   }
 
@@ -223,7 +197,7 @@ export function createThemeAuthority(input: ThemeAuthorityInput = {}): ThemeAuth
   return {
     tenantTokenKeys,
     tenantTokenValues,
-    diagnostics,
+    diagnostics: [],
     grantFor(route: SurfaceRoute, site: SurfaceDiagnosticSite = {}): ThemeGrant {
       const routeClass = route.routeClass;
 

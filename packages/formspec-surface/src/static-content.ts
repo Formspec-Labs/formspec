@@ -15,11 +15,11 @@
  *
  * ## Heading levels are an accessibility contract, so the shell owns them
  *
- * The schema types `level` as an absolute 1–6. Absolute levels do not compose:
- * a route renders its own title as the page's `h1`, so an authored `level: 1`
- * inside that route produces a **second** `h1` and a document with two page
- * headings — which is exactly what the spike shipped on `/certify` and
- * `/receipt`.
+ * The schema now describes `level` as a rank from 1 through 6 within the
+ * enclosing route or slot. This amendment matters because an absolute reading
+ * does not compose: a route renders its own title as the page's `h1`, so an
+ * authored `level: 1` inside that route would produce a **second** `h1` — which
+ * is exactly what the spike shipped on `/certify` and `/receipt`.
  *
  * The contract this package states:
  *
@@ -107,7 +107,7 @@ export function planStaticContent(input: StaticContentPlanInput): StaticContentP
   if (typeof kind !== 'string' || !(STATIC_CONTENT_KINDS as readonly string[]).includes(kind)) {
     diagnostics.push(
       surfaceDiagnostic(
-        'SLOT-BINDING-INCOMPLETE',
+        'STATIC-CONTENT-KIND-UNKNOWN',
         `A static-content slot declares kind ${JSON.stringify(kind)}, which is outside the closed set ${STATIC_CONTENT_KINDS.join(' | ')}.`,
         site,
         { kind },

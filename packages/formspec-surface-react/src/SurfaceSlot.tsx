@@ -24,7 +24,18 @@
  */
 import type { ReactNode } from 'react';
 import { FormspecForm } from '@formspec-org/react';
-import type { SlotPlan, SurfaceStrings, ThemeGrant } from '@formspec-org/surface';
+import type {
+  ResponseAction,
+  ResponseActionInvocationResult,
+  SubmitResult,
+} from '@formspec-org/react';
+import {
+  responseActionsDocumentForDefinition,
+  type ResponseActionsDocumentLike,
+  type SlotPlan,
+  type SurfaceStrings,
+  type ThemeGrant,
+} from '@formspec-org/surface';
 import { Heading, nextLevel } from './heading.js';
 import type {
   SurfaceWidget,
@@ -49,9 +60,19 @@ export interface SurfaceSlotProps {
    * Actions, so a renderer that invented one would be wrong. Passing it is what
    * makes a form-bearing route able to fire its own transition.
    */
-  responseActionsDocument?: unknown;
-  /** An Action published under `intent` completed successfully. */
-  onActionCompleted?: ((intent: string) => void) | undefined;
+  responseActionsDocuments?: readonly ResponseActionsDocumentLike[] | undefined;
+  /** A published Action reached a successful terminal with a valid report. */
+  onActionCompleted?: ((action: ResponseAction) => void) | undefined;
+}
+
+/** The action that is safe to use for route advancement, or no action. */
+export function completedFormAction(
+  result: ResponseActionInvocationResult<SubmitResult>,
+): ResponseAction | undefined {
+  if (result.status !== 'completed') return undefined;
+  if (!result.resolution.resolved || !result.resolution.action) return undefined;
+  if (result.detail?.validationReport?.valid !== true) return undefined;
+  return result.resolution.action;
 }
 
 /**
@@ -104,7 +125,7 @@ export function SurfaceSlot({
   strings,
   widgetData,
   showExperienceNeeds = false,
-  responseActionsDocument,
+  responseActionsDocuments,
   onActionCompleted,
 }: SurfaceSlotProps): ReactNode {
   switch (plan.slotType) {
@@ -112,6 +133,10 @@ export function SurfaceSlot({
       if (plan.status === 'unresolved' || plan.definition === undefined) {
         return <UnavailableSlot>{strings('slotUnavailableDefinitionForm')}</UnavailableSlot>;
       }
+      const responseActionsDocument = responseActionsDocumentForDefinition(
+        responseActionsDocuments ?? [],
+        plan.definitionRef,
+      );
       // `themeDocument` comes from the route's grant and never from the bundle
       // directly. On a refusing route that object was built from the platform
       // token registry and never saw a tenant token — which is what makes the
@@ -127,8 +152,20 @@ export function SurfaceSlot({
           // which is a shipped-type mismatch rather than a shell decision —
           // finding F6, owner `formspec-types` / `formspec-engine`.
           responseActionsDocument={(responseActionsDocument ?? null) as never}
+          emitThemeTokens={false}
           {...(onActionCompleted
-            ? { onSubmit: () => onActionCompleted('submit') }
+            ? {
+                // `onSubmit` requests the renderer's declared submit control.
+                // It is intentionally a no-op: durable effects have not reached
+                // their terminal yet.
+                onSubmit: () => {},
+                onActionResult: (
+                  result: ResponseActionInvocationResult<SubmitResult>,
+                ) => {
+                  const action = completedFormAction(result);
+                  if (action) onActionCompleted(action);
+                },
+              }
             : {})}
         />
       );
@@ -264,13 +301,16 @@ export function SurfaceSlot({
               strings={strings}
               widgetData={widgetData}
               showExperienceNeeds={showExperienceNeeds}
-              responseActionsDocument={responseActionsDocument}
+              responseActionsDocuments={responseActionsDocuments}
               onActionCompleted={onActionCompleted}
             />
           ))}
         </div>
       );
     }
+
+    case 'unknown':
+      return <UnavailableSlot>{strings('slotUnavailableStaticContent')}</UnavailableSlot>;
   }
 }
 

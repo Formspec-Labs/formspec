@@ -24,9 +24,14 @@ function syncSystemAppearanceClass(el: HTMLDivElement | null, systemPrefersDark:
 
 function useEmitThemeTokensOnFormspecContainerRef(): React.RefObject<HTMLDivElement | null> {
     const ref = useRef<HTMLDivElement>(null);
-    const { themeDocument, componentDocument } = useFormspecContext();
+    const {
+        themeDocument,
+        componentDocument,
+        emitThemeTokens: shouldEmitThemeTokens,
+    } = useFormspecContext();
 
     useLayoutEffect(() => {
+        if (!shouldEmitThemeTokens) return;
         const el = ref.current;
         if (!el) return;
         const effectiveTheme = themeDocument ?? defaultThemeJson;
@@ -43,7 +48,7 @@ function useEmitThemeTokensOnFormspecContainerRef(): React.RefObject<HTMLDivElem
                 }
             }
         };
-    }, [themeDocument, componentDocument]);
+    }, [themeDocument, componentDocument, shouldEmitThemeTokens]);
 
     useLayoutEffect(() => {
         const el = ref.current;

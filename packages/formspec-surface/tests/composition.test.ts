@@ -142,6 +142,27 @@ describe('path collisions (§2.4)', () => {
   });
 });
 
+describe('route-handle ambiguity', () => {
+  const ambiguous = composeSurfaceApp([
+    surface('s', 'same', [
+      route({ id: 'same', path: '/one', slots: [] as never }),
+      route({ id: 'same', path: '/two', slots: [] as never }),
+    ]),
+  ]);
+
+  it('reports one ambiguity for a repeated (surfaceId, routeId) handle', () => {
+    const diagnostic = ambiguous.diagnostics.filter(
+      (candidate) => candidate.code === 'ROUTE-HANDLE-AMBIGUOUS',
+    );
+    expect(diagnostic).toHaveLength(1);
+    expect(diagnostic[0]?.details?.routes).toEqual(['s/same', 's/same']);
+  });
+
+  it('resolves the ambiguous handle to no route instead of taking the first', () => {
+    expect(routeInSurface(ambiguous, 's', 'same')).toBeUndefined();
+  });
+});
+
 describe('matchRoute', () => {
   const app = composeSurfaceApp([respondentSurface, staffSurface]);
 

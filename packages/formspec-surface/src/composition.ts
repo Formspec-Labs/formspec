@@ -102,6 +102,7 @@ export function composeSurfaceApp(
   const routes: SurfaceRouteHandle[] = [];
   const groups: SurfaceRouteGroup[] = [];
   const byPattern = new Map<string, SurfaceRouteHandle[]>();
+  const byHandle = new Map<string, SurfaceRouteHandle[]>();
   /** Per-Surface entry handle, in manifest order. Index 0 is the app entry. */
   const surfaceEntries: (SurfaceRouteHandle | undefined)[] = [];
 
@@ -134,6 +135,11 @@ export function composeSurfaceApp(
       const claimants = byPattern.get(pattern);
       if (claimants) claimants.push(handle);
       else byPattern.set(pattern, [handle]);
+
+      const handleKey = `${surfaceId}\u0000${route.id}`;
+      const handleClaimants = byHandle.get(handleKey);
+      if (handleClaimants) handleClaimants.push(handle);
+      else byHandle.set(handleKey, [handle]);
 
       routes.push(handle);
       groupRoutes.push(handle);
@@ -173,8 +179,34 @@ export function composeSurfaceApp(
     );
   }
 
+  const ambiguousHandles = new Set<string>();
+  for (const [handleKey, claimants] of byHandle) {
+    if (claimants.length < 2) continue;
+    ambiguousHandles.add(handleKey);
+    const members = claimants.map((handle) => `${handle.surfaceId}/${handle.routeId}`);
+    diagnostics.push(
+      surfaceDiagnostic(
+        'ROUTE-HANDLE-AMBIGUOUS',
+        `Route handle "${members[0]}" names more than one route. The shell resolves the handle to none of them.`,
+        {
+          surfaceId: claimants[0]?.surfaceId ?? '',
+          routeId: claimants[0]?.routeId ?? '',
+        },
+        {
+          routes: members,
+          paths: claimants.map((handle) => handle.path),
+        },
+      ),
+    );
+  }
+
   // §2.5: the FIRST Surface's entry, or nothing. Never a later Surface's.
-  const entry = surfaceEntries[0];
+  const candidateEntry = surfaceEntries[0];
+  const entry =
+    candidateEntry === undefined ||
+    ambiguousHandles.has(`${candidateEntry.surfaceId}\u0000${candidateEntry.routeId}`)
+      ? undefined
+      : candidateEntry;
 
   return { routes, groups, entry, diagnostics };
 }
@@ -280,7 +312,8 @@ export function routeInSurface(
   surfaceId: string,
   routeId: string,
 ): SurfaceRouteHandle | undefined {
-  return app.routes.find(
+  const matches = app.routes.filter(
     (handle) => handle.surfaceId === surfaceId && handle.routeId === routeId,
   );
+  return matches.length === 1 ? matches[0] : undefined;
 }

@@ -17,7 +17,7 @@
  *
  * ## Severity is a property of the code, not of the call site
  *
- * `thoughts/specs/2026-07-28-surface-shell-spec.md` §7.1 requires every
+ * `specs/surface/surface-shell-spec.md` §7.1 requires every
  * diagnostic to carry a severity "fixed per code", which hosts "MAY elevate,
  * MUST NOT demote". Fixed per code means the caller does not get to pick:
  * {@link surfaceDiagnostic} reads {@link SURFACE_DIAGNOSTIC_SEVERITY}, a total
@@ -43,6 +43,8 @@ export const SURFACE_DIAGNOSTIC_CODES = [
   'SURFACE-ENTRY-UNRESOLVED',
   /** Two or more composed routes produce the same URL pattern. */
   'ROUTE-PATH-COLLISION',
+  /** More than one route claims the same `(surfaceId, routeId)` handle. */
+  'ROUTE-HANDLE-AMBIGUOUS',
   /** A route path uses a parameter grammar Surface v0.1 does not pin. */
   'ROUTE-PARAM-GRAMMAR',
   /** A `{name}` marker in `path` has no matching `params[]` declaration. */
@@ -57,6 +59,8 @@ export const SURFACE_DIAGNOSTIC_CODES = [
   'EMBED-ROUTE-UNRESOLVED',
   /** An `embed-route` chain revisited a route it had already entered. */
   'EMBED-ROUTE-CYCLE',
+  /** Runtime input carries a `slotType` outside the closed Surface vocabulary. */
+  'SLOT-TYPE-UNKNOWN',
   /** A slot binding is missing the field its slotType requires. */
   'SLOT-BINDING-INCOMPLETE',
   /** An `experience-unit` binding names no unit in the resolved Experience. */
@@ -67,14 +71,16 @@ export const SURFACE_DIAGNOSTIC_CODES = [
   'WIDGET-UNIMPLEMENTED',
   /** Two Registry documents declare the same entry `name`. */
   'REGISTRY-ENTRY-NAME-COLLISION',
+  /** A `static-content` slot carries a `kind` outside the closed vocabulary. */
+  'STATIC-CONTENT-KIND-UNKNOWN',
   /** A `static-content` slot with `kind: image` has no authored alternative text. */
   'STATIC-IMAGE-NO-ALT',
-  /** A tenant Theme token key the platform token vocabulary does not carry. */
-  'THEME-TOKEN-UNKNOWN',
   /** Tenant theming was withheld because the route declares no `routeClass`. */
   'THEME-UNCLASSIFIED-REFUSED',
   /** Formspec custom properties observed on the document root, which no conforming emitter writes. */
   'THEME-DOCUMENT-ROOT-CONTAMINATED',
+  /** A transition condition could not be evaluated against validated bundle state. */
+  'TRANSITION-CONDITION-UNEVALUABLE',
   /** A declared transition with no trigger source and no host executor. */
   'TRANSITION-UNFIREABLE',
 ] as const;
@@ -100,6 +106,7 @@ export const SURFACE_DIAGNOSTIC_SEVERITY = {
   'BUNDLE-DOCUMENT-SHAPE': 'error',
   'SURFACE-ENTRY-UNRESOLVED': 'error',
   'ROUTE-PATH-COLLISION': 'error',
+  'ROUTE-HANDLE-AMBIGUOUS': 'error',
   'ROUTE-PARAM-GRAMMAR': 'error',
   'ROUTE-PARAM-UNDECLARED': 'error',
   'ROUTE-PARAM-NO-MARKER': 'error',
@@ -107,15 +114,17 @@ export const SURFACE_DIAGNOSTIC_SEVERITY = {
   'ROUTE-UNMATCHED': 'warning',
   'EMBED-ROUTE-UNRESOLVED': 'error',
   'EMBED-ROUTE-CYCLE': 'error',
+  'SLOT-TYPE-UNKNOWN': 'error',
   'SLOT-BINDING-INCOMPLETE': 'error',
   'EXPERIENCE-UNIT-UNRESOLVED': 'error',
   'WIDGET-UNDECLARED': 'error',
   'WIDGET-UNIMPLEMENTED': 'error',
   'REGISTRY-ENTRY-NAME-COLLISION': 'warning',
+  'STATIC-CONTENT-KIND-UNKNOWN': 'error',
   'STATIC-IMAGE-NO-ALT': 'warning',
-  'THEME-TOKEN-UNKNOWN': 'warning',
   'THEME-UNCLASSIFIED-REFUSED': 'info',
   'THEME-DOCUMENT-ROOT-CONTAMINATED': 'error',
+  'TRANSITION-CONDITION-UNEVALUABLE': 'warning',
   'TRANSITION-UNFIREABLE': 'warning',
 } as const satisfies Record<SurfaceDiagnosticCode, SurfaceDiagnosticSeverity>;
 

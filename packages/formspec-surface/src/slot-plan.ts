@@ -70,6 +70,11 @@ export type SlotPlan<TComponent> = SlotPlanBase &
       }
     | { slotType: 'static-content'; content: StaticContentPlan | undefined }
     | {
+        slotType: 'unknown';
+        /** The value received after validation was bypassed or input was corrupted. */
+        authoredSlotType: unknown;
+      }
+    | {
         slotType: 'embed-route';
         routeRef: string;
         mode?: string;
@@ -78,6 +83,14 @@ export type SlotPlan<TComponent> = SlotPlanBase &
         status: 'ready' | 'unresolved' | 'cycle';
       }
   );
+
+const KNOWN_SLOT_TYPES = {
+  'definition-form': true,
+  'experience-unit': true,
+  'module-widget': true,
+  'static-content': true,
+  'embed-route': true,
+} as const satisfies Record<SurfaceSlot['slotType'], true>;
 
 export interface SlotPlanContext<TComponent> {
   handle: SurfaceRouteHandle;
@@ -120,6 +133,22 @@ function planSlot<TComponent>(
   if (typeof slot.title === 'string') shared.title = slot.title;
   if (typeof slot.position === 'string') shared.position = slot.position;
   const binding = (slot.binding ?? {}) as Record<string, unknown>;
+  const authoredSlotType: unknown = (slot as { slotType?: unknown }).slotType;
+
+  if (
+    typeof authoredSlotType !== 'string' ||
+    !Object.prototype.hasOwnProperty.call(KNOWN_SLOT_TYPES, authoredSlotType)
+  ) {
+    diagnostics.push(
+      surfaceDiagnostic(
+        'SLOT-TYPE-UNKNOWN',
+        `Slot "${slot.id}" declares slotType ${JSON.stringify(authoredSlotType)}, which this Surface runtime does not recognize. The slot is unavailable.`,
+        site,
+        { slotType: authoredSlotType },
+      ),
+    );
+    return { ...shared, slotType: 'unknown', authoredSlotType };
+  }
 
   switch (slot.slotType) {
     case 'definition-form': {
@@ -248,7 +277,19 @@ function planSlot<TComponent>(
         return { ...plan, status: 'cycle' };
       }
 
-      const embedded = context.handle.surface.routes.find((route) => route.id === routeRef);
+      const embeddedMatches = context.handle.surface.routes.filter((route) => route.id === routeRef);
+      if (embeddedMatches.length > 1) {
+        diagnostics.push(
+          surfaceDiagnostic(
+            'ROUTE-HANDLE-AMBIGUOUS',
+            `Route handle "${context.handle.surfaceId}/${routeRef}" names more than one route. The embedded route is unavailable.`,
+            site,
+            { routeRef, paths: embeddedMatches.map((route) => route.path) },
+          ),
+        );
+        return plan;
+      }
+      const embedded = embeddedMatches[0];
       if (!embedded) {
         diagnostics.push(
           surfaceDiagnostic(

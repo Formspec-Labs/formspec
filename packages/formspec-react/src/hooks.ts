@@ -6,6 +6,7 @@ export type {
     ResponseActionInvoker,
     ResponseActionInvokerInput,
     ResponseActionInvokerResult,
+    ResponseActionInvocationResult,
     SubmitResult,
 } from './context';
 export { useSignal } from './use-signal';

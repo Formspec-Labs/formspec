@@ -32,7 +32,12 @@ import {
 import type { ComponentMap } from './component-map';
 
 export type ResponseActionsDocument = ResponseActionsDocumentInput;
-export type { ActionRefFinding, ActionResolution, ResponseAction };
+export type {
+    ActionRefFinding,
+    ActionResolution,
+    ResponseAction,
+    ResponseActionInvocationResult,
+};
 
 export interface ResponseActionInvokerInput<TDetail = SubmitResult> {
     document: ResponseActionsDocument | null | undefined;
@@ -60,6 +65,8 @@ export interface FormspecContextValue {
     components: ComponentMap;
     /** Theme document from the provider (used for container token emission). */
     themeDocument?: any;
+    /** Whether this tree owns theme-token emission. */
+    emitThemeTokens: boolean;
     /** Component document from the provider (used for container token emission). */
     componentDocument?: any;
     /** Host-supplied Component graph projection context. Projection-only; no runtime authority. */
@@ -133,6 +140,11 @@ export interface FormspecProviderProps {
     hostEvidence?: LayoutHostEvidence | null;
     /** Theme document for presentation cascade. */
     themeDocument?: any;
+    /**
+     * Emit theme tokens on provider and form-container elements. Default true.
+     * Set false when an owning shell already emitted the effective token map.
+     */
+    emitThemeTokens?: boolean;
     /** Response Actions document for ActionButton actionRef resolution. */
     responseActionsDocument?: ResponseActionsDocument | null;
     /** Initial response data to pre-populate fields (for edit flows). */
@@ -208,6 +220,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         resolveActionIdempotencyKey,
         children,
     } = props;
+    const shouldEmitThemeTokens = props.emitThemeTokens ?? true;
     const hasIssuerOverrideProp = Object.prototype.hasOwnProperty.call(props, 'issuerOverride');
 
     /**
@@ -395,6 +408,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
     // Auto-emit theme tokens as CSS custom properties onto the provider's OWN
     // element — never the document root. See `themeScopeRef` below for why.
     useEffect(() => {
+        if (!shouldEmitThemeTokens) return;
         const el = themeScopeRef.current;
         if (!el) return;
         const tokens = themeDocument?.tokens;
@@ -406,7 +420,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
                 if (property.startsWith('--formspec-')) el.style.removeProperty(property);
             }
         };
-    }, [themeDocument]);
+    }, [themeDocument, shouldEmitThemeTokens]);
 
     useEffect(() => {
         // Only dispose if we created the engine internally
@@ -421,6 +435,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             layoutPlan,
             components,
             themeDocument,
+            emitThemeTokens: shouldEmitThemeTokens,
             componentDocument,
             componentGraph,
             hostEvidence,
@@ -441,7 +456,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             registryEntries: registryMap,
             formPresentation: mergedFormPresentation,
         }),
-        [engine, layoutPlan, components, themeDocument, componentDocument, componentGraph, hostEvidence, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
+        [engine, layoutPlan, components, themeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
     );
 
     return (

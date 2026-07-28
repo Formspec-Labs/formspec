@@ -144,4 +144,79 @@ describe('planTransitions', () => {
     expect(transitions).toEqual([]);
     expect(diagnostics).toEqual([]);
   });
+
+  it('does not expose a transition whose FEL condition evaluates false', () => {
+    const conditional = composeSurfaceApp([
+      {
+        ...respondentSurface,
+        routes: [
+          {
+            ...respondentSurface.routes[0],
+            transitions: [{ trigger: 'submit', to: 'receipt', when: 'eligible = true' }],
+          },
+          respondentSurface.routes[1],
+        ],
+      } as typeof respondentSurface,
+    ]);
+    const { transitions, diagnostics } = planTransitions({
+      handle: conditional.routes[0]!,
+      app: conditional,
+      responseActions: [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }],
+      hasExecutor: true,
+      evaluateCondition: () => false,
+    });
+    expect(transitions[0]?.status).toBe('condition-false');
+    expect(diagnostics).toEqual([]);
+  });
+
+  it('fails closed and reports when no validated bundle-state evaluator can evaluate when', () => {
+    const conditional = composeSurfaceApp([
+      {
+        ...respondentSurface,
+        routes: [
+          {
+            ...respondentSurface.routes[0],
+            transitions: [{ trigger: 'submit', to: 'receipt', when: 'eligible = true' }],
+          },
+          respondentSurface.routes[1],
+        ],
+      } as typeof respondentSurface,
+    ]);
+    const { transitions, diagnostics } = planTransitions({
+      handle: conditional.routes[0]!,
+      app: conditional,
+      responseActions: [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }],
+      hasExecutor: true,
+    });
+    expect(transitions[0]?.status).toBe('condition-unevaluable');
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      'TRANSITION-CONDITION-UNEVALUABLE',
+    ]);
+  });
+
+  it('converts a condition-evaluator exception into the same fail-closed report', () => {
+    const conditional = composeSurfaceApp([
+      {
+        ...respondentSurface,
+        routes: [
+          {
+            ...respondentSurface.routes[0],
+            transitions: [{ trigger: 'submit', to: 'receipt', when: 'eligible = true' }],
+          },
+          respondentSurface.routes[1],
+        ],
+      } as typeof respondentSurface,
+    ]);
+    const { transitions, diagnostics } = planTransitions({
+      handle: conditional.routes[0]!,
+      app: conditional,
+      responseActions: [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }],
+      hasExecutor: true,
+      evaluateCondition: () => {
+        throw new Error('bundle state unavailable');
+      },
+    });
+    expect(transitions[0]?.status).toBe('condition-unevaluable');
+    expect(diagnostics[0]?.details?.reason).toBe('bundle state unavailable');
+  });
 });

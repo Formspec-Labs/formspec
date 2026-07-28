@@ -122,15 +122,15 @@ describe('flattenRegistryEntries', () => {
     expect(diagnostics).toEqual([]);
   });
 
-  it('gives the first declaration precedence and REPORTS the loser', () => {
+  it('refuses every declaration in an ambiguous name group and reports it once', () => {
     const second = {
       $formspecRegistry: '1.0',
       entries: [{ name: 'x-acme-banner', category: 'widget', version: '9.9.9', status: 'stable' }],
     } as unknown as RegistryDocument;
     const { entries: flat, diagnostics } = flattenRegistryEntries([registryDocument, second]);
-    expect(flat.filter((entry) => entry.name === 'x-acme-banner')).toHaveLength(1);
-    expect(flat.find((entry) => entry.name === 'x-acme-banner')?.version).toBe('0.1.0');
+    expect(flat.filter((entry) => entry.name === 'x-acme-banner')).toHaveLength(0);
     expect(diagnostics.map((d) => d.code)).toEqual(['REGISTRY-ENTRY-NAME-COLLISION']);
+    expect(diagnostics[0]?.details?.registryIndices).toEqual([0, 1]);
   });
 
   it('handles a registry with no entries', () => {

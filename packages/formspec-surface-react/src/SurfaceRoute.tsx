@@ -37,6 +37,7 @@ import {
   resolveRouteTitleLevel,
   resolveSurfaceStrings,
   type PlannedTransition,
+  type ResponseActionsDocumentLike,
   type SurfaceRoutePlan,
   type SurfaceStrings,
 } from '@formspec-org/surface';
@@ -61,7 +62,7 @@ export interface SurfaceRouteViewProps {
    */
   showThemeNotice?: boolean | undefined;
   /** The Response Actions document a `definition-form` slot runs its actions under. */
-  responseActionsDocument?: unknown;
+  responseActionsDocuments?: readonly ResponseActionsDocumentLike[] | undefined;
   /** Runs a transition's action under Response Actions authority. */
   onFireTransition?:
     | ((
@@ -83,7 +84,7 @@ export function SurfaceRouteView({
   widgetData,
   showExperienceNeeds,
   showThemeNotice = false,
-  responseActionsDocument,
+  responseActionsDocuments,
   onFireTransition,
   onAdvance,
 }: SurfaceRouteViewProps) {
@@ -156,14 +157,16 @@ export function SurfaceRouteView({
             strings={text}
             widgetData={widgetData}
             showExperienceNeeds={showExperienceNeeds}
-            responseActionsDocument={responseActionsDocument}
-            onActionCompleted={(intent) => {
+            responseActionsDocuments={responseActionsDocuments}
+            onActionCompleted={(action) => {
               // The form's own submit ran under Response Actions authority and
               // reported success. THAT is what advances the route — not the
               // click that started it.
               const supplied = plan.transitions.find(
                 (candidate) =>
-                  candidate.status === 'supplied-by-slot' && candidate.trigger === intent,
+                  candidate.status === 'supplied-by-slot' &&
+                  (candidate.trigger === action.id ||
+                    candidate.trigger === action.intent),
               );
               if (supplied) onAdvance?.(supplied);
             }}

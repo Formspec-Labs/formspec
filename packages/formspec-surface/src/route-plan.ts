@@ -35,6 +35,7 @@ import {
   slotSuppliedTriggers,
   type PlannedTransition,
   type ResponseActionsDocumentLike,
+  type TransitionConditionEvaluator,
 } from './transitions.js';
 
 export interface SurfaceRoutePlanInput<TComponent> {
@@ -50,6 +51,8 @@ export interface SurfaceRoutePlanInput<TComponent> {
   themeAuthority: ThemeAuthority;
   /** Whether the host supplied a Response Actions executor. Never assumed. */
   hasExecutor?: boolean | undefined;
+  /** Host-owned FEL evaluation over validated bundle state. */
+  evaluateCondition?: TransitionConditionEvaluator | undefined;
   /**
    * Level this route's content starts at. `2` — the route title is the page's
    * single `h1` — unless a host that owns the page heading moves it (§3.4.1
@@ -96,7 +99,11 @@ export function planMatchedRoute<TComponent>(
     app: input.app,
     responseActions,
     hasExecutor: input.hasExecutor ?? false,
+    params: input.params ?? {},
     slotSuppliedTriggers: slotSuppliedTriggers(route.slots, responseActions),
+    ...(input.evaluateCondition !== undefined
+      ? { evaluateCondition: input.evaluateCondition }
+      : {}),
     ...(input.strings !== undefined ? { strings: input.strings } : {}),
   });
 

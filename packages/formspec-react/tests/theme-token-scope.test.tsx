@@ -149,6 +149,25 @@ describe('theme token scope — ADR 0161 runtime half', () => {
         container.remove();
     });
 
+    it('lets an owning shell disable both provider and form-container emission', () => {
+        const { root, container } = mount(
+            <FormspecForm
+                definition={definition}
+                themeDocument={tenantTheme}
+                emitThemeTokens={false}
+            />,
+        );
+
+        const scope = container.querySelector<HTMLElement>('.formspec-theme-scope');
+        const form = container.querySelector<HTMLElement>('.formspec-container');
+        expect(scope?.style.getPropertyValue('--formspec-color-primary')).toBe('');
+        expect(form?.style.getPropertyValue('--formspec-color-primary')).toBe('');
+        expect(reachableFormspecValues()).not.toContain(TENANT_BRAND);
+
+        flushSync(() => root.unmount());
+        container.remove();
+    });
+
     // The measurement the spike took, as a permanent test: render a themed
     // tree, navigate away, assert nothing tenant-shaped is still reachable.
     it('no tenant token value survives unmount', () => {

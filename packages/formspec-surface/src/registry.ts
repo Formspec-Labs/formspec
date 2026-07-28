@@ -35,11 +35,11 @@
  * `RegistryEntry.name` would resolve nothing the day a module uses a
  * PascalCase widget name — which the schema explicitly permits.
  *
- * The app-graph twin is module-private and shaped for the resolver's input
- * types, so this is a second implementation of the same walk rather than a
- * reuse. That is a reach gap, not a semantic difference; the two are pinned to
- * each other by this comment and by
- * `tests/widget-registry.test.ts`'s PascalCase case.
+ * The app-graph equivalent is module-private and shaped for the resolver's
+ * input types, so this is a second implementation of the same identity rule
+ * rather than a reuse. `tests/registry.test.ts` independently pins this
+ * package's PascalCase `widgetShape.widgetName` behavior; it does not claim to
+ * be a cross-package twin-walk test.
  */
 import type { RegistryDocument, RegistryEntry } from '@formspec-org/types';
 import { surfaceDiagnostic, type SurfaceDiagnostic, type SurfaceDiagnosticSite } from './diagnostics.js';
@@ -212,39 +212,53 @@ export interface FlattenedRegistryEntries {
  * `flatMap` kept both and let the renderer take whichever it found first — a
  * silent winner (gap ledger `registry-entries-wiring`).
  *
- * The rule stated here: **first declaration in manifest-then-author order wins,
- * and every later declaration of the same name raises
- * `REGISTRY-ENTRY-NAME-COLLISION`.** Manifest order is the only ordering the
- * bundle states, so precedence follows it; the diagnostic is what makes the
- * choice reviewable rather than accidental. Nothing in the spec, schema or
- * validator states a precedence rule — when one lands, this is the single site
- * that changes.
+ * The rule stated here: **an ambiguous name resolves to no entry**, and one
+ * `REGISTRY-ENTRY-NAME-COLLISION` names every declaring Registry. Picking the
+ * first declaration would invent precedence the signed graph does not state
+ * and let two processors render different widgets from the same bundle.
  */
 export function flattenRegistryEntries(
   registries: readonly RegistryDocument[],
 ): FlattenedRegistryEntries {
-  const entries: RegistryEntry[] = [];
-  const byName = new Map<string, number>();
+  const declarations: {
+    entry: RegistryEntry;
+    registryIndex: number;
+    entryIndex: number;
+  }[] = [];
+  const byName = new Map<string, typeof declarations>();
   const diagnostics: SurfaceDiagnostic[] = [];
 
   registries.forEach((registry, registryIndex) => {
-    for (const entry of registry.entries ?? []) {
-      const firstAt = byName.get(entry.name);
-      if (firstAt !== undefined) {
-        diagnostics.push(
-          surfaceDiagnostic(
-            'REGISTRY-ENTRY-NAME-COLLISION',
-            `Registry entry "${entry.name}" is declared by more than one Registry document. The first declaration wins; this one is ignored.`,
-            { source: `registries[${registryIndex}]` },
-            { name: entry.name, winningRegistryIndex: firstAt, ignoredRegistryIndex: registryIndex },
-          ),
-        );
-        continue;
-      }
-      byName.set(entry.name, registryIndex);
-      entries.push(entry);
-    }
+    (registry.entries ?? []).forEach((entry, entryIndex) => {
+      const declaration = { entry, registryIndex, entryIndex };
+      declarations.push(declaration);
+      byName.set(entry.name, [...(byName.get(entry.name) ?? []), declaration]);
+    });
   });
+
+  for (const [name, matches] of byName) {
+    if (matches.length < 2) continue;
+    const registryIndices = matches.map(({ registryIndex }) => registryIndex);
+    diagnostics.push(
+      surfaceDiagnostic(
+        'REGISTRY-ENTRY-NAME-COLLISION',
+        `Registry entry "${name}" is declared more than once. No declaration is used because the bundle states no precedence rule.`,
+        { source: `registries[${registryIndices[0] ?? 0}]` },
+        {
+          name,
+          registryIndices,
+          declarations: matches.map(({ registryIndex, entryIndex }) => ({
+            registryIndex,
+            entryIndex,
+          })),
+        },
+      ),
+    );
+  }
+
+  const entries = declarations
+    .filter(({ entry }) => (byName.get(entry.name)?.length ?? 0) === 1)
+    .map(({ entry }) => entry);
 
   return { entries, diagnostics };
 }
