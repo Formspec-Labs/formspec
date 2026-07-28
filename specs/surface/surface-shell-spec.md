@@ -1810,3 +1810,46 @@ artifact.
 | [RFC 8259] | Bray, T., Ed., "The JavaScript Object Notation (JSON) Data Interchange Format", STD 90, RFC 8259, December 2017. |
 
 *End of Formspec Surface Shell Specification.*
+
+---
+
+## Appendix C — Open review findings (2026-07-28)
+
+An independent architecture review returned **RECONSIDER** on this document. The decisions
+survive; the defects below are recorded here rather than in a separate file so the next reader
+of the spec sees them without a second lookup. Version stays `0.1.0-draft.1` until items 1–4
+close.
+
+**1. BLOCKER — two MUSTs point opposite ways.** §4.2/§7.2/§8.2 item 24 make reading the platform
+token registry at render time a core conformance requirement. [`token-registry-spec.md`](../theme/token-registry-spec.md)
+§5.2 states renderers MUST NOT depend on the registry at runtime — "the registry exists for
+tooling only" — and this document never engages that sentence. Preferred resolution: move the
+check to the validator, where §5.3's `THEME-TOKEN-UNREGISTERED` already owns the same predicate
+at the same severity, and drop `THEME-TOKEN-UNKNOWN` from §7.2.
+
+**2. The stronger contrary sentence is unrebutted.** §4.3 rebuts one statement and misses
+[`surface-spec.md`](surface-spec.md) §3's headline — *"the two states have opposite theme
+postures … an unclassified route refuses nothing"* — which this document reverses at runtime.
+The decision is right; the rebuttal must quote that sentence and file an amendment narrowing it
+to authoring-time posture.
+
+**3. Internal contradiction.** §5.3 permits a binding to render a control for a `fireable`
+transition; §8.3 prohibition 2 forbids synthesizing a navigation control bound to a declared
+transition, with no exception. Amend the prohibition to except a transition §5.3 resolves as
+`fireable` — the host's supply of an executor is the request. [`response-actions-spec.md`](../response-actions/response-actions-spec.md)
+§10 already blesses that shape and should be cited in §5.3.
+
+**4. `E611` is too strict to ship at `error`.** Authoring time cannot see a host-supplied
+executor, so the gate blocks publication of exactly the route shape §5.3 blesses. Mint at
+`warning`, escalating to `error` when F4 lands. §5.2's module-widget row should read "cannot
+declare a trigger *legibly to a validator*" — the weaker, truer claim.
+
+**5–8, pre-1.0 not pre-commit.** File the Theme-tier finding for TB-2 and the platform-under-
+tenant layering rule (both originate here on a Rendering-ring artifact — ADR 0161 §4 condition
+4); file the schema finding for `level`'s rank semantics, which [`surface.schema.json`](../../schemas/surface.schema.json)
+still documents as an absolute heading level; mint or explicitly decline the four fail-closed
+branches that have no diagnostic code (unrecognised `slotType`, unrecognised `static-content`
+kind, ambiguous route handle, unevaluable `when`); apply §2.4's own refusal posture to colliding
+Registry entry names; add the three divergences the register missed (a throwing slot dispatch, a
+nav link emitting an unsubstituted marker, a submit result discarded before advancing) and soften
+Appendix B's "every place" claim — a register cannot self-certify completeness.
