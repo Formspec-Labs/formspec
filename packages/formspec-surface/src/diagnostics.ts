@@ -75,6 +75,8 @@ export const SURFACE_DIAGNOSTIC_CODES = [
   'STATIC-CONTENT-KIND-UNKNOWN',
   /** A `static-content` slot with `kind: image` has no authored alternative text. */
   'STATIC-IMAGE-NO-ALT',
+  /** The host did not admit an authored image source for runtime dereferencing. */
+  'STATIC-IMAGE-SOURCE-REFUSED',
   /** Tenant theming was withheld because the route declares no `routeClass`. */
   'THEME-UNCLASSIFIED-REFUSED',
   /** Formspec custom properties observed on the document root, which no conforming emitter writes. */
@@ -122,6 +124,7 @@ export const SURFACE_DIAGNOSTIC_SEVERITY = {
   'REGISTRY-ENTRY-NAME-COLLISION': 'warning',
   'STATIC-CONTENT-KIND-UNKNOWN': 'error',
   'STATIC-IMAGE-NO-ALT': 'warning',
+  'STATIC-IMAGE-SOURCE-REFUSED': 'error',
   'THEME-UNCLASSIFIED-REFUSED': 'info',
   'THEME-DOCUMENT-ROOT-CONTAMINATED': 'error',
   'TRANSITION-CONDITION-UNEVALUABLE': 'warning',

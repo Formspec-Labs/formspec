@@ -6,9 +6,18 @@
  * one `h1` per page, no skipped levels, and nesting that never outranks its host.
  */
 import { describe, expect, it } from 'vitest';
-import { STATIC_CONTENT_KINDS, planStaticContent, resolveHeadingLevel } from '../src/static-content.js';
+import {
+  STATIC_CONTENT_KINDS,
+  planStaticContent,
+  resolveHeadingLevel,
+  type SurfaceStaticAssetResolver,
+} from '../src/static-content.js';
 
 const site = { surfaceId: 's', routeId: 'r', slotId: 'slot' };
+const admitAuthoredSource: SurfaceStaticAssetResolver = ({ source }) => ({
+  status: 'admitted',
+  source,
+});
 
 describe('resolveHeadingLevel', () => {
   it('treats an authored level as a rank within the route, not a document level', () => {
@@ -73,6 +82,7 @@ describe('planStaticContent', () => {
     const { plan, diagnostics } = planStaticContent({
       binding: { kind: 'image', content: 'https://example.test/seal.png' },
       slotTitle: 'Department seal',
+      staticAssetResolver: admitAuthoredSource,
       site,
     });
     expect(plan).toEqual({
@@ -91,9 +101,12 @@ describe('planStaticContent', () => {
 
   it('fires STATIC-IMAGE-NO-ALT on every image slot and no other kind', () => {
     const fires = (binding: Record<string, unknown>, slotTitle?: string) =>
-      planStaticContent({ binding, site, ...(slotTitle ? { slotTitle } : {}) }).diagnostics.map(
-        (d) => d.code,
-      );
+      planStaticContent({
+        binding,
+        site,
+        staticAssetResolver: admitAuthoredSource,
+        ...(slotTitle ? { slotTitle } : {}),
+      }).diagnostics.map((d) => d.code);
     expect(fires({ kind: 'image', content: 'a.png' })).toEqual(['STATIC-IMAGE-NO-ALT']);
     expect(fires({ kind: 'image', content: 'a.png' }, 'Seal')).toEqual(['STATIC-IMAGE-NO-ALT']);
     expect(fires({ kind: 'text', content: 'a' })).toEqual([]);
@@ -104,10 +117,87 @@ describe('planStaticContent', () => {
   it('marks an unnamed image decorative AND says the channel is missing', () => {
     const { plan, diagnostics } = planStaticContent({
       binding: { kind: 'image', content: 'https://example.test/seal.png' },
+      staticAssetResolver: admitAuthoredSource,
       site,
     });
     expect(plan).toMatchObject({ kind: 'image', alt: '', decorative: true });
     expect(diagnostics.map((d) => d.code)).toEqual(['STATIC-IMAGE-NO-ALT']);
+  });
+
+  it('refuses to plan an image when the host supplies no asset resolver', () => {
+    const { plan, diagnostics } = planStaticContent({
+      binding: { kind: 'image', content: 'https://untrusted.example/seal.png' },
+      site,
+    });
+
+    expect(plan).toBeUndefined();
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      'STATIC-IMAGE-NO-ALT',
+      'STATIC-IMAGE-SOURCE-REFUSED',
+    ]);
+    expect(diagnostics[1]?.details).toEqual({
+      authoredSource: 'https://untrusted.example/seal.png',
+      reason: 'resolver-absent',
+    });
+  });
+
+  it('uses only the source admitted by the host resolver', () => {
+    const staticAssetResolver: SurfaceStaticAssetResolver = (request) => {
+      expect(request).toEqual({
+        kind: 'image',
+        source: 'asset:seal',
+        site,
+      });
+      return { status: 'admitted', source: 'https://cdn.example.test/safe/seal.png' };
+    };
+
+    const { plan, diagnostics } = planStaticContent({
+      binding: { kind: 'image', content: 'asset:seal' },
+      slotTitle: 'Department seal',
+      staticAssetResolver,
+      site,
+    });
+
+    expect(plan).toMatchObject({
+      kind: 'image',
+      src: 'https://cdn.example.test/safe/seal.png',
+    });
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      'STATIC-IMAGE-NO-ALT',
+    ]);
+  });
+
+  it.each([
+    {
+      name: 'host refusal',
+      resolver: () => ({ status: 'refused', reason: 'origin-not-allowed' }) as const,
+      reason: 'origin-not-allowed',
+    },
+    {
+      name: 'empty admitted source',
+      resolver: () => ({ status: 'admitted', source: '' }) as const,
+      reason: 'empty-admitted-source',
+    },
+    {
+      name: 'resolver error',
+      resolver: () => {
+        throw new Error('host details stay private');
+      },
+      reason: 'resolver-error',
+    },
+  ])('renders the image unavailable after $name', ({ resolver, reason }) => {
+    const { plan, diagnostics } = planStaticContent({
+      binding: { kind: 'image', content: 'asset:seal' },
+      staticAssetResolver: resolver,
+      site,
+    });
+
+    expect(plan).toBeUndefined();
+    expect(diagnostics.at(-1)).toMatchObject({
+      code: 'STATIC-IMAGE-SOURCE-REFUSED',
+      severity: 'error',
+      details: { authoredSource: 'asset:seal', reason },
+    });
   });
 
   it('refuses a kind outside the closed set instead of guessing', () => {

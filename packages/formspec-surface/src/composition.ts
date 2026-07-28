@@ -172,7 +172,7 @@ export function composeSurfaceApp(
         'ROUTE-PATH-COLLISION',
         `Routes ${members.map((member) => `"${member}"`).join(' and ')} claim the same address (${claimants
           .map((handle) => `"${handle.path}"`)
-          .join(', ')}). The shell answers that address with none of them; each stays reachable through a transition, an embed, or surface:<route-id>.`,
+          .join(', ')}). The shell answers that address with none of them. Their qualified route records remain available to the host, but the shell promises no person-facing route to either claimant.`,
         { surfaceId: claimants[0]?.surfaceId ?? '', routeId: claimants[0]?.routeId ?? '' },
         { pattern, routes: members, paths: claimants.map((handle) => handle.path) },
       ),
@@ -285,15 +285,26 @@ export function matchRoute(app: SurfaceApp, pathname: string): SurfaceRouteResol
 }
 
 /**
- * A linkable URL for a route. Markers with no supplied value stay in the string
- * and raise `ROUTE-PARAM-UNSUPPLIED`, so a navigation cannot quietly render a
- * link that goes nowhere — and never the parameter's name or its `example`,
- * which are the two substitutions §2.7 forbids by name.
+ * A candidate URL plus the reason it cannot become live navigation.
+ *
+ * Collision claimants retain their authored path and qualified route record,
+ * but `refusal: "collision"` prevents bindings and transition handlers from
+ * publishing that path as a destination. Markers with no supplied value stay
+ * in the string and raise `ROUTE-PARAM-UNSUPPLIED`; their
+ * `refusal: "parameters"` likewise prevents a link that goes nowhere. The
+ * shell never substitutes the parameter's name or its `example`, which are the
+ * two substitutions §2.7 forbids by name.
  */
+export type SurfaceRouteHrefRefusal = 'collision' | 'parameters';
+
 export function routeHref(
   handle: SurfaceRouteHandle,
   params: Readonly<Record<string, string>> = {},
-): { href: string; diagnostics: readonly SurfaceDiagnostic[] } {
+): {
+  href: string;
+  diagnostics: readonly SurfaceDiagnostic[];
+  refusal: SurfaceRouteHrefRefusal | undefined;
+} {
   const missing = handle.markers.filter((marker) => params[marker.name] === undefined);
   const diagnostics = missing.map((marker) =>
     surfaceDiagnostic(
@@ -303,7 +314,12 @@ export function routeHref(
       { path: handle.path, name: marker.name },
     ),
   );
-  return { href: fillRoutePath(handle.path, params), diagnostics };
+  const refusal: SurfaceRouteHrefRefusal | undefined = handle.pathCollides
+    ? 'collision'
+    : diagnostics.length > 0
+      ? 'parameters'
+      : undefined;
+  return { href: fillRoutePath(handle.path, params), diagnostics, refusal };
 }
 
 /** The route a transition targets, resolved within the transition's own Surface. */

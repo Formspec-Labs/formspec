@@ -9,15 +9,35 @@
 import { describe, expect, it } from 'vitest';
 import { composeSurfaceApp } from '../src/composition.js';
 import { planTransitions } from '../src/transitions.js';
-import { respondentSurface } from './fixtures.js';
+import { respondentSurface, route, surface } from './fixtures.js';
 
 const app = composeSurfaceApp([respondentSurface]);
 const apply = app.routes.find((handle) => handle.routeId === 'apply')!;
 
+function collisionTargetApp() {
+  return composeSurfaceApp([
+    surface('staff', 'start', [
+      route({
+        id: 'start',
+        path: '/start',
+        slots: [] as never,
+        transitions: [{ trigger: 'submit', to: 'queue' }],
+      }),
+      route({ id: 'queue', path: '/queue', slots: [] as never }),
+    ]),
+    surface('oversight', 'queue', [
+      route({ id: 'queue', path: '/queue', slots: [] as never }),
+    ]),
+  ]);
+}
+
 describe('planTransitions', () => {
   it('refuses when the bundle carries no Response Actions document at all', () => {
     const { transitions, diagnostics } = planTransitions({ handle: apply, app, hasExecutor: true });
-    expect(transitions[0]?.status).toBe('no-response-actions-document');
+    expect(transitions[0]).toMatchObject({
+      status: 'unfireable',
+      unfireableReason: 'no-response-actions-document',
+    });
     expect(diagnostics.map((d) => d.code)).toEqual(['TRANSITION-UNFIREABLE']);
   });
 
@@ -28,7 +48,10 @@ describe('planTransitions', () => {
       responseActions: [{ actions: [{ id: 'saveDraft', intent: 'save-draft' }] }],
       hasExecutor: true,
     });
-    expect(transitions[0]?.status).toBe('trigger-unresolved');
+    expect(transitions[0]).toMatchObject({
+      status: 'unfireable',
+      unfireableReason: 'trigger-unresolved',
+    });
   });
 
   it('resolves a closed-core intent published by exactly one action', () => {
@@ -51,7 +74,10 @@ describe('planTransitions', () => {
       ],
       hasExecutor: true,
     });
-    expect(transitions[0]?.status).toBe('trigger-unresolved');
+    expect(transitions[0]).toMatchObject({
+      status: 'unfireable',
+      unfireableReason: 'trigger-unresolved',
+    });
     expect(transitions[0]?.reason).toContain('More than one');
   });
 
@@ -99,7 +125,10 @@ describe('planTransitions', () => {
       hasExecutor: false,
       slotSuppliedTriggers: new Set(['review']),
     });
-    expect(transitions[0]?.status).toBe('no-executor');
+    expect(transitions[0]).toMatchObject({
+      status: 'unfireable',
+      unfireableReason: 'no-executor',
+    });
   });
 
   it('refuses when the trigger resolves and no host executor exists', () => {
@@ -109,7 +138,10 @@ describe('planTransitions', () => {
       responseActions: [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }],
       hasExecutor: false,
     });
-    expect(transitions[0]?.status).toBe('no-executor');
+    expect(transitions[0]).toMatchObject({
+      status: 'unfireable',
+      unfireableReason: 'no-executor',
+    });
     expect(transitions[0]?.actionId).toBe('submitApplication');
   });
 
@@ -129,7 +161,47 @@ describe('planTransitions', () => {
       responseActions: [{ actions: [{ id: 'x', intent: 'submit' }] }],
       hasExecutor: true,
     });
-    expect(transitions[0]?.status).toBe('target-unresolved');
+    expect(transitions[0]).toMatchObject({
+      status: 'unfireable',
+      unfireableReason: 'target-unresolved',
+    });
+  });
+
+  it('refuses an executor-driven transition whose target URL collided', () => {
+    const collided = collisionTargetApp();
+    const { transitions, diagnostics } = planTransitions({
+      handle: collided.routes[0]!,
+      app: collided,
+      responseActions: [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }],
+      hasExecutor: true,
+    });
+
+    expect(transitions[0]).toMatchObject({
+      status: 'unfireable',
+      unfireableReason: 'target-path-collision',
+    });
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      'TRANSITION-UNFIREABLE',
+    ]);
+  });
+
+  it('refuses a slot-supplied transition whose target URL collided', () => {
+    const collided = collisionTargetApp();
+    const { transitions, diagnostics } = planTransitions({
+      handle: collided.routes[0]!,
+      app: collided,
+      responseActions: [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }],
+      hasExecutor: false,
+      slotSuppliedTriggers: new Set(['submit']),
+    });
+
+    expect(transitions[0]).toMatchObject({
+      status: 'unfireable',
+      unfireableReason: 'target-path-collision',
+    });
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      'TRANSITION-UNFIREABLE',
+    ]);
   });
 
   it('gives every refusal a sentence a person can read', () => {

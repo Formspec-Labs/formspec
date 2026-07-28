@@ -56,12 +56,35 @@ export type StaticContentPlan =
   | { kind: 'image'; src: string; alt: string; decorative: boolean }
   | { kind: 'divider' };
 
+export interface SurfaceStaticAssetRequest {
+  kind: 'image';
+  /** The untrusted URL or asset reference authored in `binding.content`. */
+  source: string;
+  site: SurfaceDiagnosticSite;
+}
+
+export type SurfaceStaticAssetResolution =
+  | { status: 'admitted'; source: string }
+  | { status: 'refused'; reason?: string | undefined };
+
+/**
+ * The host's synchronous admission boundary for static assets.
+ *
+ * The resolver may turn an authored asset reference into a runtime URL, but it
+ * must return a refusal when its origin or reference is not allowed.
+ */
+export type SurfaceStaticAssetResolver = (
+  request: SurfaceStaticAssetRequest,
+) => SurfaceStaticAssetResolution;
+
 export interface StaticContentPlanInput {
   binding: StaticContentBinding;
   /** Level the enclosing container's content starts at. Default 2. */
   headingBaseLevel?: HeadingLevel;
   /** `slot.title`, the only accessible-name channel an image slot has. */
   slotTitle?: string | undefined;
+  /** Required before an authored image source may reach a binding. */
+  staticAssetResolver?: SurfaceStaticAssetResolver | undefined;
   site: SurfaceDiagnosticSite;
 }
 
@@ -155,13 +178,61 @@ export function planStaticContent(input: StaticContentPlanInput): StaticContentP
           { src: content, accessibleName: alt, source: alt === '' ? 'none' : 'slot.title', finding: 'F1' },
         ),
       );
+      const admittedSource = admitStaticImageSource(
+        input.staticAssetResolver,
+        content,
+        site,
+      );
+      if (admittedSource.status === 'refused') {
+        diagnostics.push(
+          surfaceDiagnostic(
+            'STATIC-IMAGE-SOURCE-REFUSED',
+            'The host did not admit this image source, so the image is unavailable.',
+            site,
+            { authoredSource: content, reason: admittedSource.reason },
+          ),
+        );
+        return { plan: undefined, diagnostics };
+      }
       return {
-        plan: { kind: 'image', src: content, alt, decorative: alt === '' },
+        plan: { kind: 'image', src: admittedSource.source, alt, decorative: alt === '' },
         diagnostics,
       };
     }
 
     case 'divider':
       return { plan: { kind: 'divider' }, diagnostics };
+  }
+}
+
+function admitStaticImageSource(
+  resolver: SurfaceStaticAssetResolver | undefined,
+  source: string,
+  site: SurfaceDiagnosticSite,
+):
+  | { status: 'admitted'; source: string }
+  | { status: 'refused'; reason: string } {
+  if (resolver === undefined) {
+    return { status: 'refused', reason: 'resolver-absent' };
+  }
+
+  try {
+    const result = resolver({ kind: 'image', source, site });
+    if (
+      result?.status === 'admitted' &&
+      typeof result.source === 'string' &&
+      result.source.trim() !== ''
+    ) {
+      return { status: 'admitted', source: result.source };
+    }
+    if (result?.status === 'admitted') {
+      return { status: 'refused', reason: 'empty-admitted-source' };
+    }
+    if (result?.status === 'refused') {
+      return { status: 'refused', reason: result.reason ?? 'host-refused' };
+    }
+    return { status: 'refused', reason: 'resolver-result-invalid' };
+  } catch {
+    return { status: 'refused', reason: 'resolver-error' };
   }
 }

@@ -71,6 +71,8 @@ export const SURFACE_STRING_KEYS = [
   'transitionFailed',
   /** `to` names no route in this Surface. */
   'transitionTargetUnresolved',
+  /** The target route exists, but its URL is collision-refused. */
+  'transitionTargetCollision',
   /** No Response Actions document is loaded, so no trigger can resolve. */
   'transitionNoResponseActions',
   /** A Response Actions document is loaded and does not publish this trigger. */
@@ -133,6 +135,8 @@ export const DEFAULT_SURFACE_STRINGS = {
   transitionFailed: () => 'That did not go through. Nothing has changed.',
   transitionTargetUnresolved: (vars) =>
     `This page says it moves on to “${vars.to ?? ''}”, which is not a page in this part of the app.`,
+  transitionTargetCollision: (vars) =>
+    `This page says it moves on to “${vars.to ?? ''}”, but that page shares its address with another page, so navigation is unavailable.`,
   transitionNoResponseActions: (vars) =>
     `This page says it moves on when “${vars.trigger ?? ''}” happens. Nothing in this release describes how “${vars.trigger ?? ''}” is done, so it cannot happen yet.`,
   transitionTriggerUnresolved: (vars) =>

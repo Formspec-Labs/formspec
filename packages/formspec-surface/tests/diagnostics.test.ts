@@ -2,6 +2,7 @@
  * @filedesc The closed code set, its fixed severities, and the document-root
  * report — `surface-shell-spec.md` §7.
  */
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   SURFACE_DIAGNOSTIC_CODES,
@@ -10,57 +11,26 @@ import {
   surfaceDiagnostic,
 } from '../src/diagnostics.js';
 
-/** The §7.2 table, transcribed. If this list and the source disagree, one is wrong. */
-const SPEC_CODES = [
-  'BUNDLE-DOCUMENT-MISSING',
-  'BUNDLE-DOCUMENT-SHAPE',
-  'SURFACE-ENTRY-UNRESOLVED',
-  'ROUTE-PATH-COLLISION',
-  'ROUTE-HANDLE-AMBIGUOUS',
-  'ROUTE-PARAM-GRAMMAR',
-  'ROUTE-PARAM-UNDECLARED',
-  'ROUTE-PARAM-NO-MARKER',
-  'ROUTE-PARAM-UNSUPPLIED',
-  'ROUTE-UNMATCHED',
-  'EMBED-ROUTE-UNRESOLVED',
-  'EMBED-ROUTE-CYCLE',
-  'SLOT-TYPE-UNKNOWN',
-  'SLOT-BINDING-INCOMPLETE',
-  'EXPERIENCE-UNIT-UNRESOLVED',
-  'WIDGET-UNDECLARED',
-  'WIDGET-UNIMPLEMENTED',
-  'REGISTRY-ENTRY-NAME-COLLISION',
-  'STATIC-CONTENT-KIND-UNKNOWN',
-  'STATIC-IMAGE-NO-ALT',
-  'THEME-UNCLASSIFIED-REFUSED',
-  'THEME-DOCUMENT-ROOT-CONTAMINATED',
-  'TRANSITION-CONDITION-UNEVALUABLE',
-  'TRANSITION-UNFIREABLE',
-];
+function normativeSeverityMap(): Readonly<Record<string, string>> {
+  const specification = readFileSync(
+    new URL('../../../specs/surface/surface-shell-spec.md', import.meta.url),
+    'utf8',
+  );
+  const section = specification
+    .split('### 7.2 The Codes')[1]
+    ?.split('### 7.3 Fire / Does-Not-Fire Conditions')[0];
+  if (section === undefined) throw new Error('Surface Shell §7.2 was not found.');
+
+  const rows = [...section.matchAll(/^\| `([^`]+)` \| `(error|warning|info)` \|/gm)];
+  if (rows.length === 0) throw new Error('Surface Shell §7.2 contains no diagnostic rows.');
+  return Object.fromEntries(rows.map((row) => [row[1], row[2]]));
+}
 
 describe('the closed code set', () => {
-  it('is exactly the spec’s §7.2 table — no more, no fewer', () => {
-    // D5, D6, D7, D20 all added a code. The set is closed because a host that
-    // wants to escalate some codes and ignore others needs the whole list.
-    expect([...SURFACE_DIAGNOSTIC_CODES].sort()).toEqual([...SPEC_CODES].sort());
-  });
-
-  it('fixes a severity for every code', () => {
-    // D3. Without severity the list is knowable and not actionable.
-    for (const code of SURFACE_DIAGNOSTIC_CODES) {
-      expect(SURFACE_DIAGNOSTIC_SEVERITY[code]).toMatch(/^(error|warning|info)$/);
-    }
-  });
-
-  it('matches the spec’s severity for the codes §7.2 pins by name', () => {
-    expect(SURFACE_DIAGNOSTIC_SEVERITY['ROUTE-UNMATCHED']).toBe('warning');
-    expect(SURFACE_DIAGNOSTIC_SEVERITY['STATIC-IMAGE-NO-ALT']).toBe('warning');
-    expect(SURFACE_DIAGNOSTIC_SEVERITY['TRANSITION-UNFIREABLE']).toBe('warning');
-    expect(SURFACE_DIAGNOSTIC_SEVERITY['REGISTRY-ENTRY-NAME-COLLISION']).toBe('warning');
-    expect(SURFACE_DIAGNOSTIC_SEVERITY['TRANSITION-CONDITION-UNEVALUABLE']).toBe('warning');
-    expect(SURFACE_DIAGNOSTIC_SEVERITY['THEME-UNCLASSIFIED-REFUSED']).toBe('info');
-    expect(SURFACE_DIAGNOSTIC_SEVERITY['THEME-DOCUMENT-ROOT-CONTAMINATED']).toBe('error');
-    expect(SURFACE_DIAGNOSTIC_SEVERITY['WIDGET-UNDECLARED']).toBe('error');
+  it('matches every code and severity in the normative §7.2 table exactly', () => {
+    const specification = normativeSeverityMap();
+    expect(Object.keys(specification).sort()).toEqual([...SURFACE_DIAGNOSTIC_CODES].sort());
+    expect(specification).toEqual(SURFACE_DIAGNOSTIC_SEVERITY);
   });
 });
 

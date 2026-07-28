@@ -58,10 +58,11 @@ specification's own decisions.
 **This document sits in the normative spec tree and remains a draft after its
 2026-07-28 architecture review.** It is here rather than in
 `thoughts/` because behavioural semantics a schema cannot encode are normative in
-`specs/**/*.md` — the source-of-truth split ADR 0161 §4 pin-test condition 1 keys
-on — and a citable rule cannot live behind a date-stamped proposal filename. That
-placement is a statement about *where the rule belongs*, not a claim that it has
-been ratified. Read the version: `0.1.0-draft.1`.
+`specs/**/*.md`, as the repository's
+[`CLAUDE.md`](../../CLAUDE.md#spec-authoring-contract) §Spec authoring contract
+states, and a citable rule cannot live behind a date-stamped proposal filename.
+That placement is a statement about *where the rule belongs*, not a claim that
+it has been ratified. Read the version: `0.1.0-draft.1`.
 
 Implementors are encouraged to experiment and provide feedback, but MUST NOT
 treat this document as stable for production use until a 1.0.0 release is
@@ -137,8 +138,9 @@ Additional terms:
   trigger source or the transition does not fire, and an unfireable transition is
   reported during app-graph validation by `E611`
   (`SURFACE-TRANSITION-UNFIREABLE`) (§5).
-- **A shell handed a signed bundle export MUST verify before first paint and MUST
-  refuse, not warn, on failure** (§6).
+- **A host handed a signed bundle export MUST verify before passing any
+  bundle-derived input to shell core or a binding, and MUST refuse, not warn, on
+  failure** (§6).
 - The shell introduces **no new document type and no new schema.** Every gap it
   hits amends an existing schema or an existing spec, and each is named rather
   than invented around — an image with no alternative-text channel, a widget with
@@ -231,9 +233,10 @@ navigation intents; the host performs them.
    state something a trust rule keys on, the shell takes the refusing branch and
    reports. This is the principle §4.3 applies to an absent route class and §5
    applies to an undeclarable trigger source.
-4. **One decision, one site.** Every rule this document states is decided in the
-   shell core, once, and consumed by bindings. A rule that a binding can
-   re-decide is not a rule.
+4. **Review guidance — one decision, one site.** Keep each rule in one shared
+   function and make direct and embedded paths call it. Conformance relies on
+   the observable parity and static boundary in §8.3, not on this design
+   preference by itself.
 5. **The shell is the last enforcement point, never the source of truth.** Theme
    authority is read from the shipped map, not restated (§4.1). Route-class
    values, slot-type values, and static-content kinds are read from the schema
@@ -287,10 +290,11 @@ renderer-local DOM state. This section states the composition consequence:
 - A route path is **not** an identity. It is the host-facing address of one
   route, and §2.4 governs what happens when two routes claim the same one.
 - The `surface:<route-id>` URI scheme
-  ([surface-spec](surface-spec.md) §6) resolves across the
-  loaded Surfaces and MUST resolve to exactly one route. When two Surfaces
-  declare the same id, a bare `surface:<route-id>` is ambiguous and the resolution
-  is a cross-artifact validation error, not a shell tie-break.
+  ([surface-spec](surface-spec.md) §6) is a Screener/AppGraph destination URI,
+  not a runtime route identity or a general shell handle. AppGraph validation
+  resolves it across loaded Surfaces and requires exactly one match. Runtime
+  route state uses the qualified pair; URL matching is a separate host or
+  binding concern.
 
 ### 2.3 Path Grammar and Matching
 
@@ -328,9 +332,10 @@ both appear to work, so an authoring tool that emits the wrong one is never
 corrected and a renderer that drops it is never blamed."* Accepting `:name`
 alongside `{name}` is that alias in the route grammar. Two shells would disagree
 about what a signed URL means — one deep-links, one returns nothing — with the
-bundle valid under both readings. The route stays reachable by route handle
-(`surface:<route-id>`, a transition, an `embed-route`); only its URL address
-degrades, and it degrades loudly.
+bundle valid under both readings. The qualified route record remains in the
+composed model, but its malformed URL address degrades loudly. Person-facing
+reachability then depends on valid entry paths the host actually provides; the
+shell does not invent a fallback address.
 
 Matching is otherwise conventional and stated here so bindings do not each pick:
 a trailing slash on a non-root path is ignored; matching is case-sensitive on
@@ -349,8 +354,21 @@ wins. If no index differs in kind, the candidates are **colliding**.
 **Collision rule.** Colliding paths MUST NOT be resolved by declaration order,
 Surface order, or any other tie-break. The shell MUST report
 `ROUTE-PATH-COLLISION` naming every colliding route, and MUST NOT resolve that
-path to any of them. Both routes remain in the table and remain reachable by
-route handle.
+path to any of them. Both qualified route records remain in the table. Their
+presence does not guarantee that a person can reach either one.
+
+**Collision navigation rule.** A binding MUST NOT expose an interactive
+navigation control for any claimant of a refused address. This includes both a
+navigation-list item and a transition control whose successful action would
+navigate to the claimant. The transition MUST remain unavailable; a successful
+action from a slot already on the page MUST NOT advance to the refused address,
+and the binding MUST check the refusal again before emitting any navigation
+intent. A binding MAY render each claimant as an unavailable item. When it does,
+the item MUST expose its unavailable link state to assistive technology without
+an `href`, activation handler, or tab stop. It MAY omit claimants only when the
+host still receives the complete `ROUTE-PATH-COLLISION` diagnostic, including
+every qualified claimant. A binding MUST NOT turn declaration order into a
+hidden navigation tie-break.
 
 **Collision is tested over matching behaviour, not over authored strings.** Two
 paths collide when they match the same set of incoming paths — same segment
@@ -447,8 +465,9 @@ unrecognised `slotType` MUST produce an unavailable slot plan and
 
 **Order is authored.** Slots render in `slots[]` order. `position` is an
 OPTIONAL renderer hint with no normative vocabulary at v0.1
-([surface-spec](surface-spec.md) §5); a binding MAY consume
-it, and MUST fall back to document order for any slot that declares none.
+([`surface.schema.json#/$defs/Slot/properties/position`](../../schemas/surface.schema.json#/$defs/Slot/properties/position));
+a binding MAY consume it, and MUST fall back to document order for any slot
+that declares none.
 
 **Two absent states, and they are different.** A conformant shell distinguishes:
 
@@ -659,6 +678,14 @@ binding has no alternative-text channel.** A shell therefore:
 - **MUST** report `STATIC-IMAGE-NO-ALT` in **both** cases. Neither branch has an
   authored alternative text, and the diagnostic is what keeps the gap countable
   rather than papered over by the `slot.title` fallback.
+- **MUST NOT** hand `binding.content` directly to a binding for dereferencing.
+  The host supplies a synchronous static-asset resolver that receives the
+  authored source and the slot's document-vocabulary site. The resolver returns
+  either an admitted runtime source or a refusal. With no resolver, a refusal,
+  or an empty admitted source, the core produces an unavailable slot plan and
+  reports `STATIC-IMAGE-SOURCE-REFUSED`. The resolver is where a host applies
+  its origin allowlist and maps private asset references; the shell does not
+  invent either policy.
 
 *This specification's own decision, and a finding.* An image with no accessible
 name is a WCAG 2.2 SC 1.1.1 failure and a renderer cannot invent one. Closing it
@@ -1030,6 +1057,22 @@ and MUST expose which:
 | `condition-false` | `when` evaluates to `false` against validated bundle-state bindings. | Keep the transition dormant. Render no control and emit no diagnostic. |
 | `condition-unevaluable` | `when` cannot be evaluated against validated bundle-state bindings, including an evaluator failure. | Keep the transition dormant and report `TRANSITION-CONDITION-UNEVALUABLE`. |
 
+The public transition plan MUST keep state separate from refusal cause. When
+`status` is `unfireable`, it MUST also carry `unfireableReason` with exactly one
+of these values:
+
+| `unfireableReason` | Meaning |
+|---|---|
+| `no-response-actions-document` | No loaded Response Actions document can resolve a trigger. |
+| `trigger-unresolved` | Loaded Response Actions documents do not publish the trigger unambiguously. |
+| `no-executor` | The trigger resolves, but the host supplied no executor. |
+| `target-unresolved` | `to` names no route in the same Surface. |
+| `target-path-collision` | `to` resolves to a retained qualified route record, but its person-facing URL is collision-refused (§2.4). |
+
+No refusal cause is a sixth state. A binding MUST switch on the five-state
+`status` vocabulary above and MAY use `unfireableReason` to present or log the
+specific refusal.
+
 **Resolving `supplied-by-slot` is a walk, not a lookup.** The scan for a trigger
 source MUST descend `embed-route` slots transitively (§5.2), and MUST resolve the
 trigger through the loaded Response Actions document — matching an action `id`,
@@ -1075,6 +1118,11 @@ at all. The missing rule is per-route, not per-document.
 > `specs/lint-codes.json` in the Surface band alongside `E606`, `E607`, and
 > `E610`.
 
+**Inventory ownership.** `specs/lint-codes.json` is the sole normative lint-code
+inventory. The lists in §1.2 and §8.2 are explanatory ownership boundaries, not
+copies of the registry; Appendix C is a locator. Generated code and guidance
+derive from the registry.
+
 **Rule.** For every route `R` and every transition `T` in `R.transitions[]` whose
 `trigger` resolves, `R` MUST contain — directly or transitively through
 `embed-route` — at least one slot of a type §5.2 admits as a trigger source, whose
@@ -1117,10 +1165,13 @@ stronger evidence and could support a later decision to raise the base severity.
 
 ### 6.1 The Rule
 
-> **Decision.** A shell that is handed a **signed bundle export** MUST verify the
-> signature before first paint, and MUST refuse to render on failure. It MUST NOT
-> render with a warning, render optimistically while verifying, render chrome
-> before the verdict, or render a partial view of a bundle that failed.
+> **Decision.** A **Verifying Surface Shell deployment** MUST have its host
+> verify a signed bundle export and produce one canonical verdict —
+> `verified`, `failed`, or `unverified` — before the core or binding receives
+> any bundle-derived input. Only `verified` admits a signed export. The
+> deployment MUST NOT render with a warning, render optimistically while
+> verifying, render bundle-derived chrome before the verdict, or render a
+> partial view of a bundle that did not earn admission.
 
 The stack's claim about this artifact is *the bundle a person signed is the app
 people see*. A renderer that paints an unverified or failed bundle and attaches a
@@ -1154,15 +1205,27 @@ gets to choose the verification algorithm otherwise.
 
 ### 6.4 Unsigned and Unverifiable Inputs
 
-A shell MAY be handed an unsigned bundle — that is the normal case in authoring
-and preview. Two obligations:
+A host MAY receive an unsigned bundle — that is the normal case in authoring and
+preview. The render gate is explicit:
 
-1. **A shell MUST NOT present an unsigned bundle as verified**, and MUST expose
-   the unverified state to the host distinctly from `verified` and from `failed`.
-   Three states, never two.
-2. **A shell MUST NOT synthesize a verdict** for a bundle it cannot verify —
-   because no signature was supplied, because the method is unknown, or because
-   the platform lacks the primitive. Unknown is unknown.
+| Input | Deployment | Canonical verdict | Bundle-derived output |
+|---|---|---|---|
+| Signed; verification succeeds | Verifying Surface Shell | `verified` | MAY render. |
+| Signed; verification fails | Verifying Surface Shell | `failed` | MUST NOT render. |
+| Signed; method or primitive is unsupported | Verifying Surface Shell | `unverified` | MUST NOT render. |
+| Unsigned | Explicit authoring preview | `unverified` | MAY render as an unverified preview. |
+| Unsigned | Verifying Surface Shell | `unverified` | MUST NOT render. |
+
+The host MUST NOT present an unsigned bundle as verified. An adapter result such
+as `unsupported` maps to the canonical `unverified` verdict and remains
+available separately as provenance; it does not create a fourth verdict.
+
+The shell core and bindings MUST NOT synthesize or default a verdict — because
+no signature was supplied, because the method is unknown, or because the
+platform lacks the primitive. Unknown is unknown. A structural helper such as
+`bundleIsRenderable` answers only whether required documents are present and
+have the expected shape. It neither verifies authenticity nor supplies a
+default verdict.
 
 ### 6.5 Where Verification Lives
 
@@ -1240,10 +1303,20 @@ app-construction diagnostics delivers the minority of them.
 | `REGISTRY-ENTRY-NAME-COLLISION` | `warning` | Two Registry documents in one bundle declare the same entry `name`. |
 | `STATIC-CONTENT-KIND-UNKNOWN` | `error` | Malformed runtime input contains a static-content `kind` outside the closed vocabulary. |
 | `STATIC-IMAGE-NO-ALT` | `warning` | A `static-content` slot with `kind: image` has no authored alternative text (§3.4.2). |
+| `STATIC-IMAGE-SOURCE-REFUSED` | `error` | The host did not admit an authored image source for runtime dereferencing, so the slot is unavailable (§3.4.2). |
 | `THEME-UNCLASSIFIED-REFUSED` | `info` | Tenant theming was withheld from a route because it declares no `routeClass` (§4.3). |
 | `THEME-DOCUMENT-ROOT-CONTAMINATED` | `error` | The shell observed Formspec custom properties on the document root, which no conforming emitter writes (§4.5). |
 | `TRANSITION-UNFIREABLE` | `warning` | A declared transition on the matched route has no trigger source and no host executor (§5.3). |
 | `TRANSITION-CONDITION-UNEVALUABLE` | `warning` | A transition's `when` expression cannot be evaluated against validated bundle-state bindings (§5.3). |
+
+Severity reflects the operator response, not whether the shell failed closed.
+`THEME-UNCLASSIFIED-REFUSED` is `info` because the shell safely withheld optional
+tenant presentation and still rendered platform chrome. `STATIC-IMAGE-NO-ALT`
+is a `warning` because the rendered fallback retains an accessibility gap.
+`TRANSITION-UNFIREABLE` is a `warning` because an authored workflow edge cannot
+be traversed, while authoring validation cannot see every host executor.
+`STATIC-IMAGE-SOURCE-REFUSED` is an `error` because requested content is
+unavailable until the host policy or authored source changes.
 
 ### 7.3 Fire / Does-Not-Fire Conditions
 
@@ -1272,11 +1345,12 @@ Surface Shell Core class.
 Shell Core class.
 - *Fires when:* two or more composed routes produce identical segment patterns —
   same segment count, same kind at every index, same literal text at every literal
-  index. Fires once per colliding group, naming every member.
+  index. Paths that differ only by a trailing slash on a non-root path normalize
+  to the same address and therefore fire. The diagnostic fires once per
+  colliding group, naming every member.
 - *Does not fire when:* the routes differ by specificity and §2.4's rule picks one
   (`/receipt/new` vs `/receipt/{caseRef}`); two Surfaces share a `routes[].id` but
-  not a path (identity is the pair, §2.2); the paths differ only in trailing
-  slash on a non-root path — those are the same address, so this **does** fire.
+  not a path (identity is the pair, §2.2); normalized literal segments differ.
 
 **`ROUTE-UNMATCHED`** — nothing matched. Severity `warning`. Surface Shell Core
 class.
@@ -1298,6 +1372,16 @@ Surface Shell Core class.
   silencing the diagnostic on that branch would hide the schema gap behind a
   workaround.
 
+**`STATIC-IMAGE-SOURCE-REFUSED`** — no host-admitted runtime source. Severity
+`error`. Surface Shell Core class.
+
+- *Fires when:* an image slot reaches planning with no host static-asset
+  resolver; the resolver refuses the authored source; the resolver fails; or it
+  returns an empty admitted source. The image plan is unavailable in every
+  branch.
+- *Does not fire when:* the resolver admits a non-empty runtime source. The
+  binding receives that admitted source and never the authored source directly.
+
 **`THEME-UNCLASSIFIED-REFUSED`** — theming withheld for want of a class. Severity
 `info`. Surface Shell Core class.
 - *Fires when:* the shell resolves a theme grant for a route that declares no
@@ -1312,12 +1396,14 @@ Surface Shell Core class.
 **`TRANSITION-UNFIREABLE`** — a declared edge with nothing to traverse it.
 Severity `warning`. Surface Shell Core class.
 - *Fires when:* the matched route declares a transition and the shell resolves
-  neither `supplied-by-slot` nor `fireable` for it (§5.3).
+  neither `supplied-by-slot` nor `fireable` for it, or the target route's URL is
+  collision-refused (§2.4, §5.3).
 - *Does not fire when:* a slot on the route or reachable through `embed-route`
-  renders the control (`supplied-by-slot`); the host supplied an executor
-  (`fireable`) — even if the person has not fired it; the transition's `when`
-  currently evaluates false, which is a runtime condition and not an absence of
-  machinery; the route declares no transitions.
+  renders the control (`supplied-by-slot`) and the destination is usable; the
+  host supplied an executor (`fireable`) and the destination is usable — even if
+  the person has not fired it; the transition's `when` currently evaluates
+  false, which is a runtime condition and not an absence of machinery; the
+  route declares no transitions.
 
 **`TRANSITION-CONDITION-UNEVALUABLE`** — a condition has no trustworthy result.
 Severity `warning`. Surface Shell Core class.
@@ -1374,7 +1460,9 @@ A conformant **Surface Shell Core** MUST:
    `ROUTE-PARAM-GRAMMAR` for any other, and treat the offending segment as
    literal (§2.3).
 4. Resolve overlapping candidates by the left-to-right literal-beats-parameter
-   specificity rule, and refuse — never tie-break — a genuine collision (§2.4).
+   specificity rule; refuse — never tie-break — a genuine collision; and
+   classify a transition to any collision claimant as unavailable before it can
+   become `fireable` or `supplied-by-slot` (§2.4).
 5. Resolve the empty or `/` path to the first Surface's `entry` route, and never
    substitute a route for an unresolved `entry` — not the Surface's first route,
    not another Surface's entry (§2.5).
@@ -1400,8 +1488,10 @@ A conformant **Surface Shell Core** MUST:
     `STATIC-CONTENT-KIND-UNKNOWN` (§3.4).
 14. Compute heading levels from composition — at most one `h1`, step down inside
     an embed, accept a host-supplied baseline (§3.4.1).
-15. Never synthesize image alternative text from a URL, and always report
-    `STATIC-IMAGE-NO-ALT` on an image slot (§3.4.2).
+15. Never synthesize image alternative text from a URL; always report
+    `STATIC-IMAGE-NO-ALT`; and give a binding an image source only after the
+    host resolver admits a non-empty runtime source, otherwise producing
+    `STATIC-IMAGE-SOURCE-REFUSED` (§3.4.2).
 16. Traverse `embed-route` with a visited set and terminate on cycles (§3.5).
 17. Derive theme authority by lookup in the shipped authority map, restating no
     part of the vocabulary and carrying no default branch (§4.1).
@@ -1426,9 +1516,11 @@ A conformant **Surface Shell Core** MUST:
 25. Supply no default transition affordance, under any label (§5.1).
 26. Classify every transition on the matched route as `supplied-by-slot`,
     `fireable`, `unfireable`, `condition-false`, or
-    `condition-unevaluable`; credit `supplied-by-slot` only when the selected
-    binding actually publishes the matching control, resolve sources transitively
-    through `embed-route`, and report the matching diagnostics (§5.2, §5.3).
+    `condition-unevaluable`; put the closed refusal cause in
+    `unfireableReason` rather than adding states; credit `supplied-by-slot` only
+    when the selected binding actually publishes the matching control, resolve
+    sources transitively through `embed-route`, and report the matching
+    diagnostics (§5.2, §5.3).
 27. Advance a transition only on a host report with `status: "completed"`, a
     resolved action identity, and `validationReport.valid: true`; never advance
     on a click, rendered control, failed/deferred/blocked/unresolved result, or
@@ -1456,9 +1548,11 @@ A conformant Surface Shell Core MUST NOT:
 
 A conformant **Surface Shell Binding** MUST:
 
-1. Render a route plan produced by a conformant core, and re-derive nothing in
-   it — not the route match, not the theme grant, not the slot dispatch, not the
-   heading level, not the transition state.
+1. At its render boundary, consume the route match, theme grant, slot dispatch,
+   heading level, and transition state from a conformant route plan. If a
+   package also computes those values, that code is part of its core and MUST be
+   tested against the core class; the binding's rendering path MUST NOT contain
+   a second calculation.
 2. Emit the effective Theme-token map once onto an element the composition
    binding creates and destroys, disable duplicate emission in nested renderers,
    and clean up on unmount and on theme change (§4.5).
@@ -1476,13 +1570,17 @@ A conformant **Surface Shell Binding** MUST:
    when it unmounts. A binding that scopes its tokens and then writes an
    uncleaned global elsewhere has applied the rule to one channel and not the
    principle (§4.5).
-10. Apply one rule per question. Where a decision — whether to render a slot's
-    own title, which level a title takes — is made in more than one code path,
-    those paths MUST agree; divergent duplicates of the same rule are how a fixed
-    defect reappears one nesting level down.
+10. Use the same slot-frame, title, and heading-level functions for direct and
+    embedded slots. A parity test MUST render the same slot directly and through
+    `embed-route` and compare those decisions.
 11. Render parameterized navigation without an interactive link until every
     marker has a host-supplied value, and deliver the diagnostic to the host
     (§2.7).
+12. Render no interactive navigation control for a collision claimant,
+    including a transition control. An unavailable item must expose disabled
+    link semantics without an `href`, activation handler, or tab stop. Recheck
+    the refusal before emitting navigation; a completed slot action never
+    advances to the refused address (§2.4).
 
 A conformant Surface Shell Binding MUST NOT:
 
@@ -1503,10 +1601,11 @@ A conformant Surface Shell Binding MUST NOT:
 A conformant **Verifying Surface Shell** MUST satisfy §8.2 and §8.3 and
 additionally:
 
-1. Verify the signature of a signed bundle export before any bundle-derived
-   output reaches any medium (§6.1, §6.2).
-2. Refuse — render nothing from the bundle — on a failed verdict. Never warn and
-   render (§6.1).
+1. Have the host verify a signed bundle export and supply its canonical verdict
+   before any bundle-derived output reaches any medium (§6.1, §6.2).
+2. Apply the §6.4 matrix: admit a signed export only on `verified`; refuse
+   `failed` and signed-`unverified`; admit an unsigned `unverified` input only in
+   an explicit authoring preview.
 3. Read the signature method identifier from the signature envelope's protected
    header, never from a sibling record (§6.3).
 4. Expose three distinct states — `verified`, `failed`, `unverified` — and never
@@ -1520,10 +1619,11 @@ above to mean anything. A host MUST:
 
 1. Supply the incoming path and any route-parameter values the path does not
    carry (§2.3, §2.7).
-2. Dereference the bundle export into typed artifacts and gate rendering on a
-   single renderability verdict (§3.0).
-3. Verify signed exports before invoking the shell, for a Verifying Surface Shell
-   deployment (§6.5).
+2. Dereference the bundle export into typed artifacts and keep structural
+   readiness separate from the canonical verification verdict (§3.0, §6.4).
+3. Verify signed exports, map adapter results to
+   `verified | failed | unverified`, and apply the §6.4 render matrix before
+   invoking the shell in a Verifying Surface Shell deployment (§6.5).
 4. Supply the widget registry — the module implementations that satisfy
    `module-widget` bindings (§3.3).
 5. Supply the data a module widget displays, through a host resolver, and never
@@ -1535,6 +1635,11 @@ above to mean anything. A host MUST:
    §6.1).
 9. Never write Formspec theme tokens to the document root or reach past the shell
    to style a refusing route (§4.5).
+10. Supply a synchronous static-asset resolver that admits only approved image
+    origins and returns the runtime source; never let a binding dereference an
+    authored source directly (§3.4.2).
+11. Own the shell's closed person-facing string set and supply overrides when
+    deployment language or wording differs from the shipped defaults (§3.0).
 
 ---
 
@@ -1664,10 +1769,11 @@ has one, supply a host executor, or remove the transition.
 Reading the four routes as one artifact: a signed bundle can describe an app that
 composes cleanly, themes correctly, refuses correctly on three of four routes —
 and **cannot be walked from beginning to end**, because one authored edge has
-nothing to traverse it and one authored path uses a grammar the spec does not
-admit. Both defects are invisible to schema validation, invisible to the route
-graph walk, and invisible to the signing ceremony. That is the case this
-specification is written against.
+nothing to traverse it. The signed exemplar now uses the pinned
+`/receipt/{caseRef}` grammar, declares `caseRef`, and supplies the edge map, so
+route grammar no longer blocks the walk. The remaining dead edge is invisible
+to schema validation and the route reachability walk; `E611` and the runtime
+`TRANSITION-UNFIREABLE` report it before and during use.
 
 ---
 
@@ -1677,8 +1783,9 @@ specification is written against.
 that may not be trusted. `static-content` payloads MUST be rendered as text, never
 as markup (§3.4) — this is the shortest path from a bundle to script execution.
 `kind: image` `content` is a URL and MUST NOT be dereferenced from an
-unconstrained origin; hosts SHOULD maintain an allowlist, as
-[theme-spec](../theme/theme-spec.md) §9.1 requires for Theme URLs.
+unconstrained origin. The host MUST enforce its image-origin allowlist through
+the static-asset resolver in §3.4.2 and §8.5; this is a Surface Shell host rule,
+not a Theme rule.
 
 **Verification is a gate, not a label.** §6. A rendered unverified bundle has
 already been seen.
@@ -1880,7 +1987,7 @@ artifact.
 | ADR 0160 | [Materialisation verbs for the Wireframes / Forms MCP family](../../../thoughts/adr/0160-mcp-materialisation-verbs.md) §2.4, §8.1 |
 | ADR 0161 | [Route class and the Rendering-ring boundary](../../../thoughts/adr/0161-route-class-and-rendering-ring-boundary.md) §5, §6, §9 |
 | Spike | [Surface render v10 — the signed bundle as a running app](../../thoughts/spikes/2026-07-27-surface-render-v10.md) and `spikes/surface-render-v10/evidence/` |
-| Lint codes | `specs/lint-codes.json` — Surface band `E606`, `E607`, `E610`, `E611` |
+| Lint codes | `specs/lint-codes.json` — the normative registry |
 | [rfc2119] | Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, March 1997. |
 | [RFC 6570] | Gregorio, J., et al., "URI Template", RFC 6570, March 2012. |
 | [RFC 8174] | Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, May 2017. |

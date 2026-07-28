@@ -59,25 +59,32 @@
  */
 import { CLOSED_RESPONSE_ACTION_INTENTS } from '@formspec-org/app-graph';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
-import { routeInSurface, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
+import {
+  routeHref,
+  routeInSurface,
+  type SurfaceApp,
+  type SurfaceRouteHandle,
+} from './composition.js';
 import type { SlotPlan } from './slot-plan.js';
 import { resolveSurfaceStrings, type SurfaceStringOverrides, type SurfaceStrings } from './strings.js';
 
+/**
+ * The five runtime states pinned by Surface Shell §5.3.
+ *
+ * Refusal causes do not extend this state machine. They live in
+ * {@link TransitionUnfireableReason}, so every binding can switch exhaustively
+ * over the same five states while still telling the host why an edge is
+ * unavailable.
+ */
 export type TransitionStatus =
-  /** Trigger resolves and an executor exists. The shell renders the control. */
-  | 'fireable'
-  /**
-   * Trigger resolves and something already ON this route renders the control —
-   * a `definition-form` slot whose Response Actions document publishes the
-   * trigger's intent, so `FormspecForm` injects a real submit button. The shell
-   * MUST NOT draw a second one beside it; it advances when that action reports
-   * success.
-   */
   | 'supplied-by-slot'
-  /** The authored FEL condition evaluated false. The edge is dormant, not broken. */
+  | 'fireable'
+  | 'unfireable'
   | 'condition-false'
-  /** No host evaluator could determine the authored FEL condition. */
-  | 'condition-unevaluable'
+  | 'condition-unevaluable';
+
+/** Closed reasons for the normative `unfireable` state. */
+export type TransitionUnfireableReason =
   /** No Response Actions document is loaded, so no trigger can resolve. */
   | 'no-response-actions-document'
   /** A Response Actions document exists and does not publish this trigger. */
@@ -85,13 +92,14 @@ export type TransitionStatus =
   /** The trigger resolves; no host executor can run it under Response Actions authority. */
   | 'no-executor'
   /** `to` names no route in this Surface. */
-  | 'target-unresolved';
+  | 'target-unresolved'
+  /** `to` resolves, but its URL is refused because another route claims it. */
+  | 'target-path-collision';
 
-export interface PlannedTransition {
+interface PlannedTransitionFields {
   trigger: string;
   to: string;
   when?: string;
-  status: TransitionStatus;
   /** One sentence a person can read, naming what is missing. */
   reason: string;
   /** Resolved target, when `to` names a route in the same Surface. */
@@ -101,6 +109,20 @@ export interface PlannedTransition {
   /** Exception text from the host evaluator, retained for the diagnostic. */
   conditionFailureReason?: string;
 }
+
+/**
+ * A planned edge with the normative state separated from its refusal cause.
+ * `unfireableReason` is required exactly when `status` is `unfireable`.
+ */
+export type PlannedTransition =
+  | (PlannedTransitionFields & {
+      status: Exclude<TransitionStatus, 'unfireable'>;
+      unfireableReason?: never;
+    })
+  | (PlannedTransitionFields & {
+      status: 'unfireable';
+      unfireableReason: TransitionUnfireableReason;
+    });
 
 /**
  * The host's seam to Response Actions. The shell never implements one: firing a
@@ -285,7 +307,7 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
     const trigger = String(authored.trigger);
     const to = String(authored.to);
     const target = routeInSurface(app, handle.surfaceId, to);
-    const base: PlannedTransition = { trigger, to, status: 'fireable', reason: '' };
+    const base: PlannedTransitionFields = { trigger, to, reason: '' };
     if (typeof authored.when === 'string') base.when = authored.when;
     if (target) base.target = target;
 
@@ -323,15 +345,26 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
     if (!target) {
       return {
         ...base,
-        status: 'target-unresolved',
+        status: 'unfireable',
+        unfireableReason: 'target-unresolved',
         reason: text('transitionTargetUnresolved', { to, trigger }),
+      };
+    }
+
+    if (routeHref(target, input.params ?? {}).refusal === 'collision') {
+      return {
+        ...base,
+        status: 'unfireable',
+        unfireableReason: 'target-path-collision',
+        reason: text('transitionTargetCollision', { to, trigger }),
       };
     }
 
     if (resolved.documentCount === 0) {
       return {
         ...base,
-        status: 'no-response-actions-document',
+        status: 'unfireable',
+        unfireableReason: 'no-response-actions-document',
         reason: text('transitionNoResponseActions', { to, trigger }),
       };
     }
@@ -343,7 +376,8 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
     if (actionId === undefined) {
       return {
         ...base,
-        status: 'trigger-unresolved',
+        status: 'unfireable',
+        unfireableReason: 'trigger-unresolved',
         reason: text(
           publishers.length > 1 ? 'transitionTriggerAmbiguous' : 'transitionTriggerUnresolved',
           { to, trigger },
@@ -364,7 +398,8 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
       return {
         ...base,
         actionId,
-        status: 'no-executor',
+        status: 'unfireable',
+        unfireableReason: 'no-executor',
         reason: text('transitionNoExecutor', { to, trigger }),
       };
     }
@@ -409,9 +444,14 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
     diagnostics.push(
       surfaceDiagnostic(
         'TRANSITION-UNFIREABLE',
-        `Route "${handle.surfaceId}/${handle.routeId}" declares a "${transition.trigger}" transition to "${transition.to}" that nothing can fire (${transition.status}).`,
+        `Route "${handle.surfaceId}/${handle.routeId}" declares a "${transition.trigger}" transition to "${transition.to}" that nothing can fire (${transition.unfireableReason}).`,
         { surfaceId: handle.surfaceId, routeId: handle.routeId },
-        { trigger: transition.trigger, to: transition.to, status: transition.status },
+        {
+          trigger: transition.trigger,
+          to: transition.to,
+          status: transition.status,
+          unfireableReason: transition.unfireableReason,
+        },
       ),
     );
   }

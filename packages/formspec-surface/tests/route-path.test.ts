@@ -98,7 +98,7 @@ describe('matchRoutePath', () => {
 
   it('does NOT deep-link a colon path — the segment is literal', () => {
     // D1. This is the visible cost the spec accepts, and accepts loudly: the
-    // route stays reachable by handle, only its URL address degrades.
+    // qualified record remains, but the shell promises no person-facing route.
     expect(matchRoutePath('/receipt/:caseRef', '/receipt/RA-2026-0412')).toBeUndefined();
     expect(matchRoutePath('/receipt/:caseRef', '/receipt/:caseRef')).toEqual({});
   });

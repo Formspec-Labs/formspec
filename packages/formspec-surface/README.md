@@ -59,6 +59,7 @@ being the platform's.
 | Two Registries declare the same entry `name` — which wins? | Neither. `flattenRegistryEntries` reports `REGISTRY-ENTRY-NAME-COLLISION` once and omits every declaration of that name. | Registry §2.2 requires exactly-one unqualified lookup and rejects order-based winners. |
 | Does the shell supply a default transition trigger? | **No.** See below. | — |
 | Absolute heading levels inside a composed route? | An authored `level` is a rank *within the route*, offset from `headingBaseLevel` (default 2, because the route title is the page `h1`). No skips, never a second `h1`, embeds step down. | Surface schema and Surface Shell §3.4.1 define the same rank semantics. |
+| May an authored image URL be dereferenced? | Only after the host's `SurfaceStaticAssetResolver` admits it. The resolver applies the deployment's origin allowlist and may map an asset reference to a runtime URL. No resolver or a refusal produces an unavailable slot and `STATIC-IMAGE-SOURCE-REFUSED`. | Surface Shell §3.4.2 and §8.5 make admission a host obligation. |
 | A tenant token the platform vocabulary does not carry? | Never alias it. Runtime rendering does not depend on the Registry. | Registry-aware validation reports `THEME-TOKEN-UNREGISTERED`. |
 
 ### The transition-trigger call, stated
@@ -79,6 +80,11 @@ against a loaded Response Actions document **and** the host supplied an executor
 Everything else renders as a stated refusal naming which half is missing. A
 signed bundle describing an app that cannot leave its first page is a fact worth
 putting on the page.
+
+A resolved trigger still remains unavailable when its target route shares a URL
+with another composed route. `routeHref` reports that collision refusal through
+the same address-availability result used by navigation bindings and the final
+transition boundary.
 
 App-graph validation emits E611 when a resolved transition has no
 validator-readable control source. The warning complements runtime planning:

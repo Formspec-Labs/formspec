@@ -24,9 +24,9 @@
  * `ui-graph-policy.ts`'s `widgetBindingsRenderedBy` walks the same edges:
  *
  * - **The host's theme grant carries down every embed edge.** An embedded route
- *   paints on the host's surface (`surface-spec.md` §6.2), so an embedded
- *   `intake` route inside a `proof` route does NOT get to restore tenant
- *   branding. The plan therefore never re-resolves a grant for embedded content.
+ *   paints on the host's surface (ADR 0150 §6.2), so an embedded `intake` route
+ *   inside a `proof` route does NOT get to restore tenant branding. The plan
+ *   therefore never re-resolves a grant for embedded content.
  * - **Cycles terminate.** `routeRef` is constrained to a route id, not to an
  *   acyclic graph, so `a` embedding `b` embedding `a` is authorable. The visited
  *   set is a termination requirement, not an optimisation.
@@ -37,7 +37,12 @@ import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 import type { SurfaceRoute } from './route-path.js';
 import type { SurfaceRouteHandle } from './composition.js';
 import { planExperienceUnit, type ExperienceUnitPlan } from './experience-unit.js';
-import { planStaticContent, type HeadingLevel, type StaticContentPlan } from './static-content.js';
+import {
+  planStaticContent,
+  type HeadingLevel,
+  type StaticContentPlan,
+  type SurfaceStaticAssetResolver,
+} from './static-content.js';
 import type { WidgetKey, WidgetRegistry, WidgetResolution } from './registry.js';
 
 export type SurfaceSlot = SurfaceRoute['slots'][number];
@@ -100,6 +105,8 @@ export interface SlotPlanContext<TComponent> {
   widgets: WidgetRegistry<TComponent>;
   /** Level route content starts at. Default 2 — the route title is the `h1`. */
   headingBaseLevel?: HeadingLevel;
+  /** Host admission boundary for authored static image sources. */
+  staticAssetResolver?: SurfaceStaticAssetResolver | undefined;
 }
 
 export interface RoutePlan<TComponent> {
@@ -248,6 +255,7 @@ function planSlot<TComponent>(
         binding,
         headingBaseLevel,
         slotTitle: typeof slot.title === 'string' ? slot.title : undefined,
+        staticAssetResolver: context.staticAssetResolver,
         site,
       });
       diagnostics.push(...result.diagnostics);

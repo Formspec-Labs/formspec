@@ -27,7 +27,7 @@ import type { SurfaceApp, SurfaceRouteHandle } from './composition.js';
 import type { SurfaceDiagnostic } from './diagnostics.js';
 import type { WidgetRegistry } from './registry.js';
 import { planRoute, type SlotPlan } from './slot-plan.js';
-import type { HeadingLevel } from './static-content.js';
+import type { HeadingLevel, SurfaceStaticAssetResolver } from './static-content.js';
 import type { SurfaceStringOverrides, SurfaceStrings } from './strings.js';
 import type { ThemeAuthority, ThemeGrant } from './theme-authority.js';
 import {
@@ -59,6 +59,8 @@ export interface SurfaceRoutePlanInput<TComponent> {
    * obligation 3). A shell that hard-codes the outline cannot be embedded.
    */
   headingBaseLevel?: HeadingLevel | undefined;
+  /** Host admission boundary for authored static image sources. */
+  staticAssetResolver?: SurfaceStaticAssetResolver | undefined;
   strings?: SurfaceStrings | SurfaceStringOverrides | undefined;
 }
 
@@ -91,6 +93,7 @@ export function planMatchedRoute<TComponent>(
     registryEntries: input.registryEntries,
     widgets: input.widgets,
     headingBaseLevel,
+    staticAssetResolver: input.staticAssetResolver,
   });
 
   const responseActions = input.responseActions ?? [];

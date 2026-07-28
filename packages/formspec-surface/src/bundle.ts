@@ -34,8 +34,8 @@
  * wrong about the *mechanism*: throwing means the host learns about one missing
  * artifact at a time and cannot show a person what is wrong. This collects every
  * absence and lets the host decide — refuse, or render what resolved with the
- * gaps named. {@link bundleIsRenderable} is the sharp edge for hosts that want
- * the spike's posture.
+ * gaps named. {@link bundleIsRenderable} reports structural readiness only;
+ * authenticity and deployment admission remain separate host decisions.
  */
 import type {
   ExperienceDocument,
@@ -161,8 +161,9 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
 
 /**
  * A bundle is renderable when nothing it *lists* is absent. Structural absence
- * only — this makes no claim about validity, which `resolveArtifacts` and the
- * app-graph validator own.
+ * only — this makes no claim about validity or authenticity, returns no
+ * verification verdict, and supplies no default. `resolveArtifacts`, the
+ * app-graph validator, and the host's verification gate remain separate.
  */
 export function bundleIsRenderable(bundle: ResolvedBundle): boolean {
   return !bundle.diagnostics.some(

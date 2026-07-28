@@ -60,6 +60,7 @@ export {
   type SurfaceCompositionOptions,
   type SurfaceRouteGroup,
   type SurfaceRouteHandle,
+  type SurfaceRouteHrefRefusal,
   type SurfaceRouteMatch,
   type SurfaceRouteRefusal,
   type SurfaceRouteResolution,
@@ -100,6 +101,9 @@ export {
   type StaticContentPlan,
   type StaticContentPlanInput,
   type StaticContentPlanResult,
+  type SurfaceStaticAssetRequest,
+  type SurfaceStaticAssetResolution,
+  type SurfaceStaticAssetResolver,
 } from './static-content.js';
 
 export {
@@ -130,6 +134,7 @@ export {
   type TransitionPlanInput,
   type TransitionPlanResult,
   type TransitionStatus,
+  type TransitionUnfireableReason,
 } from './transitions.js';
 
 export {

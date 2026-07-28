@@ -92,9 +92,11 @@ describe('path collisions (§2.4)', () => {
     const collision = collided.diagnostics.find((d) => d.code === 'ROUTE-PATH-COLLISION');
     expect(collision).toBeDefined();
     expect(collision?.details?.routes).toEqual(['respondent/apply', 'other/apply']);
+    expect(collision?.message).not.toContain('surface:');
+    expect(collision?.message).not.toContain('stays reachable');
   });
 
-  it('keeps both handles in the table — they stay reachable by handle', () => {
+  it('keeps both qualified records without promising person-facing reachability', () => {
     expect(collided.routes).toHaveLength(3);
     expect(collided.routes.filter((handle) => handle.path === '/apply')).toHaveLength(2);
   });
@@ -139,6 +141,32 @@ describe('path collisions (§2.4)', () => {
       surface('b', 'y', [route({ id: 'y', path: '/queue/', slots: [] as never })]),
     ]);
     expect(app.diagnostics.map((d) => d.code)).toContain('ROUTE-PATH-COLLISION');
+  });
+
+  it('refuses a shared staff queue URL while retaining both qualified routes', () => {
+    const app = composeSurfaceApp([
+      surface('staff', 'queue', [
+        route({ id: 'queue', path: '/queue', slots: [] as never }),
+      ]),
+      surface('oversight', 'queue', [
+        route({ id: 'queue', path: '/queue', slots: [] as never }),
+      ]),
+    ]);
+
+    expect(matchRoute(app, '/queue')).toMatchObject({
+      match: undefined,
+      refusal: 'collision',
+    });
+    expect(routeInSurface(app, 'staff', 'queue')).toMatchObject({
+      surfaceId: 'staff',
+      routeId: 'queue',
+      pathCollides: true,
+    });
+    expect(routeInSurface(app, 'oversight', 'queue')).toMatchObject({
+      surfaceId: 'oversight',
+      routeId: 'queue',
+      pathCollides: true,
+    });
   });
 });
 
@@ -231,6 +259,23 @@ describe('routeHref', () => {
     const { href, diagnostics } = routeHref(app.routes[0]!, {});
     expect(href).toBe('/receipt/{caseRef}');
     expect(diagnostics.map((d) => d.code)).toEqual(['ROUTE-PARAM-UNSUPPLIED']);
+  });
+
+  it('marks a collision claimant as unavailable even when its path needs no parameters', () => {
+    const app = composeSurfaceApp([
+      surface('staff', 'queue', [
+        route({ id: 'queue', path: '/queue', slots: [] as never }),
+      ]),
+      surface('oversight', 'queue', [
+        route({ id: 'queue', path: '/queue', slots: [] as never }),
+      ]),
+    ]);
+
+    expect(routeHref(app.routes[0]!)).toMatchObject({
+      href: '/queue',
+      diagnostics: [],
+      refusal: 'collision',
+    });
   });
 });
 

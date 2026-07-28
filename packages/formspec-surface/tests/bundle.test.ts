@@ -25,6 +25,14 @@ describe('dereferenceBundleExport', () => {
     expect(bundleIsRenderable(resolved)).toBe(false);
   });
 
+  it('is only a structural helper and does not turn authenticity into a verdict', () => {
+    const resolved = Object.assign(dereferenceBundleExport(bundleExport()), {
+      verification: 'failed',
+    });
+    expect(bundleIsRenderable(resolved)).toBe(true);
+    expect(bundleIsRenderable(resolved)).toEqual(expect.any(Boolean));
+  });
+
   it('reports a manifest slot pointing at something that is not a document', () => {
     const bundle = bundleExport();
     const bent = { ...bundle, documents: { ...bundle.documents, 'theme:tenant': 'not a document' } };
