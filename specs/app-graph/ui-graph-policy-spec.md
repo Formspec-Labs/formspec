@@ -530,9 +530,10 @@ side by default, and a new value that genuinely admits has to be argued for at
 the decision site in `ROUTE_CLASS_THEME_AUTHORITY` rather than inherited.
 
 **Composition.** `embed-route` renders another route of the same Surface INSIDE
-the host route ([`surface-spec.md`](../surface/surface-spec.md) §6.2), so the
-embedded route's slots paint on the host's surface. A protected route's theme
-authority therefore reaches every `module-widget` slot it renders through
+the host route
+([ADR 0150 §6.2](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#62-closed-slot-type-taxonomy)),
+so the embedded route's slots paint on the host's surface. A protected route's
+theme authority therefore reaches every `module-widget` slot it renders through
 `embed-route`, transitively, at any depth. Reading only `routes[i].slots[]`
 would let one schema-valid hop restore the entire violation: a `proof` route
 whose sole slot embeds an unclassified route that binds the certificate widget
@@ -639,6 +640,8 @@ Initial diagnostic codes:
 | `UI-POLICY-ROUTE-REF` | error | A route policy references a route absent from the target Surface. |
 | `UI-POLICY-RESPONSIVE-SLOT` | error | A responsive collapse entry references a slot absent from the route. |
 | `UI-POLICY-HIDDEN-DEFINITION-REF` | error | A hidden Definition ref is not a loaded Definition or is not present as a route-local form slot. |
+| `UI-POLICY-REGION-LABEL` | error | A route with the `region` landmark profile lacks the non-empty label needed for an accessible name. |
+| `UI-POLICY-HOST-LANDMARK-CONFLICT` | error | A route requests a landmark role reserved by the host page. |
 | `THEME-TOKEN-WIDGET` | error | A Theme token assignment references an unresolved or unadmitted module widget. |
 | `THEME-TOKEN-SLOT` | error | A Theme token assignment targets a token slot not declared by the widget. |
 | `THEME-TOKEN-REF` | error | A Theme token assignment references a token absent from loaded Theme token evidence. |
@@ -649,7 +652,8 @@ Initial diagnostic codes:
 Current executable diagnostics cover `UI-POLICY-SURFACE-TARGET`,
 `UI-POLICY-ROUTE-MISSING`, `UI-POLICY-ROUTE-COLLISION`,
 `UI-POLICY-ROUTE-REF`, `UI-POLICY-RESPONSIVE-SLOT`,
-`UI-POLICY-HIDDEN-DEFINITION-REF`, `LOCALE-KEY-OWNER`,
+`UI-POLICY-HIDDEN-DEFINITION-REF`, `UI-POLICY-REGION-LABEL`,
+`UI-POLICY-HOST-LANDMARK-CONFLICT`, `LOCALE-KEY-OWNER`,
 `LOCALE-KEY-OWNER-COLLISION`, `LOCALE-KEY-OWNER-MODULE-MISMATCH`,
 `LOCALE-KEY-OWNER-MODULE-REF`, `THEME-TOKEN-WIDGET`, and
 `THEME-TOKEN-SLOT`, `THEME-TOKEN-REF`, `THEME-TOKEN-CATEGORY`,

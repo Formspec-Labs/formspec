@@ -333,7 +333,7 @@ describe('UI Graph Policy route-class theme authority', () => {
 
 /**
  * Composition. `embed-route` renders another route of this Surface INSIDE the
- * host route (`surface-spec.md` §6.2), so a widget bound one hop below a
+ * host route (ADR 0150 §6.2), so a widget bound one hop below a
  * protected route is repainted on the protected surface exactly as a directly
  * bound one is. Protection is a property of the rendering context, not of the
  * embedded route's own document: it flows DOWN the embed edges and an embedded

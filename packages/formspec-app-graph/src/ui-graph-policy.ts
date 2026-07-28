@@ -757,7 +757,7 @@ interface RenderedWidgetBinding {
 /**
  * Every `module-widget` slot `root` renders, including those reached through
  * `embed-route` slots. `embed-route` renders another route of this Surface
- * INSIDE the host route (`surface-spec.md` §6.2), so an embedded route's slots
+ * INSIDE the host route (ADR 0150 §6.2), so an embedded route's slots
  * paint on the host's surface — composition carries the host's protection down
  * every embed edge, and an embedded route's own class cannot lower it.
  *
