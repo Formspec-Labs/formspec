@@ -46,7 +46,15 @@
           {
             "id": "start",
             "path": "/start",
-            "slots": [],
+            "slots": [
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/action-trigger"
+                }
+              }
+            ],
             "transitions": [
               {
                 "trigger": "escalate",
@@ -79,7 +87,15 @@
           {
             "id": "start",
             "path": "/start",
-            "slots": [],
+            "slots": [
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/action-trigger"
+                }
+              }
+            ],
             "transitions": [
               {
                 "trigger": "submit",
@@ -211,11 +227,115 @@
           {
             "id": "start",
             "path": "/start",
-            "slots": [],
+            "slots": [
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/action-trigger"
+                }
+              }
+            ],
             "transitions": [
               {
                 "trigger": "x-escalate",
                 "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.unfireable": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/unfireable",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "ceremony",
+                "slotType": "module-widget",
+                "binding": {
+                  "moduleId": "x-example",
+                  "widgetName": "x-ceremony"
+                }
+              }
+            ],
+            "transitions": [
+              {
+                "trigger": "submit",
+                "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.embedded-trigger": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/embedded-trigger",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "embedded-form",
+                "slotType": "embed-route",
+                "binding": {
+                  "routeRef": "form"
+                }
+              }
+            ],
+            "transitions": [
+              {
+                "trigger": "submit",
+                "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "form",
+            "path": "/form",
+            "slots": [
+              {
+                "id": "form-slot",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/action-trigger"
+                }
               }
             ]
           },
@@ -491,6 +611,96 @@
           "skippedPhases": 0
         },
         "diagnostics": []
+      }
+    },
+    {
+      "id": "surface-trigger-resolves-through-embedded-form",
+      "description": "A definition-form reached through embed-route is a legible trigger source.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.embedded-trigger"],
+          "responseActions": ["response-actions.with-submit"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "surface-trigger-warns-when-no-legible-control-can-fire-it",
+      "description": "E611 warns when a transition resolves but the route only carries a module widget with no validator-readable action declaration.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.unfireable"],
+          "responseActions": ["response-actions.with-submit"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 1,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "E611",
+            "severity": "warning",
+            "primarySource": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface/unfireable",
+              "jsonPointer": "/routes/0/transitions/0/trigger",
+              "ref": {
+                "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "responseActions",
+                "artifactKind": "responseActions",
+                "source": "memory://response-actions/with-submit",
+                "jsonPointer": "/actions",
+                "ref": {
+                  "url": "https://example.gov/apps/action-trigger/response-actions",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "reason": "transition-unfireable",
+              "routeId": "start",
+              "trigger": "submit",
+              "resolvedActionIds": ["submitApplication"],
+              "triggerSourceSlotTypes": ["definition-form", "embed-route"]
+            }
+          }
+        ]
       }
     },
     {

@@ -256,6 +256,18 @@
       "state": "tested"
     },
     {
+      "code": "E611",
+      "pass": 8,
+      "severity": "warning",
+      "title": "Surface transition has no validator-readable trigger source (SURFACE-TRANSITION-UNFIREABLE)",
+      "specRef": "specs/surface/surface-shell-spec.md#54-e611--catching-it-before-publication",
+      "suggestedFix": "add a definition-form slot whose Definition has a Response Action publishing this trigger, embed a route that has one, or remove the transition",
+      "fixtures": [
+        "tests/conformance/fixtures/app-graph-validator/surface-response-action-triggers.case.json"
+      ],
+      "state": "draft"
+    },
+    {
       "code": "W700",
       "pass": 6,
       "severity": "warning",

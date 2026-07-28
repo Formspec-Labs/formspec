@@ -30,12 +30,20 @@ interface SurfaceTransitionTrigger {
   routeIndex: number;
   transitionIndex: number;
   routeId?: string;
+  route: Record<string, unknown>;
   trigger: string;
+}
+
+interface ResponseActionReference {
+  id: string;
+  intent?: string;
+  targetDefinition?: string;
 }
 
 interface ResponseActionReferences {
   actionIds: Set<string>;
   closedIntentActionIds: Map<string, string[]>;
+  actions: ResponseActionReference[];
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -67,6 +75,7 @@ function transitionTriggers(surface: ResolvedArtifactHandle): SurfaceTransitionT
         routeIndex,
         transitionIndex,
         routeId: stringProp(routeRecord, 'id'),
+        route: routeRecord ?? {},
         trigger,
       }];
     });
@@ -76,15 +85,23 @@ function transitionTriggers(surface: ResolvedArtifactHandle): SurfaceTransitionT
 function responseActionReferences(handles: readonly ResolvedArtifactHandle[]): ResponseActionReferences {
   const actionIds = new Set<string>();
   const closedIntentActionIds = new Map<string, string[]>();
+  const actions: ResponseActionReference[] = [];
   for (const handle of handlesByKind(handles, 'responseActions')) {
-    const actions = record(handle.document)?.actions;
-    if (!Array.isArray(actions)) continue;
-    for (const action of actions) {
+    const document = record(handle.document);
+    const documentActions = document?.actions;
+    if (!Array.isArray(documentActions)) continue;
+    const targetDefinition = stringProp(record(document?.targetDefinition), 'url');
+    for (const action of documentActions) {
       const actionRecord = record(action);
       const id = stringProp(actionRecord, 'id');
       if (!id) continue;
       actionIds.add(id);
       const intent = stringProp(actionRecord, 'intent');
+      actions.push({
+        id,
+        ...(intent === undefined ? {} : { intent }),
+        ...(targetDefinition === undefined ? {} : { targetDefinition }),
+      });
       if (intent && CLOSED_RESPONSE_ACTION_INTENTS.has(intent)) {
         const matches = closedIntentActionIds.get(intent) ?? [];
         matches.push(id);
@@ -92,7 +109,7 @@ function responseActionReferences(handles: readonly ResolvedArtifactHandle[]): R
       }
     }
   }
-  return { actionIds, closedIntentActionIds };
+  return { actionIds, closedIntentActionIds, actions };
 }
 
 function triggerSource(
@@ -139,16 +156,111 @@ function diagnostic(
   };
 }
 
+function definitionRefForSlot(slot: Record<string, unknown>): string | undefined {
+  if (stringProp(slot, 'slotType') !== 'definition-form') return undefined;
+  return stringProp(record(slot.binding), 'definitionRef');
+}
+
+function embeddedRouteRefForSlot(slot: Record<string, unknown>): string | undefined {
+  if (stringProp(slot, 'slotType') !== 'embed-route') return undefined;
+  return stringProp(record(slot.binding), 'routeRef');
+}
+
+function resolvedActionIds(
+  trigger: SurfaceTransitionTrigger,
+  references: ResponseActionReferences,
+): string[] | undefined {
+  if (references.actionIds.has(trigger.trigger)) return [trigger.trigger];
+  if (!CLOSED_RESPONSE_ACTION_INTENTS.has(trigger.trigger)) return undefined;
+  const matches = references.closedIntentActionIds.get(trigger.trigger) ?? [];
+  return matches.length === 1 ? matches : undefined;
+}
+
+function routeHasTriggerSource(
+  surface: ResolvedArtifactHandle,
+  trigger: SurfaceTransitionTrigger,
+  actionIds: readonly string[],
+  references: ResponseActionReferences,
+): boolean {
+  const routesValue = record(surface.document)?.routes;
+  if (!Array.isArray(routesValue)) return false;
+  const routes = routesValue.flatMap((value): Record<string, unknown>[] => {
+    const route = record(value);
+    return route ? [route] : [];
+  });
+  const routesById = new Map<string, Record<string, unknown>[]>();
+  for (const route of routes) {
+    const id = stringProp(route, 'id');
+    if (!id) continue;
+    routesById.set(id, [...(routesById.get(id) ?? []), route]);
+  }
+
+  const visited = new Set<Record<string, unknown>>();
+  const walk = (route: Record<string, unknown>): boolean => {
+    if (visited.has(route)) return false;
+    visited.add(route);
+    const slots = route.slots;
+    if (!Array.isArray(slots)) return false;
+
+    for (const value of slots) {
+      const slot = record(value);
+      if (!slot) continue;
+      const definitionRef = definitionRefForSlot(slot);
+      if (
+        definitionRef !== undefined &&
+        references.actions.some(
+          (action) =>
+            actionIds.includes(action.id) &&
+            action.targetDefinition === definitionRef,
+        )
+      ) {
+        return true;
+      }
+
+      const routeRef = embeddedRouteRefForSlot(slot);
+      if (!routeRef) continue;
+      const embedded = routesById.get(routeRef) ?? [];
+      if (embedded.length === 1 && walk(embedded[0]!)) return true;
+    }
+    return false;
+  };
+
+  return walk(trigger.route);
+}
+
+function unfireableDiagnostic(
+  surface: ResolvedArtifactHandle,
+  trigger: SurfaceTransitionTrigger,
+  actionIds: readonly string[],
+  handles: readonly ResolvedArtifactHandle[],
+): AppGraphDiagnostic {
+  return {
+    code: 'E611',
+    severity: 'warning',
+    phase: 'cross-artifact',
+    origin: 'app-graph-validator',
+    message: `Surface route '${trigger.routeId ?? '<unknown>'}' transition trigger '${trigger.trigger}' resolves, but no definition-form slot on that route or an embedded route binds a Definition targeted by the matching Response Action.`,
+    primarySource: triggerSource(surface, trigger),
+    relatedSources: responseActionsSources(handles),
+    details: {
+      reason: 'transition-unfireable',
+      routeId: trigger.routeId,
+      trigger: trigger.trigger,
+      resolvedActionIds: [...actionIds].sort(),
+      triggerSourceSlotTypes: ['definition-form', 'embed-route'],
+    },
+  };
+}
+
 export function validateSurfaceResponseActionTriggers(context: AppGraphContext): AppGraphDiagnostic[] {
   const references = responseActionReferences(context.handles);
   const diagnostics: AppGraphDiagnostic[] = [];
 
   for (const surface of handlesByKind(context.handles, 'surface')) {
     for (const trigger of transitionTriggers(surface)) {
-      if (references.actionIds.has(trigger.trigger)) continue;
-      if (CLOSED_RESPONSE_ACTION_INTENTS.has(trigger.trigger)) {
+      let actionIds = resolvedActionIds(trigger, references);
+      if (actionIds === undefined && CLOSED_RESPONSE_ACTION_INTENTS.has(trigger.trigger)) {
         const matches = references.closedIntentActionIds.get(trigger.trigger) ?? [];
-        if (matches.length === 1) continue;
         diagnostics.push(diagnostic(
           surface,
           trigger,
@@ -158,7 +270,13 @@ export function validateSurfaceResponseActionTriggers(context: AppGraphContext):
         ));
         continue;
       }
-      diagnostics.push(diagnostic(surface, trigger, references, context.handles, 'trigger-unresolved'));
+      if (actionIds === undefined) {
+        diagnostics.push(diagnostic(surface, trigger, references, context.handles, 'trigger-unresolved'));
+        continue;
+      }
+      if (!routeHasTriggerSource(surface, trigger, actionIds, references)) {
+        diagnostics.push(unfireableDiagnostic(surface, trigger, actionIds, context.handles));
+      }
     }
   }
 

@@ -20,12 +20,14 @@ FIXTURE_PATH = (
 REQUIRED_CASES = {
     "surface-trigger-resolves-action-id",
     "surface-trigger-resolves-closed-intent",
+    "surface-trigger-resolves-through-embedded-form",
     "surface-trigger-resolves-x-action-id",
     "surface-trigger-rejects-ambiguous-closed-intent",
     "surface-trigger-rejects-direct-x-intent",
     "surface-trigger-rejects-empty-trigger",
     "surface-trigger-rejects-undeclared-closed-intent",
     "surface-trigger-rejects-unknown-runtime-command",
+    "surface-trigger-warns-when-no-legible-control-can-fire-it",
 }
 
 EXPECTED_CODES = {
@@ -34,6 +36,7 @@ EXPECTED_CODES = {
     "surface-trigger-rejects-empty-trigger": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
     "surface-trigger-rejects-undeclared-closed-intent": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
     "surface-trigger-rejects-unknown-runtime-command": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+    "surface-trigger-warns-when-no-legible-control-can-fire-it": "E611",
 }
 
 FORBIDDEN_KEYS = {
@@ -136,7 +139,12 @@ def test_surface_response_action_trigger_expected_diagnostics_are_app_graph_owne
         else:
             assert diagnostics == []
         for diagnostic in diagnostics:
-            assert diagnostic["code"].startswith("APP-GRAPH-SURFACE-")
+            assert (
+                diagnostic["code"].startswith("APP-GRAPH-SURFACE-")
+                or diagnostic["code"] == "E611"
+            )
+            if diagnostic["code"] == "E611":
+                assert diagnostic["severity"] == "warning"
             source = diagnostic.get("primarySource")
             assert isinstance(source, dict)
             assert source.get("artifactKind") == "surface"

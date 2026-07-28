@@ -12,6 +12,7 @@ import {
 
 interface FixtureDiagnostic {
   code: string;
+  severity?: AppGraphDiagnostic['severity'];
   primarySource?: AppGraphDiagnostic['primarySource'];
   relatedSources?: AppGraphDiagnostic['relatedSources'];
   details?: AppGraphDiagnostic['details'];
@@ -69,7 +70,7 @@ function requestFor(corpus: FixtureCorpus, testCase: FixtureCase): AppGraphValid
 function expectDiagnostic(actual: AppGraphDiagnostic, expected: FixtureDiagnostic): void {
   expect(actual).toMatchObject({
     code: expected.code,
-    severity: 'error',
+    severity: expected.severity ?? 'error',
     phase: 'cross-artifact',
     origin: 'app-graph-validator',
   });
