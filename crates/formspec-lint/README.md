@@ -15,10 +15,19 @@ Rust **static analysis** for Formspec JSON documents — a nine-pass pipeline ov
 | 5 | E500 | `dependencies` | Bind-key dependency graph and cycles (`fel_core` / core FEL deps). |
 | 6 | W700–W711, E710 | `pass_theme` | Theme tokens, refs, pages, cross-definition checks when paired. |
 | 7 | E800–E807, W800–W804 | `pass_component` | Component tree, builtins, binds, compatibility matrix. |
-| 8 | E900–E902 | `pass_response` | Response signed-payload pin invariants. |
+| 8 | E606, E607, E610, E900–E902 | `pass_surface`, `pass_response` | Surface route-graph checks and Response signed-payload pin invariants. |
 | 9 | E1100–E1507, W1100–W1500 | `pass_mapping`, `pass_ontology`, `pass_references_doc`, `pass_locale`, `pass_screener` | Companion document semantic lint for Mapping, Ontology, References, Locale, Screener, and Determination Record consistency. |
 
 Supporting modules: **`types`** (diagnostics, options, result), **`lint_json`** (wire JSON for hosts), **`semantic_helpers`** (strict paths, Definition context, interpolation helpers), **`component_matrix`** (built-in input vs. `dataType` rules).
+
+`E611` is registered as a pass-8 rule, but the TypeScript
+`AppGraphValidator` emits it because the check needs the assembled app graph.
+The Rust crate does not emit `E611`.
+
+The registry keeps rules grouped by lint pass and emitter rather than sorting
+every code numerically. This intentionally places pass-3 `E608` and `E609`
+before pass-8 `E606`, `E607`, `E610`, and `E611`; published code values remain
+unchanged.
 
 ## Architecture
 

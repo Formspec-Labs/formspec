@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/lint-registry.schema.json",
+  "title": "Formspec lint rule registry",
+  "description": "Repository-owned format for the canonical Formspec lint rule registry.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "version",
+    "description",
+    "rules"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://formspec.org/schemas/lint-registry.schema.json"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    }
+  },
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "pass",
+        "severity",
+        "title",
+        "specRef",
+        "suggestedFix",
+        "fixtures",
+        "state"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[EW][0-9]{3,4}$"
+        },
+        "pass": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "severity": {
+          "enum": [
+            "error",
+            "warning",
+            "info"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "suggestedFix": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixtures": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "state": {
+          "enum": [
+            "draft",
+            "tested",
+            "stable"
+          ]
+        }
+      }
+    }
+  }
+}

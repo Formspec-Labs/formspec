@@ -13,12 +13,14 @@ import json
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from formspec._rust import LintDiagnostic, lint
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = REPO_ROOT / "specs" / "lint-codes.json"
+REGISTRY_SCHEMA_PATH = REPO_ROOT / "schemas" / "lint-registry.schema.json"
 
 REQUIRED_RULE_FIELDS = ("code", "pass", "severity", "title", "state")
 ALLOWED_STATES = {"draft", "tested", "stable"}
@@ -32,6 +34,14 @@ def _load_registry() -> dict:
         "Seed it alongside any new diagnostic code."
     )
     return json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
+
+
+def _load_registry_schema() -> dict:
+    assert REGISTRY_SCHEMA_PATH.exists(), (
+        f"Lint registry schema missing at {REGISTRY_SCHEMA_PATH}. "
+        "Keep the registry format locally verifiable without network access."
+    )
+    return json.loads(REGISTRY_SCHEMA_PATH.read_text(encoding="utf-8"))
 
 
 def _rules_by_code() -> dict[str, dict]:
@@ -50,6 +60,31 @@ def test_registry_structure_is_well_formed() -> None:
     assert registry.get("version"), "registry must declare a version"
     assert isinstance(registry.get("rules"), list)
     assert registry["rules"], "registry must list at least one rule"
+
+
+def test_registry_conforms_to_repository_owned_schema() -> None:
+    registry = _load_registry()
+    schema = _load_registry_schema()
+    Draft202012Validator.check_schema(schema)
+    assert registry.get("$schema") == schema.get("$id"), (
+        "registry $schema must name the repository-owned schema's canonical $id"
+    )
+
+    errors = sorted(
+        Draft202012Validator(schema).iter_errors(registry),
+        key=lambda error: tuple(str(part) for part in error.absolute_path),
+    )
+    assert not errors, "\n".join(
+        f"{'/'.join(str(part) for part in error.absolute_path) or '<root>'}: "
+        f"{error.message}"
+        for error in errors
+    )
+
+
+def test_registry_rule_codes_are_unique() -> None:
+    codes = [rule["code"] for rule in _load_registry()["rules"]]
+    duplicates = sorted({code for code in codes if codes.count(code) > 1})
+    assert not duplicates, f"registry contains duplicate lint codes: {duplicates}"
 
 
 def test_every_rule_has_required_fields() -> None:

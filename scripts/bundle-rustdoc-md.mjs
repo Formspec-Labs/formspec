@@ -90,5 +90,5 @@ for (const [label, filePath] of orderedPairs) {
 }
 
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
-fs.writeFileSync(outPath, pieces.join("\n") + "\n", "utf8");
+fs.writeFileSync(outPath, `${pieces.join("\n").trimEnd()}\n`, "utf8");
 console.log(`Wrote ${path.relative(root, outPath)}`);

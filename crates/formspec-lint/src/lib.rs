@@ -11,7 +11,9 @@
 //! Pass 5 (E500): Dependency cycle detection
 //! Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
 //! Pass 7 (E800-E807/W800-W807): Components — tree validation, type compatibility, bind resolution
-//! Pass 8 (E900-E902, E606-E607): Response cross-field invariants + Surface route-graph (ADR 0150 §6)
+//! Pass 8 (E606-E607/E610, E900-E902): Surface route graph and Response
+//! cross-field invariants (ADR 0150 §6)
+//! Registry-only E611 is emitted by the TypeScript AppGraphValidator, not this crate.
 //! Pass 9 (E1100-E1802/W1100-W1800): Companion document semantic lint
 //!
 //! ## Documentation
