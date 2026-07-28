@@ -33,7 +33,7 @@
       "documentRootPrimary": null
     },
     {
-      "step": "navigate to /receipt/:caseRef (proof, refuses)",
+      "step": "navigate to /receipt/RA-2026-0412 (proof, refuses)",
       "documentRootFormspecVarCount": 0,
       "documentRootPrimary": null
     },

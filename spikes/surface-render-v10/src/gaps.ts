@@ -174,15 +174,26 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'This is a schema-and-authoring defect, not a renderer one. A signed, shipped bundle carries a parameter marker the spec\'s own grammar does not define, and nothing caught it — not lint, not the app-graph validator, not the signing ceremony. `path` needs a pattern and authoring tools need to emit the pinned grammar so a conforming renderer never receives this document.',
     kind: 'vocabulary-bridge',
     source: 'src/shell/route-match.ts',
-    /**
-     * OPEN upstream. `@formspec-org/surface` now treats `:name` as literal,
-     * reports `ROUTE-PARAM-GRAMMAR`, and does not deep-link it, so the runtime
-     * divergence is closed. The schema still carries no `pattern`, the
-     * authoring tools still emit `:name`, and a signed bundle can therefore
-     * reach any conforming renderer with an address its grammar does not admit.
-     * Filed under 'existing package, unexported' when the taxonomy had no
-     * better slot; today it would be 'spec or schema, upstream of any renderer'.
-     */
+    resolved: {
+      landedIn: [
+        'formspec/schemas/surface.schema.json — Route.path admits opaque segments and exact `{name}` markers while rejecting every unpinned v0.1 parameter grammar.',
+        'formspec-studio/packages/formspec-studio-core/src/kernel/ProposalManagerFacade.ts — addRoute validates the same grammar and preserves route declarations plus transition and embedded-route parameter maps.',
+        'formspec-studio/packages/formspec-mcp-wireframes/src/index.ts — addRoute exposes route params on the product authoring API.',
+        'formspec/spikes/lifecycle-demo-v10 — the signed exemplar now carries `/receipt/{caseRef}`, params[], and the incoming transition map.',
+      ],
+      guardedBy: [
+        'tests/conformance/spec/test_surface_contract.py — schema acceptance and rejection matrix.',
+        'formspec-studio package tests — authoring rejection, persistence, edge completeness, and the active materialisation corpus.',
+        'spikes/lifecycle-demo-v10 and surface-render-v10 browser gates — signed export, schema validation, deep-link match, and no ROUTE-PARAM-GRAMMAR diagnostic.',
+      ],
+      before:
+        'The signed bundle carried `/receipt/:caseRef` with no params[]; schema validation passed and a conforming deep link failed.',
+      after:
+        'The schema and authoring API reject `:caseRef`; the signed bundle carries `/receipt/{caseRef}` with params[] and `/receipt/RA-2026-0412` renders the receipt.',
+      naturalHomeHeld: true,
+      naturalHomeNote:
+        'The original taxonomy label was imprecise, but its rationale named the exact split that landed: schema admission in Surface and emission in the authoring tools. The renderer remains strict and adds no alias.',
+    },
   },
   {
     id: 'slot-dispatch',

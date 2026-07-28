@@ -86,7 +86,10 @@
       "transitions": [
         {
           "trigger": "submit",
-          "to": "receipt"
+          "to": "receipt",
+          "params": {
+            "caseRef": "caseRef"
+          }
         }
       ],
       "routeClass": "ceremony",
@@ -113,7 +116,15 @@
     },
     {
       "id": "receipt",
-      "path": "/receipt/:caseRef",
+      "path": "/receipt/{caseRef}",
+      "params": [
+        {
+          "name": "caseRef",
+          "type": "string",
+          "description": "Reference printed on the submitted application receipt.",
+          "example": "RA-2026-0412"
+        }
+      ],
       "title": "Your receipt",
       "routeClass": "proof",
       "slots": [

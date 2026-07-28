@@ -429,7 +429,7 @@
           "stage": "plan",
           "actor": "ai-agent",
           "verb": "addRoute",
-          "intent": "Label /receipt/:caseRef as legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it. In this deployment, only a person may make that call.",
+          "intent": "Label /receipt/{caseRef} as legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it. In this deployment, only a person may make that call.",
           "outcome": "refused",
           "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.",
           "details": {
@@ -450,7 +450,7 @@
           "stage": "plan",
           "actor": "ai-agent",
           "verb": "addRoute",
-          "intent": "Add /receipt/:caseRef without the label, and carry on. The refusal stopped one field, not the work.",
+          "intent": "Add /receipt/{caseRef} without the label, and carry on. The refusal stopped one field, not the work.",
           "outcome": "admitted",
           "details": {
             "routeId": "receipt",
@@ -462,7 +462,7 @@
           "stage": "plan",
           "actor": "ai-agent",
           "verb": "bindSlot",
-          "intent": "Put on /receipt/:caseRef the things that belong there.",
+          "intent": "Put on /receipt/{caseRef} the things that belong there.",
           "outcome": "admitted",
           "details": {
             "routeId": "receipt",
@@ -990,7 +990,7 @@
           "stage": "sign-off",
           "actor": "human",
           "verb": "addRoute(routeClass)",
-          "intent": "Put it on the record: /receipt/:caseRef is legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it.",
+          "intent": "Put it on the record: /receipt/{caseRef} is legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it.",
           "outcome": "admitted",
           "details": {
             "routeId": "receipt",
@@ -1101,7 +1101,7 @@
           "stage": "release",
           "actor": "system",
           "verb": "THEME-ROUTE-CLASS",
-          "intent": "Decide whether the organisation's brand may go on /receipt/:caseRef — legal proof that someone else relies on.",
+          "intent": "Decide whether the organisation's brand may go on /receipt/{caseRef} — legal proof that someone else relies on.",
           "outcome": "refused",
           "message": "A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.",
           "details": {
@@ -1268,7 +1268,7 @@
       "evidence": {
         "verification": {
           "result": "verified",
-          "recomputedDigest": "a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37",
+          "recomputedDigest": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
           "digestMatches": true,
           "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
           "methodRegistryVersion": "1.1.0",
@@ -1826,7 +1826,7 @@
       "signatureId": "sig-lifecycle-v10-ceremony-v10-0001",
       "documentId": "rentAssistanceRelease",
       "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1",
-      "signatureValue": "0oRYSKMBJwRQXKk+f5KxlTpWfr3P8qiLuzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEAeANZ0wjqdCR4qga9et11m6cUKuX1eq9WGaEOZ+0DGWJoanEW8nCO5ZZi1g/SFyMWNJd1wptJVl0qSmoyNl9sJ",
+      "signatureValue": "0oRYSKMBJwRQKOTCHo4OfkKB7beIlngbGzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WECrrXA6zSGolm49jQGBk3V+SBx8rWL8dRcBMC2KBUp1YLQRWB5jkOsmomf898/95d0TzdPOUsgCN+pqMs0UdXAG",
       "signerId": "product-owner",
       "signerName": "R. Okonjo, Product Owner",
       "consentAccepted": true,
@@ -1836,24 +1836,24 @@
       "signedPayload": {
         "canonicalization": "formspec-spike-v10-bundle-export-signing-v1",
         "digestAlgorithm": "sha-256",
-        "digest": "a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37",
+        "digest": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
         "responseId": "https://benefits.example.gov/apps/assistance",
         "definitionUrl": "https://benefits.example.gov/apps/assistance",
         "definitionVersion": "1.0.0",
         "signedAt": "2026-07-27T09:30:00Z",
         "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1"
       },
-      "documentHash": "a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37",
+      "documentHash": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
       "documentHashAlgorithm": "sha-256",
       "signatureProvider": "urn:formspec:spike-v10:signature:provider:in-repo-ed25519",
       "ceremonyId": "ceremony-v10-0001"
     },
-    "publicKeyBase64": "0sGA8HMR6jjftr/n9GnLNUsHqChJ/uCZPOjnymG6MlU=",
+    "publicKeyBase64": "C/RYdgiYu1FmuL8S7nLLO6hJOy6imv7aFh+RZBjhDYY=",
     "schemaValid": false
   },
   "verification": {
     "result": "verified",
-    "recomputedDigest": "a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37",
+    "recomputedDigest": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
     "digestMatches": true,
     "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
     "methodRegistryVersion": "1.1.0",

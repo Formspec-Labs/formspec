@@ -501,13 +501,16 @@
                 "transitions": [
                   {
                     "trigger": "submit",
-                    "to": "receipt"
+                    "to": "receipt",
+                    "params": {
+                      "caseRef": "caseRef"
+                    }
                   }
                 ]
               },
               {
                 "id": "receipt",
-                "path": "/receipt/:caseRef",
+                "path": "/receipt/{caseRef}",
                 "slots": [
                   {
                     "id": "receiptJourney",
@@ -526,6 +529,14 @@
                       "moduleId": "x-formspec-tenant-chrome",
                       "widgetName": "x-receipt-panel"
                     }
+                  }
+                ],
+                "params": [
+                  {
+                    "name": "caseRef",
+                    "type": "string",
+                    "description": "Reference printed on the submitted application receipt.",
+                    "example": "RA-2026-0412"
                   }
                 ],
                 "title": "Your receipt",
@@ -957,7 +968,7 @@
       "unvalidatedArtifacts": 0,
       "graphErrors": 3,
       "errors": 3,
-      "warnings": 0,
+      "warnings": 1,
       "infos": 0,
       "importedDiagnostics": 0,
       "unsupportedFeatures": 0,
@@ -1155,6 +1166,46 @@
             "queue"
           ],
           "reason": "tenant-theming-refused-by-route-class"
+        }
+      },
+      {
+        "code": "E611",
+        "severity": "warning",
+        "phase": "cross-artifact",
+        "origin": "app-graph-validator",
+        "message": "Surface route 'certify' transition trigger 'submit' resolves, but no definition-form slot on that route or an embedded route binds a Definition targeted by the matching Response Action.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "studio-core:bundle-local:surfaces[0]",
+          "jsonPointer": "/routes/1/transitions/0/trigger",
+          "ref": {
+            "url": "https://benefits.example.gov/apps/assistance/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        },
+        "relatedSources": [
+          {
+            "artifactSlot": "responseActions",
+            "artifactKind": "responseActions",
+            "source": "studio-core:bundle-local:responseActions",
+            "jsonPointer": "/actions",
+            "ref": {
+              "url": "urn:formspec:doc:1feb5fb90254133a:responseActions"
+            }
+          }
+        ],
+        "details": {
+          "reason": "transition-unfireable",
+          "routeId": "certify",
+          "trigger": "submit",
+          "resolvedActionIds": [
+            "submitApplication"
+          ],
+          "triggerSourceSlotTypes": [
+            "definition-form",
+            "embed-route"
+          ]
         }
       }
     ],

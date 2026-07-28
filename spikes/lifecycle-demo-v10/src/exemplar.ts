@@ -124,6 +124,12 @@ export interface RouteSpec {
   /** Which Surface this route lives on. */
   surfaceId: string;
   path: string;
+  params?: Array<{
+    name: string;
+    type: 'string';
+    description?: string;
+    example?: string;
+  }>;
   title: string;
   routeClass: RouteClass;
   /** Why this class and no other — quoted into the walkthrough. */
@@ -132,6 +138,7 @@ export interface RouteSpec {
   chromeWidget: string;
   slots: SlotSpec[];
   transitionTo?: string;
+  transitionParams?: Record<string, string>;
 }
 
 export const ROUTES: readonly RouteSpec[] = [
@@ -163,11 +170,18 @@ export const ROUTES: readonly RouteSpec[] = [
       { slotId: 'certifyChrome', slotType: 'module-widget', binding: { moduleId: TENANT_MODULE, widgetName: 'x-ceremony-frame' } },
     ],
     transitionTo: 'receipt',
+    transitionParams: { caseRef: 'caseRef' },
   },
   {
     routeId: 'receipt',
     surfaceId: SURFACE_ID,
-    path: '/receipt/:caseRef',
+    path: '/receipt/{caseRef}',
+    params: [{
+      name: 'caseRef',
+      type: 'string',
+      description: 'Reference printed on the submitted application receipt.',
+      example: 'RA-2026-0412',
+    }],
     title: 'Your receipt',
     routeClass: 'proof',
     why: 'The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it.',

@@ -46,7 +46,7 @@ Nine further findings are in the tracker's §Findings, each measured rather than
 |---|---|---|
 | `/apply` | `intake` | **admits** |
 | `/certify` | `ceremony` | refuses |
-| `/receipt/:caseRef` | `proof` | refuses |
+| `/receipt/{caseRef}` | `proof` | refuses |
 | `/queue` (staff Surface) | `operation` | refuses |
 
 ## Layout

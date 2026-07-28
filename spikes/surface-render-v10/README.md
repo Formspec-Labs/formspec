@@ -22,7 +22,7 @@ Bars were pre-registered before any code: [`formspec/thoughts/spikes/2026-07-27-
 
 ```sh
 npm install
-npm run dev        # http://localhost:4173  — /apply, /certify, /receipt/:caseRef, /queue
+npm run dev        # http://localhost:4173  — /apply, /certify, /receipt/RA-2026-0412, /queue
 npm run build && npm run preview   # static build, http://localhost:4174
 npm run typecheck
 npm run gap-ledger # rewrites evidence/gap-ledger.json from src/gaps.ts
@@ -136,7 +136,7 @@ The signature is checked in the browser with the shipped COSE + WebCrypto path
 Two strings on screen are *not* from the export, and both are ledger entries rather
 than exceptions: the navigation's group labels, because `SurfaceDocument.title` is
 optional and this bundle omits it on both Surfaces (`cross-surface-navigation`), and
-the `:caseRef` value in `/receipt/:caseRef`, because there is no submission to take one
+the `caseRef` value in `/receipt/{caseRef}`, because there is no submission to take one
 from (`no-runtime-state`).
 
 The gate is falsifiable, and was falsified on purpose: altering one character of the
@@ -418,14 +418,15 @@ it.
 | `platform-theme-merge` | `FormspecForm`'s `themeDocument` prop replaces rather than layers. A partial tenant theme drops every platform token, and the failure looks like a styling bug. |
 | `response-actions-type-mismatch` | **New, surfaced by the R2 fix.** Now that the bundle carries a Response Actions document, the shell has to pass it to `FormspecForm` — and `@formspec-org/types`' schema-generated `ResponseActionsDocument` is not assignable to `@formspec-org/react`'s `ResponseActionsDocumentInput`. A cast at every host is the same defect as an alias table. |
 | `bundle-manifest-dereference` | Manifest URLs → typed documents. `resolveArtifacts` is exported and good, and models the wrong shape: sibling refs behind a caller-supplied loader, returning `document: unknown` as validation evidence. A bundle export has already inlined its documents, so the loader you would pass *is* the gap. |
-| `route-path-grammar-mismatch` | The spec pins `{name}` markers; the signed bundle authors `:caseRef`. Both schema-valid, because `path` is only "a non-empty string". Nothing caught it — not lint, not the validator, not the signing ceremony. |
+| ~~`route-path-grammar-mismatch`~~ **resolved** | The spec pins `{name}` markers, but the signed bundle authored `:caseRef` and schema validation accepted it. `Route.path` now rejects unpinned parameter grammars; Studio preserves `params[]` and edge maps; the regenerated signed bundle authors `/receipt/{caseRef}`; and the browser gate deep-links `/receipt/RA-2026-0412` without `ROUTE-PARAM-GRAMMAR`. |
 
 Six of these nine are theming, and they are ordered above by what a tenant actually
 hits. That concentration is not a coincidence: theme authority is the one place where an
 authoring-time rule was supposed to have a runtime consequence, and the runtime half was
-never built. The three that closed are the three a tenant hits first — and closing them
-took a spec change, a schema field, a registry change, a CSS change, a renderer change
-and a kernel change, which is roughly the shape of "the runtime half was never built".
+never built. Three of the four closed rows are the three a tenant hits first; the fourth
+closes the route grammar before a tenant can receive a divergent bundle. Closing them
+took a spec change, schema fields, registry and authoring changes, CSS changes, renderer
+changes, and kernel changes — roughly the shape of "the runtime half was never built".
 
 `transition-has-no-trigger-source` (filed under the surface-shell group) is **partially**
 closed and deliberately not marked resolved. The cause is fixed — the bundle now

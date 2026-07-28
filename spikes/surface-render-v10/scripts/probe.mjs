@@ -26,22 +26,19 @@ const TENANT_BRAND_RGB = 'rgb(122, 31, 61)';
 const PLATFORM_BRAND = '#27594f';
 
 /**
- * The receipt route authors `/receipt/:caseRef`. Surface v0.1 pins `{name}` as
- * the only parameter grammar, so a conforming shell reads `:caseRef` as LITERAL
- * text: the route answers `/receipt/:caseRef` and does NOT answer
- * `/receipt/RA-2026-0412`. That is the whole point of divergence D1 being closed
- * against the implementation — the address degrades loudly rather than two
- * renderers disagreeing about what a signed URL means. `UNPINNED_DEEP_LINK`
- * below measures the consequence instead of hiding it.
+ * The receipt route now authors `/receipt/{caseRef}` and declares `caseRef`.
+ * Surface v0.1 pins that as its only parameter grammar. The browser probe uses
+ * the resolved address and asserts the signed exemplar deep-links without a
+ * `ROUTE-PARAM-GRAMMAR` diagnostic.
  */
 const ROUTES = [
   { id: 'apply', path: '/apply', label: '01-apply-intake' },
   { id: 'certify', path: '/certify', label: '02-certify-ceremony' },
-  { id: 'receipt', path: '/receipt/:caseRef', label: '03-receipt-proof' },
+  { id: 'receipt', path: '/receipt/RA-2026-0412', label: '03-receipt-proof' },
   { id: 'queue', path: '/queue', label: '04-queue-operation' },
 ];
 
-const UNPINNED_DEEP_LINK = '/receipt/RA-2026-0412';
+const PINNED_DEEP_LINK = '/receipt/RA-2026-0412';
 
 /** WCAG 2.x contrast between two `rgb(...)` strings read off the live page. */
 const CONTRAST_SCRIPT = () => {
@@ -199,10 +196,10 @@ const main = async () => {
     documentRootProperties: await leakPage.evaluate(readDocumentRoot),
   });
 
-  await leakPage.goto(`${BASE}/receipt/:caseRef`, { waitUntil: 'networkidle' });
+  await leakPage.goto(`${BASE}${PINNED_DEEP_LINK}`, { waitUntil: 'networkidle' });
   await waitForApp(leakPage);
   steps.push({
-    step: 'navigate to /receipt/:caseRef (proof, refuses)',
+    step: `navigate to ${PINNED_DEEP_LINK} (proof, refuses)`,
     documentRootProperties: await leakPage.evaluate(readDocumentRoot),
   });
 
@@ -443,7 +440,7 @@ const main = async () => {
   walk.push({ step: 'loaded on /apply', ...(await walkPage.evaluate(readRoute)) });
   for (const [label, routeId] of [
     ['navigated to /certify', 'certify'],
-    ['navigated to /receipt/:caseRef', 'receipt'],
+    [`navigated to ${PINNED_DEEP_LINK}`, 'receipt'],
     ['navigated to /queue', 'queue'],
     ['back to /apply', 'apply'],
   ]) {
@@ -528,8 +525,8 @@ const main = async () => {
         /\{[A-Za-z][A-Za-z0-9_]*\}/.test(href ?? ''),
       ),
       note:
-        'The authored :caseRef segment remains literal and carries ROUTE-PARAM-GRAMMAR. '
-        + 'This check targets D22: a live URL containing an unresolved {name} marker.',
+        'The host supplies caseRef, so the receipt link resolves to a concrete URL. '
+        + 'This check targets D22: no live URL may contain an unresolved {name} marker.',
     };
   });
 
@@ -589,12 +586,11 @@ const main = async () => {
     });
   }
 
-  // The address the unpinned grammar costs. `:caseRef` is literal text, so this
-  // matches nothing and the shell says so rather than deep-linking a URL a
-  // second conforming renderer would 404.
-  await routePage.goto(`${BASE}${UNPINNED_DEEP_LINK}`, { waitUntil: 'networkidle' });
+  // The F8 closure: the signed route uses the pinned marker and its resolved
+  // address deep-links in the strict shell without a grammar diagnostic.
+  await routePage.goto(`${BASE}${PINNED_DEEP_LINK}`, { waitUntil: 'networkidle' });
   await routePage.waitForSelector('[data-probe="route-not-found"], [data-route]');
-  const unpinnedDeepLink = await routePage.evaluate(() => ({
+  const pinnedDeepLink = await routePage.evaluate(() => ({
     routeRendered: document.querySelector('[data-route]')?.getAttribute('data-route') ?? null,
     notFoundShown: document.querySelector('[data-probe="route-not-found"]') !== null,
     diagnostics: [...document.querySelectorAll('[data-diagnostic]')].map((node) => ({
@@ -604,19 +600,18 @@ const main = async () => {
   }));
 
   write('route-grammar.json', {
-    title: 'D1 — the unpinned route-parameter grammar, and what it costs the address',
+    title: 'D1/F8 — one pinned route-parameter grammar from schema to browser',
     description:
-      'The signed bundle authors `/receipt/:caseRef`. Surface v0.1 §3 pins `{name}` as the only '
-      + 'parameter grammar, so a conforming shell reads `:caseRef` as literal text. The route stays '
-      + 'reachable by handle and only its deep-link address degrades — loudly, which is the point.',
-    authoredPath: '/receipt/:caseRef',
-    addressThatWorks: '/receipt/:caseRef',
-    addressThatNoLongerResolves: UNPINNED_DEEP_LINK,
-    measured: unpinnedDeepLink,
+      'The signed bundle authors `/receipt/{caseRef}`, declares `caseRef`, and supplies the incoming '
+      + 'transition map. The host provides the runtime value; the strict shell resolves the concrete '
+      + 'address without reading a second parameter grammar.',
+    authoredPath: '/receipt/{caseRef}',
+    declaredParams: [{ name: 'caseRef', type: 'string' }],
+    resolvedAddress: PINNED_DEEP_LINK,
+    measured: pinnedDeepLink,
     repair:
-      'A `pattern` on `Route.path` in surface.schema.json admitting only the pinned grammar, plus '
-      + 'authoring-tool emission (finding F8, owner: Surface). Making the renderer strict is necessary '
-      + 'and not sufficient — the authored bundle is where the two grammars meet.',
+      'Route.path now carries a schema pattern admitting only the pinned grammar, and Studio authoring '
+      + 'preserves params[] plus edge maps while rejecting `:name` before export.',
     beforeThisReconciliation:
       'The shell matched BOTH grammars in one pass and reported ROUTE-PARAM-GRAMMAR alongside, so the '
       + 'deep link worked here and 404d in any other conforming renderer.',
@@ -807,6 +802,13 @@ const main = async () => {
   }
   if (navigation.unresolvedPinnedMarkers.length > 0) {
     gateFailures.push('navigation published a live URL with an unresolved {name} marker');
+  }
+  if (
+    pinnedDeepLink.routeRendered !== 'receipt'
+    || pinnedDeepLink.notFoundShown
+    || pinnedDeepLink.diagnostics.some(({ code }) => code === 'ROUTE-PARAM-GRAMMAR')
+  ) {
+    gateFailures.push('the signed pinned receipt route did not deep-link cleanly');
   }
   if (failures.length > 0) {
     gateFailures.push(`${failures.length} measured text/background pair(s) missed WCAG 2.2 AA`);

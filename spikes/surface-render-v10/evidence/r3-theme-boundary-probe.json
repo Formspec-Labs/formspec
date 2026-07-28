@@ -45,7 +45,7 @@
       "onScreenProbeReadsTenantValues": 0
     },
     {
-      "step": "navigated to /receipt/:caseRef",
+      "step": "navigated to /receipt/RA-2026-0412",
       "routeId": "receipt",
       "routeClass": "proof",
       "grant": "refused",

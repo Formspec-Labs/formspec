@@ -1559,7 +1559,7 @@ The manifest lists `respondent` first, then `staff`, so the composed table is:
 |---|---|---|---|---|
 | 1 | `respondent` | `apply` | `/apply` | `intake` |
 | 2 | `respondent` | `certify` | `/certify` | `ceremony` |
-| 3 | `respondent` | `receipt` | `/receipt/:caseRef` | `proof` |
+| 3 | `respondent` | `receipt` | `/receipt/{caseRef}` | `proof` |
 | 4 | `staff` | `queue` | `/queue` | `operation` |
 
 **Composition (§2.1).** One flat URL space in manifest order. No prefixing: the
@@ -1574,15 +1574,14 @@ path the Surface authored.
 colliding; identity is the pair. No two composed paths collide here, so §2.4's
 refusal never engages.
 
-**A defect the table shows (§2.3).** Route 3 authors `/receipt/:caseRef` — the
-colon-prefixed grammar Surface v0.1 does not pin. Both the path and the missing
-`params[]` are schema-valid because `path` is constrained only to a non-empty
-string. A conforming shell treats `:caseRef` as a **literal segment**, so
-`/receipt/RA-2026-0412` does not match, and reports `ROUTE-PARAM-GRAMMAR`. The
-receipt route stays reachable through the `certify` route's transition and
-through `surface:receipt`; only its deep-link address degrades — loudly, which is
-the point. Repairing the bundle means `path: "/receipt/{caseRef}"` plus a
-`params[]` entry naming `caseRef`.
+**The F8 correction the table shows (§2.3).** Route 3 now authors the pinned
+`/receipt/{caseRef}` grammar and declares `caseRef` in `params[]`; the
+`certify` transition supplies the corresponding parameter map. `Route.path`
+schema validation and Studio authoring both reject `/receipt/:caseRef` before
+export. With the host value `RA-2026-0412`, a conforming shell matches
+`/receipt/RA-2026-0412`, binds `caseRef`, and reports no
+`ROUTE-PARAM-GRAMMAR`. The strict runtime remains necessary for older invalid
+documents; it does not add a colon alias.
 
 ### 9.2 Slot Dispatch, Route by Route
 
@@ -1728,7 +1727,7 @@ behaviour.
 | `bundle-manifest-dereference` | resolved | §3.0, §8.5 obligation 2 | Spec states the obligation (report all absences, single renderability verdict) and assigns it to the host, not the shell core. |
 | `surface-shell` | resolved | §1.2, §8 | The seam this document is the contract for. Layering is now normative, including navigation-as-port, which the build discovered rather than predicted. |
 | `route-matching` | resolved | §2.3, §2.7 | Includes the build's two corrections: an unsupplied marker is refused rather than name-substituted, and a malformed escape does not escape a render. |
-| `route-path-grammar-mismatch` | **open upstream** | §2.3, §7.3 | The runtime divergence is closed: the shell treats `:name` as literal, reports `ROUTE-PARAM-GRAMMAR`, and does not deep-link it. The schema and authoring defect remains: `path` still admits the unpinned form and the exemplar bundle still carries it. Finding F8 owns that remaining work. |
+| `route-path-grammar-mismatch` | resolved | §2.3, §7.3 | `Route.path` rejects unpinned parameter grammars; Studio authors and preserves `params[]` plus edge maps; the signed exemplar carries `/receipt/{caseRef}`; and the browser deep-link gate resolves its concrete address without a grammar diagnostic. The runtime still rejects invalid legacy `:name` documents rather than aliasing them. |
 | `slot-dispatch` | resolved | §3, §3.5 | Exhaustive dispatch with no default arm; `embed-route` recursion, host-grant inheritance, heading step-down, and cycle termination all normative. |
 | `module-widget-runtime` | resolved | §3.3 | Resolution keyed on `widgetShape.widgetName`; the three-outcome split (`resolved` / `unimplemented` / `undeclared`) is normative because it names who fixes it. |
 | `widget-x-intake-banner` | resolved | §1.3 principle 2, §3.3 | Not a spec object. The rule it produced — a widget configured with nothing says so rather than inventing copy — is normative. |
@@ -1852,7 +1851,7 @@ existing owning specification.
 | **F5** | Two Registry documents in one bundle may declare the same entry `name`. | **Applied:** [Registry §2.2](../registry/extension-registry.md) now makes unqualified lookup exactly-one and fail-closed; the shell omits all colliding entries. | Registry |
 | **F6** | The generated Response Actions document type and the renderer's input type are mutually unassignable, forcing a cast at every host. Not a contract question — a packaging one. | One package narrows or re-exports. No spec change. | `formspec-types` / `formspec-engine` |
 | **F7** | The shell's own person-facing strings — unavailable, empty state, transition refusal, not-found, pending — have no channel into the substrate's Locale tier, so a shell is monolingual regardless of the bundle's Locale document. | Either a host override map for the shell's enumerated string set, or `$module.*` Locale keys owned by the shell's module (Locale spec, and ADR 0150 §4.10 module-aware addressing). The set is small and closed, which is what makes it tractable. | Locale + this spec's next revision |
-| **F8** | `path` in `surface.schema.json` is constrained only to a non-empty string, so both the pinned `{name}` grammar and the unpinned `:name` grammar are schema-valid and authoring tools emit the wrong one. This is the root cause of D1. | A `pattern` on `Route.path` admitting only the pinned grammar, plus authoring-tool emission. Making the renderer strict (§2.3) is necessary and not sufficient — the authored bundle is where the two grammars meet. | Surface |
+| **F8** | `path` in `surface.schema.json` was constrained only to a non-empty string, so both the pinned `{name}` grammar and the unpinned `:name` grammar were schema-valid and authoring tools emitted the wrong one. This was the root cause of D1. | **Applied:** `Route.path` admits only opaque segments and exact `{name}` markers; Studio validates and preserves route declarations plus edge maps; the signed exemplar and browser evidence use the pinned grammar. The renderer remains strict for invalid legacy documents. | Surface |
 | **F9** | Theme defined token maps but did not define platform-under-tenant layering, emission ownership, cleanup, or output scope. | **Applied:** [Theme §3.7](../theme/theme-spec.md) now owns the cross-renderer rule; this document retains the Surface-specific application in §4.5. | Theme |
 | **F10** | The Surface schema described `static-content.binding.level` as an absolute heading level while this document requires a composition-relative rank. | **Applied:** `schemas/surface.schema.json` now describes rank, host baseline, and embed depth. | Surface |
 

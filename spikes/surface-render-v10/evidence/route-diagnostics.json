@@ -5,21 +5,12 @@
     {
       "route": "apply",
       "path": "/apply",
-      "diagnostics": [
-        {
-          "code": "ROUTE-PARAM-GRAMMAR",
-          "severity": "error"
-        }
-      ]
+      "diagnostics": []
     },
     {
       "route": "certify",
       "path": "/certify",
       "diagnostics": [
-        {
-          "code": "ROUTE-PARAM-GRAMMAR",
-          "severity": "error"
-        },
         {
           "code": "TRANSITION-UNFIREABLE",
           "severity": "warning"
@@ -28,23 +19,13 @@
     },
     {
       "route": "receipt",
-      "path": "/receipt/:caseRef",
-      "diagnostics": [
-        {
-          "code": "ROUTE-PARAM-GRAMMAR",
-          "severity": "error"
-        }
-      ]
+      "path": "/receipt/RA-2026-0412",
+      "diagnostics": []
     },
     {
       "route": "queue",
       "path": "/queue",
-      "diagnostics": [
-        {
-          "code": "ROUTE-PARAM-GRAMMAR",
-          "severity": "error"
-        }
-      ]
+      "diagnostics": []
     }
   ],
   "severityNote": "Severity is fixed per code by the spec’s §7.2 table, never by the call site, so two sites reporting the same code cannot disagree about how loud it is."

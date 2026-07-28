@@ -77,13 +77,16 @@
       "transitions": [
         {
           "trigger": "submit",
-          "to": "receipt"
+          "to": "receipt",
+          "params": {
+            "caseRef": "caseRef"
+          }
         }
       ]
     },
     {
       "id": "receipt",
-      "path": "/receipt/:caseRef",
+      "path": "/receipt/{caseRef}",
       "slots": [
         {
           "id": "receiptJourney",
@@ -102,6 +105,14 @@
             "moduleId": "x-formspec-tenant-chrome",
             "widgetName": "x-receipt-panel"
           }
+        }
+      ],
+      "params": [
+        {
+          "name": "caseRef",
+          "type": "string",
+          "description": "Reference printed on the submitted application receipt.",
+          "example": "RA-2026-0412"
         }
       ],
       "title": "Your receipt",

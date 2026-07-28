@@ -220,6 +220,7 @@ export async function authorBaseline(
         routeId: route.routeId,
         path: route.path,
         title: route.title,
+        ...(route.params !== undefined ? { params: route.params } : {}),
         routeClass: route.routeClass,
       });
       if (!classified.ok) throw new Error(`addRoute(${route.routeId}) refused: ${classified.error.message}`);
@@ -230,6 +231,7 @@ export async function authorBaseline(
         routeId: route.routeId,
         path: route.path,
         title: route.title,
+        ...(route.params !== undefined ? { params: route.params } : {}),
         routeClass: route.routeClass,
       });
       if (!attempt.ok) {
@@ -248,6 +250,7 @@ export async function authorBaseline(
         routeId: route.routeId,
         path: route.path,
         title: route.title,
+        ...(route.params !== undefined ? { params: route.params } : {}),
       });
       if (!unclassified.ok) throw new Error(`addRoute(${route.routeId}) unclassified refused: ${unclassified.error.message}`);
     }
@@ -271,7 +274,11 @@ export async function authorBaseline(
     const t = await mcp.kernel.addTransition({
       surfaceId: route.surfaceId,
       routeId: route.routeId,
-      transition: { trigger: 'submit', to: route.transitionTo },
+      transition: {
+        trigger: 'submit',
+        to: route.transitionTo,
+        ...(route.transitionParams !== undefined ? { params: route.transitionParams } : {}),
+      },
     });
     if (!t.ok) throw new Error(`addTransition(${route.routeId}) refused: ${t.error.message}`);
   }
@@ -564,6 +571,7 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
       routeId: route.routeId,
       path: route.path,
       title: route.title,
+      ...(route.params !== undefined ? { params: route.params } : {}),
       routeClass: route.routeClass,
     });
     ev.beat({
@@ -584,6 +592,7 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
       routeId: route.routeId,
       path: route.path,
       title: route.title,
+      ...(route.params !== undefined ? { params: route.params } : {}),
     });
     ev.beat({
       actor: 'ai-agent',
@@ -621,7 +630,11 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
     const t = await state.agent.kernel.addTransition({
       surfaceId: route.surfaceId,
       routeId: route.routeId,
-      transition: { trigger: 'submit', to: route.transitionTo },
+      transition: {
+        trigger: 'submit',
+        to: route.transitionTo,
+        ...(route.transitionParams !== undefined ? { params: route.transitionParams } : {}),
+      },
     });
     if (!t.ok) throw new Error(`addTransition refused: ${t.error.message}`);
   }
@@ -854,6 +867,7 @@ async function probeRouteClassAmendment(agent: WireframesMcp, human: WireframesM
       routeId: AMEND_TARGET.routeId,
       path: AMEND_TARGET.path,
       title: AMEND_TARGET.title,
+      ...(AMEND_TARGET.params !== undefined ? { params: AMEND_TARGET.params } : {}),
       routeClass: AMEND_TO_ROUTE_CLASS,
     });
 

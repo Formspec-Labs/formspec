@@ -167,7 +167,7 @@
       },
       {
         "routeId": "receipt",
-        "href": "/receipt/:caseRef"
+        "href": "/receipt/RA-2026-0412"
       },
       {
         "routeId": "queue",
@@ -176,27 +176,20 @@
     ],
     "unavailable": [],
     "unresolvedPinnedMarkers": [],
-    "note": "The authored :caseRef segment remains literal and carries ROUTE-PARAM-GRAMMAR. This check targets D22: a live URL containing an unresolved {name} marker."
+    "note": "The host supplies caseRef, so the receipt link resolves to a concrete URL. This check targets D22: no live URL may contain an unresolved {name} marker."
   },
   "stubsRendered": [],
   "stubNote": "Zero. All four module widgets are real components in @formspec-org/surface-react. Where a widget shows an empty state it is because the bundle supplies it nothing — `widget-data-binding` and `no-runtime-state`, both still open — not because the widget is a stub.",
   "ledgerOnScreen": {
     "onScreenTotal": 29,
-    "onScreenResolved": 21,
-    "onScreenOpen": 8,
-    "diagnosticCount": 1,
-    "diagnosticErrors": 1,
+    "onScreenResolved": 22,
+    "onScreenOpen": 7,
+    "diagnosticCount": 0,
+    "diagnosticErrors": 0,
     "diagnosticWarnings": 0,
     "diagnosticInfos": 0,
-    "diagnostics": [
-      {
-        "code": "ROUTE-PARAM-GRAMMAR",
-        "severity": "error"
-      }
-    ],
-    "diagnosticCodes": [
-      "ROUTE-PARAM-GRAMMAR"
-    ]
+    "diagnostics": [],
+    "diagnosticCodes": []
   },
   "navigationLabels": "Group labels are `SurfaceDocument.title ?? id`, so they read \"respondent\" and \"staff\". The spike previously invented \"For the person applying\" and \"For staff\"; a shell does not write copy for an artifact that declined to carry it."
 }

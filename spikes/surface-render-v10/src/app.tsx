@@ -14,7 +14,7 @@
  * - **runtime data for widgets**, through the host port, because the bundle has
  *   no channel for it;
  * - **a route parameter value**, because a bundle with no submission has no case
- *   reference to put in `/receipt/:caseRef`;
+ *   reference to put in `/receipt/{caseRef}`;
  * - **spike scaffolding** — the verification chrome, the gap drawer, the
  *   document-root probe.
  *
@@ -49,10 +49,10 @@ import { DocumentRootProbe } from './chrome/DocumentRootProbe.tsx';
 const TENANT_CHROME_MODULE = 'x-formspec-tenant-chrome';
 
 /**
- * `/receipt/:caseRef` needs a value and there is no submission to take one from.
+ * `/receipt/{caseRef}` needs a value and there is no submission to take one from.
  * Supplied here, by the host, and still recorded — gap ledger `no-runtime-state`.
  * The shell refuses to invent it: without this the link raises
- * `ROUTE-PARAM-UNSUPPLIED` rather than pointing at `/receipt/:caseRef`.
+ * `ROUTE-PARAM-UNSUPPLIED` rather than publishing a marker-bearing URL.
  */
 const HOST_ROUTE_PARAMS = { caseRef: 'RA-2026-0412' } as const;
 

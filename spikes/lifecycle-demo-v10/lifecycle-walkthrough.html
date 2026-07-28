@@ -298,7 +298,7 @@
   <details class="detail"><summary>Evidence</summary><pre>{
   &quot;verification&quot;: {
     &quot;result&quot;: &quot;verified&quot;,
-    &quot;recomputedDigest&quot;: &quot;a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37&quot;,
+    &quot;recomputedDigest&quot;: &quot;e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329&quot;,
     &quot;digestMatches&quot;: true,
     &quot;methodUriFromEnvelope&quot;: &quot;urn:formspec:sig-method:ed25519-cose-sign1@1&quot;,
     &quot;methodRegistryVersion&quot;: &quot;1.1.0&quot;,
@@ -1277,7 +1277,7 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Label /receipt/:caseRef as legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it. In this deployment, only a person may make that call.</p>
+  <p class="beat__intent">Label /receipt/{caseRef} as legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it. In this deployment, only a person may make that call.</p>
   <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.</code></blockquote>
   <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;receipt&quot;,
@@ -1298,7 +1298,7 @@
     <code class="beat__verb">addRoute</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Add /receipt/:caseRef without the label, and carry on. The refusal stopped one field, not the work.</p>
+  <p class="beat__intent">Add /receipt/{caseRef} without the label, and carry on. The refusal stopped one field, not the work.</p>
   
   <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;receipt&quot;,
@@ -1311,7 +1311,7 @@
     <code class="beat__verb">bindSlot</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Put on /receipt/:caseRef the things that belong there.</p>
+  <p class="beat__intent">Put on /receipt/{caseRef} the things that belong there.</p>
   
   <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;receipt&quot;,
@@ -1872,7 +1872,7 @@
     <code class="beat__verb">addRoute(routeClass)</code>
     <span class="chip chip--admitted">Allowed</span>
   </div>
-  <p class="beat__intent">Put it on the record: /receipt/:caseRef is legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it.</p>
+  <p class="beat__intent">Put it on the record: /receipt/{caseRef} is legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it.</p>
   
   <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;receipt&quot;,
@@ -2018,7 +2018,7 @@
     <code class="beat__verb">THEME-ROUTE-CLASS</code>
     <span class="chip chip--refused">Refused</span>
   </div>
-  <p class="beat__intent">Decide whether the organisation's brand may go on /receipt/:caseRef — legal proof that someone else relies on.</p>
+  <p class="beat__intent">Decide whether the organisation's brand may go on /receipt/{caseRef} — legal proof that someone else relies on.</p>
   <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.</code></blockquote>
   <details class="detail"><summary>The technical detail</summary><pre>{
   &quot;routeId&quot;: &quot;receipt&quot;,
@@ -2145,7 +2145,7 @@
     <dl class="facts">
       <dt>Signed by</dt><dd>R. Okonjo, Product Owner</dd>
       <dt>What it covers</dt><dd>every byte of the finished app, packed in a fixed order so the check repeats exactly: <code>formspec-spike-v10-bundle-export-signing-v1</code></dd>
-      <dt>Fingerprint</dt><dd>a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37</dd>
+      <dt>Fingerprint</dt><dd>e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329</dd>
       <dt>How it was signed</dt><dd>urn:formspec:sig-method:ed25519-cose-sign1@1</dd>
       <dt>Result</dt><dd class="verdict-inline">verified</dd>
       <dt>Same file, one byte changed</dt><dd class="verdict-inline">failed &mdash; change one byte and the sign-off no longer holds</dd>
