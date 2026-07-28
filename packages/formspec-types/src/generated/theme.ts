@@ -319,6 +319,10 @@ export interface TokenEntry {
    */
   dark?: string | number;
   /**
+   * Another token key this token derives from when a Theme leaves it unset. A derived token is NOT emitted into the platform Theme's token map — if it were, every theme would inherit an explicit value and the derivation could never fire. Its `default` stays the CSS fallback of last resort. Example: color.ring derives from color.primary, so a tenant who sets only the brand token gets a brand-coloured focus ring.
+   */
+  derivedFrom?: string;
+  /**
    * Example token values for documentation and tooling hints.
    */
   examples?: (string | number)[];
