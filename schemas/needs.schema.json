@@ -1,0 +1,373 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/needs/1.0",
+  "title": "Formspec Needs Document",
+  "description": "A Formspec Needs Document per the Needs specification. An authored artifact recording why software should exist: plain-language Need records grounded in normative evidence (Rulespec assertion IRIs) or empirical evidence (Observation research records), with declared-absence fail-closed, an adoption lifecycle, and supersession-never-erasure. The Needs Document targets no Definition; downstream artifacts cite Needs via needRefs and need: generation anchors. Needs MUST NOT alter core behavioral semantics (required, relevant, readonly, calculate, validation).",
+  "type": "object",
+  "required": ["$formspecNeeds", "version", "needs"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "$formspecNeeds": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Needs specification version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Version pin for needs document compatibility"
+      }
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of this Needs Document. SemVer is RECOMMENDED.",
+      "examples": ["1.0.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Needs document revision identifier"
+      }
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Canonical URI identifier for this Needs Document. RECOMMENDED when external systems cite its Needs."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$"
+    },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "journeys": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Journey" },
+      "uniqueItems": true
+    },
+    "needs": {
+      "type": "array",
+      "description": "Substantive payload. Each Need is an evidence-grounded plain-language statement of why software should exist, with lifecycle and revision.",
+      "items": { "$ref": "#/$defs/Need" },
+      "examples": [
+        [
+          {
+            "id": "proof-of-filing",
+            "statement": {
+              "who": "anyone submitting this application under a deadline",
+              "want": "a receipt I can save and show someone later",
+              "why": "if the agency loses my submission, I lose rights I actually had",
+              "done": "after I submit, I hold a receipt that proves what I filed and when"
+            },
+            "grounding": [
+              {
+                "kind": "assertion",
+                "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+                "role": "constrains"
+              }
+            ],
+            "origin": "human-asserted",
+            "status": "adopted",
+            "adoptedBy": { "kind": "human", "actChannel": "human", "id": "urn:formspec:actor:human:pm:demo" },
+            "revision": 1
+          }
+        ]
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "The Need records; statement plain-language and grounding-or-declared-absence are the load-bearing rules"
+      }
+    },
+    "extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "Journey": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Stable identifier for this Journey. Unique within journeys[]. Referenced by need.journey.",
+          "examples": ["applicant", "caseworker"]
+        },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "extensions": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+        }
+      }
+    },
+    "Need": {
+      "type": "object",
+      "required": ["id", "statement", "origin", "status", "revision"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Stable identifier for this Need. Unique within needs[]. Referenced by Experience needRefs[].id and by need:<id>@<revision> generation anchors. Renaming is supersession, not an edit.",
+          "examples": ["proof-of-filing"],
+          "x-lm": {
+            "critical": true,
+            "intent": "The citation target for needRefs and need: anchors"
+          }
+        },
+        "journey": {
+          "type": "string",
+          "description": "Grouping key. When journeys[] is declared, MUST resolve to a journeys[].id."
+        },
+        "title": { "type": "string" },
+        "statement": { "$ref": "#/$defs/Statement" },
+        "grounding": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Grounding" },
+          "description": "Evidence citations. Exactly one of grounding / ungroundedReason is present (spec S5.4); the oneOf below enforces it."
+        },
+        "ungroundedReason": {
+          "type": "string",
+          "enum": ["hypothesis", "team-consensus", "self-evident"],
+          "description": "Declared absence of evidence. Closed enum: hypothesis (we intend to validate), team-consensus (held without a citable source), self-evident (evidence would be circular). Mutually exclusive with grounding.",
+          "examples": ["hypothesis"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Fail-closed declared-absence; silent ungroundedness is unrepresentable"
+          }
+        },
+        "origin": {
+          "type": "string",
+          "enum": ["human-asserted", "ai-proposed", "imported"],
+          "description": "How this Need entered the document. Closed enum. Immutable for the record's life; adoption does not rewrite entry. ai-proposed requires proposedBy and files at status proposed.",
+          "examples": ["human-asserted"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Discriminates human-authored, AI-filed, and migrated needs; drives the adoption floor rules"
+          }
+        },
+        "proposedBy": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/AuthorActor",
+          "description": "REQUIRED when origin is ai-proposed. The filing actor."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["proposed", "adopted", "superseded", "withdrawn"],
+          "description": "Lifecycle status. Closed enum. proposed: candidate awaiting human judgment. adopted: a commitment (requires adoptedBy). superseded: replaced by a successor carrying supersedes (terminal). withdrawn: rejected or found wrong (terminal; the record remains).",
+          "examples": ["adopted"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Coverage partitions on adopted; superseded/withdrawn are history, never deleted"
+          }
+        },
+        "adoptedBy": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/AuthorActor",
+          "description": "REQUIRED when status is adopted; remains on once-adopted superseded/withdrawn records. MUST be kind human when origin is ai-proposed."
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Content revision covering statement + grounding (incl. ungroundedReason). Bumps on any content change; MUST NOT bump on status/adoptedBy/title/journey changes. Pinned by need:<id>@<revision> anchors.",
+          "examples": [1, 2],
+          "x-lm": {
+            "critical": true,
+            "intent": "The regeneration staleness base; anchors pin this value"
+          }
+        },
+        "supersedes": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "The need.id this record replaces. MUST resolve within this document to a record with status superseded."
+        },
+        "extensions": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+        }
+      },
+      "oneOf": [
+        {
+          "required": ["grounding"],
+          "not": { "required": ["ungroundedReason"] }
+        },
+        {
+          "required": ["ungroundedReason"],
+          "not": { "required": ["grounding"] }
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "origin": { "const": "ai-proposed" } },
+            "required": ["origin"]
+          },
+          "then": {
+            "required": ["proposedBy"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "status": { "const": "adopted" } },
+            "required": ["status"]
+          },
+          "then": {
+            "required": ["adoptedBy"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "origin": { "const": "ai-proposed" },
+              "status": { "enum": ["adopted", "superseded", "withdrawn"] }
+            },
+            "required": ["origin", "status"]
+          },
+          "then": {
+            "properties": {
+              "adoptedBy": {
+                "type": "object",
+                "properties": { "kind": { "const": "human" } },
+                "required": ["kind"]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Statement": {
+      "type": "object",
+      "required": ["who", "want", "why", "done"],
+      "additionalProperties": false,
+      "description": "The Who / What / Why / Done block. Plain language is normative (spec S4.1): readable by a non-technical reader, no spec vocabulary, no solution names. done MUST describe an outcome observable by the person in who.",
+      "properties": {
+        "who": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The kind of person, as they would describe themselves. A population, not a system role.",
+          "examples": ["anyone submitting this application under a deadline"]
+        },
+        "want": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The need, stated the way that person would say it.",
+          "examples": ["a receipt I can save and show someone later"]
+        },
+        "why": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What happens if this is not met — the harm or the loss, concretely.",
+          "examples": ["if the agency loses my submission, I lose rights I actually had"]
+        },
+        "done": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The outcome the person in who would observe when the need is met. Not a system behavior.",
+          "examples": ["after I submit, I hold a receipt that proves what I filed and when"]
+        }
+      },
+      "examples": [
+        {
+          "who": "anyone submitting this application under a deadline",
+          "want": "a receipt I can save and show someone later",
+          "why": "if the agency loses my submission, I lose rights I actually had",
+          "done": "after I submit, I hold a receipt that proves what I filed and when"
+        }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Plain-language requirement statement; the verifiability bar lives on done"
+      }
+    },
+    "Grounding": {
+      "oneOf": [
+        { "$ref": "#/$defs/AssertionGrounding" },
+        { "$ref": "#/$defs/ObservationGrounding" }
+      ],
+      "description": "Discriminated union on kind: assertion (normative channel — Rulespec IRI, cite never compile) or observation (empirical channel — product-local research record)."
+    },
+    "AssertionGrounding": {
+      "type": "object",
+      "required": ["kind", "ref"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "assertion" },
+        "ref": {
+          "type": "string",
+          "format": "uri",
+          "minLength": 1,
+          "description": "IRI of the cited Rulespec assertion or artifact (e.g., urn:rkaf:workspace:<ws>/<localId>). Opaque to Formspec processors; Rulespec owns everything behind it.",
+          "examples": ["urn:rkaf:workspace:benefits/assertions/esign-retention-obligation"],
+          "x-lm": {
+            "critical": true,
+            "intent": "The typed ref across the Formspec/Rulespec decision boundary"
+          }
+        },
+        "role": { "$ref": "#/$defs/GroundingRole" },
+        "description": { "type": "string" },
+        "extensions": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+        }
+      }
+    },
+    "ObservationGrounding": {
+      "type": "object",
+      "required": ["kind", "method", "uri"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "observation" },
+        "method": {
+          "type": "string",
+          "enum": ["interview", "usability-session", "analytics", "support-signal", "field-report"],
+          "description": "How the observation was made. Closed enum.",
+          "examples": ["interview"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Empirical method; closed so coverage queries can partition by it"
+          }
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Source of the observation (research repository entry, analytics query, ticket). Discovery-weight: not required to be content-addressable; promotion to a Rulespec assertion is the escalation.",
+          "examples": ["https://benefits.example.gov/research/2026-06-round#p4"]
+        },
+        "excerpt": { "$ref": "#/$defs/Excerpt" },
+        "observedAt": {
+          "type": "string",
+          "description": "RFC 3339 date or date-time of the observation itself.",
+          "examples": ["2026-06-12"]
+        },
+        "observer": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/AuthorActor"
+        },
+        "role": { "$ref": "#/$defs/GroundingRole" },
+        "description": { "type": "string" },
+        "extensions": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+        }
+      }
+    },
+    "Excerpt": {
+      "type": "object",
+      "required": ["exact"],
+      "additionalProperties": false,
+      "description": "The quoted moment, Web Annotation TextQuoteSelector-shaped (oa:exact / oa:prefix / oa:suffix) so the quote is re-findable in its source.",
+      "properties": {
+        "exact": {
+          "type": "string",
+          "minLength": 1,
+          "examples": ["I screenshot every confirmation page because they lost my renewal once."]
+        },
+        "prefix": { "type": "string" },
+        "suffix": { "type": "string" }
+      }
+    },
+    "GroundingRole": {
+      "type": "string",
+      "enum": ["motivates", "constrains", "authorizes"],
+      "default": "motivates",
+      "description": "Relationship of the evidence to the Need. motivates: shows the lack exists. constrains: bounds any satisfying solution. authorizes: establishes that meeting the need is permitted or mandated. constrains/authorizes shared with the References rel vocabulary."
+    }
+  }
+}

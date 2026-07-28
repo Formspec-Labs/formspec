@@ -1,0 +1,70 @@
+{
+  "id": "valid-both-grounding-channels",
+  "description": "One Need citing the normative channel (Rulespec IRI) and the empirical channel (an interview Observation) in one grounding[] array.",
+  "specRow": "S9.4 NEED-GROUND-001 does not fire when exactly one of grounding / ungroundedReason is present.",
+  "needsDocument": {
+    "$formspecNeeds": "1.0",
+    "version": "1.0.0",
+    "url": "https://benefits.example.gov/apps/assistance/needs",
+    "title": "Benefits assistance -- who this is for and why",
+    "needs": [
+      {
+        "id": "proof-of-filing",
+        "statement": {
+          "who": "anyone submitting this application under a deadline",
+          "want": "a receipt I can save and show someone later",
+          "why": "if the agency loses my submission, I lose rights I actually had",
+          "done": "after I submit, I hold a receipt that proves what I filed and when"
+        },
+        "grounding": [
+          {
+            "kind": "assertion",
+            "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+            "role": "constrains"
+          },
+          {
+            "kind": "observation",
+            "method": "interview",
+            "uri": "https://benefits.example.gov/research/2026-06-round#p4",
+            "excerpt": {
+              "exact": "I screenshot every confirmation page because they lost my renewal once."
+            },
+            "observedAt": "2026-06-12",
+            "observer": {
+              "kind": "human",
+              "actChannel": "human",
+              "id": "urn:formspec:actor:human:researcher:demo"
+            },
+            "role": "motivates"
+          }
+        ],
+        "origin": "human-asserted",
+        "status": "adopted",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:pm:demo"
+        },
+        "revision": 1
+      }
+    ]
+  },
+  "bundle": {
+    "experience": {
+      "units": [
+        {
+          "id": "receipt",
+          "kind": "confirmation",
+          "actorRef": "applicant",
+          "needRefs": [
+            {
+              "id": "proof-of-filing"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedCodes": []
+}

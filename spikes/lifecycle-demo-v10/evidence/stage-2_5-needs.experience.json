@@ -1,0 +1,75 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "actors": [],
+  "tasks": [],
+  "units": [
+    {
+      "id": "applyForHelp",
+      "kind": "data-entry",
+      "title": "Tell us about your household",
+      "taskRefs": [
+        "submitApplication"
+      ],
+      "actorRef": "applicant",
+      "needRefs": [
+        {
+          "id": "works-without-good-internet",
+          "description": "This is the long form. It is where a dropped connection costs the most."
+        },
+        {
+          "id": "finish-on-another-device",
+          "description": "And it is the screen someone would want to leave and come back to."
+        }
+      ]
+    },
+    {
+      "id": "certifyDeclaration",
+      "kind": "attestation",
+      "title": "Sign your declaration",
+      "taskRefs": [
+        "certifyTruth"
+      ],
+      "actorRef": "applicant",
+      "needRefs": [
+        {
+          "id": "sign-without-a-trip-to-the-office",
+          "description": "This is the signature that replaces the trip across town."
+        }
+      ]
+    },
+    {
+      "id": "collectReceipt",
+      "kind": "confirmation",
+      "title": "Keep your receipt",
+      "taskRefs": [
+        "proveSubmission"
+      ],
+      "actorRef": "applicant",
+      "needRefs": [
+        {
+          "id": "proof-of-filing",
+          "description": "This is the receipt someone shows a landlord or a court."
+        }
+      ]
+    },
+    {
+      "id": "reviewApplication",
+      "kind": "review",
+      "title": "Work the queue",
+      "taskRefs": [
+        "decideApplication"
+      ],
+      "actorRef": "caseworker",
+      "needRefs": [
+        {
+          "id": "decide-without-chasing-paper",
+          "description": "This is the caseworker screen where the chasing either happens or stops."
+        }
+      ]
+    }
+  ],
+  "targetDefinition": {
+    "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+  }
+}

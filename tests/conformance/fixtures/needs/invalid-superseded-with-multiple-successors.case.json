@@ -1,0 +1,118 @@
+{
+  "id": "invalid-superseded-with-multiple-successors",
+  "description": "Two records each claim to replace the same superseded record — a forked history where the spec allows exactly one line.",
+  "specRow": "S9.4 NEED-DOC-001 fires on a superseded record with multiple citing supersedes (S6 rule 2).",
+  "needsDocument": {
+    "$formspecNeeds": "1.0",
+    "version": "1.0.0",
+    "url": "https://benefits.example.gov/apps/assistance/needs",
+    "title": "Benefits assistance -- who this is for and why",
+    "needs": [
+      {
+        "id": "proof-of-filing",
+        "statement": {
+          "who": "anyone submitting this application under a deadline",
+          "want": "a receipt I can save and show someone later",
+          "why": "if the agency loses my submission, I lose rights I actually had",
+          "done": "after I submit, I hold a receipt that proves what I filed and when"
+        },
+        "grounding": [
+          {
+            "kind": "assertion",
+            "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+            "role": "constrains"
+          }
+        ],
+        "origin": "human-asserted",
+        "status": "superseded",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:pm:demo"
+        },
+        "revision": 1
+      },
+      {
+        "id": "proof-of-filing-v2",
+        "statement": {
+          "who": "anyone submitting this application under a deadline",
+          "want": "a receipt I can save and show someone later",
+          "why": "if the agency loses my submission, I lose rights I actually had",
+          "done": "after I submit, I hold a receipt that proves what I filed and when"
+        },
+        "grounding": [
+          {
+            "kind": "assertion",
+            "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+            "role": "constrains"
+          }
+        ],
+        "origin": "human-asserted",
+        "status": "adopted",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:pm:demo"
+        },
+        "revision": 1,
+        "supersedes": "proof-of-filing"
+      },
+      {
+        "id": "proof-of-filing-v2b",
+        "statement": {
+          "who": "anyone submitting this application on behalf of someone else",
+          "want": "a receipt naming who I filed for",
+          "why": "without it I cannot prove I acted for the person I was helping",
+          "done": "after I submit, the receipt names both me and the person I filed for"
+        },
+        "grounding": [
+          {
+            "kind": "assertion",
+            "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+            "role": "constrains"
+          }
+        ],
+        "origin": "human-asserted",
+        "status": "adopted",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:policy-lead:demo"
+        },
+        "revision": 1,
+        "supersedes": "proof-of-filing"
+      }
+    ]
+  },
+  "bundle": {
+    "experience": {
+      "units": [
+        {
+          "id": "receipt",
+          "kind": "confirmation",
+          "actorRef": "applicant",
+          "needRefs": [
+            {
+              "id": "proof-of-filing-v2"
+            }
+          ]
+        },
+        {
+          "id": "receiptForAnother",
+          "kind": "confirmation",
+          "actorRef": "applicant",
+          "needRefs": [
+            {
+              "id": "proof-of-filing-v2b"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedCodes": [
+    "NEED-DOC-001"
+  ],
+  "note": "Schema/checker divergence, and the second half of the S9.4 'zero or multiple' clause its sibling `invalid-superseded-without-successor` pins from the other end. Both successors are individually well-formed — each `supersedes` resolves to a record whose status really is `superseded` — so the defect lives only in the inverse edge's cardinality, which is a document-scope predicate JSON Schema has no keyword for. Exactly one finding fires, on the superseded record, not one per successor: the ambiguity is which line of history is the real one, and that is one defect. Both successors are adopted and cited, so no coverage code enters the verdict."
+}

@@ -1,0 +1,219 @@
+{
+  "$formspecNeeds": "1.0",
+  "version": "1.0.0",
+  "url": "https://benefits.example.gov/apps/assistance/needs",
+  "title": "Rent assistance -- who this is for and why",
+  "description": "The authored Needs Document paired with the lifecycle-demo bundle, adapted from needs-spec Appendix A onto this spike's exemplar. One record per line of the brief, plus one candidate an agent filed from a support queue and nobody has ruled on yet. Statements are written to the JOURNEYS.md plain-language bar: a policy officer must be able to read each one on first contact.",
+  "journeys": [
+    {
+      "id": "applicant",
+      "title": "The Applicant",
+      "description": "The person applying for help with rent. Usually on a phone, usually under a deadline, often after a bad week."
+    },
+    {
+      "id": "caseworker",
+      "title": "The Caseworker",
+      "description": "The person at the agency who decides. Works a queue, answers the phone, and carries the consequences of a lost file."
+    }
+  ],
+  "needs": [
+    {
+      "id": "proof-of-filing",
+      "journey": "applicant",
+      "title": "Proof that I filed",
+      "statement": {
+        "who": "anyone submitting this application under a deadline",
+        "want": "a receipt I can save and show someone later",
+        "why": "if the agency loses my submission, I lose help I was entitled to and I cannot prove I asked in time",
+        "done": "after I submit, I hold a receipt that proves what I filed and when -- and it still proves it if the agency's system is gone"
+      },
+      "grounding": [
+        {
+          "kind": "assertion",
+          "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+          "role": "constrains",
+          "description": "The retention obligation any receipt has to satisfy. Rulespec owns everything behind this identifier; this document only cites it."
+        },
+        {
+          "kind": "observation",
+          "method": "interview",
+          "uri": "https://benefits.example.gov/research/2026-06-round#p4",
+          "excerpt": {
+            "exact": "I screenshot every confirmation page because they lost my renewal once.",
+            "prefix": "Do you keep anything after you apply? "
+          },
+          "observedAt": "2026-06-12",
+          "observer": {
+            "kind": "human",
+            "actChannel": "human",
+            "id": "urn:formspec:actor:human:researcher:lifecycle-v10"
+          },
+          "role": "motivates"
+        }
+      ],
+      "origin": "human-asserted",
+      "status": "adopted",
+      "adoptedBy": {
+        "kind": "human",
+        "actChannel": "human",
+        "id": "urn:formspec:actor:human:product-owner:lifecycle-v10"
+      },
+      "revision": 1
+    },
+    {
+      "id": "sign-without-a-trip-to-the-office",
+      "journey": "applicant",
+      "title": "Signing without a trip to the office",
+      "statement": {
+        "who": "anyone who has to swear that what they wrote is true",
+        "want": "to sign right here, without printing anything or going anywhere",
+        "why": "a trip across town to sign a piece of paper is how people with no car and no spare hours fall out of the process",
+        "done": "I sign on the device I am already holding, and I am told in plain words what I just signed"
+      },
+      "grounding": [
+        {
+          "kind": "assertion",
+          "ref": "urn:rkaf:workspace:benefits/assertions/electronic-signature-admissibility",
+          "role": "authorizes",
+          "description": "What makes an electronic signature count here at all. Cited, never restated."
+        }
+      ],
+      "origin": "human-asserted",
+      "status": "adopted",
+      "adoptedBy": {
+        "kind": "human",
+        "actChannel": "human",
+        "id": "urn:formspec:actor:human:product-owner:lifecycle-v10"
+      },
+      "revision": 1
+    },
+    {
+      "id": "decide-without-chasing-paper",
+      "journey": "caseworker",
+      "title": "Deciding without chasing paper",
+      "statement": {
+        "who": "the person at the agency who has to decide this case",
+        "want": "everything the applicant sent, in one place, in the order I need it",
+        "why": "when I have to chase missing pages, the family waits weeks longer for a decision I could have made on day one",
+        "done": "I open a case and either decide it or say exactly what is missing, without sending an email"
+      },
+      "grounding": [
+        {
+          "kind": "observation",
+          "method": "field-report",
+          "uri": "https://benefits.example.gov/research/2026-05-caseworker-shadowing#day2",
+          "excerpt": {
+            "exact": "Half of what I do is asking people for something they already sent."
+          },
+          "observedAt": "2026-05-19",
+          "observer": {
+            "kind": "human",
+            "actChannel": "human",
+            "id": "urn:formspec:actor:human:researcher:lifecycle-v10"
+          },
+          "role": "motivates"
+        }
+      ],
+      "origin": "human-asserted",
+      "status": "adopted",
+      "adoptedBy": {
+        "kind": "human",
+        "actChannel": "human",
+        "id": "urn:formspec:actor:human:product-owner:lifecycle-v10"
+      },
+      "revision": 1
+    },
+    {
+      "id": "works-without-good-internet",
+      "journey": "applicant",
+      "title": "Working on a bad connection",
+      "statement": {
+        "who": "anyone applying from a place with unreliable internet",
+        "want": "the application to keep working when my connection drops",
+        "why": "the people who need this help most often have the worst connections, so a dropped signal turns into a lost application",
+        "done": "a dropped connection never costs me my answers"
+      },
+      "ungroundedReason": "hypothesis",
+      "origin": "human-asserted",
+      "status": "adopted",
+      "adoptedBy": {
+        "kind": "human",
+        "actChannel": "human",
+        "id": "urn:formspec:actor:human:product-owner:lifecycle-v10"
+      },
+      "revision": 1
+    },
+    {
+      "id": "tell-me-why-it-was-refused",
+      "journey": "applicant",
+      "title": "Being told why the answer was no",
+      "statement": {
+        "who": "anyone whose application was turned down",
+        "want": "to be told in plain words why, and what I can do about it",
+        "why": "a refusal nobody explains is a refusal nobody can appeal, and the people it hits hardest are the ones least able to ask twice",
+        "done": "when the answer is no, I can read the reason and I know what my next step is"
+      },
+      "grounding": [
+        {
+          "kind": "observation",
+          "method": "support-signal",
+          "uri": "https://benefits.example.gov/support/queues/refusal-followups-2026Q2",
+          "excerpt": {
+            "exact": "Callers rarely dispute the decision. They call because the letter does not say which rule they failed."
+          },
+          "observedAt": "2026-07-02",
+          "observer": {
+            "kind": "ai-agent",
+            "actChannel": "agent",
+            "id": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10"
+          },
+          "role": "motivates"
+        }
+      ],
+      "origin": "ai-proposed",
+      "proposedBy": {
+        "kind": "ai-agent",
+        "actChannel": "agent",
+        "id": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10"
+      },
+      "status": "proposed",
+      "revision": 1
+    },
+    {
+      "id": "finish-on-another-device",
+      "journey": "applicant",
+      "title": "Finishing on a different device",
+      "statement": {
+        "who": "anyone filling this in on a phone",
+        "want": "to start on my phone and finish later on a computer",
+        "why": "losing twenty minutes of answers means many people never come back at all",
+        "done": "when I come back on any device, my answers are where I left them"
+      },
+      "grounding": [
+        {
+          "kind": "observation",
+          "method": "analytics",
+          "uri": "https://benefits.example.gov/analytics/funnels/abandonment-2026-07",
+          "excerpt": {
+            "exact": "Drop-off concentrates at the document-upload step on mobile sessions."
+          },
+          "observedAt": "2026-07-20",
+          "role": "motivates"
+        }
+      ],
+      "origin": "ai-proposed",
+      "proposedBy": {
+        "id": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+        "kind": "ai-agent",
+        "actChannel": "mcp"
+      },
+      "status": "adopted",
+      "revision": 1,
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:lifecycle-v10",
+        "kind": "human",
+        "actChannel": "human"
+      }
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "valid-withdrawn-ai-proposed-never-adopted",
+  "description": "An AI-filed Need rejected without adoption. It carries no adoptedBy because nobody adopted it.",
+  "specRow": "S4.3 proposed → withdrawn; S9.4 NEED-DOC-001 does not fire when an ai-proposed record withdrawn from proposed carries no adoptedBy.",
+  "needsDocument": {
+    "$formspecNeeds": "1.0",
+    "version": "1.0.0",
+    "url": "https://benefits.example.gov/apps/assistance/needs",
+    "title": "Benefits assistance -- who this is for and why",
+    "needs": [
+      {
+        "id": "finish-on-another-device",
+        "statement": {
+          "who": "anyone filling out this application on a phone",
+          "want": "to start on my phone and finish later on a computer",
+          "why": "losing twenty minutes of answers means many people never come back",
+          "done": "when I come back on any device, my answers are where I left them"
+        },
+        "grounding": [
+          {
+            "kind": "observation",
+            "method": "interview",
+            "uri": "https://benefits.example.gov/research/2026-06-round#p4",
+            "excerpt": {
+              "exact": "I screenshot every confirmation page because they lost my renewal once."
+            },
+            "observedAt": "2026-06-12",
+            "observer": {
+              "kind": "human",
+              "actChannel": "human",
+              "id": "urn:formspec:actor:human:researcher:demo"
+            },
+            "role": "motivates"
+          }
+        ],
+        "origin": "ai-proposed",
+        "proposedBy": {
+          "kind": "ai-agent",
+          "actChannel": "agent",
+          "id": "urn:formspec:actor:ai-agent:analytics-review:demo"
+        },
+        "status": "withdrawn",
+        "revision": 1
+      }
+    ]
+  },
+  "expectSchemaValid": true,
+  "expectedCodes": [],
+  "note": "Design-choice record, not a divergence, and the case S6 rule 4 is scoped around: the rule requires adoptedBy on an ai-proposed record at a status reached *through adoption* — `adopted` or `superseded` — because S4.3's transition table reaches `withdrawn` directly from `proposed` without one. Schema and checker agree: neither requires adoptedBy here, and both refuse a non-human adoptedBy wherever one does appear on an ai-proposed record. A withdrawn-without-adoption record is conformant, and the withdrawal is itself evidence."
+}

@@ -320,7 +320,7 @@ export interface Generation {
    */
   generatedAt?: string;
   /**
-   * Existing field (component.schema.json:272-279): source anchors with a standard prefix and source-layer-owned suffix. Preserves original `^(item|unit|task|action|concept):.+$` items pattern enforcement.
+   * Existing field (component.schema.json:272-279): source anchors with a standard prefix and source-layer-owned suffix. The prefix set is closed; `need` joined it per needs-spec S8, whose `need:<id>@<revision>` grammar is normative in spec prose (this shared regex stays broad by existing convention — per-prefix grammar is not encoded here).
    */
   anchors?: string[];
   /**

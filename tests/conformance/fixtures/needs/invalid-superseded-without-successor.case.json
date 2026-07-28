@@ -1,0 +1,42 @@
+{
+  "id": "invalid-superseded-without-successor",
+  "description": "A record parked at superseded that nothing replaced — history with a hole in it.",
+  "specRow": "S9.4 NEED-DOC-001 fires on a superseded record with zero citing supersedes (S6 rule 2).",
+  "needsDocument": {
+    "$formspecNeeds": "1.0",
+    "version": "1.0.0",
+    "url": "https://benefits.example.gov/apps/assistance/needs",
+    "title": "Benefits assistance -- who this is for and why",
+    "needs": [
+      {
+        "id": "proof-of-filing",
+        "statement": {
+          "who": "anyone submitting this application under a deadline",
+          "want": "a receipt I can save and show someone later",
+          "why": "if the agency loses my submission, I lose rights I actually had",
+          "done": "after I submit, I hold a receipt that proves what I filed and when"
+        },
+        "grounding": [
+          {
+            "kind": "assertion",
+            "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+            "role": "constrains"
+          }
+        ],
+        "origin": "human-asserted",
+        "status": "superseded",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:pm:demo"
+        },
+        "revision": 1
+      }
+    ]
+  },
+  "expectSchemaValid": true,
+  "expectedCodes": [
+    "NEED-DOC-001"
+  ],
+  "note": "Schema/checker divergence. The inverse-edge cardinality is a document-scope predicate."
+}

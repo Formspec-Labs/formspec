@@ -34,6 +34,7 @@ import {
   ROUTES,
   UNITS,
 } from '../src/exemplar.js';
+import { stageNeeds } from '../src/needs.js';
 import {
   countByCode,
   ensureEngine,
@@ -62,7 +63,7 @@ import {
 import { writeWalkthrough } from '../src/walkthrough.js';
 
 describe('spike v10 — the lifecycle demo', () => {
-  it('walks one app through six stages and reports the six pre-registered bars', async () => {
+  it('walks one app through seven stages and reports the seven bars', async () => {
     await ensureEngine();
     const ev = new Evidence();
     const state: WalkState = { agent: mcpFor('ai-agent', 'idea-plan-build') };
@@ -70,6 +71,7 @@ describe('spike v10 — the lifecycle demo', () => {
     // ── The walk ───────────────────────────────────────────────────────────
     await stageIdea(ev, state);
     await stagePlan(ev, state);
+    const needs = await stageNeeds(ev, state);
     await stageBuild(ev, state);
     const { bundleExport } = await stageSignOff(ev, state);
     const human = state.human!;
@@ -328,6 +330,18 @@ describe('spike v10 — the lifecycle demo', () => {
     };
     const bar6Met = Object.values(bar6Rows).every(Boolean);
 
+    // Bar 7 — the needs beat. The coverage query answers "which of the things
+    // we said mattered does this release actually serve?", and the answer has
+    // to move: a bar that only ever saw a clean report would pass on a checker
+    // that returns nothing.
+    const needsFiredBefore = needs.before.unserved.length > 0 && needs.before.unjustified.length > 0;
+    const needsCleanAfter = needs.after.unserved.length === 0 && needs.after.unjustified.length === 0;
+    const agentWasRefused = needs.refusalMessage.includes('only a human may adopt one');
+    // Coverage is reportable, never blocking (needs-spec S9.3 / S11.4.2): the
+    // eight rows it fired before must not have changed the error count.
+    const coverageNeverBlocked = needs.before.reportErrors === needs.after.reportErrors;
+    const bar7Met = needsFiredBefore && needsCleanAfter && agentWasRefused && coverageNeverBlocked;
+
     // Bar 2 — offline verification.
     const bar2Met =
       verification.result === 'verified'
@@ -460,6 +474,43 @@ describe('spike v10 — the lifecycle demo', () => {
           ? {}
           : { finding: Object.entries(bar6Rows).filter(([, v]) => !v).map(([k]) => k).join('; ') }),
       },
+      {
+        id: 'BAR 7',
+        title: 'Every screen can say why it exists — and the AI could not sign off on that itself',
+        met: bar7Met,
+        qualifier:
+          `Measured twice on the same app. Before anything was linked, ${needs.before.unserved.length} things people said they needed had nothing built for them and ${needs.before.unjustified.length} screens could not say why they existed. `
+          + 'Afterwards, none. The AI was allowed to write down a new need and stopped from approving it — and that stop is in the standard, not in this deployment\'s settings.',
+        criterion:
+          'A written record of what people need is checked against the finished app. The check names what is unserved and what is unexplained, it never stops the release, an AI may add to the record but not approve its own addition, and once each screen is linked to what it is for, the check comes back clean.',
+        evidence: {
+          before: needs.before,
+          after: needs.after,
+          proposedByTheAgent: needs.proposedNeedId,
+          agentSelfApprovalRefusal: needs.refusalMessage,
+          citations: needs.citations,
+          coverageBlockedNothing: coverageNeverBlocked,
+          errorsBefore: needs.before.reportErrors,
+          errorsAfter: needs.after.reportErrors,
+          corpus: 'spikes/lifecycle-demo-v10/corpus/assistance.needs.json',
+          artifacts: [
+            'evidence/stage-2_5-needs.before.coverage.json',
+            'evidence/stage-2_5-needs.after.coverage.json',
+            'evidence/stage-2_5-needs.needs-document.json',
+            'evidence/stage-2_5-needs.experience.json',
+          ],
+          reservedCodesEmitted: Object.keys(needs.before.codes)
+            .concat(Object.keys(needs.after.codes))
+            .filter((code) => code === 'NEED-STALE-001' || code === 'NEED-ORPHAN-001'),
+        },
+        ...(bar7Met
+          ? {}
+          : {
+              finding:
+                `fired-before=${needsFiredBefore}, clean-after=${needsCleanAfter}, agent-refused=${agentWasRefused}, `
+                + `coverage-never-blocked=${coverageNeverBlocked}`,
+            }),
+      },
     ];
     for (const bar of bars) ev.bar(bar);
 
@@ -469,6 +520,7 @@ describe('spike v10 — the lifecycle demo', () => {
       verification: { ...verification, tamperResult: tamperCheck.result },
       moat,
       corpus: { units: UNITS.length, items: ITEMS.length, routes: ROUTES.length },
+      needs,
     });
 
     const walkthroughPath = writeWalkthrough({
@@ -494,6 +546,18 @@ describe('spike v10 — the lifecycle demo', () => {
     expect(bar4Met, 'BAR 4 — THEME-ROUTE-CLASS').toBe(true);
     expect(bar6Met, `BAR 6 — ADR 0160 bars: ${JSON.stringify(bar6Rows)}`).toBe(true);
     expect(bar1Met, `BAR 1 — trace connectivity: ${JSON.stringify(hops.filter((h) => !h.holds))}`).toBe(true);
+
+    // Bar 7's apparatus, asserted alongside the bar: a checker that emitted
+    // nothing would satisfy "clean after" trivially, and a reserved code
+    // slipping out would break the v1 conformance claim (S11.3.4).
+    expect(needs.before.codes['NEED-COVERAGE-001'], 'bar 7 — the checker fired before the links existed').toBeGreaterThan(0);
+    expect(needs.before.codes['NEED-COVERAGE-002'], 'bar 7 — unjustified screens were named').toBeGreaterThan(0);
+    expect(needs.after.codes, 'bar 7 — no NEED-* row survives the links').toEqual({});
+    expect(
+      Object.keys({ ...needs.before.codes, ...needs.after.codes }).filter((c) => c === 'NEED-STALE-001' || c === 'NEED-ORPHAN-001'),
+      'bar 7 — reserved codes are never emitted by a v1 processor',
+    ).toEqual([]);
+    expect(bar7Met, `BAR 7 — the needs beat: ${JSON.stringify({ before: needs.before, after: needs.after })}`).toBe(true);
 
     expect(moat.apiProbe.packagesProbed.length, 'bar 5a probed the substrate packages').toBeGreaterThan(0);
     expect(moat.apiProbe.noMergeEntryPoint, 'bar 5a found the shipped merge entry point').toBe(false);

@@ -1,0 +1,59 @@
+{
+  "id": "invalid-supersedes-unknown-id",
+  "description": "A successor naming a predecessor that is not in the document — the chain's first link points at nothing.",
+  "specRow": "S9.4 NEED-DOC-001 fires when supersedes names an unknown id (S6 rule 2).",
+  "needsDocument": {
+    "$formspecNeeds": "1.0",
+    "version": "1.0.0",
+    "url": "https://benefits.example.gov/apps/assistance/needs",
+    "title": "Benefits assistance -- who this is for and why",
+    "needs": [
+      {
+        "id": "know-where-i-stand",
+        "statement": {
+          "who": "anyone waiting on a decision about their application",
+          "want": "to check what is happening to my case without calling anyone",
+          "why": "people give up on help they are entitled to when they cannot tell whether anything is moving",
+          "done": "I can look at one place and see where my application is and what happens next"
+        },
+        "grounding": [
+          {
+            "kind": "assertion",
+            "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+            "role": "constrains"
+          }
+        ],
+        "origin": "human-asserted",
+        "status": "adopted",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:pm:demo"
+        },
+        "revision": 1,
+        "supersedes": "never-existed"
+      }
+    ]
+  },
+  "bundle": {
+    "experience": {
+      "units": [
+        {
+          "id": "statusCheck",
+          "kind": "review",
+          "actorRef": "applicant",
+          "needRefs": [
+            {
+              "id": "know-where-i-stand"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedCodes": [
+    "NEED-DOC-001"
+  ],
+  "note": "Schema/checker divergence. `supersedes` is pattern-checked but cross-record resolution is a document-scope predicate JSON Schema has no way to state; the checker owns it."
+}

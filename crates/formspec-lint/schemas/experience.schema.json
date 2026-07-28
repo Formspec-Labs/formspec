@@ -171,6 +171,11 @@
           "type": "array",
           "items": { "$ref": "#/$defs/ConceptRef" }
         },
+        "needRefs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/NeedRef" },
+          "description": "Needs this unit serves, in the paired Needs Document (needs-spec S7). Inverse of the OSLC-RM satisfiedBy edge, carried on the satisfying side. Deliberately unpinned — no revision — so a copy-edit to a Statement never invalidates authored intent; pinning is the need: anchor's job."
+        },
         "actionRefs": {
           "type": "array",
           "items": { "$ref": "#/$defs/ActionRef" }
@@ -245,6 +250,28 @@
           "type": "string",
           "enum": ["registry", "ontology", "external"],
           "default": "registry"
+        },
+        "description": { "type": "string" },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "NeedRef": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "description": "Citation from an Experience Unit to a Need it serves (needs-spec S7). Resolves against the caller-paired Needs Document; when none is paired, resolution is inapplicable and emits nothing.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "A need.id in the paired Needs Document. Deliberately unpinned: no revision — the Unit serves the Need as currently worded (needs-spec S7).",
+          "examples": ["proof-of-filing"],
+          "x-lm": {
+            "critical": true,
+            "intent": "The unit-to-need citation half of the coverage predicate"
+          }
         },
         "description": { "type": "string" },
         "extensions": {

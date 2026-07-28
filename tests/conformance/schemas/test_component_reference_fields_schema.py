@@ -93,9 +93,12 @@ def test_reference_field_shapes() -> None:
     assert generation_props["generatedAt"]["type"] == "string"
     assert "format" not in generation_props["generatedAt"]
     assert generation_props["anchors"]["type"] == "array"
+    # Closed prefix set. `need` joined it per needs-spec S8 ("Need anchors —
+    # the GENERATION seam"); the per-prefix `need:<id>@<revision>` grammar is
+    # normative in that section's prose, not in this shared regex.
     assert generation_props["anchors"]["items"] == {
         "type": "string",
-        "pattern": "^(item|unit|task|action|concept):.+$",
+        "pattern": "^(item|unit|task|action|concept|need):.+$",
     }
 
 

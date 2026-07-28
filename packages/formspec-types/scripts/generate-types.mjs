@@ -32,7 +32,7 @@ const URI_TO_LOCAL = {};
 // token-registry retired per ADR 0150 §2.3/§4.2/§10 row 9 — Category/TokenEntry/
 // TokenType $defs inlined into theme.schema.json. No standalone schema to load.
 for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mapping', 'registry',
-  'ontology', 'references', 'validation-mapping', 'experience', 'changelog',
+  'ontology', 'references', 'validation-mapping', 'experience', 'needs', 'changelog',
   'response-actions', 'response', 'intake-handoff', 'validation-report', 'validation-result',
   'fel-functions', 'screener', 'determination', 'surface', 'data-sources',
   'app-graph-validation-report', 'module-resolution-report', 'ui-graph-policy',
@@ -137,6 +137,7 @@ const SCHEMA_SOURCES = [
   { file: 'validation-mapping.schema.json', title: 'ValidationMappingDocument' },
   { file: 'response-actions.schema.json', title: 'ResponseActionsDocument' },
   { file: 'experience.schema.json', title: 'ExperienceDocument' },
+  { file: 'needs.schema.json', title: 'NeedsDocument' },
   { file: 'changelog.schema.json', title: 'ChangelogDocument' },
   { file: 'validation-result.schema.json', title: 'ValidationResult' },
   { file: 'verification-receipt.schema.json', title: 'VerificationReceipt' },

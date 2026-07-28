@@ -1,0 +1,55 @@
+{
+  "id": "valid-stale-anchor-does-not-emit-reserved-code",
+  "description": "A generated node anchored at revision 1 while the Need has moved to revision 2 — the staleness condition, live and unreported.",
+  "specRow": "S9.5 NEED-STALE-001 is reserved; v1 processors MUST NOT emit it (S11.3.4).",
+  "needsDocument": {
+    "$formspecNeeds": "1.0",
+    "version": "1.0.0",
+    "url": "https://benefits.example.gov/apps/assistance/needs",
+    "title": "Benefits assistance -- who this is for and why",
+    "needs": [
+      {
+        "id": "proof-of-filing",
+        "statement": {
+          "who": "anyone submitting this application under a deadline",
+          "want": "a receipt I can save and show someone later",
+          "why": "if the agency loses my submission, I lose rights I actually had",
+          "done": "after I submit, I hold a receipt that proves what I filed and when"
+        },
+        "grounding": [
+          {
+            "kind": "assertion",
+            "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+            "role": "constrains"
+          }
+        ],
+        "origin": "human-asserted",
+        "status": "adopted",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:pm:demo"
+        },
+        "revision": 2
+      }
+    ]
+  },
+  "bundle": {
+    "generatedArtifacts": [
+      {
+        "id": "receiptCard",
+        "component": "section",
+        "x-generation": {
+          "strategy": "unit-to-card",
+          "generatedAt": "2026-07-27T09:00:00Z",
+          "anchors": [
+            "need:proof-of-filing@1"
+          ]
+        }
+      }
+    ]
+  },
+  "expectSchemaValid": true,
+  "expectedCodes": [],
+  "note": "Design-choice record. The anchor is stale by S8's condition and the Need is served at any revision by S9.2, so v1 reports nothing at all here. What regeneration does about staleness is the GENERATION discipline's; minting the code early would fix its meaning before that owner exists."
+}

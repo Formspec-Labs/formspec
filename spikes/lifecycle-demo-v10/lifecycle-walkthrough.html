@@ -220,7 +220,7 @@
   <section class="board">
     <div class="board__head">
       <h2>What we set out to prove, and what happened</h2>
-      <span class="tally">6 of 6 met</span>
+      <span class="tally">7 of 7 met</span>
     </div>
     <div class="bars">
       <article class="bar bar--met">
@@ -298,7 +298,7 @@
   <details class="detail"><summary>Evidence</summary><pre>{
   &quot;verification&quot;: {
     &quot;result&quot;: &quot;verified&quot;,
-    &quot;recomputedDigest&quot;: &quot;35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba&quot;,
+    &quot;recomputedDigest&quot;: &quot;cb8e6db731cf08d025f5cfbc5cd0d4a5f8d3c2a951338b154f42b4019f16f9b9&quot;,
     &quot;digestMatches&quot;: true,
     &quot;methodUriFromEnvelope&quot;: &quot;urn:formspec:sig-method:ed25519-cose-sign1@1&quot;,
     &quot;methodRegistryVersion&quot;: &quot;1.1.0&quot;,
@@ -332,7 +332,7 @@
     <span class="bar__id">BAR 3</span>
     <span class="bar__verdict">Met</span>
   </header>
-  <h3 class="bar__title">The AI was refused 5 times — and kept working</h3>
+  <h3 class="bar__title">The AI was refused 6 times — and kept working</h3>
   
   <p class="bar__criterion">The AI is refused every page label and the app's look. Each refusal names what was blocked and who was blocked. The AI carries on building. Nothing slips through. A person then does both, under the very same rule.</p>
   
@@ -411,7 +411,7 @@
   &quot;mergeAttempt&quot;: {
     &quot;attempted&quot;: true,
     &quot;entryPoint&quot;: &quot;kernel.regenerateSurfaceDocument&quot;,
-    &quot;outcome&quot;: &quot;The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 341 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it.&quot;
+    &quot;outcome&quot;: &quot;The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 342 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it.&quot;
   },
   &quot;mergeReport&quot;: {
     &quot;version&quot;: &quot;1.0&quot;,
@@ -612,7 +612,7 @@
       &quot;@formspec-org/engine&quot;,
       &quot;@formspec-org/types&quot;
     ],
-    &quot;exportsSeen&quot;: 341,
+    &quot;exportsSeen&quot;: 342,
     &quot;patternsScanned&quot;: {
       &quot;mergeEntryPoint&quot;: &quot;/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i&quot;,
       &quot;anchorIdentity&quot;: &quot;/anchor|x-?generation|generationmarker|designeredit|preservation/i&quot;
@@ -819,6 +819,57 @@
     &quot;APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER&quot;: &quot;Verb-family-scoped and OUTSIDE the five §7 bars. `addAction` mints a Response Actions document that no manifest slot names and `exportBundle` does not serialise, so the `submit` transitions cannot resolve. ADR 0160 §4.2(b) fixed exactly this defect for `ensureExperience`; §6.5 excludes Locale, Mapping and Data Sources from v1 and does NOT list Response Actions, so this is a gap rather than a decision.&quot;,
     &quot;THEME-ROUTE-CLASS&quot;: &quot;3 — these are the guard WORKING (bar 4), not a defect. Host-evidence-scoped because the UI Graph Policy is host evidence.&quot;
   }
+}</pre></details>
+</article>
+      <article class="bar bar--met">
+  <header class="bar__head">
+    <span class="bar__id">BAR 7</span>
+    <span class="bar__verdict">Met</span>
+  </header>
+  <h3 class="bar__title">Every screen can say why it exists — and the AI could not sign off on that itself</h3>
+  <p class="bar__qualifier">Measured twice on the same app. Before anything was linked, 4 things people said they needed had nothing built for them and 4 screens could not say why they existed. Afterwards, none. The AI was allowed to write down a new need and stopped from approving it — and that stop is in the standard, not in this deployment's settings.</p>
+  <p class="bar__criterion">A written record of what people need is checked against the finished app. The check names what is unserved and what is unexplained, it never stops the release, an AI may add to the record but not approve its own addition, and once each screen is linked to what it is for, the check comes back clean.</p>
+  
+  <details class="detail"><summary>Evidence</summary><pre>{
+  &quot;before&quot;: {
+    &quot;unserved&quot;: [
+      &quot;decide-without-chasing-paper&quot;,
+      &quot;proof-of-filing&quot;,
+      &quot;sign-without-a-trip-to-the-office&quot;,
+      &quot;works-without-good-internet&quot;
+    ],
+    &quot;unjustified&quot;: [
+      &quot;applyForHelp&quot;,
+      &quot;certifyDeclaration&quot;,
+      &quot;collectReceipt&quot;,
+      &quot;reviewApplication&quot;
+    ],
+    &quot;codes&quot;: {
+      &quot;NEED-COVERAGE-001&quot;: 4,
+      &quot;NEED-COVERAGE-002&quot;: 4
+    },
+    &quot;reportErrors&quot;: 6
+  },
+  &quot;after&quot;: {
+    &quot;unserved&quot;: [],
+    &quot;unjustified&quot;: [],
+    &quot;codes&quot;: {},
+    &quot;reportErrors&quot;: 6
+  },
+  &quot;proposedByTheAgent&quot;: &quot;finish-on-another-device&quot;,
+  &quot;agentSelfApprovalRefusal&quot;: &quot;Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. An AI may file a Need; only a human may adopt one (needs-spec S4.3).&quot;,
+  &quot;citations&quot;: 5,
+  &quot;coverageBlockedNothing&quot;: true,
+  &quot;errorsBefore&quot;: 6,
+  &quot;errorsAfter&quot;: 6,
+  &quot;corpus&quot;: &quot;spikes/lifecycle-demo-v10/corpus/assistance.needs.json&quot;,
+  &quot;artifacts&quot;: [
+    &quot;evidence/stage-2_5-needs.before.coverage.json&quot;,
+    &quot;evidence/stage-2_5-needs.after.coverage.json&quot;,
+    &quot;evidence/stage-2_5-needs.needs-document.json&quot;,
+    &quot;evidence/stage-2_5-needs.experience.json&quot;
+  ],
+  &quot;reservedCodesEmitted&quot;: []
 }</pre></details>
 </article>
     </div>
@@ -1362,9 +1413,217 @@
 }</pre>
   </details>
 </section>
-    <section class="stage" id="stage-build">
+    <section class="stage" id="stage-needs">
   <header class="stage__head">
     <span class="stage__num">3</span>
+    <div>
+      <h2 class="stage__title">Needs</h2>
+      <p class="stage__sub">Why each screen exists, on the record</p>
+    </div>
+    <span class="stage__flag">1 refusal</span>
+  </header>
+  <p class="stage__narration">Somebody wrote down what people actually said they needed, and the app is checked against it. Four needs, four screens, and at first nothing connects them — the checker says so out loud. Then the AI notices something in the drop-off numbers and writes down a fifth need. It tries to approve its own idea and is stopped: a machine may notice a need, only a person may commit to one. A person approves it, each screen is linked to what it is for, and the check comes back clean.</p>
+  <ol class="beats"><li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">pairNeedsDocument</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Hand the app the written record of what people said they needed.</p>
+  
+  <details class="detail"><summary>The technical detail</summary><pre>{
+  &quot;source&quot;: &quot;spikes/lifecycle-demo-v10/corpus/assistance.needs.json&quot;,
+  &quot;needs&quot;: [
+    {
+      &quot;id&quot;: &quot;proof-of-filing&quot;,
+      &quot;status&quot;: &quot;adopted&quot;,
+      &quot;origin&quot;: &quot;human-asserted&quot;,
+      &quot;want&quot;: &quot;a receipt I can save and show someone later&quot;
+    },
+    {
+      &quot;id&quot;: &quot;sign-without-a-trip-to-the-office&quot;,
+      &quot;status&quot;: &quot;adopted&quot;,
+      &quot;origin&quot;: &quot;human-asserted&quot;,
+      &quot;want&quot;: &quot;to sign right here, without printing anything or going anywhere&quot;
+    },
+    {
+      &quot;id&quot;: &quot;decide-without-chasing-paper&quot;,
+      &quot;status&quot;: &quot;adopted&quot;,
+      &quot;origin&quot;: &quot;human-asserted&quot;,
+      &quot;want&quot;: &quot;everything the applicant sent, in one place, in the order I need it&quot;
+    },
+    {
+      &quot;id&quot;: &quot;works-without-good-internet&quot;,
+      &quot;status&quot;: &quot;adopted&quot;,
+      &quot;origin&quot;: &quot;human-asserted&quot;,
+      &quot;want&quot;: &quot;the application to keep working when my connection drops&quot;
+    },
+    {
+      &quot;id&quot;: &quot;tell-me-why-it-was-refused&quot;,
+      &quot;status&quot;: &quot;proposed&quot;,
+      &quot;origin&quot;: &quot;ai-proposed&quot;,
+      &quot;want&quot;: &quot;to be told in plain words why, and what I can do about it&quot;
+    }
+  ],
+  &quot;note&quot;: &quot;The record is handed over, not found. Nothing infers it from a filename or a folder — an app and a set of needs are paired by whoever is asking the question (needs-spec S2.1).&quot;
+}</pre></details>
+</li>
+<li class="beat beat--recorded">
+  <div class="beat__head">
+    <span class="beat__who">The system</span>
+    <code class="beat__verb">coverage</code>
+    <span class="chip chip--noted">Noted</span>
+  </div>
+  <p class="beat__intent">Ask the app which of these needs it actually serves.</p>
+  <blockquote class="said said--walk"><span class="said__who">What we found when we checked</span><code>Nothing serves any of them yet. 4 needs have nothing built for them, and 4 screens say nothing about why they exist. The release is not stopped by any of it — this is a report, not a gate.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
+  &quot;unserved&quot;: [
+    &quot;decide-without-chasing-paper&quot;,
+    &quot;proof-of-filing&quot;,
+    &quot;sign-without-a-trip-to-the-office&quot;,
+    &quot;works-without-good-internet&quot;
+  ],
+  &quot;unjustified&quot;: [
+    &quot;applyForHelp&quot;,
+    &quot;certifyDeclaration&quot;,
+    &quot;collectReceipt&quot;,
+    &quot;reviewApplication&quot;
+  ],
+  &quot;codes&quot;: {
+    &quot;NEED-COVERAGE-001&quot;: 4,
+    &quot;NEED-COVERAGE-002&quot;: 4
+  },
+  &quot;reportErrors&quot;: 6,
+  &quot;artifact&quot;: &quot;evidence/stage-2_5-needs.before.coverage.json&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">proposeNeed</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Write down something the drop-off numbers keep showing: people start on a phone and cannot finish later.</p>
+  
+  <details class="detail"><summary>The technical detail</summary><pre>{
+  &quot;needId&quot;: &quot;finish-on-another-device&quot;,
+  &quot;want&quot;: &quot;to start on my phone and finish later on a computer&quot;,
+  &quot;evidence&quot;: &quot;https://benefits.example.gov/analytics/funnels/abandonment-2026-07&quot;,
+  &quot;status&quot;: &quot;proposed&quot;,
+  &quot;note&quot;: &quot;Filed as a candidate, not a commitment. The coverage check ignores candidates entirely.&quot;
+}</pre></details>
+</li>
+<li class="beat beat--refused">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">adoptNeed</code>
+    <span class="chip chip--refused">Refused</span>
+  </div>
+  <p class="beat__intent">Approve its own idea and move on.</p>
+  <blockquote class="said said--substrate"><span class="said__who">The system's actual response</span><code>Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. An AI may file a Need; only a human may adopt one (needs-spec S4.3).</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
+  &quot;needId&quot;: &quot;finish-on-another-device&quot;,
+  &quot;reason&quot;: &quot;adoption-floor&quot;,
+  &quot;why&quot;: &quot;A machine may notice that something is missing. Deciding the organisation will commit to it is a different act, and it belongs to a person.&quot;,
+  &quot;note&quot;: &quot;This refusal is not this deployment's choice. It is in the standard, and it holds even where nobody has configured anything — unlike the page-label refusals earlier, which are this deployment narrowing.&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">A person</span>
+    <code class="beat__verb">adoptNeed</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Read what the AI noticed, agree with it, and commit the organisation to it.</p>
+  
+  <details class="detail"><summary>The technical detail</summary><pre>{
+  &quot;needId&quot;: &quot;finish-on-another-device&quot;,
+  &quot;note&quot;: &quot;The record still says the AI found this. Approving it does not rewrite who noticed it, and it does not count as changing the words — so nothing already built goes stale just because somebody said yes.&quot;
+}</pre></details>
+</li>
+<li class="beat beat--admitted">
+  <div class="beat__head">
+    <span class="beat__who">The AI</span>
+    <code class="beat__verb">citeNeed</code>
+    <span class="chip chip--admitted">Allowed</span>
+  </div>
+  <p class="beat__intent">Link each screen to what it is there for.</p>
+  
+  <details class="detail"><summary>The technical detail</summary><pre>{
+  &quot;citations&quot;: [
+    {
+      &quot;screen&quot;: &quot;applyForHelp&quot;,
+      &quot;need&quot;: &quot;works-without-good-internet&quot;,
+      &quot;because&quot;: &quot;This is the long form. It is where a dropped connection costs the most.&quot;
+    },
+    {
+      &quot;screen&quot;: &quot;applyForHelp&quot;,
+      &quot;need&quot;: &quot;finish-on-another-device&quot;,
+      &quot;because&quot;: &quot;And it is the screen someone would want to leave and come back to.&quot;
+    },
+    {
+      &quot;screen&quot;: &quot;certifyDeclaration&quot;,
+      &quot;need&quot;: &quot;sign-without-a-trip-to-the-office&quot;,
+      &quot;because&quot;: &quot;This is the signature that replaces the trip across town.&quot;
+    },
+    {
+      &quot;screen&quot;: &quot;collectReceipt&quot;,
+      &quot;need&quot;: &quot;proof-of-filing&quot;,
+      &quot;because&quot;: &quot;This is the receipt someone shows a landlord or a court.&quot;
+    },
+    {
+      &quot;screen&quot;: &quot;reviewApplication&quot;,
+      &quot;need&quot;: &quot;decide-without-chasing-paper&quot;,
+      &quot;because&quot;: &quot;This is the caseworker screen where the chasing either happens or stops.&quot;
+    }
+  ],
+  &quot;note&quot;: &quot;The link carries no version number, on purpose. A screen serves the need as currently written, so fixing a typo in the wording never quietly unlinks it.&quot;
+}</pre></details>
+</li>
+<li class="beat beat--recorded">
+  <div class="beat__head">
+    <span class="beat__who">The system</span>
+    <code class="beat__verb">coverage</code>
+    <span class="chip chip--noted">Noted</span>
+  </div>
+  <p class="beat__intent">Ask the same question again.</p>
+  <blockquote class="said said--walk"><span class="said__who">What we found when we checked</span><code>Clean. Every need the organisation has committed to has something built for it, and every screen can say why it exists. The one candidate nobody has ruled on yet is not counted either way — it is not a commitment.</code></blockquote>
+  <details class="detail"><summary>The technical detail</summary><pre>{
+  &quot;unserved&quot;: [],
+  &quot;unjustified&quot;: [],
+  &quot;codes&quot;: {},
+  &quot;reportErrors&quot;: 6,
+  &quot;artifact&quot;: &quot;evidence/stage-2_5-needs.after.coverage.json&quot;
+}</pre></details>
+</li></ol>
+  <details class="detail detail--state">
+    <summary>What the app contains at this point</summary>
+    <pre>{
+  &quot;needsPaired&quot;: 6,
+  &quot;adoptedNeeds&quot;: 5,
+  &quot;proposedNeeds&quot;: 1,
+  &quot;unservedBefore&quot;: [
+    &quot;decide-without-chasing-paper&quot;,
+    &quot;proof-of-filing&quot;,
+    &quot;sign-without-a-trip-to-the-office&quot;,
+    &quot;works-without-good-internet&quot;
+  ],
+  &quot;unservedAfter&quot;: [],
+  &quot;unjustifiedBefore&quot;: [
+    &quot;applyForHelp&quot;,
+    &quot;certifyDeclaration&quot;,
+    &quot;collectReceipt&quot;,
+    &quot;reviewApplication&quot;
+  ],
+  &quot;unjustifiedAfter&quot;: [],
+  &quot;citations&quot;: 5,
+  &quot;artifact&quot;: &quot;evidence/stage-2_5-needs.needs-document.json&quot;
+}</pre>
+  </details>
+</section>
+    <section class="stage" id="stage-build">
+  <header class="stage__head">
+    <span class="stage__num">4</span>
     <div>
       <h2 class="stage__title">Build</h2>
       <p class="stage__sub">A person takes over</p>
@@ -1554,7 +1813,7 @@
 </section>
     <section class="stage" id="stage-sign-off">
   <header class="stage__head">
-    <span class="stage__num">4</span>
+    <span class="stage__num">5</span>
     <div>
       <h2 class="stage__title">Sign-off</h2>
       <p class="stage__sub">It gets signed, on the record</p>
@@ -1681,7 +1940,7 @@
 </section>
     <section class="stage" id="stage-release">
   <header class="stage__head">
-    <span class="stage__num">5</span>
+    <span class="stage__num">6</span>
     <div>
       <h2 class="stage__title">Release</h2>
       <p class="stage__sub">The brand goes on, where it is allowed</p>
@@ -1787,7 +2046,7 @@
 </section>
     <section class="stage" id="stage-feedback">
   <header class="stage__head">
-    <span class="stage__num">6</span>
+    <span class="stage__num">7</span>
     <div>
       <h2 class="stage__title">Feedback</h2>
       <p class="stage__sub">A change request rebuilds it</p>
@@ -1872,7 +2131,7 @@
     <dl class="facts">
       <dt>Signed by</dt><dd>R. Okonjo, Product Owner</dd>
       <dt>What it covers</dt><dd>every byte of the finished app, packed in a fixed order so the check repeats exactly: <code>formspec-spike-v10-bundle-export-signing-v1</code></dd>
-      <dt>Fingerprint</dt><dd>35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba</dd>
+      <dt>Fingerprint</dt><dd>cb8e6db731cf08d025f5cfbc5cd0d4a5f8d3c2a951338b154f42b4019f16f9b9</dd>
       <dt>How it was signed</dt><dd>urn:formspec:sig-method:ed25519-cose-sign1@1</dd>
       <dt>Result</dt><dd class="verdict-inline">verified</dd>
       <dt>Same file, one byte changed</dt><dd class="verdict-inline">failed &mdash; change one byte and the sign-off no longer holds</dd>
@@ -1890,7 +2149,7 @@
     <p>When the AI rebuilds the app after a change request, the changes a person made by hand are supposed to survive it. That is the claim this product rests on. We tested it here, and it held: every hand-made change came through the rebuild, and the AI's new work came through with it.</p>
     <p class="moat__history"><strong>How this line read before.</strong> On 26 July 2026 this section said &ldquo;the one promise we cannot make yet&rdquo;, because it was true: nothing in the product did this, and both hand-made changes were lost the moment the app was rebuilt. The step shipped on 27 July 2026. We are leaving the old reading on the page, because a claim is worth more when you can see the day it was not yet earned.</p>
     <p>Here is what the rebuild did, checked the same way it was checked when it failed:</p>
-    <p class="moat__why">The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 341 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it.</p>
+    <p class="moat__why">The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 342 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it.</p>
     <ul class="edits">
       <li>
         <span class="what">the sentence &quot;You can apply even if you have already received help this year.&quot;</span>
@@ -1917,7 +2176,7 @@
   &quot;mergeAttempt&quot;: {
     &quot;attempted&quot;: true,
     &quot;entryPoint&quot;: &quot;kernel.regenerateSurfaceDocument&quot;,
-    &quot;outcome&quot;: &quot;The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 341 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it.&quot;
+    &quot;outcome&quot;: &quot;The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 342 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it.&quot;
   },
   &quot;mergeReport&quot;: {
     &quot;version&quot;: &quot;1.0&quot;,
@@ -2118,7 +2377,7 @@
       &quot;@formspec-org/engine&quot;,
       &quot;@formspec-org/types&quot;
     ],
-    &quot;exportsSeen&quot;: 341,
+    &quot;exportsSeen&quot;: 342,
     &quot;patternsScanned&quot;: {
       &quot;mergeEntryPoint&quot;: &quot;/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i&quot;,
       &quot;anchorIdentity&quot;: &quot;/anchor|x-?generation|generationmarker|designeredit|preservation/i&quot;

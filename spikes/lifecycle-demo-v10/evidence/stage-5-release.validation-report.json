@@ -136,7 +136,17 @@
                 "taskRefs": [
                   "submitApplication"
                 ],
-                "actorRef": "applicant"
+                "actorRef": "applicant",
+                "needRefs": [
+                  {
+                    "id": "works-without-good-internet",
+                    "description": "This is the long form. It is where a dropped connection costs the most."
+                  },
+                  {
+                    "id": "finish-on-another-device",
+                    "description": "And it is the screen someone would want to leave and come back to."
+                  }
+                ]
               },
               {
                 "id": "certifyDeclaration",
@@ -145,7 +155,13 @@
                 "taskRefs": [
                   "certifyTruth"
                 ],
-                "actorRef": "applicant"
+                "actorRef": "applicant",
+                "needRefs": [
+                  {
+                    "id": "sign-without-a-trip-to-the-office",
+                    "description": "This is the signature that replaces the trip across town."
+                  }
+                ]
               },
               {
                 "id": "collectReceipt",
@@ -154,7 +170,13 @@
                 "taskRefs": [
                   "proveSubmission"
                 ],
-                "actorRef": "applicant"
+                "actorRef": "applicant",
+                "needRefs": [
+                  {
+                    "id": "proof-of-filing",
+                    "description": "This is the receipt someone shows a landlord or a court."
+                  }
+                ]
               },
               {
                 "id": "reviewApplication",
@@ -163,7 +185,13 @@
                 "taskRefs": [
                   "decideApplication"
                 ],
-                "actorRef": "caseworker"
+                "actorRef": "caseworker",
+                "needRefs": [
+                  {
+                    "id": "decide-without-chasing-paper",
+                    "description": "This is the caseworker screen where the chasing either happens or stops."
+                  }
+                ]
               }
             ],
             "targetDefinition": {
@@ -950,6 +978,14 @@
       }
     ],
     "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.needsDocuments[0]",
+        "schemaId": "https://formspec.org/schemas/needs/1.0",
+        "source": "https://benefits.example.gov/apps/assistance/needs",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
       {
         "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
         "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",

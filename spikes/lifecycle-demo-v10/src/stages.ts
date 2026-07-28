@@ -41,6 +41,7 @@ import {
   BRIEF_TEXT,
   BUNDLE_ID,
   CHANGE_REQUEST,
+  CITATIONS,
   DEFINITION_URL,
   DESIGNER_INSERTION,
   DESIGNER_RETITLE,
@@ -57,6 +58,7 @@ import {
   TENANT_TOKEN_VALUE,
   UNITS,
   contributionIdFor,
+  type NeedsDocumentShape,
   type RouteSpec,
   type UnitSpec,
 } from './exemplar.js';
@@ -152,6 +154,11 @@ export async function authorBaseline(
     classify: boolean;
     /** Defaults to the exemplar's own routes; the regeneration passes its own. */
     routes?: readonly RouteSpec[];
+    /**
+     * The paired Needs Document and the unit citations to replay with it.
+     * Omitted by the regeneration pass, which measures the Surface only.
+     */
+    needs?: { document: NeedsDocumentShape; citations: readonly { unitId: string; needId: string; because: string }[] };
   },
 ): Promise<AuthoredBaseline> {
   const created = await mcp.wireframeFromBrief({
@@ -176,6 +183,15 @@ export async function authorBaseline(
       taskRefs: [...unit.taskRefs],
     });
     if (!added.ok) throw new Error(`addExperienceUnit(${unit.unitId}) refused: ${added.error.message}`);
+  }
+
+  if (opts.needs) {
+    const paired = await mcp.pairNeedsDocument(opts.needs.document as never);
+    if (!paired.ok) throw new Error(`pairNeedsDocument refused: ${paired.error.message}`);
+    for (const citation of opts.needs.citations) {
+      const cited = await mcp.citeNeed({ unitId: citation.unitId, needId: citation.needId, description: citation.because });
+      if (!cited.ok) throw new Error(`citeNeed(${citation.unitId}) refused: ${cited.error.message}`);
+    }
   }
 
   const declared = await mcp.declareDefinition({ url: DEFINITION_URL, version: '1.0.0' });
@@ -357,6 +373,13 @@ export interface WalkState {
   bundleExport?: { manifest: unknown; documents: Record<string, unknown> };
   policy?: UiGraphPolicyDocument;
   baseline?: AuthoredBaseline;
+  /**
+   * The Needs Document after stage 2.5, with the agent's proposal adopted.
+   * Carried so the handoff replay can re-pair it and re-cite the units: a
+   * replay that dropped the citations would hand the person a lookalike app
+   * that had forgotten why any of its screens exist.
+   */
+  needsDocument?: NeedsDocumentShape;
 }
 
 export async function stageIdea(ev: Evidence, state: WalkState): Promise<void> {
@@ -858,7 +881,12 @@ async function handOffToHuman(
   // The human authors the routes classified. Not a shortcut: `addRoute` is the
   // only Surface op that writes a class and it conflicts on an existing id, so
   // authoring-time is the ONLY time a class can be written at all.
-  await authorBaseline(human, { units: UNITS, items: ITEMS, classify: true });
+  await authorBaseline(human, {
+    units: UNITS,
+    items: ITEMS,
+    classify: true,
+    ...(state.needsDocument ? { needs: { document: state.needsDocument, citations: CITATIONS } } : {}),
+  });
 
   // Only now is the probe meaningful: the route exists, classified, under an
   // actor the posture admits.

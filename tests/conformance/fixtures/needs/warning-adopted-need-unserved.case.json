@@ -1,0 +1,49 @@
+{
+  "id": "warning-adopted-need-unserved",
+  "description": "An adopted hypothesis that nothing in the bundle serves — discovery debt and build debt in one row.",
+  "specRow": "S9.4 NEED-COVERAGE-001 fires on an adopted Need with zero citations of either kind.",
+  "needsDocument": {
+    "$formspecNeeds": "1.0",
+    "version": "1.0.0",
+    "url": "https://benefits.example.gov/apps/assistance/needs",
+    "title": "Benefits assistance -- who this is for and why",
+    "needs": [
+      {
+        "id": "works-without-good-internet",
+        "statement": {
+          "who": "anyone applying from a place with unreliable internet",
+          "want": "the application to keep working when my connection drops",
+          "why": "the people who need this help most often have the worst connections",
+          "done": "a dropped connection never costs me my answers"
+        },
+        "ungroundedReason": "hypothesis",
+        "origin": "human-asserted",
+        "status": "adopted",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:pm:demo"
+        },
+        "revision": 1
+      }
+    ]
+  },
+  "bundle": {
+    "experience": {
+      "units": [
+        {
+          "id": "receipt",
+          "kind": "confirmation",
+          "actorRef": "applicant",
+          "needRefs": []
+        }
+      ]
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedCodes": [
+    "NEED-COVERAGE-001",
+    "NEED-COVERAGE-002"
+  ],
+  "note": "Design-choice record. The unit declares needRefs: [] rather than omitting the key. S9.2's justified predicate requires 'at least one entry', so an empty array is exactly as unjustified as an absent key and NEED-COVERAGE-002 fires alongside. The case pins that reading."
+}

@@ -125,7 +125,7 @@ export interface SchemaValidatorInput<TDocument = unknown> {
   schemaId?: string;
 }
 
-export type AppGraphEvidenceKind = 'uiGraphPolicy' | 'componentGraphContext';
+export type AppGraphEvidenceKind = 'uiGraphPolicy' | 'componentGraphContext' | 'needsDocument';
 
 export interface EvidenceSchemaValidatorInput<TDocument = unknown> {
   evidenceSlot: string;
@@ -203,6 +203,16 @@ export interface AppGraphHostLandmarks {
 export interface AppGraphHostEvidence {
   uiGraphPolicies?: AppGraphHostEvidenceDocument[];
   componentGraphContexts?: AppGraphHostEvidenceDocument[];
+  /**
+   * Needs Documents the caller pairs with this bundle (needs-spec S2.1).
+   *
+   * Host evidence, never an App Manifest slot: a Needs Document declares no
+   * `targetDefinition` and no bundle binding, so the pairing is the caller's
+   * act. Absent the pairing, `needRefs` resolution and all of coverage are
+   * *inapplicable, not failing* — the checker emits nothing, and MUST NOT
+   * infer a pairing from co-location or file naming.
+   */
+  needsDocuments?: AppGraphHostEvidenceDocument[];
   hostLandmarks?: AppGraphHostLandmarks;
 }
 

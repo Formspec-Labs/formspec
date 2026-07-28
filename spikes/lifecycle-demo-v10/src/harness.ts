@@ -188,7 +188,7 @@ export interface Beat {
   details?: Record<string, unknown>;
 }
 
-export type StageName = 'idea' | 'plan' | 'build' | 'sign-off' | 'release' | 'feedback';
+export type StageName = 'idea' | 'plan' | 'needs' | 'build' | 'sign-off' | 'release' | 'feedback';
 
 export interface StageRecord {
   stage: StageName;

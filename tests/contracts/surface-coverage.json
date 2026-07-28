@@ -906,6 +906,34 @@
       ],
       "runtimeScope": "spec-conformance-only",
       "runtimeRationale": "App Manifest v2.x (reframed from Bundle Manifest v1.0 and extended by v2.1 for dataSources[] plus v2.2 for components[]) defines a declarative composition envelope with no business logic; schema validation plus the §6.1 processor rules are sufficient. Loader implementations (Rust crate, TS module, Python loader) are explicitly out of scope per §6.3. As a consequence, §6.1 rule 4 (§5.3 sibling-pin consistency) and rule 6 (§5.4 module coherence) require an online sibling-resolver and are NOT covered by the static fixture corpus; conformance suites that exercise rules 4+6 must stub the sibling-load seam. This row gains crate / package surfaces — and corresponding integration fixtures — once a renderer / Studio / MCP consumer adopts the App Manifest."
+    },
+    "needs": {
+      "status": "enforced",
+      "spec": "specs/needs/needs-spec.md",
+      "schema": "schemas/needs.schema.json",
+      "conformance": [
+        "tests/conformance/test_needs_schema_fixture_corpus.py",
+        "packages/formspec-app-graph/tests/needs-coverage-corpus.test.ts"
+      ],
+      "crates": [],
+      "fixtures": [
+        "tests/conformance/fixtures/needs/"
+      ],
+      "packages": {},
+      "checks": [
+        "Needs Document schema shape is pinned by a dual-verdict fixture corpus whose schema half runs in Python and whose checker half replays the same files against validateNeedsCoverage, so the two never fork",
+        "S6 document integrity is split explicitly: the grounding oneOf and the origin/status allOf conditionals are schema-owned; id uniqueness, supersession integrity in both directions, and journey resolution are checker-owned because JSON Schema has no keyword for a document-scope predicate, and every such row carries a divergence note",
+        "The S4.3 adoption floor is executable on both sides — an ai-proposed Need adopted by an ai-agent actor is schema-invalid AND emits NEED-DOC-001 — without minting the reserved needs.adoption authority handle",
+        "needRefs resolution and both coverage predicates ride hostEvidence.needsDocuments[] as caller-paired evidence rather than an App Manifest slot, and the unpaired posture emits nothing at all with a paired falsifier proving the silence is the pairing's absence and not a clean bundle",
+        "Coverage findings are reportable and never blocking: NEED-COVERAGE-001 lands as warning and NEED-COVERAGE-002 as info in the shared AppGraphValidator report, and report.ok stays true",
+        "Every NEED-* row carries the EARL frame (assertor / subject / criterion / outcome) on details so coverage reads as a conformance audit",
+        "S9.5 reserved codes are never emitted: two fixtures reproduce the exact substrate states NEED-STALE-001 and NEED-ORPHAN-001 describe and assert silence, and a corpus test refuses any fixture that expects one",
+        "Appendix A's worked example runs as a fixture and reproduces its published coverage table row for row",
+        "specs/needs/needs-spec.md S12 is asserted byte-equal in parse to schemas/needs.schema.json, so the reproduced schema block cannot drift from the file it reproduces",
+        "The Experience needRefs delta and the need: generation-anchor prefix are pinned by the Experience fragment validation in this corpus and by test_component_reference_fields_schema respectively"
+      ],
+      "runtimeScope": "spec-conformance-only",
+      "runtimeRationale": "Needs v1 defines the authored document, its schema, generated types, the caller-paired host-evidence boundary, the five live NEED-* diagnostics on the shared AppGraphValidator report, and the fixture corpus. There is no Rust surface: no lint pass reads a Needs Document, and needs.schema.json is deliberately absent from the crates/formspec-lint/schemas mirror because nothing in the crate would consume it. Studio authoring verbs, regeneration behavior over need: anchors (S9.5 reserved codes), the PURPOSE port mint, and the needs.adoption authority handle remain later gates and must add crate/package surfaces when they consume this contract."
     }
   }
 }

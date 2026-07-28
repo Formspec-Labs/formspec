@@ -13,6 +13,8 @@
  * The brief lines are load-bearing, not decoration: each one is the origin of
  * exactly one Experience unit, and bar 1 walks that mapping.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 export const BUNDLE_ID = 'https://benefits.example.gov/apps/assistance';
 export const SURFACE_URL = `${BUNDLE_ID}/surfaces/respondent`;
@@ -351,3 +353,75 @@ export const CHANGE_REQUEST = {
     fromBrief: 'B5',
   } satisfies UnitSpec,
 } as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The Needs corpus — why each of these screens exists
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The authored Needs Document paired with this bundle (needs-spec S2.1).
+ * Committed bytes on disk, not a literal built in a test: the whole point of
+ * the layer is that the requirements→structure decomposition stops evaporating
+ * into an authoring session, and a corpus that only exists inside the run
+ * would be exactly that evaporation with extra steps.
+ */
+export const NEEDS_DOCUMENT_PATH = resolve(import.meta.dirname, '..', 'corpus', 'assistance.needs.json');
+
+export interface NeedsDocumentShape {
+  $formspecNeeds: string;
+  version: string;
+  url?: string;
+  needs: Array<{
+    id: string;
+    title?: string;
+    status: string;
+    origin: string;
+    statement: { who: string; want: string; why: string; done: string };
+    adoptedBy?: { kind: string; id: string };
+    proposedBy?: { kind: string; id: string };
+  }>;
+}
+
+export function readNeedsCorpus(): NeedsDocumentShape {
+  return JSON.parse(readFileSync(NEEDS_DOCUMENT_PATH, 'utf8')) as NeedsDocumentShape;
+}
+
+/**
+ * The Need the agent files mid-walk, from the same analytics signal
+ * needs-spec Appendix A uses. Deliberately NOT in the committed corpus: the
+ * corpus is what people wrote down, and this is what the machine noticed.
+ */
+export const AGENT_PROPOSAL = {
+  id: 'finish-on-another-device',
+  journey: 'applicant',
+  title: 'Finishing on a different device',
+  statement: {
+    who: 'anyone filling this in on a phone',
+    want: 'to start on my phone and finish later on a computer',
+    why: 'losing twenty minutes of answers means many people never come back at all',
+    done: 'when I come back on any device, my answers are where I left them',
+  },
+  grounding: [
+    {
+      kind: 'observation' as const,
+      method: 'analytics' as const,
+      uri: 'https://benefits.example.gov/analytics/funnels/abandonment-2026-07',
+      excerpt: { exact: 'Drop-off concentrates at the document-upload step on mobile sessions.' },
+      observedAt: '2026-07-20',
+      role: 'motivates' as const,
+    },
+  ],
+} as const;
+
+/**
+ * Which screen serves which need. Authored, never derived: the mapping IS the
+ * judgment a person is supposed to make, and a generator guessing it would be
+ * precisely the decision the Needs layer exists to keep on disk.
+ */
+export const CITATIONS: ReadonlyArray<{ unitId: string; needId: string; because: string }> = [
+  { unitId: 'applyForHelp', needId: 'works-without-good-internet', because: 'This is the long form. It is where a dropped connection costs the most.' },
+  { unitId: 'applyForHelp', needId: AGENT_PROPOSAL.id, because: 'And it is the screen someone would want to leave and come back to.' },
+  { unitId: 'certifyDeclaration', needId: 'sign-without-a-trip-to-the-office', because: 'This is the signature that replaces the trip across town.' },
+  { unitId: 'collectReceipt', needId: 'proof-of-filing', because: 'This is the receipt someone shows a landlord or a court.' },
+  { unitId: 'reviewApplication', needId: 'decide-without-chasing-paper', because: 'This is the caseworker screen where the chasing either happens or stops.' },
+];

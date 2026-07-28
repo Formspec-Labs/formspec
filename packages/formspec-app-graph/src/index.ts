@@ -63,6 +63,11 @@ export {
   validateExperienceActionRefs,
 } from './experience-action-refs.js';
 export {
+  validateNeedsCoverage,
+  type NeedsEarlFrame,
+  type NeedStatus,
+} from './needs-coverage.js';
+export {
   validateScreenerSurfaceTargets,
 } from './screener-surface-targets.js';
 export {

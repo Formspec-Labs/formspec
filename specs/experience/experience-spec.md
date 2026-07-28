@@ -258,6 +258,8 @@ A **Unit** is the substantive payload of an Experience Document. Each Unit group
 | `accessibility` | object | OPTIONAL | Accessibility intent (S5.3). |
 | `extensions` | object | OPTIONAL | `x-`-prefixed extension data. |
 
+A Unit MAY also carry `needRefs` — landed in `schemas/experience.schema.json` (S11.3) but specified by the [Needs specification](../needs/needs-spec.md) S7, which owns its shape, its deliberate unpinnedness, and its resolution against a caller-paired Needs Document.
+
 A Unit with zero `itemRefs`, zero `conceptRefs`, and zero `actionRefs` is permitted but contributes nothing to coverage (S8). Such units are intended for placeholder or planning purposes.
 
 ### 5.2 The `unit.kind` Registry
@@ -534,6 +536,7 @@ A conformant **Experience Coverage-Aware** processor MUST:
 | `#/$defs/Unit/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_]*&#36;</code> | Stable identifier for this Unit. Unique within units[]. Referenced by Component nodes via unitRef. |
 | `#/$defs/Unit/properties/itemRefs` | `itemRefs` | <code>array</code> | no | — | — |
 | `#/$defs/Unit/properties/kind` | `kind` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/UnitKind</code> | — |
+| `#/$defs/Unit/properties/needRefs` | `needRefs` | <code>array</code> | no | — | Needs this unit serves, in the paired Needs Document (needs-spec S7). Inverse of the OSLC-RM satisfiedBy edge, carried on the satisfying side. Deliberately unpinned — no revision — so a copy-edit to a Statement never invalidates authored intent; pinning is the need: anchor's job. |
 | `#/$defs/Unit/properties/taskRefs` | `taskRefs` | <code>array</code> | no | — | Tasks this unit advances. Each MUST resolve to tasks[].id. |
 | `#/$defs/Unit/properties/title` | `title` | <code>string</code> | no | — | — |
 | `#/$defs/UnitKind` | `(self)` | <code>composite</code> | — | critical | Closed-core task-oriented unit kind OR a module-contributed `x-` extension (ADR 0150 §4.5). Closed-core values: data-entry (user provides or revises data), review (read-only display of captured data), confirmation (user affirms accuracy before a transition), evidence-collection (user supplies evidence — attachments, attestations), attestation (user certifies a statement under accountability), error-resolution (user resolves a validation finding), assistance (user receives help). Extension values follow the canonical `^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` regex (§4.8). |

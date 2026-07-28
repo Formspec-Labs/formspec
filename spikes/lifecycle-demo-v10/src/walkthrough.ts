@@ -31,6 +31,7 @@ export interface WalkthroughInput {
 const STAGE_TITLES: Record<string, { label: string; plain: string }> = {
   idea: { label: 'Idea', plain: 'Someone describes the job' },
   plan: { label: 'Plan', plain: 'It becomes a real form' },
+  needs: { label: 'Needs', plain: 'Why each screen exists, on the record' },
   build: { label: 'Build', plain: 'A person takes over' },
   'sign-off': { label: 'Sign-off', plain: 'It gets signed, on the record' },
   release: { label: 'Release', plain: 'The brand goes on, where it is allowed' },

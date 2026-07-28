@@ -7,6 +7,7 @@ import {
   APP_GRAPH_PHASES,
   type AppGraphCrossArtifactValidator,
   type AppGraphDiagnostic,
+  type AppGraphEvidenceKind,
   type AppGraphSourcePointer,
   type AppGraphEvidenceSchemaDiagnostic,
   type AppGraphEvidenceSchemaValidator,
@@ -31,6 +32,7 @@ import {
 import { validateComponentRouteTargets } from './component-routes.js';
 import { validateComponentGraphContexts } from './component-graph-context.js';
 import { validateExperienceActionRefs } from './experience-action-refs.js';
+import { validateNeedsCoverage } from './needs-coverage.js';
 import { validateScreenerSurfaceTargets } from './screener-surface-targets.js';
 import { validateSurfaceDefinitionSlots } from './surface-definition-slots.js';
 import { validateSurfaceExperienceUnits } from './surface-experience-units.js';
@@ -39,6 +41,19 @@ import { validateUiGraphPolicy } from './ui-graph-policy.js';
 
 const UI_GRAPH_POLICY_SCHEMA_ID = 'https://formspec.org/schemas/uiGraphPolicy/0.1';
 const COMPONENT_GRAPH_CONTEXT_SCHEMA_ID = 'https://formspec.org/schemas/componentGraphProjectionContext/0.1';
+const NEEDS_SCHEMA_ID = 'https://formspec.org/schemas/needs/1.0';
+
+const EVIDENCE_SCHEMA_ID: Record<AppGraphEvidenceKind, string> = {
+  uiGraphPolicy: UI_GRAPH_POLICY_SCHEMA_ID,
+  componentGraphContext: COMPONENT_GRAPH_CONTEXT_SCHEMA_ID,
+  needsDocument: NEEDS_SCHEMA_ID,
+};
+
+const EVIDENCE_LABEL: Record<AppGraphEvidenceKind, string> = {
+  uiGraphPolicy: 'UI Graph Policy',
+  componentGraphContext: 'Component graph context',
+  needsDocument: 'Needs Document',
+};
 
 export function artifactHandlesFor(request: AppGraphValidationRequest): ResolvedArtifactHandle[] {
   const siblings = Object.values(request.artifacts ?? {}).flatMap((handles) => handles ?? []);
@@ -243,10 +258,21 @@ function componentGraphContextEvidence(request: AppGraphValidationRequest): Evid
   }));
 }
 
+function needsDocumentEvidence(request: AppGraphValidationRequest): EvidenceSchemaValidatorInput[] {
+  return (request.hostEvidence?.needsDocuments ?? []).map((evidence, index) => ({
+    evidenceSlot: `hostEvidence.needsDocuments[${index}]`,
+    evidenceKind: 'needsDocument',
+    schemaId: evidence.schemaId,
+    source: evidence.source,
+    document: evidence.document,
+  }));
+}
+
 function hostEvidenceFor(request: AppGraphValidationRequest): EvidenceSchemaValidatorInput[] {
   return [
     ...uiGraphPolicyEvidence(request),
     ...componentGraphContextEvidence(request),
+    ...needsDocumentEvidence(request),
   ];
 }
 
@@ -265,12 +291,8 @@ function evidenceResultsFor(request: AppGraphValidationRequest): AppGraphEvidenc
     if (evidence.document === undefined) {
       return evidenceSchemaNotRunResult(evidence, 'missing-document');
     }
-    const expectedSchemaId = evidence.evidenceKind === 'uiGraphPolicy'
-      ? UI_GRAPH_POLICY_SCHEMA_ID
-      : COMPONENT_GRAPH_CONTEXT_SCHEMA_ID;
-    const label = evidence.evidenceKind === 'uiGraphPolicy'
-      ? 'UI Graph Policy'
-      : 'Component graph context';
+    const expectedSchemaId = EVIDENCE_SCHEMA_ID[evidence.evidenceKind];
+    const label = EVIDENCE_LABEL[evidence.evidenceKind];
     if (evidence.schemaId !== expectedSchemaId) {
       return normalizeEvidenceSchemaOutcome(evidence, {
         ok: false,
@@ -301,6 +323,7 @@ function runCrossArtifactValidators(
     validateComponentRouteTargets,
     validateComponentGraphContexts,
     validateExperienceActionRefs,
+    validateNeedsCoverage,
     validateScreenerSurfaceTargets,
     validateSurfaceDefinitionSlots,
     validateSurfaceExperienceUnits,

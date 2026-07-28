@@ -1,0 +1,189 @@
+{
+  "needDiagnostics": [
+    {
+      "code": "NEED-COVERAGE-001",
+      "severity": "warning",
+      "phase": "cross-artifact",
+      "origin": "app-graph-validator",
+      "message": "Adopted Need 'proof-of-filing' is served by nothing in this bundle: no Experience unit cites it and no generated node anchors to it.",
+      "primarySource": {
+        "artifactSlot": "hostEvidence.needsDocuments[0]",
+        "source": "https://benefits.example.gov/apps/assistance/needs",
+        "jsonPointer": "/needs/0"
+      },
+      "details": {
+        "assertor": "formspec-needs-coverage-checker",
+        "subject": "proof-of-filing",
+        "criterion": "needs-spec S9.2 served predicate",
+        "outcome": "failed",
+        "reason": "adopted-need-unserved",
+        "needId": "proof-of-filing",
+        "status": "adopted"
+      }
+    },
+    {
+      "code": "NEED-COVERAGE-001",
+      "severity": "warning",
+      "phase": "cross-artifact",
+      "origin": "app-graph-validator",
+      "message": "Adopted Need 'sign-without-a-trip-to-the-office' is served by nothing in this bundle: no Experience unit cites it and no generated node anchors to it.",
+      "primarySource": {
+        "artifactSlot": "hostEvidence.needsDocuments[0]",
+        "source": "https://benefits.example.gov/apps/assistance/needs",
+        "jsonPointer": "/needs/1"
+      },
+      "details": {
+        "assertor": "formspec-needs-coverage-checker",
+        "subject": "sign-without-a-trip-to-the-office",
+        "criterion": "needs-spec S9.2 served predicate",
+        "outcome": "failed",
+        "reason": "adopted-need-unserved",
+        "needId": "sign-without-a-trip-to-the-office",
+        "status": "adopted"
+      }
+    },
+    {
+      "code": "NEED-COVERAGE-001",
+      "severity": "warning",
+      "phase": "cross-artifact",
+      "origin": "app-graph-validator",
+      "message": "Adopted Need 'decide-without-chasing-paper' is served by nothing in this bundle: no Experience unit cites it and no generated node anchors to it.",
+      "primarySource": {
+        "artifactSlot": "hostEvidence.needsDocuments[0]",
+        "source": "https://benefits.example.gov/apps/assistance/needs",
+        "jsonPointer": "/needs/2"
+      },
+      "details": {
+        "assertor": "formspec-needs-coverage-checker",
+        "subject": "decide-without-chasing-paper",
+        "criterion": "needs-spec S9.2 served predicate",
+        "outcome": "failed",
+        "reason": "adopted-need-unserved",
+        "needId": "decide-without-chasing-paper",
+        "status": "adopted"
+      }
+    },
+    {
+      "code": "NEED-COVERAGE-001",
+      "severity": "warning",
+      "phase": "cross-artifact",
+      "origin": "app-graph-validator",
+      "message": "Adopted Need 'works-without-good-internet' is served by nothing in this bundle: no Experience unit cites it and no generated node anchors to it.",
+      "primarySource": {
+        "artifactSlot": "hostEvidence.needsDocuments[0]",
+        "source": "https://benefits.example.gov/apps/assistance/needs",
+        "jsonPointer": "/needs/3"
+      },
+      "details": {
+        "assertor": "formspec-needs-coverage-checker",
+        "subject": "works-without-good-internet",
+        "criterion": "needs-spec S9.2 served predicate",
+        "outcome": "failed",
+        "reason": "adopted-need-unserved",
+        "needId": "works-without-good-internet",
+        "status": "adopted"
+      }
+    },
+    {
+      "code": "NEED-COVERAGE-002",
+      "severity": "info",
+      "phase": "cross-artifact",
+      "origin": "app-graph-validator",
+      "message": "Experience unit 'applyForHelp' cites no Need, so nothing on record says why it exists.",
+      "primarySource": {
+        "artifactSlot": "experience",
+        "artifactKind": "experience",
+        "source": "studio-core:bundle-local:experience",
+        "jsonPointer": "/units/0",
+        "ref": {
+          "url": "urn:formspec:doc:1feb5fb90254133a:experience"
+        }
+      },
+      "details": {
+        "assertor": "formspec-needs-coverage-checker",
+        "subject": "applyForHelp",
+        "criterion": "needs-spec S9.2 justified predicate",
+        "outcome": "failed",
+        "reason": "unit-unjustified",
+        "unitId": "applyForHelp",
+        "unitIndex": 0
+      }
+    },
+    {
+      "code": "NEED-COVERAGE-002",
+      "severity": "info",
+      "phase": "cross-artifact",
+      "origin": "app-graph-validator",
+      "message": "Experience unit 'certifyDeclaration' cites no Need, so nothing on record says why it exists.",
+      "primarySource": {
+        "artifactSlot": "experience",
+        "artifactKind": "experience",
+        "source": "studio-core:bundle-local:experience",
+        "jsonPointer": "/units/1",
+        "ref": {
+          "url": "urn:formspec:doc:1feb5fb90254133a:experience"
+        }
+      },
+      "details": {
+        "assertor": "formspec-needs-coverage-checker",
+        "subject": "certifyDeclaration",
+        "criterion": "needs-spec S9.2 justified predicate",
+        "outcome": "failed",
+        "reason": "unit-unjustified",
+        "unitId": "certifyDeclaration",
+        "unitIndex": 1
+      }
+    },
+    {
+      "code": "NEED-COVERAGE-002",
+      "severity": "info",
+      "phase": "cross-artifact",
+      "origin": "app-graph-validator",
+      "message": "Experience unit 'collectReceipt' cites no Need, so nothing on record says why it exists.",
+      "primarySource": {
+        "artifactSlot": "experience",
+        "artifactKind": "experience",
+        "source": "studio-core:bundle-local:experience",
+        "jsonPointer": "/units/2",
+        "ref": {
+          "url": "urn:formspec:doc:1feb5fb90254133a:experience"
+        }
+      },
+      "details": {
+        "assertor": "formspec-needs-coverage-checker",
+        "subject": "collectReceipt",
+        "criterion": "needs-spec S9.2 justified predicate",
+        "outcome": "failed",
+        "reason": "unit-unjustified",
+        "unitId": "collectReceipt",
+        "unitIndex": 2
+      }
+    },
+    {
+      "code": "NEED-COVERAGE-002",
+      "severity": "info",
+      "phase": "cross-artifact",
+      "origin": "app-graph-validator",
+      "message": "Experience unit 'reviewApplication' cites no Need, so nothing on record says why it exists.",
+      "primarySource": {
+        "artifactSlot": "experience",
+        "artifactKind": "experience",
+        "source": "studio-core:bundle-local:experience",
+        "jsonPointer": "/units/3",
+        "ref": {
+          "url": "urn:formspec:doc:1feb5fb90254133a:experience"
+        }
+      },
+      "details": {
+        "assertor": "formspec-needs-coverage-checker",
+        "subject": "reviewApplication",
+        "criterion": "needs-spec S9.2 justified predicate",
+        "outcome": "failed",
+        "reason": "unit-unjustified",
+        "unitId": "reviewApplication",
+        "unitIndex": 3
+      }
+    }
+  ],
+  "totalDiagnostics": 14
+}

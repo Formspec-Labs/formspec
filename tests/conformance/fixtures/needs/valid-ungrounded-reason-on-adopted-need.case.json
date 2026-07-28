@@ -1,0 +1,49 @@
+{
+  "id": "valid-ungrounded-reason-on-adopted-need",
+  "description": "An adopted Need carrying ungroundedReason: hypothesis. Adopting a hypothesis is a legitimate product decision.",
+  "specRow": "S9.4 NEED-GROUND-001 does not fire when ungroundedReason appears on an adopted Need (legal — S5.4).",
+  "needsDocument": {
+    "$formspecNeeds": "1.0",
+    "version": "1.0.0",
+    "url": "https://benefits.example.gov/apps/assistance/needs",
+    "title": "Benefits assistance -- who this is for and why",
+    "needs": [
+      {
+        "id": "works-without-good-internet",
+        "statement": {
+          "who": "anyone applying from a place with unreliable internet",
+          "want": "the application to keep working when my connection drops",
+          "why": "the people who need this help most often have the worst connections",
+          "done": "a dropped connection never costs me my answers"
+        },
+        "ungroundedReason": "hypothesis",
+        "origin": "human-asserted",
+        "status": "adopted",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:pm:demo"
+        },
+        "revision": 1
+      }
+    ]
+  },
+  "bundle": {
+    "experience": {
+      "units": [
+        {
+          "id": "offlineDraft",
+          "kind": "data-entry",
+          "actorRef": "applicant",
+          "needRefs": [
+            {
+              "id": "works-without-good-internet"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedCodes": []
+}

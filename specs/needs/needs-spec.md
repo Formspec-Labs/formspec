@@ -18,9 +18,16 @@ depends_on:
 
 ## Status of This Document
 
-This document is a **draft specification**. It is a companion to the [Formspec v1.0 core specification](../../specs/core/spec.md) and does not modify or extend the core processing model. Implementors are encouraged to experiment with this specification and provide feedback, but MUST NOT treat it as stable for production use until a 1.0.0 release is published.
+This document is a **draft specification**. It is a companion to the [Formspec v1.0 core specification](../core/spec.md) and does not modify or extend the core processing model. Implementors are encouraged to experiment with this specification and provide feedback, but MUST NOT treat it as stable for production use until a 1.0.0 release is published.
 
-This spec was promoted from the design exploration [`thoughts/2026-07-27-needs-layer-exploration.md`](../../../thoughts/2026-07-27-needs-layer-exploration.md) (stack root). It lives in `thoughts/specs/` and moves verbatim to `specs/needs/needs-spec.md` when `schemas/needs.schema.json` lands with implementation — `specs/` is gate-wired (`npm run docs:generate` / `docs:check`), and the generated BLUF and schema-ref blocks are added at that promotion, not hand-written here.
+This spec was promoted from the design exploration [`thoughts/2026-07-27-needs-layer-exploration.md`](../../../thoughts/2026-07-27-needs-layer-exploration.md) (stack root). It now lives in gate-wired `specs/` (`npm run docs:generate` / `docs:check`) alongside the landed [`schemas/needs.schema.json`](../../schemas/needs.schema.json); the BLUF and schema-ref blocks below are generated and MUST NOT be hand-edited.
+
+**Two corrections applied at promotion**, both to schema annotations, neither to a normative rule:
+
+1. The draft's inline schema marked `$defs.Statement` `x-lm.critical` with a `description` but no `examples`, which the house rule (`formspec/CLAUDE.md` §Spec authoring contract) and the `docs:check` gate (`scripts/generate-spec-artifacts.mjs` `validateCriticalAnnotations`) both refuse. S12 and the landed schema each gained one `examples` entry on that node.
+2. The S12.3 `NeedRef` fragment and its landed counterpart in [`schemas/experience.schema.json`](../../schemas/experience.schema.json) each gained an object-level `description`. A `$defs` node reached from `Unit.needRefs` with no prose of its own leaves the reader to infer the citation's direction and its unpinnedness from the property list; the added line says both and points at S7.
+
+No other content changed.
 
 **What this specification deliberately does NOT decide:**
 
@@ -35,7 +42,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 JSON syntax and data types are as defined in [RFC 8259]. URI syntax is as defined in [RFC 3986].
 
-Terms defined in the Formspec v1.0 core specification and the [Experience specification](../../specs/experience/experience-spec.md) — including *Definition*, *Item*, *Response*, *Experience Document*, *Unit*, and *conformant processor* — retain their meanings throughout this document unless explicitly redefined.
+Terms defined in the Formspec v1.0 core specification and the [Experience specification](../experience/experience-spec.md) — including *Definition*, *Item*, *Response*, *Experience Document*, *Unit*, and *conformant processor* — retain their meanings throughout this document unless explicitly redefined.
 
 Additional terms:
 
@@ -60,13 +67,13 @@ Additional terms:
 
 ## Bottom Line Up Front
 
-<!-- Generated bluf/schema-ref blocks are added when this spec promotes to specs/needs/; this section is authored prose until then. -->
-
+<!-- bluf:start file=needs-spec.bluf.md -->
 - This document defines the Needs Document -- an authored artifact that records why software should exist: plain-language Need records (Who / What / Why / Done), each grounded in evidence from the normative channel (Rulespec assertion IRIs) or the empirical channel (Observation research records), or carrying a declared `ungroundedReason` — never silently ungrounded.
 - A Need is born `proposed` or `adopted`, is superseded rather than erased, and carries an integer `revision` over its statement and grounding. An AI may file a `proposed` Need; only a human may carry one to `adopted`.
 - Experience Units cite Needs through `needRefs[]` (deliberately unpinned); GENERATION anchors cite them as `need:<id>@<revision>` (deliberately pinned). Human intent tracks the Need; machine provenance tracks the revision.
 - A Needs Coverage checker computes which adopted Needs no artifact serves (`NEED-COVERAGE-001`) and which Units serve no Need (`NEED-COVERAGE-002`). Coverage is reportable, never blocking.
-- Needs MUST NOT affect data capture, validation, or the processing model. The Needs Document is upstream of every other Formspec artifact and is cited by them, never the reverse.
+- Needs MUST NOT affect data capture, validation, or the processing model. The Needs Document is upstream of every other Formspec artifact and is cited by them, never the reverse; this BLUF is governed by `schemas/needs.schema.json`, the canonical structural contract.
+<!-- bluf:end -->
 
 ---
 
@@ -344,14 +351,14 @@ Beyond schema validity (S12), a conformant Needs Document satisfies:
 1. **Id uniqueness.** `need.id` values are unique within `needs[]`; `journey.id` values within `journeys[]`.
 2. **Supersession integrity.** Every `supersedes` value resolves to a `need.id` in the same document, and its target has `status: superseded`. A `superseded` record is the target of exactly one live record's `supersedes`.
 3. **Journey resolution.** When `journeys[]` is declared, every `need.journey` resolves to a `journey.id`.
-4. **Origin/status agreement.** An `ai-proposed` record carries `proposedBy`; an `adopted` record carries `adoptedBy`; an `ai-proposed` record with `status` beyond `proposed` carries `adoptedBy` with `kind: "human"` (S4.3).
+4. **Origin/status agreement.** An `ai-proposed` record carries `proposedBy`; an `adopted` record carries `adoptedBy`; an `ai-proposed` record at a status reached *through adoption* — `adopted` or `superseded` — carries `adoptedBy`; and wherever an `ai-proposed` record carries `adoptedBy` at all, its `kind` is `human` (S4.3, the adoption floor). Adoption is what requires the actor, not leaving `proposed`: S4.3's `proposed` → `withdrawn` transition is rejection *without* adoption, so an `ai-proposed` record withdrawn from `proposed` carries no `adoptedBy` and is conformant. This scoping matches `adoptedBy`'s own definition (S4, S12.2): required on `adopted`, retained on records that were once adopted.
 5. **Grounding exclusivity.** Exactly one of `grounding` / `ungroundedReason` per Need (S5.4).
 
-Violations are reported as `NEED-DOC-001` or `NEED-GROUND-001` findings (S9.4). Rules 4 and 5 are additionally schema-enforced (S12); the findings are registered so non-schema validators name the defects identically.
+Violations are reported as `NEED-DOC-001` or `NEED-GROUND-001` findings (S9.4). Rule 5 is additionally schema-enforced in full (S12's grounding `oneOf`) and rule 4 in part: the `allOf` conditionals carry `proposedBy` on `ai-proposed`, `adoptedBy` on `adopted`, and the human-`kind` floor, but a schema-valid document may still reach `superseded` from an `ai-proposed` record with no `adoptedBy` at all — the checker owns that clause. The findings are registered so non-schema validators name the defects identically.
 
 ## 7. Citing Needs from Experience — `needRefs`
 
-*This section specifies an addition to the Experience Unit shape (experience-spec S5.1). It lands in `schemas/experience.schema.json` with implementation; until then it is normative for this spec's conformance classes only.*
+*This section specifies an addition to the Experience Unit shape (experience-spec S5.1), landed in [`schemas/experience.schema.json`](../../schemas/experience.schema.json) as `Unit.needRefs` and `$defs.NeedRef`.*
 
 An Experience Unit MAY declare:
 
@@ -375,7 +382,7 @@ Richer edge roles (`elaboratedBy`, `decomposedBy`) are deferred; if added, they 
 
 ## 8. Need Anchors — the GENERATION seam
 
-*This section specifies an extension to the Generation anchor grammar (`schemas/common.schema.json` `$defs.Generation.anchors`). It lands with implementation.*
+*This section specifies an extension to the Generation anchor grammar ([`schemas/common.schema.json`](../../schemas/common.schema.json) `$defs.Generation.anchors`), landed there and in the `crates/formspec-lint/schemas/` mirror.*
 
 The anchor prefix set gains `need`:
 
@@ -441,7 +448,7 @@ Coverage findings are **reportable, not blocking** (design principle 1). They MU
 
 **`NEED-DOC-001`** — document integrity violation. Severity `error`. Document conformance class.
 - *Fires when:* any S6 rule other than grounding exclusivity is violated — duplicate ids; `supersedes` naming an unknown id; `supersedes` targeting a record whose status is not `superseded`; a `superseded` record with zero or multiple citing `supersedes`; unresolved `journey` when `journeys[]` is declared; missing `proposedBy` / `adoptedBy` under S6 rule 4; an `ai-proposed` record adopted by a non-human actor.
-- *Does not fire when:* `journeys[]` is absent (journey values are then free strings); a `withdrawn` record has no successor (withdrawal needs none).
+- *Does not fire when:* `journeys[]` is absent (journey values are then free strings); a `withdrawn` record has no successor (withdrawal needs none); an `ai-proposed` record withdrawn from `proposed` carries no `adoptedBy` (nothing adopted it — S6 rule 4).
 
 **`NEED-REF-001`** — unresolved need reference. Severity `error`. Needs Core processor class.
 - *Fires when:* a `needRefs[].id` in a bundle Experience Document does not resolve to any `need.id` in the paired Needs Document.
@@ -534,7 +541,7 @@ A conformant processor MUST NOT:
 
 ## 12. Schema
 
-The canonical structural contract. This content becomes `schemas/needs.schema.json` at implementation; it is presented here in full so the draft is complete without landing gate-wired files.
+The canonical structural contract, landed as [`schemas/needs.schema.json`](../../schemas/needs.schema.json). It is reproduced here in full so the document reads without leaving it; the file is the source of truth and the generated reference tables in S12.1–S12.2 are projected from it.
 
 ```json
 {
@@ -805,6 +812,14 @@ The canonical structural contract. This content becomes `schemas/needs.schema.js
           "examples": ["after I submit, I hold a receipt that proves what I filed and when"]
         }
       },
+      "examples": [
+        {
+          "who": "anyone submitting this application under a deadline",
+          "want": "a receipt I can save and show someone later",
+          "why": "if the agency loses my submission, I lose rights I actually had",
+          "done": "after I submit, I hold a receipt that proves what I filed and when"
+        }
+      ],
       "x-lm": {
         "critical": true,
         "intent": "Plain-language requirement statement; the verifiability bar lives on done"
@@ -904,7 +919,74 @@ The canonical structural contract. This content becomes `schemas/needs.schema.js
 }
 ```
 
-**Companion deltas landing with implementation (fragments, not standalone schemas):**
+### 12.1 Top-level reference
+
+<!-- schema-ref:start id=needs-top-level schema=schemas/needs.schema.json pointers=# -->
+<!-- generated:schema-ref id=needs-top-level -->
+| Pointer | Field | Type | Required | Notes | Description |
+|---|---|---|---|---|---|
+| `#/properties/$formspecNeeds` | `$formspecNeeds` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Needs specification version. MUST be '1.0'. |
+| `#/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | — |
+| `#/properties/journeys` | `journeys` | <code>array</code> | no | — | — |
+| `#/properties/name` | `name` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9_\-]*&#36;</code> | — |
+| `#/properties/needs` | `needs` | <code>array</code> | yes | critical | Substantive payload. Each Need is an evidence-grounded plain-language statement of why software should exist, with lifecycle and revision. |
+| `#/properties/title` | `title` | <code>string</code> | no | — | — |
+| `#/properties/url` | `url` | <code>string</code> | no | — | Canonical URI identifier for this Needs Document. RECOMMENDED when external systems cite its Needs. |
+| `#/properties/version` | `version` | <code>string</code> | yes | critical | Version of this Needs Document. SemVer is RECOMMENDED. |
+<!-- schema-ref:end -->
+
+### 12.2 `$defs` reference
+
+<!-- schema-ref:start id=needs-defs schema=schemas/needs.schema.json pointers=#/$defs/Journey,#/$defs/Need,#/$defs/Statement,#/$defs/Grounding,#/$defs/AssertionGrounding,#/$defs/ObservationGrounding,#/$defs/Excerpt,#/$defs/GroundingRole -->
+<!-- generated:schema-ref id=needs-defs -->
+| Pointer | Field | Type | Required | Notes | Description |
+|---|---|---|---|---|---|
+| `#/$defs/Journey/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/Journey/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | — |
+| `#/$defs/Journey/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_-]*&#36;</code> | Stable identifier for this Journey. Unique within journeys[]. Referenced by need.journey. |
+| `#/$defs/Journey/properties/title` | `title` | <code>string</code> | no | — | — |
+| `#/$defs/Need/properties/adoptedBy` | `adoptedBy` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/AuthorActor</code> | REQUIRED when status is adopted; remains on once-adopted superseded/withdrawn records. MUST be kind human when origin is ai-proposed. |
+| `#/$defs/Need/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | — |
+| `#/$defs/Need/properties/grounding` | `grounding` | <code>array</code> | no | — | Evidence citations. Exactly one of grounding / ungroundedReason is present (spec S5.4); the oneOf below enforces it. |
+| `#/$defs/Need/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_-]*&#36;</code>; critical | Stable identifier for this Need. Unique within needs[]. Referenced by Experience needRefs[].id and by need:<id>@<revision> generation anchors. Renaming is supersession, not an edit. |
+| `#/$defs/Need/properties/journey` | `journey` | <code>string</code> | no | — | Grouping key. When journeys[] is declared, MUST resolve to a journeys[].id. |
+| `#/$defs/Need/properties/origin` | `origin` | <code>string</code> | yes | enum: <code>"human-asserted"</code>, <code>"ai-proposed"</code>, <code>"imported"</code>; critical | How this Need entered the document. Closed enum. Immutable for the record's life; adoption does not rewrite entry. ai-proposed requires proposedBy and files at status proposed. |
+| `#/$defs/Need/properties/proposedBy` | `proposedBy` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/AuthorActor</code> | REQUIRED when origin is ai-proposed. The filing actor. |
+| `#/$defs/Need/properties/revision` | `revision` | <code>integer</code> | yes | critical | Content revision covering statement + grounding (incl. ungroundedReason). Bumps on any content change; MUST NOT bump on status/adoptedBy/title/journey changes. Pinned by need:<id>@<revision> anchors. |
+| `#/$defs/Need/properties/statement` | `statement` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/Statement</code> | — |
+| `#/$defs/Need/properties/status` | `status` | <code>string</code> | yes | enum: <code>"proposed"</code>, <code>"adopted"</code>, <code>"superseded"</code>, <code>"withdrawn"</code>; critical | Lifecycle status. Closed enum. proposed: candidate awaiting human judgment. adopted: a commitment (requires adoptedBy). superseded: replaced by a successor carrying supersedes (terminal). withdrawn: rejected or found wrong (terminal; the record remains). |
+| `#/$defs/Need/properties/supersedes` | `supersedes` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9_-]*&#36;</code> | The need.id this record replaces. MUST resolve within this document to a record with status superseded. |
+| `#/$defs/Need/properties/title` | `title` | <code>string</code> | no | — | — |
+| `#/$defs/Need/properties/ungroundedReason` | `ungroundedReason` | <code>string</code> | no | enum: <code>"hypothesis"</code>, <code>"team-consensus"</code>, <code>"self-evident"</code>; critical | Declared absence of evidence. Closed enum: hypothesis (we intend to validate), team-consensus (held without a citable source), self-evident (evidence would be circular). Mutually exclusive with grounding. |
+| `#/$defs/Statement/properties/done` | `done` | <code>string</code> | yes | — | The outcome the person in who would observe when the need is met. Not a system behavior. |
+| `#/$defs/Statement/properties/want` | `want` | <code>string</code> | yes | — | The need, stated the way that person would say it. |
+| `#/$defs/Statement/properties/who` | `who` | <code>string</code> | yes | — | The kind of person, as they would describe themselves. A population, not a system role. |
+| `#/$defs/Statement/properties/why` | `why` | <code>string</code> | yes | — | What happens if this is not met — the harm or the loss, concretely. |
+| `#/$defs/Grounding` | `(self)` | <code>composite</code> | — | — | Discriminated union on kind: assertion (normative channel — Rulespec IRI, cite never compile) or observation (empirical channel — product-local research record). |
+| `#/$defs/AssertionGrounding/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/AssertionGrounding/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | — |
+| `#/$defs/AssertionGrounding/properties/kind` | `kind` | <code>const</code> | yes | const: <code>"assertion"</code> | — |
+| `#/$defs/AssertionGrounding/properties/ref` | `ref` | <code>string</code> | yes | critical | IRI of the cited Rulespec assertion or artifact (e.g., urn:rkaf:workspace:<ws>/<localId>). Opaque to Formspec processors; Rulespec owns everything behind it. |
+| `#/$defs/AssertionGrounding/properties/role` | `role` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/GroundingRole</code> | — |
+| `#/$defs/ObservationGrounding/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/ObservationGrounding/properties/excerpt` | `excerpt` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Excerpt</code> | — |
+| `#/$defs/ObservationGrounding/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | — |
+| `#/$defs/ObservationGrounding/properties/kind` | `kind` | <code>const</code> | yes | const: <code>"observation"</code> | — |
+| `#/$defs/ObservationGrounding/properties/method` | `method` | <code>string</code> | yes | enum: <code>"interview"</code>, <code>"usability-session"</code>, <code>"analytics"</code>, <code>"support-signal"</code>, <code>"field-report"</code>; critical | How the observation was made. Closed enum. |
+| `#/$defs/ObservationGrounding/properties/observedAt` | `observedAt` | <code>string</code> | no | — | RFC 3339 date or date-time of the observation itself. |
+| `#/$defs/ObservationGrounding/properties/observer` | `observer` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/AuthorActor</code> | — |
+| `#/$defs/ObservationGrounding/properties/role` | `role` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/GroundingRole</code> | — |
+| `#/$defs/ObservationGrounding/properties/uri` | `uri` | <code>string</code> | yes | — | Source of the observation (research repository entry, analytics query, ticket). Discovery-weight: not required to be content-addressable; promotion to a Rulespec assertion is the escalation. |
+| `#/$defs/Excerpt/properties/exact` | `exact` | <code>string</code> | yes | — | — |
+| `#/$defs/Excerpt/properties/prefix` | `prefix` | <code>string</code> | no | — | — |
+| `#/$defs/Excerpt/properties/suffix` | `suffix` | <code>string</code> | no | — | — |
+| `#/$defs/GroundingRole` | `(self)` | <code>string</code> | — | enum: <code>"motivates"</code>, <code>"constrains"</code>, <code>"authorizes"</code>; default: <code>"motivates"</code> | Relationship of the evidence to the Need. motivates: shows the lack exists. constrains: bounds any satisfying solution. authorizes: establishes that meeting the need is permitted or mandated. constrains/authorizes shared with the References rel vocabulary. |
+<!-- schema-ref:end -->
+
+### 12.3 Companion deltas
+
+Fragments, not standalone schemas.
 
 `schemas/experience.schema.json` — `Unit` gains `needRefs`; new `$defs.NeedRef`:
 
@@ -914,11 +996,17 @@ The canonical structural contract. This content becomes `schemas/needs.schema.js
     "type": "object",
     "required": ["id"],
     "additionalProperties": false,
+    "description": "Citation from an Experience Unit to a Need it serves (needs-spec S7). Resolves against the caller-paired Needs Document; when none is paired, resolution is inapplicable and emits nothing.",
     "properties": {
       "id": {
         "type": "string",
         "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
-        "description": "A need.id in the paired Needs Document. Deliberately unpinned: no revision — the Unit serves the Need as currently worded (needs-spec S7)."
+        "description": "A need.id in the paired Needs Document. Deliberately unpinned: no revision — the Unit serves the Need as currently worded (needs-spec S7).",
+        "examples": ["proof-of-filing"],
+        "x-lm": {
+          "critical": true,
+          "intent": "The unit-to-need citation half of the coverage predicate"
+        }
       },
       "description": { "type": "string" },
       "extensions": { "$ref": "#/$defs/Extensions" }

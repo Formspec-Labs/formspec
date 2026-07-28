@@ -1,0 +1,67 @@
+{
+  "id": "valid-unit-with-unresolved-ref-is-still-justified",
+  "description": "A unit whose only citation is broken. It is unjustified-looking but not unjustified: one defect, one code.",
+  "specRow": "S9.4 NEED-COVERAGE-002 does not fire when the Unit carries at least one needRefs entry, even an unresolved one.",
+  "needsDocument": {
+    "$formspecNeeds": "1.0",
+    "version": "1.0.0",
+    "url": "https://benefits.example.gov/apps/assistance/needs",
+    "title": "Benefits assistance -- who this is for and why",
+    "needs": [
+      {
+        "id": "proof-of-filing",
+        "statement": {
+          "who": "anyone submitting this application under a deadline",
+          "want": "a receipt I can save and show someone later",
+          "why": "if the agency loses my submission, I lose rights I actually had",
+          "done": "after I submit, I hold a receipt that proves what I filed and when"
+        },
+        "grounding": [
+          {
+            "kind": "assertion",
+            "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+            "role": "constrains"
+          }
+        ],
+        "origin": "human-asserted",
+        "status": "adopted",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:pm:demo"
+        },
+        "revision": 1
+      }
+    ]
+  },
+  "bundle": {
+    "experience": {
+      "units": [
+        {
+          "id": "receipt",
+          "kind": "confirmation",
+          "actorRef": "applicant",
+          "needRefs": [
+            {
+              "id": "proof-of-filing"
+            }
+          ]
+        },
+        {
+          "id": "statusCheck",
+          "kind": "review",
+          "actorRef": "applicant",
+          "needRefs": [
+            {
+              "id": "know-where-i-stand"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedCodes": [
+    "NEED-REF-001"
+  ]
+}

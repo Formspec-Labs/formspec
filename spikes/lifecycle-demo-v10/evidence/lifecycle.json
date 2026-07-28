@@ -533,6 +533,202 @@
       ]
     },
     {
+      "stage": "needs",
+      "narration": "Somebody wrote down what people actually said they needed, and the app is checked against it. Four needs, four screens, and at first nothing connects them — the checker says so out loud. Then the AI notices something in the drop-off numbers and writes down a fifth need. It tries to approve its own idea and is stopped: a machine may notice a need, only a person may commit to one. A person approves it, each screen is linked to what it is for, and the check comes back clean.",
+      "substrateState": {
+        "needsPaired": 6,
+        "adoptedNeeds": 5,
+        "proposedNeeds": 1,
+        "unservedBefore": [
+          "decide-without-chasing-paper",
+          "proof-of-filing",
+          "sign-without-a-trip-to-the-office",
+          "works-without-good-internet"
+        ],
+        "unservedAfter": [],
+        "unjustifiedBefore": [
+          "applyForHelp",
+          "certifyDeclaration",
+          "collectReceipt",
+          "reviewApplication"
+        ],
+        "unjustifiedAfter": [],
+        "citations": 5,
+        "artifact": "evidence/stage-2_5-needs.needs-document.json"
+      },
+      "beats": [
+        {
+          "seq": 25,
+          "stage": "needs",
+          "actor": "human",
+          "verb": "pairNeedsDocument",
+          "intent": "Hand the app the written record of what people said they needed.",
+          "outcome": "admitted",
+          "details": {
+            "source": "spikes/lifecycle-demo-v10/corpus/assistance.needs.json",
+            "needs": [
+              {
+                "id": "proof-of-filing",
+                "status": "adopted",
+                "origin": "human-asserted",
+                "want": "a receipt I can save and show someone later"
+              },
+              {
+                "id": "sign-without-a-trip-to-the-office",
+                "status": "adopted",
+                "origin": "human-asserted",
+                "want": "to sign right here, without printing anything or going anywhere"
+              },
+              {
+                "id": "decide-without-chasing-paper",
+                "status": "adopted",
+                "origin": "human-asserted",
+                "want": "everything the applicant sent, in one place, in the order I need it"
+              },
+              {
+                "id": "works-without-good-internet",
+                "status": "adopted",
+                "origin": "human-asserted",
+                "want": "the application to keep working when my connection drops"
+              },
+              {
+                "id": "tell-me-why-it-was-refused",
+                "status": "proposed",
+                "origin": "ai-proposed",
+                "want": "to be told in plain words why, and what I can do about it"
+              }
+            ],
+            "note": "The record is handed over, not found. Nothing infers it from a filename or a folder — an app and a set of needs are paired by whoever is asking the question (needs-spec S2.1)."
+          }
+        },
+        {
+          "seq": 26,
+          "stage": "needs",
+          "actor": "system",
+          "verb": "coverage",
+          "intent": "Ask the app which of these needs it actually serves.",
+          "outcome": "recorded",
+          "message": "Nothing serves any of them yet. 4 needs have nothing built for them, and 4 screens say nothing about why they exist. The release is not stopped by any of it — this is a report, not a gate.",
+          "details": {
+            "unserved": [
+              "decide-without-chasing-paper",
+              "proof-of-filing",
+              "sign-without-a-trip-to-the-office",
+              "works-without-good-internet"
+            ],
+            "unjustified": [
+              "applyForHelp",
+              "certifyDeclaration",
+              "collectReceipt",
+              "reviewApplication"
+            ],
+            "codes": {
+              "NEED-COVERAGE-001": 4,
+              "NEED-COVERAGE-002": 4
+            },
+            "reportErrors": 6,
+            "artifact": "evidence/stage-2_5-needs.before.coverage.json"
+          }
+        },
+        {
+          "seq": 27,
+          "stage": "needs",
+          "actor": "ai-agent",
+          "verb": "proposeNeed",
+          "intent": "Write down something the drop-off numbers keep showing: people start on a phone and cannot finish later.",
+          "outcome": "admitted",
+          "details": {
+            "needId": "finish-on-another-device",
+            "want": "to start on my phone and finish later on a computer",
+            "evidence": "https://benefits.example.gov/analytics/funnels/abandonment-2026-07",
+            "status": "proposed",
+            "note": "Filed as a candidate, not a commitment. The coverage check ignores candidates entirely."
+          }
+        },
+        {
+          "seq": 28,
+          "stage": "needs",
+          "actor": "ai-agent",
+          "verb": "adoptNeed",
+          "intent": "Approve its own idea and move on.",
+          "outcome": "refused",
+          "message": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. An AI may file a Need; only a human may adopt one (needs-spec S4.3).",
+          "details": {
+            "needId": "finish-on-another-device",
+            "reason": "adoption-floor",
+            "why": "A machine may notice that something is missing. Deciding the organisation will commit to it is a different act, and it belongs to a person.",
+            "note": "This refusal is not this deployment's choice. It is in the standard, and it holds even where nobody has configured anything — unlike the page-label refusals earlier, which are this deployment narrowing."
+          }
+        },
+        {
+          "seq": 29,
+          "stage": "needs",
+          "actor": "human",
+          "verb": "adoptNeed",
+          "intent": "Read what the AI noticed, agree with it, and commit the organisation to it.",
+          "outcome": "admitted",
+          "details": {
+            "needId": "finish-on-another-device",
+            "note": "The record still says the AI found this. Approving it does not rewrite who noticed it, and it does not count as changing the words — so nothing already built goes stale just because somebody said yes."
+          }
+        },
+        {
+          "seq": 30,
+          "stage": "needs",
+          "actor": "ai-agent",
+          "verb": "citeNeed",
+          "intent": "Link each screen to what it is there for.",
+          "outcome": "admitted",
+          "details": {
+            "citations": [
+              {
+                "screen": "applyForHelp",
+                "need": "works-without-good-internet",
+                "because": "This is the long form. It is where a dropped connection costs the most."
+              },
+              {
+                "screen": "applyForHelp",
+                "need": "finish-on-another-device",
+                "because": "And it is the screen someone would want to leave and come back to."
+              },
+              {
+                "screen": "certifyDeclaration",
+                "need": "sign-without-a-trip-to-the-office",
+                "because": "This is the signature that replaces the trip across town."
+              },
+              {
+                "screen": "collectReceipt",
+                "need": "proof-of-filing",
+                "because": "This is the receipt someone shows a landlord or a court."
+              },
+              {
+                "screen": "reviewApplication",
+                "need": "decide-without-chasing-paper",
+                "because": "This is the caseworker screen where the chasing either happens or stops."
+              }
+            ],
+            "note": "The link carries no version number, on purpose. A screen serves the need as currently written, so fixing a typo in the wording never quietly unlinks it."
+          }
+        },
+        {
+          "seq": 31,
+          "stage": "needs",
+          "actor": "system",
+          "verb": "coverage",
+          "intent": "Ask the same question again.",
+          "outcome": "recorded",
+          "message": "Clean. Every need the organisation has committed to has something built for it, and every screen can say why it exists. The one candidate nobody has ruled on yet is not counted either way — it is not a commitment.",
+          "details": {
+            "unserved": [],
+            "unjustified": [],
+            "codes": {},
+            "reportErrors": 6,
+            "artifact": "evidence/stage-2_5-needs.after.coverage.json"
+          }
+        }
+      ]
+    },
+    {
       "stage": "build",
       "narration": "The app gets its parts list and its look. The AI is stopped again: creating the app's look decides who controls how pages appear, and on three of these four pages appearance is part of what people rely on. A person takes over, creates it, and then makes two small changes of their own. Those two changes are what the last stage is about.",
       "substrateState": {
@@ -557,7 +753,7 @@
       },
       "beats": [
         {
-          "seq": 25,
+          "seq": 32,
           "stage": "build",
           "actor": "ai-agent",
           "verb": "declareTheme",
@@ -574,7 +770,7 @@
           }
         },
         {
-          "seq": 26,
+          "seq": 33,
           "stage": "build",
           "actor": "system",
           "verb": "(check)",
@@ -587,7 +783,7 @@
           }
         },
         {
-          "seq": 27,
+          "seq": 34,
           "stage": "build",
           "actor": "system",
           "verb": "(handoff)",
@@ -603,7 +799,7 @@
           }
         },
         {
-          "seq": 28,
+          "seq": 35,
           "stage": "build",
           "actor": "human",
           "verb": "addRoute",
@@ -642,7 +838,7 @@
           }
         },
         {
-          "seq": 29,
+          "seq": 36,
           "stage": "build",
           "actor": "human",
           "verb": "declareTheme",
@@ -654,7 +850,7 @@
           }
         },
         {
-          "seq": 30,
+          "seq": 37,
           "stage": "build",
           "actor": "human",
           "verb": "setThemeToken",
@@ -666,7 +862,7 @@
           }
         },
         {
-          "seq": 31,
+          "seq": 38,
           "stage": "build",
           "actor": "human",
           "verb": "declareRegistry + addRegistryEntry",
@@ -679,7 +875,7 @@
           }
         },
         {
-          "seq": 32,
+          "seq": 39,
           "stage": "build",
           "actor": "human",
           "verb": "bindSlot",
@@ -692,7 +888,7 @@
           }
         },
         {
-          "seq": 33,
+          "seq": 40,
           "stage": "build",
           "actor": "human",
           "verb": "removeSlot + bindSlot",
@@ -743,7 +939,7 @@
       },
       "beats": [
         {
-          "seq": 34,
+          "seq": 41,
           "stage": "sign-off",
           "actor": "human",
           "verb": "addRoute(routeClass)",
@@ -758,7 +954,7 @@
           }
         },
         {
-          "seq": 35,
+          "seq": 42,
           "stage": "sign-off",
           "actor": "human",
           "verb": "addRoute(routeClass)",
@@ -773,7 +969,7 @@
           }
         },
         {
-          "seq": 36,
+          "seq": 43,
           "stage": "sign-off",
           "actor": "human",
           "verb": "addRoute(routeClass)",
@@ -788,7 +984,7 @@
           }
         },
         {
-          "seq": 37,
+          "seq": 44,
           "stage": "sign-off",
           "actor": "human",
           "verb": "addRoute(routeClass)",
@@ -803,7 +999,7 @@
           }
         },
         {
-          "seq": 38,
+          "seq": 45,
           "stage": "sign-off",
           "actor": "human",
           "verb": "exportBundle",
@@ -837,7 +1033,7 @@
       },
       "beats": [
         {
-          "seq": 39,
+          "seq": 46,
           "stage": "release",
           "actor": "human",
           "verb": "declareUiGraphPolicy",
@@ -852,7 +1048,7 @@
           }
         },
         {
-          "seq": 40,
+          "seq": 47,
           "stage": "release",
           "actor": "system",
           "verb": "THEME-ROUTE-CLASS",
@@ -867,7 +1063,7 @@
           }
         },
         {
-          "seq": 41,
+          "seq": 48,
           "stage": "release",
           "actor": "system",
           "verb": "THEME-ROUTE-CLASS",
@@ -884,7 +1080,7 @@
           }
         },
         {
-          "seq": 42,
+          "seq": 49,
           "stage": "release",
           "actor": "system",
           "verb": "THEME-ROUTE-CLASS",
@@ -901,7 +1097,7 @@
           }
         },
         {
-          "seq": 43,
+          "seq": 50,
           "stage": "release",
           "actor": "system",
           "verb": "THEME-ROUTE-CLASS",
@@ -938,7 +1134,7 @@
       },
       "beats": [
         {
-          "seq": 44,
+          "seq": 51,
           "stage": "feedback",
           "actor": "human",
           "verb": "(change request)",
@@ -952,7 +1148,7 @@
           }
         },
         {
-          "seq": 45,
+          "seq": 52,
           "stage": "feedback",
           "actor": "ai-agent",
           "verb": "regenerate",
@@ -968,7 +1164,7 @@
           }
         },
         {
-          "seq": 46,
+          "seq": 53,
           "stage": "feedback",
           "actor": "ai-agent",
           "verb": "merge",
@@ -1055,7 +1251,7 @@
       "evidence": {
         "verification": {
           "result": "verified",
-          "recomputedDigest": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+          "recomputedDigest": "cb8e6db731cf08d025f5cfbc5cd0d4a5f8d3c2a951338b154f42b4019f16f9b9",
           "digestMatches": true,
           "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
           "methodRegistryVersion": "1.1.0",
@@ -1086,7 +1282,7 @@
     },
     {
       "id": "BAR 3",
-      "title": "The AI was refused 5 times — and kept working",
+      "title": "The AI was refused 6 times — and kept working",
       "met": true,
       "criterion": "The AI is refused every page label and the app's look. Each refusal names what was blocked and who was blocked. The AI carries on building. Nothing slips through. A person then does both, under the very same rule.",
       "evidence": {
@@ -1157,7 +1353,7 @@
         "mergeAttempt": {
           "attempted": true,
           "entryPoint": "kernel.regenerateSurfaceDocument",
-          "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 341 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
+          "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 342 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
         },
         "mergeReport": {
           "version": "1.0",
@@ -1358,7 +1554,7 @@
             "@formspec-org/engine",
             "@formspec-org/types"
           ],
-          "exportsSeen": 341,
+          "exportsSeen": 342,
           "patternsScanned": {
             "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
             "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
@@ -1562,6 +1758,54 @@
           "THEME-ROUTE-CLASS": "3 — these are the guard WORKING (bar 4), not a defect. Host-evidence-scoped because the UI Graph Policy is host evidence."
         }
       }
+    },
+    {
+      "id": "BAR 7",
+      "title": "Every screen can say why it exists — and the AI could not sign off on that itself",
+      "met": true,
+      "qualifier": "Measured twice on the same app. Before anything was linked, 4 things people said they needed had nothing built for them and 4 screens could not say why they existed. Afterwards, none. The AI was allowed to write down a new need and stopped from approving it — and that stop is in the standard, not in this deployment's settings.",
+      "criterion": "A written record of what people need is checked against the finished app. The check names what is unserved and what is unexplained, it never stops the release, an AI may add to the record but not approve its own addition, and once each screen is linked to what it is for, the check comes back clean.",
+      "evidence": {
+        "before": {
+          "unserved": [
+            "decide-without-chasing-paper",
+            "proof-of-filing",
+            "sign-without-a-trip-to-the-office",
+            "works-without-good-internet"
+          ],
+          "unjustified": [
+            "applyForHelp",
+            "certifyDeclaration",
+            "collectReceipt",
+            "reviewApplication"
+          ],
+          "codes": {
+            "NEED-COVERAGE-001": 4,
+            "NEED-COVERAGE-002": 4
+          },
+          "reportErrors": 6
+        },
+        "after": {
+          "unserved": [],
+          "unjustified": [],
+          "codes": {},
+          "reportErrors": 6
+        },
+        "proposedByTheAgent": "finish-on-another-device",
+        "agentSelfApprovalRefusal": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. An AI may file a Need; only a human may adopt one (needs-spec S4.3).",
+        "citations": 5,
+        "coverageBlockedNothing": true,
+        "errorsBefore": 6,
+        "errorsAfter": 6,
+        "corpus": "spikes/lifecycle-demo-v10/corpus/assistance.needs.json",
+        "artifacts": [
+          "evidence/stage-2_5-needs.before.coverage.json",
+          "evidence/stage-2_5-needs.after.coverage.json",
+          "evidence/stage-2_5-needs.needs-document.json",
+          "evidence/stage-2_5-needs.experience.json"
+        ],
+        "reservedCodesEmitted": []
+      }
     }
   ],
   "signature": {
@@ -1569,7 +1813,7 @@
       "signatureId": "sig-lifecycle-v10-ceremony-v10-0001",
       "documentId": "rentAssistanceRelease",
       "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1",
-      "signatureValue": "0oRYSKMBJwRQGtNOUvLbdq+SiKXHuMIR8DoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEA7B/ZZOJtEIAbMC0rRpZMOljHDlPse7ZqwVQGnq6/yZBGDS1eJLsTNVjzK1t1URQvVFyMj3w5xYBGS4Ya1xuIG",
+      "signatureValue": "0oRYSKMBJwRQVu0IR4iwR3C7kRJAvU7uajoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEDD4wACn1Y7tFdqG8Isp/WzNg/aMw/vr6JsotKP5KLov8juXwJ9+WiP6+sLRTbSIaiJPMDYLpy1SEXo7fF156kM",
       "signerId": "product-owner",
       "signerName": "R. Okonjo, Product Owner",
       "consentAccepted": true,
@@ -1579,24 +1823,24 @@
       "signedPayload": {
         "canonicalization": "formspec-spike-v10-bundle-export-signing-v1",
         "digestAlgorithm": "sha-256",
-        "digest": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+        "digest": "cb8e6db731cf08d025f5cfbc5cd0d4a5f8d3c2a951338b154f42b4019f16f9b9",
         "responseId": "https://benefits.example.gov/apps/assistance",
         "definitionUrl": "https://benefits.example.gov/apps/assistance",
         "definitionVersion": "1.0.0",
         "signedAt": "2026-07-27T09:30:00Z",
         "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1"
       },
-      "documentHash": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+      "documentHash": "cb8e6db731cf08d025f5cfbc5cd0d4a5f8d3c2a951338b154f42b4019f16f9b9",
       "documentHashAlgorithm": "sha-256",
       "signatureProvider": "urn:formspec:spike-v10:signature:provider:in-repo-ed25519",
       "ceremonyId": "ceremony-v10-0001"
     },
-    "publicKeyBase64": "JYq5BXe9AWQAJhrSQko00N5BrEN+6SFhM1nwFf8r/v0=",
+    "publicKeyBase64": "sfFW6GZi/smUb2lzLO9PswxbjGIcJZgLHe1OSjA3Xpw=",
     "schemaValid": false
   },
   "verification": {
     "result": "verified",
-    "recomputedDigest": "35a37835c0e560e628bbb8f13bfbd437501c41f55a910a0fc95c6c79b9981dba",
+    "recomputedDigest": "cb8e6db731cf08d025f5cfbc5cd0d4a5f8d3c2a951338b154f42b4019f16f9b9",
     "digestMatches": true,
     "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
     "methodRegistryVersion": "1.1.0",
@@ -1621,7 +1865,7 @@
     "mergeAttempt": {
       "attempted": true,
       "entryPoint": "kernel.regenerateSurfaceDocument",
-      "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 341 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
+      "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 342 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
     },
     "mergeReport": {
       "version": "1.0",
@@ -1822,7 +2066,7 @@
         "@formspec-org/engine",
         "@formspec-org/types"
       ],
-      "exportsSeen": 341,
+      "exportsSeen": 342,
       "patternsScanned": {
         "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
         "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
@@ -1993,5 +2237,35 @@
     "units": 4,
     "items": 4,
     "routes": 4
+  },
+  "needs": {
+    "before": {
+      "unserved": [
+        "decide-without-chasing-paper",
+        "proof-of-filing",
+        "sign-without-a-trip-to-the-office",
+        "works-without-good-internet"
+      ],
+      "unjustified": [
+        "applyForHelp",
+        "certifyDeclaration",
+        "collectReceipt",
+        "reviewApplication"
+      ],
+      "codes": {
+        "NEED-COVERAGE-001": 4,
+        "NEED-COVERAGE-002": 4
+      },
+      "reportErrors": 6
+    },
+    "after": {
+      "unserved": [],
+      "unjustified": [],
+      "codes": {},
+      "reportErrors": 6
+    },
+    "proposedNeedId": "finish-on-another-device",
+    "refusalMessage": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. An AI may file a Need; only a human may adopt one (needs-spec S4.3).",
+    "citations": 5
   }
 }

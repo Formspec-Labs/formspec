@@ -1,0 +1,30 @@
+{
+  "id": "valid-unpaired-emits-nothing",
+  "description": "No Needs Document paired. Every step that reads one is inapplicable, not failing.",
+  "specRow": "S2.1 / S9.4: with no paired document, needRefs resolution and all of coverage emit nothing.",
+  "needsDocument": null,
+  "bundle": {
+    "experience": {
+      "units": [
+        {
+          "id": "householdEntry",
+          "kind": "data-entry",
+          "actorRef": "applicant"
+        },
+        {
+          "id": "receipt",
+          "kind": "confirmation",
+          "actorRef": "applicant",
+          "needRefs": [
+            {
+              "id": "proof-of-filing"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expectSchemaValid": null,
+  "expectedCodes": [],
+  "note": "expectSchemaValid is null because there is no document to validate. The bundle deliberately carries both an uncited unit and an unresolvable citation: paired, those would be NEED-COVERAGE-002 and NEED-REF-001. Unpaired they are silence, and a processor MUST NOT infer a pairing from co-location or file naming."
+}

@@ -126,6 +126,10 @@ export interface Unit {
   taskRefs?: string[];
   itemRefs?: ItemRef[];
   conceptRefs?: ConceptRef[];
+  /**
+   * Needs this unit serves, in the paired Needs Document (needs-spec S7). Inverse of the OSLC-RM satisfiedBy edge, carried on the satisfying side. Deliberately unpinned — no revision — so a copy-edit to a Statement never invalidates authored intent; pinning is the need: anchor's job.
+   */
+  needRefs?: NeedRef[];
   actionRefs?: ActionRef[];
   applicability?: Applicability;
   accessibility?: Accessibility;
@@ -157,6 +161,20 @@ export interface ConceptRef {
    */
   id: string;
   source?: 'registry' | 'ontology' | 'external';
+  description?: string;
+  extensions?: Extensions;
+}
+/**
+ * Citation from an Experience Unit to a Need it serves (needs-spec S7). Resolves against the caller-paired Needs Document; when none is paired, resolution is inapplicable and emits nothing.
+ *
+ * This interface was referenced by `ExperienceDocument`'s JSON-Schema
+ * via the `definition` "NeedRef".
+ */
+export interface NeedRef {
+  /**
+   * A need.id in the paired Needs Document. Deliberately unpinned: no revision — the Unit serves the Need as currently worded (needs-spec S7).
+   */
+  id: string;
   description?: string;
   extensions?: Extensions;
 }

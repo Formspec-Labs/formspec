@@ -1,0 +1,59 @@
+{
+  "id": "invalid-unresolved-need-ref",
+  "description": "A unit citing a Need id the paired document does not carry.",
+  "specRow": "S9.4 NEED-REF-001 fires when a needRefs[].id does not resolve to any need.id in the paired document.",
+  "needsDocument": {
+    "$formspecNeeds": "1.0",
+    "version": "1.0.0",
+    "url": "https://benefits.example.gov/apps/assistance/needs",
+    "title": "Benefits assistance -- who this is for and why",
+    "needs": [
+      {
+        "id": "proof-of-filing",
+        "statement": {
+          "who": "anyone submitting this application under a deadline",
+          "want": "a receipt I can save and show someone later",
+          "why": "if the agency loses my submission, I lose rights I actually had",
+          "done": "after I submit, I hold a receipt that proves what I filed and when"
+        },
+        "grounding": [
+          {
+            "kind": "assertion",
+            "ref": "urn:rkaf:workspace:benefits/assertions/esign-retention-obligation",
+            "role": "constrains"
+          }
+        ],
+        "origin": "human-asserted",
+        "status": "adopted",
+        "adoptedBy": {
+          "kind": "human",
+          "actChannel": "human",
+          "id": "urn:formspec:actor:human:pm:demo"
+        },
+        "revision": 1
+      }
+    ]
+  },
+  "bundle": {
+    "experience": {
+      "units": [
+        {
+          "id": "receipt",
+          "kind": "confirmation",
+          "actorRef": "applicant",
+          "needRefs": [
+            {
+              "id": "proof-of-filng"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expectSchemaValid": true,
+  "expectedCodes": [
+    "NEED-COVERAGE-001",
+    "NEED-REF-001"
+  ],
+  "note": "Design-choice record. The typo'd citation leaves `proof-of-filing` served by nothing, so NEED-COVERAGE-001 fires alongside NEED-REF-001 — two defects, two codes, one root cause."
+}
