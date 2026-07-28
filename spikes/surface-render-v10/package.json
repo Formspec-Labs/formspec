@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview --port 4174 --strictPort",
     "typecheck": "tsc --noEmit",
+    "test:unit": "tsx --test tests/*.test.ts",
     "gap-ledger": "tsx scripts/emit-gap-ledger.ts",
     "probe": "node scripts/probe.mjs"
   },

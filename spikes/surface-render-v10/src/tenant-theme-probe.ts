@@ -24,17 +24,20 @@
  * is the stronger version of the same claim and is held by
  * `packages/formspec-surface/tests/theme-authority.test.ts`.
  */
-import { resolvedBundle } from './bundle.ts';
+import type { ResolvedBundle } from '@formspec-org/surface';
 
 /**
  * Every value the tenant Theme authors, for the R3 probe to grep the DOM for.
  * Read straight off the bundle: the question the probe asks is whether any
  * value the TENANT wrote appears somewhere it should not.
  */
-export const TENANT_TOKEN_VALUES: readonly string[] = Object.values(
-  (resolvedBundle.tenantTheme as { tokens?: Record<string, string | number> } | undefined)?.tokens ??
-    {},
-).map(String);
+export function tenantTokenValues(bundle: ResolvedBundle): readonly string[] {
+  return Object.values(
+    (bundle.tenantTheme as {
+      tokens?: Record<string, string | number>;
+    } | undefined)?.tokens ?? {},
+  ).map(String);
+}
 
 export function documentRootThemeProperties(): readonly string[] {
   const root = document.documentElement;

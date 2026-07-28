@@ -130,7 +130,8 @@ bundle; none appear in the shell's source. The browser tab is named from
 `manifest.title` too, after verification — `index.html` carries only a neutral
 pre-verification label, so an unverified bundle does not get to name the tab either.
 The signature is checked in the browser with the shipped COSE + WebCrypto path
-**before anything renders**, and the verdict is in the chrome on every route.
+**before shell core or the React binding loads and before anything
+bundle-derived renders**. The verdict is in the chrome on every route.
 `evidence/route-walk.json`, `evidence/signature-verification.json`.
 
 Two strings on screen are *not* from the export, and both are ledger entries rather

@@ -1,0 +1,45 @@
+{
+  "title": "SSV-010 — collision-refused URLs have no live browser navigation",
+  "description": "A host-only browser fixture composes two qualified routes onto `/shared`. The core reports one collision group, and the React binding keeps both labels visible with disabled link semantics but no live destination, while retaining a working link for the non-colliding route.",
+  "measured": {
+    "diagnosticCount": 1,
+    "diagnosticCodes": [
+      "ROUTE-PATH-COLLISION"
+    ],
+    "claimants": [
+      {
+        "routeId": "first-claimant",
+        "tag": "SPAN",
+        "role": "link",
+        "ariaDisabled": "true",
+        "href": null,
+        "tabIndex": -1
+      },
+      {
+        "routeId": "second-claimant",
+        "tag": "SPAN",
+        "role": "link",
+        "ariaDisabled": "true",
+        "href": null,
+        "tabIndex": -1
+      }
+    ],
+    "sharedLiveLinks": 0,
+    "uniqueLiveLinks": 1,
+    "navigationCount": 0,
+    "claimantAccessibility": [
+      {
+        "name": "First claimant",
+        "role": "link",
+        "disabled": true
+      },
+      {
+        "name": "Second claimant",
+        "role": "link",
+        "disabled": true
+      }
+    ],
+    "navigationCountAfterRefusedClicks": 0,
+    "navigationCountAfterUniqueClick": 1
+  }
+}

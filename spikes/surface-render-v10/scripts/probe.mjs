@@ -322,11 +322,46 @@ const main = async () => {
       }
     }
     const failed = await probe.verify(tampered);
+    const renderGateMatrix = [
+      {
+        case: 'verified signed export',
+        input: { deployment: 'verifying', signed: true, verdict: 'verified' },
+        expected: true,
+      },
+      {
+        case: 'failed signed export',
+        input: { deployment: 'verifying', signed: true, verdict: 'failed' },
+        expected: false,
+      },
+      {
+        case: 'signed export the deployment cannot verify',
+        input: { deployment: 'verifying', signed: true, verdict: 'unverified' },
+        expected: false,
+      },
+      {
+        case: 'unsigned authoring preview',
+        input: {
+          deployment: 'authoring-preview',
+          signed: false,
+          verdict: 'unverified',
+        },
+        expected: true,
+      },
+      {
+        case: 'unsigned input in a verifying deployment',
+        input: { deployment: 'verifying', signed: false, verdict: 'unverified' },
+        expected: false,
+      },
+    ].map((entry) => ({
+      ...entry,
+      observed: probe.hostMayRenderBundle(entry.input),
+    }));
     return {
       clean,
       cleanTrustworthy: probe.isTrustworthy(clean),
       failed,
       failedTrustworthy: probe.isTrustworthy(failed),
+      renderGateMatrix,
       inputsRead: probe.inputPaths,
     };
   });
@@ -334,9 +369,9 @@ const main = async () => {
   write('signature-verification.json', {
     title: 'surface-render-v10 — browser signature verification',
     description:
-      'The signed bundle export verified in Chromium with the shipped COSE + WebCrypto path, before anything '
-      + 'renders. Numbers taken from the running app\'s own verifyBundleSignature via window.__spikeProbe, not '
-      + 'recomputed in Node.',
+      'The signed bundle export verified in Chromium with the shipped COSE + WebCrypto path, before shell core '
+      + 'or the React binding loads and before anything bundle-derived renders. Numbers taken from the running '
+      + 'app\'s own verifyBundleSignature via window.__spikeProbe, not recomputed in Node.',
     capturedFrom: `${BASE}/apply (vite preview of the static build)`,
     inputsRead: Object.values(signature.inputsRead),
     primitivesUsed: {
@@ -350,6 +385,7 @@ const main = async () => {
     },
     cleanExport: {
       signatureResult: signature.clean.result,
+      adapterResult: signature.clean.adapterResult,
       digestMatches: signature.clean.digestMatches,
       trustworthy: signature.cleanTrustworthy,
       recomputedDigest: signature.clean.recomputedDigest,
@@ -363,6 +399,7 @@ const main = async () => {
     falsification: {
       what: "One character altered in the export: documents[theme].tokens['color.primary'] #7A1F3D -> #7A1F3E",
       signatureResult: signature.failed.result,
+      adapterResult: signature.failed.adapterResult,
       digestMatches: signature.failed.digestMatches,
       trustworthy: signature.failedTrustworthy,
       recomputedDigest: signature.failed.recomputedDigest,
@@ -373,6 +410,7 @@ const main = async () => {
     methodUriProvenance:
       'Read out of the COSE protected header, never out of the JSON record beside it, so a record claiming a '
       + 'method the envelope does not carry cannot pass.',
+    renderGateMatrix: signature.renderGateMatrix,
   });
 
   // ── R3: the per-route boundary walk ───────────────────────────────────────
@@ -599,6 +637,92 @@ const main = async () => {
     })),
   }));
 
+  // SSV-010: a host-only fixture composes two routes onto /shared. The browser
+  // must see both claimants, but neither may be an interactive destination.
+  const collisionPage = await leakContext.newPage();
+  await collisionPage.goto(`${BASE}/apply?surface-nav-collision-probe=1`, {
+    waitUntil: 'networkidle',
+  });
+  await waitForApp(collisionPage);
+  await collisionPage.waitForSelector('[data-probe="collision-navigation"]', {
+    state: 'attached',
+  });
+  const collisionBeforeClicks = await collisionPage.evaluate(() => {
+    const root = document.querySelector('[data-probe="collision-navigation"]');
+    const claimants = [
+      ...root.querySelectorAll('[data-nav-unavailable="route-collision"]'),
+    ].map((node) => ({
+      routeId: node.getAttribute('data-nav-route'),
+      tag: node.tagName,
+      role: node.getAttribute('role'),
+      ariaDisabled: node.getAttribute('aria-disabled'),
+      href: node.getAttribute('href'),
+      tabIndex: node.tabIndex,
+    }));
+    return {
+      diagnosticCount: Number(root.getAttribute('data-collision-diagnostic-count')),
+      diagnosticCodes: String(root.getAttribute('data-collision-diagnostic-codes'))
+        .split(',')
+        .filter(Boolean),
+      claimants,
+      sharedLiveLinks: root.querySelectorAll('a[href="/shared"]').length,
+      uniqueLiveLinks: root.querySelectorAll('a[href="/unique"]').length,
+      navigationCount: Number(root.getAttribute('data-navigation-count')),
+    };
+  });
+  const collisionCdp = await collisionPage.context().newCDPSession(collisionPage);
+  const collisionAccessibilityTree = await collisionCdp.send(
+    'Accessibility.getFullAXTree',
+  );
+  await collisionCdp.detach();
+  const collisionClaimantNames = new Set(['First claimant', 'Second claimant']);
+  const claimantAccessibility = collisionAccessibilityTree.nodes
+    .filter(
+      (node) =>
+        node.role?.value === 'link'
+        && collisionClaimantNames.has(String(node.name?.value)),
+    )
+    .map((node) => ({
+      name: String(node.name?.value),
+      role: String(node.role?.value),
+      disabled:
+        node.properties?.find((property) => property.name === 'disabled')?.value
+          ?.value === true,
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  await collisionPage.evaluate(() => {
+    const root = document.querySelector('[data-probe="collision-navigation"]');
+    for (const node of root.querySelectorAll('[data-nav-unavailable="route-collision"]')) {
+      node.click();
+    }
+  });
+  const navigationCountAfterRefusedClicks = await collisionPage
+    .locator('[data-probe="collision-navigation"]')
+    .getAttribute('data-navigation-count')
+    .then(Number);
+  await collisionPage.evaluate(() => {
+    document
+      .querySelector('[data-probe="collision-navigation"] a[href="/unique"]')
+      ?.click();
+  });
+  await collisionPage.waitForFunction(
+    () =>
+      document
+        .querySelector('[data-probe="collision-navigation"]')
+        ?.getAttribute('data-navigation-count') === '1',
+  );
+  const navigationCountAfterUniqueClick = await collisionPage
+    .locator('[data-probe="collision-navigation"]')
+    .getAttribute('data-navigation-count')
+    .then(Number);
+  const collisionNavigation = {
+    ...collisionBeforeClicks,
+    claimantAccessibility,
+    navigationCountAfterRefusedClicks,
+    navigationCountAfterUniqueClick,
+  };
+  await collisionPage.close();
+
   write('route-grammar.json', {
     title: 'D1/F8 — one pinned route-parameter grammar from schema to browser',
     description:
@@ -627,6 +751,16 @@ const main = async () => {
     severityNote:
       'Severity is fixed per code by the spec\u2019s §7.2 table, never by the call site, so two sites '
       + 'reporting the same code cannot disagree about how loud it is.',
+  });
+
+  write('route-collision-navigation.json', {
+    title: 'SSV-010 — collision-refused URLs have no live browser navigation',
+    description:
+      'A host-only browser fixture composes two qualified routes onto `/shared`. '
+      + 'The core reports one collision group, and the React binding keeps both labels visible '
+      + 'with disabled link semantics but no live destination, while retaining a working link '
+      + 'for the non-colliding route.',
+    measured: collisionNavigation,
   });
 
   write('route-walk.json', {
@@ -679,7 +813,42 @@ const main = async () => {
       await waitForApp(page);
       if (route.id === 'apply') {
         await page.waitForSelector('.formspec-container');
+        await page.waitForFunction(
+          () =>
+            (document.querySelector('.formspec-submit')?.textContent ?? '').trim()
+              .length > 0,
+        );
+        await page.evaluate(async () => {
+          await document.fonts.ready;
+          await new Promise((resolveFrame) => {
+            requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
+          });
+        });
         await page.focus('.formspec-container input');
+        await page.evaluate(async () => {
+          await Promise.all(
+            document
+              .getAnimations()
+              .map((animation) => animation.finished.catch(() => undefined)),
+          );
+          await new Promise((resolveFrame) => {
+            requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
+          });
+        });
+        await page.waitForFunction(() => {
+          const button = document.querySelector('.formspec-submit');
+          if (!(button instanceof HTMLElement)) return false;
+          const style = getComputedStyle(button);
+          const bounds = button.getBoundingClientRect();
+          return (
+            (button.textContent ?? '').trim() === 'Submit' &&
+            style.visibility === 'visible' &&
+            style.display !== 'none' &&
+            Number(style.opacity) > 0 &&
+            bounds.width > 0 &&
+            bounds.height > 0
+          );
+        });
       }
       // Open the drawers so the host chrome inside them is measurable too.
       await page.evaluate(() => {
@@ -690,12 +859,16 @@ const main = async () => {
         route: route.id,
         measurements: await page.evaluate(CONTRAST_SCRIPT),
       });
-      await page.evaluate(() => {
+      await page.evaluate(async () => {
         for (const details of document.querySelectorAll('details[data-probe]')) details.open = false;
+        await new Promise((resolveFrame) => {
+          requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
+        });
       });
       await page.screenshot({
         path: resolve(SHOTS, `${scheme}-${route.label}.png`),
         fullPage: true,
+        animations: 'disabled',
       });
     }
     await context.close();
@@ -809,6 +982,39 @@ const main = async () => {
     || pinnedDeepLink.diagnostics.some(({ code }) => code === 'ROUTE-PARAM-GRAMMAR')
   ) {
     gateFailures.push('the signed pinned receipt route did not deep-link cleanly');
+  }
+  if (
+    !signature.cleanTrustworthy
+    || signature.failedTrustworthy
+    || signature.renderGateMatrix.some(
+      ({ observed, expected }) => observed !== expected,
+    )
+  ) {
+    gateFailures.push('the host verification render gate disagreed with its verdict matrix');
+  }
+  if (
+    collisionNavigation.diagnosticCount !== 1
+    || collisionNavigation.diagnosticCodes.join(',') !== 'ROUTE-PATH-COLLISION'
+    || collisionNavigation.claimants.length !== 2
+    || collisionNavigation.claimants.some(
+      ({ tag, role, ariaDisabled, href, tabIndex }) =>
+        tag !== 'SPAN'
+        || role !== 'link'
+        || ariaDisabled !== 'true'
+        || href !== null
+        || tabIndex !== -1,
+    )
+    || collisionNavigation.claimantAccessibility.length !== 2
+    || collisionNavigation.claimantAccessibility.some(
+      ({ role, disabled }) => role !== 'link' || !disabled,
+    )
+    || collisionNavigation.sharedLiveLinks !== 0
+    || collisionNavigation.uniqueLiveLinks !== 1
+    || collisionNavigation.navigationCount !== 0
+    || collisionNavigation.navigationCountAfterRefusedClicks !== 0
+    || collisionNavigation.navigationCountAfterUniqueClick !== 1
+  ) {
+    gateFailures.push('collision-refused routes exposed live browser navigation');
   }
   if (failures.length > 0) {
     gateFailures.push(`${failures.length} measured text/background pair(s) missed WCAG 2.2 AA`);

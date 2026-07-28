@@ -47,6 +47,10 @@ export function VerificationChrome({
               </dd>
             </div>
             <div>
+              <dt>Verifier adapter result</dt>
+              <dd data-probe="verify-adapter-result">{outcome.adapterResult}</dd>
+            </div>
+            <div>
               <dt>Contents match the signature</dt>
               <dd data-probe="verify-digest-match">{outcome.digestMatches ? 'yes' : 'no'}</dd>
             </div>

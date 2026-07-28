@@ -29,7 +29,16 @@ import {
   type SignatureMethodRegistry,
 } from '@integrity-stack/signature-port';
 import methodRegistry from '../../../registries/signature-method-registry.json';
-import { INPUT_PATHS, authoredSignature, bundleExport } from './bundle.ts';
+import {
+  INPUT_PATHS,
+  authoredSignature,
+  bundleExport,
+} from './bundle-input.ts';
+import {
+  canonicalVerificationVerdict,
+  hostMayRenderBundle,
+  type VerificationVerdict,
+} from './verification-gate.ts';
 
 /** ADR 0111 domain separation. Minted by the lifecycle spike; spike-local. */
 const BUNDLE_EXPORT_DOMAIN = 'formspec.spike-v10.bundle-export.signed-payload.v1';
@@ -37,8 +46,10 @@ const DOMAIN_SEPARATOR_BYTE = 0x00;
 const METHOD_URI_PREFIX = 'urn:formspec:sig-method:';
 
 export interface VerificationOutcome {
-  /** The adapter's verdict, verbatim. Never softened. */
-  result: 'verified' | 'failed' | 'unsupported';
+  /** Canonical deployment verdict. Adapter `unsupported` maps to `unverified`. */
+  result: VerificationVerdict;
+  /** The adapter result, retained as provenance rather than a fourth verdict. */
+  adapterResult: 'verified' | 'failed' | 'unsupported';
   reason?: string;
   /** Recomputed from the export on disk. */
   recomputedDigest: string;
@@ -122,7 +133,8 @@ export async function verifyBundleSignature(
   );
 
   return {
-    result: receipt.result,
+    result: canonicalVerificationVerdict(receipt.result),
+    adapterResult: receipt.result,
     ...(receipt.reason !== undefined ? { reason: receipt.reason } : {}),
     recomputedDigest,
     claimedDigest,
@@ -140,5 +152,12 @@ export async function verifyBundleSignature(
 
 /** True only when the crypto verdict AND the digest agree. Both, or neither. */
 export function isTrustworthy(outcome: VerificationOutcome): boolean {
-  return outcome.result === 'verified' && outcome.digestMatches;
+  return (
+    outcome.digestMatches &&
+    hostMayRenderBundle({
+      deployment: 'verifying',
+      signed: true,
+      verdict: outcome.result,
+    })
+  );
 }

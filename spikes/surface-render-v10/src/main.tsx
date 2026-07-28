@@ -1,11 +1,10 @@
 /**
  * @filedesc Boot. Verify first, render second — in that order, always.
  *
- * The app does not render and then check. If the signature does not verify, or
- * the bytes on disk are not the bytes that were signed, nothing from the bundle
- * reaches the screen: the person gets a refusal instead of an app. A shell that
- * renders an unverified bundle and puts a warning on it has already shown the
- * person the thing it cannot vouch for.
+ * The host does not construct shell core and then check. If the signature does
+ * not verify, or the bytes on disk are not the bytes that were signed, the
+ * dynamic core and binding loaders never run. The person gets a refusal
+ * instead of an app, and no bundle-derived input crosses into shell code.
  */
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -13,7 +12,11 @@ import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
 import '@formspec-org/layout/formspec-default.css';
 import '@formspec-org/surface-react/formspec-surface.css';
 import './app.css';
-import { App } from './app.tsx';
+import {
+  loadAdmittedSurfaceApp,
+  type AdmittedSurfaceApp,
+} from './bundle-admission.ts';
+import { bundleExport } from './bundle-input.ts';
 import { isTrustworthy, verifyBundleSignature, type VerificationOutcome } from './verify.ts';
 // Spike scaffolding: hands `scripts/probe.mjs` the app's own verification path,
 // so evidence/signature-verification.json reports what the browser did rather
@@ -22,7 +25,11 @@ import './probe-hooks.ts';
 
 type BootState =
   | { status: 'checking' }
-  | { status: 'ready'; outcome: VerificationOutcome }
+  | {
+      status: 'ready';
+      outcome: VerificationOutcome;
+      admitted: AdmittedSurfaceApp;
+    }
   | { status: 'refused'; outcome: VerificationOutcome }
   | { status: 'error'; message: string };
 
@@ -35,9 +42,21 @@ function Boot() {
     // layout — same call `formspec-web` makes at its own boot. Documented and
     // exported, so this is friction rather than a gap; noted in the README.
     Promise.all([verifyBundleSignature(), initFormspecEngine()])
-      .then(([outcome]) => {
+      .then(async ([outcome]) => {
         if (!live) return;
-        setState(isTrustworthy(outcome) ? { status: 'ready', outcome } : { status: 'refused', outcome });
+        const trustworthy = isTrustworthy(outcome);
+        if (!trustworthy) {
+          setState({ status: 'refused', outcome });
+          return;
+        }
+        const admitted = await loadAdmittedSurfaceApp(
+          trustworthy,
+          bundleExport,
+        );
+        if (!admitted) {
+          throw new Error('Verified bundle admission returned no shell app.');
+        }
+        if (live) setState({ status: 'ready', outcome, admitted });
       })
       .catch((error: unknown) => {
         if (!live) return;
@@ -80,7 +99,13 @@ function Boot() {
     );
   }
 
-  return <App verification={state.outcome} />;
+  const AdmittedApp = state.admitted.App;
+  return (
+    <AdmittedApp
+      bundle={state.admitted.bundle}
+      verification={state.outcome}
+    />
+  );
 }
 
 const rootEl = document.getElementById('root');

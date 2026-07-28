@@ -13,9 +13,15 @@
  * measuring anything. This component only reads.
  */
 import { useEffect, useState } from 'react';
-import { TENANT_TOKEN_VALUES, documentRootThemeProperties } from '../tenant-theme-probe.ts';
+import { documentRootThemeProperties } from '../tenant-theme-probe.ts';
 
-export function DocumentRootProbe({ routeId }: { routeId: string }) {
+export function DocumentRootProbe({
+  routeId,
+  tenantTokenValues,
+}: {
+  routeId: string;
+  tenantTokenValues: readonly string[];
+}) {
   const [reading, setReading] = useState<{ count: number; tenantValues: number }>({
     count: 0,
     tenantValues: 0,
@@ -25,10 +31,10 @@ export function DocumentRootProbe({ routeId }: { routeId: string }) {
     const properties = documentRootThemeProperties();
     const style = document.documentElement.style;
     const tenantValues = properties.filter((property) =>
-      TENANT_TOKEN_VALUES.includes(style.getPropertyValue(property).trim()),
+      tenantTokenValues.includes(style.getPropertyValue(property).trim()),
     ).length;
     setReading({ count: properties.length, tenantValues });
-  }, [routeId]);
+  }, [routeId, tenantTokenValues]);
 
   return (
     <p

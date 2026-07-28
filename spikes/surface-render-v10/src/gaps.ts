@@ -103,7 +103,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       before:
         'Every manifest slot dereferenced by hand in the spike, throwing on the first absence.',
       after:
-        'One call. A missing document is a `BUNDLE-DOCUMENT-MISSING` diagnostic; `bundleIsRenderable()` is the refusal edge.',
+        'One call. A missing document is a `BUNDLE-DOCUMENT-MISSING` diagnostic; `bundleIsRenderable()` reports structural readiness only, while signature authenticity and deployment admission remain separate host gates.',
       naturalHomeHeld: false,
       naturalHomeNote:
         'The entry put this beside `resolveArtifacts` in `@formspec-org/app-graph`; it landed in the shell package instead. The reason is the entry’s own second point: `ArtifactResolutionHandle.document` is `unknown` BY DESIGN, because the resolver produces a validation report. Typed artifacts for a renderer is a different job, and merging it would make the resolver serve two masters. This ships the typing job and only that — no validation, no version gating — so a host runs both. **Still open upstream:** the VALIDATING bundle-export arm, which would let `resolveArtifacts` model an export whose documents are already inlined. One mechanism change from the spike, and it was a correction: throwing told a host about one absence at a time and gave it nothing to show a person.',
@@ -691,7 +691,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
   },
   {
     id: 'browser-bundle-verification',
-    what: 'Loading a bundle export plus its authored signature in a browser and verifying it before render.',
+    what: 'Loading a bundle export plus its authored signature in a browser and verifying it before shell admission or render.',
     whyNeeded:
       'The spike\'s claim is that the bundle a person signed is the app people see. That is only true if the app checks. The cryptographic primitives are all shipped and all worked unchanged in the browser; what did not exist was the caller that reads an export, rebuilds the preimage, and gates rendering on the verdict.',
     naturalHome: 'formspec-web',
@@ -703,10 +703,11 @@ export const GAP_LEDGER: readonly GapEntry[] = [
      * OPEN, and half-closed by shape rather than by code. The entry asked for
      * the shell to consume verification "through a port, so a host that cannot
      * verify renders a refusal rather than an app" — that is exactly what
-     * `SurfaceApp` does: it takes an already-dereferenced bundle and never
-     * verifies anything, so the host decides whether the bundle earned the
-     * right to render. The shell package deliberately grows no verifier. The
-     * caller itself is still `src/verify.ts` in this spike and still belongs in
+     * `loadAdmittedSurfaceApp` does: it returns before loading core or binding
+     * on a failed verdict, then dereferences the exact verified export after
+     * admission. `SurfaceApp` takes that admitted bundle and never verifies
+     * anything. The shell package deliberately grows no verifier. The caller
+     * itself is still `src/verify.ts` in this spike and still belongs in
      * formspec-web.
      */
   },

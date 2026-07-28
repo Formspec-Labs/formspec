@@ -1,6 +1,6 @@
 {
   "title": "surface-render-v10 — browser signature verification",
-  "description": "The signed bundle export verified in Chromium with the shipped COSE + WebCrypto path, before anything renders. Numbers taken from the running app's own verifyBundleSignature via window.__spikeProbe, not recomputed in Node.",
+  "description": "The signed bundle export verified in Chromium with the shipped COSE + WebCrypto path, before shell core or the React binding loads and before anything bundle-derived renders. Numbers taken from the running app's own verifyBundleSignature via window.__spikeProbe, not recomputed in Node.",
   "capturedFrom": "http://localhost:4174/apply (vite preview of the static build)",
   "inputsRead": [
     "formspec/spikes/lifecycle-demo-v10/evidence/stage-4-signoff.bundle-export.json",
@@ -16,6 +16,7 @@
   },
   "cleanExport": {
     "signatureResult": "verified",
+    "adapterResult": "verified",
     "digestMatches": true,
     "trustworthy": true,
     "recomputedDigest": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
@@ -29,10 +30,63 @@
   "falsification": {
     "what": "One character altered in the export: documents[theme].tokens['color.primary'] #7A1F3D -> #7A1F3E",
     "signatureResult": "failed",
+    "adapterResult": "failed",
     "digestMatches": false,
     "trustworthy": false,
     "recomputedDigest": "48f23ed804f9baf556a11db7c3520fd3da6e8f7a8da34a25842d39e43b045549",
     "appBehaviour": "Boot refuses. Nothing from the bundle reaches the screen — the person sees a refusal, not an app with a warning on it."
   },
-  "methodUriProvenance": "Read out of the COSE protected header, never out of the JSON record beside it, so a record claiming a method the envelope does not carry cannot pass."
+  "methodUriProvenance": "Read out of the COSE protected header, never out of the JSON record beside it, so a record claiming a method the envelope does not carry cannot pass.",
+  "renderGateMatrix": [
+    {
+      "case": "verified signed export",
+      "input": {
+        "deployment": "verifying",
+        "signed": true,
+        "verdict": "verified"
+      },
+      "expected": true,
+      "observed": true
+    },
+    {
+      "case": "failed signed export",
+      "input": {
+        "deployment": "verifying",
+        "signed": true,
+        "verdict": "failed"
+      },
+      "expected": false,
+      "observed": false
+    },
+    {
+      "case": "signed export the deployment cannot verify",
+      "input": {
+        "deployment": "verifying",
+        "signed": true,
+        "verdict": "unverified"
+      },
+      "expected": false,
+      "observed": false
+    },
+    {
+      "case": "unsigned authoring preview",
+      "input": {
+        "deployment": "authoring-preview",
+        "signed": false,
+        "verdict": "unverified"
+      },
+      "expected": true,
+      "observed": true
+    },
+    {
+      "case": "unsigned input in a verifying deployment",
+      "input": {
+        "deployment": "verifying",
+        "signed": false,
+        "verdict": "unverified"
+      },
+      "expected": false,
+      "observed": false
+    }
+  ]
 }

@@ -25,19 +25,24 @@
  * imports at the top of this file. That is the measurement: the diff is the
  * deliverable.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   SurfaceApp,
   starterWidgetModule,
   useBrowserLocation,
   type SurfaceWidgetDataResolver,
 } from '@formspec-org/surface-react';
-import type { SurfaceDiagnostic } from '@formspec-org/surface';
-import { resolvedBundle } from './bundle.ts';
+import type {
+  ResolvedBundle,
+  SurfaceDiagnostic,
+  SurfaceStaticAssetResolver,
+} from '@formspec-org/surface';
 import type { VerificationOutcome } from './verify.ts';
 import { VerificationChrome } from './chrome/VerificationChrome.tsx';
 import { GapDrawer } from './chrome/GapDrawer.tsx';
 import { DocumentRootProbe } from './chrome/DocumentRootProbe.tsx';
+import { CollisionNavigationProbe } from './chrome/CollisionNavigationProbe.tsx';
+import { tenantTokenValues } from './tenant-theme-probe.ts';
 
 /**
  * The module the bundle's Registry declares. The starter widgets are bound to
@@ -56,9 +61,41 @@ const TENANT_CHROME_MODULE = 'x-formspec-tenant-chrome';
  */
 const HOST_ROUTE_PARAMS = { caseRef: 'RA-2026-0412' } as const;
 
-export function App({ verification }: { verification: VerificationOutcome }) {
+/**
+ * Static image sources cross a host policy boundary before the binding sees
+ * them. This deployment admits same-origin preview assets and the application
+ * publisher's HTTPS origin; every other origin and every malformed source is
+ * refused.
+ */
+const STATIC_ASSET_ORIGINS = new Set([
+  window.location.origin,
+  'https://benefits.example.gov',
+]);
+
+const staticAssetResolver: SurfaceStaticAssetResolver = ({ source }) => {
+  try {
+    const resolved = new URL(source, window.location.origin);
+    return STATIC_ASSET_ORIGINS.has(resolved.origin)
+      ? { status: 'admitted', source: resolved.href }
+      : { status: 'refused', reason: 'origin-not-allowed' };
+  } catch {
+    return { status: 'refused', reason: 'invalid-source' };
+  }
+};
+
+export function App({
+  bundle,
+  verification,
+}: {
+  bundle: ResolvedBundle;
+  verification: VerificationOutcome;
+}) {
   const [location, navigate] = useBrowserLocation('/apply');
   const [diagnostics, setDiagnostics] = useState<readonly SurfaceDiagnostic[]>([]);
+  const tenantValues = useMemo(() => tenantTokenValues(bundle), [bundle]);
+  const showCollisionProbe = new URLSearchParams(window.location.search).has(
+    'surface-nav-collision-probe',
+  );
 
   /**
    * The host's runtime-data port.
@@ -87,10 +124,11 @@ export function App({ verification }: { verification: VerificationOutcome }) {
 
   return (
     <SurfaceApp
-      bundle={resolvedBundle}
+      bundle={bundle}
       location={location}
       onNavigate={navigate}
       routeParams={HOST_ROUTE_PARAMS}
+      staticAssetResolver={staticAssetResolver}
       widgetModules={[starterWidgetModule(TENANT_CHROME_MODULE)]}
       widgetData={widgetData}
       onDiagnostics={setDiagnostics}
@@ -98,12 +136,20 @@ export function App({ verification }: { verification: VerificationOutcome }) {
         <>
           <VerificationChrome
             outcome={verification}
-            bundleTitle={resolvedBundle.title ?? 'this release'}
+            bundleTitle={bundle.title ?? 'this release'}
           />
-          <DocumentRootProbe routeId={location} />
+          <DocumentRootProbe
+            routeId={location}
+            tenantTokenValues={tenantValues}
+          />
         </>
       }
-      footer={<GapDrawer diagnostics={diagnostics} />}
+      footer={
+        <>
+          <GapDrawer diagnostics={diagnostics} />
+          {showCollisionProbe && <CollisionNavigationProbe />}
+        </>
+      }
     />
   );
 }
