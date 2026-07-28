@@ -62,6 +62,7 @@ import {
   type SurfaceRoutePlan,
   type SurfaceStringOverrides,
   type SurfaceStrings,
+  type SurfaceStaticAssetResolver,
   type ThemeAuthority,
   type TransitionConditionEvaluator,
   type WidgetRegistry,
@@ -73,11 +74,31 @@ import type {
   SurfaceWidgetDataResolver,
   SurfaceWidgetModule,
 } from './widget-api.js';
+import { useDiagnosticDelivery } from './diagnostic-delivery.js';
 
 export type FireTransition = (
   transition: PlannedTransition,
   from: SurfaceRouteHandle,
 ) => Promise<{ advanced: boolean; reason?: string }>;
+
+/**
+ * Final navigation boundary after a Response Action reports completion.
+ *
+ * Planning already withholds collision- and parameter-refused transitions.
+ * This rechecks the target so a future binding path, stale plan, or adversarial
+ * completed-action report still cannot publish an unusable address.
+ */
+export function navigateAfterCompletedAction(
+  transition: PlannedTransition,
+  routeParams: Readonly<Record<string, string>>,
+  onNavigate: (href: string) => void,
+): 'advanced' | 'refused' {
+  if (!transition.target) return 'refused';
+  const destination = routeHref(transition.target, routeParams);
+  if (destination.refusal !== undefined) return 'refused';
+  onNavigate(destination.href);
+  return 'advanced';
+}
 
 export interface UseSurfaceAppInput {
   bundle: ResolvedBundle;
@@ -140,6 +161,11 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
   routeParams?: Readonly<Record<string, string>> | undefined;
   widgetData?: SurfaceWidgetDataResolver | undefined;
   /**
+   * Admits or refuses each authored static image source before rendering.
+   * Without this host resolver, image slots remain unavailable.
+   */
+  staticAssetResolver?: SurfaceStaticAssetResolver | undefined;
+  /**
    * Runs a transition's action under Response Actions authority. Absent ⇒ no
    * transition renders a control. See `SurfaceTransitions`.
    */
@@ -181,7 +207,9 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
   /**
    * Called with EVERY diagnostic — bundle, composition, registry, theme, route
    * resolution, slot planning, theme grant, transition planning, and the
-   * document-root observation — whenever any of them changes.
+   * document-root observation — once on subscription and after each semantic
+   * change. Equivalent object identities and callback replacement do not
+   * replay the list.
    */
   onDiagnostics?: ((diagnostics: readonly SurfaceDiagnostic[]) => void) | undefined;
 }
@@ -228,6 +256,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
       hasExecutor: props.onFireTransition !== undefined,
       evaluateCondition: props.evaluateTransitionCondition,
       headingBaseLevel: props.headingBaseLevel ?? 2,
+      staticAssetResolver: props.staticAssetResolver,
       strings,
     });
   }, [
@@ -238,6 +267,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
     props.onFireTransition,
     props.evaluateTransitionCondition,
     props.headingBaseLevel,
+    props.staticAssetResolver,
     strings,
   ]);
 
@@ -277,9 +307,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
     rootProperties,
   ]);
 
-  useEffect(() => {
-    onDiagnostics?.(diagnostics);
-  }, [diagnostics, onDiagnostics]);
+  useDiagnosticDelivery(diagnostics, onDiagnostics);
 
   useEffect(() => {
     if (!setDocumentTitle || typeof document === 'undefined') return;
@@ -315,13 +343,14 @@ export function SurfaceApp(props: SurfaceAppProps) {
             onAdvance={(transition) => {
               // Reached only after the action reported success. The shell
               // navigates; it never decides that the action succeeded.
-              if (!transition.target) return;
-              const destination = routeHref(
-                transition.target,
-                props.routeParams ?? {},
+              // Defensive final boundary. Planning withholds collision-targeted
+              // transition controls, and this check prevents a future or
+              // slot-supplied path from publishing the same refused address.
+              navigateAfterCompletedAction(
+                transition,
+                routePlan.params,
+                onNavigate,
               );
-              if (destination.diagnostics.length > 0) return;
-              onNavigate(destination.href);
             }}
           />
         ) : (
@@ -337,6 +366,10 @@ export interface SurfaceNavProps {
   app: ComposedSurfaceApp;
   location: string;
   routeParams?: Readonly<Record<string, string>> | undefined;
+  /**
+   * Receives only usable destinations. Collision claimants and routes missing
+   * parameter values render as unavailable text with no link or click handler.
+   */
   onNavigate: (href: string) => void;
   label?: string | undefined;
 }
@@ -350,13 +383,20 @@ export function SurfaceNav({ app, location, routeParams, onNavigate, label }: Su
           {showGroupLabels && <p className="fs-surface-nav__label">{group.label}</p>}
           <ul className="fs-surface-nav__list">
             {group.routes.map((handle, index) => {
-              const { href, diagnostics } = routeHref(handle, routeParams ?? {});
+              const { href, refusal } = routeHref(handle, routeParams ?? {});
+              const unavailableReason =
+                refusal === 'collision'
+                  ? 'route-collision'
+                  : refusal === 'parameters'
+                    ? 'route-params'
+                    : undefined;
               return (
                 <li key={`${handle.surfaceId}/${handle.routeId}/${index}`}>
-                  {diagnostics.length > 0 ? (
+                  {unavailableReason ? (
                     <span
+                      role="link"
                       data-nav-route={handle.routeId}
-                      data-nav-unavailable="route-params"
+                      data-nav-unavailable={unavailableReason}
                       aria-disabled="true"
                     >
                       {handle.route.title ?? handle.routeId}

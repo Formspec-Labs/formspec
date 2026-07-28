@@ -25,6 +25,40 @@ const [location, navigate] = useBrowserLocation();
 history could not be embedded. `useBrowserLocation` is there for hosts that have
 none.
 
+## Navigation refusal
+
+`SurfaceNav` sends `onNavigate` only usable destinations. A route whose URL
+collides with another route renders with unavailable link semantics, as does a
+parameterized route whose values are missing. The item keeps its label and is
+exposed to assistive technology as a disabled link, but has no `href`, click
+handler, or tab stop. Collision claimants stay visible so a person and the host
+can account for every refused route.
+
+The same refusal applies to transitions. A transition targeting a colliding URL
+renders no action control, and the final navigation boundary checks the refusal
+again before calling `onNavigate`.
+
+## Static image admission
+
+`SurfaceApp` never dereferences an authored image source directly. The host
+supplies `staticAssetResolver`, applies its origin policy, and returns either an
+admitted runtime source or a refusal. Without the resolver, or when it refuses,
+the binding renders the slot as unavailable and reports
+`STATIC-IMAGE-SOURCE-REFUSED`.
+
+## Diagnostic delivery
+
+`onDiagnostics` receives the complete ordered list once when a host subscribes
+and once after each semantic change. Equivalent inline arrays and objects do
+not trigger another delivery. Object key order does not matter; diagnostic
+order and nested array order do.
+
+Replacing one callback with another while subscribed does not replay the
+current list. The replacement receives the next change. Removing the callback
+and later supplying one starts a new subscription, which receives the current
+list once. Development `StrictMode` delivers one initial list per logical
+mount.
+
 ## The module-widget delivery channel
 
 The Registry could always *declare* a widget — name, version, status,

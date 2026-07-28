@@ -33,8 +33,8 @@ export interface SurfaceTransitionsProps {
   strings?: SurfaceStrings | undefined;
   /**
    * Runs the transition's action under Response Actions authority and reports
-   * whether it succeeded. Absent ⇒ every transition is `no-executor` and no
-   * control renders.
+   * whether it succeeded. Absent ⇒ a resolved transition is `unfireable` with
+   * reason `no-executor`, and no control renders.
    */
   onFire?:
     | ((transition: PlannedTransition, from: SurfaceRouteHandle) => Promise<{ advanced: boolean; reason?: string }>)
@@ -97,6 +97,9 @@ function SurfaceTransition({
       <p
         className="fs-surface-transition fs-surface-transition--blocked"
         data-transition-status={transition.status}
+        {...(transition.status === 'unfireable'
+          ? { 'data-transition-unfireable-reason': transition.unfireableReason }
+          : {})}
         data-probe="transition-blocked"
         role="status"
       >

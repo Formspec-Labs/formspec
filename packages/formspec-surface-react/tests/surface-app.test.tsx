@@ -9,14 +9,20 @@
  * unalarmable, uncountable, and gone the moment the route unmounted.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { act } from 'react';
+import { StrictMode, act, useState } from 'react';
 import {
+  composeSurfaceApp,
   resolveSurfaceStrings,
+  type PlannedTransition,
   type ResolvedBundle,
+  type SurfaceStaticAssetResolver,
   type SurfaceDiagnostic,
 } from '@formspec-org/surface';
 import type { ExperienceDocument, SurfaceDocument, ThemeDocument } from '@formspec-org/types';
-import { SurfaceApp } from '../src/SurfaceApp.js';
+import {
+  navigateAfterCompletedAction,
+  SurfaceApp,
+} from '../src/SurfaceApp.js';
 import { starterWidgetModule } from '../src/widgets/index.js';
 import { render, textOf } from './render.js';
 
@@ -107,6 +113,212 @@ describe('every diagnostic reaches the host (§7.1, D4)', () => {
       .last()
       .find((d) => d.code === 'STATIC-IMAGE-NO-ALT');
     expect(slotDiagnostic?.site).toEqual({ surfaceId: 'demo', routeId: 'noisy', slotId: 'seal' });
+  });
+
+  it('renders an authored image source unavailable until the host admits it', () => {
+    const { container, codes } = mount();
+    expect(codes()).toContain('STATIC-IMAGE-SOURCE-REFUSED');
+    expect(container.querySelector('.fs-surface-static-image')).toBeNull();
+    expect(
+      container.querySelector('[data-slot="seal"] [data-probe="slot-unavailable"]'),
+    ).not.toBeNull();
+  });
+
+  it('renders only the image source returned by the host resolver', () => {
+    const staticAssetResolver: SurfaceStaticAssetResolver = ({ source }) =>
+      source === 'seal.png'
+        ? { status: 'admitted', source: 'https://cdn.example.test/seal.png' }
+        : { status: 'refused', reason: 'origin-not-allowed' };
+    const { container, codes } = mount({ staticAssetResolver });
+    const image = container.querySelector<HTMLImageElement>('.fs-surface-static-image');
+
+    expect(codes()).not.toContain('STATIC-IMAGE-SOURCE-REFUSED');
+    expect(image?.getAttribute('src')).toBe('https://cdn.example.test/seal.png');
+    expect(image?.getAttribute('src')).not.toBe('seal.png');
+  });
+});
+
+describe('diagnostic delivery', () => {
+  it('settles after one delivery when equivalent inline inputs trigger a host update', () => {
+    let deliveries = 0;
+    let hostRenders = 0;
+
+    function StateUpdatingHost() {
+      const [, setRevision] = useState(0);
+      hostRenders += 1;
+      return (
+        <SurfaceApp
+          bundle={bundle}
+          location="/noisy"
+          onNavigate={() => {}}
+          widgetModules={[starterWidgetModule('x-chrome')]}
+          tokenAliases={{ 'color.primary': ['brand.primary'] }}
+          onDiagnostics={() => {
+            deliveries += 1;
+            // Bound the old failure mode so the regression fails without
+            // hanging the test worker at React's maximum update depth.
+            if (deliveries < 4) setRevision((value) => value + 1);
+          }}
+        />
+      );
+    }
+
+    render(<StateUpdatingHost />);
+
+    expect(deliveries).toBe(1);
+    expect(hostRenders).toBe(2);
+  });
+
+  it('ignores object-key order but treats array order as semantic', () => {
+    const firstDiagnostic: SurfaceDiagnostic = {
+      code: 'ROUTE-UNMATCHED',
+      severity: 'warning',
+      message: 'Stable diagnostic',
+      site: { surfaceId: 'demo', routeId: 'noisy' },
+      details: { alpha: 1, nested: { first: 'x', second: 'y' }, sequence: [1, 2] },
+    };
+    const reorderedKeys: SurfaceDiagnostic = {
+      message: 'Stable diagnostic',
+      severity: 'warning',
+      code: 'ROUTE-UNMATCHED',
+      site: { routeId: 'noisy', surfaceId: 'demo' },
+      details: { sequence: [1, 2], nested: { second: 'y', first: 'x' }, alpha: 1 },
+    };
+    const reorderedArray: SurfaceDiagnostic = {
+      ...reorderedKeys,
+      details: { sequence: [2, 1], nested: { second: 'y', first: 'x' }, alpha: 1 },
+    };
+    const bundles = [
+      { ...bundle, diagnostics: [firstDiagnostic] },
+      { ...bundle, diagnostics: [reorderedKeys] },
+      { ...bundle, diagnostics: [reorderedArray] },
+    ] satisfies readonly ResolvedBundle[];
+    const delivered: SurfaceDiagnostic[][] = [];
+
+    function Host() {
+      const [index, setIndex] = useState(0);
+      return (
+        <>
+          <button data-probe="next-diagnostic" onClick={() => setIndex((value) => value + 1)}>
+            Next
+          </button>
+          <SurfaceApp
+            bundle={bundles[index] ?? bundles[0]}
+            location="/noisy"
+            onNavigate={() => {}}
+            onDiagnostics={(diagnostics) => delivered.push([...diagnostics])}
+          />
+        </>
+      );
+    }
+
+    const container = render(<Host />);
+    const next = container.querySelector<HTMLButtonElement>('[data-probe="next-diagnostic"]');
+    expect(next).not.toBeNull();
+    expect(delivered).toHaveLength(1);
+
+    act(() => next?.click());
+    expect(delivered).toHaveLength(1);
+
+    act(() => next?.click());
+    expect(delivered).toHaveLength(2);
+    expect(delivered.at(-1)?.[0]?.details).toMatchObject({ sequence: [2, 1] });
+  });
+
+  it('does not replay for callback replacement and sends the next change to the replacement', () => {
+    const first = vi.fn();
+    const replacement = vi.fn();
+
+    function Host() {
+      const [useReplacement, setUseReplacement] = useState(false);
+      const [location, setLocation] = useState('/noisy');
+      return (
+        <>
+          <button data-probe="replace-callback" onClick={() => setUseReplacement(true)}>
+            Replace
+          </button>
+          <button data-probe="change-location" onClick={() => setLocation('/nowhere')}>
+            Change
+          </button>
+          <SurfaceApp
+            bundle={bundle}
+            location={location}
+            onNavigate={() => {}}
+            onDiagnostics={useReplacement ? replacement : first}
+          />
+        </>
+      );
+    }
+
+    const container = render(<Host />);
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(replacement).not.toHaveBeenCalled();
+
+    act(() => {
+      container.querySelector<HTMLButtonElement>('[data-probe="replace-callback"]')?.click();
+    });
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(replacement).not.toHaveBeenCalled();
+
+    act(() => {
+      container.querySelector<HTMLButtonElement>('[data-probe="change-location"]')?.click();
+    });
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(replacement).toHaveBeenCalledTimes(1);
+    expect(
+      (replacement.mock.calls[0]?.[0] as readonly SurfaceDiagnostic[]).map(
+        (diagnostic) => diagnostic.code,
+      ),
+    ).toContain('ROUTE-UNMATCHED');
+  });
+
+  it('delivers the current list once for each new subscription', () => {
+    const onDiagnostics = vi.fn();
+
+    function Host() {
+      const [subscribed, setSubscribed] = useState(false);
+      return (
+        <>
+          <button data-probe="toggle-subscription" onClick={() => setSubscribed((value) => !value)}>
+            Toggle
+          </button>
+          <SurfaceApp
+            bundle={bundle}
+            location="/noisy"
+            onNavigate={() => {}}
+            onDiagnostics={subscribed ? onDiagnostics : undefined}
+          />
+        </>
+      );
+    }
+
+    const container = render(<Host />);
+    const toggle = container.querySelector<HTMLButtonElement>('[data-probe="toggle-subscription"]');
+    expect(onDiagnostics).not.toHaveBeenCalled();
+
+    act(() => toggle?.click());
+    expect(onDiagnostics).toHaveBeenCalledTimes(1);
+
+    act(() => toggle?.click());
+    expect(onDiagnostics).toHaveBeenCalledTimes(1);
+
+    act(() => toggle?.click());
+    expect(onDiagnostics).toHaveBeenCalledTimes(2);
+  });
+
+  it('delivers one initial list per logical StrictMode mount', () => {
+    const onDiagnostics = vi.fn();
+    render(
+      <StrictMode>
+        <SurfaceApp
+          bundle={bundle}
+          location="/noisy"
+          onNavigate={() => {}}
+          onDiagnostics={onDiagnostics}
+        />
+      </StrictMode>,
+    );
+    expect(onDiagnostics).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -222,6 +434,173 @@ describe('navigation', () => {
     expect(onFireTransition).not.toHaveBeenCalled();
   });
 
+  it('keeps parameters parsed from the matched route through completed-action navigation', async () => {
+    const parameterSurface = {
+      $formspecSurface: '0.1',
+      id: 'cases',
+      entry: 'case',
+      routes: [
+        {
+          id: 'case',
+          path: '/case/{caseRef}',
+          params: [{ name: 'caseRef', type: 'string' }],
+          title: 'Case',
+          routeClass: 'operation',
+          slots: [],
+          transitions: [{ trigger: 'submit', to: 'receipt' }],
+        },
+        {
+          id: 'receipt',
+          path: '/receipt/{caseRef}',
+          params: [{ name: 'caseRef', type: 'string' }],
+          title: 'Receipt',
+          routeClass: 'operation',
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const parameterBundle = {
+      ...bundle,
+      surfaces: [parameterSurface],
+      responseActions: [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }],
+    };
+    const onFireTransition = vi.fn(async () => ({ advanced: true }));
+    const onNavigate = vi.fn();
+    const { container } = mount({
+      bundle: parameterBundle,
+      location: '/case/CASE-42',
+      onFireTransition,
+      onNavigate,
+    });
+    const transition = container.querySelector<HTMLButtonElement>(
+      '.fs-surface-transition__button',
+    );
+
+    expect(transition).not.toBeNull();
+    await act(async () => {
+      transition?.click();
+      await Promise.resolve();
+    });
+
+    expect(onFireTransition).toHaveBeenCalledOnce();
+    expect(onNavigate).toHaveBeenCalledOnce();
+    expect(onNavigate).toHaveBeenCalledWith('/receipt/CASE-42');
+  });
+
+  it('does not fire a transition whose target URL is collision-refused', () => {
+    const collisionSource = {
+      $formspecSurface: '0.1',
+      id: 'staff',
+      entry: 'start',
+      routes: [
+        {
+          id: 'start',
+          path: '/start',
+          title: 'Start',
+          routeClass: 'operation',
+          slots: [],
+          transitions: [{ trigger: 'submit', to: 'queue' }],
+        },
+        {
+          id: 'queue',
+          path: '/queue',
+          title: 'Staff queue',
+          routeClass: 'operation',
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const collisionClaimant = {
+      $formspecSurface: '0.1',
+      id: 'oversight',
+      entry: 'queue',
+      routes: [
+        {
+          id: 'queue',
+          path: '/queue',
+          title: 'Oversight queue',
+          routeClass: 'operation',
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const collisionBundle = {
+      ...bundle,
+      surfaces: [collisionSource, collisionClaimant],
+      responseActions: [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }],
+    };
+    const onFireTransition = vi.fn(async () => ({ advanced: true }));
+    const { container, codes } = mount({
+      bundle: collisionBundle,
+      location: '/start',
+      onFireTransition,
+    });
+
+    expect(codes()).toContain('TRANSITION-UNFIREABLE');
+    expect(container.querySelector('.fs-surface-transition__button')).toBeNull();
+    expect(onFireTransition).not.toHaveBeenCalled();
+  });
+
+  it('rechecks a collision-refused target after an adversarial completed action', () => {
+    const collisionSource = {
+      $formspecSurface: '0.1',
+      id: 'staff',
+      entry: 'start',
+      routes: [
+        {
+          id: 'start',
+          path: '/start',
+          title: 'Start',
+          routeClass: 'operation',
+          slots: [],
+        },
+        {
+          id: 'queue',
+          path: '/queue',
+          title: 'Staff queue',
+          routeClass: 'operation',
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const collisionClaimant = {
+      $formspecSurface: '0.1',
+      id: 'oversight',
+      entry: 'queue',
+      routes: [
+        {
+          id: 'queue',
+          path: '/queue',
+          title: 'Oversight queue',
+          routeClass: 'operation',
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const app = composeSurfaceApp([collisionSource, collisionClaimant]);
+    const target = app.routes.find(
+      (handle) => handle.surfaceId === 'staff' && handle.routeId === 'queue',
+    );
+    if (!target) throw new Error('Expected the staff queue route.');
+    expect(target?.pathCollides).toBe(true);
+
+    // Deliberately bypass the planner's first defense. This models a stale or
+    // hostile completed-action path handing the final boundary a transition it
+    // must still refuse.
+    const transition: PlannedTransition = {
+      trigger: 'submit',
+      to: 'queue',
+      status: 'fireable',
+      reason: 'Adversarial test transition.',
+      actionId: 'submitApplication',
+      target,
+    };
+    const onNavigate = vi.fn();
+
+    expect(navigateAfterCompletedAction(transition, {}, onNavigate)).toBe('refused');
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
   it('reports an unsupplied navigation parameter and renders no marker-bearing link', () => {
     const parameterSurface = {
       ...surface,
@@ -246,5 +625,73 @@ describe('navigation', () => {
     expect(unavailable?.tagName).toBe('SPAN');
     expect(unavailable?.getAttribute('aria-disabled')).toBe('true');
     expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it('renders every collision claimant as unavailable while preserving other links', () => {
+    const firstSurface = {
+      $formspecSurface: '0.1',
+      id: 'first',
+      entry: 'shared-first',
+      routes: [
+        {
+          id: 'shared-first',
+          path: '/shared',
+          title: 'First claimant',
+          routeClass: 'intake',
+          slots: [],
+        },
+        {
+          id: 'unique',
+          path: '/unique',
+          title: 'Unique route',
+          routeClass: 'intake',
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const secondSurface = {
+      $formspecSurface: '0.1',
+      id: 'second',
+      entry: 'shared-second',
+      routes: [
+        {
+          id: 'shared-second',
+          path: '/shared',
+          title: 'Second claimant',
+          routeClass: 'intake',
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const collisionBundle = { ...bundle, surfaces: [firstSurface, secondSurface] };
+    const onNavigate = vi.fn();
+    const { container, last } = mount({
+      bundle: collisionBundle,
+      location: '/shared',
+      onNavigate,
+    });
+
+    expect(last().filter((diagnostic) => diagnostic.code === 'ROUTE-PATH-COLLISION')).toHaveLength(
+      1,
+    );
+    const unavailable = container.querySelectorAll('[data-nav-unavailable="route-collision"]');
+    expect(unavailable).toHaveLength(2);
+    expect([...unavailable].map((item) => item.textContent)).toEqual([
+      'First claimant',
+      'Second claimant',
+    ]);
+    for (const item of unavailable) {
+      expect(item.tagName).toBe('SPAN');
+      expect(item.getAttribute('role')).toBe('link');
+      expect(item.getAttribute('aria-disabled')).toBe('true');
+      expect(item.getAttribute('tabindex')).toBeNull();
+    }
+    expect(container.querySelector('a[href="/shared"]')).toBeNull();
+
+    const unique = container.querySelector<HTMLAnchorElement>('a[href="/unique"]');
+    expect(unique).not.toBeNull();
+    act(() => unique?.click());
+    expect(onNavigate).toHaveBeenCalledOnce();
+    expect(onNavigate).toHaveBeenCalledWith('/unique');
   });
 });
