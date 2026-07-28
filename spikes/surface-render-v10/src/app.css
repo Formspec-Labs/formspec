@@ -1,0 +1,531 @@
+/**
+ * The shell's own chrome. Entirely spike scaffolding — gap ledger
+ * `shell-visual-design`. A real shell would take its chrome from its host.
+ *
+ * One rule here is load-bearing rather than decorative: nothing in this file
+ * reads a `--formspec-color-*` custom property. The shell's chrome is drawn
+ * from its own `--shell-*` variables, so a tenant token that leaked onto the
+ * page could not repaint the shell by accident and make a refusing route look
+ * branded. Bar R3's probe checks the route subtree; this keeps the frame
+ * around it out of the argument.
+ */
+
+:root {
+  --shell-bg: #f7f5f1;
+  --shell-panel: #ffffff;
+  --shell-ink: #1c1f23;
+  --shell-ink-quiet: #5c6470;
+  --shell-line: #dfdcd6;
+  --shell-accent: #234b6e;
+  --shell-ok-bg: #e8f2ea;
+  --shell-ok-ink: #1d5233;
+  --shell-ok-line: #a8ccb5;
+  --shell-bad-bg: #fdeceb;
+  --shell-bad-ink: #8c1d16;
+  --shell-bad-line: #eab5b0;
+  --shell-stub-bg: #fff8e8;
+  --shell-stub-line: #e6cf9a;
+  --shell-stub-ink: #6b4d10;
+  --shell-radius: 10px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --shell-bg: #14171b;
+    --shell-panel: #1c2026;
+    --shell-ink: #eef1f4;
+    --shell-ink-quiet: #9aa4b1;
+    --shell-line: #2f3540;
+    --shell-accent: #8ab4dc;
+    --shell-ok-bg: #16301f;
+    --shell-ok-ink: #a6dcb9;
+    --shell-ok-line: #2f5c3f;
+    --shell-bad-bg: #33191a;
+    --shell-bad-ink: #f3b0aa;
+    --shell-bad-line: #6a2c2a;
+    --shell-stub-bg: #2b2415;
+    --shell-stub-line: #574526;
+    --shell-stub-ink: #e2c68a;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--shell-bg);
+  color: var(--shell-ink);
+  font-family: "Instrument Sans", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  line-height: 1.55;
+}
+
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.86em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── boot ─────────────────────────────────────────────────────────── */
+
+.boot {
+  max-width: 40rem;
+  margin: 4rem auto;
+  padding: 1.5rem;
+  background: var(--shell-panel);
+  border: 1px solid var(--shell-line);
+  border-radius: var(--shell-radius);
+}
+
+.boot--bad {
+  background: var(--shell-bad-bg);
+  border-color: var(--shell-bad-line);
+  color: var(--shell-bad-ink);
+}
+
+/* ── shell frame ──────────────────────────────────────────────────── */
+
+.shell {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+/* ── verification chrome ──────────────────────────────────────────── */
+
+.verify {
+  border: 1px solid var(--shell-ok-line);
+  background: var(--shell-ok-bg);
+  color: var(--shell-ok-ink);
+  border-radius: var(--shell-radius);
+  padding: 0.85rem 1rem;
+}
+
+.verify--bad {
+  border-color: var(--shell-bad-line);
+  background: var(--shell-bad-bg);
+  color: var(--shell-bad-ink);
+}
+
+.verify__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.verify__headline {
+  margin: 0;
+  font-size: 1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.verify__mark {
+  font-weight: 700;
+}
+
+.verify__details summary {
+  cursor: pointer;
+  font-size: 0.86rem;
+  opacity: 0.85;
+}
+
+.verify__details dl {
+  margin: 0.75rem 0 0;
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.83rem;
+}
+
+.verify__details dl > div {
+  display: grid;
+  grid-template-columns: minmax(9rem, 14rem) 1fr;
+  gap: 0.75rem;
+}
+
+.verify__details dt {
+  font-weight: 600;
+}
+
+.verify__details dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.verify__digest {
+  overflow-wrap: anywhere;
+}
+
+.verify__inputs {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.verify__affirmation {
+  font-style: italic;
+}
+
+.verify__bundle {
+  margin: 0.5rem 0 0;
+  font-size: 0.83rem;
+  opacity: 0.8;
+}
+
+/* ── navigation ───────────────────────────────────────────────────── */
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--shell-panel);
+  border: 1px solid var(--shell-line);
+  border-radius: var(--shell-radius);
+}
+
+.nav__group-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--shell-ink-quiet);
+}
+
+.nav__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav__list a {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--shell-line);
+  color: var(--shell-ink);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.nav__list a:hover {
+  border-color: var(--shell-accent);
+}
+
+.nav__list a[aria-current='page'] {
+  background: var(--shell-accent);
+  border-color: var(--shell-accent);
+  color: var(--shell-panel);
+  font-weight: 600;
+}
+
+/* ── route ────────────────────────────────────────────────────────── */
+
+.main {
+  min-height: 20rem;
+}
+
+.route {
+  background: var(--shell-panel);
+  border: 1px solid var(--shell-line);
+  border-radius: var(--shell-radius);
+  padding: 1.4rem 1.5rem 1.8rem;
+}
+
+.route__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.route__slots {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  margin-top: 1.2rem;
+}
+
+.slot__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--shell-ink-quiet);
+  font-weight: 600;
+}
+
+.slot-missing {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px dashed var(--shell-line);
+  border-radius: 8px;
+  color: var(--shell-ink-quiet);
+  font-size: 0.9rem;
+}
+
+.static-heading {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.static-text {
+  margin: 0;
+}
+
+/* ── theme note ───────────────────────────────────────────────────── */
+
+.themenote {
+  margin: 0;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  border: 1px solid var(--shell-line);
+  color: var(--shell-ink-quiet);
+  background: transparent;
+}
+
+.themenote--on {
+  border-style: solid;
+}
+
+.themenote--off {
+  border-style: dashed;
+}
+
+/* ── experience unit ──────────────────────────────────────────────── */
+
+.experience-unit__title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.experience-unit__needs {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--shell-ink-quiet);
+  font-size: 0.9rem;
+}
+
+/* ── stub marking ─────────────────────────────────────────────────── */
+
+.stub {
+  border: 1px dashed var(--shell-stub-line);
+  background: var(--shell-stub-bg);
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem 0.9rem;
+}
+
+.stub__tag {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+  color: var(--shell-stub-ink);
+}
+
+.stub__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--shell-stub-ink);
+  flex: none;
+}
+
+.stub__tag code {
+  opacity: 0.85;
+}
+
+/* ── stub widgets ─────────────────────────────────────────────────── */
+
+.banner__eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--shell-ink-quiet);
+}
+
+.banner__body {
+  margin: 0.2rem 0 0;
+}
+
+.ceremony__lead {
+  margin: 0;
+}
+
+.ceremony__affirmation {
+  margin: 0.7rem 0;
+  padding: 0.7rem 0.9rem;
+  border-left: 3px solid var(--shell-ink-quiet);
+  background: var(--shell-panel);
+  font-size: 1.02rem;
+}
+
+.ceremony__note,
+.receipt__note,
+.queue__note {
+  margin: 0.6rem 0 0;
+  font-size: 0.83rem;
+  color: var(--shell-ink-quiet);
+}
+
+.transition {
+  margin-top: 1.6rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--shell-line);
+}
+
+.transition__note {
+  margin: 0.5rem 0 0;
+  font-size: 0.83rem;
+  color: var(--shell-ink-quiet);
+}
+
+.transition__button,
+.queue__open {
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--shell-accent);
+  background: var(--shell-accent);
+  color: var(--shell-panel);
+  cursor: pointer;
+}
+
+.queue__open {
+  padding: 0.25rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.transition__button:disabled,
+.queue__open:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.receipt__facts {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.receipt__facts > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: 0.75rem;
+}
+
+.receipt__facts dt {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.receipt__facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.receipt__empty {
+  color: var(--shell-ink-quiet);
+  font-style: italic;
+}
+
+/* ── queue table ──────────────────────────────────────────────────── */
+
+.queue__scroll {
+  overflow-x: auto;
+}
+
+.queue__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  min-width: 34rem;
+}
+
+.queue__caption {
+  text-align: left;
+  font-size: 0.83rem;
+  color: var(--shell-ink-quiet);
+  padding-bottom: 0.5rem;
+}
+
+.queue__table th,
+.queue__table td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--shell-line);
+}
+
+.queue__table thead th {
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--shell-ink-quiet);
+}
+
+/* ── gap drawer ───────────────────────────────────────────────────── */
+
+.gaps {
+  background: var(--shell-panel);
+  border: 1px solid var(--shell-line);
+  border-radius: var(--shell-radius);
+  padding: 0.8rem 1rem;
+}
+
+.gaps > summary {
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+
+.gaps__list {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.gaps__item {
+  border-left: 3px solid var(--shell-line);
+  padding-left: 0.8rem;
+}
+
+.gaps__what {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.gaps__why,
+.gaps__home {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--shell-ink-quiet);
+}
+
+/* The shipped renderer paints inside `.formspec-container`; give it room. */
+.formspec-container {
+  background: transparent;
+}

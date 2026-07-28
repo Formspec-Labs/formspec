@@ -1,0 +1,55 @@
+{
+  "title": "R3 — tenant tokens structurally absent on refusing routes",
+  "description": "Walked all four routes in the running app and read, per route: the theme grant the shell resolved, every --formspec-* custom property set anywhere inside the route subtree, and every one set on the document root. Captured by driving the app with Playwright, after the document-root workaround was added.",
+  "tenantTokenValue": "#7A1F3D",
+  "routeClassAuthority": "ROUTE_CLASS_THEME_AUTHORITY, read from @formspec-org/app-graph, not restated by the shell",
+  "walk": [
+    {
+      "step": "loaded on /apply",
+      "routeClass": "intake",
+      "grant": "admitted",
+      "documentRootFormspecVarCount": 46,
+      "documentRootHoldsTenantValue": true,
+      "routeSubtreeTenantValueCount": 2,
+      "resolvedPrimaryOnRoute": "#7A1F3D"
+    },
+    {
+      "step": "navigated to /certify",
+      "routeClass": "ceremony",
+      "grant": "refused",
+      "documentRootFormspecVarCount": 0,
+      "documentRootHoldsTenantValue": false,
+      "routeSubtreeTenantValueCount": 0,
+      "resolvedPrimaryOnRoute": ""
+    },
+    {
+      "step": "navigated to /receipt/RA-2026-0412",
+      "routeClass": "proof",
+      "grant": "refused",
+      "documentRootFormspecVarCount": 0,
+      "documentRootHoldsTenantValue": false,
+      "routeSubtreeTenantValueCount": 0,
+      "resolvedPrimaryOnRoute": ""
+    },
+    {
+      "step": "navigated to /queue",
+      "routeClass": "operation",
+      "grant": "refused",
+      "documentRootFormspecVarCount": 0,
+      "documentRootHoldsTenantValue": false,
+      "routeSubtreeTenantValueCount": 0,
+      "resolvedPrimaryOnRoute": ""
+    },
+    {
+      "step": "back to /apply",
+      "routeClass": "intake",
+      "grant": "admitted",
+      "documentRootFormspecVarCount": 46,
+      "documentRootHoldsTenantValue": true,
+      "routeSubtreeTenantValueCount": 2,
+      "resolvedPrimaryOnRoute": "#7A1F3D"
+    }
+  ],
+  "structuralClaim": "resolveThemeGrant is the only reader of the tenant Theme document in the app (grep: src/theme-grant.ts is the sole importer of `tenantTheme` from src/bundle.ts). It is called once per route at the route boundary, and only grant.themeDocument crosses into RouteView. On a refusing class that object is built from the platform token registry and never saw the tenant's tokens.",
+  "honestCaveat": "The shell's own boundary is structural. Keeping the DOCUMENT ROOT clean is not — it requires an active scrub, because the shipped renderer writes tenant tokens to <html> with no cleanup. See r3-document-root-leak.json."
+}

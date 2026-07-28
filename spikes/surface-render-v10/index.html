@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Deliberately not the app's name. R1 says no string in the shell's source
+      is content the export already carries, and the app's name is carried:
+      `manifest.title`. This is the pre-verification tab label only — the title
+      is set from the export in SurfaceShell, which mounts only after the
+      signature verifies.
+    -->
+    <title>Checking a signed bundle…</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

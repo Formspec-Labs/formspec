@@ -1,0 +1,65 @@
+{
+  "title": "surface-render-v10 — four routes walked from the signed export",
+  "description": "Every route below was derived from the two Surface documents inside the signed bundle export. No route table, title, path, route class, or slot list is written in the shell's source.",
+  "servedFrom": "vite preview of the static build (http://localhost:4174) — also confirmed identical on the dev server (http://localhost:4173)",
+  "surfacesInManifest": [
+    "https://benefits.example.gov/apps/assistance/surfaces/respondent",
+    "https://benefits.example.gov/apps/assistance/surfaces/staff"
+  ],
+  "routes": [
+    {
+      "path": "/apply",
+      "routeId": "apply",
+      "routeClass": "intake",
+      "title": "Apply for rent assistance",
+      "themeGrant": "admitted",
+      "slotCount": 4,
+      "slotTypes": ["experience-unit", "module-widget", "static-content", "definition-form"],
+      "stubsRendered": ["widget-x-intake-banner"],
+      "shippedRendererMounted": true,
+      "signatureVerifiedInChrome": true
+    },
+    {
+      "path": "/certify",
+      "routeId": "certify",
+      "routeClass": "ceremony",
+      "title": "Sign your declaration",
+      "themeGrant": "refused",
+      "slotCount": 2,
+      "slotTypes": ["static-content", "module-widget"],
+      "stubsRendered": ["widget-x-ceremony-frame"],
+      "shippedRendererMounted": false,
+      "signatureVerifiedInChrome": true
+    },
+    {
+      "path": "/receipt/RA-2026-0412",
+      "routeId": "receipt",
+      "routeClass": "proof",
+      "title": "Your receipt",
+      "themeGrant": "refused",
+      "slotCount": 2,
+      "slotTypes": ["static-content", "module-widget"],
+      "stubsRendered": ["widget-x-receipt-panel"],
+      "shippedRendererMounted": false,
+      "signatureVerifiedInChrome": true,
+      "note": "The :caseRef value is invented by the shell — the bundle carries no submission. Gap ledger no-runtime-state."
+    },
+    {
+      "path": "/queue",
+      "routeId": "queue",
+      "routeClass": "operation",
+      "title": "Caseworker queue",
+      "themeGrant": "refused",
+      "slotCount": 2,
+      "slotTypes": ["static-content", "module-widget"],
+      "stubsRendered": ["widget-x-queue-panel"],
+      "shippedRendererMounted": false,
+      "signatureVerifiedInChrome": true,
+      "note": "Second Surface (staff). The shell composed two Surfaces into one URL space and one navigation — an assumption, not a rule the platform states. Gap ledger cross-surface-navigation."
+    }
+  ],
+  "contentProvenance": {
+    "claim": "Zero hand-copied content from the export.",
+    "howChecked": "Every string on screen that came from the bundle is read through src/bundle.ts, which imports both evidence files ?raw from the lifecycle spike's own directory. Nothing is copied into this spike. Strings authored by the shell are the ones the export does not carry: navigation group labels (SurfaceDocument.title is optional and both Surfaces omit it), the theme-refusal explanations, the stub widget bodies, and the invented queue rows — all four categories are in the gap ledger."
+  }
+}

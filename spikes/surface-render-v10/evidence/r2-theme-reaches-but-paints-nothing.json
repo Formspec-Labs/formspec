@@ -1,0 +1,42 @@
+{
+  "title": "R2 — the tenant theme reaches the shipped renderer and paints nothing",
+  "description": "Measured on /apply in the running app. The bundle's Theme token travels the whole shipped path and resolves correctly. Then nothing on screen uses it.",
+  "whatTravelled": {
+    "authoredInBundle": { "color.accent": "#7A1F3D" },
+    "platformTokenRegistryHasAccent": false,
+    "platformBrandTokenIs": "color.primary",
+    "shellBridge": "color.accent -> color.primary (hand-built; gap ledger theme-token-vocabulary-bridge)",
+    "emittedByShippedRenderer": {
+      "--formspec-color-primary": "#7A1F3D",
+      "--formspec-color-accent": "#7A1F3D"
+    },
+    "resolvedOnFormContainer": {
+      "--formspec-default-primary": "#7A1F3D",
+      "--formspec-default-focus": "#27594f"
+    }
+  },
+  "whatPainted": {
+    "elementsInsideRenderedFormPaintingRgb(122,31,61)": 0,
+    "propertiesScanned": [
+      "color",
+      "backgroundColor",
+      "borderTopColor",
+      "borderBottomColor",
+      "borderLeftColor",
+      "borderRightColor",
+      "outlineColor",
+      "caretColor",
+      "accentColor",
+      "fill",
+      "stroke"
+    ],
+    "focusedInputOutline": "rgb(39, 89, 79) solid 2px — platform green, from color.ring, which the tenant did not author"
+  },
+  "whyNothingPainted": [
+    "The default skin uses the brand token for buttons and filled controls. This Definition is four plain number/text inputs.",
+    "The submit button never renders: it is injected only when a Response Actions document publishes an Action with submit intent, and the bundle carries no Response Actions document.",
+    "The focus ring derives from color.ring, and the fan-out from a brand colour to the rest of the token vocabulary is undefined."
+  ],
+  "verdict": "R2's first clause (real Definition rendered through the shipped respondent path, with the bundle's theme reaching it through the shipped theme path) is met and demonstrable. R2's second clause (the accent visibly on screen) is NOT met. Under the pre-registered rule that a partially met bar is not met, R2 is not met — and the reason it is not met is the most product-relevant thing this spike measured.",
+  "productConsequence": "A tenant can set their brand colour, have it accepted by authoring, pass validation, be signed into the release, be emitted by the renderer, resolve correctly in the cascade — and see no difference. There is no diagnostic anywhere in that chain."
+}
