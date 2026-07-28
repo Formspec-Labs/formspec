@@ -1853,3 +1853,32 @@ kind, ambiguous route handle, unevaluable `when`); apply §2.4's own refusal pos
 Registry entry names; add the three divergences the register missed (a throwing slot dispatch, a
 nav link emitting an unsubstituted marker, a submit result discarded before advancing) and soften
 Appendix B's "every place" claim — a register cannot self-certify completeness.
+
+### Appendix C.1 — Findings from the implementation verifier (2026-07-28)
+
+A second independent pass reviewed the shipped packages against this document and returned
+**RECONSIDER**. These are open in the code as committed, and they are the reconciliation pass's
+first targets alongside Appendix B.1.
+
+**BLOCKER — an inferred transition status that reports nothing.** The binding treats
+`supplied-by-slot` as satisfied by inference rather than verification, and it is the one status
+in §5.3 that renders no control, states no refusal, and emits no diagnostic. The consequence is
+present in the bundle this spec's own §9 worked example ships: the `/apply` → `/certify` edge is
+dead and the application is silent about it — the exact failure §1.3 principle 1 exists to
+prevent. Resolution: verify the slot actually publishes a trigger source (§5.2's closed table),
+and where it does not, report `TRANSITION-UNFIREABLE` rather than assuming.
+
+**MAJOR — eight of the closed code set cannot reach a host.** Route-level and href-level
+diagnostics are computed and discarded in the binding, so `SLOT-BINDING-INCOMPLETE`,
+`STATIC-IMAGE-NO-ALT`, the `EMBED-ROUTE-*` and `WIDGET-*` codes, per-slot
+`BUNDLE-DOCUMENT-MISSING` and every `TRANSITION-UNFIREABLE` never arrive. This is Appendix B.1's
+D4 confirmed at the source, and it makes §8.2 item 29's reporting obligation unmeetable by the
+shipped binding.
+
+**MINOR.** The embed-route branch reintroduces the authored-title loss the route-level path
+documents as fixed and renders embedded slot titles at the host's heading level instead of the
+stepped-down child level (§3.4.1). Package source and the spike ledger both assert the exemplar
+bundle "carries no Response Actions document at all", which is false for the bundle they ship
+against — and was already false before the manifest-slot fix landed. Three resolved ledger
+entries cite a landing site the same work deleted. Two ledger test counts are inflated and, per
+the stack's decay rule, should not be counts in prose.
