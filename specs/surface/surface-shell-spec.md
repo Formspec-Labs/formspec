@@ -1882,3 +1882,24 @@ bundle "carries no Response Actions document at all", which is false for the bun
 against — and was already false before the manifest-slot fix landed. Three resolved ledger
 entries cite a landing site the same work deleted. Two ledger test counts are inflated and, per
 the stack's decay rule, should not be counts in prose.
+
+### Appendix C.2 — Findings from the theme-fix verifier (2026-07-28)
+
+A third pass verified the brand-token and emission-scope fixes and returned
+**APPROVE_WITH_MINORS** — the two product bugs are genuinely closed (the tenant accent is
+measurably painted on the focus ring and the submit control; zero tenant properties survive an
+intake → proof navigation). Open behind that verdict:
+
+**MAJOR — the shell's own chrome fails contrast in dark mode.** Shell chrome paints
+`color: var(--formspec-color-foreground, …)` with no dark arm and no `color.dark.foreground`
+fallback; measured 1.06:1 on the route heading against the dark shell panel — effectively
+invisible. §10's accessibility obligations name the shell's chrome, so this is the shell's to
+fix, in both themes and on every shell-owned surface, not only the heading.
+
+**MINOR.** The brand rules the fix added — the heading accent and the legend marker — match zero
+elements in the running application, so a fix that is present in the stylesheet is absent on
+screen. The unregistered-token diagnostic is reported and gates nothing, which is correct per
+[`token-registry-spec.md`](../theme/token-registry-spec.md) §5.3 but leaves the ordering question
+open (see C's item 1). The same token map is emitted onto three nested elements — shell route,
+provider scope, and form container — which is harmless today and is exactly the redundancy §4.5's
+single-owner rule exists to prevent.
