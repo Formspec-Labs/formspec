@@ -90,6 +90,18 @@
     {
       "scheme": "light",
       "route": "apply",
+      "what": "rendered form submit action",
+      "selector": ".formspec-submit",
+      "color": "rgb(255, 255, 255)",
+      "background": "rgb(122, 31, 61)",
+      "backgroundFrom": "formspec-action formspec-submit",
+      "fontSizePx": 14.72,
+      "ratio": 10.04,
+      "threshold": 4.5
+    },
+    {
+      "scheme": "light",
+      "route": "apply",
       "what": "host verification headline",
       "selector": ".verify__headline",
       "color": "rgb(29, 82, 51)",
@@ -541,6 +553,18 @@
       "backgroundFrom": "fs-surface-route fs-surface-route--branded",
       "fontSizePx": 15,
       "ratio": 13.92,
+      "threshold": 4.5
+    },
+    {
+      "scheme": "dark",
+      "route": "apply",
+      "what": "rendered form submit action",
+      "selector": ".formspec-submit",
+      "color": "rgb(255, 255, 255)",
+      "background": "rgb(122, 31, 61)",
+      "backgroundFrom": "formspec-action formspec-submit",
+      "fontSizePx": 14.72,
+      "ratio": 10.04,
       "threshold": 4.5
     },
     {

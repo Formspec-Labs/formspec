@@ -155,12 +155,35 @@
       "shellTransitionText": null
     }
   ],
+  "navigation": {
+    "links": [
+      {
+        "routeId": "apply",
+        "href": "/apply"
+      },
+      {
+        "routeId": "certify",
+        "href": "/certify"
+      },
+      {
+        "routeId": "receipt",
+        "href": "/receipt/:caseRef"
+      },
+      {
+        "routeId": "queue",
+        "href": "/queue"
+      }
+    ],
+    "unavailable": [],
+    "unresolvedPinnedMarkers": [],
+    "note": "The authored :caseRef segment remains literal and carries ROUTE-PARAM-GRAMMAR. This check targets D22: a live URL containing an unresolved {name} marker."
+  },
   "stubsRendered": [],
   "stubNote": "Zero. All four module widgets are real components in @formspec-org/surface-react. Where a widget shows an empty state it is because the bundle supplies it nothing — `widget-data-binding` and `no-runtime-state`, both still open — not because the widget is a stub.",
   "ledgerOnScreen": {
     "onScreenTotal": 29,
-    "onScreenResolved": 19,
-    "onScreenOpen": 10,
+    "onScreenResolved": 21,
+    "onScreenOpen": 8,
     "diagnosticCount": 1,
     "diagnosticErrors": 1,
     "diagnosticWarnings": 0,

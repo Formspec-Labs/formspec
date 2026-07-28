@@ -10,7 +10,7 @@
  * number in the README comes from here; nothing is typed by hand.
  */
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -94,6 +94,7 @@ const CONTRAST_SCRIPT = () => {
     measure('.fs-surface-unavailable', 'unavailable placeholder'),
     measure('.fs-surface-empty', 'widget empty state'),
     measure('.fs-surface-transition--blocked', 'blocked transition notice'),
+    measure('.formspec-submit', 'rendered form submit action'),
     measure('.fs-surface-ceremony__statement', 'ceremony statement'),
     measure('.fs-surface-receipt__row dt', 'receipt fact label'),
     measure('.fs-surface-queue__caption', 'queue caption'),
@@ -172,6 +173,10 @@ function write(name, value) {
 
 const main = async () => {
   mkdirSync(SHOTS, { recursive: true });
+  // The old "light-06" capture was byte-identical to the ordinary light receipt
+  // shot: the probe is already visible in that chrome and client-side history
+  // does not change the pixels. Keep one piece of evidence for one visual state.
+  rmSync(resolve(SHOTS, 'light-06-document-root-probe-after-intake.png'), { force: true });
   const browser = await chromium.launch();
 
   // ── R3: the document-root probe, walked in navigation order ───────────────
@@ -242,6 +247,21 @@ const main = async () => {
     };
   });
 
+  const brandSelector = await applyPage.evaluate(() => {
+    const selector = '.formspec-container > .formspec-stack';
+    const matches = [...document.querySelectorAll(selector)].map((element) => {
+      const computed = getComputedStyle(element);
+      return {
+        tag: element.tagName.toLowerCase(),
+        className: element.className,
+        borderInlineStartColor: computed.borderInlineStartColor,
+        borderInlineStartStyle: computed.borderInlineStartStyle,
+        borderInlineStartWidth: computed.borderInlineStartWidth,
+      };
+    });
+    return { selector, matchCount: matches.length, matches };
+  });
+
   const unfocused = await applyPage.evaluate(paintScan, TENANT_BRAND_RGB);
 
   await applyPage.focus('.formspec-container input');
@@ -276,6 +296,7 @@ const main = async () => {
       shellBridge: 'none — removed; a silent alias is now forbidden (token-registry-spec §2.4)',
       resolvedOnFormContainer: resolvedOnContainer,
       submitButton,
+      brandSelector,
       elementsPaintingTenantBrandAtRest: unfocused.hits.length,
       elementsPaintingTenantBrandWithAnInputFocused: focused.hits.length,
       focusedInputOutline: focusedOutline,
@@ -371,11 +392,26 @@ const main = async () => {
       if (style[i].startsWith('--formspec-')) rootProperties.push(style[i]);
     }
     let subtreeTenantValues = 0;
+    const tokenEmitters = [];
     const collect = (element) => {
+      const properties = [];
+      let tenantValueCount = 0;
       for (let i = 0; i < element.style.length; i++) {
         const property = element.style[i];
-        if (property.startsWith('--formspec-')
-          && element.style.getPropertyValue(property).trim() === '#7A1F3D') subtreeTenantValues++;
+        if (!property.startsWith('--formspec-')) continue;
+        properties.push(property);
+        if (element.style.getPropertyValue(property).trim() === '#7A1F3D') {
+          subtreeTenantValues++;
+          tenantValueCount++;
+        }
+      }
+      if (properties.length > 0) {
+        tokenEmitters.push({
+          tag: element.tagName.toLowerCase(),
+          className: typeof element.className === 'string' ? element.className : '',
+          propertyCount: properties.length,
+          tenantValueCount,
+        });
       }
     };
     if (article) {
@@ -391,6 +427,8 @@ const main = async () => {
       documentRootHoldsTenantValue: rootProperties.some(
         (property) => style.getPropertyValue(property).trim() === '#7A1F3D',
       ),
+      effectiveTokenEmitterCount: tokenEmitters.length,
+      tokenEmitters,
       routeSubtreeTenantValueCount: subtreeTenantValues,
       resolvedPrimaryOnRoute: article
         ? getComputedStyle(article).getPropertyValue('--formspec-color-primary').trim()
@@ -425,10 +463,10 @@ const main = async () => {
       'ROUTE_CLASS_THEME_AUTHORITY, read from @formspec-org/app-graph, not restated by the shell',
     walk,
     structuralClaim:
-      'resolveThemeGrant is the only reader of the tenant Theme document in the app (grep: src/theme-grant.ts '
-      + 'is the sole importer of `tenantTheme` from src/bundle.ts). It is called once per route at the route '
-      + 'boundary, and only grant.themeDocument crosses into RouteView. On a refusing class that object is '
-      + 'built from the platform token registry and never saw the tenant tokens.',
+      '`SurfaceApp` passes `bundle.tenantTheme` once to `createThemeAuthority`; route planning exposes only '
+      + 'the resulting grant to `SurfaceRouteView`. The route view emits that effective map once on its owned '
+      + 'article, while nested form renderers suppress their own token emission. On a refusing class the grant '
+      + 'contains platform tokens only and never includes tenant values.',
     documentRootClaim:
       'The document root now stays clean without the shell doing anything. `enforceDocumentRootThemeBoundary` '
       + 'is deleted; `documentRootThemeProperties()` reads and reports. The renderer owns the guarantee, which '
@@ -437,21 +475,6 @@ const main = async () => {
       'The earlier run of this probe carried: "Keeping the DOCUMENT ROOT clean is not [structural] — it '
       + 'requires an active scrub." That is no longer true and the scrub is gone.',
   });
-
-  // The screenshot the README points at: the receipt route, reached by
-  // client-side navigation FROM the intake route, with the probe reading zero.
-  const proofShot = await leakContext.newPage();
-  await proofShot.setViewportSize({ width: 1280, height: 1000 });
-  await proofShot.goto(`${BASE}/apply`, { waitUntil: 'networkidle' });
-  await waitForApp(proofShot);
-  await proofShot.waitForSelector('.formspec-container');
-  await proofShot.click('nav a[data-nav-route="receipt"]');
-  await proofShot.waitForSelector('[data-route="receipt"]');
-  await proofShot.screenshot({
-    path: resolve(SHOTS, 'light-06-document-root-probe-after-intake.png'),
-    fullPage: true,
-  });
-  await proofShot.close();
 
   // ── R1/R4: the four routes, as rendered, read out of the live DOM ─────────
   const readRendered = () => {
@@ -487,6 +510,28 @@ const main = async () => {
   await routePage.goto(`${BASE}/apply`, { waitUntil: 'networkidle' });
   await waitForApp(routePage);
   await routePage.waitForSelector('.formspec-container');
+
+  const navigation = await routePage.evaluate(() => {
+    const links = [...document.querySelectorAll('nav a[data-nav-route]')].map((link) => ({
+      routeId: link.getAttribute('data-nav-route'),
+      href: link.getAttribute('href'),
+    }));
+    const unavailable = [...document.querySelectorAll('nav [data-nav-unavailable]')].map((item) => ({
+      routeId: item.getAttribute('data-nav-route'),
+      reason: item.getAttribute('data-nav-unavailable'),
+      ariaDisabled: item.getAttribute('aria-disabled'),
+    }));
+    return {
+      links,
+      unavailable,
+      unresolvedPinnedMarkers: links.filter(({ href }) =>
+        /\{[A-Za-z][A-Za-z0-9_]*\}/.test(href ?? ''),
+      ),
+      note:
+        'The authored :caseRef segment remains literal and carries ROUTE-PARAM-GRAMMAR. '
+        + 'This check targets D22: a live URL containing an unresolved {name} marker.',
+    };
+  });
 
   const rendered = [];
   rendered.push(await routePage.evaluate(readRendered));
@@ -606,6 +651,7 @@ const main = async () => {
       'https://benefits.example.gov/apps/assistance/surfaces/staff',
     ],
     routes: rendered,
+    navigation,
     stubsRendered: [],
     stubNote:
       'Zero. All four module widgets are real components in @formspec-org/surface-react. Where a widget '
@@ -738,9 +784,9 @@ const main = async () => {
     ],
     after: counts,
     shellWorkaroundRemoved:
-      'src/theme-grant.ts `enforceDocumentRootThemeBoundary` scrubbed `<html>` on every refusing route. It is '
-      + 'gone. `documentRootThemeProperties()` replaced it: the shell now READS the document root and asserts '
-      + 'it is empty rather than making it empty.',
+      'The former spike helper `enforceDocumentRootThemeBoundary` scrubbed `<html>` on every refusing route. '
+      + 'It is gone. `documentRootThemeProperties()` now reads the document root and asserts it is empty '
+      + 'rather than making it empty.',
     verdict: counts.every((step) => step.documentRootFormspecVarCount === 0)
       ? 'FIXED — 0 tenant properties on <html> at every step, with no shell workaround running'
       : 'STILL LEAKING',
@@ -748,6 +794,30 @@ const main = async () => {
 
   await leakContext.close();
   await browser.close();
+
+  const gateFailures = [];
+  if (brandSelector.matchCount === 0) {
+    gateFailures.push(`${brandSelector.selector} matched no live elements`);
+  }
+  if (unfocused.hits.length === 0 || focused.hits.length <= unfocused.hits.length) {
+    gateFailures.push('tenant brand did not paint both at rest and on the focused control');
+  }
+  if (walk.some((step) => step.effectiveTokenEmitterCount !== 1)) {
+    gateFailures.push('one or more routes did not have exactly one inline Theme-token emitter');
+  }
+  if (navigation.unresolvedPinnedMarkers.length > 0) {
+    gateFailures.push('navigation published a live URL with an unresolved {name} marker');
+  }
+  if (failures.length > 0) {
+    gateFailures.push(`${failures.length} measured text/background pair(s) missed WCAG 2.2 AA`);
+  }
+  if (counts.some((step) => step.documentRootFormspecVarCount !== 0)) {
+    gateFailures.push('a route left --formspec-* properties on the document root');
+  }
+  if (gateFailures.length > 0) {
+    throw new Error(`Browser evidence gates failed:\n- ${gateFailures.join('\n- ')}`);
+  }
+  console.log('browser evidence gates passed');
 };
 
 main().catch((error) => {

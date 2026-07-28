@@ -31,7 +31,7 @@ writeFileSync(
     {
       title: 'surface-render-v10 gap ledger',
       description:
-        'Every piece of the running app the platform did not supply, with its natural home. The work order for a real Surface renderer. Closed entries KEEP their row and carry a `resolved` block — a ledger that deletes what it fixed loses the history that makes the rest of it credible.',
+        'The missing pieces identified by the surface-render-v10 review, with each natural home. This is a reviewed work order, not a completeness claim. Closed entries KEEP their row and carry a `resolved` block — a ledger that deletes what it fixed loses the history that makes the rest of it credible.',
       total: GAP_LEDGER.length,
       open: GAP_LEDGER.filter((entry) => entry.resolved === undefined).length,
       resolved: GAP_LEDGER.filter((entry) => entry.resolved !== undefined).length,

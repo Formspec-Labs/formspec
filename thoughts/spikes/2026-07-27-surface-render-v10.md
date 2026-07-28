@@ -145,8 +145,8 @@ reaches it: `--formspec-color-primary` resolves to `#7A1F3D` on the form contain
 Then zero elements inside the rendered form paint with it. Three gaps compound — the
 tenant authored `color.accent` and the platform brand token is `color.primary` with
 nothing mapping between them; the default skin paints the brand token on buttons and
-this Definition has none; the submit button never renders because no Response Actions
-document publishes a `submit` intent. A tenant can set their brand colour, have it
+this Definition originally rendered none because the spike did not pass the bundle's
+Response Actions document to the form. A tenant can set their brand colour, have it
 accepted, validated, signed, emitted and resolved, and see no difference, with no
 diagnostic anywhere in the chain. Under the pre-registered rule that a partially met
 bar is not met, R2 is not met — and the reason is the most product-relevant thing the
@@ -198,8 +198,8 @@ brand-paints-nothing compound is the one with a measured, present-tense conseque
    `color.accent`; the platform brand token is `color.primary` and nothing maps between
    them. Bridge it and the value genuinely resolves on the form container — and zero
    elements paint with it, because the default skin puts the brand token on buttons and
-   filled controls and this Definition is four plain inputs whose submit button never
-   renders. Accepted by authoring, passed by validation, signed into the release,
+   filled controls and the earlier binding did not connect the bundle's Response Actions
+   document, so this Definition rendered only plain inputs. Accepted by authoring, passed by validation, signed into the release,
    emitted by the renderer, resolved in the cascade, invisible on screen, **and no
    diagnostic anywhere in that chain.** Measured, not inferred.
 2. **Theme authority has no runtime half, and the renderer undoes it.**
@@ -216,9 +216,9 @@ brand-paints-nothing compound is the one with a measured, present-tense conseque
    slots are module widgets — one on every route.
 
 Just below the cut, and structural: **a signed bundle can describe an app that cannot
-run.** `/apply` declares `transitions: [{trigger: "submit", to: "certify"}]` and the
-bundle carries nothing that can fire a submit. Surface lint walks the route graph for
-reachability and never asks whether an edge can be traversed. Separately, the bundle
+run.** `/certify` declares `transitions: [{trigger: "submit", to: "receipt"}]` but
+renders no validator-readable control that can fire it. Surface lint walks the route
+graph for reachability and never asks whether an edge can be traversed. Separately, the bundle
 authors `/receipt/:caseRef` while the spec pins `{name}` markers — both schema-valid,
 neither caught by lint, the validator, or the signing ceremony.
 

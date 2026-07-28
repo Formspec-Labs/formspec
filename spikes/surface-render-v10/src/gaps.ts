@@ -126,7 +126,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'formspec/spikes/surface-render-v10/src/app.tsx — what the spike became: a host that supplies a verified bundle, widget modules, runtime data and chrome.',
       ],
       guardedBy: [
-        'packages/formspec-surface/tests — 8 files; packages/formspec-surface-react/tests — route rendering and the widget set.',
+        'packages/formspec-surface/tests and packages/formspec-surface-react/tests — route, registry, dispatch, transition, rendering, and widget coverage.',
         'scripts/check-dep-fences.mjs — surface at layer 2, surface-react at layer 3.',
       ],
       before:
@@ -153,7 +153,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'formspec/packages/formspec-surface/src/route-path.ts — marker parsing, matching, filling, and the `params[]` cross-check from surface-spec §3.',
       ],
       guardedBy: [
-        'packages/formspec-surface/tests/route-path.test.ts — 24 cases including both grammars, percent-encoding, separator containment and regex metacharacters in a path.',
+        'packages/formspec-surface/tests/route-path.test.ts — both grammars, percent-encoding, separator containment, and regex metacharacters in a path.',
       ],
       before:
         'A hand-rolled matcher in the spike, with a placeholder case reference baked in beside it.',
@@ -171,18 +171,17 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The Surface spec §3 pins v0.1 parameters as URI-Template markers — `/matter/{matterId}` — paired with a `params[]` declaration. The signed bundle authors `/receipt/:caseRef`: Express style, no `params[]`. Both are schema-valid, because `path` is constrained only to a non-empty string.',
     naturalHome: 'existing package, unexported',
     homeRationale:
-      'This is a spec-and-schema defect, not a renderer one. A signed, shipped bundle carries a parameter marker the spec\'s own grammar does not define, and nothing caught it — not lint, not the app-graph validator, not the signing ceremony. Either `path` gets a pattern and the authoring tools emit the pinned grammar, or the spec adopts the grammar the tools actually emit. Leaving both is how two renderers end up disagreeing about what a URL means.',
+      'This is a schema-and-authoring defect, not a renderer one. A signed, shipped bundle carries a parameter marker the spec\'s own grammar does not define, and nothing caught it — not lint, not the app-graph validator, not the signing ceremony. `path` needs a pattern and authoring tools need to emit the pinned grammar so a conforming renderer never receives this document.',
     kind: 'vocabulary-bridge',
     source: 'src/shell/route-match.ts',
     /**
-     * OPEN. `@formspec-org/surface` reads both grammars and raises
-     * `ROUTE-PARAM-GRAMMAR` on the unpinned one, so a renderer is no longer
-     * silently choosing — but silence was the symptom, not the defect. `path`
-     * still carries no `pattern`, the authoring tools still emit `:name`, and a
-     * second renderer implementing only the pinned grammar would still 404 a
-     * signed bundle. Filed under 'existing package, unexported' when the
-     * taxonomy had no better slot; today it would be
-     * 'spec or schema, upstream of any renderer'.
+     * OPEN upstream. `@formspec-org/surface` now treats `:name` as literal,
+     * reports `ROUTE-PARAM-GRAMMAR`, and does not deep-link it, so the runtime
+     * divergence is closed. The schema still carries no `pattern`, the
+     * authoring tools still emit `:name`, and a signed bundle can therefore
+     * reach any conforming renderer with an address its grammar does not admit.
+     * Filed under 'existing package, unexported' when the taxonomy had no
+     * better slot; today it would be 'spec or schema, upstream of any renderer'.
      */
   },
   {
@@ -331,7 +330,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'formspec/packages/formspec-surface-react/src/widgets/queue-table.tsx',
       ],
       guardedBy: [
-        'packages/formspec-surface-react/tests/widgets.test.tsx — 9 cases including both empty-state paths, inferred columns, and the accessibility structure.',
+        'packages/formspec-surface-react/tests/widgets.test.tsx — both empty-state paths, inferred columns, and the accessibility structure.',
       ],
       before:
         'Four invented applications with invented rents, invented months behind and invented waiting times — the most convincing thing on the screen.',
@@ -383,75 +382,43 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'formspec/packages/formspec-surface/src/registry.ts — `flattenRegistryEntries`.',
       ],
       guardedBy: [
-        'packages/formspec-surface/tests/registry.test.ts — `gives the first declaration precedence and REPORTS the loser`.',
+        'packages/formspec-surface/tests/registry.test.ts — colliding names produce no flattened entry and one diagnostic naming every source.',
       ],
       before:
         '`flatMap` in the spike. Two registries declaring the same name collapsed silently and the renderer took whichever it found first.',
       after:
-        'First declaration in manifest-then-author order wins; every later declaration of the same name raises `REGISTRY-ENTRY-NAME-COLLISION`.',
+        'Every declaration of a colliding name is omitted and one `REGISTRY-ENTRY-NAME-COLLISION` diagnostic names every source. Order never chooses a winner.',
       naturalHomeHeld: true,
       naturalHomeNote:
-        'The entry said a shell that ships has to answer the precedence question, and this is the answer: manifest order, because it is the only ordering the bundle states, with a diagnostic that turns an arbitrary choice into a reviewable one. Nothing in the spec, schema or validator states a rule — when one lands, this is the single site that changes.',
+        'Registry §2.2 now owns the exactly-one lookup rule. `flattenRegistryEntries` applies it at the one runtime site holding all loaded Registry documents.',
     },
   },
   {
     id: 'transition-has-no-trigger-source',
     what: 'A "continue to the next page" button, because the authored transition has nothing that can fire it.',
     whyNeeded:
-      'The /apply route declares `transitions: [{trigger: "submit", to: "certify"}]`. The shipped renderer injects a submit button only when a Response Actions document publishes an Action with `submit` intent — deliberately, so nothing fires implicitly. This bundle carries no Response Actions document at all. The transition is authored, schema-valid and signed, and the app as described cannot leave its own first page.',
+      'The /apply route declares `transitions: [{trigger: "submit", to: "certify"}]`. The bundle carries a Response Actions document publishing that action, but the earlier spike did not connect the selected document to the rendered form. The form therefore published no submit control and the app could not leave its first page.',
     naturalHome: 'new: surface-shell package',
     homeRationale:
-      'The shell is the right owner of the affordance, because the shell owns route transitions — a module widget should not be navigating the app. But the finding underneath it is not a renderer gap: it is that nothing checks a transition trigger against anything that could produce it. Surface lint walks the route graph for reachability (E606) and never asks whether an edge can actually be traversed. That check belongs in lint or the app-graph validator, and it would have caught this before the bundle was signed.',
+      'The shell owns transition posture, not an implicit affordance. The loaded Response Actions document and selected binding own whether a real control exists; app-graph validation owns the earlier warning when no validator-readable source exists.',
     kind: 'missing-machinery',
     source: 'src/shell/RouteView.tsx',
-    /**
-     * PARTIAL, and deliberately not marked `resolved` — the cause was fixed,
-     * the check the entry actually asked for was not.
-     *
-     * Cause: the bundle carried no Response Actions document, so §10 correctly
-     * gave the form no submit button. `addAction` minted the document and no
-     * manifest slot named it, so `exportBundle` dropped it — ADR 0160 §4.2(b),
-     * the same defect `ensureExperience` carried before 0160, and §6.5 never
-     * excluded Response Actions. Fixed in
-     * `formspec-studio/packages/formspec-studio-core/src/kernel/ProposalManagerFacade.ts`:
-     * `addAction` writes the slot in the same op, `readAppManifest` emits it,
-     * `exportBundle` serialises it, `resolveBundleLocal` serves it. The
-     * exemplar bundle now publishes `submitApplication`, `/apply` renders a
-     * real submit button, and the two residual
-     * `APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER` diagnostics in
-     * `lifecycle-demo-v10/evidence/stage-5-release.validation-report.json`
-     * dropped to zero.
-     *
-     * Still open, and it is the half that matters: `/certify` declares
-     * `{trigger: "submit", to: "receipt"}` and carries no form, so nothing on
-     * that route can fire it — and the bundle is signed anyway. Nothing checks
-     * a transition trigger against something that could produce it. Split out
-     * as `transition-edge-traversability-unchecked` so the open half is
-     * countable rather than buried in a resolved entry's note.
-     *
-     * THE AFFORDANCE QUESTION, ANSWERED — `@formspec-org/surface`
-     * `src/transitions.ts`. The spike left one open question: does the shell own
-     * a default trigger affordance, or must the bundle declare one? **The bundle
-     * must declare one. The shell does not.** Not a taste call — surface-spec
-     * §4 and §5.1 answer it twice: a router may advance "only after the
-     * referenced action or closed-core intent has completed successfully under
-     * Response Actions authority", and it "MUST NOT infer success from a click,
-     * a rendered button, or a validation summary". A shell-supplied Continue
-     * button is that inference wearing a label, and shipping one as a default
-     * would put a spec violation in every host by construction — on the routes
-     * where it matters most, since a `submit` transition off an intake route
-     * means a submission happened.
-     *
-     * So `planTransitions` marks a transition `fireable` only when its trigger
-     * resolves against a loaded Response Actions document AND the host supplied
-     * an executor; `supplied-by-slot` when a `definition-form` slot already
-     * draws the real control, so the shell does not put a second button beside
-     * the form's own; and otherwise a stated refusal naming which half is
-     * missing. `/apply` is `supplied-by-slot`. `/certify` is
-     * `no-executor` — visible on the page, as a sentence, rather than papered
-     * over by a navigating button. The spike's `TransitionAffordance` is
-     * deleted.
-     */
+    resolved: {
+      landedIn: [
+        'formspec/packages/formspec-surface/src/transitions.ts — selects the exact Response Actions document targeting the bound Definition and credits only controls the binding actually publishes.',
+        'formspec/packages/formspec-surface-react/src/SurfaceSlot.tsx — passes the selected document to FormspecForm and advances from the executor result, not from a click.',
+      ],
+      guardedBy: [
+        'packages/formspec-surface/tests/supplied-triggers.test.ts and packages/formspec-surface-react/tests/action-completion.test.ts — exact selection, rendered-control credit, and completed-valid terminal behavior.',
+      ],
+      before:
+        'The bundle carried the action, but the form binding did not connect it and the spike invented a Continue control.',
+      after:
+        'The form renders its declared submit control. The shell adds no implicit control and advances only from a completed, resolved, valid action result.',
+      naturalHomeHeld: true,
+      naturalHomeNote:
+        'The core owns posture and the React binding owns materialization. The separate authoring-time traversability gap is now covered by E611.',
+    },
   },
   {
     id: 'no-runtime-state',
@@ -516,7 +483,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'formspec/packages/formspec-surface-react/src/heading.tsx — every heading in the package takes its level as an input.',
       ],
       guardedBy: [
-        'packages/formspec-surface/tests/static-content.test.ts — 16 cases on levels and kinds.',
+        'packages/formspec-surface/tests/static-content.test.ts — heading ranks, host baselines, and the closed static-content kinds.',
         'packages/formspec-surface-react/tests/route-view.test.tsx — `gives the page exactly one h1` and `skips no heading level anywhere on the page`.',
       ],
       before:
@@ -525,7 +492,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'All four kinds. An authored level is a rank within the route, offset from `headingBaseLevel` (default 2), clamped, stepped down again inside an embed. Never a second `h1`, never a skip.',
       naturalHomeHeld: true,
       naturalHomeNote:
-        '**CORRECTION: the vocabulary was already closed and this entry said otherwise.** `surface.schema.json` `$defs/Slot`’s static-content gate carries `enum: [heading, text, image, divider]`, and surface-spec §5 repeats it — “the four shapes Surface guarantees renderers know how to display without consulting a module”. The spike rendered two and reported the vocabulary as unwritten. An unknown kind is now reported as a schema violation rather than quietly rendered as text. The entry was right that heading levels are where the real work was, and understated it: the schema types `level` as an absolute 1–6, and absolute levels do not compose. Implementing the fourth kind surfaced `static-content-image-has-no-alt-channel`.',
+        '**CORRECTION: the vocabulary was already closed and this entry said otherwise.** `surface.schema.json` `$defs/Slot`’s static-content gate carries `enum: [heading, text, image, divider]`, and surface-spec §5 repeats it — “the four shapes Surface guarantees renderers know how to display without consulting a module”. The spike rendered two and reported the vocabulary as unwritten. An unknown kind is now reported as a schema violation rather than quietly rendered as text. The entry was right that heading levels are where the real work was: the schema now describes `level` as a composition-relative rank because an absolute level does not compose. Implementing the fourth kind surfaced `static-content-image-has-no-alt-channel`.',
     },
   },
   {
@@ -598,7 +565,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'formspec/specs/theme/token-registry-spec.md §5.3 — a validator that loads a Theme MUST report every non-`x-` token the registry does not declare. Previously MAY.',
         'formspec/packages/formspec-app-graph/src/theme-token-registry.ts — `validateThemeTokenRegistry`, wired into the built-in cross-artifact validator list.',
         'formspec/crates/formspec-lint/src/pass_theme/token_registry.rs — W708 gains a brand-lookalike hint naming `color.primary`.',
-        'formspec/spikes/surface-render-v10/src/theme-grant.ts — `TOKEN_ALIASES` and `bridgeTenantTokens` deleted.',
+        'formspec/packages/formspec-surface/src/theme-authority.ts — consumes the tenant token map without an alias table; registry-aware validation owns unknown-token reporting.',
       ],
       guardedBy: [
         'packages/formspec-app-graph/tests/theme-token-registry.test.ts — including `does NOT alias a lookalike onto the brand token — it only reports it`.',
@@ -626,11 +593,11 @@ export const GAP_LEDGER: readonly GapEntry[] = [
     resolved: {
       landedIn: [
         'formspec/packages/formspec-react/src/context.tsx — FormspecProvider renders a `display: contents` `.formspec-theme-scope` element it owns and emits `themeDocument.tokens` onto THAT, with an unmount cleanup. `document.documentElement` is never written.',
-        'formspec/spikes/surface-render-v10/src/theme-grant.ts — `enforceDocumentRootThemeBoundary` deleted; `documentRootThemeProperties()` reads and reports instead.',
+        'formspec/spikes/surface-render-v10/src/tenant-theme-probe.ts — `documentRootThemeProperties()` reads and reports; no scrubber remains.',
         'formspec/spikes/surface-render-v10/src/chrome/DocumentRootProbe.tsx — the reading, on screen, on every route.',
       ],
       guardedBy: [
-        'formspec/packages/formspec-react/tests/theme-token-scope.test.tsx — four assertions, and the docstring names this as the runtime half of the ADR 0161 theme-authority promise. Falsified twice on the way in: restoring the untargeted emission fails 4 of 5; deleting the effect cleanup fails the theme-swap case.',
+        'formspec/packages/formspec-react/tests/theme-token-scope.test.tsx — provider, form-container, theme-swap, cleanup, and parent-owned emission behavior.',
       ],
       before:
         '0 `--formspec-*` properties on `<html>` on a fresh load, 46 after the intake route rendered, still 46 after navigating to the receipt route — with the tenant brand among them. Clean only where the shell scrubbed.',
@@ -648,7 +615,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'After bridging `color.accent` onto `color.primary`, the tenant\'s burgundy genuinely reaches the form: the shipped renderer emits it and `--formspec-default-primary` resolves to `#7A1F3D` on the form container. Then a walk of every element inside the rendered form found ZERO that paint with it — no text, background, border, outline, or caret. The focus ring is platform green, because it derives from `color.ring`, which the tenant did not author. A tenant can set their brand colour, have it accepted, validated, signed, emitted and resolved, and see no difference on screen.',
     naturalHome: 'existing package, unexported',
     homeRationale:
-      'The brand token only paints buttons and filled controls in the default skin, and this Definition has none — it is four plain inputs, and the submit button never renders because no Response Actions document publishes a submit intent. So three separate gaps compound into one silent product failure. The fix is not one change: the token vocabulary needs a defined fan-out (does a brand colour drive the focus ring? the label? nothing?), and the default skin needs to use it somewhere a plain form will show.',
+      'The brand token originally painted buttons and filled controls, while this Definition rendered plain inputs and the earlier binding did not connect the bundle’s Response Actions document to the form. Separate gaps therefore compounded into one silent product failure. The token vocabulary needs a defined fan-out, and the default skin must use it on a surface every plain form actually renders.',
     kind: 'vocabulary-bridge',
     source: 'src/theme-grant.ts',
     resolved: {
@@ -657,7 +624,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'formspec/specs/theme/token-registry-spec.md §2.5 + schemas/token-registry.json — new `derivedFrom` field; `color.ring` declares `derivedFrom: "color.primary"`. A derived token MUST NOT be emitted into the platform theme\'s token map, because an explicit platform value is what made the CSS fan-out unreachable.',
         'formspec/packages/formspec-layout/src/platform-defaults.ts + scripts/generate-theme-from-registry.mjs — both stop emitting derived tokens (45 declared, 43 emitted).',
         'formspec/packages/formspec-layout/src/styles/default.tokens.css — `--formspec-default-focus: var(--formspec-color-ring, var(--formspec-color-primary, …))`, light and dark.',
-        'formspec/packages/formspec-layout/src/styles/default.surfaces.css + default.base.css — brand accent rule on section/group/card headings and a brand marker under fieldset legends, so a form with structure shows the brand before anyone touches a control.',
+        'formspec/packages/formspec-layout/src/styles/default.surfaces.css + default.base.css — a brand accent on the root form stack plus structural headings and fieldset legends, so every form has a real matching brand surface.',
         'formspec/spikes/lifecycle-demo-v10/src/exemplar.ts — the exemplar authors `color.primary` and `color.dark.primary`.',
       ],
       guardedBy: [
@@ -815,6 +782,22 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'Surface lint E606 walks the route graph for reachability and never asks whether an edge can be traversed. `validateSurfaceResponseActionTriggers` does ask, but only against a loaded Response Actions document — so it fires on a trigger the document contradicts and stays silent on a route with no way to raise the trigger in the first place. The missing rule is per-route rather than per-document: a transition whose trigger is a closed-core intent needs something ON that route capable of producing it. Belongs in lint or the app-graph validator; it would have caught this bundle before the signing ceremony.',
     kind: 'missing-machinery',
     source: 'packages/formspec-surface/src/transitions.ts',
+    resolved: {
+      landedIn: [
+        'formspec/packages/formspec-app-graph/src/surface-response-action-triggers.ts — E611 walks direct and embedded definition-form slots and warns when no validator-readable source matches the resolved action.',
+        'formspec/specs/lint-codes.json — E611 is registered in the Surface band at warning severity.',
+      ],
+      guardedBy: [
+        'tests/conformance/fixtures/app-graph-validator/surface-response-action-triggers.case.json — module-only warning and embedded-form positive case.',
+      ],
+      before:
+        'A resolved transition with no declared control source passed app-graph validation and reached runtime as a dead edge.',
+      after:
+        'AppGraphValidator emits E611 before signing while runtime planning still accounts for host-only behavior.',
+      naturalHomeHeld: true,
+      naturalHomeNote:
+        'App-graph validation owns the cross-artifact evidence. Warning severity preserves routes whose control arrives only through a host executor or private widget behavior.',
+    },
   },
 ];
 

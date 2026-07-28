@@ -272,14 +272,15 @@ measuring anything.
 | shell workaround running | yes | **none** |
 
 `evidence/r3-document-root-leak.json`, `evidence/r3-theme-boundary-probe.json`,
-screenshot `evidence/screenshots/light-06-document-root-probe-after-intake.png`.
+and `evidence/screenshots/light-03-receipt-proof.png`, whose chrome includes the
+document-root probe. The generator removes the former identical second copy.
 
 **The permanent test is in the shipped package**, not in the spike:
 [`formspec/packages/formspec-react/tests/theme-token-scope.test.tsx`](../../packages/formspec-react/tests/theme-token-scope.test.tsx).
 Its docstring says what it is — the runtime half of the ADR 0161 theme-authority
 promise. Falsified twice on the way in: restoring the untargeted
-`emitThemeTokens(themeDocument.tokens)` fails 4 of its 5 cases; deleting the effect
-cleanup fails the theme-swap case (`expected '1.25rem' to be ''`). Both were restored.
+the provider tests fail when untargeted emission is restored, and the theme-swap
+case fails when effect cleanup is removed. Both faults remain pinned.
 
 **One thing this spike first claimed here, and then falsified with its own app.** The
 mid-build write-up said: put a `definition-form` slot on a `proof` route — schema-valid,
@@ -352,8 +353,8 @@ the notes say which.
 | ~~`slot-dispatch`~~ **shipped** | `slot-plan.ts`. Dispatch happens once, in the renderer-independent core, producing a typed plan a second renderer consumes unchanged. **`embed-route` is now implemented** — the spike skipped it — carrying the host route's theme grant down every embed edge, stepping headings down, and terminating on cycles. |
 | ~~`experience-unit-rendering`~~ **shipped** | `experience-unit.ts`. It also makes the call the spike flagged and then ignored: `needRefs[].description` is design rationale *about* the respondent, not copy *for* them, so it is off unless a host asks. |
 | ~~`static-content-rendering`~~ **shipped** | `static-content.ts`. **The entry was wrong: the `kind` vocabulary was already closed** in `surface.schema.json` and surface-spec §5. All four kinds render. The real work was the heading contract — see below. |
-| `transition-has-no-trigger-source` — **partial** | The affordance question is answered (below); the check the entry asked for is split out as `transition-edge-traversability-unchecked` and stays open. |
-| ~~`registry-entries-wiring`~~ **shipped** | `flattenRegistryEntries`. The precedence question the entry said a shipping shell has to answer: **first declaration in manifest-then-author order wins, every later one raises `REGISTRY-ENTRY-NAME-COLLISION`.** |
+| ~~`transition-has-no-trigger-source`~~ **shipped** | The form receives the exact Response Actions document targeting its Definition, and the shell credits only a control the selected binding actually renders. E611 covers the separate pre-signing traversability warning. |
+| ~~`registry-entries-wiring`~~ **shipped** | `flattenRegistryEntries`. A colliding name resolves to no entry and raises one `REGISTRY-ENTRY-NAME-COLLISION`; Registry §2.2 forbids an order-based winner. |
 | ~~`cross-surface-navigation`~~ **shipped** | `composeSurfaceApp`. One flat URL space in manifest order, colliding paths reported rather than silently dropped — and **the invented group labels are gone.** A label is `surface.title ?? surface.id`; "For the person applying" was a shell putting words in the author's mouth. |
 
 **Placement, decided.** The formspec npm layer, not `formspec-web`. The operator route
@@ -364,10 +365,10 @@ a shell living there could not be reached by `case-portal`, `formspec-cloud` or
 `formspec-webcomponent` split: layer 2 plans, layer 3 renders, `npm run check:deps`
 passes.
 
-**Heading levels, the one piece that was harder than it looked.** The schema types
-`level` as an absolute 1–6, and absolute levels do not compose: a route renders its
-title as the page `h1`, so an authored `level: 1` inside it produced a **second** `h1` —
-which the spike shipped on `/certify` and `/receipt`. An authored level is now a rank
+**Heading levels, the one piece that was harder than it looked.** The schema now
+describes `level` as a rank because absolute levels do not compose: a route renders
+its title as the page `h1`, so an authored `level: 1` inside it previously produced a
+**second** `h1` — which the spike shipped on `/certify` and `/receipt`. An authored level is a rank
 *within* the route, offset from `headingBaseLevel` (default 2), clamped, stepped down
 again inside an `embed-route`. `evidence/route-walk.json` records the heading outline of
 every route; there is exactly one `h1` per page and no skipped level.
@@ -380,10 +381,11 @@ has completed successfully under Response Actions authority", and it "MUST NOT i
 success from a click, a rendered button, or a validation summary". A shell-supplied
 Continue button is that inference wearing a label. So `planTransitions` marks a
 transition `fireable` only when its trigger resolves against a loaded Response Actions
-document *and* the host supplied an executor; `supplied-by-slot` when a `definition-form`
-slot already draws the real control, so the shell does not put a second button next to
-the form's own; and otherwise a stated refusal naming which half is missing. `/apply` is
-`supplied-by-slot`. `/certify` renders the refusal, on the page, in a sentence.
+document *and* the host supplied an executor; `supplied-by-slot` only when the selected
+binding actually draws the matching control, so the shell does not put a second button
+next to the form's own; and otherwise a stated refusal naming which half is missing.
+`/apply` is `supplied-by-slot`. `/certify` renders the refusal, on the page, in a
+sentence and emits E611 during app-graph validation.
 
 ### The registry widget family — 6, five shipped
 

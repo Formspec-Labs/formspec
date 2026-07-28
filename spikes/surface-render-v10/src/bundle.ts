@@ -43,8 +43,8 @@ export const authoredSignature = JSON.parse(signatureRaw) as AuthoredSignatureFi
  * Every artifact the manifest names, typed, plus a diagnostic for anything it
  * names and does not carry.
  *
- * `tenantTheme` lives on this object and is read by exactly one thing —
- * `createThemeAuthority`, constructed once in `app.tsx`. Nothing else in the app
- * touches it, which is what makes bar R3 structural rather than careful.
+ * `tenantTheme` lives on this object and enters the shipped shell once.
+ * `SurfaceApp` passes it to `createThemeAuthority`, then route rendering receives
+ * only the resulting grant. That boundary makes bar R3 structural.
  */
 export const resolvedBundle = dereferenceBundleExport(bundleExport);

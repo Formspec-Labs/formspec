@@ -11,7 +11,16 @@
       "grant": "admitted",
       "documentRootFormspecVarCount": 0,
       "documentRootHoldsTenantValue": false,
-      "routeSubtreeTenantValueCount": 3,
+      "effectiveTokenEmitterCount": 1,
+      "tokenEmitters": [
+        {
+          "tag": "article",
+          "className": "fs-surface-route fs-surface-route--branded",
+          "propertyCount": 43,
+          "tenantValueCount": 1
+        }
+      ],
+      "routeSubtreeTenantValueCount": 1,
       "resolvedPrimaryOnRoute": "#7A1F3D",
       "onScreenProbeReadsTenantValues": 0
     },
@@ -22,6 +31,15 @@
       "grant": "refused",
       "documentRootFormspecVarCount": 0,
       "documentRootHoldsTenantValue": false,
+      "effectiveTokenEmitterCount": 1,
+      "tokenEmitters": [
+        {
+          "tag": "article",
+          "className": "fs-surface-route fs-surface-route--platform",
+          "propertyCount": 43,
+          "tenantValueCount": 0
+        }
+      ],
       "routeSubtreeTenantValueCount": 0,
       "resolvedPrimaryOnRoute": "#27594f",
       "onScreenProbeReadsTenantValues": 0
@@ -33,6 +51,15 @@
       "grant": "refused",
       "documentRootFormspecVarCount": 0,
       "documentRootHoldsTenantValue": false,
+      "effectiveTokenEmitterCount": 1,
+      "tokenEmitters": [
+        {
+          "tag": "article",
+          "className": "fs-surface-route fs-surface-route--platform",
+          "propertyCount": 43,
+          "tenantValueCount": 0
+        }
+      ],
       "routeSubtreeTenantValueCount": 0,
       "resolvedPrimaryOnRoute": "#27594f",
       "onScreenProbeReadsTenantValues": 0
@@ -44,6 +71,15 @@
       "grant": "refused",
       "documentRootFormspecVarCount": 0,
       "documentRootHoldsTenantValue": false,
+      "effectiveTokenEmitterCount": 1,
+      "tokenEmitters": [
+        {
+          "tag": "article",
+          "className": "fs-surface-route fs-surface-route--platform",
+          "propertyCount": 43,
+          "tenantValueCount": 0
+        }
+      ],
       "routeSubtreeTenantValueCount": 0,
       "resolvedPrimaryOnRoute": "#27594f",
       "onScreenProbeReadsTenantValues": 0
@@ -55,12 +91,21 @@
       "grant": "admitted",
       "documentRootFormspecVarCount": 0,
       "documentRootHoldsTenantValue": false,
-      "routeSubtreeTenantValueCount": 3,
+      "effectiveTokenEmitterCount": 1,
+      "tokenEmitters": [
+        {
+          "tag": "article",
+          "className": "fs-surface-route fs-surface-route--branded",
+          "propertyCount": 43,
+          "tenantValueCount": 1
+        }
+      ],
+      "routeSubtreeTenantValueCount": 1,
       "resolvedPrimaryOnRoute": "#7A1F3D",
       "onScreenProbeReadsTenantValues": 0
     }
   ],
-  "structuralClaim": "resolveThemeGrant is the only reader of the tenant Theme document in the app (grep: src/theme-grant.ts is the sole importer of `tenantTheme` from src/bundle.ts). It is called once per route at the route boundary, and only grant.themeDocument crosses into RouteView. On a refusing class that object is built from the platform token registry and never saw the tenant tokens.",
+  "structuralClaim": "`SurfaceApp` passes `bundle.tenantTheme` once to `createThemeAuthority`; route planning exposes only the resulting grant to `SurfaceRouteView`. The route view emits that effective map once on its owned article, while nested form renderers suppress their own token emission. On a refusing class the grant contains platform tokens only and never includes tenant values.",
   "documentRootClaim": "The document root now stays clean without the shell doing anything. `enforceDocumentRootThemeBoundary` is deleted; `documentRootThemeProperties()` reads and reports. The renderer owns the guarantee, which is the only place it can live — a host can clean up after a global write, never prevent it.",
   "previousCaveatStruck": "The earlier run of this probe carried: \"Keeping the DOCUMENT ROOT clean is not [structural] — it requires an active scrub.\" That is no longer true and the scrub is gone."
 }

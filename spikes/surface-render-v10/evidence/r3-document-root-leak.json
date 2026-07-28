@@ -43,6 +43,6 @@
       "documentRootPrimary": null
     }
   ],
-  "shellWorkaroundRemoved": "src/theme-grant.ts `enforceDocumentRootThemeBoundary` scrubbed `<html>` on every refusing route. It is gone. `documentRootThemeProperties()` replaced it: the shell now READS the document root and asserts it is empty rather than making it empty.",
+  "shellWorkaroundRemoved": "The former spike helper `enforceDocumentRootThemeBoundary` scrubbed `<html>` on every refusing route. It is gone. `documentRootThemeProperties()` now reads the document root and asserts it is empty rather than making it empty.",
   "verdict": "FIXED — 0 tenant properties on <html> at every step, with no shell workaround running"
 }

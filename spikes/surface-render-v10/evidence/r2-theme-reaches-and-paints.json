@@ -28,8 +28,21 @@
       "backgroundColor": "rgb(122, 31, 61)",
       "color": "rgb(255, 255, 255)"
     },
-    "elementsPaintingTenantBrandAtRest": 1,
-    "elementsPaintingTenantBrandWithAnInputFocused": 2,
+    "brandSelector": {
+      "selector": ".formspec-container > .formspec-stack",
+      "matchCount": 1,
+      "matches": [
+        {
+          "tag": "div",
+          "className": "formspec-stack",
+          "borderInlineStartColor": "rgb(122, 31, 61)",
+          "borderInlineStartStyle": "solid",
+          "borderInlineStartWidth": "3px"
+        }
+      ]
+    },
+    "elementsPaintingTenantBrandAtRest": 2,
+    "elementsPaintingTenantBrandWithAnInputFocused": 3,
     "focusedInputOutline": {
       "element": "input",
       "name": "householdSize",
@@ -37,6 +50,13 @@
       "borderColor": "oklab(0.821084 0.0042989 0.0178124)"
     },
     "paintSites": [
+      {
+        "tag": "div",
+        "className": "formspec-stack",
+        "property": "borderLeftColor",
+        "value": "rgb(122, 31, 61)",
+        "text": "Household sizeMonthly rentMonths behind "
+      },
       {
         "tag": "input",
         "className": "",
