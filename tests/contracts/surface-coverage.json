@@ -886,6 +886,71 @@
         "studio-core exposes readSurfaceDraft as authoring projection and exportSurfaceDocument as the fail-closed publish gate"
       ]
     },
+    "surface-shell": {
+      "status": "enforced",
+      "spec": "specs/surface/surface-shell-spec.md",
+      "schema": "schemas/surface.schema.json",
+      "conformance": [
+        "tests/conformance/test_app_graph_surface_response_action_trigger_fixture_corpus.py",
+        "tests/unit/test_lint_rule_registry.py",
+        "packages/formspec-app-graph/tests/surface-response-action-triggers-conformance.test.ts",
+        "packages/formspec-react/tests/theme-token-scope.test.tsx",
+        "packages/formspec-surface/tests/composition.test.ts",
+        "packages/formspec-surface/tests/diagnostics.test.ts",
+        "packages/formspec-surface/tests/registry.test.ts",
+        "packages/formspec-surface/tests/slot-plan.test.ts",
+        "packages/formspec-surface/tests/static-content.test.ts",
+        "packages/formspec-surface/tests/supplied-triggers.test.ts",
+        "packages/formspec-surface/tests/theme-authority.test.ts",
+        "packages/formspec-surface/tests/transitions.test.ts",
+        "packages/formspec-surface-react/tests/action-completion.test.ts",
+        "packages/formspec-surface-react/tests/contrast.test.ts",
+        "packages/formspec-surface-react/tests/route-view.test.tsx",
+        "packages/formspec-surface-react/tests/surface-app.test.tsx"
+      ],
+      "crates": [
+        "crates/formspec-lint/src/generated/lint_code.rs",
+        "crates/formspec-lint/src/metadata.rs"
+      ],
+      "fixtures": [
+        "tests/conformance/fixtures/app-graph-validator/surface-response-action-triggers.case.json",
+        "spikes/surface-render-v10/evidence/"
+      ],
+      "packages": {
+        "app-graph": [
+          "packages/formspec-app-graph/src/surface-response-action-triggers.ts",
+          "packages/formspec-app-graph/tests/surface-response-action-triggers-conformance.test.ts"
+        ],
+        "layout": [
+          "packages/formspec-layout/src/styles/default.surfaces.css"
+        ],
+        "react-theme-scope": [
+          "packages/formspec-react/src/context.tsx",
+          "packages/formspec-react/src/renderer.tsx",
+          "packages/formspec-react/tests/theme-token-scope.test.tsx"
+        ],
+        "surface": [
+          "packages/formspec-surface/src/",
+          "packages/formspec-surface/tests/"
+        ],
+        "surface-react": [
+          "packages/formspec-surface-react/src/",
+          "packages/formspec-surface-react/tests/"
+        ]
+      },
+      "checks": [
+        "Route composition, matching, parameter handling, slot planning, Registry resolution, theme authority, transition posture, static-content heading ranks, and runtime diagnostics are covered by the renderer-independent package tests",
+        "React integration covers unavailable slot plans, exact Response Actions document selection, completed-action navigation, unresolved marker links, route-scoped diagnostics, single token emission, cleanup, light and dark contrast, and real brand selectors",
+        "AppGraphValidator emits E611 warning diagnostics when resolved transition triggers have no validator-readable definition-form control source on the route or a transitive embedded route",
+        "The spike probe records route walks, both color schemes, contrast measurements, token-scope boundaries, and document-root leak checks against the static build"
+      ],
+      "severityFloor": {
+        "E611": {
+          "minimum": "warning",
+          "rationale": "A resolved transition without a validator-readable control source must remain visible to authors even when a host-supplied executor could make it fireable at runtime."
+        }
+      }
+    },
     "app-manifest": {
       "status": "enforced",
       "spec": "specs/bundle/app-manifest-spec.md",

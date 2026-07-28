@@ -30,6 +30,9 @@ A Surface document names routes inside an app and binds slots on those routes.
 Slots compose Definition forms, Experience units, module widgets, static
 content, and nested route references. Surface is inward composition: it
 describes what can be rendered within an app after the app has been selected.
+The companion [Surface Shell Specification](surface-shell-spec.md) defines how
+a runtime composes, resolves, renders, and diagnoses published Surface
+documents.
 
 ## 2. Surface Document and Authoring Draft
 
@@ -188,11 +191,13 @@ Unclassified is a distinct state from `operation`, which is a stated
 classification: someone looked at the route and declared it operator-facing
 product UI. Processors MUST NOT treat an absent `routeClass` as `operation`.
 
-The two states have opposite theme postures, which is the sharpest reason not to
-collapse them: `operation` refuses tenant chrome theming, and an unclassified
-route refuses nothing, because a rule keyed on a class cannot fire against a
-route that states none. Every Surface document authored before this vocabulary
-existed therefore keeps its exact prior behavior. The distinction is also
+The two states have opposite **authoring-time refusal postures**, which is the
+sharpest reason not to collapse them: `operation` fires `THEME-ROUTE-CLASS`
+against a tenant Theme assignment, while an unclassified route cannot fire a
+rule keyed on a class it does not state. The document therefore remains valid
+and publishable. At runtime, the shell separately refuses tenant theming on an
+unclassified route because silence does not grant theme authority
+([surface-shell-spec](surface-shell-spec.md) §4.3). The distinction is also
 load-bearing forward — because *stated* and *unstated* stay distinguishable, a
 future conformance level, publication gate, or host policy can require
 classification without a schema change. A schema `default` would have collapsed

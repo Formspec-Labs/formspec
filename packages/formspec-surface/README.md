@@ -53,13 +53,13 @@ being the platform's.
 | Question | The call | Where it belongs long-term |
 |---|---|---|
 | Which route classes admit tenant theming? | **Not this package's call.** `ROUTE_CLASS_THEME_AUTHORITY` decides; this reads it. The refusal *wording* ships here, keyed exhaustively over the vocabulary. | The map stays in `@formspec-org/app-graph`. |
-| What does a renderer do with an absent `routeClass`? | Refuse tenant theming, as its own `unclassified` posture — never collapsed into `operation`. Reading absence as "admit" is fail-open on the one vocabulary whose purpose is a trust rule. | `surface-spec.md` §3 should state it. ADR 0161 §6 declares absence distinct and leaves the renderer posture undefined. |
+| What does a renderer do with an absent `routeClass`? | Refuse tenant theming, as its own `unclassified` posture — never collapsed into `operation`. Reading absence as "admit" is fail-open on the one vocabulary whose purpose is a trust rule. | `surface-spec.md` §3 distinguishes the authoring-time posture; `surface-shell-spec.md` §4.3 owns runtime refusal. |
 | Two Surfaces, one app — how do they compose? | One flat URL space in manifest order; the first Surface's `entry` is the app entry; path collisions are reported, never silently resolved. | The App Manifest is the only artifact that sees both Surfaces, so the rule belongs to whatever reads it. |
 | What labels a Surface in a navigation? | `title ?? id`, and nothing else. A host may supply a label resolver. The shell does not write product copy for an artifact that declined to carry it. | `SurfaceDocument.title` staying optional is fine; inventing copy for it is not. |
-| Two Registries declare the same entry `name` — which wins? | First in manifest-then-author order, with `REGISTRY-ENTRY-NAME-COLLISION` on every loser. | Nothing states a precedence rule. When one lands, `flattenRegistryEntries` is the single site that changes. |
+| Two Registries declare the same entry `name` — which wins? | Neither. `flattenRegistryEntries` reports `REGISTRY-ENTRY-NAME-COLLISION` once and omits every declaration of that name. | Registry §2.2 requires exactly-one unqualified lookup and rejects order-based winners. |
 | Does the shell supply a default transition trigger? | **No.** See below. | — |
-| Absolute heading levels inside a composed route? | An authored `level` is a rank *within the route*, offset from `headingBaseLevel` (default 2, because the route title is the page `h1`). No skips, never a second `h1`, embeds step down. | The schema's absolute 1–6 does not compose; the offset is the shell's to own. |
-| A tenant token the platform vocabulary does not carry? | Emit it and raise `THEME-TOKEN-UNKNOWN`. No built-in alias table — a host may supply one. | The token registry and the authoring tools own the vocabulary decision. |
+| Absolute heading levels inside a composed route? | An authored `level` is a rank *within the route*, offset from `headingBaseLevel` (default 2, because the route title is the page `h1`). No skips, never a second `h1`, embeds step down. | Surface schema and Surface Shell §3.4.1 define the same rank semantics. |
+| A tenant token the platform vocabulary does not carry? | Never alias it. Runtime rendering does not depend on the Registry. | Registry-aware validation reports `THEME-TOKEN-UNREGISTERED`. |
 
 ### The transition-trigger call, stated
 
@@ -80,12 +80,10 @@ Everything else renders as a stated refusal naming which half is missing. A
 signed bundle describing an app that cannot leave its first page is a fact worth
 putting on the page.
 
-**What this leaves open:** nothing checks, before signing, that a transition
-trigger has anything that could produce it. Lint's E606 walks the route graph for
-reachability and never asks whether an edge can be traversed;
-`validateSurfaceResponseActionTriggers` does ask, but only when a Response
-Actions document is loaded — so a bundle carrying none has no trigger to
-contradict. That check belongs in lint or the app-graph validator.
+App-graph validation emits E611 when a resolved transition has no
+validator-readable control source. The warning complements runtime planning:
+validation cannot see a host executor or private widget behaviour, while the
+shell can report the actual runtime posture.
 
 ## Diagnostics, not silence
 

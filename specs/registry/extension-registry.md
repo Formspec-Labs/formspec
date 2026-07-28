@@ -130,6 +130,19 @@ Document top-level properties.
 | `url` | string (URI) | DEPRECATED | Legacy alias for `homepage`; retained for two minor versions. |
 | `contact` | string | DEPRECATED | Legacy contact string; retained for two minor versions in favor of `contactPoint`. |
 
+### 2.2 Cross-Document Name Collisions
+
+An unqualified lookup by `RegistryEntry.name` MUST resolve to exactly one loaded
+declaration. When multiple loaded Registry documents declare the same name and
+no stronger version-qualified selection rule chooses one, the processor MUST
+report the collision and treat the name as unresolved. It MUST use none of the
+colliding declarations.
+
+A processor MUST NOT choose a declaration by Registry document order, manifest
+order, or first match. This rule applies across loaded Registry documents. The
+existing requirement that each `(name, version)` tuple be unique within one
+Registry document remains unchanged.
+
 ---
 
 ## 3. Registry Entry Format
@@ -277,9 +290,10 @@ All rules in this section are **normative**.
    MUST be unique. A Registry Document MUST NOT contain two entries with the
    same `name` and `version`.
 
-5. Across independently published registries, naming conflicts are resolved by
-   publisher authority. Organizations SHOULD use the `x-{org}-{domain}` pattern
-   (§8.5) to minimize collision risk.
+5. Across independently published registries, organizations SHOULD use the
+   `x-{org}-{domain}` pattern (§8.5) to minimize collision risk. An unqualified
+   collision fails closed per §2.2; publisher identity does not silently choose
+   a winner.
 
 6. Concept entries SHOULD use the prefix `x-onto-` (e.g., `x-onto-ein`,
    `x-onto-birthdate`) and vocabulary entries SHOULD use `x-vocab-` (e.g.,

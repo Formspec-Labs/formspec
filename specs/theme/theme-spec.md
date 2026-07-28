@@ -385,6 +385,34 @@ Renderers MAY activate dark-mode stylesheets via `prefers-color-scheme`
 media queries, explicit appearance classes, or other
 renderer-specific mechanisms.
 
+### 3.7 Token Layering and Emission Ownership
+
+When a host applies a tenant Theme over platform tokens, it MUST merge the two
+maps key by key. Platform tokens form the lower layer; tenant values replace
+matching keys, and platform values for all other keys remain. A partial tenant
+Theme MUST NOT erase platform spacing, typography, radii, or other tokens it
+does not set.
+
+The composition layer that decides the effective token map owns its emission.
+It MUST emit that map once, on the nearest element or output subtree it owns.
+Nested renderers MUST provide a way for that owner to disable their token
+emission; they MUST NOT write a second copy of the same effective map.
+
+A renderer MUST NOT write Theme tokens to the document root, `body`, or any node
+it does not own. A host MAY write to the document root only when it explicitly
+owns the whole document and grants that scope. A component or provider does not
+gain document ownership by being mounted inside it. An emitter MUST replace
+stale values when the effective Theme changes and remove values it owns when it
+unmounts.
+
+Non-DOM renderers MUST apply the same rule to their medium: emit tokens once at
+the smallest output scope the composition layer owns.
+
+Runtime rendering MUST NOT depend on the Token Registry being loaded. Registry-
+aware validation owns unknown-token reporting through
+`THEME-TOKEN-UNREGISTERED`; renderers apply the effective Theme without creating
+aliases for undeclared keys.
+
 ## 4. Widget Catalog
 
 ### 4.1 Relationship to Tier 1 widgetHint

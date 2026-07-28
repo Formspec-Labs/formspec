@@ -273,7 +273,7 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 6,
-                    "description": "OPTIONAL heading level (1-6). Only meaningful when kind='heading'."
+                    "description": "OPTIONAL heading rank within the enclosing route or slot (1-6). Processors map this rank to the document outline from the host heading baseline and embedding depth. Only meaningful when kind='heading'."
                   }
                 }
               }

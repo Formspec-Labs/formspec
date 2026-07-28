@@ -44,18 +44,19 @@ Two consequences follow, and both are deliberate:
    call this spec should own, this spec decides on the merits and states its
    reasoning. Several decisions here match the implementation because the
    implementation reasoned correctly; several do not.
-2. **Divergences are catalogued, not smoothed.** Appendix B is the register of
-   every place the shipped packages contradict this document. A divergence
+2. **Divergences are catalogued, not smoothed.** Appendix B records the known
+   places found by this review where the shipped packages contradicted this
+   document. A divergence
    register on a spec written after its code is the honest shape; an empty one
    would mean the spec had been reverse-engineered rather than decided.
 
 The document also closes the question ADR 0161 §6 left open — what a processor
-does with a route that states no `routeClass` — and proposes one new
+does with a route that states no `routeClass` — and defines one new
 validation-time lint code (§5.4). Neither is inherited; both are marked as this
 specification's own decisions.
 
-**This document sits in the normative spec tree and has not yet had the
-architecture review its own seam triggers.** It is here rather than in
+**This document sits in the normative spec tree and remains a draft after its
+2026-07-28 architecture review.** It is here rather than in
 `thoughts/` because behavioural semantics a schema cannot encode are normative in
 `specs/**/*.md` — the source-of-truth split ADR 0161 §4 pin-test condition 1 keys
 on — and a citable rule cannot live behind a date-stamped proposal filename. That
@@ -134,7 +135,7 @@ Additional terms:
   tokens to `<html>` and left them there across navigation.
 - **The shell supplies no default trigger affordance.** The bundle declares the
   trigger source or the transition does not fire, and an unfireable transition is
-  caught before publication by a new lint code, `E611`
+  reported during app-graph validation by `E611`
   (`SURFACE-TRANSITION-UNFIREABLE`) (§5).
 - **A shell handed a signed bundle export MUST verify before first paint and MUST
   refuse, not warn, on failure** (§6).
@@ -200,7 +201,7 @@ reproducible across React, a web component, a PDF writer, or a terminal.
 | **Shell core** | Composing the route table; path matching and specificity; entry-route selection; slot dispatch and target resolution; theme grant per route; heading-level assignment; transition planning; the diagnostic set. | Emit markup, touch a DOM, assume a medium, own navigation history, or fetch anything. |
 | **Binding** | Turning a route plan into one medium's primitives; element choice; focus order; the presentation of unavailable, empty, and unfireable states. | Re-derive anything the core decided — a binding that recomputes a route match, a theme grant, a slot dispatch, or a heading level has forked the contract. |
 | **Host application** | Supplying the incoming path and route-parameter values; supplying bundle bytes and signature; verification (§6); the widget registry; the Response Actions executor; navigation and history; the data a module widget displays; presenting unmatched paths. | Reach past the shell to write theme tokens; infer transition success from a click; substitute an artifact the bundle did not name. |
-| **Validation-time tooling** | Everything decidable without a person: `E603`, `E604`, `E606`, `E607`, `E610`, the proposed `E611` (§5.4), `THEME-ROUTE-CLASS`, `THEME-TOKEN-UNREGISTERED`. | Nothing here is the shell's to re-implement. |
+| **Validation-time tooling** | Everything decidable without a person: `E603`, `E604`, `E606`, `E607`, `E610`, `E611` (§5.4), `THEME-ROUTE-CLASS`, `THEME-TOKEN-UNREGISTERED`. | Nothing here is the shell's to re-implement. |
 
 **The shell trusts validation and still fails closed.** A conformant shell MAY
 assume a published bundle passed validation, and MUST NOT duplicate the
@@ -278,6 +279,11 @@ renderer-local DOM state. This section states the composition consequence:
 - Two Surfaces MAY declare the same `routes[].id`. That is not a collision —
   `routes[].id` is unique *within* a Surface by schema, and the pair
   disambiguates.
+- The composed table MUST contain at most one route for each (Surface identity,
+  `routes[].id`) pair. If malformed runtime input produces more than one, the
+  shell MUST report `ROUTE-HANDLE-AMBIGUOUS`, omit every duplicate from
+  unqualified and qualified handle lookup, and resolve no affected app entry.
+  It MUST NOT choose by declaration order.
 - A route path is **not** an identity. It is the host-facing address of one
   route, and §2.4 governs what happens when two routes claim the same one.
 - The `surface:<route-id>` URI scheme
@@ -413,6 +419,11 @@ Substituting the name produces a URL that looks like a working link and is not �
 `example` puts documentation into a live address. Both are the invent-no-content
 prohibition (§1.3 principle 2) in the address bar.
 
+A binding MUST NOT emit an interactive link whose destination still contains an
+unresolved `{name}` marker. It renders the navigation item as unavailable and
+delivers `ROUTE-PARAM-UNSUPPLIED` to the host diagnostic channel. A marker-
+bearing URL is not a disabled link; it is an address no host supplied.
+
 ---
 
 ## 3. Slot Dispatch
@@ -428,6 +439,9 @@ Dispatch MUST be exhaustive over the closed taxonomy, with no default branch. A
 shell that falls through to a generic renderer for an unrecognised `slotType`
 has admitted a value the schema does not, which is the extension seam ADR 0150
 §4.2 reserves for a Registry `slot-type` contribution — not a runtime fallback.
+If malformed runtime input reaches the shell despite schema validation, an
+unrecognised `slotType` MUST produce an unavailable slot plan and
+`SLOT-TYPE-UNKNOWN`. It MUST NOT throw or invoke a generic renderer.
 
 ### 3.0 General Obligations
 
@@ -563,9 +577,11 @@ only runtime extension point inside a route.
   named as a host input rather than dressed up as a bundle channel. A shell that
   invented a binding-to-data path would fork the vocabulary before the schema
   settles it. Recorded as **finding F2** (Appendix B).
-- **A module widget cannot declare that it fires an action.** This is load-bearing
-  for §5.2 and stated here because it is a property of the Registry `widget`
-  contribution, not of any one widget.
+- **A module widget has no validator-readable way to declare that it fires an
+  action.** A host may implement private action behaviour, but validation cannot
+  count behaviour the loaded artifacts do not declare. This limit is
+  load-bearing for §5.2 and belongs to the Registry `widget` contribution, not
+  to any one widget.
 
 ### 3.4 `static-content`
 
@@ -573,7 +589,9 @@ The slot renders inline literal content. The `kind` vocabulary is closed at v0.1
 in `schemas/surface.schema.json` and
 [surface-spec](surface-spec.md) §5 and is not restated here.
 A shell MUST dispatch exhaustively over it; an unrecognised `kind` is a schema
-violation, not a rendering decision.
+violation, not a rendering decision. If malformed runtime input nevertheless
+contains one, the shell MUST produce an unavailable slot plan, report
+`STATIC-CONTENT-KIND-UNKNOWN`, and render no content for that slot.
 
 **Content is literal text.** For every kind, `binding.content` MUST be rendered
 as text. A shell MUST NOT interpret it as HTML, Markdown, or any markup, and MUST
@@ -601,9 +619,9 @@ at 6, for each `embed-route` nesting level (§3.5).
 The `- 1` is what makes `level` a rank rather than an offset: the lowest authored
 rank sits *at* the baseline, so an authored `level: 1` on a top-level route
 renders `h2` and an unlevelled heading renders at the same place. A shell MUST
-NOT read `level` as an absolute HTML heading level — the schema's absolute 1–6
-does not compose, and reading it absolutely is what puts a second `h1` on a
-route.
+NOT read `level` as an absolute HTML heading level. The schema defines a rank
+from 1 through 6; treating that rank as an absolute document level does not
+compose and can put a second `h1` on a route.
 
 Three obligations follow, and they are the accessibility contract:
 
@@ -758,12 +776,13 @@ Emitting it explicitly would give every Theme a value for it and the derivation
 could never fire — a tenant who sets only the brand token would keep the platform
 focus ring, which is the exact failure that field exists to prevent.
 
-**An undeclared non-`x-` tenant token is reported, never aliased.** The platform
-token registry is the closed vocabulary and the brand key is `color.primary`;
-there is no second brand key and processors MUST NOT alias one onto it
-([token-registry-spec](../theme/token-registry-spec.md) §2.4). A shell
-that encounters a tenant token under a registry-owned prefix that the registry
-does not declare MUST report `THEME-TOKEN-UNKNOWN` and MUST NOT bridge it.
+**An undeclared non-`x-` tenant token is never aliased.** The platform token
+registry is the closed vocabulary and the brand key is `color.primary`; there
+is no second brand key and processors MUST NOT alias one onto it
+([token-registry-spec](../theme/token-registry-spec.md) §2.4). Registry-aware
+validation reports undeclared keys as `THEME-TOKEN-UNREGISTERED`. Runtime
+rendering MUST NOT depend on the Registry being loaded and does not mint a
+second diagnostic for the same authoring defect.
 
 ### 4.3 An Absent Route Class Refuses
 
@@ -815,15 +834,11 @@ the shell had to pick one and the spec should."* This is the spec picking.
    receives a full platform Theme document (§4.2). The route renders; it renders
    in platform chrome. The tenant loses brand, not function.
 
-**The one statement that pulls the other way, and why it does not carry.**
-[surface-spec](surface-spec.md) §3 says *"Every Surface
-document authored before this vocabulary existed therefore keeps its exact prior
-behavior."* That sentence sits inside the paragraph explaining why absence is not
-defaulted to `operation`, and its subject is validator behaviour and document
-validity: old documents do not start failing. It cannot be a statement about
-runtime theming, because at the time it was written no runtime consumer of
-`routeClass` existed anywhere in the stack. The Surface Shell is the first, and
-this section is where the question gets answered rather than inherited.
+**The companion specifications state the two decisions separately.**
+[surface-spec](surface-spec.md) §3 says an absent class cannot fire an
+authoring-time refusal and the document remains publishable. This section
+answers the separate runtime question: absence grants no tenant theme authority,
+so the shell uses platform theming and reports the withheld grant.
 
 **What this does not change.** Unclassified remains a distinct state everywhere
 else: it produces no `THEME-ROUTE-CLASS` diagnostic, it is not reported as
@@ -880,6 +895,9 @@ than per rendered subtree from the route that composed it, has the composition
 inverted.
 
 ### 4.5 Token Emission Scoping
+
+[theme-spec](../theme/theme-spec.md) §3.7 owns the cross-renderer token-layering
+and emission rules. This section applies them to the Surface Shell boundary.
 
 > **Invariant TB-2.** A conformant shell emits Theme tokens only onto an element
 > it owns and controls the lifetime of, removes them when that element unmounts
@@ -979,7 +997,7 @@ widget binding to a Response Action
 | `definition-form` | **yes** | The Formspec renderer materializes action controls for the loaded Response Actions document against the rendered Definition. This is the only slot that reaches a Component action binding. |
 | `embed-route` | **yes, transitively** | The embedded route's slots render on the host route's surface, so a control it renders is a control the host route renders — the same transitivity §4.4 applies to the theme grant. |
 | `experience-unit` | no | A Unit's `actionRefs` *name* actions; they do not place controls. Experience is not authoritative for widget selection ([experience-spec](../experience/experience-spec.md) §1.4.1 prohibition 2), so a shell that drew a button from an `actionRef` would be deriving layout from Experience. |
-| `module-widget` | no | The Registry `widget` contribution declares `widgetShape.props`, `childrenPolicy`, `tokenSlots`, and lifecycle. **It has no channel to declare that the widget fires an action.** A widget therefore cannot be a *declared* trigger source at v0.1 — nothing in the substrate lets it declare one. |
+| `module-widget` | no | The Registry `widget` contribution declares `widgetShape.props`, `childrenPolicy`, `tokenSlots`, and lifecycle, but has no validator-readable action declaration. A host widget might act through private behaviour; validation cannot count it as a declared trigger source. |
 | `static-content` | no | Literal content. |
 
 *The `module-widget` row is this specification's own decision and the one that
@@ -987,11 +1005,11 @@ makes the check sound rather than heuristic.* It would be tempting to exempt any
 route carrying a module widget on the grounds that the widget *might* fire the
 action. That exemption would silence the check on exactly the case that motivated
 it — `/certify`'s only non-static slot is a module widget. The correct reading is
-narrower and more honest: a module widget that fires an action would be doing so
-through an undeclared channel, and the substrate's standing posture is that
-undeclared behaviour is not inferred. Making a module widget a legitimate trigger
-source requires the Registry `widget` contribution to gain an action-declaration
-channel — recorded as **finding F4** (Appendix B).
+narrower and more honest: private host behaviour is outside the loaded artifact
+graph and cannot prove that a person-facing control exists. Making a module
+widget a validator-readable trigger source requires the Registry `widget`
+contribution to gain an action-declaration channel — recorded as **finding F4**
+(Appendix B).
 
 `T.trigger` itself resolves per
 [surface-spec](surface-spec.md) §4: a Response Actions
@@ -1001,39 +1019,47 @@ and is not this section's concern — one defect, one code.
 
 ### 5.3 Runtime Posture
 
-For each transition on the matched route a shell resolves one of three states,
+For each transition on the matched route a shell resolves one of five states,
 and MUST expose which:
 
 | State | Condition | Shell behaviour |
 |---|---|---|
-| `supplied-by-slot` | A slot on the route (transitively through `embed-route`) already renders the control bound to the trigger. | Render nothing additional. The authored control is the affordance. |
+| `supplied-by-slot` | A slot on the route (transitively through `embed-route`) resolves the matching action **and the selected binding actually renders or publishes that control**. | Render nothing additional. The authored control is the affordance. |
 | `fireable` | The trigger resolves against a loaded Response Actions document **and** the host has supplied an executor for it. | Expose the transition as fireable. A binding MAY render a control for it — **supplying the executor is the host asking**, which is what makes this not a default affordance: with no executor there is no control, under any label. |
 | `unfireable` | Neither of the above. | Render no control. Report `TRANSITION-UNFIREABLE`, naming which half is missing. |
+| `condition-false` | `when` evaluates to `false` against validated bundle-state bindings. | Keep the transition dormant. Render no control and emit no diagnostic. |
+| `condition-unevaluable` | `when` cannot be evaluated against validated bundle-state bindings, including an evaluator failure. | Keep the transition dormant and report `TRANSITION-CONDITION-UNEVALUABLE`. |
 
 **Resolving `supplied-by-slot` is a walk, not a lookup.** The scan for a trigger
 source MUST descend `embed-route` slots transitively (§5.2), and MUST resolve the
 trigger through the loaded Response Actions document — matching an action `id`,
 or an intent published by exactly one action — rather than testing for a
-particular intent string. A shell that scans only a route's own `slots[]` reports
-a working page as dead; a shell that hardcodes one intent reports every other
-intent as dead. Both are the same defect: substituting a shortcut for the
-resolution rule surface-spec §4 already states.
+particular intent string. Resolution alone is insufficient: the binding must
+materialize the matching control. For example, a form renderer that places only
+its `submit` action may credit that action, but MUST NOT claim every other action
+targeting the same Definition. A shell that scans only a route's own `slots[]`,
+hardcodes one intent, or treats form presence as proof of every action substitutes
+a shortcut for the resolution rule Surface §4 and the binding's actual output.
 
 On `unfireable` a shell **MUST NOT** render an interactive control, MUST report
 the diagnostic, and SHOULD make the state perceivable to the person rather than
 leaving a dead end with no explanation. The wording of any such notice is the
-binding's, and in a conforming published bundle it is unreachable — §5.4 blocks
-publication of the state that produces it.
+binding's. `E611` warns about validator-visible cases before runtime, but a host
+executor or private widget behaviour may still affect the runtime posture.
 
 A shell MUST NOT advance a transition on its own initiative. It advances only
-after the host reports that the referenced action completed successfully under
-Response Actions authority, and MUST NOT infer that from a click, a rendered
-control, a validation summary, or the absence of an error.
+after the host reports a Response Action terminal result with
+`status: "completed"`, a resolved action identity, and a validation report whose
+`valid` field is `true`. Failed, deferred, blocked, unresolved, or invalid
+results do not advance, including a nonblocking invalid result. The shell MUST
+NOT infer success from a click, a rendered control, a validation summary alone,
+or the absence of an error.
 
 `when`, where present, is an FEL boolean over bundle state. A shell MUST NOT
-evaluate it against renderer-local state; a shell that cannot evaluate it against
-validated bundle-state bindings MUST treat the transition as not firing rather
-than guessing.
+evaluate it against renderer-local state. False is the expected dormant
+`condition-false` state. Missing bindings, unsupported expressions, or evaluator
+failure are `condition-unevaluable`; the shell reports the diagnostic and does
+not fire.
 
 ### 5.4 `E611` — Catching It Before Publication
 
@@ -1044,10 +1070,10 @@ resolves against a loaded Response Actions document — so it fires on a trigger
 document contradicts and stays silent on a route with no way to raise the trigger
 at all. The missing rule is per-route, not per-document.
 
-> **Proposed new lint code.** `E611` — `SURFACE-TRANSITION-UNFIREABLE`, severity
-> `error`, pass: cross-artifact / app-graph. Registered in `specs/lint-codes.json`
-> in the Surface band alongside `E606`, `E607`, and `E610`. **This code does not
-> exist today**; it is proposed by this specification.
+> **Lint code.** `E611` — `SURFACE-TRANSITION-UNFIREABLE`, severity `warning`,
+> pass: cross-artifact / app-graph. It is registered in
+> `specs/lint-codes.json` in the Surface band alongside `E606`, `E607`, and
+> `E610`.
 
 **Rule.** For every route `R` and every transition `T` in `R.transitions[]` whose
 `trigger` resolves, `R` MUST contain — directly or transitively through
@@ -1079,6 +1105,11 @@ control — relevance, authorization, precondition, or `when` — is runtime sta
 `E611` asks only whether a control that could produce the trigger is declared to
 exist on that route. A statically declared control that a precondition always
 blocks is a Response Actions concern, not a Surface one.
+
+`E611` is a warning because authoring-time validation cannot see a
+host-supplied executor, and Registry widgets have no validator-readable action
+declaration. A host MAY elevate the diagnostic. Finding F4 would give validation
+stronger evidence and could support a later decision to raise the base severity.
 
 ---
 
@@ -1192,6 +1223,7 @@ app-construction diagnostics delivers the minority of them.
 | `BUNDLE-DOCUMENT-MISSING` | `error` | A manifest slot names a URL absent from the export's documents. |
 | `BUNDLE-DOCUMENT-SHAPE` | `error` | A manifest slot resolved to something that is not the artifact it claims. |
 | `SURFACE-ENTRY-UNRESOLVED` | `error` | A Surface's `entry` names no route in that Surface. |
+| `ROUTE-HANDLE-AMBIGUOUS` | `error` | More than one composed route has the same (Surface identity, route id) handle, so handle lookup resolves none (§2.2). |
 | `ROUTE-PATH-COLLISION` | `error` | Two or more composed routes produce the same URL path (§2.4). |
 | `ROUTE-PARAM-GRAMMAR` | `error` | A route path uses a parameter grammar Surface v0.1 does not pin (§2.3). |
 | `ROUTE-PARAM-UNDECLARED` | `error` | A `{name}` marker in `path` has no matching `params[]` entry. |
@@ -1200,21 +1232,32 @@ app-construction diagnostics delivers the minority of them.
 | `ROUTE-UNMATCHED` | `warning` | No composed route matched the incoming path (§2.6). |
 | `EMBED-ROUTE-UNRESOLVED` | `error` | An `embed-route` binding names no route in the same Surface. |
 | `EMBED-ROUTE-CYCLE` | `error` | An `embed-route` chain revisited a route already on the chain. |
+| `SLOT-TYPE-UNKNOWN` | `error` | Malformed runtime input contains a `slotType` outside the closed Surface vocabulary. |
 | `SLOT-BINDING-INCOMPLETE` | `error` | A slot binding lacks a field its `slotType` requires. |
 | `EXPERIENCE-UNIT-UNRESOLVED` | `error` | An `experience-unit` binding names no unit in the resolved Experience. |
 | `WIDGET-UNDECLARED` | `error` | A `module-widget` binding names a widget no Registry in the bundle declares. |
 | `WIDGET-UNIMPLEMENTED` | `error` | The Registry declares the widget; nothing the host registered implements it. |
 | `REGISTRY-ENTRY-NAME-COLLISION` | `warning` | Two Registry documents in one bundle declare the same entry `name`. |
+| `STATIC-CONTENT-KIND-UNKNOWN` | `error` | Malformed runtime input contains a static-content `kind` outside the closed vocabulary. |
 | `STATIC-IMAGE-NO-ALT` | `warning` | A `static-content` slot with `kind: image` has no authored alternative text (§3.4.2). |
-| `THEME-TOKEN-UNKNOWN` | `warning` | A tenant Theme token sits under a registry-owned prefix the registry does not declare (§4.2). |
 | `THEME-UNCLASSIFIED-REFUSED` | `info` | Tenant theming was withheld from a route because it declares no `routeClass` (§4.3). |
 | `THEME-DOCUMENT-ROOT-CONTAMINATED` | `error` | The shell observed Formspec custom properties on the document root, which no conforming emitter writes (§4.5). |
 | `TRANSITION-UNFIREABLE` | `warning` | A declared transition on the matched route has no trigger source and no host executor (§5.3). |
+| `TRANSITION-CONDITION-UNEVALUABLE` | `warning` | A transition's `when` expression cannot be evaluated against validated bundle-state bindings (§5.3). |
 
 ### 7.3 Fire / Does-Not-Fire Conditions
 
 Stated for the codes whose boundaries are contested. The remainder fire exactly
 as their table row reads.
+
+**`ROUTE-HANDLE-AMBIGUOUS`** — duplicate composed identity. Severity `error`.
+Surface Shell Core class.
+
+- *Fires when:* two or more composed routes have the same Surface identity and
+  `routes[].id`. Fires once per duplicate group, naming every member.
+- *Does not fire when:* two different Surfaces reuse a route id; two routes have
+  different ids but the same path (`ROUTE-PATH-COLLISION` owns that); one
+  well-formed Surface contains one route with the handle.
 
 **`ROUTE-PARAM-GRAMMAR`** — unpinned route-parameter grammar. Severity `error`.
 Surface Shell Core class.
@@ -1276,6 +1319,15 @@ Severity `warning`. Surface Shell Core class.
   currently evaluates false, which is a runtime condition and not an absence of
   machinery; the route declares no transitions.
 
+**`TRANSITION-CONDITION-UNEVALUABLE`** — a condition has no trustworthy result.
+Severity `warning`. Surface Shell Core class.
+
+- *Fires when:* a transition declares `when` and no evaluator is available; its
+  required bundle-state bindings are missing; the expression is unsupported; or
+  the evaluator throws or returns no boolean.
+- *Does not fire when:* `when` is absent; it evaluates `true`; or it evaluates
+  `false`, which is the ordinary diagnostic-free `condition-false` state.
+
 **`THEME-DOCUMENT-ROOT-CONTAMINATED`** — a global write happened. Severity
 `error`. Surface Shell Core class.
 - *Fires when:* the shell observes Formspec-namespaced custom properties on the
@@ -1314,8 +1366,10 @@ A conformant **Surface Shell Core** MUST:
 
 1. Compose every Surface named by App Manifest `surfaces[]` into one flat route
    table in manifest order, with no path prefixing (§2.1).
-2. Key every route by (Surface identity, `routes[].id`) and never by path,
-   Definition URL, or renderer-local state (§2.2).
+2. Key every route by (Surface identity, `routes[].id`), require exactly one
+   route per handle, and report `ROUTE-HANDLE-AMBIGUOUS` and resolve none when a
+   malformed input duplicates one; never key by path, Definition URL, or
+   renderer-local state (§2.2).
 3. Match paths using `{name}` markers as the only parameter grammar, report
    `ROUTE-PARAM-GRAMMAR` for any other, and treat the offending segment as
    literal (§2.3).
@@ -1327,9 +1381,11 @@ A conformant **Surface Shell Core** MUST:
 6. Render nothing and report `ROUTE-UNMATCHED` when no route matches; never
    redirect to the entry route (§2.6).
 7. Refuse to enter a parameterized route without every declared value, and never
-   substitute the parameter name or its `example` (§2.7).
-8. Dispatch exhaustively over the closed slot-type taxonomy with no default
-   branch (§3).
+   substitute the parameter name or its `example`; return
+   `ROUTE-PARAM-UNSUPPLIED` so a binding can withhold a live link (§2.7).
+8. Dispatch schema-valid input exhaustively over the closed slot-type taxonomy
+   with no default branch; convert a malformed unknown value to an unavailable
+   plan plus `SLOT-TYPE-UNKNOWN` rather than throwing (§3).
 9. Distinguish *empty* from *unavailable*, render a placeholder for unavailable
    rather than omitting the slot, and report the matching diagnostic (§3.0).
 10. Resolve `definitionRef` by exact URL match with no alias fallback (§3.1).
@@ -1339,7 +1395,9 @@ A conformant **Surface Shell Core** MUST:
     *undeclared* from *unimplemented*, report `WIDGET-UNDECLARED` even when a host
     component exists for it, and supply no data channel the substrate does not
     declare (§3.3).
-13. Render `static-content` payloads as literal text, never as markup (§3.4).
+13. Render known `static-content` payloads as literal text, never as markup, and
+    convert a malformed unknown kind to an unavailable plan plus
+    `STATIC-CONTENT-KIND-UNKNOWN` (§3.4).
 14. Compute heading levels from composition — at most one `h1`, step down inside
     an embed, accept a host-supplied baseline (§3.4.1).
 15. Never synthesize image alternative text from a URL, and always report
@@ -1357,20 +1415,24 @@ A conformant **Surface Shell Core** MUST:
     reason to the host (§4.3, §4.3.1).
 21. Apply the host route's theme grant transitively to every embedded subtree,
     and never let an embedded route's own class raise its host's grant (§4.4).
-22. Satisfy invariant **TB-2**: emit tokens only onto an owned element, clean up
-    on unmount and theme change, never write the document root, and report rather
-    than scrub a contaminated root (§4.5).
+22. Satisfy invariant **TB-2**: let the composition layer emit the effective
+    token map once onto an owned element, disable duplicate nested-renderer
+    emission, clean up on unmount and theme change, never write the document
+    root, and report rather than scrub a contaminated root (§4.5).
 23. Never emit a derived token into a platform token map (§4.2).
-24. Never alias an undeclared tenant token onto a declared one; report
-    `THEME-TOKEN-UNKNOWN` (§4.2).
+24. Never alias an undeclared tenant token onto a declared one, never require a
+    Token Registry to render, and leave `THEME-TOKEN-UNREGISTERED` reporting to
+    registry-aware validation (§4.2).
 25. Supply no default transition affordance, under any label (§5.1).
 26. Classify every transition on the matched route as `supplied-by-slot`,
-    `fireable`, or `unfireable`, resolving trigger sources transitively through
-    `embed-route` and through the loaded Response Actions document rather than by
-    a hardcoded intent, and report `TRANSITION-UNFIREABLE` for the last (§5.2,
-    §5.3).
-27. Advance a transition only on a host report of successful Response Actions
-    completion, never on a click or a rendered control (§5.3).
+    `fireable`, `unfireable`, `condition-false`, or
+    `condition-unevaluable`; credit `supplied-by-slot` only when the selected
+    binding actually publishes the matching control, resolve sources transitively
+    through `embed-route`, and report the matching diagnostics (§5.2, §5.3).
+27. Advance a transition only on a host report with `status: "completed"`, a
+    resolved action identity, and `validationReport.valid: true`; never advance
+    on a click, rendered control, failed/deferred/blocked/unresolved result, or
+    invalid nonblocking result (§5.3).
 28. Emit only codes from the closed set in §7.2, each carrying `code`,
     `severity`, `message`, and a document-vocabulary `site` (§7).
 29. Report rather than throw for every condition in §7.2, and deliver every
@@ -1397,8 +1459,9 @@ A conformant **Surface Shell Binding** MUST:
 1. Render a route plan produced by a conformant core, and re-derive nothing in
    it — not the route match, not the theme grant, not the slot dispatch, not the
    heading level, not the transition state.
-2. Emit theme tokens onto an element the binding creates and destroys, with
-   cleanup on unmount and on theme change (§4.5).
+2. Emit the effective Theme-token map once onto an element the composition
+   binding creates and destroys, disable duplicate emission in nested renderers,
+   and clean up on unmount and on theme change (§4.5).
 3. Render every slot the plan carries, in plan order, including unavailable
    placeholders and empty states.
 4. Emit heading elements at the levels the plan assigns.
@@ -1417,12 +1480,18 @@ A conformant **Surface Shell Binding** MUST:
     own title, which level a title takes — is made in more than one code path,
     those paths MUST agree; divergent duplicates of the same rule are how a fixed
     defect reappears one nesting level down.
+11. Render parameterized navigation without an interactive link until every
+    marker has a host-supplied value, and deliver the diagnostic to the host
+    (§2.7).
 
 A conformant Surface Shell Binding MUST NOT:
 
 1. Write theme tokens to the document root, body, or any node it did not create.
 2. Synthesize a transition control, a navigation control bound to a declared
-   transition, or a submit control.
+   transition, or a submit control, except that it MAY render a transition the
+   core classifies as `fireable` after the host explicitly supplies its Response
+   Actions executor ([response-actions-spec](../response-actions/response-actions-spec.md)
+   §10).
 3. Substitute its own copy for content the bundle declined to carry — including
    route titles, group labels, and empty-state text with claims in it. A group
    label is the Surface's `title` or, absent that, its `id`.
@@ -1578,7 +1647,7 @@ Two are authored:
 
 | From | Transition | State | Why |
 |---|---|---|---|
-| `apply` | `{trigger: "submit", to: "certify"}` | `supplied-by-slot` | The `definition-form` slot renders the form, and the bundle's Response Actions document publishes an action with `submit` intent against that Definition. The person presses the form's own submit control; the host reports the successful terminal; the shell advances. |
+| `apply` | `{trigger: "submit", to: "certify"}` | `supplied-by-slot` | The `definition-form` slot renders the form, its selected renderer places the matching submit control, and the bundle's Response Actions document publishes that action against the Definition. The person presses the form's own control; the host reports a completed, resolved, valid result; the shell advances. |
 | `certify` | `{trigger: "submit", to: "receipt"}` | **`unfireable`** | The route's slots are one heading and one module widget. Neither is a trigger source (§5.2). Nothing on the page can produce a `submit`. |
 
 The `certify` transition is authored, schema-valid, **signed**, and dead. `E606`
@@ -1586,10 +1655,10 @@ passed it — `receipt` is reachable — because reachability is not traversabil
 A conforming shell renders no control, reports `TRANSITION-UNFIREABLE`, and the
 person on `/certify` cannot proceed.
 
-**This is exactly what `E611` (§5.4) exists to catch, before signing.** Under
-`E611` the bundle would fail publication with a message naming the route, the
-trigger, and the repair — add a `definition-form` slot whose Definition publishes
-the trigger, embed a route that has one, or remove the transition.
+**This is exactly what `E611` (§5.4) exists to report before signing.** The
+warning names the route, trigger, and repair — add a `definition-form` slot whose
+Definition publishes the trigger through a rendered control, embed a route that
+has one, supply a host executor, or remove the transition.
 
 ### 9.5 What the Example Demonstrates
 
@@ -1642,12 +1711,13 @@ shell that quietly fixes a defect it observes removes the only signal anyone had
 ## Appendix A: Gap-Ledger Coverage Map
 
 The [surface-render-v10 spike](../../thoughts/spikes/2026-07-27-surface-render-v10.md)
-recorded every piece of the running app the platform did not supply in a gap
+recorded the pieces of the running app that review identified as not supplied by
+the platform in a gap
 ledger ([`spikes/surface-render-v10/src/gaps.ts`](../../spikes/surface-render-v10/src/gaps.ts),
 emitted to [`evidence/gap-ledger.json`](../../spikes/surface-render-v10/evidence/gap-ledger.json)).
-This appendix maps every entry to the section that specifies it, or records why it
-is deliberately unspecified. **This map is how a reader knows the spec is complete
-relative to what the build discovered.**
+This appendix maps those reviewed entries to the section that specifies each one,
+or records why it is deliberately unspecified. It does not certify that the
+ledger or this specification found every possible gap.
 
 *Ledger status* is the ledger's own `open` / `resolved` flag — whether the code
 gap was closed — which is independent of whether this document specifies the
@@ -1658,7 +1728,7 @@ behaviour.
 | `bundle-manifest-dereference` | resolved | §3.0, §8.5 obligation 2 | Spec states the obligation (report all absences, single renderability verdict) and assigns it to the host, not the shell core. |
 | `surface-shell` | resolved | §1.2, §8 | The seam this document is the contract for. Layering is now normative, including navigation-as-port, which the build discovered rather than predicted. |
 | `route-matching` | resolved | §2.3, §2.7 | Includes the build's two corrections: an unsupplied marker is refused rather than name-substituted, and a malformed escape does not escape a render. |
-| `route-path-grammar-mismatch` | **open** | §2.3, §7.3 | **Specified against the implementation.** The spec pins `{name}` as the only grammar and makes an unpinned one a literal plus `ROUTE-PARAM-GRAMMAR`; the shipped shell matches both. Divergence D1; root cause is finding F8. |
+| `route-path-grammar-mismatch` | **open upstream** | §2.3, §7.3 | The runtime divergence is closed: the shell treats `:name` as literal, reports `ROUTE-PARAM-GRAMMAR`, and does not deep-link it. The schema and authoring defect remains: `path` still admits the unpinned form and the exemplar bundle still carries it. Finding F8 owns that remaining work. |
 | `slot-dispatch` | resolved | §3, §3.5 | Exhaustive dispatch with no default arm; `embed-route` recursion, host-grant inheritance, heading step-down, and cycle termination all normative. |
 | `module-widget-runtime` | resolved | §3.3 | Resolution keyed on `widgetShape.widgetName`; the three-outcome split (`resolved` / `unimplemented` / `undeclared`) is normative because it names who fixes it. |
 | `widget-x-intake-banner` | resolved | §1.3 principle 2, §3.3 | Not a spec object. The rule it produced — a widget configured with nothing says so rather than inventing copy — is normative. |
@@ -1666,14 +1736,14 @@ behaviour.
 | `widget-x-receipt-panel` | resolved | §3.3, §9.2 | The route-parameter-as-fact rule (a route addressed by a reference may display it) is stated in the worked example. |
 | `widget-x-queue-panel` | resolved | §3.0, §9.2 | Empty vs unavailable is the normative half; the widget itself is not a spec object. |
 | `widget-data-binding` | **open** | §3.3 (bounded), **finding F2** | **Deliberately unspecified.** The fork — a props channel on the slot binding versus widgets binding to Data Sources — is a schema decision, not a renderer decision. The spec bounds it: `config` is configuration, data comes from a host resolver, and a shell MUST NOT invent a bundle channel. |
-| `registry-entries-wiring` | resolved | §7.2 (`REGISTRY-ENTRY-NAME-COLLISION`) | **Precedence deliberately unspecified.** Nothing in Surface, Registry, or the validator states a precedence rule for same-named entries across Registry documents. The spec requires the collision be reported; naming a winner belongs to the Registry spec. The implementation additionally picks first-declaration-wins — which this spec neither requires nor forbids, and which the Registry spec should ratify or override rather than leave as a renderer's choice. Finding F5. |
+| `registry-entries-wiring` | resolved | §7.2 (`REGISTRY-ENTRY-NAME-COLLISION`), [Registry §2.2](../registry/extension-registry.md) | Cross-document collisions fail closed: report once, omit every colliding declaration, and never pick a first winner. |
 | `transition-has-no-trigger-source` | **open** (partial) | §5.1, §5.2, §5.3 | The affordance question is answered against the shell: the bundle declares the trigger, the shell supplies none. |
 | `no-runtime-state` | **open** | §8.5 obligations 1, 5, 6 | **Deliberately unspecified as substrate.** Submitted responses, case references, and issued receipts are host and WOS concerns. The spec specifies only the *ports* — route params, data resolver, action executor — not their contents. |
 | `experience-unit-rendering` | resolved | §3.2 | Includes the build's call, now normative: need descriptions are design rationale about the person, not copy for them. |
 | `static-content-rendering` | resolved | §3.4, §3.4.1 | The ledger entry's original claim that the `kind` vocabulary was unwritten is retracted in the ledger itself; the vocabulary was already closed. The heading-level contract is the substantive specification. |
 | `theme-authority-unexported` | resolved | §4.1 | The spec requires structural derivation from the shipped map. **Where the map lives is deliberately unspecified** — the ledger's deeper question (validator package versus a shared vocabulary package) is a packaging decision with no measured benefit either way. |
 | `theme-refusal-copy` | resolved | §4.3, §4.3.1 | **The half the ledger said belonged in the spec is now in it.** The *posture* for an absent class is §4.3 — the entry's explicit request. Refusal *copy* stays product, with two constraints the spec does add: it must be keyed by the vocabulary so it cannot drift, and presenting it to the person is opt-in (§4.3.1, divergence D15). |
-| `theme-token-vocabulary-bridge` | resolved | §4.2 | No aliasing; report `THEME-TOKEN-UNKNOWN`. The token vocabulary itself is owned by token-registry-spec §2.4 and not restated. |
+| `theme-token-vocabulary-bridge` | resolved | §4.2 | No aliasing. Registry-aware validation owns `THEME-TOKEN-UNREGISTERED`; runtime rendering does not depend on the Registry. |
 | `renderer-emits-tenant-tokens-to-document-root` | resolved | §4.5 (TB-2), §7.3 | The motivating defect. Specified as an invariant on the emitter, with the explicit no-scrubbing rule the build's own workaround-deletion produced. |
 | `tenant-brand-paints-nothing` | resolved | §4.2 | Two of the three compounding causes are specified here (platform layering, derived tokens not emitted). The third — the renderer's refusal to invent a submit control — is **correct** and is §5.1. |
 | `response-actions-type-mismatch` | **open** | — | **Deliberately unspecified.** A TypeScript type-assignability defect between two packages. No cross-language contract question; nothing for a spec to say. Finding F6. |
@@ -1683,17 +1753,17 @@ behaviour.
 | `cross-surface-navigation` | resolved | §2.1, §2.2, §2.4, §2.5 | Composition rule, identity rule, collision rule, and entry rule all normative. Group labelling — `title` else `id`, never invented — is §8.3 prohibition 3. |
 | `shell-visual-design` | **open** | — | **Deliberately unspecified.** Spike scaffolding by the ledger's own classification: boot copy, a gap drawer, a probe. Nothing here is a substrate contract. |
 | `static-content-image-has-no-alt-channel` | **open** | §3.4.2, **finding F1** | Specified as far as a renderer can go — no synthesis from the URL, `slot.title` fallback, decorative otherwise, always report. Closing it is a schema field this document does not write. |
-| `transition-edge-traversability-unchecked` | **open** | §5.4, **`E611`** | The proposed lint code. The spec names the rule, the fire table, the severity, and the band; minting it is a `specs/lint-codes.json` change plus a validator pass. |
+| `transition-edge-traversability-unchecked` | resolved | §5.4, **`E611`** | AppGraphValidator emits the warning for a resolved transition with no validator-readable control source, including sources reached through `embed-route`. |
 
-**Coverage summary.** Every ledger entry is either specified by a numbered
-section above or deliberately unspecified with the reason stated. The deliberate
+**Coverage summary.** Each ledger entry reviewed here is either specified by a
+numbered section above or deliberately unspecified with the reason stated. The deliberate
 exclusions fall into three groups, and each group has a principle behind it:
 
 1. **Schema decisions a renderer must not pre-empt** — `widget-data-binding`,
    `static-content-image-has-no-alt-channel`, the route-path grammar's schema
-   half, and the Registry-entry precedence half of `registry-entries-wiring`. A
+   half. A
    shell that picked would fork the vocabulary before the schema settled it.
-   Findings F1, F2, F5, F8.
+   Findings F1, F2, F8.
 2. **Host and product concerns** — `no-runtime-state`, `verified-state-chrome`
    (the component), `theme-refusal-copy` (the wording), `shell-visual-design`.
    The spec specifies the port, not what flows through it.
@@ -1718,6 +1788,8 @@ The shipped packages are `@formspec-org/surface` (core) and
 `@formspec-org/react`. Where this document decides differently, the divergence is
 listed. **A divergence is a decision to reconcile, not an accusation** — several
 of these are places the implementation had to pick with no contract to read.
+The table records findings at review time; Appendix D records the reconciliation
+state. It is a reviewed inventory, not a completeness claim.
 
 Severity below is the spec's judgement of the gap, not a diagnostic severity:
 **fail-open** = the divergence lets a defect through silently; **fail-loud** =
@@ -1738,7 +1810,7 @@ for behaviour that is already correct.
 | **D10** | §2.5 | An unresolved `entry` yields no app entry; never substitute another Surface's entry. | `routes.find(isSurfaceEntry) ?? routes[0]` — a dangling first-Surface `entry` silently falls through to a **later Surface's** entry, then to the first route. `SURFACE-ENTRY-UNRESOLVED` does fire. | **fail-open — implementation changes.** A mistyped route id lands a respondent on a caseworker screen, and the app appears to work. |
 | **D11** | §2.3 | Literal segments match by exact string; regex metacharacters are inert. | The pattern builder escapes every metacharacter **except** `{` and `}` (the marker grammar owns them), so an authored literal `/a{2}` compiles to `^/a{2}/?$` and matches `/aa`. Untested. | **fail-open — implementation changes.** A brace that is not a valid marker becomes a quantifier. Narrow, but it is a signed path matching an address nobody authored. |
 | **D12** | §2.3, §7.2 | Every `{name}` marker needs a `params[]` entry; `ROUTE-PARAM-UNDECLARED` reports the miss. | The undeclared-marker check runs **only when `params[]` is non-empty**, so a path with markers and no `params[]` at all — the common authoring shape — reports nothing. | **fail-open — implementation changes.** It exempts exactly the case most likely to occur. |
-| **D13** | §5.2, §5.3 | Trigger-source resolution walks `embed-route` transitively and resolves through the loaded Response Actions document. | The React binding derives supplied triggers with a hardcoded literal intent and a scan of **top-level** `definition-form` slots only; a form inside an `embed-route` is not counted, and no other intent is ever supplied-by-slot. | **fail-loud — implementation changes.** A working page is reported dead, and every non-`submit` intent is unreachable through this path. |
+| **D13** | §5.2, §5.3 | Trigger-source resolution walks `embed-route` transitively, resolves the exact Response Actions document targeting the bound Definition, and credits only controls the selected renderer actually publishes. | The React binding inferred `supplied-by-slot` from a hardcoded literal intent and top-level `definition-form` presence, without proving that the rendered form placed that action control. | **fail-open — implementation changes.** An inferred status renders no fallback control and emits no diagnostic, so overclaiming produces a silent dead edge. |
 | **D14** | §3.4.1, §8.3 items 1 and 10 | One rule per question; the plan's assigned heading level is the level rendered; `headingBaseLevel` is host-overridable end to end. | Three separate defects in one area. (a) Two divergent title-suppression rules — the top-level path suppresses only for `kind: heading`, the embed path suppresses for **all** `static-content` kinds, reintroducing one nesting level down the exact bug the top-level path was fixed to remove. (b) The embed path renders a title at the **host slot's** base rather than the child's, so an embedded title sits at the same rank as its host's while its content sits one deeper. (c) The core accepts `headingBaseLevel` and the React binding **never passes it**, so the baseline is always 2 in the shipped path and the override obligation is unreachable; top-level slot titles are additionally rendered at a hardcoded level rather than the plan's, which is correct only while the baseline never moves. | **fail-loud — implementation changes.** (c) is the one that blocks embedding the shell in host chrome that owns the page heading. |
 | **D15** | §4.3.1 | Presenting the theme posture to the person MUST NOT be on by default. | The route view renders a theme-posture paragraph by default on **every** route, including admitting ones. | **fail-loud — implementation changes.** On an admitting route it carries no information; on any route it is unsigned chrome above signed content. Keep the copy; flip the default. |
 | **D16** | §4.5, §8.3 item 9 | A binding cleans up any document-level state it sets. | Sets `document.title` from the bundle by default with **no cleanup on unmount** — an uncleaned global write in the package whose central thesis is that uncleaned global writes are the defect. | **fail-loud — implementation changes.** The token rule was applied to one channel rather than as a principle. |
@@ -1746,6 +1818,9 @@ for behaviour that is already correct.
 | **D18** | §6.5, §8.4 | Verification is a **Verifying Surface Shell** class binding host and shell. | The shell core deliberately grows no verifier and never gates on `bundleIsRenderable` — which is exported but not called by the binding. No class names the composition. | **naming — spec adds; the boundary is right.** The implementation's refusal to own verification is correct (§6.5). What was missing was the name for host-plus-shell, which §8.4 supplies. A deployment that renders an unverified export is a non-conforming *deployment*. |
 | **D19** | §4.1 | A shell restates no part of the route-class vocabulary. | Carries a per-class refusal-*wording* map, `as const satisfies Record<RouteClass, string>`, plus a separate unclassified reason, pinned by a test that compares its keys to the authority map's. | **No change — compliant, and worth stating why.** It is keyed *by* the vocabulary and fails compilation if the vocabulary changes; it carries copy, not authority. §4.1 forbids restating the *partition*, not attaching per-value strings to it. |
 | **D20** | §7.2 | `EXPERIENCE-UNIT-UNRESOLVED` is its own code. | An unresolved unit reuses `BUNDLE-DOCUMENT-MISSING` — a bundle-level code for an intra-document miss. | **fail-loud — implementation changes.** One defect, one code; a host cannot distinguish an absent Experience document from a present one missing a unit. |
+| **D21** | §3, §7.1, §8.2 items 8 and 29 | Malformed unknown slot types produce an unavailable plan and `SLOT-TYPE-UNKNOWN`; dispatch reports rather than throws. | The supposedly exhaustive runtime dispatch threw on its default branch. | **fail-loud — implementation changes.** One malformed slot prevented the host from receiving the remaining diagnostics or rendering available content. |
+| **D22** | §2.7, §8.3 | Navigation to a parameterized route is unavailable until every marker has a value; a binding emits no live marker-bearing URL. | The navigation binding rendered an anchor whose `href` still contained an unsubstituted `{name}` marker. | **fail-open — implementation changes.** A broken address looked actionable and could enter browser history. |
+| **D23** | §5.3, §8.2 item 27 | A completed, resolved, valid Response Action result advances the matching transition; all other terminal and nonterminal results do not. | The form binding accepted an `onSubmit` callback but discarded the executor's terminal result, so successful submit could never advance. | **fail-loud — implementation changes.** The action completed while the route stayed put. |
 
 **Documentation divergence, recorded separately because it is not a behaviour.**
 The React package's README documents a `scrubDocumentRoot` prop *"(default on)"*
@@ -1760,23 +1835,26 @@ trusts it will believe a defence is running that is not.
 | **R1** | **The renderer's refusal to inject a submit control was correct, and the spike initially blamed it.** The `tenant-brand-paints-nothing` ledger entry attributed the missing submit button to the renderer; response-actions-spec §10 forbids inventing an implicit Action, so the renderer was right and the defect was upstream in the authoring path, which was not writing the Response Actions document into the manifest. Corrected in the ledger, and §5.1 now states the rule at the layer that has to obey it. |
 | **R2** | **`static-content`'s `kind` vocabulary was already closed and the spike reported it as unwritten.** The ledger retracts its own claim in place. The lesson is procedural and worth carrying: the schema was the answer and prose was consulted instead. Implementing the fourth kind then surfaced finding F1, which was genuinely absent. |
 | **R3** | **The mid-build claim that a `definition-form` slot on a `proof` route would render the receipt in the tenant's brand was falsified by the running app.** The slot receives the *refusing route's* grant, so the provider re-emits platform tokens over the leaked ones. The real exposure was the unscoped global write, not slot placement — which is why §4.5 is an invariant on the emitter and §4.2 is stated over output rather than over slot topology. |
-| **R4** | **Theme-spec says nothing about where tokens are emitted, and that silence is what permitted the leak.** [theme-spec](../theme/theme-spec.md) §3 defines the token map and §3.6 mentions custom properties in passing; [token-registry-spec](../theme/token-registry-spec.md) §5.2 says only that renderers operate on the flat map. No spec said *onto what*. The implementation's fixed behaviour — a provider-owned scope element with cleanup — is now §4.5, and it is a gap in the Theme tier that the shell had to close. |
+| **R4** | **Theme-spec originally said nothing about where tokens were emitted, and that silence permitted the leak.** The implementation's fixed behaviour — an owned scope with cleanup and one composition owner — is now stated in [theme-spec](../theme/theme-spec.md) §3.7 and applied to this shell in §4.5. |
 | **R5** | **`ROUTE_CLASS_THEME_AUTHORITY` being unreachable from outside the validator package was a real defect and is fixed.** ADR 0161 records the map as shipped and enforced; it was not on the package export surface, so the only consumer that could read it was a validator. A rule that only its own enforcer can reach has no runtime half by construction — which is precisely what ADR 0161's promise needed. |
 
-### B.3 Findings requiring changes this document does not make
+### B.3 Findings and Owning Specifications
 
-Per the rule that a spec reports a needed schema rather than writing one:
+Some findings remain open; the reconciliation applied those that belonged to an
+existing owning specification.
 
 | # | Finding | Change required | Owner |
 |---|---|---|---|
 | **F1** | `static-content` with `kind: image` has no alternative-text channel. Every such slot is a WCAG 2.2 SC 1.1.1 exposure a renderer cannot close. | `alt` on the `static-content` binding in `surface.schema.json`, REQUIRED when `kind` is `image`, admitting `""` as an explicit decorative declaration. Plus surface-spec §5. | Surface |
 | **F2** | A `module-widget` slot has no channel to supply the widget the data its own `widgetShape.props` describes. Admission is complete; delivery does not exist. | One of two, and it is a fork: a props/data-ref channel on the slot binding, or widgets binding to Data Sources. A schema decision, not a renderer decision. | Surface + Registry, or Data Sources |
 | **F3** | App Manifest has no way to name the app's entry Surface or entry route; §2.5 derives it from `surfaces[]` order. Reordering the list for readability silently changes where people land. | An OPTIONAL entry designator on the App Manifest. Existing schema, new optional field. | App Manifest |
-| **F4** | The Registry `widget` contribution cannot declare that a widget fires an action, which is why §5.2 excludes `module-widget` as a trigger source. | An action-declaration channel on `widgetShape`, so `E611` can admit a widget as a source. | Registry |
-| **F5** | Two Registry documents in one bundle may declare the same entry `name`, and no spec, schema, or validator states a precedence rule. | A precedence rule in the Registry spec. The shell reports the collision; naming a winner is not the shell's. | Registry |
+| **F4** | The Registry `widget` contribution has no validator-readable declaration that a widget fires an action, which is why §5.2 excludes `module-widget` as a trigger source. | An action-declaration channel on `widgetShape`, so `E611` can admit a widget as a source and a later review can reconsider severity. | Registry |
+| **F5** | Two Registry documents in one bundle may declare the same entry `name`. | **Applied:** [Registry §2.2](../registry/extension-registry.md) now makes unqualified lookup exactly-one and fail-closed; the shell omits all colliding entries. | Registry |
 | **F6** | The generated Response Actions document type and the renderer's input type are mutually unassignable, forcing a cast at every host. Not a contract question — a packaging one. | One package narrows or re-exports. No spec change. | `formspec-types` / `formspec-engine` |
 | **F7** | The shell's own person-facing strings — unavailable, empty state, transition refusal, not-found, pending — have no channel into the substrate's Locale tier, so a shell is monolingual regardless of the bundle's Locale document. | Either a host override map for the shell's enumerated string set, or `$module.*` Locale keys owned by the shell's module (Locale spec, and ADR 0150 §4.10 module-aware addressing). The set is small and closed, which is what makes it tractable. | Locale + this spec's next revision |
 | **F8** | `path` in `surface.schema.json` is constrained only to a non-empty string, so both the pinned `{name}` grammar and the unpinned `:name` grammar are schema-valid and authoring tools emit the wrong one. This is the root cause of D1. | A `pattern` on `Route.path` admitting only the pinned grammar, plus authoring-tool emission. Making the renderer strict (§2.3) is necessary and not sufficient — the authored bundle is where the two grammars meet. | Surface |
+| **F9** | Theme defined token maps but did not define platform-under-tenant layering, emission ownership, cleanup, or output scope. | **Applied:** [Theme §3.7](../theme/theme-spec.md) now owns the cross-renderer rule; this document retains the Surface-specific application in §4.5. | Theme |
+| **F10** | The Surface schema described `static-content.binding.level` as an absolute heading level while this document requires a composition-relative rank. | **Applied:** `schemas/surface.schema.json` now describes rank, host baseline, and embed depth. | Surface |
 
 **No new document type and no new schema is needed for the Surface Shell
 itself.** The shell reads Surface, App Manifest, Definition, Experience, Response
@@ -1803,103 +1881,29 @@ artifact.
 | ADR 0160 | [Materialisation verbs for the Wireframes / Forms MCP family](../../../thoughts/adr/0160-mcp-materialisation-verbs.md) §2.4, §8.1 |
 | ADR 0161 | [Route class and the Rendering-ring boundary](../../../thoughts/adr/0161-route-class-and-rendering-ring-boundary.md) §5, §6, §9 |
 | Spike | [Surface render v10 — the signed bundle as a running app](../../thoughts/spikes/2026-07-27-surface-render-v10.md) and `spikes/surface-render-v10/evidence/` |
-| Lint codes | `specs/lint-codes.json` — Surface band `E606`, `E607`, `E610`; `E611` proposed by §5.4 |
+| Lint codes | `specs/lint-codes.json` — Surface band `E606`, `E607`, `E610`, `E611` |
 | [rfc2119] | Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, March 1997. |
 | [RFC 6570] | Gregorio, J., et al., "URI Template", RFC 6570, March 2012. |
 | [RFC 8174] | Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, May 2017. |
 | [RFC 8259] | Bray, T., Ed., "The JavaScript Object Notation (JSON) Data Interchange Format", STD 90, RFC 8259, December 2017. |
 
+## Appendix D — Review Reconciliation (2026-07-28)
+
+The independent architecture and implementation reviews returned
+**RECONSIDER**. This revision keeps the core decisions and reconciles the
+findings through their owning specifications, runtime packages, tests, and
+generated guidance.
+
+| Review area | Reconciliation |
+|---|---|
+| Runtime Token Registry conflict | §4.2 and §8.2 leave `THEME-TOKEN-UNREGISTERED` to registry-aware validation. The renderer does not load the Registry and creates no alias. |
+| Unclassified routes | [Surface §3](surface-spec.md) now states the authoring-time posture; §4.3 separately states the fail-closed runtime theme decision. |
+| Fireable controls and `E611` | §8.3 permits a host-requested `fireable` control. `E611` is a warning because validation cannot see a host executor or private widget behaviour. |
+| Runtime fail-closed branches | §2, §3, §5, and §7 define dedicated diagnostics for ambiguous route handles, unknown slot types, unknown static-content kinds, and unevaluable conditions. |
+| Registry collisions | [Registry §2.2](../registry/extension-registry.md) requires exactly-one unqualified lookup and omits every colliding declaration. |
+| Trigger-source and terminal-result handling | §5.3 verifies the control a binding actually publishes, carries route and link diagnostics to the host, and advances only on a completed, resolved, valid Response Action result. |
+| Theme ownership and heading rank | [Theme §3.7](../theme/theme-spec.md) owns layering and single emission; `schemas/surface.schema.json` defines `level` as a composition-relative rank. |
+| Implementation divergences | Appendix B includes throwing dispatch, marker-bearing navigation, and discarded submit results. The package tests cover the fail-closed and transition-result branches. |
+| Human and generated guidance | This specification participates in the artifact pipeline, links from Surface, and is indexed by the Formspec specification lookup map. Stale spike claims and evidence references were reconciled with the shipped bundle and current tests. |
+
 *End of Formspec Surface Shell Specification.*
-
----
-
-## Appendix C — Open review findings (2026-07-28)
-
-An independent architecture review returned **RECONSIDER** on this document. The decisions
-survive; the defects below are recorded here rather than in a separate file so the next reader
-of the spec sees them without a second lookup. Version stays `0.1.0-draft.1` until items 1–4
-close.
-
-**1. BLOCKER — two MUSTs point opposite ways.** §4.2/§7.2/§8.2 item 24 make reading the platform
-token registry at render time a core conformance requirement. [`token-registry-spec.md`](../theme/token-registry-spec.md)
-§5.2 states renderers MUST NOT depend on the registry at runtime — "the registry exists for
-tooling only" — and this document never engages that sentence. Preferred resolution: move the
-check to the validator, where §5.3's `THEME-TOKEN-UNREGISTERED` already owns the same predicate
-at the same severity, and drop `THEME-TOKEN-UNKNOWN` from §7.2.
-
-**2. The stronger contrary sentence is unrebutted.** §4.3 rebuts one statement and misses
-[`surface-spec.md`](surface-spec.md) §3's headline — *"the two states have opposite theme
-postures … an unclassified route refuses nothing"* — which this document reverses at runtime.
-The decision is right; the rebuttal must quote that sentence and file an amendment narrowing it
-to authoring-time posture.
-
-**3. Internal contradiction.** §5.3 permits a binding to render a control for a `fireable`
-transition; §8.3 prohibition 2 forbids synthesizing a navigation control bound to a declared
-transition, with no exception. Amend the prohibition to except a transition §5.3 resolves as
-`fireable` — the host's supply of an executor is the request. [`response-actions-spec.md`](../response-actions/response-actions-spec.md)
-§10 already blesses that shape and should be cited in §5.3.
-
-**4. `E611` is too strict to ship at `error`.** Authoring time cannot see a host-supplied
-executor, so the gate blocks publication of exactly the route shape §5.3 blesses. Mint at
-`warning`, escalating to `error` when F4 lands. §5.2's module-widget row should read "cannot
-declare a trigger *legibly to a validator*" — the weaker, truer claim.
-
-**5–8, pre-1.0 not pre-commit.** File the Theme-tier finding for TB-2 and the platform-under-
-tenant layering rule (both originate here on a Rendering-ring artifact — ADR 0161 §4 condition
-4); file the schema finding for `level`'s rank semantics, which [`surface.schema.json`](../../schemas/surface.schema.json)
-still documents as an absolute heading level; mint or explicitly decline the four fail-closed
-branches that have no diagnostic code (unrecognised `slotType`, unrecognised `static-content`
-kind, ambiguous route handle, unevaluable `when`); apply §2.4's own refusal posture to colliding
-Registry entry names; add the three divergences the register missed (a throwing slot dispatch, a
-nav link emitting an unsubstituted marker, a submit result discarded before advancing) and soften
-Appendix B's "every place" claim — a register cannot self-certify completeness.
-
-### Appendix C.1 — Findings from the implementation verifier (2026-07-28)
-
-A second independent pass reviewed the shipped packages against this document and returned
-**RECONSIDER**. These are open in the code as committed, and they are the reconciliation pass's
-first targets alongside Appendix B.1.
-
-**BLOCKER — an inferred transition status that reports nothing.** The binding treats
-`supplied-by-slot` as satisfied by inference rather than verification, and it is the one status
-in §5.3 that renders no control, states no refusal, and emits no diagnostic. The consequence is
-present in the bundle this spec's own §9 worked example ships: the `/apply` → `/certify` edge is
-dead and the application is silent about it — the exact failure §1.3 principle 1 exists to
-prevent. Resolution: verify the slot actually publishes a trigger source (§5.2's closed table),
-and where it does not, report `TRANSITION-UNFIREABLE` rather than assuming.
-
-**MAJOR — eight of the closed code set cannot reach a host.** Route-level and href-level
-diagnostics are computed and discarded in the binding, so `SLOT-BINDING-INCOMPLETE`,
-`STATIC-IMAGE-NO-ALT`, the `EMBED-ROUTE-*` and `WIDGET-*` codes, per-slot
-`BUNDLE-DOCUMENT-MISSING` and every `TRANSITION-UNFIREABLE` never arrive. This is Appendix B.1's
-D4 confirmed at the source, and it makes §8.2 item 29's reporting obligation unmeetable by the
-shipped binding.
-
-**MINOR.** The embed-route branch reintroduces the authored-title loss the route-level path
-documents as fixed and renders embedded slot titles at the host's heading level instead of the
-stepped-down child level (§3.4.1). Package source and the spike ledger both assert the exemplar
-bundle "carries no Response Actions document at all", which is false for the bundle they ship
-against — and was already false before the manifest-slot fix landed. Three resolved ledger
-entries cite a landing site the same work deleted. Two ledger test counts are inflated and, per
-the stack's decay rule, should not be counts in prose.
-
-### Appendix C.2 — Findings from the theme-fix verifier (2026-07-28)
-
-A third pass verified the brand-token and emission-scope fixes and returned
-**APPROVE_WITH_MINORS** — the two product bugs are genuinely closed (the tenant accent is
-measurably painted on the focus ring and the submit control; zero tenant properties survive an
-intake → proof navigation). Open behind that verdict:
-
-**MAJOR — the shell's own chrome fails contrast in dark mode.** Shell chrome paints
-`color: var(--formspec-color-foreground, …)` with no dark arm and no `color.dark.foreground`
-fallback; measured 1.06:1 on the route heading against the dark shell panel — effectively
-invisible. §10's accessibility obligations name the shell's chrome, so this is the shell's to
-fix, in both themes and on every shell-owned surface, not only the heading.
-
-**MINOR.** The brand rules the fix added — the heading accent and the legend marker — match zero
-elements in the running application, so a fix that is present in the stylesheet is absent on
-screen. The unregistered-token diagnostic is reported and gates nothing, which is correct per
-[`token-registry-spec.md`](../theme/token-registry-spec.md) §5.3 but leaves the ordering question
-open (see C's item 1). The same token map is emitted onto three nested elements — shell route,
-provider scope, and form container — which is harmless today and is exactly the redundancy §4.5's
-single-owner rule exists to prevent.

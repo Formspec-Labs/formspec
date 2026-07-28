@@ -2,9 +2,15 @@
 
 **Date:** 2026-07-28
 **Subject:** [`specs/surface/surface-shell-spec.md`](../../specs/surface/surface-shell-spec.md) and the packages it governs — `@formspec-org/surface`, `@formspec-org/surface-react`
-**Status:** open. Every finding below is unremediated as of `formspec f171f86d`.
+**Status:** the ten-item punch list is reconciled in the current working tree.
+The findings below describe the reviewed state at `formspec f171f86d`; the
+reconciliation record at the end distinguishes completed corrections from
+longer-range follow-up.
 
-The spec carries a condensed version of these as Appendices C / C.1 / C.2 so a reader of the spec sees the open defects without a second lookup. This file is the long form: what each pass measured, and the reasoning behind each recommendation.
+The spec carries the review-time inventory in Appendix B and the reconciliation
+summary in Appendix D, so a reader does not need a second lookup. This file is
+the long form: what each pass measured, the reasoning behind each
+recommendation, and the evidence used to close the punch list.
 
 **Why three passes.** The implementation was built before its contract existed — a process inversion the stack's own rule forbids for a new named seam. The spec was written afterwards as the correction, then reviewed; the implementation was verified against it; and the theme fixes that landed alongside were verified separately. The passes disagree in useful places, and where they do, the disagreement is recorded rather than resolved by preference.
 
@@ -133,3 +139,38 @@ Shell chrome paints its foreground with no dark arm and no dark-token fallback; 
 8. Fix the three missed divergences: the throwing dispatch, the unsubstituted marker link, the discarded submit result (Pass 2).
 9. File the Theme-tier and schema amendments; mint or decline the four missing codes; apply the refusal posture to entry-name collisions; soften the register's completeness claim (Pass 1, pre-1.0).
 10. Commit the spec, backlink it from surface-spec §1, register it in the artifact pipeline and the lookup map (Pass 1) — partly done; the backlink is not.
+
+---
+
+## Reconciliation record
+
+**Result:** all ten punch-list items are addressed in the current working tree.
+The original shell specification is tracked in `f171f86d`; the reconciliation
+changes below remain uncommitted and unreleased. Appendix B of the shell
+specification remains a historical review-time inventory, and its longer-range
+findings are not silently recast as completed work.
+
+| # | Current disposition | Evidence |
+|---|---|---|
+| 1 | Registry-aware validation owns undeclared-token reporting. Runtime rendering no longer reads the Token Registry or emits `THEME-TOKEN-UNKNOWN`. | [Surface Shell §4.2](../../specs/surface/surface-shell-spec.md), [Theme §3.7](../../specs/theme/theme-spec.md), and the theme-authority implementation and tests in [`@formspec-org/surface`](../../packages/formspec-surface/src/theme-authority.ts). |
+| 2 | Trigger-source resolution verifies the exact Definition, Response Actions document, and rendered control. A missing source reports an unfireable transition. | [`surface-response-action-triggers.ts`](../../packages/formspec-app-graph/src/surface-response-action-triggers.ts), the app-graph conformance fixture, and the supplied-trigger tests. |
+| 3 | Route, slot, transition, and navigation diagnostics reach the host callback. | [`SurfaceApp.tsx`](../../packages/formspec-surface-react/src/SurfaceApp.tsx), [`SurfaceRoute.tsx`](../../packages/formspec-surface-react/src/SurfaceRoute.tsx), and the surface-app tests. |
+| 4 | Surface now distinguishes authoring-time posture from the shell's fail-closed runtime theme decision, and the lookup map carries that distinction. | [Surface §3](../../specs/surface/surface-spec.md), [Surface Shell §4.3](../../specs/surface/surface-shell-spec.md), and `.claude-plugin/skills/formspec-specs/references/surface-spec.md` in the stack repository. |
+| 5 | The synthesis prohibition now permits a transition control when the host explicitly supplies the executor. | [Surface Shell §5.3 and §8.3](../../specs/surface/surface-shell-spec.md) and [`SurfaceTransitions.tsx`](../../packages/formspec-surface-react/src/SurfaceTransitions.tsx). |
+| 6 | `E611` is registered at warning severity. `AppGraphValidator` reports validator-visible transitions without a readable control source, including sources reached through `embed-route`; private widget behaviour remains outside the check. | [`lint-codes.json`](../../specs/lint-codes.json), the [validator helper](../../packages/formspec-app-graph/src/surface-response-action-triggers.ts), and the [contract fixture](../../tests/conformance/fixtures/app-graph-validator/surface-response-action-triggers.case.json). |
+| 7 | Shell-owned text and controls meet the contrast gate in light and dark themes, and the tenant brand selector matches and paints a running element. | [`default.surfaces.css`](../../packages/formspec-layout/src/styles/default.surfaces.css), [contrast evidence](../../spikes/surface-render-v10/evidence/contrast.json), and [brand-paint evidence](../../spikes/surface-render-v10/evidence/r2-theme-reaches-and-paints.json). |
+| 8 | Unknown slot dispatch fails closed without throwing; navigation omits unresolved `{name}` links; only a completed, resolved, valid action result advances a transition. | [`SurfaceSlot.tsx`](../../packages/formspec-surface-react/src/SurfaceSlot.tsx), [`SurfaceRoute.tsx`](../../packages/formspec-surface-react/src/SurfaceRoute.tsx), and the [action-completion test](../../packages/formspec-surface-react/tests/action-completion.test.ts). |
+| 9 | Theme owns token layering and single-emitter scope; Surface defines heading rank; Registry collisions omit every colliding entry; the four formerly silent runtime branches have dedicated diagnostics; the divergence register no longer claims completeness. | [Theme §3.7](../../specs/theme/theme-spec.md), [`surface.schema.json`](../../schemas/surface.schema.json), [Registry §2.2](../../specs/registry/extension-registry.md), and [Surface Shell Appendix B](../../specs/surface/surface-shell-spec.md). |
+| 10 | The tracked shell spec has a Surface backlink, a generated language-model artifact, contract inventory coverage, and a specification-lookup entry. | [Surface §1](../../specs/surface/surface-spec.md), [`spec-artifacts.config.json`](../../scripts/spec-artifacts.config.json), [`surface-coverage.json`](../../tests/contracts/surface-coverage.json), and `.claude-plugin/skills/formspec-specs/references/surface-shell-spec.md` in the stack repository. |
+
+## Verification boundary
+
+The repository build, unit suite, surface contract suite, documentation checks,
+Rust formatting and lint tests, selected Python conformance tests, spike
+typecheck and build, and executable browser probe all pass. The browser probe
+checks both color schemes, tenant paint, one token emitter per route, no
+document-root token leak, and no live navigation URL containing an unresolved
+`{name}` marker.
+
+No commit, push, publication, or deployment was performed for the
+reconciliation work.

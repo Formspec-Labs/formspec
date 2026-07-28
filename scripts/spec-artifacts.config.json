@@ -670,7 +670,30 @@
         "Surface `module-widget` slots must resolve their declared `moduleId` and `widgetName` through loaded module contributions; `binding.config` validates against the contributing widget's `widgetShape.props`.",
         "Component targetSurfaceRoutes[] claims resolve against Surface route and slot ids in app-graph validation; Surface-local conformance does not synthesize Component membership.",
         "App Manifest Surface references use URL/version sibling identity, never local fixture paths, filenames, URL suffix conventions, or implicit sibling discovery.",
-        "`routeClass` has no default: absence means *unclassified*, a distinct state from `operation`, and processors must not treat absence as `operation`. The two differ observably — `operation` refuses tenant chrome theming while an unclassified route refuses nothing, because a rule keyed on a class cannot fire against a route that states none. Unclassified routes remain publishable."
+        "`routeClass` has no default: absence means *unclassified*, a distinct state from `operation`, and processors must not treat absence as `operation`. At authoring time an unclassified route cannot fire a class-keyed refusal and remains publishable; at runtime the Surface Shell separately refuses tenant theming because silence does not grant theme authority."
+      ]
+    },
+    {
+      "spec": "specs/surface/surface-shell-spec.md",
+      "schema": "schemas/surface.schema.json",
+      "llm": "specs/surface/surface-shell-spec.llm.md",
+      "behaviorEssentials": [
+        "A Surface Shell composes published Surface documents into an app route table, resolves one route for an incoming path, plans every slot and transition, and returns diagnostics without inventing missing content.",
+        "The renderer-independent core owns route matching, slot resolution, theme authority, transition posture, and diagnostics; bindings render those decisions and hosts own navigation, action execution, and bundle verification.",
+        "Ambiguous route handles and path collisions fail closed: the shell reports the ambiguity and resolves no affected route.",
+        "Every slot type and static-content kind is handled exhaustively. Malformed runtime input produces an unavailable plan plus a dedicated diagnostic instead of a thrown exception or generic fallback.",
+        "The route composition layer owns effective Theme-token emission. Platform values remain under tenant overrides, nested renderers suppress duplicate emission, and no renderer writes beyond an element or output subtree it owns.",
+        "Transitions become supplied-by-slot only when the rendered binding actually publishes the matching control. Host-rendered fireable controls require an explicit executor, and navigation follows only a completed Response Action with a valid validation report.",
+        "A signed bundle export is verified before any bundle-derived output is rendered."
+      ],
+      "conformanceEssentials": [
+        "Route lookup, app entry, and route-handle resolution return no route when identity or matching is ambiguous, and report the matching runtime diagnostic.",
+        "Unknown slot types and static-content kinds fail closed with SLOT-TYPE-UNKNOWN or STATIC-CONTENT-KIND-UNKNOWN; dispatch does not throw.",
+        "Tenant Theme tokens reach only admitted route subtrees, are layered over platform tokens key by key, and are emitted once by the composition owner with cleanup.",
+        "Transition conditions resolve to active, condition-false, or condition-unevaluable; unevaluable conditions do not fire and report TRANSITION-CONDITION-UNEVALUABLE.",
+        "E611 warns when a resolved transition trigger has no validator-readable control source on the route, including transitive embed-route slots.",
+        "Runtime diagnostics include exact fire conditions and stable identifiers for unresolved documents, routes, slots, widgets, tokens, transitions, and verification failures.",
+        "Bindings expose unavailable, unmatched, ambiguous, and unfireable states without inventing content or live marker URLs."
       ]
     },
     {

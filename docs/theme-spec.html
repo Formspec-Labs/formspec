@@ -83,6 +83,9 @@ Resolution</a></li>
 Custom Token Groups</a></li>
 <li><a href="#color-scheme-variants" id="toc-color-scheme-variants">3.6
 Color Scheme Variants</a></li>
+<li><a href="#token-layering-and-emission-ownership"
+id="toc-token-layering-and-emission-ownership">3.7 Token Layering and
+Emission Ownership</a></li>
 </ul></li>
 <li><a href="#widget-catalog" id="toc-widget-catalog">4. Widget
 Catalog</a>
@@ -920,6 +923,30 @@ them.</li>
 <p>Renderers MAY activate dark-mode stylesheets via
 <code>prefers-color-scheme</code> media queries, explicit appearance
 classes, or other renderer-specific mechanisms.</p>
+<h3 id="token-layering-and-emission-ownership">3.7 Token Layering and
+Emission Ownership</h3>
+<p>When a host applies a tenant Theme over platform tokens, it MUST
+merge the two maps key by key. Platform tokens form the lower layer;
+tenant values replace matching keys, and platform values for all other
+keys remain. A partial tenant Theme MUST NOT erase platform spacing,
+typography, radii, or other tokens it does not set.</p>
+<p>The composition layer that decides the effective token map owns its
+emission. It MUST emit that map once, on the nearest element or output
+subtree it owns. Nested renderers MUST provide a way for that owner to
+disable their token emission; they MUST NOT write a second copy of the
+same effective map.</p>
+<p>A renderer MUST NOT write Theme tokens to the document root,
+<code>body</code>, or any node it does not own. A host MAY write to the
+document root only when it explicitly owns the whole document and grants
+that scope. A component or provider does not gain document ownership by
+being mounted inside it. An emitter MUST replace stale values when the
+effective Theme changes and remove values it owns when it unmounts.</p>
+<p>Non-DOM renderers MUST apply the same rule to their medium: emit
+tokens once at the smallest output scope the composition layer owns.</p>
+<p>Runtime rendering MUST NOT depend on the Token Registry being loaded.
+Registry- aware validation owns unknown-token reporting through
+<code>THEME-TOKEN-UNREGISTERED</code>; renderers apply the effective
+Theme without creating aliases for undeclared keys.</p>
 <h2 id="widget-catalog">4. Widget Catalog</h2>
 <h3 id="relationship-to-tier-1-widgethint">4.1 Relationship to Tier 1
 widgetHint</h3>
