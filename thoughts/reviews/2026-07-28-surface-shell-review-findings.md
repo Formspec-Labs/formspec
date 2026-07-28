@@ -2,7 +2,9 @@
 
 **Date:** 2026-07-28
 **Subject:** [`specs/surface/surface-shell-spec.md`](../../specs/surface/surface-shell-spec.md) and the packages it governs — `@formspec-org/surface`, `@formspec-org/surface-react`
-**Status:** the ten-item punch list is reconciled in the current working tree.
+**Status:** historical reference. The ten-item punch list is reconciled in
+local history, and the follow-up validation plan is closed with its verified
+corrections organized into local commits.
 The findings below describe the reviewed state at `formspec f171f86d`; the
 reconciliation record at the end distinguishes completed corrections from
 longer-range follow-up.
@@ -144,11 +146,23 @@ Shell chrome paints its foreground with no dark arm and no dark-token fallback; 
 
 ## Reconciliation record
 
-**Result:** all ten punch-list items are addressed in the current working tree.
-The original shell specification is tracked in `f171f86d`; the reconciliation
-changes below remain uncommitted and unreleased. Appendix B of the shell
-specification remains a historical review-time inventory, and its longer-range
-findings are not silently recast as completed work.
+**Result:** all ten punch-list items were addressed by the first reconciliation
+sequence, and the follow-up validation closed the additional defects against
+current source. The review-time specification history includes `f171f86d`. The
+reconciliation record and specification repair became committed in local commit
+`d01888e5`; later local commits `6a86c249`, `03d0d7ec`, and `cc0ace4b`
+continued the generated-metadata, route-grammar, and browser-evidence work.
+Supporting AppGraph, runtime, and browser changes also appear earlier in the
+local sequence as `b2cc2521`, `70010072`, and `bb4abbcc`.
+
+At the follow-up plan's validated snapshot, the local branch was seven commits
+ahead of live `origin/main`; no push, merge, publication, or deployment was
+established for those commits. The later commit-organization pass recorded the
+follow-up implementation as local commits `c9b7361a`, `a3c29c88`, `76d8644d`,
+`662e3920`, and `84f41b84`, followed by the closing documentation change.
+Appendix B of the shell specification remains a historical review-time
+inventory, and its longer-range findings are not silently recast as completed
+work.
 
 | # | Current disposition | Evidence |
 |---|---|---|
@@ -165,12 +179,17 @@ findings are not silently recast as completed work.
 
 ## Verification boundary
 
-The repository build, unit suite, surface contract suite, documentation checks,
-Rust formatting and lint tests, selected Python conformance tests, spike
-typecheck and build, and executable browser probe all pass. The browser probe
-checks both color schemes, tenant paint, one token emitter per route, no
-document-root token leak, and no live navigation URL containing an unresolved
-`{name}` marker.
+The repository build and unit suites, Surface contract suite, documentation and
+file-map checks, Rust lint tests, selected Python conformance tests, isolated
+React 18/19 compatibility gate, spike typecheck/build/unit tests, and executable
+browser probe pass in the follow-up worktree. The browser probe checks both
+color schemes, tenant paint, one token emitter per route, no document-root token
+leak, no unresolved-marker link, and no live navigation to a collision-refused
+URL.
 
-No commit, push, publication, or deployment was performed for the
-reconciliation work.
+The initial reconciliation is present in the local commits named above. The
+follow-up corrections are verified and committed locally in the five
+implementation commits named above, followed by this closing documentation
+change. Independent final reviews returned architecture `PROCEED` and
+code-review `APPROVE`. No evidence establishes a push, merge, package
+publication, or deployment for the follow-up work.
