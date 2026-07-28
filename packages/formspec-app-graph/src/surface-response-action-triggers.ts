@@ -8,7 +8,17 @@ import {
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
 
-const CLOSED_RESPONSE_ACTION_INTENTS = new Set([
+/**
+ * The closed-core Response Actions intent vocabulary a Surface transition
+ * `trigger` may name without resolving to an `actions[*].id`
+ * (`surface-spec.md` §4 "Transition trigger semantics"; `x-formspec-core-actions`
+ * per ADR 0150 §4.9).
+ *
+ * Exported because a runtime router needs the same set the validator uses to
+ * decide whether an authored transition is even addressable. Restating it in a
+ * renderer is how a router ends up admitting a trigger the graph refuses.
+ */
+export const CLOSED_RESPONSE_ACTION_INTENTS: ReadonlySet<string> = new Set([
   'save-draft',
   'autosave',
   'review',

@@ -1,9 +1,9 @@
 {
-  "title": "R3 falsification — the shipped renderer leaks tenant theme tokens to the document root",
-  "description": "Measured in the running app before the shell's workaround was added. FormspecProvider calls emitThemeTokens(themeDocument.tokens) with no target; that helper defaults to document.documentElement and has no unmount cleanup. Once the intake route renders once, the tenant's brand colour is an inline custom property on <html> for the life of the page.",
-  "defectLocation": "formspec/packages/formspec-react/src/context.tsx — FormspecProvider useEffect calling emitThemeTokens(themeDocument.tokens) with no target; emitThemeTokens defaults to document.documentElement",
-  "whyItMatters": "THEME-ROUTE-CLASS's runtime guarantee cannot be honoured by a host from outside. The shell's boundary is structurally correct — nothing tenant-shaped crosses into a refusing route's props or subtree — and is defeated anyway by a global side effect inside the renderer it composes with.",
-  "measurementBeforeWorkaround": [
+  "title": "R3 — the renderer no longer leaks tenant theme tokens to the document root",
+  "description": "Measured against the static build. `FormspecProvider` emits onto a `display: contents` element it owns, with cleanup on unmount, and never touches `document.documentElement`.",
+  "fixLocation": "formspec/packages/formspec-react/src/context.tsx — FormspecProvider renders a `.formspec-theme-scope` element and emits `themeDocument.tokens` onto it with an unmount cleanup.",
+  "permanentTest": "formspec/packages/formspec-react/tests/theme-token-scope.test.tsx — the runtime half of the ADR 0161 theme-authority promise.",
+  "before": [
     {
       "step": "fresh page load directly on /certify (ceremony, refuses)",
       "documentRootFormspecVarCount": 0,
@@ -15,38 +15,34 @@
       "documentRootPrimary": "#7A1F3D"
     },
     {
-      "step": "navigate to /receipt/RA-2026-0412 (proof, refuses)",
+      "step": "navigate to /receipt/:caseRef (proof, refuses)",
       "documentRootFormspecVarCount": 46,
       "documentRootPrimary": "#7A1F3D",
-      "verdict": "LEAKED — the tenant token is still in the cascade on a route whose class refuses tenant theming"
+      "verdict": "LEAKED"
     }
   ],
-  "whyNothingLooksWrong": "The refusing routes in this bundle contain no shipped Formspec components, and the shell's own chrome reads no --formspec-color-* property.",
-  "correction": {
-    "struck": "Put a definition-form slot on a proof route — schema-valid, nothing forbids it — and the receipt renders in the tenant's brand.",
-    "why": "Falsified by this spike's own app. The measurement steps above are unchanged; only this interpretive sentence was wrong. A definition-form slot on a proof route IS schema-valid and nothing forbids it, but it would not paint the receipt in the tenant's brand: the shell hands that slot the refusing route's grant, so FormspecProvider re-emits the 45 platform tokens over the leaked ones on <html> and FormspecForm writes the platform values inline on its own container, where they beat anything inherited. Independently, r2-theme-reaches-but-paints-nothing.json measured zero elements painting with the brand token even where it does resolve.",
-    "correctedExposure": "The defect is the unscoped global write, not what a route contains. It outlives the component that made it, a host can only clean up after it rather than prevent it, and it reaches everything outside a .formspec-container — host chrome, portalled content, a second embedded renderer, any future skin that does paint the brand token.",
-    "measurement": {
-      "how": "Driven with Playwright against the static build (http://localhost:4174/apply), reading getComputedStyle --formspec-color-primary. The shipped renderer is mounted and untouched; only the two inline emissions are set, to reproduce the shape a definition-form slot on a proof route would produce.",
-      "asShipped": {
-        "documentRootInline": "#7A1F3D",
-        "formContainerInline": "#7A1F3D",
-        "formContainerResolved": "#7A1F3D",
-        "note": "intake route, tenant theme admitted — both agree, so this case cannot distinguish which one wins"
-      },
-      "rootOverwrittenWithPlatformValue": {
-        "documentRootResolved": "#27594f",
-        "formContainerResolved": "#7A1F3D",
-        "note": "a write to <html> does not reach into a container that emitted its own value"
-      },
-      "proofRouteShape": {
-        "documentRootResolved": "#7A1F3D",
-        "formContainerResolved": "#27594f",
-        "firstFieldInsideFormResolved": "#27594f",
-        "verdict": "PLATFORM. With the tenant token leaked on <html> and the platform grant emitted inline on the form's own container, the form and every field inside it resolve the PLATFORM brand value. The leaked token does not reach them."
-      },
-      "whyTheGrantIsPlatformThere": "resolveThemeGrant returns a ThemeDocument built from buildPlatformTheme() on every refusing class (45 tokens, color.primary #27594f), and that is the only theme any slot renderer on that route receives. FormspecProvider emits those 45 to <html>, overwriting the leaked values; FormspecForm emits them inline on its own container, which is what the measurement above reproduces."
+  "after": [
+    {
+      "step": "fresh page load directly on /certify (ceremony, refuses)",
+      "documentRootFormspecVarCount": 0,
+      "documentRootPrimary": null
+    },
+    {
+      "step": "navigate to /apply (intake, admits) — the shipped renderer mounts",
+      "documentRootFormspecVarCount": 0,
+      "documentRootPrimary": null
+    },
+    {
+      "step": "navigate to /receipt/:caseRef (proof, refuses)",
+      "documentRootFormspecVarCount": 0,
+      "documentRootPrimary": null
+    },
+    {
+      "step": "client-side navigation /apply → /receipt (no reload)",
+      "documentRootFormspecVarCount": 0,
+      "documentRootPrimary": null
     }
-  },
-  "workaround": "src/theme-grant.ts enforceDocumentRootThemeBoundary — the shell scrubs --formspec-* off <html> whenever a refusing route renders. Recorded in the gap ledger as renderer-emits-tenant-tokens-to-document-root. The fix belongs in formspec-react: scope the emission to the component's own container, which FormspecForm already does correctly and with cleanup."
+  ],
+  "shellWorkaroundRemoved": "src/theme-grant.ts `enforceDocumentRootThemeBoundary` scrubbed `<html>` on every refusing route. It is gone. `documentRootThemeProperties()` replaced it: the shell now READS the document root and asserts it is empty rather than making it empty.",
+  "verdict": "FIXED — 0 tenant properties on <html> at every step, with no shell workaround running"
 }

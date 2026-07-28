@@ -2,19 +2,22 @@
   "name": "formspec-surface-render-v10",
   "private": true,
   "version": "0.1.0",
-  "description": "Spike: the SIGNED v10 bundle export, verified in the browser and rendered as a four-route navigable app — a measurement of what is missing between 'the platform describes this app' and 'a person clicks through it'",
+  "description": "Spike: the SIGNED v10 bundle export, verified in the browser and rendered as a four-route navigable app \u2014 a measurement of what is missing between 'the platform describes this app' and 'a person clicks through it'",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4174 --strictPort",
     "typecheck": "tsc --noEmit",
-    "gap-ledger": "tsx scripts/emit-gap-ledger.ts"
+    "gap-ledger": "tsx scripts/emit-gap-ledger.ts",
+    "probe": "node scripts/probe.mjs"
   },
   "dependencies": {
     "@formspec-org/engine": "file:../../packages/formspec-engine",
     "@formspec-org/layout": "file:../../packages/formspec-layout",
     "@formspec-org/react": "file:../../packages/formspec-react",
+    "@formspec-org/surface": "file:../../packages/formspec-surface",
+    "@formspec-org/surface-react": "file:../../packages/formspec-surface-react",
     "@formspec-org/types": "file:../../packages/formspec-types",
     "@integrity-stack/cose": "file:../../../integrity-stack/packages/integrity-cose",
     "@integrity-stack/signature-adapter-webcrypto": "file:../../../integrity-stack/packages/integrity-signature-adapter-webcrypto",
@@ -31,6 +34,7 @@
     "@types/react-dom": "^19.0.0",
     "@types/semver": "^7.7.1",
     "@vitejs/plugin-react": "^5.0.0",
+    "playwright": "^1.60.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vite": "^7.0.0"

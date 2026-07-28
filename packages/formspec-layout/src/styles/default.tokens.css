@@ -25,7 +25,11 @@
   --formspec-default-border-subtle: color-mix(in srgb, var(--formspec-default-border) 52%, white);
   --formspec-default-border-muted: #e7e0d5;
   --formspec-default-border-control: #cdc3b5;
-  --formspec-default-focus: var(--formspec-color-ring, #27594f);
+  /* token-registry-spec §2.4 — the brand fan-out. `color.primary` is the ONE
+   * token a tenant sets; the ring derives from it unless the theme names
+   * `color.ring` explicitly. Without this chain a tenant who sets only the
+   * brand token gets a platform-coloured focus ring on every input. */
+  --formspec-default-focus: var(--formspec-color-ring, var(--formspec-color-primary, #27594f));
   --formspec-default-primary: var(--formspec-color-primary, #27594f);
   --formspec-default-primary-strong: var(--formspec-color-primary-dark, #1d443c);
   --formspec-default-danger: var(--formspec-color-error, #c1281f);
@@ -112,7 +116,7 @@
   --formspec-default-border-control: #665a4d;
 
   /* Accents — base tokens via color.dark.* Layer A */
-  --formspec-default-focus: var(--formspec-color-dark-ring, #8fc6b7);
+  --formspec-default-focus: var(--formspec-color-dark-ring, var(--formspec-color-dark-primary, #8fc6b7));
   --formspec-default-primary: var(--formspec-color-dark-primary, #8bb8ac);
   --formspec-default-primary-strong: #b6d7cf;
   --formspec-default-danger: var(--formspec-color-dark-error, #ff8b7f);

@@ -46,7 +46,7 @@ const theme: ResolvedArtifactHandle = {
     $formspecTheme: '1.0',
     version: '1.0.0',
     targetDefinition: { url: 'https://cloud.formspec.org/apps/proof/definitions/unused' },
-    tokens: { 'color.accent': '#6D28D9' },
+    tokens: { 'color.primary': '#6D28D9' },
   },
 } as ResolvedArtifactHandle;
 
@@ -182,7 +182,7 @@ function tenantThemePolicy(routeIds: readonly string[]): unknown {
       assignments: [{
         widgetRef: { moduleId: TENANT_MODULE, widgetName: CERTIFICATE_WIDGET },
         slot: 'accent',
-        token: 'color.accent',
+        token: 'color.primary',
       }],
     },
   };
@@ -286,7 +286,7 @@ describe('UI Graph Policy route-class theme authority', () => {
           moduleId: TENANT_MODULE,
           widgetName: CERTIFICATE_WIDGET,
           slot: 'accent',
-          token: 'color.accent',
+          token: 'color.primary',
           routeId: 'certificate',
           routeClass,
           embedChain: ['certificate'],

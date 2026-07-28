@@ -142,6 +142,17 @@ hr.formspec-divider {
   margin-bottom: 0.95rem;
 }
 
+/* Brand accent on structural headings — token-registry-spec §2.4 fan-out.
+ * The brand token used to paint only filled controls, so a Definition made of
+ * plain inputs rendered identically for every tenant. A heading rule is the
+ * one brand surface a form has before anyone touches a control. */
+.formspec-section > :is(h1, h2, h3, h4),
+.formspec-group-title,
+.formspec-card-title {
+  border-inline-start: 3px solid var(--formspec-default-primary);
+  padding-inline-start: 0.6rem;
+}
+
 .formspec-card-title {
   margin-bottom: 0;
 }

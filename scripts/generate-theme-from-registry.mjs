@@ -17,6 +17,12 @@
  *   3. Synced copies of token-registry.json to:
  *        - crates/formspec-lint/schemas/token-registry.json
  *        - packages/formspec-layout/src/token-registry.json
+ *   4. packages/formspec-app-graph/src/platform-token-keys.ts — the declared key
+ *      set, as a TS module. app-graph is layer 1 alongside formspec-layout, so it
+ *      cannot import the registry through that package (same-layer dep); and it
+ *      ships `files: ["dist"]` with no JSON copy step, so a generated .ts is the
+ *      only shape that survives publishing. Backs THEME-TOKEN-UNREGISTERED
+ *      (token-registry-spec §5.3).
  *
  * Usage:
  *   node scripts/generate-theme-from-registry.mjs          # write all outputs
@@ -39,17 +45,32 @@ const REGISTRY_COPIES = [
   resolve(ROOT, 'packages/formspec-layout/src/token-registry.json'),
 ];
 
+const APP_GRAPH_TOKEN_KEYS_PATH = resolve(ROOT, 'packages/formspec-app-graph/src/platform-token-keys.ts');
+
 const checkMode = process.argv.includes('--check');
 
 // ---------------------------------------------------------------------------
 // Token extraction
 // ---------------------------------------------------------------------------
 
-function extractTokens(registry) {
+/**
+ * @param registry        parsed token-registry.json
+ * @param includeDerived  when false, tokens carrying `derivedFrom` are omitted.
+ *
+ * A derived token (today: `color.ring` from `color.primary`) must NOT appear in
+ * the platform Theme's token map. If it did, every theme would carry an explicit
+ * value for it and the CSS derivation chain
+ * `var(--formspec-color-ring, var(--formspec-color-primary, …))` could never
+ * fire — a tenant who sets only the brand token would keep the platform focus
+ * ring, which is exactly the fan-out hole surface-render-v10 measured. Its
+ * `default` still reaches the skin, as the innermost CSS fallback.
+ */
+function extractTokens(registry, includeDerived = true) {
   const light = {};
   const dark = {};
   for (const [catKey, category] of Object.entries(registry.categories)) {
     for (const [tokenKey, entry] of Object.entries(category.tokens)) {
+      if (!includeDerived && entry.derivedFrom !== undefined) continue;
       if (entry.default !== undefined) {
         light[tokenKey] = entry.default;
       }
@@ -78,6 +99,38 @@ function generateTheme(tokens) {
     },
     tokens,
   };
+}
+
+// ---------------------------------------------------------------------------
+// app-graph platform token key set
+// ---------------------------------------------------------------------------
+
+function generatePlatformTokenKeys(tokens) {
+  const keys = Object.keys(tokens).sort();
+  const lines = keys.map((key) => `  '${key}',`).join('\n');
+  return `/** @filedesc Declared platform token keys — generated from schemas/token-registry.json. */
+
+// DO NOT EDIT — regenerate with: node scripts/generate-theme-from-registry.mjs
+
+/**
+ * Every token key the platform Token Registry declares, light keys plus the
+ * \`darkPrefix\`-derived dark keys. A Theme token outside this set and outside the
+ * \`x-\` extension namespace names nothing: no stylesheet reads it, no
+ * \`tokenMeta\` describes it, and emitting it produces a CSS custom property with
+ * no consumer. That is what THEME-TOKEN-UNREGISTERED reports
+ * (token-registry-spec §5.3).
+ */
+export const PLATFORM_TOKEN_KEYS: ReadonlySet<string> = new Set([
+${lines}
+]);
+
+/**
+ * THE brand token (token-registry-spec §2.4). Named here so a consumer that
+ * needs to talk about the brand key does not restate the string; there is no
+ * second brand key and no alias for one.
+ */
+export const PLATFORM_BRAND_TOKEN_KEY = 'color.primary';
+`;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,12 +197,18 @@ const registry = JSON.parse(readFileSync(REGISTRY_PATH, 'utf8'));
 const registryRaw = readFileSync(REGISTRY_PATH, 'utf8');
 const existingCss = readFileSync(TOKENS_CSS_PATH, 'utf8');
 
-const tokens = extractTokens(registry);
+// Declared keys — everything a Theme MAY set, derived tokens included. Backs
+// the CSS fallback map and app-graph's THEME-TOKEN-UNREGISTERED key set.
+const declaredTokens = extractTokens(registry, true);
+// Emitted keys — what the platform Theme actually carries. Derived tokens are
+// omitted so their CSS chain can resolve through the token they derive from.
+const tokens = extractTokens(registry, false);
 const theme = generateTheme(tokens);
 const themeJson = JSON.stringify(theme, null, 2) + '\n';
 
-const cssVarMap = buildCssVarMap(tokens);
+const cssVarMap = buildCssVarMap(declaredTokens);
 const patchedCss = patchCssFallbacks(existingCss, cssVarMap);
+const platformTokenKeysTs = generatePlatformTokenKeys(declaredTokens);
 
 if (checkMode) {
   let stale = false;
@@ -161,6 +220,11 @@ if (checkMode) {
 
   if (!contentMatches(TOKENS_CSS_PATH, patchedCss)) {
     console.error('STALE: default.tokens.css fallbacks do not match registry');
+    stale = true;
+  }
+
+  if (!contentMatches(APP_GRAPH_TOKEN_KEYS_PATH, platformTokenKeysTs)) {
+    console.error('STALE: packages/formspec-app-graph/src/platform-token-keys.ts does not match registry');
     stale = true;
   }
 
@@ -188,10 +252,17 @@ console.log('Wrote default-theme.json');
 writeFileSync(TOKENS_CSS_PATH, patchedCss, 'utf8');
 console.log('Wrote default.tokens.css');
 
+writeFileSync(APP_GRAPH_TOKEN_KEYS_PATH, platformTokenKeysTs, 'utf8');
+console.log('Wrote packages/formspec-app-graph/src/platform-token-keys.ts');
+
 for (const copyPath of REGISTRY_COPIES) {
   writeFileSync(copyPath, registryRaw, 'utf8');
   const rel = copyPath.replace(ROOT + '/', '');
   console.log(`Synced ${rel}`);
 }
 
-console.log(`\nGenerated ${Object.keys(tokens).length} tokens from registry.`);
+const derivedCount = Object.keys(declaredTokens).length - Object.keys(tokens).length;
+console.log(
+  `\nGenerated ${Object.keys(tokens).length} platform theme tokens from registry `
+  + `(${Object.keys(declaredTokens).length} declared; ${derivedCount} derived and therefore not emitted).`,
+);

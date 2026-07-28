@@ -77,9 +77,27 @@ export {
   validateSurfaceExperienceUnits,
 } from './surface-experience-units.js';
 export {
+  CLOSED_RESPONSE_ACTION_INTENTS,
   validateSurfaceResponseActionTriggers,
 } from './surface-response-action-triggers.js';
 export {
+  validateThemeTokenRegistry,
+} from './theme-token-registry.js';
+export {
+  PLATFORM_BRAND_TOKEN_KEY,
+  PLATFORM_TOKEN_KEYS,
+} from './platform-token-keys.js';
+// `ROUTE_CLASS_THEME_AUTHORITY` is a RENDERING rule that until now only a
+// validator could import: it was exported from its module but not from this
+// index, and the package `exports` field only exposes `.`. A rule a renderer
+// cannot reach is a rule that only fires at authoring time — which is exactly
+// the state the surface-render-v10 spike measured (gap ledger
+// `theme-authority-unexported`). Re-exported here so the runtime half of
+// THEME-ROUTE-CLASS has an owner. Consumers MUST read the map; they MUST NOT
+// restate which classes admit.
+export {
+  ROUTE_CLASS_THEME_AUTHORITY,
+  TENANT_THEMING_REFUSING_ROUTE_CLASSES,
   validateUiGraphPolicy,
 } from './ui-graph-policy.js';
 export {

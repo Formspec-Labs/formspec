@@ -20,7 +20,6 @@
     "color.warning": "#946112",
     "color.success": "#2f855a",
     "color.info": "#2b6cb0",
-    "color.ring": "#27594f",
     "color.input": "#c0b6a8",
     "color.surface": "#f2ece2",
     "spacing.xs": "0.25rem",
@@ -50,7 +49,6 @@
     "color.dark.warning": "#e2b35c",
     "color.dark.success": "#79c89d",
     "color.dark.info": "#82b8f8",
-    "color.dark.ring": "#8fc6b7",
     "color.dark.input": "#5c5247",
     "color.dark.surface": "#2a241f"
   }

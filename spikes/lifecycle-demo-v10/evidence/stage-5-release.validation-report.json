@@ -20,6 +20,9 @@
         "experience": {
           "url": "urn:formspec:doc:1feb5fb90254133a:experience"
         },
+        "responseActions": {
+          "url": "urn:formspec:doc:1feb5fb90254133a:responseActions"
+        },
         "theme": {
           "url": "urn:formspec:doc:1feb5fb90254133a:theme",
           "version": "1.0.0"
@@ -204,6 +207,40 @@
           "diagnostics": []
         }
       ],
+      "responseActions": [
+        {
+          "slot": "responseActions",
+          "artifactKind": "responseActions",
+          "source": "studio-core:bundle-local:responseActions",
+          "ref": {
+            "url": "urn:formspec:doc:1feb5fb90254133a:responseActions"
+          },
+          "status": "loaded",
+          "document": {
+            "$formspecResponseActions": "1.0",
+            "version": "1.0.0",
+            "actions": [
+              {
+                "id": "submitApplication",
+                "intent": "submit",
+                "effects": [
+                  {
+                    "type": "hostEvent",
+                    "eventName": "application.submitted"
+                  }
+                ]
+              }
+            ],
+            "targetDefinition": {
+              "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+            }
+          },
+          "identity": {
+            "url": "urn:formspec:doc:1feb5fb90254133a:responseActions"
+          },
+          "diagnostics": []
+        }
+      ],
       "theme": [
         {
           "slot": "theme",
@@ -222,7 +259,8 @@
               "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
             },
             "tokens": {
-              "color.accent": "#7A1F3D"
+              "color.primary": "#7A1F3D",
+              "color.dark.primary": "#E3A0B4"
             }
           },
           "identity": {
@@ -554,8 +592,8 @@
     },
     "diagnostics": [],
     "summary": {
-      "declaredRefs": 6,
-      "loadedArtifacts": 6,
+      "declaredRefs": 7,
+      "loadedArtifacts": 7,
       "missingArtifacts": 0,
       "unsupportedRefs": 0,
       "discriminatorMismatches": 0,
@@ -913,12 +951,12 @@
   "report": {
     "ok": false,
     "summary": {
-      "artifacts": 7,
-      "loadedArtifacts": 7,
+      "artifacts": 8,
+      "loadedArtifacts": 8,
       "schemaFailures": 0,
       "unvalidatedArtifacts": 0,
-      "graphErrors": 5,
-      "errors": 5,
+      "graphErrors": 3,
+      "errors": 3,
       "warnings": 0,
       "infos": 0,
       "importedDiagnostics": 0,
@@ -951,6 +989,13 @@
       {
         "slot": "registries[0]",
         "artifactKind": "registry",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "responseActions",
+        "artifactKind": "responseActions",
         "status": "completed",
         "ok": true,
         "diagnostics": []
@@ -1031,7 +1076,7 @@
           "moduleId": "x-formspec-tenant-chrome",
           "widgetName": "x-ceremony-frame",
           "slot": "surface",
-          "token": "color.accent",
+          "token": "color.primary",
           "routeId": "certify",
           "routeClass": "ceremony",
           "embedChain": [
@@ -1067,7 +1112,7 @@
           "moduleId": "x-formspec-tenant-chrome",
           "widgetName": "x-receipt-panel",
           "slot": "surface",
-          "token": "color.accent",
+          "token": "color.primary",
           "routeId": "receipt",
           "routeClass": "proof",
           "embedChain": [
@@ -1103,77 +1148,13 @@
           "moduleId": "x-formspec-tenant-chrome",
           "widgetName": "x-queue-panel",
           "slot": "surface",
-          "token": "color.accent",
+          "token": "color.primary",
           "routeId": "queue",
           "routeClass": "operation",
           "embedChain": [
             "queue"
           ],
           "reason": "tenant-theming-refused-by-route-class"
-        }
-      },
-      {
-        "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
-        "severity": "error",
-        "phase": "cross-artifact",
-        "origin": "app-graph-validator",
-        "message": "Surface route 'apply' transition trigger 'submit' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
-        "primarySource": {
-          "artifactSlot": "surfaces[0]",
-          "artifactKind": "surface",
-          "source": "studio-core:bundle-local:surfaces[0]",
-          "jsonPointer": "/routes/0/transitions/0/trigger",
-          "ref": {
-            "url": "https://benefits.example.gov/apps/assistance/surfaces/respondent",
-            "version": "1.0.0"
-          }
-        },
-        "relatedSources": [],
-        "details": {
-          "reason": "closed-intent-unresolved",
-          "routeId": "apply",
-          "trigger": "submit",
-          "closedIntents": [
-            "autosave",
-            "request-evidence",
-            "review",
-            "save-draft",
-            "submit"
-          ],
-          "knownActionIds": [],
-          "matchingActionIds": []
-        }
-      },
-      {
-        "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
-        "severity": "error",
-        "phase": "cross-artifact",
-        "origin": "app-graph-validator",
-        "message": "Surface route 'certify' transition trigger 'submit' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
-        "primarySource": {
-          "artifactSlot": "surfaces[0]",
-          "artifactKind": "surface",
-          "source": "studio-core:bundle-local:surfaces[0]",
-          "jsonPointer": "/routes/1/transitions/0/trigger",
-          "ref": {
-            "url": "https://benefits.example.gov/apps/assistance/surfaces/respondent",
-            "version": "1.0.0"
-          }
-        },
-        "relatedSources": [],
-        "details": {
-          "reason": "closed-intent-unresolved",
-          "routeId": "certify",
-          "trigger": "submit",
-          "closedIntents": [
-            "autosave",
-            "request-evidence",
-            "review",
-            "save-draft",
-            "submit"
-          ],
-          "knownActionIds": [],
-          "matchingActionIds": []
         }
       }
     ],

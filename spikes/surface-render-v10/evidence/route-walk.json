@@ -1,65 +1,179 @@
 {
-  "title": "surface-render-v10 — four routes walked from the signed export",
-  "description": "Every route below was derived from the two Surface documents inside the signed bundle export. No route table, title, path, route class, or slot list is written in the shell's source.",
-  "servedFrom": "vite preview of the static build (http://localhost:4174) — also confirmed identical on the dev server (http://localhost:4173)",
+  "title": "surface-render-v10 — four routes walked from the signed export, through the shipped shell",
+  "description": "Read out of the live DOM after clicking through the navigation. Every route below is derived from the two Surface documents inside the signed bundle export by `@formspec-org/surface`; no route table, title, path, route class or slot list is written in this spike.",
+  "servedFrom": "http://localhost:4174 (vite preview of the static build)",
+  "renderedBy": [
+    "@formspec-org/surface — composeSurfaceApp, matchRoute, planRoute, createThemeAuthority, createWidgetRegistry, planTransitions",
+    "@formspec-org/surface-react — SurfaceApp, SurfaceRouteView, SurfaceSlot, and the four starter widgets",
+    "@formspec-org/react — FormspecForm, for the one definition-form slot"
+  ],
   "surfacesInManifest": [
     "https://benefits.example.gov/apps/assistance/surfaces/respondent",
     "https://benefits.example.gov/apps/assistance/surfaces/staff"
   ],
   "routes": [
     {
-      "path": "/apply",
       "routeId": "apply",
+      "surfaceId": "respondent",
       "routeClass": "intake",
-      "title": "Apply for rent assistance",
       "themeGrant": "admitted",
-      "slotCount": 4,
-      "slotTypes": ["experience-unit", "module-widget", "static-content", "definition-form"],
-      "stubsRendered": ["widget-x-intake-banner"],
+      "title": "Apply for rent assistance",
+      "headingOutline": [
+        "h1",
+        "h2",
+        "h2",
+        "h2",
+        "h2"
+      ],
+      "slots": [
+        {
+          "slotId": "applyJourney",
+          "slotType": "experience-unit",
+          "widget": null,
+          "emptyState": null,
+          "unavailable": null
+        },
+        {
+          "slotId": "applyChrome",
+          "slotType": "module-widget",
+          "widget": "intake-banner",
+          "emptyState": "Nothing has been written for this banner yet, so there is nothing to read here.",
+          "unavailable": null
+        },
+        {
+          "slotId": "applyReassurance",
+          "slotType": "static-content",
+          "widget": null,
+          "emptyState": null,
+          "unavailable": null
+        },
+        {
+          "slotId": "applyForm",
+          "slotType": "definition-form",
+          "widget": null,
+          "emptyState": null,
+          "unavailable": null
+        }
+      ],
       "shippedRendererMounted": true,
-      "signatureVerifiedInChrome": true
+      "submitButtonLabel": "Submit",
+      "shellTransitionControl": "none",
+      "shellTransitionText": null
     },
     {
-      "path": "/certify",
       "routeId": "certify",
+      "surfaceId": "respondent",
       "routeClass": "ceremony",
+      "themeGrant": "refused",
       "title": "Sign your declaration",
-      "themeGrant": "refused",
-      "slotCount": 2,
-      "slotTypes": ["static-content", "module-widget"],
-      "stubsRendered": ["widget-x-ceremony-frame"],
+      "headingOutline": [
+        "h1",
+        "h2",
+        "h3"
+      ],
+      "slots": [
+        {
+          "slotId": "certifyJourney",
+          "slotType": "static-content",
+          "widget": null,
+          "emptyState": null,
+          "unavailable": null
+        },
+        {
+          "slotId": "certifyChrome",
+          "slotType": "module-widget",
+          "widget": "ceremony-frame",
+          "emptyState": "There is no declaration to read here yet, so there is nothing to agree to.",
+          "unavailable": null
+        }
+      ],
       "shippedRendererMounted": false,
-      "signatureVerifiedInChrome": true
+      "submitButtonLabel": null,
+      "shellTransitionControl": "refusal notice",
+      "shellTransitionText": "This page moves on once “submit” has been done. This viewer cannot do it."
     },
     {
-      "path": "/receipt/RA-2026-0412",
       "routeId": "receipt",
+      "surfaceId": "respondent",
       "routeClass": "proof",
-      "title": "Your receipt",
       "themeGrant": "refused",
-      "slotCount": 2,
-      "slotTypes": ["static-content", "module-widget"],
-      "stubsRendered": ["widget-x-receipt-panel"],
+      "title": "Your receipt",
+      "headingOutline": [
+        "h1",
+        "h2"
+      ],
+      "slots": [
+        {
+          "slotId": "receiptJourney",
+          "slotType": "static-content",
+          "widget": null,
+          "emptyState": null,
+          "unavailable": null
+        },
+        {
+          "slotId": "receiptChrome",
+          "slotType": "module-widget",
+          "widget": "receipt-panel",
+          "emptyState": null,
+          "unavailable": null
+        }
+      ],
       "shippedRendererMounted": false,
-      "signatureVerifiedInChrome": true,
-      "note": "The :caseRef value is invented by the shell — the bundle carries no submission. Gap ledger no-runtime-state."
+      "submitButtonLabel": null,
+      "shellTransitionControl": "none",
+      "shellTransitionText": null
     },
     {
-      "path": "/queue",
       "routeId": "queue",
+      "surfaceId": "staff",
       "routeClass": "operation",
-      "title": "Caseworker queue",
       "themeGrant": "refused",
-      "slotCount": 2,
-      "slotTypes": ["static-content", "module-widget"],
-      "stubsRendered": ["widget-x-queue-panel"],
+      "title": "Caseworker queue",
+      "headingOutline": [
+        "h1",
+        "h2"
+      ],
+      "slots": [
+        {
+          "slotId": "queueJourney",
+          "slotType": "static-content",
+          "widget": null,
+          "emptyState": null,
+          "unavailable": null
+        },
+        {
+          "slotId": "queueChrome",
+          "slotType": "module-widget",
+          "widget": "queue-table",
+          "emptyState": "Nothing is waiting. When applications arrive, they appear here.",
+          "unavailable": null
+        }
+      ],
       "shippedRendererMounted": false,
-      "signatureVerifiedInChrome": true,
-      "note": "Second Surface (staff). The shell composed two Surfaces into one URL space and one navigation — an assumption, not a rule the platform states. Gap ledger cross-surface-navigation."
+      "submitButtonLabel": null,
+      "shellTransitionControl": "none",
+      "shellTransitionText": null
     }
   ],
-  "contentProvenance": {
-    "claim": "Zero hand-copied content from the export.",
-    "howChecked": "Every string on screen that came from the bundle is read through src/bundle.ts, which imports both evidence files ?raw from the lifecycle spike's own directory. Nothing is copied into this spike. Strings authored by the shell are the ones the export does not carry: navigation group labels (SurfaceDocument.title is optional and both Surfaces omit it), the theme-refusal explanations, the stub widget bodies, and the invented queue rows — all four categories are in the gap ledger."
-  }
+  "stubsRendered": [],
+  "stubNote": "Zero. All four module widgets are real components in @formspec-org/surface-react. Where a widget shows an empty state it is because the bundle supplies it nothing — `widget-data-binding` and `no-runtime-state`, both still open — not because the widget is a stub.",
+  "ledgerOnScreen": {
+    "onScreenTotal": 29,
+    "onScreenResolved": 19,
+    "onScreenOpen": 10,
+    "diagnosticCount": 1,
+    "diagnosticErrors": 1,
+    "diagnosticWarnings": 0,
+    "diagnosticInfos": 0,
+    "diagnostics": [
+      {
+        "code": "ROUTE-PARAM-GRAMMAR",
+        "severity": "error"
+      }
+    ],
+    "diagnosticCodes": [
+      "ROUTE-PARAM-GRAMMAR"
+    ]
+  },
+  "navigationLabels": "Group labels are `SurfaceDocument.title ?? id`, so they read \"respondent\" and \"staff\". The spike previously invented \"For the person applying\" and \"For staff\"; a shell does not write copy for an artifact that declined to carry it."
 }

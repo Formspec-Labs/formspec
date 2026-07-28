@@ -48,6 +48,12 @@ interface TokenEntry {
     description: string;
     default: string;
     dark?: string;
+    /**
+     * Another token key this one derives from when a Theme leaves it unset.
+     * A derived token is deliberately NOT emitted into the platform theme — see
+     * {@link extractTokens}.
+     */
+    derivedFrom?: string;
 }
 
 interface TokenCategory {
@@ -68,6 +74,15 @@ interface TokenRegistry {
 /**
  * Extract all token values from the registry: light-mode defaults plus
  * dark-mode variants keyed under each category's `darkPrefix`.
+ *
+ * **Tokens carrying `derivedFrom` are skipped.** A derived token's whole point
+ * is that it resolves through another token when a Theme leaves it unset
+ * (`color.ring` through `color.primary`). Emitting the platform default for it
+ * here would give every theme an explicit value, so the CSS chain
+ * `var(--formspec-color-ring, var(--formspec-color-primary, …))` could never
+ * reach its second arm and a tenant setting only the brand token would keep the
+ * platform focus ring. Its `default` still reaches the skin as the innermost
+ * CSS fallback.
  */
 function extractTokens(registry: TokenRegistry): Record<string, string> {
     const tokens: Record<string, string> = {};
@@ -76,6 +91,7 @@ function extractTokens(registry: TokenRegistry): Record<string, string> {
         const { darkPrefix } = category;
 
         for (const [tokenName, entry] of Object.entries(category.tokens)) {
+            if (entry.derivedFrom !== undefined) continue;
             tokens[tokenName] = entry.default;
 
             if (darkPrefix && entry.dark) {

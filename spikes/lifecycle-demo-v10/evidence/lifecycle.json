@@ -279,9 +279,9 @@
           "verb": "(check)",
           "intent": "Check that the finished app can still find what Submit does.",
           "outcome": "recorded",
-          "message": "It cannot. The Submit behaviour was created, but the app's own index never lists it, so it is left out of the shipped package. A page that fires Submit would have nothing to point at. A third gap we found and reported, not patched.",
+          "message": "It can. The app lists the Submit behaviour in its index, so the finished package carries it and the Submit button has something to point at.",
           "details": {
-            "finding": "response-actions-minted-but-undeclared",
+            "finding": "response-actions-minted-and-declared",
             "manifestSlots": [
               "$formspecBundle",
               "version",
@@ -289,13 +289,15 @@
               "title",
               "definitions",
               "experience",
+              "responseActions",
               "registries",
               "surfaces",
               "modules",
               "sessions"
             ],
-            "technical": "The Response Actions document was minted and no manifest slot names it. `readAppManifest` emits no `responseActions` key and `exportBundle` does not serialise it, so nothing in the graph can resolve the Submit behaviour — the transitions that fire it stay unresolved.",
-            "adr0160": "§4.2(b) mirror of the fixed `ensureExperience` defect; §6.5 excludes Locale, Mapping and Data Sources — not Response Actions"
+            "technical": "`addAction` now writes the manifest `responseActions` slot in the same op that mints the document, `readAppManifest` emits it, `exportBundle` serialises it, and `resolveBundleLocal` serves it. Previously the document was minted and no slot named it, so nothing in the graph could resolve the Submit behaviour and the transitions that fire it stayed unresolved.",
+            "adr0160": "§4.2(b) mirror of the fixed `ensureExperience` defect; §6.5 excludes Locale, Mapping and Data Sources — not Response Actions",
+            "whyItMattered": "response-actions-spec §10 forbids implicit default Actions, so `FormspecForm` injects a submit button ONLY when a Response Actions document publishes a submit-intent Action. A bundle that drops the document at export renders a form nobody can submit — measured by surface-render-v10 before this fix."
           }
         },
         {
@@ -626,7 +628,7 @@
               "NEED-COVERAGE-001": 4,
               "NEED-COVERAGE-002": 4
             },
-            "reportErrors": 6,
+            "reportErrors": 4,
             "artifact": "evidence/stage-2_5-needs.before.coverage.json"
           }
         },
@@ -722,7 +724,7 @@
             "unserved": [],
             "unjustified": [],
             "codes": {},
-            "reportErrors": 6,
+            "reportErrors": 4,
             "artifact": "evidence/stage-2_5-needs.after.coverage.json"
           }
         }
@@ -734,7 +736,8 @@
       "substrateState": {
         "themeDeclaredBy": "human",
         "themeToken": {
-          "color.accent": "#7A1F3D"
+          "color.primary": "#7A1F3D",
+          "color.dark.primary": "#E3A0B4"
         },
         "registryEntries": 5,
         "designerEdits": [
@@ -857,12 +860,25 @@
           "intent": "Set the organisation's brand colour (#7A1F3D).",
           "outcome": "admitted",
           "details": {
-            "key": "color.accent",
+            "key": "color.primary",
             "value": "#7A1F3D"
           }
         },
         {
           "seq": 38,
+          "stage": "build",
+          "actor": "human",
+          "verb": "setThemeToken",
+          "intent": "Set the dark-mode counterpart, because a light brand colour on a dark page is unreadable.",
+          "outcome": "admitted",
+          "details": {
+            "key": "color.dark.primary",
+            "value": "#E3A0B4",
+            "specRef": "theme-spec §3.6"
+          }
+        },
+        {
+          "seq": 39,
           "stage": "build",
           "actor": "human",
           "verb": "declareRegistry + addRegistryEntry",
@@ -875,7 +891,7 @@
           }
         },
         {
-          "seq": 39,
+          "seq": 40,
           "stage": "build",
           "actor": "human",
           "verb": "bindSlot",
@@ -888,7 +904,7 @@
           }
         },
         {
-          "seq": 40,
+          "seq": 41,
           "stage": "build",
           "actor": "human",
           "verb": "removeSlot + bindSlot",
@@ -932,6 +948,7 @@
           "https://benefits.example.gov/apps/assistance/surfaces/staff",
           "https://benefits.example.gov/apps/assistance/definitions/rent-assistance",
           "urn:formspec:doc:1feb5fb90254133a:experience",
+          "urn:formspec:doc:1feb5fb90254133a:responseActions",
           "urn:formspec:doc:1feb5fb90254133a:theme",
           "urn:formspec:doc:1feb5fb90254133a:registry"
         ],
@@ -939,7 +956,7 @@
       },
       "beats": [
         {
-          "seq": 41,
+          "seq": 42,
           "stage": "sign-off",
           "actor": "human",
           "verb": "addRoute(routeClass)",
@@ -954,7 +971,7 @@
           }
         },
         {
-          "seq": 42,
+          "seq": 43,
           "stage": "sign-off",
           "actor": "human",
           "verb": "addRoute(routeClass)",
@@ -969,7 +986,7 @@
           }
         },
         {
-          "seq": 43,
+          "seq": 44,
           "stage": "sign-off",
           "actor": "human",
           "verb": "addRoute(routeClass)",
@@ -984,7 +1001,7 @@
           }
         },
         {
-          "seq": 44,
+          "seq": 45,
           "stage": "sign-off",
           "actor": "human",
           "verb": "addRoute(routeClass)",
@@ -999,19 +1016,20 @@
           }
         },
         {
-          "seq": 45,
+          "seq": 46,
           "stage": "sign-off",
           "actor": "human",
           "verb": "exportBundle",
           "intent": "Produce the exact package that will ship — every file, final.",
           "outcome": "admitted",
           "details": {
-            "documents": 6,
+            "documents": 7,
             "keys": [
               "https://benefits.example.gov/apps/assistance/surfaces/respondent",
               "https://benefits.example.gov/apps/assistance/surfaces/staff",
               "https://benefits.example.gov/apps/assistance/definitions/rent-assistance",
               "urn:formspec:doc:1feb5fb90254133a:experience",
+              "urn:formspec:doc:1feb5fb90254133a:responseActions",
               "urn:formspec:doc:1feb5fb90254133a:theme",
               "urn:formspec:doc:1feb5fb90254133a:registry"
             ]
@@ -1025,15 +1043,14 @@
       "substrateState": {
         "crossArtifactStatus": "completed",
         "diagnosticCounts": {
-          "THEME-ROUTE-CLASS": 3,
-          "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER": 2
+          "THEME-ROUTE-CLASS": 3
         },
         "themeRouteClassFires": 3,
         "artifact": "evidence/stage-5-release.validation-report.json"
       },
       "beats": [
         {
-          "seq": 46,
+          "seq": 47,
           "stage": "release",
           "actor": "human",
           "verb": "declareUiGraphPolicy",
@@ -1048,7 +1065,7 @@
           }
         },
         {
-          "seq": 47,
+          "seq": 48,
           "stage": "release",
           "actor": "system",
           "verb": "THEME-ROUTE-CLASS",
@@ -1063,7 +1080,7 @@
           }
         },
         {
-          "seq": 48,
+          "seq": 49,
           "stage": "release",
           "actor": "system",
           "verb": "THEME-ROUTE-CLASS",
@@ -1080,7 +1097,7 @@
           }
         },
         {
-          "seq": 49,
+          "seq": 50,
           "stage": "release",
           "actor": "system",
           "verb": "THEME-ROUTE-CLASS",
@@ -1097,7 +1114,7 @@
           }
         },
         {
-          "seq": 50,
+          "seq": 51,
           "stage": "release",
           "actor": "system",
           "verb": "THEME-ROUTE-CLASS",
@@ -1134,7 +1151,7 @@
       },
       "beats": [
         {
-          "seq": 51,
+          "seq": 52,
           "stage": "feedback",
           "actor": "human",
           "verb": "(change request)",
@@ -1148,7 +1165,7 @@
           }
         },
         {
-          "seq": 52,
+          "seq": 53,
           "stage": "feedback",
           "actor": "ai-agent",
           "verb": "regenerate",
@@ -1164,7 +1181,7 @@
           }
         },
         {
-          "seq": 53,
+          "seq": 54,
           "stage": "feedback",
           "actor": "ai-agent",
           "verb": "merge",
@@ -1251,7 +1268,7 @@
       "evidence": {
         "verification": {
           "result": "verified",
-          "recomputedDigest": "cb8e6db731cf08d025f5cfbc5cd0d4a5f8d3c2a951338b154f42b4019f16f9b9",
+          "recomputedDigest": "a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37",
           "digestMatches": true,
           "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
           "methodRegistryVersion": "1.1.0",
@@ -1353,7 +1370,7 @@
         "mergeAttempt": {
           "attempted": true,
           "entryPoint": "kernel.regenerateSurfaceDocument",
-          "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 342 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
+          "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 348 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
         },
         "mergeReport": {
           "version": "1.0",
@@ -1554,7 +1571,7 @@
             "@formspec-org/engine",
             "@formspec-org/types"
           ],
-          "exportsSeen": 342,
+          "exportsSeen": 348,
           "patternsScanned": {
             "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
             "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
@@ -1736,15 +1753,11 @@
           "slotsUnchanged (authored census == exported census)": true
         },
         "wholeGraphErrorsByCode": {
-          "THEME-ROUTE-CLASS": 3,
-          "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER": 2
+          "THEME-ROUTE-CLASS": 3
         },
         "errorsByScope": {
           "host-evidence": {
             "THEME-ROUTE-CLASS": 3
-          },
-          "verb-family": {
-            "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER": 2
           }
         },
         "census": {
@@ -1754,7 +1767,7 @@
         },
         "hostArtifactLoadersWired": 0,
         "namedResiduals": {
-          "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER": "Verb-family-scoped and OUTSIDE the five §7 bars. `addAction` mints a Response Actions document that no manifest slot names and `exportBundle` does not serialise, so the `submit` transitions cannot resolve. ADR 0160 §4.2(b) fixed exactly this defect for `ensureExperience`; §6.5 excludes Locale, Mapping and Data Sources from v1 and does NOT list Response Actions, so this is a gap rather than a decision.",
+          "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER": "none",
           "THEME-ROUTE-CLASS": "3 — these are the guard WORKING (bar 4), not a defect. Host-evidence-scoped because the UI Graph Policy is host evidence."
         }
       }
@@ -1783,20 +1796,20 @@
             "NEED-COVERAGE-001": 4,
             "NEED-COVERAGE-002": 4
           },
-          "reportErrors": 6
+          "reportErrors": 4
         },
         "after": {
           "unserved": [],
           "unjustified": [],
           "codes": {},
-          "reportErrors": 6
+          "reportErrors": 4
         },
         "proposedByTheAgent": "finish-on-another-device",
         "agentSelfApprovalRefusal": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. An AI may file a Need; only a human may adopt one (needs-spec S4.3).",
         "citations": 5,
         "coverageBlockedNothing": true,
-        "errorsBefore": 6,
-        "errorsAfter": 6,
+        "errorsBefore": 4,
+        "errorsAfter": 4,
         "corpus": "spikes/lifecycle-demo-v10/corpus/assistance.needs.json",
         "artifacts": [
           "evidence/stage-2_5-needs.before.coverage.json",
@@ -1813,7 +1826,7 @@
       "signatureId": "sig-lifecycle-v10-ceremony-v10-0001",
       "documentId": "rentAssistanceRelease",
       "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1",
-      "signatureValue": "0oRYSKMBJwRQVu0IR4iwR3C7kRJAvU7uajoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEDD4wACn1Y7tFdqG8Isp/WzNg/aMw/vr6JsotKP5KLov8juXwJ9+WiP6+sLRTbSIaiJPMDYLpy1SEXo7fF156kM",
+      "signatureValue": "0oRYSKMBJwRQXKk+f5KxlTpWfr3P8qiLuzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEAeANZ0wjqdCR4qga9et11m6cUKuX1eq9WGaEOZ+0DGWJoanEW8nCO5ZZi1g/SFyMWNJd1wptJVl0qSmoyNl9sJ",
       "signerId": "product-owner",
       "signerName": "R. Okonjo, Product Owner",
       "consentAccepted": true,
@@ -1823,24 +1836,24 @@
       "signedPayload": {
         "canonicalization": "formspec-spike-v10-bundle-export-signing-v1",
         "digestAlgorithm": "sha-256",
-        "digest": "cb8e6db731cf08d025f5cfbc5cd0d4a5f8d3c2a951338b154f42b4019f16f9b9",
+        "digest": "a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37",
         "responseId": "https://benefits.example.gov/apps/assistance",
         "definitionUrl": "https://benefits.example.gov/apps/assistance",
         "definitionVersion": "1.0.0",
         "signedAt": "2026-07-27T09:30:00Z",
         "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1"
       },
-      "documentHash": "cb8e6db731cf08d025f5cfbc5cd0d4a5f8d3c2a951338b154f42b4019f16f9b9",
+      "documentHash": "a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37",
       "documentHashAlgorithm": "sha-256",
       "signatureProvider": "urn:formspec:spike-v10:signature:provider:in-repo-ed25519",
       "ceremonyId": "ceremony-v10-0001"
     },
-    "publicKeyBase64": "sfFW6GZi/smUb2lzLO9PswxbjGIcJZgLHe1OSjA3Xpw=",
+    "publicKeyBase64": "0sGA8HMR6jjftr/n9GnLNUsHqChJ/uCZPOjnymG6MlU=",
     "schemaValid": false
   },
   "verification": {
     "result": "verified",
-    "recomputedDigest": "cb8e6db731cf08d025f5cfbc5cd0d4a5f8d3c2a951338b154f42b4019f16f9b9",
+    "recomputedDigest": "a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37",
     "digestMatches": true,
     "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
     "methodRegistryVersion": "1.1.0",
@@ -1865,7 +1878,7 @@
     "mergeAttempt": {
       "attempted": true,
       "entryPoint": "kernel.regenerateSurfaceDocument",
-      "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 342 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
+      "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 348 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
     },
     "mergeReport": {
       "version": "1.0",
@@ -2066,7 +2079,7 @@
         "@formspec-org/engine",
         "@formspec-org/types"
       ],
-      "exportsSeen": 342,
+      "exportsSeen": 348,
       "patternsScanned": {
         "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
         "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
@@ -2256,13 +2269,13 @@
         "NEED-COVERAGE-001": 4,
         "NEED-COVERAGE-002": 4
       },
-      "reportErrors": 6
+      "reportErrors": 4
     },
     "after": {
       "unserved": [],
       "unjustified": [],
       "codes": {},
-      "reportErrors": 6
+      "reportErrors": 4
     },
     "proposedNeedId": "finish-on-another-device",
     "refusalMessage": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. An AI may file a Need; only a human may adopt one (needs-spec S4.3).",

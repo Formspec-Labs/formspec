@@ -11,9 +11,14 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
 import '@formspec-org/layout/formspec-default.css';
+import '@formspec-org/surface-react/formspec-surface.css';
 import './app.css';
-import { SurfaceShell } from './shell/SurfaceShell.tsx';
+import { App } from './app.tsx';
 import { isTrustworthy, verifyBundleSignature, type VerificationOutcome } from './verify.ts';
+// Spike scaffolding: hands `scripts/probe.mjs` the app's own verification path,
+// so evidence/signature-verification.json reports what the browser did rather
+// than what a second Node implementation computed. Gap ledger `shell-visual-design`.
+import './probe-hooks.ts';
 
 type BootState =
   | { status: 'checking' }
@@ -75,7 +80,7 @@ function Boot() {
     );
   }
 
-  return <SurfaceShell verification={state.outcome} />;
+  return <App verification={state.outcome} />;
 }
 
 const rootEl = document.getElementById('root');

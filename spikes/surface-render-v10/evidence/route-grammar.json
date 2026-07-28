@@ -1,0 +1,23 @@
+{
+  "title": "D1 — the unpinned route-parameter grammar, and what it costs the address",
+  "description": "The signed bundle authors `/receipt/:caseRef`. Surface v0.1 §3 pins `{name}` as the only parameter grammar, so a conforming shell reads `:caseRef` as literal text. The route stays reachable by handle and only its deep-link address degrades — loudly, which is the point.",
+  "authoredPath": "/receipt/:caseRef",
+  "addressThatWorks": "/receipt/:caseRef",
+  "addressThatNoLongerResolves": "/receipt/RA-2026-0412",
+  "measured": {
+    "routeRendered": null,
+    "notFoundShown": true,
+    "diagnostics": [
+      {
+        "code": "ROUTE-PARAM-GRAMMAR",
+        "severity": "error"
+      },
+      {
+        "code": "ROUTE-UNMATCHED",
+        "severity": "warning"
+      }
+    ]
+  },
+  "repair": "A `pattern` on `Route.path` in surface.schema.json admitting only the pinned grammar, plus authoring-tool emission (finding F8, owner: Surface). Making the renderer strict is necessary and not sufficient — the authored bundle is where the two grammars meet.",
+  "beforeThisReconciliation": "The shell matched BOTH grammars in one pass and reported ROUTE-PARAM-GRAMMAR alongside, so the deep link worked here and 404d in any other conforming renderer."
+}

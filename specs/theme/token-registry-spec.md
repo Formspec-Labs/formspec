@@ -156,6 +156,7 @@ token key (e.g., `color.primary`, `spacing.md`). The value is a
 | `type` | string | OPTIONAL | Token type, overriding the category default. See §3. |
 | `default` | string or number | RECOMMENDED | Default value shipped with the platform theme. |
 | `dark` | string or number | OPTIONAL | Default dark-mode value. See §2.2 for derivation. |
+| `derivedFrom` | string | OPTIONAL | Another token key this token resolves through when a Theme leaves it unset. See §2.5. |
 | `examples` | array of (string or number) | OPTIONAL | Example token values for documentation and tooling hints. |
 
 Example:
@@ -178,6 +179,50 @@ processors MUST ignore the `dark` field and SHOULD emit a warning.
 
 **Token key uniqueness:** A token key MUST NOT appear in more than one
 category within the same registry or `tokenMeta` document.
+
+### 2.4 The Brand Token
+
+`color.primary` is **the** platform brand token. It is the single key a
+tenant sets to change the colour their form is rendered in, and it is
+the key every shipped stylesheet reads (`--formspec-color-primary`).
+There is no second brand key: `color.accent`, `color.brand` and
+`color.highlight` are NOT declared by this registry, and processors MUST
+NOT alias them onto `color.primary`.
+
+A silent alias is worse than no alias. It makes two vocabularies both
+appear to work, so an authoring tool that emits the wrong one is never
+corrected and a renderer that drops it is never blamed. A theme that
+names an undeclared non-`x-` token gets the §5.3 diagnostic instead.
+
+Derived tokens fan out from `color.primary` in the shipped skin rather
+than being separate brand inputs. `color.ring` (the focus ring) declares
+`derivedFrom: "color.primary"` (§2.5), so setting the brand token alone
+changes the focus ring, the section headings, and the primary button. A
+theme that wants a focus ring different from its brand colour sets
+`color.ring` explicitly.
+
+### 2.5 Derived Tokens
+
+A token entry MAY declare `derivedFrom`, naming another token key it
+resolves through when a Theme leaves it unset.
+
+A processor that builds the platform Theme's token map from this registry
+MUST NOT emit a derived token into that map. Emitting it would give every
+Theme an explicit value for the token, and the derivation could never
+fire — a tenant who sets only `color.primary` would keep the platform
+focus ring, which is precisely the failure this field exists to prevent.
+The derived entry's `default` stays the value of last resort, expressed
+by the renderer as the innermost fallback of its resolution chain:
+
+```css
+--formspec-default-focus: var(--formspec-color-ring, var(--formspec-color-primary, #27594f));
+```
+
+`derivedFrom` MUST name a key declared by the same registry, and
+derivation chains MUST NOT be cyclic. A derived token is still a declared
+token: a Theme MAY set it, validators MUST NOT report it under §5.3, and
+Studio SHOULD present it with its derivation shown rather than as a
+free-standing default.
 
 ## 3. Token Types
 
@@ -328,16 +373,37 @@ and Component Document. The registry exists for tooling only.
 
 ### 5.3 Validators
 
-Validators MAY use the platform registry to:
+A validator that loads a Theme Document MUST emit a diagnostic for every
+token key that sits under a **category prefix the registry declares** and
+is not itself declared by the registry. Such a key names nothing: no
+stylesheet reads it, no `tokenMeta` describes it, and emitting it
+produces a CSS custom property with no consumer. Silence here is the
+failure mode — the token travels the whole chain (authoring, validation,
+signing, emission, cascade) and changes nothing on screen, with no reader
+ever told why. `color.accent` is the worked example: the registry owns
+`color.*` and declares no `accent`.
 
-- Warn on tokens outside the `x-*` namespace that are not in the
-  platform registry.
+The check is scoped to owned prefixes deliberately. Theme Specification
+§3.2 blesses `typography.`, `border.` and `elevation.` as valid Theme
+token vocabulary that this registry does not carry, and `x-` is the
+extension namespace. Reporting those would turn spec-sanctioned keys into
+warnings and train readers to ignore the diagnostic — which is the
+failure mode this check exists to prevent.
+
+Validators MAY additionally use the platform registry to:
+
 - Warn on token values that do not match their declared type.
 - Report tokens present in the registry but missing from the theme
   (potential incomplete themes).
 
 Validators MUST NOT reject a theme document based on registry
-validation. Registry-based checks are advisory warnings only.
+validation. Registry-based checks are advisory diagnostics only: the
+required diagnostic above is a warning, not an error, because a theme
+carrying an unregistered token is still a renderable theme.
+
+Conforming implementations of the required diagnostic:
+`formspec-lint` W708 (`pass_theme`) and `@formspec-org/app-graph`
+`THEME-TOKEN-UNREGISTERED` (`validateThemeTokenRegistry`).
 
 ## 6. Conformance
 

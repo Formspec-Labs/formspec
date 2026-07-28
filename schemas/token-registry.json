@@ -8,7 +8,7 @@
       "darkPrefix": "color.dark",
       "tokens": {
         "color.primary": {
-          "description": "Primary brand/accent color",
+          "description": "THE brand token. The single key a tenant sets to change the colour their form renders in; the default skin fans it out to the focus ring, section headings and the primary button. There is no color.accent — see token-registry-spec §2.4.",
           "default": "#27594f",
           "dark": "#8bb8ac"
         },
@@ -68,7 +68,8 @@
           "dark": "#82b8f8"
         },
         "color.ring": {
-          "description": "Focus ring color",
+          "description": "Focus ring color. Derived from color.primary when a theme leaves it unset; set it explicitly only to break that link.",
+          "derivedFrom": "color.primary",
           "default": "#27594f",
           "dark": "#8fc6b7"
         },

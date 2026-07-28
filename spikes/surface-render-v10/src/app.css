@@ -1,13 +1,21 @@
 /**
- * The shell's own chrome. Entirely spike scaffolding — gap ledger
- * `shell-visual-design`. A real shell would take its chrome from its host.
+ * The spike host's own chrome. Entirely spike scaffolding — gap ledger
+ * `shell-visual-design`. A real host would take its chrome from its design
+ * system.
  *
- * One rule here is load-bearing rather than decorative: nothing in this file
- * reads a `--formspec-color-*` custom property. The shell's chrome is drawn
- * from its own `--shell-*` variables, so a tenant token that leaked onto the
- * page could not repaint the shell by accident and make a refusing route look
- * branded. Bar R3's probe checks the route subtree; this keeps the frame
- * around it out of the argument.
+ * **This file is much smaller than it was.** Everything that laid out a route,
+ * a slot, a navigation or a widget moved to
+ * `@formspec-org/surface-react/formspec-surface.css`, which is token-driven and
+ * ships with the shell. What is left is the boot screens, the verification
+ * strip, the document-root probe, the gap drawer, and the page frame around
+ * `SurfaceApp`.
+ *
+ * One rule here is load-bearing rather than decorative: **nothing in this file
+ * reads a `--formspec-color-*` custom property.** The host's chrome is drawn
+ * from its own `--shell-*` variables, so a tenant token that reached the page
+ * could not repaint the frame and make a refusing route look branded. Bar R3's
+ * probe checks the route subtree; this keeps the frame around it out of the
+ * argument.
  */
 
 :root {
@@ -94,15 +102,54 @@ code {
   color: var(--shell-bad-ink);
 }
 
-/* ── shell frame ──────────────────────────────────────────────────── */
+/* ── page frame around SurfaceApp ─────────────────────────────────── */
 
-.shell {
+.fs-surface-app {
   max-width: 62rem;
   margin: 0 auto;
   padding: 1.25rem 1rem 3rem;
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
+}
+
+.fs-surface-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--shell-panel);
+  border: 1px solid var(--shell-line);
+  border-radius: var(--shell-radius);
+}
+
+.fs-surface-nav__list a[aria-current='page'] {
+  background: var(--shell-accent);
+  border-color: var(--shell-accent);
+  color: var(--shell-panel);
+}
+
+.fs-surface-main {
+  min-height: 20rem;
+}
+
+.fs-surface-route {
+  background: var(--shell-panel);
+  border: 1px solid var(--shell-line);
+  border-radius: var(--shell-radius);
+  padding: 1.4rem 1.5rem 1.8rem;
+}
+
+.fs-surface-route__title {
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.fs-surface-banner,
+.fs-surface-ceremony,
+.fs-surface-receipt,
+.fs-surface-queue {
+  background: transparent;
 }
 
 /* ── verification chrome ──────────────────────────────────────────── */
@@ -189,300 +236,31 @@ code {
   opacity: 0.8;
 }
 
-/* ── navigation ───────────────────────────────────────────────────── */
+/* ── document-root probe ──────────────────────────────────────────── */
 
-.nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  padding: 0.75rem 1rem;
-  background: var(--shell-panel);
-  border: 1px solid var(--shell-line);
-  border-radius: var(--shell-radius);
-}
-
-.nav__group-label {
-  margin: 0 0 0.35rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--shell-ink-quiet);
-}
-
-.nav__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nav__list a {
-  display: inline-block;
-  padding: 0.3rem 0.7rem;
-  border-radius: 999px;
-  border: 1px solid var(--shell-line);
-  color: var(--shell-ink);
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
-.nav__list a:hover {
-  border-color: var(--shell-accent);
-}
-
-.nav__list a[aria-current='page'] {
-  background: var(--shell-accent);
-  border-color: var(--shell-accent);
-  color: var(--shell-panel);
-  font-weight: 600;
-}
-
-/* ── route ────────────────────────────────────────────────────────── */
-
-.main {
-  min-height: 20rem;
-}
-
-.route {
-  background: var(--shell-panel);
-  border: 1px solid var(--shell-line);
-  border-radius: var(--shell-radius);
-  padding: 1.4rem 1.5rem 1.8rem;
-}
-
-.route__title {
-  margin: 0 0 0.5rem;
-  font-size: 1.6rem;
-  line-height: 1.2;
-}
-
-.route__slots {
-  display: flex;
-  flex-direction: column;
-  gap: 1.4rem;
-  margin-top: 1.2rem;
-}
-
-.slot__title {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
-  color: var(--shell-ink-quiet);
-  font-weight: 600;
-}
-
-.slot-missing {
-  margin: 0;
-  padding: 0.6rem 0.8rem;
-  border: 1px dashed var(--shell-line);
+.rootprobe {
+  margin: 0.5rem 0 0;
+  padding: 0.45rem 0.7rem;
   border-radius: 8px;
+  font-size: 0.8rem;
   color: var(--shell-ink-quiet);
-  font-size: 0.9rem;
-}
-
-.static-heading {
-  margin: 0;
-  font-size: 1.15rem;
-}
-
-.static-text {
-  margin: 0;
-}
-
-/* ── theme note ───────────────────────────────────────────────────── */
-
-.themenote {
-  margin: 0;
-  padding: 0.6rem 0.85rem;
-  border-radius: 8px;
-  font-size: 0.88rem;
   border: 1px solid var(--shell-line);
-  color: var(--shell-ink-quiet);
   background: transparent;
 }
 
-.themenote--on {
-  border-style: solid;
-}
-
-.themenote--off {
-  border-style: dashed;
-}
-
-/* ── experience unit ──────────────────────────────────────────────── */
-
-.experience-unit__title {
-  margin: 0;
-  font-weight: 600;
-}
-
-.experience-unit__needs {
-  margin: 0.4rem 0 0;
-  padding-left: 1.1rem;
-  color: var(--shell-ink-quiet);
-  font-size: 0.9rem;
-}
-
-/* ── stub marking ─────────────────────────────────────────────────── */
-
-.stub {
-  border: 1px dashed var(--shell-stub-line);
-  background: var(--shell-stub-bg);
-  border-radius: 8px;
-  padding: 0.5rem 0.85rem 0.9rem;
-}
-
-.stub__tag {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0 0 0.6rem;
-  font-size: 0.76rem;
-  letter-spacing: 0.02em;
-  color: var(--shell-stub-ink);
-}
-
-.stub__dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--shell-stub-ink);
-  flex: none;
-}
-
-.stub__tag code {
-  opacity: 0.85;
-}
-
-/* ── stub widgets ─────────────────────────────────────────────────── */
-
-.banner__eyebrow {
-  margin: 0;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--shell-ink-quiet);
-}
-
-.banner__body {
-  margin: 0.2rem 0 0;
-}
-
-.ceremony__lead {
-  margin: 0;
-}
-
-.ceremony__affirmation {
-  margin: 0.7rem 0;
-  padding: 0.7rem 0.9rem;
-  border-left: 3px solid var(--shell-ink-quiet);
-  background: var(--shell-panel);
-  font-size: 1.02rem;
-}
-
-.ceremony__note,
-.receipt__note,
-.queue__note {
-  margin: 0.6rem 0 0;
-  font-size: 0.83rem;
-  color: var(--shell-ink-quiet);
-}
-
-.transition {
-  margin-top: 1.6rem;
-  padding-top: 1.1rem;
-  border-top: 1px solid var(--shell-line);
-}
-
-.transition__note {
-  margin: 0.5rem 0 0;
-  font-size: 0.83rem;
-  color: var(--shell-ink-quiet);
-}
-
-.transition__button,
-.queue__open {
-  font: inherit;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--shell-accent);
-  background: var(--shell-accent);
-  color: var(--shell-panel);
-  cursor: pointer;
-}
-
-.queue__open {
-  padding: 0.25rem 0.7rem;
-  font-size: 0.85rem;
-}
-
-.transition__button:disabled,
-.queue__open:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.receipt__facts {
-  margin: 0;
-  display: grid;
-  gap: 0.45rem;
-}
-
-.receipt__facts > div {
-  display: grid;
-  grid-template-columns: minmax(8rem, 12rem) 1fr;
-  gap: 0.75rem;
-}
-
-.receipt__facts dt {
-  font-weight: 600;
-  font-size: 0.88rem;
-}
-
-.receipt__facts dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.receipt__empty {
-  color: var(--shell-ink-quiet);
-  font-style: italic;
-}
-
-/* ── queue table ──────────────────────────────────────────────────── */
-
-.queue__scroll {
-  overflow-x: auto;
-}
-
-.queue__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-  min-width: 34rem;
-}
-
-.queue__caption {
-  text-align: left;
-  font-size: 0.83rem;
-  color: var(--shell-ink-quiet);
-  padding-bottom: 0.5rem;
-}
-
-.queue__table th,
-.queue__table td {
-  text-align: left;
-  padding: 0.45rem 0.6rem;
-  border-bottom: 1px solid var(--shell-line);
-}
-
-.queue__table thead th {
+.rootprobe code {
   font-size: 0.78rem;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--shell-ink-quiet);
+}
+
+/*
+ * Both arms, like everything else here. The hardcoded `#b1261d` this replaced
+ * had no dark arm and measured 2.46:1 against the dark panel — a warning nobody
+ * could read, on the probe whose whole job is to be readable.
+ */
+.rootprobe--leaking {
+  border-color: var(--shell-bad-line);
+  background: var(--shell-bad-bg);
+  color: var(--shell-bad-ink);
 }
 
 /* ── gap drawer ───────────────────────────────────────────────────── */
@@ -523,6 +301,35 @@ code {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
   color: var(--shell-ink-quiet);
+}
+
+.gaps-foot {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.gaps__state {
+  margin: 0 0 0.15rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--shell-ink-quiet);
+}
+
+.gaps__item--closed {
+  border-left-color: var(--shell-ok-line);
+}
+
+.gaps__item--closed .gaps__state {
+  color: var(--shell-ok-ink);
+}
+
+.gaps__item--open {
+  border-left-color: var(--shell-stub-line);
+}
+
+.gaps__item--open .gaps__state {
+  color: var(--shell-stub-ink);
 }
 
 /* The shipped renderer paints inside `.formspec-container`; give it room. */

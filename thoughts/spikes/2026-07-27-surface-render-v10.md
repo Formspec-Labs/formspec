@@ -180,7 +180,9 @@ which outlives its component and reaches everything outside a `.formspec-contain
 **R4 — met.** The operator route renders both slots. Four widget stubs, each marked
 on screen with its ledger id, all enumerated.
 
-**R5 — met.** 26 entries, machine-readable in `evidence/gap-ledger.json`. By natural
+**R5 — met.** 26 entries at the time of writing, machine-readable in
+`evidence/gap-ledger.json` — which now carries `total` / `open` / `resolved` counts and
+has grown past 26, for the reasons in §Since the spike. By natural
 home: a surface-shell package that does not exist (8), shipped packages that own the
 concern but do not expose or honour it (8), the registry widget family (6),
 `formspec-web` (3), spike scaffolding (1).
@@ -231,3 +233,43 @@ package, properly on its export surface, knowing every manifest slot and version
 it simply models sibling refs behind a loader rather than a bundle export that has
 already inlined its documents. The gaps are in reach and delivery, not in the
 primitives.
+
+## Since the spike — what the work order bought
+
+The bars and findings above are the record as measured, and are deliberately not
+rewritten. What has changed since is recorded in the ledger's own rows, which keep their
+original text and carry a `resolved` block; `evidence/gap-ledger.json` has the current
+counts and the ids still open. Three things are worth naming here because they change
+what the *hypothesis* means.
+
+**The shell exists.** `@formspec-org/surface` (renderer-independent) and
+`@formspec-org/surface-react` (the React binding) ship in the formspec npm layer — not
+in `formspec-web`, which is `private: true` and vendors its Formspec dependencies, so a
+shell there could not be reached by `case-portal`, `formspec-cloud` or
+`formspec-studio`. The spike now imports them; its `src/shell/`, `src/slots/` and
+`src/widgets/` directories are deleted. The hypothesis is no longer true, which is the
+outcome a confirmed hypothesis is supposed to have.
+
+**The four widget stubs are real widgets.** The module-widget runtime seam —
+`{moduleId, widgetName}` resolving through Registry identity — is what let them be
+delivered, and the naming detail was load-bearing: a Surface binding's `widgetName`
+matches `widgetShape.widgetName`, not `RegistryEntry.name` (ADR 0160 §2.4). None of them
+invents content; the queue renders an honest empty state, which is the visible cost of
+`widget-data-binding` still being open.
+
+**The transition question is answered, against the shell.** The spike asked whether a
+shell should own a default trigger affordance. It should not:
+`surface-spec.md` §5.1 says a router "MUST NOT infer success from a click, a rendered
+button, or a validation summary", and a shell-supplied Continue button is that inference
+wearing a label. The shell plans transitions and refuses to fire them; the bundle
+declares the trigger and the host supplies the executor. The finding underneath —
+nothing checks, before signing, that a transition trigger has anything that could
+produce it — is split out as `transition-edge-traversability-unchecked` and stays open,
+because it belongs in lint or the app-graph validator rather than in any renderer.
+
+Two findings were added by doing the work rather than by writing the spike, both
+upstream of any renderer: `static-content-image-has-no-alt-channel` (the `static-content`
+binding has no `alt` field, and `kind: image` is one of its four closed kinds) and the
+transition check above. And one entry's claim was corrected against the schema: the
+`static-content` `kind` vocabulary **was** already closed, in
+`surface.schema.json` and surface-spec §5, and the spike reported it as unwritten.

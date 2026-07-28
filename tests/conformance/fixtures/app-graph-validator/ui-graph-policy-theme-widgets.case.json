@@ -63,7 +63,7 @@
           "version": "1.0.0"
         },
         "tokens": {
-          "color.accent": "#005ea8",
+          "color.primary": "#005ea8",
           "spacing.md": "1rem",
           "typography.body.size": "1rem",
           "x-agency.seal-color": "#1a4480"
@@ -88,7 +88,7 @@
           "version": "1.0.0"
         },
         "tokens": {
-          "color.accent": "#005ea8"
+          "color.primary": "#005ea8"
         }
       }
     },
@@ -418,7 +418,7 @@
                 "widgetName": "x-review-panel"
               },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -642,7 +642,7 @@
                 "widgetName": "x-review-panel"
               },
               "slot": "surface",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -670,7 +670,7 @@
                 "widgetName": "x-review-panel"
               },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -698,7 +698,7 @@
                 "widgetName": "x-review-panel"
               },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -726,7 +726,7 @@
                 "widgetName": "x-review-panel"
               },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -754,7 +754,7 @@
                 "widgetName": "x-review-panel"
               },
               "slot": "undeclared-slot",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -782,7 +782,7 @@
                 "widgetName": "x-review-panel"
               },
               "slot": "undeclared-slot",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -810,7 +810,7 @@
                 "widgetName": "x-review-panel"
               },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -838,7 +838,7 @@
                 "widgetName": "x-review-panel"
               },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -857,7 +857,7 @@
             {
               "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -876,7 +876,7 @@
             {
               "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -895,7 +895,7 @@
             {
               "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -914,7 +914,7 @@
             {
               "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -933,7 +933,7 @@
             {
               "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -952,7 +952,7 @@
             {
               "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -971,7 +971,7 @@
             {
               "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -990,7 +990,7 @@
             {
               "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -1009,7 +1009,7 @@
             {
               "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -1028,7 +1028,7 @@
             {
               "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
               "slot": "accent",
-              "token": "color.accent"
+              "token": "color.primary"
             }
           ]
         }
@@ -2390,7 +2390,7 @@
               "moduleId": "x-reviewer",
               "widgetName": "x-review-panel",
               "slot": "accent",
-              "token": "color.accent",
+              "token": "color.primary",
               "reason": "missing-theme-evidence"
             }
           }
@@ -2460,7 +2460,7 @@
               "moduleId": "x-reviewer",
               "widgetName": "x-review-panel",
               "slot": "accent",
-              "token": "color.accent",
+              "token": "color.primary",
               "reason": "ambiguous-theme-evidence"
             }
           }
@@ -3053,7 +3053,7 @@
               "moduleId": "x-reviewer",
               "widgetName": "x-review-panel",
               "slot": "accent",
-              "token": "color.accent",
+              "token": "color.primary",
               "routeId": "certificate",
               "routeClass": "proof",
               "embedChain": ["certificate"],
@@ -3113,7 +3113,7 @@
               "moduleId": "x-reviewer",
               "widgetName": "x-review-panel",
               "slot": "accent",
-              "token": "color.accent",
+              "token": "color.primary",
               "routeId": "sign",
               "routeClass": "ceremony",
               "embedChain": ["sign"],
@@ -3173,7 +3173,7 @@
               "moduleId": "x-reviewer",
               "widgetName": "x-review-panel",
               "slot": "accent",
-              "token": "color.accent",
+              "token": "color.primary",
               "routeId": "verify",
               "routeClass": "verification",
               "embedChain": ["verify"],
@@ -3233,7 +3233,7 @@
               "moduleId": "x-reviewer",
               "widgetName": "x-review-panel",
               "slot": "accent",
-              "token": "color.accent",
+              "token": "color.primary",
               "routeId": "capabilities",
               "routeClass": "attestation",
               "embedChain": ["capabilities"],
@@ -3293,7 +3293,7 @@
               "moduleId": "x-reviewer",
               "widgetName": "x-review-panel",
               "slot": "accent",
-              "token": "color.accent",
+              "token": "color.primary",
               "routeId": "signin",
               "routeClass": "authentication",
               "embedChain": ["signin"],
@@ -3353,7 +3353,7 @@
               "moduleId": "x-reviewer",
               "widgetName": "x-review-panel",
               "slot": "accent",
-              "token": "color.accent",
+              "token": "color.primary",
               "routeId": "audit",
               "routeClass": "operation",
               "embedChain": ["audit"],
@@ -3477,7 +3477,7 @@
               "moduleId": "x-reviewer",
               "widgetName": "x-review-panel",
               "slot": "accent",
-              "token": "color.accent",
+              "token": "color.primary",
               "routeId": "certificate",
               "routeClass": "proof",
               "embedChain": ["certificate"],
@@ -3537,7 +3537,7 @@
               "moduleId": "x-reviewer",
               "widgetName": "x-review-panel",
               "slot": "accent",
-              "token": "color.accent",
+              "token": "color.primary",
               "routeId": "certificate",
               "routeClass": "proof",
               "embedChain": ["certificate", "certificate-body"],

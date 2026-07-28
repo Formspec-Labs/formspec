@@ -1,0 +1,450 @@
+/* @filedesc Structural styles for the Surface shell — token-driven, paired light and dark. */
+
+/*
+ * Everything here paints through `--formspec-*` custom properties, which
+ * `SurfaceRouteView` emits on the route element from the route's theme grant.
+ * That is what makes theme authority visible rather than merely structural: on a
+ * refusing route the properties in scope were built from the platform token
+ * registry and never saw a tenant token, so these rules cannot paint a tenant
+ * colour even if one exists in the bundle.
+ *
+ * ## Why the alias layer exists, and why it is declared twice
+ *
+ * The token emitter writes onto `.fs-surface-route`. Everything ABOVE that
+ * element — the navigation, the app frame — is outside the token scope, so a
+ * `var(--formspec-color-foreground, …)` written up there can only ever resolve
+ * to its fallback. The shipped stylesheet declared `color` on `.fs-surface-app`
+ * and the route title inherited the computed value, which meant the whole route
+ * painted the LIGHT-MODE fallback `#1a1a1a` no matter what: measured **1.06:1**
+ * against the dark shell panel, an invisible page heading.
+ *
+ * So the alias block below is declared on both `.fs-surface-app` (chrome, where
+ * only fallbacks are reachable) and `.fs-surface-route` (content, where the
+ * emitted tokens are in scope and win). Custom-property substitution happens at
+ * the element that DECLARES the property, so the route's copy re-resolves
+ * against the tokens rather than inheriting the chrome's fallback.
+ *
+ * ## Both schemes, measured
+ *
+ * Every fallback below has a dark arm, and every foreground is paired with the
+ * background it is stated against. The pairs and their measured ratios are
+ * pinned by `tests/contrast.test.ts`, which parses this file — a stylesheet
+ * whose contrast is asserted in prose decays on the first edit.
+ *
+ * `prefers-color-scheme` is the default signal; `[data-fs-appearance]` on the
+ * shell or any ancestor pins it, so a host with its own theme toggle wins in
+ * both directions. No fallback is a brand colour.
+ */
+
+.fs-surface-app,
+.fs-surface-route {
+  /* Text */
+  --fs-surface-ink: var(--formspec-color-foreground, #20241f);
+  --fs-surface-ink-quiet: var(--formspec-color-mutedForeground, #6b6459);
+  /* Surfaces */
+  --fs-surface-panel: var(--formspec-color-card, #fdfaf4);
+  --fs-surface-panel-quiet: var(--formspec-color-surface, #f2ece2);
+  /* Lines. `line` is decoration; `line-strong` is a control boundary and is the
+   * one held to SC 1.4.11's 3:1 — `color.border` is a hairline and cannot be. */
+  --fs-surface-line: var(--formspec-color-border, #d1c8ba);
+  --fs-surface-line-strong: var(--formspec-color-muted, #686158);
+  /* Accents. `accent` is text ON a panel; `accent-fill` is a panel text sits ON. */
+  --fs-surface-accent: var(--formspec-color-primary, #27594f);
+  --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
+  --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
+  --fs-surface-danger: var(--formspec-color-error, #c1281f);
+  --fs-surface-focus: var(--formspec-color-ring, var(--formspec-color-primary, #27594f));
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  .fs-surface-app,
+  .fs-surface-route {
+    --fs-surface-ink: var(--formspec-color-dark-foreground, #f3ecdf);
+    --fs-surface-ink-quiet: var(--formspec-color-dark-mutedForeground, #ad9f8d);
+    --fs-surface-panel: var(--formspec-color-dark-card, #211c19);
+    --fs-surface-panel-quiet: var(--formspec-color-dark-surface, #2a241f);
+    --fs-surface-line: var(--formspec-color-dark-border, #4f463d);
+    --fs-surface-line-strong: var(--formspec-color-dark-muted, #c4b8a7);
+    --fs-surface-accent: var(--formspec-color-dark-primary, #8bb8ac);
+    /* The FILL keeps the saturated light-mode brand, because the dark accent is
+     * a light tint and white text on it measures 2.20:1. Same call
+     * `default.tokens.css` makes for `--formspec-default-primary-fill`. */
+    --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
+    --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
+    --fs-surface-danger: var(--formspec-color-dark-error, #ff8b7f);
+    --fs-surface-focus: var(--formspec-color-dark-ring, var(--formspec-color-dark-primary, #8fc6b7));
+    color-scheme: dark;
+  }
+}
+
+/* A host with its own toggle pins the scheme, in both directions. */
+[data-fs-appearance='dark'] .fs-surface-app,
+[data-fs-appearance='dark'] .fs-surface-route,
+.fs-surface-app[data-fs-appearance='dark'],
+.fs-surface-route[data-fs-appearance='dark'] {
+  --fs-surface-ink: var(--formspec-color-dark-foreground, #f3ecdf);
+  --fs-surface-ink-quiet: var(--formspec-color-dark-mutedForeground, #ad9f8d);
+  --fs-surface-panel: var(--formspec-color-dark-card, #211c19);
+  --fs-surface-panel-quiet: var(--formspec-color-dark-surface, #2a241f);
+  --fs-surface-line: var(--formspec-color-dark-border, #4f463d);
+  --fs-surface-line-strong: var(--formspec-color-dark-muted, #c4b8a7);
+  --fs-surface-accent: var(--formspec-color-dark-primary, #8bb8ac);
+  --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
+  --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
+  --fs-surface-danger: var(--formspec-color-dark-error, #ff8b7f);
+  --fs-surface-focus: var(--formspec-color-dark-ring, var(--formspec-color-dark-primary, #8fc6b7));
+  color-scheme: dark;
+}
+
+[data-fs-appearance='light'] .fs-surface-app,
+[data-fs-appearance='light'] .fs-surface-route,
+.fs-surface-app[data-fs-appearance='light'],
+.fs-surface-route[data-fs-appearance='light'] {
+  --fs-surface-ink: var(--formspec-color-foreground, #20241f);
+  --fs-surface-ink-quiet: var(--formspec-color-mutedForeground, #6b6459);
+  --fs-surface-panel: var(--formspec-color-card, #fdfaf4);
+  --fs-surface-panel-quiet: var(--formspec-color-surface, #f2ece2);
+  --fs-surface-line: var(--formspec-color-border, #d1c8ba);
+  --fs-surface-line-strong: var(--formspec-color-muted, #686158);
+  --fs-surface-accent: var(--formspec-color-primary, #27594f);
+  --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
+  --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
+  --fs-surface-danger: var(--formspec-color-error, #c1281f);
+  --fs-surface-focus: var(--formspec-color-ring, var(--formspec-color-primary, #27594f));
+  color-scheme: light;
+}
+
+.fs-surface-app {
+  font-family: var(--formspec-font-family, "Instrument Sans", "Avenir Next", "Segoe UI", sans-serif);
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-main {
+  display: block;
+}
+
+/* ── Navigation ─────────────────────────────────────────────────────── */
+
+.fs-surface-nav__group + .fs-surface-nav__group {
+  margin-top: var(--formspec-spacing-md, 0.75rem);
+}
+
+.fs-surface-nav__label {
+  margin: 0 0 var(--formspec-spacing-xs, 0.25rem);
+  font-size: 0.8125rem;
+  font-weight: var(--formspec-font-weight-medium, 500);
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-surface-nav__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * The border is the only thing that says "this is a control" — the label is not
+ * underlined — so it is held to SC 1.4.11's 3:1 and takes `line-strong`, not the
+ * hairline `color.border` (1.59:1 light, 1.83:1 dark against a panel).
+ */
+.fs-surface-nav__list a {
+  display: inline-block;
+  padding: var(--formspec-spacing-xs, 0.25rem) var(--formspec-spacing-sm, 0.5rem);
+  border: 1px solid var(--fs-surface-line-strong);
+  border-radius: var(--formspec-radius-sm, 4px);
+  color: var(--fs-surface-ink);
+  text-decoration: none;
+}
+
+.fs-surface-nav__list a[aria-current="page"] {
+  border-color: var(--fs-surface-accent);
+  font-weight: var(--formspec-font-weight-medium, 500);
+}
+
+.fs-surface-nav__list a:focus-visible {
+  outline: 2px solid var(--fs-surface-focus);
+  outline-offset: 2px;
+}
+
+/* ── Route ──────────────────────────────────────────────────────────── */
+
+.fs-surface-route {
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-route__title {
+  margin: 0 0 var(--formspec-spacing-sm, 0.5rem);
+  color: var(--fs-surface-ink);
+}
+
+/*
+ * Background is `color.surface`, NOT `color.muted`. The platform registry's
+ * `color.muted` is a muted COLOUR (#686158), not a muted surface, and pairing it
+ * with `color.mutedForeground` (#736c62) is a contrast failure — mid-grey text
+ * on mid-grey. Found by looking at the rendered page rather than at the token
+ * names, which is the argument for driving a shell rather than unit-testing it.
+ *
+ * Foreground and background move together across schemes. They have to: the
+ * light-mode pair on a dark page is a white box, and a dark-mode foreground on
+ * a light-mode surface is 1.1:1.
+ */
+.fs-surface-themenote {
+  margin: 0 0 var(--formspec-spacing-md, 0.75rem);
+  padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-md, 0.75rem);
+  border-left: 3px solid var(--fs-surface-line-strong);
+  background: var(--fs-surface-panel-quiet);
+  color: var(--fs-surface-ink);
+  font-size: 0.9375rem;
+}
+
+.fs-surface-route__slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--formspec-spacing-lg, 1.25rem);
+}
+
+.fs-surface-slot__title {
+  margin: 0 0 var(--formspec-spacing-xs, 0.25rem);
+  font-size: 1rem;
+  color: var(--fs-surface-ink);
+}
+
+/*
+ * An unavailable placeholder is the shell saying something the bundle named is
+ * not here. It is body-weight information, not decoration, so it takes the full
+ * ink rather than the quiet one — the quiet ink measures 4.98:1 on a card and
+ * 4.41:1 on the quieter surface, and the second is under AA.
+ */
+.fs-surface-unavailable,
+.fs-surface-empty {
+  margin: 0;
+  padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-md, 0.75rem);
+  border: 1px dashed var(--fs-surface-line-strong);
+  border-radius: var(--formspec-radius-sm, 4px);
+  color: var(--fs-surface-ink);
+  font-size: 0.9375rem;
+}
+
+.fs-surface-static-heading {
+  margin: 0;
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-static-text {
+  margin: 0;
+  line-height: var(--formspec-font-lineHeight-normal, 1.5);
+}
+
+.fs-surface-static-image {
+  max-width: 100%;
+  height: auto;
+}
+
+.fs-surface-static-divider {
+  border: 0;
+  border-top: 1px solid var(--fs-surface-line);
+  margin: 0;
+}
+
+.fs-surface-embed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--formspec-spacing-md, 0.75rem);
+  padding-left: var(--formspec-spacing-md, 0.75rem);
+  border-left: 2px solid var(--fs-surface-line-strong);
+}
+
+/* ── Transitions ────────────────────────────────────────────────────── */
+
+.fs-surface-transitions {
+  margin-top: var(--formspec-spacing-lg, 1.25rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
+.fs-surface-transition__button {
+  font: inherit;
+  padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-lg, 1.25rem);
+  border: 1px solid transparent;
+  border-radius: var(--formspec-radius-md, 6px);
+  background: var(--fs-surface-accent-fill);
+  color: var(--fs-surface-accent-ink);
+  cursor: pointer;
+}
+
+.fs-surface-transition__button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.fs-surface-transition__button:focus-visible {
+  outline: 2px solid var(--fs-surface-focus);
+  outline-offset: 2px;
+}
+
+.fs-surface-transition--blocked {
+  margin: 0;
+  padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-md, 0.75rem);
+  border: 1px dashed var(--fs-surface-line-strong);
+  border-radius: var(--formspec-radius-sm, 4px);
+  color: var(--fs-surface-ink);
+  font-size: 0.9375rem;
+}
+
+.fs-surface-transition__failure {
+  margin: 0;
+  color: var(--fs-surface-danger);
+}
+
+/* ── Starter widgets ────────────────────────────────────────────────── */
+
+/*
+ * `color.card` rather than `color.surface`: the quiet ink these panels carry
+ * measures 4.41:1 against `color.surface` in light mode, under AA. Card is the
+ * surface a card is meant to be.
+ */
+.fs-surface-banner,
+.fs-surface-ceremony,
+.fs-surface-receipt,
+.fs-surface-queue {
+  padding: var(--formspec-spacing-md, 0.75rem);
+  border: 1px solid var(--fs-surface-line-strong);
+  border-radius: var(--formspec-radius-md, 6px);
+  background: var(--fs-surface-panel);
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-banner__eyebrow {
+  margin: 0 0 var(--formspec-spacing-xs, 0.25rem);
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fs-surface-accent);
+}
+
+.fs-surface-banner__headline {
+  margin: 0 0 var(--formspec-spacing-xs, 0.25rem);
+  font-size: 1.125rem;
+}
+
+.fs-surface-banner__body,
+.fs-surface-ceremony__lead,
+.fs-surface-ceremony__acknowledgement,
+.fs-surface-ceremony__note {
+  margin: 0;
+  line-height: var(--formspec-font-lineHeight-normal, 1.5);
+}
+
+.fs-surface-banner__checklist {
+  margin: var(--formspec-spacing-sm, 0.5rem) 0 0;
+  padding-left: 1.25rem;
+}
+
+.fs-surface-ceremony {
+  display: flex;
+  flex-direction: column;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
+.fs-surface-ceremony__statement {
+  margin: 0;
+  padding: var(--formspec-spacing-md, 0.75rem);
+  border-left: 3px solid var(--fs-surface-ink);
+  background: var(--fs-surface-panel-quiet);
+  color: var(--fs-surface-ink);
+  font-size: 1.0625rem;
+  line-height: var(--formspec-font-lineHeight-loose, 1.7);
+}
+
+.fs-surface-ceremony__note {
+  color: var(--fs-surface-ink-quiet);
+  font-size: 0.9375rem;
+}
+
+.fs-surface-receipt__facts {
+  margin: 0;
+  display: grid;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
+.fs-surface-receipt__row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 14rem) 1fr;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
+.fs-surface-receipt__row dt {
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-surface-receipt__row dd {
+  margin: 0;
+  font-weight: var(--formspec-font-weight-medium, 500);
+}
+
+.fs-surface-queue__scroll {
+  overflow-x: auto;
+}
+
+.fs-surface-queue__scroll:focus-visible {
+  outline: 2px solid var(--fs-surface-focus);
+  outline-offset: 2px;
+}
+
+.fs-surface-queue__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.fs-surface-queue__caption {
+  text-align: left;
+  padding-bottom: var(--formspec-spacing-sm, 0.5rem);
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-surface-queue__table th,
+.fs-surface-queue__table td {
+  padding: var(--formspec-spacing-sm, 0.5rem);
+  border-bottom: 1px solid var(--fs-surface-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.fs-surface-queue__table thead th {
+  border-bottom-width: 2px;
+  border-bottom-color: var(--fs-surface-line-strong);
+  font-weight: var(--formspec-font-weight-bold, 700);
+  white-space: nowrap;
+}
+
+.fs-surface-queue__table [data-numeric="true"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Not found ──────────────────────────────────────────────────────── */
+
+.fs-surface-notfound {
+  color: var(--fs-surface-ink);
+}
+
+/* ── Utilities ──────────────────────────────────────────────────────── */
+
+.fs-surface-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

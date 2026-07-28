@@ -88,6 +88,23 @@ pub(crate) fn token_registry() -> &'static TokenRegistry {
     })
 }
 
+/// THE brand token (token-registry-spec §2.4). There is no second brand key.
+const BRAND_TOKEN: &str = "color.primary";
+
+/// Token keys an author reaches for when they mean the brand and the registry
+/// does not declare. Naming them buys a better W708 message and nothing else:
+/// nothing aliases them onto [`BRAND_TOKEN`], because a silent alias is how a
+/// tenant's brand colour travels the whole chain and paints nothing
+/// (token-registry-spec §2.4).
+const BRAND_LOOKALIKES: [&str; 6] = [
+    "color.accent",
+    "color.brand",
+    "color.highlight",
+    "color.dark.accent",
+    "color.dark.brand",
+    "color.dark.highlight",
+];
+
 /// Validate `$.tokens` declarations against the platform registry (W700–W703, W708–W709).
 pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic>) {
     let registry = token_registry();
@@ -99,12 +116,19 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
         let path = format!("$.tokens.{name}");
 
         if !registry.contains(name) && !name.starts_with("x-") {
+            let hint = if BRAND_LOOKALIKES.contains(&name.as_str()) {
+                format!(
+                    " — the brand token is '{BRAND_TOKEN}', and nothing aliases '{name}' onto it, so this value is emitted as a CSS custom property no stylesheet reads"
+                )
+            } else {
+                String::new()
+            };
             diags.push(metadata::with_metadata(LintDiagnostic::warning(
                 crate::LintCode::W708,
                 PASS,
                 &path,
                 format!(
-                    "Token '{name}' is not a recognized platform token and does not use the 'x-' extension prefix"
+                    "Token '{name}' is not a recognized platform token and does not use the 'x-' extension prefix{hint}"
                 ),
             )));
         }

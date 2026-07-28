@@ -1,0 +1,61 @@
+{
+  "title": "R2 — the tenant brand reaches the shipped renderer AND paints",
+  "description": "Measured on /apply in the running static build. Replaces r2-theme-reaches-but-paints-nothing.json, whose measurement stands as the before number.",
+  "before": {
+    "authoredInBundle": {
+      "color.accent": "#7A1F3D"
+    },
+    "platformTokenRegistryDeclaresAccent": false,
+    "shellBridge": "hand-built alias color.accent -> color.primary",
+    "elementsPaintingTenantBrand": 0,
+    "focusedInputOutline": "rgb(39, 89, 79) solid 2px — platform green",
+    "submitButton": null,
+    "diagnosticsAnywhereInTheChain": 0
+  },
+  "after": {
+    "authoredInBundle": {
+      "color.primary": "#7A1F3D",
+      "color.dark.primary": "#E3A0B4"
+    },
+    "shellBridge": "none — removed; a silent alias is now forbidden (token-registry-spec §2.4)",
+    "resolvedOnFormContainer": {
+      "--formspec-color-primary": "#7A1F3D",
+      "--formspec-default-primary": "#7A1F3D",
+      "--formspec-default-focus": "#7A1F3D"
+    },
+    "submitButton": {
+      "label": "Submit",
+      "backgroundColor": "rgb(122, 31, 61)",
+      "color": "rgb(255, 255, 255)"
+    },
+    "elementsPaintingTenantBrandAtRest": 1,
+    "elementsPaintingTenantBrandWithAnInputFocused": 2,
+    "focusedInputOutline": {
+      "element": "input",
+      "name": "householdSize",
+      "outline": "rgb(122, 31, 61) solid 2px",
+      "borderColor": "oklab(0.821084 0.0042989 0.0178124)"
+    },
+    "paintSites": [
+      {
+        "tag": "input",
+        "className": "",
+        "property": "outlineColor",
+        "value": "rgb(122, 31, 61)",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "className": "formspec-action formspec-submit",
+        "property": "backgroundColor",
+        "value": "rgb(122, 31, 61)",
+        "text": "Submit"
+      }
+    ],
+    "diagnosticsWhenAnUndeclaredTokenIsAuthored": [
+      "formspec-lint W708 (pass_theme) — names color.primary in the message",
+      "@formspec-org/app-graph THEME-TOKEN-UNREGISTERED (validateThemeTokenRegistry) — warning, names color.primary"
+    ]
+  },
+  "verdict": "MET — the brand paints at rest and the focus ring derives from it"
+}

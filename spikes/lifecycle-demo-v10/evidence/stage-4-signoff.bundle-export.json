@@ -13,6 +13,9 @@
     "experience": {
       "url": "urn:formspec:doc:1feb5fb90254133a:experience"
     },
+    "responseActions": {
+      "url": "urn:formspec:doc:1feb5fb90254133a:responseActions"
+    },
     "theme": {
       "url": "urn:formspec:doc:1feb5fb90254133a:theme",
       "version": "1.0.0"
@@ -304,6 +307,25 @@
         "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
       }
     },
+    "urn:formspec:doc:1feb5fb90254133a:responseActions": {
+      "$formspecResponseActions": "1.0",
+      "version": "1.0.0",
+      "actions": [
+        {
+          "id": "submitApplication",
+          "intent": "submit",
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "application.submitted"
+            }
+          ]
+        }
+      ],
+      "targetDefinition": {
+        "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+      }
+    },
     "urn:formspec:doc:1feb5fb90254133a:theme": {
       "$formspecTheme": "1.0",
       "version": "1.0.0",
@@ -312,7 +334,8 @@
         "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
       },
       "tokens": {
-        "color.accent": "#7A1F3D"
+        "color.primary": "#7A1F3D",
+        "color.dark.primary": "#E3A0B4"
       }
     },
     "urn:formspec:doc:1feb5fb90254133a:registry": {

@@ -117,6 +117,19 @@
   color: var(--formspec-default-text);
 }
 
+/* Brand accent on the legend — token-registry-spec §2.4 fan-out. A short rule
+ * under the group's name, not coloured legend text: the accent has to be
+ * visible without becoming the thing a respondent reads first. */
+.formspec-legend::after {
+  content: "";
+  display: block;
+  width: 1.6rem;
+  height: 2px;
+  margin-top: 0.3rem;
+  border-radius: 999px;
+  background: var(--formspec-default-primary);
+}
+
 .formspec-field--inline {
   flex-direction: row;
   align-items: center;

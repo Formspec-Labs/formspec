@@ -1,8 +1,20 @@
 {
+  "status": "RESOLVED — kept as the before measurement",
+  "supersededBy": "evidence/r2-theme-reaches-and-paints.json",
+  "resolvedBy": [
+    "token-registry-spec §2.4 — color.primary is THE brand token; nothing aliases color.accent onto it",
+    "token-registry-spec §2.5 + schemas/token-registry.json — color.ring declares derivedFrom: color.primary, so the platform theme stops emitting an explicit ring and the brand fans out to the focus ring",
+    "packages/formspec-layout/src/styles/default.tokens.css — --formspec-default-focus resolves through the brand token",
+    "packages/formspec-layout/src/styles/default.surfaces.css + default.base.css — brand accent on section headings and fieldset legends",
+    "formspec-studio ProposalManagerFacade — addAction now writes the manifest responseActions slot and exportBundle serialises the document (ADR 0160 §4.2b), so the bundle publishes the submit intent the renderer requires",
+    "crates/formspec-lint pass_theme W708 + @formspec-org/app-graph THEME-TOKEN-UNREGISTERED — an undeclared non-x- token is now a diagnostic naming color.primary"
+  ],
   "title": "R2 — the tenant theme reaches the shipped renderer and paints nothing",
   "description": "Measured on /apply in the running app. The bundle's Theme token travels the whole shipped path and resolves correctly. Then nothing on screen uses it.",
   "whatTravelled": {
-    "authoredInBundle": { "color.accent": "#7A1F3D" },
+    "authoredInBundle": {
+      "color.accent": "#7A1F3D"
+    },
     "platformTokenRegistryHasAccent": false,
     "platformBrandTokenIs": "color.primary",
     "shellBridge": "color.accent -> color.primary (hand-built; gap ledger theme-token-vocabulary-bridge)",

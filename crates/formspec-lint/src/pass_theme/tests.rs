@@ -299,6 +299,27 @@ fn w708_typo_token_emits_warning() {
     assert!(w708[0].message.contains("color.priary"));
 }
 
+/// The surface-render-v10 measurement, as a test. A tenant authored
+/// `color.accent`; the registry declares `color.primary` and nothing maps
+/// between them, so the brand colour was accepted, validated, signed, emitted,
+/// resolved — and painted nothing. W708 is the diagnostic that was missing from
+/// the release path, and it MUST name the real brand token, not just complain.
+#[test]
+fn w708_brand_lookalike_names_the_real_brand_token() {
+    let theme = json!({
+        "tokens": { "color.accent": "#7A1F3D" }
+    });
+    let diags = lint_theme(&theme, None);
+    let w708 = with_code(&diags, "W708");
+    assert_eq!(w708.len(), 1);
+    assert!(w708[0].message.contains("color.accent"));
+    assert!(
+        w708[0].message.contains("color.primary"),
+        "W708 on a brand lookalike must name the brand token, got: {}",
+        w708[0].message
+    );
+}
+
 #[test]
 fn w708_extension_token_no_warning() {
     let theme = json!({

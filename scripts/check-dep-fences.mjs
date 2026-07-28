@@ -16,7 +16,9 @@ const LAYERS = {
   '@formspec-org/webcomponent': 2,
   '@formspec-org/core':         2,
   '@formspec-org/react':        2,
+  '@formspec-org/surface':      2,
   '@formspec-org/adapters':     3,
+  '@formspec-org/surface-react': 3,
   '@formspec-org/chat':         5,
   // @formspec-org/studio-core, /mcp, /studio extracted to sibling
   // formspec-studio repo (2026-05-04). Layer enforcement for those

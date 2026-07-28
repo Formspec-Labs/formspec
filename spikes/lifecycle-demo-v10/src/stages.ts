@@ -54,6 +54,8 @@ import {
   SURFACE_ID,
   SURFACE_URL,
   TENANT_MODULE,
+  TENANT_DARK_TOKEN,
+  TENANT_DARK_TOKEN_VALUE,
   TENANT_TOKEN,
   TENANT_TOKEN_VALUE,
   UNITS,
@@ -532,14 +534,16 @@ export async function stagePlan(ev: Evidence, state: WalkState): Promise<void> {
     outcome: 'recorded',
     message:
       (afterAction as { responseActions?: unknown }).responseActions === undefined
-        ? 'It cannot. The Submit behaviour was created, but the app\'s own index never lists it, so it is left out of the shipped package. A page that fires Submit would have nothing to point at. A third gap we found and reported, not patched.'
-        : 'It can. The app lists the Submit behaviour in its index.',
+        ? 'It cannot. The Submit behaviour was created, but the app\'s own index never lists it, so it is left out of the shipped package. A page that fires Submit would have nothing to point at.'
+        : 'It can. The app lists the Submit behaviour in its index, so the finished package carries it and the Submit button has something to point at.',
     details: {
-      finding: 'response-actions-minted-but-undeclared',
+      finding: 'response-actions-minted-and-declared',
       manifestSlots: Object.keys(afterAction),
       technical:
-        'The Response Actions document was minted and no manifest slot names it. `readAppManifest` emits no `responseActions` key and `exportBundle` does not serialise it, so nothing in the graph can resolve the Submit behaviour — the transitions that fire it stay unresolved.',
+        '`addAction` now writes the manifest `responseActions` slot in the same op that mints the document, `readAppManifest` emits it, `exportBundle` serialises it, and `resolveBundleLocal` serves it. Previously the document was minted and no slot named it, so nothing in the graph could resolve the Submit behaviour and the transitions that fire it stayed unresolved.',
       adr0160: '§4.2(b) mirror of the fixed `ensureExperience` defect; §6.5 excludes Locale, Mapping and Data Sources — not Response Actions',
+      whyItMattered:
+        'response-actions-spec §10 forbids implicit default Actions, so `FormspecForm` injects a submit button ONLY when a Response Actions document publishes a submit-intent Action. A bundle that drops the document at export renders a form nobody can submit — measured by surface-render-v10 before this fix.',
     },
   });
 
@@ -735,6 +739,17 @@ export async function stageBuild(ev: Evidence, state: WalkState): Promise<void> 
   });
   if (!token.ok) throw new Error(`setThemeToken refused: ${token.error.message}`);
 
+  const darkToken = await human.setThemeToken({ key: TENANT_DARK_TOKEN, value: TENANT_DARK_TOKEN_VALUE });
+  ev.beat({
+    actor: 'human',
+    verb: 'setThemeToken',
+    intent: 'Set the dark-mode counterpart, because a light brand colour on a dark page is unreadable.',
+    outcome: darkToken.ok ? 'admitted' : 'refused',
+    ...(darkToken.ok ? {} : { message: darkToken.error.message }),
+    details: { key: TENANT_DARK_TOKEN, value: TENANT_DARK_TOKEN_VALUE, specRef: 'theme-spec §3.6' },
+  });
+  if (!darkToken.ok) throw new Error(`setThemeToken(dark) refused: ${darkToken.error.message}`);
+
   const registry = await materialiseRegistry(human);
   ev.beat({
     actor: 'human',
@@ -797,7 +812,7 @@ export async function stageBuild(ev: Evidence, state: WalkState): Promise<void> 
 
   ev.closeStage({
     themeDeclaredBy: 'human',
-    themeToken: { [TENANT_TOKEN]: TENANT_TOKEN_VALUE },
+    themeToken: { [TENANT_TOKEN]: TENANT_TOKEN_VALUE, [TENANT_DARK_TOKEN]: TENANT_DARK_TOKEN_VALUE },
     registryEntries: registry.entries,
     designerEdits: [
       { id: 'DESIGNER-EDIT-1', deltaClass: 'designer-inserted', what: String((DESIGNER_INSERTION.binding as { content: string }).content) },

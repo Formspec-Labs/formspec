@@ -90,7 +90,19 @@ describe('buildPlatformTheme', () => {
 
     it('includes all expected token count', () => {
         const tokenKeys = Object.keys(theme.tokens ?? {});
-        // 15 light + 15 dark color + 6 spacing + 2 radius + 7 font (family, 3 weights, 3 lineHeights) = 45
-        expect(tokenKeys.length).toBe(45);
+        // 45 declared, minus the 2 derived (color.ring / color.dark.ring) that
+        // §2.5 forbids emitting — see the next test.
+        expect(tokenKeys.length).toBe(43);
+    });
+
+    // token-registry-spec §2.5. A derived token in the platform theme's token
+    // map would give EVERY theme an explicit value for it, so the CSS chain
+    // `var(--formspec-color-ring, var(--formspec-color-primary, …))` could never
+    // reach its second arm — and a tenant who sets only the brand token would
+    // keep the platform focus ring. surface-render-v10 measured exactly that.
+    it('omits derived tokens so their fan-out can resolve', () => {
+        expect(theme.tokens?.['color.ring']).toBeUndefined();
+        expect(theme.tokens?.['color.dark.ring']).toBeUndefined();
+        expect(theme.tokens?.['color.primary']).toBe('#27594f');
     });
 });

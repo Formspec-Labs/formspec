@@ -210,6 +210,26 @@ export function FormspecProvider(props: FormspecProviderProps) {
     } = props;
     const hasIssuerOverrideProp = Object.prototype.hasOwnProperty.call(props, 'issuerOverride');
 
+    /**
+     * The element the provider's theme tokens are written to.
+     *
+     * The provider used to call `emitThemeTokens(themeDocument.tokens)` with no
+     * target, which defaults to `document.documentElement`, and never cleaned
+     * up. One mount of a tenant-themed tree left that tenant's tokens inline on
+     * `<html>` for the life of the page: they survived unmount, survived
+     * client-side navigation to a route whose `routeClass` refuses tenant
+     * theming, and reached everything outside a `.formspec-container` — host
+     * chrome, a second embedded renderer, any skin that paints the brand token.
+     * A host composing this provider could clean up after it but never prevent
+     * it, which is the runtime hole under ADR 0161's theme-authority promise.
+     *
+     * `display: contents` is inline rather than in a stylesheet so the element
+     * generates no box even when the default skin is not loaded. Custom
+     * properties inherit through it regardless of `display`, so the tokens
+     * reach exactly the subtree the provider owns and nothing above it.
+     */
+    const themeScopeRef = useRef<HTMLDivElement>(null);
+
     const engine = useMemo(() => {
         if (externalEngine) return externalEngine;
         if (!definition) throw new Error('FormspecProvider requires either engine or definition');
@@ -372,10 +392,20 @@ export function FormspecProvider(props: FormspecProviderProps) {
         resolveResponseAction(responseActionsDocument, actionRef, nodeId),
     [responseActionsDocument]);
 
-    // Auto-emit theme tokens as CSS custom properties when themeDocument has tokens
+    // Auto-emit theme tokens as CSS custom properties onto the provider's OWN
+    // element — never the document root. See `themeScopeRef` below for why.
     useEffect(() => {
-        if (typeof document === 'undefined' || !themeDocument?.tokens) return;
-        emitThemeTokens(themeDocument.tokens);
+        const el = themeScopeRef.current;
+        if (!el) return;
+        const tokens = themeDocument?.tokens;
+        if (!tokens) return;
+        emitThemeTokens(tokens, el);
+        return () => {
+            for (let i = el.style.length - 1; i >= 0; i--) {
+                const property = el.style[i];
+                if (property.startsWith('--formspec-')) el.style.removeProperty(property);
+            }
+        };
     }, [themeDocument]);
 
     useEffect(() => {
@@ -416,10 +446,15 @@ export function FormspecProvider(props: FormspecProviderProps) {
 
     return (
         <FormspecContext.Provider value={value}>
-            {children}
+            <div ref={themeScopeRef} className="formspec-theme-scope" style={THEME_SCOPE_STYLE}>
+                {children}
+            </div>
         </FormspecContext.Provider>
     );
 }
+
+/** See `themeScopeRef` — the scope element must not generate a box. */
+const THEME_SCOPE_STYLE: React.CSSProperties = { display: 'contents' };
 
 /** Access the FormspecContext. Throws if used outside FormspecProvider. */
 export function useFormspecContext(): FormspecContextValue {
@@ -452,7 +487,12 @@ function detectBreakpoint(breakpoints: Record<string, number | { minWidth?: numb
 /**
  * Emit theme tokens as --formspec-* CSS custom properties.
  * Converts dotted token keys (e.g., `color.primary`) to `--formspec-color-primary`.
- * Defaults to `document.documentElement` when no target is provided.
+ *
+ * `target` defaults to `document.documentElement` — a HOST may choose to paint
+ * the document root, and the shipped examples do. `FormspecProvider` does not:
+ * a renderer that writes tenant tokens to `<html>` makes a global mutation that
+ * outlives the component and that a composing host can only clean up after,
+ * never prevent. Always pass a target from inside a component.
  */
 export function emitThemeTokens(
     tokens: Record<string, string | number>,

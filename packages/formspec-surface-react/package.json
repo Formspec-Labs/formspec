@@ -1,0 +1,54 @@
+{
+  "name": "@formspec-org/surface-react",
+  "description": "React binding for the Surface shell — renders route plans, slots, and the starter module-widget set",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Formspec-org/formspec.git",
+    "directory": "packages/formspec-surface-react"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./widgets": {
+      "types": "./dist/widgets/index.d.ts",
+      "default": "./dist/widgets/index.js"
+    },
+    "./formspec-surface.css": "./dist/formspec-surface.css"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc && node scripts/copy-css.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "@formspec-org/layout": "^1.0.0",
+    "@formspec-org/react": "^1.0.0",
+    "@formspec-org/surface": "^0.1.0",
+    "@formspec-org/types": "^1.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@formspec-org/engine": "*",
+    "@formspec-org/layout": "*",
+    "@formspec-org/react": "*",
+    "@formspec-org/surface": "*",
+    "@formspec-org/types": "*",
+    "@types/react": "^19.0.0",
+    "happy-dom": "^17.6.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.2"
+  }
+}

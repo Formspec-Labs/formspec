@@ -1,0 +1,51 @@
+{
+  "title": "D4 — every per-route diagnostic reaching the host, one route at a time",
+  "description": "Read off the gap drawer, which renders whatever `onDiagnostics` hands it. The route-scoped stages — slot planning, theme grant, transition planning — used to compute these and drop them, so a host could log the app-construction minority and nothing else.",
+  "perRoute": [
+    {
+      "route": "apply",
+      "path": "/apply",
+      "diagnostics": [
+        {
+          "code": "ROUTE-PARAM-GRAMMAR",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "route": "certify",
+      "path": "/certify",
+      "diagnostics": [
+        {
+          "code": "ROUTE-PARAM-GRAMMAR",
+          "severity": "error"
+        },
+        {
+          "code": "TRANSITION-UNFIREABLE",
+          "severity": "warning"
+        }
+      ]
+    },
+    {
+      "route": "receipt",
+      "path": "/receipt/:caseRef",
+      "diagnostics": [
+        {
+          "code": "ROUTE-PARAM-GRAMMAR",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "route": "queue",
+      "path": "/queue",
+      "diagnostics": [
+        {
+          "code": "ROUTE-PARAM-GRAMMAR",
+          "severity": "error"
+        }
+      ]
+    }
+  ],
+  "severityNote": "Severity is fixed per code by the spec’s §7.2 table, never by the call site, so two sites reporting the same code cannot disagree about how loud it is."
+}

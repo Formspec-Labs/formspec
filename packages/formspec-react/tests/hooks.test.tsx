@@ -1127,7 +1127,7 @@ describe('emitThemeTokens', () => {
 // ── FormspecProvider auto-emits theme tokens ────────────────────
 
 describe('FormspecProvider theme token emission', () => {
-    it('emits theme tokens as CSS custom properties when themeDocument has tokens', () => {
+    it('emits theme tokens onto the provider scope element, not the document root', () => {
         const themeDoc = {
             tokens: {
                 'color.primary': '#abcdef',
@@ -1147,11 +1147,14 @@ describe('FormspecProvider theme token emission', () => {
             );
         });
 
-        expect(document.documentElement.style.getPropertyValue('--formspec-color-primary')).toBe('#abcdef');
-        expect(document.documentElement.style.getPropertyValue('--formspec-spacing-lg')).toBe('2rem');
+        const scope = container.querySelector<HTMLElement>('.formspec-theme-scope');
+        expect(scope).not.toBeNull();
+        expect(scope!.style.getPropertyValue('--formspec-color-primary')).toBe('#abcdef');
+        expect(scope!.style.getPropertyValue('--formspec-spacing-lg')).toBe('2rem');
+        expect(document.documentElement.style.getPropertyValue('--formspec-color-primary')).toBe('');
+        expect(document.documentElement.style.getPropertyValue('--formspec-spacing-lg')).toBe('');
 
-        // Clean up
-        document.documentElement.style.removeProperty('--formspec-color-primary');
-        document.documentElement.style.removeProperty('--formspec-spacing-lg');
+        flushSync(() => root.unmount());
+        container.remove();
     });
 });

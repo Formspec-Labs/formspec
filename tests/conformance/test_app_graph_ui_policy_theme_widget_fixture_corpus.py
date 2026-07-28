@@ -464,7 +464,7 @@ def test_theme_route_class_refuses_tenant_theming_on_proof_bearing_routes() -> N
         "moduleId": "x-reviewer",
         "widgetName": "x-review-panel",
         "slot": "accent",
-        "token": "color.accent",
+        "token": "color.primary",
         "routeId": "certificate",
         "routeClass": "proof",
         "embedChain": ["certificate"],

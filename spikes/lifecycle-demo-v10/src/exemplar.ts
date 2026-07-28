@@ -246,9 +246,30 @@ export const REGENERATED_ROUTES: readonly RouteSpec[] = ROUTES.flatMap((route) =
   ];
 });
 
-/** The token every route's chrome widget is assigned — the tenant's brand colour. */
-export const TENANT_TOKEN = 'color.accent';
+/**
+ * The token every route's chrome widget is assigned — the tenant's brand colour.
+ *
+ * **`color.primary`, not `color.accent`.** The platform Token Registry declares
+ * exactly one brand token and it is `color.primary` (token-registry-spec §2.4);
+ * `color.accent` is not declared and nothing aliases it. A first run of this
+ * exemplar authored `color.accent`, and surface-render-v10 measured the result
+ * in a browser: accepted by authoring, passed validation, signed into the
+ * release, emitted by the renderer as `--formspec-color-accent`, resolved in
+ * the cascade — and read by nothing. Zero elements in the rendered form painted
+ * with the tenant's colour.
+ *
+ * That is now a diagnostic on both validation paths rather than a silence:
+ * `formspec-lint` W708 and `@formspec-org/app-graph`
+ * `THEME-TOKEN-UNREGISTERED`, both naming `color.primary` in the message.
+ *
+ * `color.dark.primary` is authored too, per theme-spec §3.6: a tenant who sets
+ * only the light key gets the platform's dark palette in dark mode, which is
+ * correct behaviour and a surprising one. A real tenant theme names both.
+ */
+export const TENANT_TOKEN = 'color.primary';
 export const TENANT_TOKEN_VALUE = '#7A1F3D';
+export const TENANT_DARK_TOKEN = 'color.dark.primary';
+export const TENANT_DARK_TOKEN_VALUE = '#E3A0B4';
 
 /**
  * Every widget in this exemplar is named in the `^x-[a-z]…` contribution-id
