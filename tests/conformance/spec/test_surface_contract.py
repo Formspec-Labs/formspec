@@ -173,10 +173,56 @@ def test_surface_schema_describes_draft_and_transition_authority() -> None:
     route = SURFACE_SCHEMA["$defs"]["Route"]["properties"]
     transition = SURFACE_SCHEMA["$defs"]["Transition"]["properties"]
     assert "simple URI Template markers" in route["path"]["description"]
+    assert "pattern" in route["path"]
     assert "all declared params" in route["params"]["description"]
     assert "target route" in transition["params"]["description"]
     assert "Surface declares the navigation trigger" in transition["trigger"]["description"]
     assert "validated bundle-state bindings" in transition["when"]["description"]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/receipt/:caseRef",
+        "/files/*",
+        r"/matter/(\d+)",
+        "/matter/id;version=1",
+        "/matter?id=1",
+        "/matter/{+id}",
+        "/matter/{id*}",
+        "/matter/{id,version}",
+        "/matter/a{2}",
+        "/matter/[id]",
+    ],
+)
+def test_surface_route_path_rejects_unpinned_parameter_grammars(path: str) -> None:
+    doc = load_fixture("publishable-workspace.surface.json")
+    doc["routes"][1]["path"] = path
+
+    errors = sorted(surface_validator().iter_errors(doc), key=lambda error: list(error.path))
+
+    assert any(list(error.path) == ["routes", 1, "path"] for error in errors), (
+        f"Route.path must reject the unpinned grammar in {path!r}"
+    )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/",
+        "/home",
+        "/receipt/{caseRef}",
+        "/matter/{matterId}/note/{noteId}",
+        "/urn:x/a",
+        "/a/b:c",
+        "opaque-route",
+    ],
+)
+def test_surface_route_path_admits_pinned_markers_and_opaque_paths(path: str) -> None:
+    doc = load_fixture("publishable-workspace.surface.json")
+    doc["routes"][1]["path"] = path
+
+    surface_validator().validate(doc)
 
 
 def test_surface_spec_links_component_route_targets_without_ownership() -> None:

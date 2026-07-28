@@ -46,8 +46,8 @@ describe('composeSurfaceApp', () => {
     expect(labelled.groups[0]?.label).toBe('Applicants');
   });
 
-  it('carries the route-path grammar diagnostic up from the routes', () => {
-    expect(app.diagnostics.map((d) => d.code)).toContain('ROUTE-PARAM-GRAMMAR');
+  it('keeps a pinned route table free of route-path grammar diagnostics', () => {
+    expect(app.diagnostics.map((d) => d.code)).not.toContain('ROUTE-PARAM-GRAMMAR');
   });
 });
 
@@ -185,13 +185,11 @@ describe('matchRoute', () => {
     expect(matchRoute(app, '/nope').match).toBeUndefined();
   });
 
-  it('does not deep-link the colon path, and says nothing matched', () => {
-    // The `receipt` route authors `/receipt/:caseRef`. §9.1: a conforming shell
-    // treats `:caseRef` as literal, so `/receipt/RA-2026-0412` does not match.
-    expect(matchRoute(app, '/receipt/RA-2026-0412').diagnostics.map((d) => d.code)).toEqual([
-      'ROUTE-UNMATCHED',
-    ]);
-    expect(matchRoute(app, '/receipt/:caseRef').match?.handle.routeId).toBe('receipt');
+  it('deep-links a concrete value through the pinned receipt path', () => {
+    const resolution = matchRoute(app, '/receipt/RA-2026-0412');
+    expect(resolution.diagnostics).toEqual([]);
+    expect(resolution.match?.handle.routeId).toBe('receipt');
+    expect(resolution.match?.params).toEqual({ caseRef: 'RA-2026-0412' });
   });
 
   it('lets a literal beat a parameter rather than taking the first in table order', () => {
@@ -210,19 +208,20 @@ describe('routeHref', () => {
   const app = composeSurfaceApp([respondentSurface]);
   const receipt = app.routes.find((handle) => handle.routeId === 'receipt');
 
-  it('leaves a colon path alone and reports no unsupplied parameter — it has none', () => {
+  it('fills the canonical receipt parameter supplied by the host', () => {
     const { href, diagnostics } = routeHref(receipt!, { caseRef: 'R-1' });
-    expect(href).toBe('/receipt/:caseRef');
+    expect(href).toBe('/receipt/R-1');
     expect(diagnostics).toEqual([]);
   });
 
-  it('fills a pinned parameter the host supplied', () => {
+  it('keeps an invalid legacy colon path literal rather than aliasing it', () => {
     const app = composeSurfaceApp([
-      surface('a', 'r', [route({ id: 'r', path: '/receipt/{caseRef}', slots: [] as never })]),
+      surface('legacy', 'r', [route({ id: 'r', path: '/receipt/:caseRef', slots: [] as never })]),
     ]);
     const { href, diagnostics } = routeHref(app.routes[0]!, { caseRef: 'R-1' });
-    expect(href).toBe('/receipt/R-1');
+    expect(href).toBe('/receipt/:caseRef');
     expect(diagnostics).toEqual([]);
+    expect(app.diagnostics.map((diagnostic) => diagnostic.code)).toContain('ROUTE-PARAM-GRAMMAR');
   });
 
   it('reports an unsupplied parameter rather than linking nowhere quietly', () => {
@@ -239,7 +238,7 @@ describe('routeInSurface', () => {
   const app = composeSurfaceApp([respondentSurface, staffSurface]);
 
   it('resolves a transition target within its own Surface', () => {
-    expect(routeInSurface(app, 'respondent', 'receipt')?.path).toBe('/receipt/:caseRef');
+    expect(routeInSurface(app, 'respondent', 'receipt')?.path).toBe('/receipt/{caseRef}');
   });
 
   it('does not reach across Surfaces', () => {

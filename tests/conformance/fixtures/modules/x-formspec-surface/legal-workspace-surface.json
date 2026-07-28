@@ -20,7 +20,7 @@
       ],
       "transitions": [
         { "trigger": "openMatter",     "to": "matter-shell" },
-        { "trigger": "openDocViewer",  "to": "doc-viewer" },
+        { "trigger": "openDocViewer",  "to": "doc-viewer", "params": { "docId": "docId" } },
         { "trigger": "openGallery",    "to": "gallery" }
       ]
     },
@@ -43,7 +43,10 @@
     },
     {
       "id": "doc-viewer",
-      "path": "/doc/:docId",
+      "path": "/doc/{docId}",
+      "params": [
+        { "name": "docId", "type": "string" }
+      ],
       "title": "Document",
       "slots": [
         { "id": "main", "slotType": "experience-unit", "position": "main", "binding": { "unitRef": "documentReview" } }

@@ -86,7 +86,7 @@ export interface Route {
    */
   id: string;
   /**
-   * URL-style path for this route. SHOULD start with '/'. v0.1 route parameters use simple URI Template markers like '/matter/{matterId}'; paths with no `{name}` markers and no params[] remain opaque non-empty strings.
+   * URL-style path for this route. SHOULD start with '/'. v0.1 route parameters use simple URI Template markers like '/matter/{matterId}'. Colon-prefixed framework parameters, wildcards, regex captures, matrix/query parameters, optional segments, URI Template operators, and malformed markers are invalid. Paths with no `{name}` markers and no params[] remain opaque non-empty strings.
    */
   path: string;
   /**

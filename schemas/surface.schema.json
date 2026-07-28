@@ -77,7 +77,8 @@
         "path": {
           "type": "string",
           "minLength": 1,
-          "description": "URL-style path for this route. SHOULD start with '/'. v0.1 route parameters use simple URI Template markers like '/matter/{matterId}'; paths with no `{name}` markers and no params[] remain opaque non-empty strings.",
+          "pattern": "^(?!:[A-Za-z_])(?!.*\\/:[A-Za-z_])(?:[^/{}*();?\\[\\]]*|\\{[A-Za-z][A-Za-z0-9_]*\\})(?:/(?:[^/{}*();?\\[\\]]*|\\{[A-Za-z][A-Za-z0-9_]*\\}))*$",
+          "description": "URL-style path for this route. SHOULD start with '/'. v0.1 route parameters use simple URI Template markers like '/matter/{matterId}'. Colon-prefixed framework parameters, wildcards, regex captures, matrix/query parameters, optional segments, URI Template operators, and malformed markers are invalid. Paths with no `{name}` markers and no params[] remain opaque non-empty strings.",
           "examples": ["/", "/home", "/matter/{matterId}", "/admin/users"]
         },
         "params": {

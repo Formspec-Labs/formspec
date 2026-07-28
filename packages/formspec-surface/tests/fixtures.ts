@@ -78,11 +78,12 @@ export const respondentSurface = surface('respondent', 'apply', [
       }),
       slot({ id: 'form', slotType: 'definition-form', binding: { definitionRef: 'https://example.test/def' } }),
     ] as unknown as Route['slots'],
-    transitions: [{ trigger: 'submit', to: 'receipt' }],
+    transitions: [{ trigger: 'submit', to: 'receipt', params: { caseRef: 'caseRef' } }],
   }),
   route({
     id: 'receipt',
-    path: '/receipt/:caseRef',
+    path: '/receipt/{caseRef}',
+    params: [{ name: 'caseRef', type: 'string' }],
     title: 'Receipt',
     routeClass: 'proof',
     slots: [
