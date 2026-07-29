@@ -30,7 +30,7 @@ const tenantTheme = {
 
 function surfaceWith(routes: unknown[]): SurfaceDocument {
   return {
-    $formspecSurface: '0.1',
+    $formspecSurface: '0.2',
     id: 'demo',
     entry: 'a',
     routes,
@@ -259,7 +259,8 @@ describe('slot dispatch in the DOM', () => {
     // shell's to fix.
     const container = view('ghost', {
       strings: resolveSurfaceStrings({
-        slotUnavailableWidgetUndeclared: 'Bileşen “{widgetName}” tanımlı değil.',
+        slotUnavailableWidgetUndeclared: ({ widgetName = '' }) =>
+          `Bileşen “${widgetName}” tanımlı değil.`,
       }),
     });
     expect(textOf(container.querySelector('[data-probe="slot-unavailable"]'))).toBe(

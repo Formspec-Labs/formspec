@@ -866,7 +866,7 @@ class TestRegistrySchema:
         }
 
     def test_er2__formspec_registry_const(self):
-        assert REG_S["properties"]["$formspecRegistry"]["const"] == "1.0"
+        assert REG_S["properties"]["$formspecRegistry"]["const"] == "1.1"
 
     def test_er2_1__publisher_required(self):
         pub = _def(REG_S, "Publisher")

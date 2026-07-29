@@ -23,8 +23,13 @@ export {
 
 export {
   DEFAULT_SURFACE_STRINGS,
+  SURFACE_LOCALE_KEY_PREFIX,
   SURFACE_STRING_KEYS,
+  resolveSurfaceLocaleStrings,
   resolveSurfaceStrings,
+  type SurfaceLocaleInterpolator,
+  type SurfaceLocaleLookup,
+  type SurfaceLocaleStringsInput,
   type SurfaceStringKey,
   type SurfaceStringOverride,
   type SurfaceStringOverrides,
@@ -121,7 +126,33 @@ export {
   type SlotPlanBase,
   type SlotPlanContext,
   type SurfaceSlot,
+  type WidgetActionOutputPlan,
 } from './slot-plan.js';
+
+export {
+  createDocumentResourceDataSourceLoader,
+  dataSourceAvailableToWidget,
+  loadWidgetDataInputs,
+  resolveDataSourceDescriptor,
+  type DataSourceActiveContext,
+  type DataSourceAuthorizationResult,
+  type DataSourceAuthorizer,
+  type DataSourceCatalogHandle,
+  type DataSourceDescriptor,
+  type DataSourceLoadRequest,
+  type DataSourceLoadResult,
+  type DataSourceLoader,
+  type DataSourcePayloadValidationResult,
+  type DataSourcePayloadValidator,
+  type DeclaredWidgetDataInput,
+  type DocumentResourceReadRequest,
+  type DocumentResourceReader,
+  type LoadWidgetDataInputsRequest,
+  type WidgetDataDelivery,
+  type WidgetDataFailureReason,
+  type WidgetDataInputFailure,
+  type WidgetDataInputPlan,
+} from './data-source-loader.js';
 
 export {
   planTransitions,

@@ -23,7 +23,11 @@ export { SurfaceRouteView, type SurfaceRouteViewProps } from './SurfaceRoute.js'
 export {
   SurfaceSlot,
   SurfaceSlotFrame,
+  renderDefaultDefinitionForm,
   rendersOwnHeading,
+  type ResolvedDefinitionFormPlan,
+  type SurfaceDefinitionFormRenderer,
+  type SurfaceDefinitionFormRenderInput,
   type SurfaceSlotProps,
 } from './SurfaceSlot.js';
 export { SurfaceTransitions, type SurfaceTransitionsProps } from './SurfaceTransitions.js';
@@ -31,11 +35,31 @@ export { Heading, nextLevel, type HeadingProps } from './heading.js';
 
 export type {
   SurfaceWidget,
-  SurfaceWidgetDataResolver,
+  SurfaceWidgetActionExecutor,
+  SurfaceWidgetActionExecutorInput,
+  SurfaceWidgetActionOutcomeKey,
+  SurfaceWidgetActionOutcomeStore,
+  SurfaceWidgetActionReport,
+  SurfaceWidgetActionSource,
+  SurfaceWidgetStoredActionOutcome,
   SurfaceWidgetModule,
   SurfaceWidgetProps,
   SurfaceWidgetRouteContext,
 } from './widget-api.js';
+
+export {
+  allocateWidgetActionInvocationId,
+  createWidgetActionCoordinator,
+  createWidgetActionDelivery,
+  normalizeWidgetActionResult,
+  responseActionsDocumentForAction,
+  type CoordinatedWidgetActionEmission,
+  type CoordinatedWidgetActionResult,
+  type DeliverWidgetActionRequest,
+  type EmitWidgetActionRequest,
+  type WidgetActionCoordinator,
+  type WidgetActionDelivery,
+} from './widget-action-runtime.js';
 
 export {
   CeremonyFrame,

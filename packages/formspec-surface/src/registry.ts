@@ -29,18 +29,13 @@
  * A Surface `module-widget` binding's `widgetName` is the **second** — the
  * schema documents it as "matches `widgetShape.widgetName`" and carries no
  * pattern. So {@link createWidgetRegistry} keys its lookup on
- * `widgetShape.widgetName` within the module's `contributes[]`, exactly like
- * `widgetContributionNameFor` in `@formspec-org/app-graph`'s module resolver,
+ * `widgetShape.widgetName` within the module's `contributes[]`, through the
+ * shared `resolveWidgetContribution` helper from `@formspec-org/app-graph`,
  * and reports the contribution id separately. A registry keyed on
  * `RegistryEntry.name` would resolve nothing the day a module uses a
  * PascalCase widget name — which the schema explicitly permits.
- *
- * The app-graph equivalent is module-private and shaped for the resolver's
- * input types, so this is a second implementation of the same identity rule
- * rather than a reuse. `tests/registry.test.ts` independently pins this
- * package's PascalCase `widgetShape.widgetName` behavior; it does not claim to
- * be a cross-package twin-walk test.
  */
+import { resolveWidgetContribution } from '@formspec-org/app-graph';
 import type { RegistryDocument, RegistryEntry } from '@formspec-org/types';
 import { surfaceDiagnostic, type SurfaceDiagnostic, type SurfaceDiagnosticSite } from './diagnostics.js';
 
@@ -114,16 +109,6 @@ export interface WidgetRegistryInput<TComponent> {
   registryEntries?: readonly RegistryEntry[];
 }
 
-function widgetShapeName(entry: RegistryEntry): string | undefined {
-  const shape = (entry as { widgetShape?: { widgetName?: unknown } }).widgetShape;
-  return typeof shape?.widgetName === 'string' ? shape.widgetName : undefined;
-}
-
-function contributionNames(entry: RegistryEntry): readonly string[] {
-  const contributes = (entry as { contributes?: unknown }).contributes;
-  return Array.isArray(contributes) ? contributes.filter((name): name is string => typeof name === 'string') : [];
-}
-
 /**
  * The Registry entry whose `widgetShape.widgetName` matches, reached through the
  * declaring module's `contributes[]` rather than by scanning every widget entry.
@@ -134,16 +119,7 @@ export function widgetContributionFor(
   key: WidgetKey,
   entries: readonly RegistryEntry[],
 ): RegistryEntry | undefined {
-  const moduleEntry = entries.find(
-    (entry) => entry.name === key.moduleId && entry.category === 'module',
-  );
-  if (!moduleEntry) return undefined;
-  for (const contributionName of contributionNames(moduleEntry)) {
-    const contribution = entries.find((entry) => entry.name === contributionName);
-    if (!contribution || contribution.category !== 'widget') continue;
-    if (widgetShapeName(contribution) === key.widgetName) return contribution;
-  }
-  return undefined;
+  return resolveWidgetContribution(key, entries);
 }
 
 export function createWidgetRegistry<TComponent>(

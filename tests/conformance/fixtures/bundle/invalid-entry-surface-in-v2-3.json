@@ -1,0 +1,15 @@
+{
+  "fixture": "invalid-entry-surface-in-v2-3",
+  "purpose": "App Manifest 2.3 does not gain a compatibility alias for the 2.4 member.",
+  "expected": {"valid": false, "errorContains": "2.4"},
+  "bundle": {
+    "$formspecBundle": "2.3",
+    "version": "2.3.0",
+    "id": "https://example.gov/apps/old-entry",
+    "definitions": [],
+    "surfaces": [
+      {"url": "https://example.gov/apps/old-entry/respondent"}
+    ],
+    "entrySurface": "https://example.gov/apps/old-entry/respondent"
+  }
+}

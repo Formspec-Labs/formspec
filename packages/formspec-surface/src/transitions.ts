@@ -220,10 +220,12 @@ function targetDefinitionUrl(document: ResponseActionsDocumentLike): string | un
  * would let `slotSuppliedTriggers` claim one control while the binding renders
  * another, which recreates the silent dead edge this check exists to prevent.
  */
-export function responseActionsDocumentForDefinition(
-  documents: readonly ResponseActionsDocumentLike[],
+export function responseActionsDocumentForDefinition<
+  TDocument extends ResponseActionsDocumentLike,
+>(
+  documents: readonly TDocument[],
   definitionRef: string,
-): ResponseActionsDocumentLike | undefined {
+): TDocument | undefined {
   const matching = documents.filter(
     (document) => targetDefinitionUrl(document) === definitionRef,
   );
@@ -249,20 +251,21 @@ export function responseActionsDocumentForDefinition(
  *    does not exist. The selected document and submit Action must each be
  *    unique, and the document must target the rendered Definition.
  *
- * Only `definition-form` slots contribute (§5.2). A `module-widget` cannot:
- * the Registry `widget` contribution has no channel to declare that a widget
- * fires an action, and inferring one would silence the check on exactly the
- * case that motivated it — recorded as **finding F4** (owner: Registry).
- * `experience-unit` cannot either: a Unit's `actionRefs` name actions and do
- * not place controls, and drawing a button from one would derive layout from
+ * A module widget contributes only through the complete declared chain:
+ * Registry action output -> Surface action binding -> exact loaded action.
+ * Private widget behaviour and coincident names contribute nothing.
+ * `experience-unit` cannot contribute: a Unit's `actionRefs` name actions and
+ * do not place controls, and drawing a button from one would derive layout from
  * Experience (experience-spec §1.4.1 prohibition 2).
  */
 export function slotSuppliedTriggers(
   slots: readonly SlotPlan<unknown>[],
   responseActions: readonly ResponseActionsDocumentLike[] = [],
+  options: { includeWidgetActions?: boolean | undefined } = {},
 ): ReadonlySet<string> {
   const supplied = new Set<string>();
   if (responseActions.length === 0) return supplied;
+  const actions = responseActions.flatMap((document) => document.actions ?? []);
 
   const walk = (entries: readonly SlotPlan<unknown>[]): void => {
     for (const entry of entries) {
@@ -270,6 +273,24 @@ export function slotSuppliedTriggers(
         // Transitive. The visited set that terminates cycles lives in
         // `planRoute`, so by the time a plan exists this walk is finite.
         walk(entry.slots);
+        continue;
+      }
+      if (entry.slotType === 'module-widget') {
+        if (options.includeWidgetActions === false) continue;
+        for (const output of entry.actionOutputs) {
+          if (!output.actionRef) continue;
+          const matches = actions.filter((action) => action.id === output.actionRef);
+          if (matches.length !== 1) continue;
+          const action = matches[0];
+          if (!action || typeof action.id !== 'string') continue;
+          supplied.add(action.id);
+          if (typeof action.intent === 'string') {
+            const intentMatches = actions.filter(
+              (candidate) => candidate.intent === action.intent,
+            );
+            if (intentMatches.length === 1) supplied.add(action.intent);
+          }
+        }
         continue;
       }
       if (entry.slotType !== 'definition-form') continue;

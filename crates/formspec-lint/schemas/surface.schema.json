@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/schemas/surface/0.1",
-  "title": "Formspec Surface (v0.1)",
+  "$id": "https://formspec.org/schemas/surface/0.2",
+  "title": "Formspec Surface (v0.2)",
   "description": "A published Formspec Surface document per ADR 0150 §6 (Surface as composition primitive). Surface names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Surface is orthogonal to Screener (§7) — Surface is steady-state inward composition; Screener is one-shot outward routing. The cross-seam is the `surface:<route-id>` URI scheme: a Screener terminal-hop target with that scheme lands inside Surface composition. Authoring drafts are not separate source artifacts; tools that expose drafts must export a schema-valid Surface document before publication.",
   "type": "object",
   "required": ["$formspecSurface", "id", "entry", "routes"],
@@ -12,9 +12,9 @@
   "properties": {
     "$formspecSurface": {
       "type": "string",
-      "const": "0.1",
-      "description": "Surface specification version. MUST be '0.1'.",
-      "examples": ["0.1"],
+      "const": "0.2",
+      "description": "Surface specification version. MUST be '0.2'.",
+      "examples": ["0.2"],
       "x-lm": {
         "critical": true,
         "intent": "Version pin for surface document compatibility"
@@ -33,7 +33,7 @@
       },
       "examples": [
         [
-          { "id": "x-formspec-surface", "version": "^0.1.0" },
+          { "id": "x-formspec-surface", "version": "^0.2.0" },
           { "id": "x-formspec-core-task", "version": "^1.0.0" }
         ]
       ]
@@ -78,7 +78,7 @@
           "type": "string",
           "minLength": 1,
           "pattern": "^(?!:[A-Za-z_])(?!.*\\/:[A-Za-z_])(?:[^/{}*();?\\[\\]]*|\\{[A-Za-z][A-Za-z0-9_]*\\})(?:/(?:[^/{}*();?\\[\\]]*|\\{[A-Za-z][A-Za-z0-9_]*\\}))*$",
-          "description": "URL-style path for this route. SHOULD start with '/'. v0.1 route parameters use simple URI Template markers like '/matter/{matterId}'. Colon-prefixed framework parameters, wildcards, regex captures, matrix/query parameters, optional segments, URI Template operators, and malformed markers are invalid. Paths with no `{name}` markers and no params[] remain opaque non-empty strings.",
+          "description": "URL-style path for this route. SHOULD start with '/'. v0.2 route parameters use simple URI Template markers like '/matter/{matterId}'. Colon-prefixed framework parameters, wildcards, regex captures, matrix/query parameters, optional segments, URI Template operators, and malformed markers are invalid. Paths with no `{name}` markers and no params[] remain opaque non-empty strings.",
           "examples": ["/", "/home", "/matter/{matterId}", "/admin/users"]
         },
         "params": {
@@ -112,7 +112,7 @@
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/Slot" },
-          "description": "Slots bound on this route. Each slot has a typed binding per §6.2 closed taxonomy. v0.1 does NOT pin slot positions in the schema — `position` is an optional renderer hint. Each slot has exactly one slotType discriminator."
+          "description": "Slots bound on this route. Each slot has a typed binding per §6.2 closed taxonomy. v0.2 does NOT pin slot positions in the schema — `position` is an optional renderer hint. Each slot has exactly one slotType discriminator."
         },
         "transitions": {
           "type": "array",
@@ -144,7 +144,7 @@
             "embed-route"
           ],
           "examples": ["definition-form", "module-widget", "embed-route"],
-          "description": "Closed v0.1 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Closed at v0.1 — extensions land via the module Registry's `slot-type` contribution category in a future rev.",
+          "description": "Closed v0.2 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.",
           "x-lm": {
             "critical": true,
             "intent": "Closed slot-type discriminator pinning binding shape per ADR 0150 §6.2"
@@ -152,7 +152,7 @@
         },
         "position": {
           "type": "string",
-          "description": "OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.1 carries no normative position vocabulary."
+          "description": "OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.2 carries no normative position vocabulary."
         },
         "title": {
           "type": "string"
@@ -180,11 +180,11 @@
                     "type": "string",
                     "format": "uri",
                     "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
-                    "description": "Reference to a Definition URL. In app-graph validation this resolves against App Manifest definitions[].url and the loaded Definition url; v0.1 does not define Definition id/name alias matching."
+                    "description": "Reference to a Definition URL. In app-graph validation this resolves against App Manifest definitions[].url and the loaded Definition url; v0.2 does not define Definition id/name alias matching."
                   },
                   "presentation": {
                     "type": "string",
-                    "description": "OPTIONAL presentation hint (e.g. 'inline', 'wizard', 'modal'). Renderer-defined vocabulary at v0.1."
+                    "description": "OPTIONAL presentation hint (e.g. 'inline', 'wizard', 'modal'). Renderer-defined vocabulary at v0.2."
                   }
                 }
               }
@@ -241,7 +241,15 @@
                   },
                   "config": {
                     "type": "object",
-                    "description": "OPTIONAL widget configuration. Validated against the widget contribution's widgetShape.props by lint E604."
+                    "description": "OPTIONAL authored, static widget configuration. Validated against the widget contribution's widgetShape.props by lint E604. Runtime data MUST NOT travel through config."
+                  },
+                  "dataBindings": {
+                    "$ref": "#/$defs/WidgetDataBindings",
+                    "description": "OPTIONAL named runtime-data bindings. Each key exactly matches one Registry widgetShape.dataInputs[].name. Each value selects one source by the qualified (catalogRef, sourceRef) identity; Data Sources 1.0 owns payload shape, availability, runtime delivery, failure, cache, and provenance."
+                  },
+                  "actionBindings": {
+                    "$ref": "#/$defs/WidgetActionBindings",
+                    "description": "OPTIONAL named action-output bindings. Each key exactly matches one Registry widgetShape.actionOutputs[].name and maps that output to one loaded Response Actions action id."
                   }
                 }
               }
@@ -260,15 +268,33 @@
                 "required": ["kind", "content"],
                 "additionalProperties": false,
                 "patternProperties": { "^x-": {} },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": { "kind": { "const": "image" } },
+                      "required": ["kind"]
+                    },
+                    "then": {
+                      "required": ["alt"]
+                    },
+                    "else": {
+                      "not": { "required": ["alt"] }
+                    }
+                  }
+                ],
                 "properties": {
                   "kind": {
                     "type": "string",
                     "enum": ["heading", "text", "image", "divider"],
-                    "description": "Static content kind. Closed at v0.1 — these are the four shapes Surface guarantees renderers know how to display without consulting a module."
+                    "description": "Static content kind. Closed at v0.2 — these are the four shapes Surface guarantees renderers know how to display without consulting a module."
                   },
                   "content": {
                     "type": "string",
                     "description": "Inline literal content. For 'heading'/'text': the text. For 'image': a URL or asset ref. For 'divider': may be empty."
+                  },
+                  "alt": {
+                    "type": "string",
+                    "description": "Authored alternative text. REQUIRED exactly when kind is 'image'. An empty string is an explicit declaration that the image is decorative; processors MUST preserve the authored value and MUST NOT synthesize a value from slot.title, content, a URL, or a filename."
                   },
                   "level": {
                     "type": "integer",
@@ -301,7 +327,7 @@
                   },
                   "mode": {
                     "type": "string",
-                    "description": "OPTIONAL embed mode hint (e.g. 'modal', 'panel', 'dialog'). Renderer-defined vocabulary at v0.1."
+                    "description": "OPTIONAL embed mode hint (e.g. 'modal', 'panel', 'dialog'). Renderer-defined vocabulary at v0.2."
                   },
                   "params": {
                     "$ref": "#/$defs/RouteParamMap",
@@ -354,7 +380,7 @@
         "type": {
           "type": "string",
           "enum": ["string"],
-          "description": "Route parameter value type. v0.1 admits strings only; richer coercion belongs to runtime or Data Sources consumers."
+          "description": "Route parameter value type. v0.2 admits strings only; richer coercion belongs to runtime or Data Sources consumers."
         },
         "description": {
           "type": "string"
@@ -372,6 +398,51 @@
           "type": "string",
           "minLength": 1,
           "description": "Name of the runtime, host, prior route param, or response binding whose value supplies this target route parameter."
+        }
+      }
+    },
+    "WidgetDataBindings": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z][A-Za-z0-9_-]*$": {
+          "type": "object",
+          "required": ["catalogRef", "sourceRef"],
+          "additionalProperties": false,
+          "properties": {
+            "catalogRef": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
+              "description": "Canonical Data Sources URL. App-graph validation requires an exact match to one App Manifest dataSources[].url."
+            },
+            "sourceRef": {
+              "type": "string",
+              "pattern": "^(host|response|resource|query|conversation|route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$",
+              "description": "Data Sources 1.0 source id. App-graph validation resolves it only within catalogRef; unqualified source lookup is forbidden."
+            }
+          }
+        }
+      }
+    },
+    "WidgetActionBindings": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z][A-Za-z0-9_-]*$": {
+          "type": "object",
+          "required": ["actionRef"],
+          "additionalProperties": false,
+          "properties": {
+            "actionRef": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+              "description": "Exact actions[].id from one loaded Response Actions document. This value is not a route id, intent, or widget output name."
+            }
+          }
         }
       }
     }

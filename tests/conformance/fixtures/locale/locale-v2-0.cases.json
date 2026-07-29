@@ -1,0 +1,120 @@
+{
+  "localeVersion": "2.0",
+  "cases": [
+    {
+      "name": "definition-target",
+      "schemaValid": true,
+      "document": {
+        "$formspecLocale": "2.0",
+        "version": "2.0.0",
+        "locale": "fr-CA",
+        "target": {
+          "kind": "definition",
+          "url": "https://example.gov/forms/intake",
+          "compatibleVersions": "^1.0.0"
+        },
+        "strings": {
+          "$form.title": "Demande"
+        }
+      }
+    },
+    {
+      "name": "app-target-shell-key-with-fel",
+      "schemaValid": true,
+      "document": {
+        "$formspecLocale": "2.0",
+        "version": "2.0.0",
+        "locale": "fr-CA",
+        "target": {
+          "kind": "app",
+          "url": "https://example.gov/apps/intake",
+          "compatibleVersions": "^2.4.0"
+        },
+        "strings": {
+          "$module.x-formspec-surface.shell.transitionContinue": "Continuer vers {{$target}}",
+          "$module.x-formspec-surface.shell.slotUnavailableWidgetUndeclared": "Le module {{$widgetName}} est indisponible",
+          "$module.x-formspec-surface.shell.slotUnavailableWidgetData": "Les données de ce module sont indisponibles"
+        }
+      }
+    },
+    {
+      "name": "target-definition-alias-rejected",
+      "schemaValid": false,
+      "document": {
+        "$formspecLocale": "2.0",
+        "version": "2.0.0",
+        "locale": "en-US",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/intake"
+        },
+        "strings": {
+          "$form.title": "Intake"
+        }
+      }
+    },
+    {
+      "name": "unknown-target-kind-rejected",
+      "schemaValid": false,
+      "document": {
+        "$formspecLocale": "2.0",
+        "version": "2.0.0",
+        "locale": "en-US",
+        "target": {
+          "kind": "surface",
+          "url": "https://example.gov/apps/intake/surface"
+        },
+        "strings": {
+          "$form.title": "Intake"
+        }
+      }
+    },
+    {
+      "name": "unknown-shell-key-rejected",
+      "schemaValid": false,
+      "document": {
+        "$formspecLocale": "2.0",
+        "version": "2.0.0",
+        "locale": "en-US",
+        "target": {
+          "kind": "app",
+          "url": "https://example.gov/apps/intake"
+        },
+        "strings": {
+          "$module.x-formspec-surface.shell.continueLabel": "Compatibility alias"
+        }
+      }
+    },
+    {
+      "name": "shell-key-requires-app-target",
+      "schemaValid": false,
+      "document": {
+        "$formspecLocale": "2.0",
+        "version": "2.0.0",
+        "locale": "en-US",
+        "target": {
+          "kind": "definition",
+          "url": "https://example.gov/forms/intake"
+        },
+        "strings": {
+          "$module.x-formspec-surface.shell.notFoundTitle": "Wrong target"
+        }
+      }
+    },
+    {
+      "name": "single-brace-placeholder-is-literal",
+      "schemaValid": true,
+      "document": {
+        "$formspecLocale": "2.0",
+        "version": "2.0.0",
+        "locale": "en-US",
+        "target": {
+          "kind": "app",
+          "url": "https://example.gov/apps/intake"
+        },
+        "strings": {
+          "$module.x-formspec-surface.shell.transitionContinue": "Continue to {name}"
+        }
+      }
+    }
+  ]
+}

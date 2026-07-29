@@ -1,24 +1,54 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/schemas/locale/1.0",
-  "title": "Formspec Locale Document",
-  "description": "A Formspec Locale Document — a sidecar JSON artifact that provides internationalized strings for a Formspec Definition. A Locale Document binds to a Definition by URL, maps item paths to localized strings via a flat key-value structure, supports FEL interpolation for dynamic content via {{expression}} syntax, and composes via a fallback cascade (regional → base language → inline defaults). Multiple Locale Documents MAY target the same Definition, one per locale. A Locale Document MUST NOT affect data collection, validation logic, or behavioral semantics — it controls only the display strings presented to the user.",
+  "$id": "https://formspec.org/schemas/locale/2.0",
+  "title": "Formspec Locale Document (v2.0)",
+  "description": "A Formspec Locale Document provides internationalized strings for one exact Definition or App Manifest target. Locale 2.0 replaces targetDefinition with target.kind plus target.url, admits the closed Surface shell key family, uses FEL {{expression}} interpolation as its only authored template syntax, and keeps every fallback step within the same target identity. A Locale Document MUST NOT affect data collection, validation logic, authorization, or behavioral semantics.",
   "type": "object",
   "required": [
     "$formspecLocale",
     "version",
     "locale",
-    "targetDefinition",
+    "target",
     "strings"
   ],
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "strings": {
+            "not": {
+              "propertyNames": {
+                "not": {
+                  "pattern": "^\\$module\\.x-formspec-surface\\.shell\\."
+                }
+              }
+            }
+          }
+        },
+        "required": ["strings"]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "properties": {
+              "kind": {
+                "const": "app"
+              }
+            },
+            "required": ["kind"]
+          }
+        }
+      }
+    }
+  ],
   "properties": {
     "$formspecLocale": {
       "type": "string",
-      "const": "1.0",
-      "description": "Locale specification version. MUST be '1.0'.",
+      "const": "2.0",
+      "description": "Locale specification version. MUST be '2.0'.",
       "examples": [
-        "1.0"
+        "2.0"
       ],
       "x-lm": {
         "critical": true,
@@ -27,7 +57,7 @@
     },
     "modules": {
       "type": "array",
-      "description": "OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Module-contributed Locale string keys use the $module.<modId>.<nodeId>.<prop> prefix per ADR §4.10 (Task 6). Per ADR 0150 §4.3.",
+      "description": "OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef. Module-contributed Locale string keys use $module.<modId>.<nodeId>.<prop>. The x-formspec-surface module reserves the closed $module.x-formspec-surface.shell.<SurfaceStringKey> family for app-targeted shell text.",
       "items": {
         "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef"
       },
@@ -110,21 +140,23 @@
         "zh"
       ]
     },
-    "targetDefinition": {
-      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition",
-      "description": "Binding to the target Formspec Definition and compatible version range. The locale will only be applied to Definitions matching this target. If compatibleVersions is present and the Definition version falls outside the range, the processor SHOULD warn and MAY fall back to inline strings only. The processor MUST NOT fail on a version mismatch.",
+    "target": {
+      "$ref": "#/$defs/LocaleTarget",
+      "description": "Exact Definition or App Manifest target. Loaded Locale identity is (target.kind, target.url, normalized locale). A processor MUST NOT apply this document to another target or cross target identity during fallback.",
       "examples": [
         {
+          "kind": "definition",
           "url": "https://agency.gov/forms/budget",
           "compatibleVersions": ">=1.0.0 <2.0.0"
         },
         {
-          "url": "https://example.org/forms/intake"
+          "kind": "app",
+          "url": "https://example.org/apps/intake"
         }
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Declares which form definition this locale can be applied to. Prevents accidental application to unrelated definitions."
+        "intent": "Declares the exact Definition or app this Locale can be applied to and bounds fallback to that target."
       }
     },
     "strings": {
@@ -134,9 +166,19 @@
       },
       "propertyNames": {
         "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$",
-        "description": "String keys use dot-delimited paths: <itemKey>.<property> for item strings, $form.<property> for form-level strings, $shape.<id>.message for shape messages, $page.<pageId>.<property> for theme page strings, $optionSet.<setName>.<value>.label for shared option translations, $component.<nodeId>.<property> for component node strings, $module.<modId>.<nodeId>.<prop> for module-contributed node strings (per ADR 0150 §4.10; <modId> follows the §4.8 ^x- regex). Context labels use @suffix (e.g., key.label@short). Option values with dots or backslashes are escaped with backslash. Component array properties use bracket indexing (e.g., $component.tabs.tabLabels[0])."
+        "allOf": [
+          {
+            "if": {
+              "pattern": "^\\$module\\.x-formspec-surface\\.shell\\."
+            },
+            "then": {
+              "$ref": "#/$defs/SurfaceShellStringKey"
+            }
+          }
+        ],
+        "description": "String keys use dot-delimited paths. The $module.x-formspec-surface.shell.<SurfaceStringKey> family is closed to the exact SurfaceShellStringKey enum. Other module keys retain $module.<modId>.<nodeId>.<prop> addressing."
       },
-      "description": "Map of string keys to localized values. Keys follow the dot-delimited path format defined in the Locale Specification §3.1. Values are strings, optionally containing FEL interpolation via {{expression}} syntax. Keys address item properties (key.label, key.description, key.hint), context labels (key.label@context, key.hint@context), choice options (key.options.value.label), shared option sets ($optionSet.setName.value.label), validation messages (key.errors.CODE, key.constraintMessage, key.requiredMessage), form-level strings ($form.title, $form.description), shape messages ($shape.id.message), theme page strings ($page.pageId.title, $page.pageId.description), and component node strings ($component.nodeId.property).",
+      "description": "Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification.",
       "examples": [
         {
           "$form.title": "Rapport annuel sur les subventions",
@@ -162,7 +204,7 @@
       ],
       "x-lm": {
         "critical": true,
-        "intent": "The core payload of a Locale Document. Each entry overrides one localizable string in the target Definition. Keys are path-based so validators can cross-reference against the Definition's item tree. Values support FEL interpolation for dynamic content."
+        "intent": "The core payload of a Locale Document. Each entry overrides one localizable string for the exact target. Values support FEL interpolation for dynamic content."
       }
     },
     "extensions": {
@@ -179,5 +221,58 @@
       ]
     }
   },
-  "$defs": {}
+  "$defs": {
+    "LocaleTarget": {
+      "type": "object",
+      "required": ["kind", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["definition", "app"],
+          "description": "Target artifact kind. No aliases or additional kinds are admitted in Locale 2.0."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
+          "description": "Canonical absolute URL of the target Definition or App Manifest."
+        },
+        "compatibleVersions": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional SemVer range checked against the selected target's version."
+        }
+      }
+    },
+    "SurfaceShellStringKey": {
+      "type": "string",
+      "enum": [
+        "$module.x-formspec-surface.shell.slotUnavailableDefinitionForm",
+        "$module.x-formspec-surface.shell.slotUnavailableExperienceUnit",
+        "$module.x-formspec-surface.shell.slotUnavailableWidgetUnimplemented",
+        "$module.x-formspec-surface.shell.slotUnavailableWidgetUndeclared",
+        "$module.x-formspec-surface.shell.slotUnavailableWidgetData",
+        "$module.x-formspec-surface.shell.slotUnavailableStaticContent",
+        "$module.x-formspec-surface.shell.slotUnavailableEmbedUnresolved",
+        "$module.x-formspec-surface.shell.slotUnavailableEmbedCycle",
+        "$module.x-formspec-surface.shell.widgetEmpty",
+        "$module.x-formspec-surface.shell.notFoundTitle",
+        "$module.x-formspec-surface.shell.notFoundBody",
+        "$module.x-formspec-surface.shell.navigationLabel",
+        "$module.x-formspec-surface.shell.transitionContinue",
+        "$module.x-formspec-surface.shell.transitionPending",
+        "$module.x-formspec-surface.shell.transitionFailed",
+        "$module.x-formspec-surface.shell.transitionTargetUnresolved",
+        "$module.x-formspec-surface.shell.transitionTargetCollision",
+        "$module.x-formspec-surface.shell.transitionNoResponseActions",
+        "$module.x-formspec-surface.shell.transitionTriggerUnresolved",
+        "$module.x-formspec-surface.shell.transitionTriggerAmbiguous",
+        "$module.x-formspec-surface.shell.transitionNoExecutor",
+        "$module.x-formspec-surface.shell.transitionSuppliedBySlot",
+        "$module.x-formspec-surface.shell.transitionFireable"
+      ],
+      "description": "Closed one-to-one mapping to SurfaceStringKey. A new shell string requires a Locale schema revision."
+    }
+  }
 }

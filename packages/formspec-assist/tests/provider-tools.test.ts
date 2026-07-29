@@ -27,7 +27,7 @@ describe('Assist provider tools', () => {
       storage: new MemoryStorage(),
       registries: [
         {
-          $formspecRegistry: '1.0',
+          $formspecRegistry: '1.1',
           publisher: { name: 'Example', url: 'https://example.org' },
           published: '2026-03-26T00:00:00Z',
           entries: [

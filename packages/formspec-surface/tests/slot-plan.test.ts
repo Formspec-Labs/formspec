@@ -1,6 +1,7 @@
 /** @filedesc Slot dispatch — one assertion per closed slot type, plus embed composition. */
 import { describe, expect, it } from 'vitest';
 import type { ExperienceDocument, FormDefinition } from '@formspec-org/types';
+import type { DataSourcesDocument, RegistryDocument } from '@formspec-org/types';
 import { composeSurfaceApp } from '../src/composition.js';
 import { planRoute } from '../src/slot-plan.js';
 import { createWidgetRegistry, flattenRegistryEntries } from '../src/registry.js';
@@ -211,5 +212,171 @@ describe('planRoute — dispatch over the closed taxonomy', () => {
     const plan = planRoute(contextFor(configured, 'r'));
     const widget = plan.slots[0];
     expect(widget?.slotType === 'module-widget' && widget.config).toEqual({ headline: 'Hi' });
+  });
+
+  it('plans declared data inputs and action outputs through exact authored bindings', () => {
+    const surfaceRef = 'https://example.test/surfaces/s';
+    const catalogRef = 'https://example.test/data/widgets';
+    const widgetSurface = surface(
+      's',
+      'r',
+      [
+        route({
+          id: 'r',
+          path: '/r',
+          slots: [
+            slot({
+              id: 'w',
+              slotType: 'module-widget',
+              binding: {
+                moduleId: 'x-runtime',
+                widgetName: 'RuntimeWidget',
+                dataBindings: {
+                  receipt: { catalogRef, sourceRef: 'resource:receipt' },
+                },
+                actionBindings: {
+                  accepted: { actionRef: 'acceptReceipt' },
+                },
+              },
+            }),
+          ] as never,
+        }),
+      ],
+      { modules: [{ id: 'x-runtime', version: '1.0.0' }] },
+    );
+    const registry = {
+      $formspecRegistry: '1.1',
+      publisher: { name: 'Test', url: 'https://example.test' },
+      published: '2026-07-28T00:00:00Z',
+      entries: [
+        {
+          name: 'x-runtime',
+          category: 'module',
+          version: '1.0.0',
+          status: 'stable',
+          contributes: ['x-runtime-widget'],
+        },
+        {
+          name: 'x-runtime-widget',
+          category: 'widget',
+          version: '1.0.0',
+          status: 'stable',
+          widgetShape: {
+            widgetName: 'RuntimeWidget',
+            dataInputs: [{ name: 'receipt', required: true }],
+            actionOutputs: [{ name: 'accepted' }],
+          },
+        },
+      ],
+    } as unknown as RegistryDocument;
+    const data = {
+      $formspecDataSources: '1.0',
+      id: catalogRef,
+      version: '1.0.0',
+      sources: [
+        {
+          id: 'resource:receipt',
+          kind: 'document-resource',
+          owner: 'host',
+          scope: 'route',
+          availability: {
+            level: 'slot',
+            surfaceRef,
+            routeRef: 'r',
+            slotId: 'w',
+          },
+          runtime: {
+            delivery: 'snapshot',
+            cache: { mode: 'snapshot' },
+            authorizationBoundary: 'host',
+            failureMode: 'block-render',
+            provenance: {
+              kind: 'document-resource',
+              source: 'https://api.example.test/receipt',
+            },
+          },
+        },
+      ],
+    } as DataSourcesDocument;
+    const entries = flattenRegistryEntries([registry]).entries;
+    const context = contextFor(widgetSurface, 'r');
+    const plan = planRoute({
+      ...context,
+      registryEntries: entries,
+      widgets: createWidgetRegistry({
+        modules: [{ moduleId: 'x-runtime', widgets: { RuntimeWidget: Banner } }],
+        registryEntries: entries,
+      }),
+      surfaceRef,
+      dataSources: [{ catalogRef, document: data }],
+    });
+    const widget = plan.slots[0];
+    expect(widget?.slotType).toBe('module-widget');
+    if (widget?.slotType !== 'module-widget') return;
+    expect(widget.dataInputs).toMatchObject([
+      {
+        name: 'receipt',
+        required: true,
+        status: 'ready',
+        descriptor: { catalogRef, sourceRef: 'resource:receipt' },
+      },
+    ]);
+    expect(widget.actionOutputs).toEqual([
+      { name: 'accepted', actionRef: 'acceptReceipt' },
+    ]);
+    expect(plan.diagnostics).toEqual([]);
+  });
+
+  it('reports a required declared input that the Surface does not bind', () => {
+    const registry = {
+      $formspecRegistry: '1.1',
+      publisher: { name: 'Test', url: 'https://example.test' },
+      published: '2026-07-28T00:00:00Z',
+      entries: [
+        {
+          name: 'x-runtime',
+          category: 'module',
+          version: '1.0.0',
+          status: 'stable',
+          contributes: ['x-runtime-widget'],
+        },
+        {
+          name: 'x-runtime-widget',
+          category: 'widget',
+          version: '1.0.0',
+          status: 'stable',
+          widgetShape: {
+            widgetName: 'RuntimeWidget',
+            dataInputs: [{ name: 'requiredValue', required: true }],
+          },
+        },
+      ],
+    } as unknown as RegistryDocument;
+    const widgetSurface = surface('s', 'r', [
+      route({
+        id: 'r',
+        path: '/r',
+        slots: [
+          slot({
+            id: 'w',
+            slotType: 'module-widget',
+            binding: { moduleId: 'x-runtime', widgetName: 'RuntimeWidget' },
+          }),
+        ] as never,
+      }),
+    ]);
+    const entries = flattenRegistryEntries([registry]).entries;
+    const context = contextFor(widgetSurface, 'r');
+    const plan = planRoute({
+      ...context,
+      registryEntries: entries,
+      widgets: createWidgetRegistry({
+        modules: [{ moduleId: 'x-runtime', widgets: { RuntimeWidget: Banner } }],
+        registryEntries: entries,
+      }),
+    });
+    expect(plan.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'WIDGET-DATA-REQUIRED-UNAVAILABLE',
+    );
   });
 });

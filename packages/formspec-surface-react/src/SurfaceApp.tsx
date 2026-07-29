@@ -41,7 +41,14 @@
  * of the way of hosts that already have a router — which every host of any size
  * does. A shell that owned history would be a shell that could not be embedded.
  */
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   composeSurfaceApp,
   createThemeAuthority,
@@ -52,6 +59,9 @@ import {
   planMatchedRoute,
   resolveSurfaceStrings,
   routeHref,
+  type DataSourceAuthorizer,
+  type DataSourceLoader,
+  type DataSourcePayloadValidator,
   type HeadingLevel,
   type PlannedTransition,
   type ResolvedBundle,
@@ -71,10 +81,17 @@ import type { RegistryEntry } from '@formspec-org/types';
 import { SurfaceRouteView } from './SurfaceRoute.js';
 import type {
   SurfaceWidget,
-  SurfaceWidgetDataResolver,
+  SurfaceWidgetActionExecutor,
+  SurfaceWidgetActionOutcomeStore,
+  SurfaceWidgetActionReport,
   SurfaceWidgetModule,
 } from './widget-api.js';
-import { useDiagnosticDelivery } from './diagnostic-delivery.js';
+import type { SurfaceDefinitionFormRenderer } from './SurfaceSlot.js';
+import { createWidgetActionCoordinator } from './widget-action-runtime.js';
+import {
+  diagnosticListsEqual,
+  useDiagnosticDelivery,
+} from './diagnostic-delivery.js';
 
 export type FireTransition = (
   transition: PlannedTransition,
@@ -122,7 +139,11 @@ export function useSurfaceApp(input: UseSurfaceAppInput): SurfaceAppModel {
   const { bundle, surfaceLabel, tokenAliases, widgetModules } = input;
 
   return useMemo(() => {
-    const app = composeSurfaceApp(bundle.surfaces, surfaceLabel ? { surfaceLabel } : {});
+    const compositionOptions: SurfaceCompositionOptions = {
+      ...(surfaceLabel ? { surfaceLabel } : {}),
+      entrySurface: bundle.entrySurface,
+    };
+    const app = composeSurfaceApp(bundle.surfaces, compositionOptions);
     const registry = flattenRegistryEntries(bundle.registries);
     const themeAuthority = createThemeAuthority({
       tenantTheme: bundle.tenantTheme,
@@ -159,7 +180,21 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
    * raises `ROUTE-PARAM-UNSUPPLIED` rather than quietly linking nowhere.
    */
   routeParams?: Readonly<Record<string, string>> | undefined;
-  widgetData?: SurfaceWidgetDataResolver | undefined;
+  /** Canonical Data Sources payload port; receives exact resolved descriptors. */
+  dataSourceLoader?: DataSourceLoader | undefined;
+  /** Host admission verdict applied before every data load. */
+  authorizeDataSource?: DataSourceAuthorizer | undefined;
+  /** Required when a bound source declares a payload schema. */
+  validateDataSourcePayload?: DataSourcePayloadValidator | undefined;
+  /** Adapter to the existing Response Actions executor for widget outputs. */
+  widgetActionExecutor?: SurfaceWidgetActionExecutor | undefined;
+  /** Optional durable replay store for completed widget action invocations. */
+  widgetActionOutcomeStore?: SurfaceWidgetActionOutcomeStore | undefined;
+  /** Opaque host generation marker; changing it invalidates late navigation. */
+  sessionGeneration?: string | number | undefined;
+  onWidgetActionReport?: ((report: SurfaceWidgetActionReport) => void) | undefined;
+  /** Host form runtime seam; the current `FormspecForm` remains the default. */
+  renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   /**
    * Admits or refuses each authored static image source before rendering.
    * Without this host resolver, image slots remain unavailable.
@@ -233,6 +268,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
   const model = useSurfaceApp(props);
   const { bundle, location, onNavigate, onDiagnostics } = props;
   const setDocumentTitle = props.setDocumentTitle ?? true;
+  const widgetActionCoordinator = useRef(createWidgetActionCoordinator());
 
   const strings: SurfaceStrings = useMemo(
     () => (typeof props.strings === 'function' ? props.strings : resolveSurfaceStrings(props.strings)),
@@ -240,6 +276,21 @@ export function SurfaceApp(props: SurfaceAppProps) {
   );
 
   const resolution = useMemo(() => matchRoute(model.app, location), [model.app, location]);
+
+  const runtimeGeneration = useMemo(() => {
+    const params = Object.entries(props.routeParams ?? {})
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => `${key.length}:${key}${value.length}:${value}`)
+      .join('|');
+    const parts = [
+      String(props.sessionGeneration ?? 'default'),
+      location,
+      resolution.match?.handle.surfaceId ?? '',
+      resolution.match?.handle.routeId ?? '',
+      params,
+    ];
+    return parts.map((part) => `${part.length}:${part}`).join('|');
+  }, [location, props.routeParams, props.sessionGeneration, resolution.match]);
 
   const routePlan: SurfaceRoutePlan<SurfaceWidget> | undefined = useMemo(() => {
     if (!resolution.match) return undefined;
@@ -251,9 +302,12 @@ export function SurfaceApp(props: SurfaceAppProps) {
       definitions: bundle.definitions,
       registryEntries: model.registryEntries,
       widgets: model.widgets,
+      dataSources: bundle.dataSources,
+      surfaceRef: bundle.surfaceRefs?.get(resolution.match.handle.surface),
       responseActions: bundle.responseActions,
       themeAuthority: model.themeAuthority,
       hasExecutor: props.onFireTransition !== undefined,
+      hasWidgetActionExecutor: props.widgetActionExecutor !== undefined,
       evaluateCondition: props.evaluateTransitionCondition,
       headingBaseLevel: props.headingBaseLevel ?? 2,
       staticAssetResolver: props.staticAssetResolver,
@@ -265,11 +319,49 @@ export function SurfaceApp(props: SurfaceAppProps) {
     bundle,
     props.routeParams,
     props.onFireTransition,
+    props.widgetActionExecutor,
     props.evaluateTransitionCondition,
     props.headingBaseLevel,
     props.staticAssetResolver,
     strings,
   ]);
+
+  const [runtimeDiagnosticsByScope, setRuntimeDiagnosticsByScope] = useState(
+    () =>
+      new Map<
+        string,
+        { generation: string; diagnostics: readonly SurfaceDiagnostic[] }
+      >(),
+  );
+  const onRuntimeDiagnosticsChange = useCallback(
+    (scope: string, next: readonly SurfaceDiagnostic[]) => {
+      setRuntimeDiagnosticsByScope((previous) => {
+        const current = previous.get(scope);
+        if (
+          current?.generation === runtimeGeneration &&
+          diagnosticListsEqual(current.diagnostics, next)
+        ) {
+          return previous;
+        }
+        if (next.length === 0 && current === undefined) return previous;
+        const updated = new Map(previous);
+        if (next.length === 0) {
+          updated.delete(scope);
+        } else {
+          updated.set(scope, { generation: runtimeGeneration, diagnostics: next });
+        }
+        return updated;
+      });
+    },
+    [runtimeGeneration],
+  );
+  const runtimeDiagnostics = useMemo(
+    () =>
+      [...runtimeDiagnosticsByScope.values()]
+        .filter((entry) => entry.generation === runtimeGeneration)
+        .flatMap((entry) => entry.diagnostics),
+    [runtimeDiagnosticsByScope, runtimeGeneration],
+  );
 
   const navigationDiagnostics = useMemo(
     () =>
@@ -297,6 +389,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
       ...resolution.diagnostics,
       ...navigationDiagnostics,
       ...(routePlan?.diagnostics ?? []),
+      ...runtimeDiagnostics,
       ...(rootDiagnostic ? [rootDiagnostic] : []),
     ];
   }, [
@@ -304,6 +397,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
     resolution,
     navigationDiagnostics,
     routePlan,
+    runtimeDiagnostics,
     rootProperties,
   ]);
 
@@ -335,7 +429,16 @@ export function SurfaceApp(props: SurfaceAppProps) {
             key={`${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
             plan={routePlan}
             strings={strings}
-            widgetData={props.widgetData}
+            dataSourceLoader={props.dataSourceLoader}
+            authorizeDataSource={props.authorizeDataSource}
+            validateDataSourcePayload={props.validateDataSourcePayload}
+            widgetActionExecutor={props.widgetActionExecutor}
+            widgetActionOutcomeStore={props.widgetActionOutcomeStore}
+            widgetActionCoordinator={widgetActionCoordinator.current}
+            runtimeGeneration={runtimeGeneration}
+            onWidgetActionReport={props.onWidgetActionReport}
+            onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+            renderDefinitionForm={props.renderDefinitionForm}
             showExperienceNeeds={props.showExperienceNeeds}
             showThemeNotice={props.showThemeNotice}
             responseActionsDocuments={bundle.responseActions}

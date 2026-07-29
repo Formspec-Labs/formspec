@@ -160,7 +160,7 @@ def test_legal_workspace_surface_fixture_exercises_all_slot_types():
 
 def test_surface_route_with_invalid_slot_type_fails():
     doc = {
-        "$formspecSurface": "0.1",
+        "$formspecSurface": "0.2",
         "id": "bad",
         "entry": "home",
         "routes": [{
@@ -185,7 +185,7 @@ def test_slot_binding_shape_enforced_per_slot_type(slot_type, bad_binding):
     """allOf [if/then] gates pin per-slotType binding shape — each REQUIRED
     binding key MUST be present."""
     doc = {
-        "$formspecSurface": "0.1",
+        "$formspecSurface": "0.2",
         "id": "bad",
         "entry": "home",
         "routes": [{
@@ -212,7 +212,7 @@ def test_p2_module_widget_binding_fixture_validates():
 
 def test_static_content_kind_is_closed_enum():
     doc = {
-        "$formspecSurface": "0.1",
+        "$formspecSurface": "0.2",
         "id": "bad",
         "entry": "home",
         "routes": [{

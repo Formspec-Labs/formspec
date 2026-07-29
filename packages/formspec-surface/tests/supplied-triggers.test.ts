@@ -99,10 +99,9 @@ describe('slotSuppliedTriggers', () => {
   });
 
   it('supplies nothing from a slot type §5.2 excludes', () => {
-    // A module widget has no channel to declare that it fires an action
-    // (finding F4), and an Experience unit's actionRefs name actions without
-    // placing controls. Exempting them would silence the check on exactly the
-    // case that motivated it.
+    // This module widget has no resolved Registry declaration or mapped output,
+    // and an Experience unit's actionRefs name actions without placing
+    // controls. Neither is a trigger source.
     const nonForm = surface('s', 'r', [
       route({
         id: 'r',

@@ -36,22 +36,46 @@ import { emitMergedThemeCssVars } from '@formspec-org/layout';
 import {
   resolveRouteTitleLevel,
   resolveSurfaceStrings,
+  type DataSourceAuthorizer,
+  type DataSourceLoader,
+  type DataSourcePayloadValidator,
   type PlannedTransition,
-  type ResponseActionsDocumentLike,
+  type SurfaceDiagnostic,
   type SurfaceRoutePlan,
   type SurfaceStrings,
 } from '@formspec-org/surface';
+import type { ResponseActionsDocument } from '@formspec-org/types';
 import { Heading } from './heading.js';
-import { SurfaceSlotFrame } from './SurfaceSlot.js';
+import {
+  SurfaceSlotFrame,
+  type SurfaceDefinitionFormRenderer,
+} from './SurfaceSlot.js';
 import { SurfaceTransitions } from './SurfaceTransitions.js';
-import type { SurfaceWidget, SurfaceWidgetDataResolver } from './widget-api.js';
+import type {
+  SurfaceWidget,
+  SurfaceWidgetActionExecutor,
+  SurfaceWidgetActionOutcomeStore,
+  SurfaceWidgetActionReport,
+} from './widget-api.js';
+import type { WidgetActionCoordinator } from './widget-action-runtime.js';
 
 export interface SurfaceRouteViewProps {
   /** Everything the core decided for this route. Nothing here re-decides it. */
   plan: SurfaceRoutePlan<SurfaceWidget>;
   /** The shell's own person-facing strings. Defaults to the shipped English. */
   strings?: SurfaceStrings | undefined;
-  widgetData?: SurfaceWidgetDataResolver | undefined;
+  dataSourceLoader?: DataSourceLoader | undefined;
+  authorizeDataSource?: DataSourceAuthorizer | undefined;
+  validateDataSourcePayload?: DataSourcePayloadValidator | undefined;
+  widgetActionExecutor?: SurfaceWidgetActionExecutor | undefined;
+  widgetActionOutcomeStore?: SurfaceWidgetActionOutcomeStore | undefined;
+  widgetActionCoordinator?: WidgetActionCoordinator | undefined;
+  runtimeGeneration?: string | undefined;
+  onWidgetActionReport?: ((report: SurfaceWidgetActionReport) => void) | undefined;
+  onRuntimeDiagnosticsChange?:
+    | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
+    | undefined;
+  renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   showExperienceNeeds?: boolean | undefined;
   /**
    * Shows the theme-posture sentence on the page. **Default false** (§4.3.1):
@@ -62,7 +86,7 @@ export interface SurfaceRouteViewProps {
    */
   showThemeNotice?: boolean | undefined;
   /** The Response Actions document a `definition-form` slot runs its actions under. */
-  responseActionsDocuments?: readonly ResponseActionsDocumentLike[] | undefined;
+  responseActionsDocuments?: readonly ResponseActionsDocument[] | undefined;
   /** Runs a transition's action under Response Actions authority. */
   onFireTransition?:
     | ((
@@ -81,7 +105,16 @@ export interface SurfaceRouteViewProps {
 export function SurfaceRouteView({
   plan,
   strings,
-  widgetData,
+  dataSourceLoader,
+  authorizeDataSource,
+  validateDataSourcePayload,
+  widgetActionExecutor,
+  widgetActionOutcomeStore,
+  widgetActionCoordinator,
+  runtimeGeneration,
+  onWidgetActionReport,
+  onRuntimeDiagnosticsChange,
+  renderDefinitionForm,
   showExperienceNeeds,
   showThemeNotice = false,
   responseActionsDocuments,
@@ -107,6 +140,7 @@ export function SurfaceRouteView({
 
   const route = {
     surfaceId: handle.surfaceId,
+    surfaceRef: plan.surfaceRef,
     routeId: handle.routeId,
     routeClass: handle.route.routeClass,
     params,
@@ -155,21 +189,32 @@ export function SurfaceRouteView({
             grant={grant}
             route={route}
             strings={text}
-            widgetData={widgetData}
+            dataSourceLoader={dataSourceLoader}
+            authorizeDataSource={authorizeDataSource}
+            validateDataSourcePayload={validateDataSourcePayload}
             showExperienceNeeds={showExperienceNeeds}
             responseActionsDocuments={responseActionsDocuments}
+            transitions={plan.transitions}
+            widgetActionExecutor={widgetActionExecutor}
+            widgetActionOutcomeStore={widgetActionOutcomeStore}
+            widgetActionCoordinator={widgetActionCoordinator}
+            runtimeGeneration={runtimeGeneration}
+            onWidgetActionReport={onWidgetActionReport}
+            onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+            renderDefinitionForm={renderDefinitionForm}
             onActionCompleted={(action) => {
               // The form's own submit ran under Response Actions authority and
               // reported success. THAT is what advances the route — not the
               // click that started it.
-              const supplied = plan.transitions.find(
+              const supplied = plan.transitions.filter(
                 (candidate) =>
                   candidate.status === 'supplied-by-slot' &&
                   (candidate.trigger === action.id ||
                     candidate.trigger === action.intent),
               );
-              if (supplied) onAdvance?.(supplied);
+              if (supplied.length === 1 && supplied[0]) onAdvance?.(supplied[0]);
             }}
+            onAdvance={onAdvance}
           />
         ))}
       </div>

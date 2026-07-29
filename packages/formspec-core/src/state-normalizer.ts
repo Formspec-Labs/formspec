@@ -18,11 +18,12 @@ export function normalizeState(state: ProjectState): void {
     state.theme.targetDefinition.url = url;
   }
 
-  // Sync locale targetDefinition.url with definition URL
+  // Keep Definition-targeted Locales aligned with this single-Definition
+  // authoring project. App-targeted Locales name a different artifact.
   state.locales ??= {};
   for (const locale of Object.values(state.locales)) {
-    if (locale.targetDefinition) {
-      locale.targetDefinition.url = url;
+    if (locale.target.kind === 'definition') {
+      locale.target.url = url;
     }
   }
 

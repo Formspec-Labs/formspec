@@ -44,10 +44,10 @@ test('title resolves $form.title from locale', () => {
   const rx = preactReactiveRuntime;
   const localeStore = new LocaleStore(rx);
   localeStore.loadLocale({
-    $formspecLocale: '1.0',
+    $formspecLocale: '2.0',
     locale: 'fr',
     version: '1.0',
-    targetDefinition: { url: 'test' },
+    target: { kind: 'definition', url: 'test' },
     strings: { '$form.title': 'Demande de subvention' },
   });
   localeStore.setLocale('fr');
@@ -71,10 +71,10 @@ test('description resolves $form.description from locale', () => {
   const rx = preactReactiveRuntime;
   const localeStore = new LocaleStore(rx);
   localeStore.loadLocale({
-    $formspecLocale: '1.0',
+    $formspecLocale: '2.0',
     locale: 'fr',
     version: '1.0',
-    targetDefinition: { url: 'test' },
+    target: { kind: 'definition', url: 'test' },
     strings: { '$form.description': 'Remplissez ce formulaire' },
   });
   localeStore.setLocale('fr');
@@ -114,10 +114,10 @@ test('pageTitle resolves $page.<id>.title from locale', () => {
   const rx = preactReactiveRuntime;
   const localeStore = new LocaleStore(rx);
   localeStore.loadLocale({
-    $formspecLocale: '1.0',
+    $formspecLocale: '2.0',
     locale: 'fr',
     version: '1.0',
-    targetDefinition: { url: 'test' },
+    target: { kind: 'definition', url: 'test' },
     strings: { '$page.info.title': 'Informations du projet' },
   });
   localeStore.setLocale('fr');
@@ -159,10 +159,10 @@ test('pageDescription resolves $page.<id>.description from locale', () => {
   const rx = preactReactiveRuntime;
   const localeStore = new LocaleStore(rx);
   localeStore.loadLocale({
-    $formspecLocale: '1.0',
+    $formspecLocale: '2.0',
     locale: 'fr',
     version: '1.0',
-    targetDefinition: { url: 'test' },
+    target: { kind: 'definition', url: 'test' },
     strings: { '$page.info.description': 'Entrez les details' },
   });
   localeStore.setLocale('fr');
@@ -222,10 +222,10 @@ test('title interpolates {{expr}} using evalFEL', () => {
   const rx = preactReactiveRuntime;
   const localeStore = new LocaleStore(rx);
   localeStore.loadLocale({
-    $formspecLocale: '1.0',
+    $formspecLocale: '2.0',
     locale: 'en',
     version: '1.0',
-    targetDefinition: { url: 'test' },
+    target: { kind: 'definition', url: 'test' },
     strings: { '$form.title': 'Total: {{$count}}' },
   });
   localeStore.setLocale('en');
@@ -271,17 +271,17 @@ test('title re-resolves when locale changes', () => {
   const rx = preactReactiveRuntime;
   const localeStore = new LocaleStore(rx);
   localeStore.loadLocale({
-    $formspecLocale: '1.0',
+    $formspecLocale: '2.0',
     locale: 'en',
     version: '1.0',
-    targetDefinition: { url: 'test' },
+    target: { kind: 'definition', url: 'test' },
     strings: { '$form.title': 'English Title' },
   });
   localeStore.loadLocale({
-    $formspecLocale: '1.0',
+    $formspecLocale: '2.0',
     locale: 'fr',
     version: '1.0',
-    targetDefinition: { url: 'test' },
+    target: { kind: 'definition', url: 'test' },
     strings: { '$form.title': 'Titre Francais' },
   });
   localeStore.setLocale('en');

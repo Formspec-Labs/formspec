@@ -152,7 +152,7 @@ export type RegistryEntry = {
    */
   semantics?: {};
   /**
-   * Widget contract (widget name, props, children policy, fallback chain, and optional graph-visible token slots). REQUIRED when category is 'widget'. `widgetName` is the name a Surface `module-widget` binding resolves against — the only link from a binding to this entry. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. `tokenSlots[]` is the production Registry evidence for UI Graph Policy Theme token-slot assignment checks; processors MUST NOT read the v4 spike `semantics.themeTokenSlots` field as authority. Per ADR 0150 §4.2 / Component §progressive-to-core and ADR 0153 UI graph policy gates.
+   * Widget contract (widget name, authored configuration props, named runtime data inputs, named action outputs, children policy, fallback chain, and optional graph-visible token slots). REQUIRED when category is 'widget'. `widgetName` is the name a Surface `module-widget` binding resolves against — the only link from a binding to this entry. `props`, `dataInputs`, and `actionOutputs` are separate channels: configuration MUST NOT carry runtime data or emitted actions. `tokenSlots[]` is the production Registry evidence for UI Graph Policy Theme token-slot assignment checks; processors MUST NOT read the v4 spike `semantics.themeTokenSlots` field as authority. Per ADR 0150 §4.2 / Component §progressive-to-core and ADR 0153 UI graph policy gates.
    */
   widgetShape?: {
     /**
@@ -160,9 +160,21 @@ export type RegistryEntry = {
      */
     widgetName?: string;
     /**
-     * JSON Schema fragment for widget configuration payloads such as Theme widgetConfig or Surface module-widget binding.config.
+     * JSON Schema fragment for authored, static widget configuration such as Theme widgetConfig or Surface module-widget binding.config. It is not a runtime data or action channel.
      */
     props?: {};
+    /**
+     * Named runtime values the widget accepts. Names MUST be unique within this widget shape. Surface dataBindings maps each name to a qualified Data Sources 1.0 source; the Registry does not duplicate the source payload schema.
+     *
+     * @minItems 1
+     */
+    dataInputs?: [WidgetDataInput, ...WidgetDataInput[]];
+    /**
+     * Named events the widget may emit. Names MUST be unique within this widget shape. An output name is not an App action id, route id, Response Actions intent, or generic host command.
+     *
+     * @minItems 1
+     */
+    actionOutputs?: [WidgetActionOutput, ...WidgetActionOutput[]];
     /**
      * Renderer-facing child composition policy for the widget.
      */
@@ -232,13 +244,13 @@ export type TokenCategoryTokenType =
   | 'number';
 
 /**
- * A static JSON document format for publishing, discovering, and validating Formspec extensions and semantic metadata. A Registry Document enumerates named entries — custom data types, functions, constraints, properties, namespaces, concept identities, and vocabulary bindings — with metadata, version history, compatibility bounds, and machine-readable schemas. Any organization MAY publish its own Registry Document. Interoperability is achieved through the common format, not centralized authority.
+ * A static JSON document format for publishing, discovering, and validating Formspec extensions and semantic metadata. A Registry Document enumerates named entries — custom data types, functions, constraints, properties, modules, concept identities, and vocabulary bindings — with metadata, version history, compatibility bounds, and machine-readable schemas. Registry 1.1 separates a widget's authored configuration props, named runtime data inputs, and named action outputs. Any organization MAY publish its own Registry Document. Interoperability is achieved through the common format, not centralized authority.
  */
 export interface RegistryDocument {
   /**
-   * Registry specification version. MUST be '1.0'.
+   * Registry specification version. MUST be '1.1'.
    */
-  $formspecRegistry: '1.0';
+  $formspecRegistry: '1.1';
   /**
    * Optional JSON Schema URI for editor validation and autocompletion.
    */
@@ -261,6 +273,38 @@ export interface RegistryDocument {
  * Extension object whose keys must be prefixed with x-.
  */
 export interface Extensions {}
+/**
+ * This interface was referenced by `RegistryDocument`'s JSON-Schema
+ * via the `definition` "WidgetDataInput".
+ */
+export interface WidgetDataInput {
+  /**
+   * Stable input name, unique within the enclosing widgetShape.dataInputs array. Surface dataBindings uses this exact name.
+   */
+  name: string;
+  /**
+   * Whether the widget is unavailable when this input is unbound, unauthorized, fails to load, or fails Data Sources payload validation.
+   */
+  required: boolean;
+  /**
+   * Human-readable purpose of the runtime input.
+   */
+  description?: string;
+}
+/**
+ * This interface was referenced by `RegistryDocument`'s JSON-Schema
+ * via the `definition` "WidgetActionOutput".
+ */
+export interface WidgetActionOutput {
+  /**
+   * Stable event name, unique within the enclosing widgetShape.actionOutputs array. Surface actionBindings uses this exact name.
+   */
+  name: string;
+  /**
+   * Human-readable description of the event the widget may emit.
+   */
+  description?: string;
+}
 /**
  * A Theme token slot declared by a module widget. Slot declarations are Registry evidence for UI Graph Policy checks only; they do not define token values, Theme cascade, renderer fallback, runtime state, or authorization.
  *

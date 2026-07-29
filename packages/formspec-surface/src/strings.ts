@@ -18,14 +18,11 @@
  * Locale document says. The strings are the shell's; the language is not the
  * shell's to fix."
  *
- * **This module is not localisation and does not attempt it.** It is the seam
- * localisation lands on. The substrate has a Locale tier and the shell's own
- * vocabulary has no route into it — recorded as **finding F7** in the spec's
- * Appendix B.3, owned by Locale plus the shell spec's next revision. Closing F7
- * means either a host override map (which is this) wired to a Locale document,
- * or `$module.*` Locale keys owned by the shell's module (ADR 0150 §4.10
- * module-aware addressing). Either way the closed key set below is the thing
- * that gets addressed, which is what makes F7 tractable rather than open-ended.
+ * Locale 2.0 addresses this inventory through
+ * `$module.x-formspec-surface.shell.<SurfaceStringKey>`. The adapter at the end
+ * of this module binds a target-aware Locale lookup and the host's FEL
+ * evaluator to that exact family. The core still owns no locale selection or
+ * expression engine.
  *
  * Deliberately NOT here: `ROUTE_CLASS_THEME_REASON` and
  * `UNCLASSIFIED_THEME_REASON` (`theme-authority.ts`). Those answer a different
@@ -50,6 +47,8 @@ export const SURFACE_STRING_KEYS = [
   'slotUnavailableWidgetUnimplemented',
   /** A `module-widget` nothing in the bundle declares. */
   'slotUnavailableWidgetUndeclared',
+  /** A `module-widget` whose required authorized data could not be delivered. */
+  'slotUnavailableWidgetData',
   /** A `static-content` slot whose binding does not resolve to a kind. */
   'slotUnavailableStaticContent',
   /** An `embed-route` slot naming a route this Surface does not declare. */
@@ -93,9 +92,8 @@ export type SurfaceStringKey = (typeof SURFACE_STRING_KEYS)[number];
 export type SurfaceStringTemplate = (vars: SurfaceStringVars) => string;
 
 /**
- * Host override. A plain string replaces the default outright; `{name}`
- * placeholders in it are interpolated from the same vars the default receives,
- * so a translator never has to write a function.
+ * Host override. A plain string replaces the default exactly. Dynamic host
+ * overrides use a function; authored Locale strings use the FEL adapter below.
  */
 export type SurfaceStringOverride = string | SurfaceStringTemplate;
 
@@ -104,10 +102,27 @@ export type SurfaceStringOverrides = Partial<Record<SurfaceStringKey, SurfaceStr
 /** A total table: every key resolves, whether or not the host overrode it. */
 export type SurfaceStrings = (key: SurfaceStringKey, vars?: SurfaceStringVars) => string;
 
-function interpolate(template: string, vars: SurfaceStringVars): string {
-  return template.replace(/\{([A-Za-z][A-Za-z0-9_]*)\}/g, (whole, name: string) =>
-    Object.prototype.hasOwnProperty.call(vars, name) ? (vars[name] as string) : whole,
-  );
+/** Canonical Locale 2.0 prefix for the closed shell string family. */
+export const SURFACE_LOCALE_KEY_PREFIX = '$module.x-formspec-surface.shell.';
+
+/** Target-aware Locale lookup already bound to the active app and locale. */
+export type SurfaceLocaleLookup = (key: string) => string | null | undefined;
+
+/**
+ * FEL interpolation supplied by the host's Locale engine.
+ *
+ * Keeping evaluation injected prevents the renderer-independent package from
+ * owning a second FEL implementation. The implementation receives only the
+ * shell variables declared by Locale 2.0.
+ */
+export type SurfaceLocaleInterpolator = (
+  template: string,
+  vars: SurfaceStringVars,
+) => string;
+
+export interface SurfaceLocaleStringsInput {
+  lookup: SurfaceLocaleLookup;
+  interpolate: SurfaceLocaleInterpolator;
 }
 
 /**
@@ -122,6 +137,8 @@ export const DEFAULT_SURFACE_STRINGS = {
     `This page asks for a component called “${vars.widgetName ?? ''}” that this release describes but nothing supplies.`,
   slotUnavailableWidgetUndeclared: (vars) =>
     `This page asks for a component called “${vars.widgetName ?? ''}” that nothing in this release describes.`,
+  slotUnavailableWidgetData: () =>
+    'This part of the page cannot load the information it needs.',
   slotUnavailableStaticContent: () => 'Part of this page could not be shown.',
   slotUnavailableEmbedUnresolved: () =>
     'Part of this page refers to a screen that is not in this Surface.',
@@ -158,8 +175,30 @@ export const DEFAULT_SURFACE_STRINGS = {
 export function resolveSurfaceStrings(overrides: SurfaceStringOverrides = {}): SurfaceStrings {
   return (key, vars = {}) => {
     const override = overrides[key];
-    if (typeof override === 'string') return interpolate(override, vars);
+    if (typeof override === 'string') return override;
     if (typeof override === 'function') return override(vars);
     return DEFAULT_SURFACE_STRINGS[key](vars);
+  };
+}
+
+/**
+ * Adapt the active app-target Locale cascade to the shell's closed string set.
+ *
+ * `lookup` owns target-aware regional/base fallback. This adapter adds only the
+ * canonical key prefix, FEL evaluation, and the final built-in English default
+ * when the target-local cascade has no value.
+ */
+export function resolveSurfaceLocaleStrings(
+  input: SurfaceLocaleStringsInput,
+): SurfaceStrings {
+  const defaults = resolveSurfaceStrings();
+  return (key, vars = {}) => {
+    const localized = input.lookup(`${SURFACE_LOCALE_KEY_PREFIX}${key}`);
+    if (typeof localized !== 'string') return defaults(key, vars);
+    try {
+      return input.interpolate(localized, vars);
+    } catch {
+      return localized;
+    }
   };
 }

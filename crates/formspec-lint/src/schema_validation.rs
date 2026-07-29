@@ -812,7 +812,7 @@ mod tests {
     #[test]
     fn valid_registry_party_publisher_produces_no_e101() {
         let registry = json!({
-            "$formspecRegistry": "1.0",
+            "$formspecRegistry": "1.1",
             "publisher": {
                 "name": { "en": "Acme" },
                 "homepage": "https://example.com",
@@ -930,10 +930,13 @@ mod tests {
     #[test]
     fn valid_locale_produces_no_e101() {
         let locale = json!({
-            "$formspecLocale": "1.0",
+            "$formspecLocale": "2.0",
             "version": "1.0.0",
             "locale": "en",
-            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "target": {
+                "kind": "definition",
+                "url": "https://example.com/forms/x"
+            },
             "strings": {
                 "$form.title": "Example",
                 "name.label": "Name"
@@ -953,9 +956,12 @@ mod tests {
     #[test]
     fn invalid_locale_routes_to_e101() {
         let locale = json!({
-            "$formspecLocale": "1.0",
+            "$formspecLocale": "2.0",
             "version": "1.0.0",
-            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "target": {
+                "kind": "definition",
+                "url": "https://example.com/forms/x"
+            },
             "strings": {}
         });
         let diags = validate_schema(&locale, DocumentType::Locale);
@@ -1145,7 +1151,7 @@ mod tests {
     #[test]
     fn valid_surface_produces_no_e101() {
         let surface = json!({
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "main",
             "entry": "home",
             "routes": [
@@ -1179,7 +1185,7 @@ mod tests {
     #[test]
     fn invalid_surface_routes_to_e101() {
         let surface = json!({
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "main",
             "entry": "home",
             "routes": [

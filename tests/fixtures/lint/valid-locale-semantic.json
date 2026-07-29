@@ -1,8 +1,9 @@
 {
-  "$formspecLocale": "1.0",
+  "$formspecLocale": "2.0",
   "version": "1.0.0",
   "locale": "fr-CA",
-  "targetDefinition": {
+  "target": {
+    "kind": "definition",
     "url": "https://example.com/forms/locale-valid",
     "compatibleVersions": ">=1.0.0 <2.0.0"
   },

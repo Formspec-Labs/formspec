@@ -1,18 +1,20 @@
 ---
 title: Formspec Surface Specification
-version: 0.1.0-draft.1
-date: 2026-05-26
+version: 0.2.0-draft.1
+date: 2026-07-28
 depends_on:
   - specs/core/spec.md
   - specs/experience/experience-spec.md
   - specs/component/component-spec.md
   - specs/response-actions/response-actions-spec.md
+  - specs/data-sources/data-sources-spec.md
+  - specs/registry/extension-registry.md
 ---
 
-# Formspec Surface Specification v0.1
+# Formspec Surface Specification v0.2
 
-**Version:** 0.1.0-draft.1
-**Date:** 2026-05-24
+**Version:** 0.2.0-draft.1
+**Date:** 2026-07-28
 **Editors:** Formspec Working Group
 **Companion to:** Formspec v1.0 -- A JSON-Native Declarative Form Standard
 
@@ -110,13 +112,13 @@ Each `routes[].params[]` entry has:
 | Field | Required | Description |
 |---|---|---|
 | `name` | yes | Route parameter name. |
-| `type` | yes | Closed v0.1 value type. Only `string` is admitted. |
+| `type` | yes | Closed v0.2 value type. Only `string` is admitted. |
 | `description` | no | Human-readable explanation. |
 | `example` | no | Example string value. |
 
 When `params[]` is present, `path` MUST contain a simple URI Template marker for
 each parameter using `{name}` syntax. Every `{name}` marker in `path` MUST have
-a matching `params[]` declaration. Surface v0.1 uses only simple
+a matching `params[]` declaration. Surface v0.2 uses only simple
 single-variable markers; it does not admit URI Template operators, exploded
 values, matrix parameters, query parameters, optional segments, regex captures,
 or colon-prefixed framework syntax as normative parameter syntax. A `path` with
@@ -235,6 +237,18 @@ Cross-document slot bindings, such as `definition-form.binding.definitionRef`
 and `experience-unit.binding.unitRef`, are resolved by the app/bundle graph and
 are outside this Surface-local rule.
 
+### Static-content image alternative text
+
+A `static-content` binding with `kind: "image"` MUST carry `alt`. The value is
+authored alternative text. An empty string explicitly marks the image as
+decorative. Every other static-content kind MUST omit `alt`.
+
+Processors MUST preserve `alt` exactly when they pass it to a rendering binding.
+They MUST NOT replace or supplement it with `slot.title`, `binding.content`, a
+URL segment, a filename, or host copy. Malformed runtime input that reaches a
+processor without the required image `alt` makes the slot unavailable and
+produces a diagnostic; it does not activate a fallback naming rule.
+
 ### Module-contributed Slot bindings (E603 admission rule)
 
 When a slot binds via `slotType: "module-widget"`, the binding's `moduleId`
@@ -252,6 +266,48 @@ admission. Bucket infixes (e.g. `-slot-type-`, `-widget-`) are only used
 for Registry entry names that are NOT consumed as `^x-` doc-level values
 (`slot-type` contributions are looked up by `slotShape.kindValue` not
 entry-name; `widget` contributions are looked up by `widgetShape.widgetName`).
+
+### Module-widget configuration, data, and actions
+
+A module widget has three separate authored channels:
+
+| Channel | Registry declaration | Surface binding | Purpose |
+|---|---|---|---|
+| Configuration | `widgetShape.props` | `binding.config` | Static authored configuration. |
+| Runtime data | `widgetShape.dataInputs[]` | `binding.dataBindings` | Authorized values loaded through Data Sources 1.0. |
+| Action events | `widgetShape.actionOutputs[]` | `binding.actionBindings` | Named events delegated to Response Actions. |
+
+Processors MUST NOT treat `config` as runtime data. A widget-name switch, inline
+payload, query text, filename discovery, or catalog-order fallback is not a
+conforming data binding.
+
+Each `dataBindings` property name MUST exactly match one
+`widgetShape.dataInputs[].name` on the resolved widget contribution. Its
+`catalogRef` MUST exactly match one App Manifest `dataSources[].url`, and its
+`sourceRef` MUST exactly match one `sources[].id` in that catalog. The source
+identity is the pair `(catalogRef, sourceRef)`; processors MUST NOT perform
+unqualified source lookup.
+
+App-graph validation MUST prove that the input is declared, the catalog is
+manifested, the source exists, and the source's availability covers the exact
+use. An availability selector at app, exact Surface, exact route, exact slot, or
+matching module level may cover the widget. Definition-only availability does
+not cover a module widget. Data Sources 1.0 remains authoritative for payload
+schema, runtime authorization, delivery, failure, cache, stale-data, and
+provenance rules.
+
+At runtime, the widget receives one read-only object keyed by declared input
+name. An unbound optional input is absent. A required input that is unbound,
+unauthorized, unavailable, failed, or payload-invalid makes the widget
+unavailable and produces a diagnostic. The host MUST NOT synthesize a value.
+
+Each `actionBindings` property name MUST exactly match one
+`widgetShape.actionOutputs[].name` on the resolved widget contribution. Its
+`actionRef` MUST exactly match one loaded Response Actions `actions[].id`. An
+output name is an event the widget may emit; it is not an action id, route id,
+Response Actions intent, or generic host command. App-graph validation MUST
+reject an undeclared output, unresolved action, duplicate mapping, or ambiguous
+transition target.
 
 ### Transition trigger semantics
 
@@ -285,20 +341,44 @@ declared target parameter per §3 Route Parameters. Surface does not execute the
 trigger or resolve the parameter values; Response Actions remains the trigger's
 executor when the trigger references an action or closed-core intent.
 
-## 5. Closed slot-type taxonomy (v0.1)
+### Widget action invocation and retry
+
+A widget receives only `emitAction(outputName)` for action delivery. It receives
+neither a route table nor a navigation function and MUST NOT navigate directly.
+For each user emission, the host MUST:
+
+1. allocate one stable invocation id;
+2. coalesce duplicate in-flight delivery for the same route/session generation,
+   slot, output, and invocation id;
+3. resolve the output through its exact `actionBindings[outputName].actionRef`;
+4. delegate preconditions, effects, `retry-once`, frozen idempotency keys, and
+   durable replay to Response Actions;
+5. ignore completion from an obsolete route or session generation; and
+6. after a successful current-generation terminal result, follow at most one
+   eligible Surface transition and follow it only once.
+
+Retry preserves the invocation id and immutable Response snapshot. It does not
+emit a second logical action. A previously recorded durable outcome is replayed
+instead of repeated. Zero eligible transitions leaves the current route in
+place and reports the action result. More than one eligible transition is an
+authoring or app-graph validation failure; runtime MUST NOT choose by declaration
+order. Surface remains the transition planner, and Response Actions remains the
+action executor.
+
+## 5. Closed slot-type taxonomy (v0.2)
 
 [ADR 0150 §6.2](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#62-closed-slot-type-taxonomy)
-closes the v0.1 slot-type list at five values:
+closes the v0.2 slot-type list at five values:
 
 | slotType | Binding shape | Renders |
 |---|---|---|
 | `definition-form` | `{ definitionRef: string, presentation?: string }` | The bound Definition form. |
 | `experience-unit` | `{ experienceRef?: string, unitRef: string }` | A specific Experience unit. |
-| `module-widget`   | `{ moduleId: string, widgetName: string, config?: object }` | A widget supplied by a declared module. |
-| `static-content`  | `{ kind: heading\|text\|image\|divider, content: string, level?: 1..6 }` | Inline literal content. |
+| `module-widget`   | `{ moduleId: string, widgetName: string, config?: object, dataBindings?: Record<inputName, {catalogRef, sourceRef}>, actionBindings?: Record<outputName, {actionRef}> }` | A widget supplied by a declared module. |
+| `static-content`  | `{ kind: heading\|text\|image\|divider, content: string, alt?: string, level?: 1..6 }`, with `alt` required exactly for `image` | Inline literal content or an authored image reference. |
 | `embed-route`     | `{ routeRef: string, mode?: string, params?: RouteParamMap }` | Another route from this Surface (modal/panel/dialog). |
 
-`definition-form.binding.definitionRef` is URL-based in v0.1. In bundled
+`definition-form.binding.definitionRef` is URL-based in v0.2. In bundled
 app-graph validation it resolves against App Manifest `definitions[].url` and
 the loaded Definition `url`; it is not a Definition `name`, local handle, file
 stem, or `identity.id` alias. Any future alias or explicit graph-binding
@@ -306,7 +386,7 @@ contract requires a Surface spec/schema revision.
 
 Each binding shape is enforced by `schemas/surface.schema.json` via an
 `allOf [if/then]` gate discriminating on `slotType`. The taxonomy is closed at
-v0.1; future revisions admit new slot types via the Registry `slot-type`
+v0.2; future revisions admit new slot types via the Registry `slot-type`
 contribution category per ADR §4.2.
 
 ### 5.1 Runtime Route State Ownership
@@ -355,7 +435,7 @@ explicitly associated by `screeners[]`. AppGraphValidator resolves the bare
 `surface:<route-id>` across the loaded Surface documents in that app graph.
 The target MUST resolve to exactly one loaded Surface `routes[].id`; missing or
 ambiguous matches are cross-artifact validation errors. This exact-one rule is
-the v0.1/v2.3 conformance boundary for Screener terminal hops; production
+the v0.2/v2.3 conformance boundary for Screener terminal hops; production
 runtime routing remains outside Surface-local conformance.
 
 The Screener spec retains its freestanding posture per
@@ -387,10 +467,19 @@ A Surface document is conformance-coherent when:
    `experienceRef` against the bundle manifest;
    `module-widget.moduleId` against the document's `modules[]`
    declaration (E603); `module-widget.config` against the contributing
-   module's `widgetShape.props` (E604).
+   module's `widgetShape.props` (E604); every `module-widget.dataBindings`
+   input through its exact `(catalogRef, sourceRef)` and allowed availability;
+   and every `module-widget.actionBindings` output through its exact loaded
+   Response Actions action id.
 6. Component `targetSurfaceRoutes[]` claims resolve against Surface route and
    slot ids in app-graph validation. Surface-local conformance does not require
    or synthesize Component membership.
+7. Every image carries an authored `alt`, every non-image omits `alt`, and
+   processors preserve meaningful and empty values without synthesis.
+8. Widget input and output names resolve against Registry 1.1; required-input
+   failure makes the widget unavailable; action invocation uses one stable id,
+   Response Actions retry/replay semantics, obsolete-completion refusal, and
+   at-most-once transition navigation.
 
 A non-form app (a bundle with `definitions: []` and a `surfaces: [...]`
 declaring routes with `experience-unit` / `module-widget` /

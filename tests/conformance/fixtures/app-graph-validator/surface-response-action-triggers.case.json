@@ -697,7 +697,7 @@
               "routeId": "start",
               "trigger": "submit",
               "resolvedActionIds": ["submitApplication"],
-              "triggerSourceSlotTypes": ["definition-form", "embed-route"]
+              "triggerSourceSlotTypes": ["definition-form", "module-widget", "embed-route"]
             }
           }
         ]

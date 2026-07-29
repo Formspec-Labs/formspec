@@ -19,10 +19,23 @@ import type {
     ResponseActionPreconditionResult,
     ResponseActionsDocumentInput,
 } from '@formspec-org/engine';
-import type { EffectRequest, FormResponse, Precondition, ValidationReport } from '@formspec-org/types';
+import type {
+    EffectRequest,
+    FormResponse,
+    Precondition,
+    ThemeDocument as SchemaThemeDocument,
+    ValidationReport,
+} from '@formspec-org/types';
 import { createFormEngine, findResponseActionByIntent, missingSubmitActionFinding, resolveResponseAction } from '@formspec-org/engine';
-import type { ComponentGraphProjectionContext, LayoutHostEvidence, LayoutNode } from '@formspec-org/layout';
+import type {
+    ComponentGraphProjectionContext,
+    LayoutHostEvidence,
+    LayoutNode,
+    ThemeDocument as LayoutThemeDocument,
+} from '@formspec-org/layout';
 import {
+    buildPlatformTheme,
+    mergePlatformAndTenantTheme,
     planDefinitionFallback,
     planComponentTree,
     preparePlanContext,
@@ -30,6 +43,8 @@ import {
     mergeFormPresentationForPlanning,
 } from '@formspec-org/layout';
 import type { ComponentMap } from './component-map';
+
+const platformTheme = buildPlatformTheme();
 
 export type ResponseActionsDocument = ResponseActionsDocumentInput;
 export type {
@@ -64,7 +79,7 @@ export interface FormspecContextValue {
     layoutPlan: LayoutNode | null;
     components: ComponentMap;
     /** Theme document from the provider (used for container token emission). */
-    themeDocument?: any;
+    themeDocument?: LayoutThemeDocument;
     /** Whether this tree owns theme-token emission. */
     emitThemeTokens: boolean;
     /** Component document from the provider (used for container token emission). */
@@ -139,7 +154,7 @@ export interface FormspecProviderProps {
     /** Host-supplied UI Graph Policy validation evidence for inert renderer metadata. */
     hostEvidence?: LayoutHostEvidence | null;
     /** Theme document for presentation cascade. */
-    themeDocument?: any;
+    themeDocument?: SchemaThemeDocument;
     /**
      * Emit theme tokens on provider and form-container elements. Default true.
      * Set false when an owning shell already emitted the effective token map.
@@ -222,6 +237,12 @@ export function FormspecProvider(props: FormspecProviderProps) {
     } = props;
     const shouldEmitThemeTokens = props.emitThemeTokens ?? true;
     const hasIssuerOverrideProp = Object.prototype.hasOwnProperty.call(props, 'issuerOverride');
+    const effectiveThemeDocument = useMemo(
+        () => themeDocument
+            ? mergePlatformAndTenantTheme(platformTheme, themeDocument)
+            : mergePlatformAndTenantTheme(platformTheme),
+        [themeDocument],
+    );
 
     /**
      * The element the provider's theme tokens are written to.
@@ -329,7 +350,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             componentDocument,
             componentGraph: componentGraph ?? undefined,
             hostEvidence: hostEvidence ?? undefined,
-            theme: themeDocument,
+            theme: effectiveThemeDocument,
             activeBreakpoint,
             findItem: (key: string) => findItemByKey(items, key),
         });
@@ -364,7 +385,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             }
         }
         return root;
-    }, [engine, componentDocument, componentGraph, hostEvidence, themeDocument, activeBreakpoint, onSubmit, responseActionsDocument, mergedFormPresentation]);
+    }, [engine, componentDocument, componentGraph, hostEvidence, effectiveThemeDocument, activeBreakpoint, onSubmit, responseActionsDocument, mergedFormPresentation]);
 
     // §10: surface a finding when the host wires onSubmit but no submit Action
     // is published — otherwise auto-inject silently no-ops.
@@ -411,7 +432,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         if (!shouldEmitThemeTokens) return;
         const el = themeScopeRef.current;
         if (!el) return;
-        const tokens = themeDocument?.tokens;
+        const tokens = effectiveThemeDocument.tokens;
         if (!tokens) return;
         emitThemeTokens(tokens, el);
         return () => {
@@ -420,7 +441,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
                 if (property.startsWith('--formspec-')) el.style.removeProperty(property);
             }
         };
-    }, [themeDocument, shouldEmitThemeTokens]);
+    }, [effectiveThemeDocument, shouldEmitThemeTokens]);
 
     useEffect(() => {
         // Only dispose if we created the engine internally
@@ -434,7 +455,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             engine,
             layoutPlan,
             components,
-            themeDocument,
+            themeDocument: effectiveThemeDocument,
             emitThemeTokens: shouldEmitThemeTokens,
             componentDocument,
             componentGraph,
@@ -456,7 +477,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             registryEntries: registryMap,
             formPresentation: mergedFormPresentation,
         }),
-        [engine, layoutPlan, components, themeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
+        [engine, layoutPlan, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
     );
 
     return (

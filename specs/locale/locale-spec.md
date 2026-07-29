@@ -1,15 +1,15 @@
 ---
 title: Formspec Locale Specification
-version: 1.0.0-draft.1
-date: 2026-05-25
+version: 2.0.0-draft.1
+date: 2026-07-28
 depends_on:
   - specs/bundle/app-manifest-spec.md
 ---
 
-# Formspec Locale Specification v1.0
+# Formspec Locale Specification v2.0
 
-**Version:** 1.0.0-draft.1
-**Date:** 2026-03-20
+**Version:** 2.0.0-draft.1
+**Date:** 2026-07-28
 **Editors:** Formspec Working Group
 **Companion to:** Formspec v1.0 — A JSON-Native Declarative Form Standard
 
@@ -20,7 +20,7 @@ depends_on:
 This document is a **Draft** companion specification to the
 [Formspec v1.0 Core Specification](../core/spec.md). It defines the Formspec
 Locale Document format — a sidecar JSON document that provides
-internationalized strings for a Formspec Definition.
+internationalized strings for one exact Formspec Definition or App Manifest.
 
 ## Conventions and Terminology
 
@@ -45,10 +45,11 @@ document unless explicitly redefined.
 ## Bottom Line Up Front
 
 <!-- bluf:start file=locale-spec.bluf.md -->
-- This document defines the Locale Document — a sidecar JSON artifact for internationalizing Formspec Definitions.
-- A valid locale requires `$formspecLocale`, `version`, `locale`, `targetDefinition`, and a `strings` object.
-- String resolution uses a fallback cascade (regional → base → inline defaults) with FEL interpolation via `{{expression}}` syntax; `null` without `$`/`@` and without a static-literal expression preserves the `{{…}}` text (§3.3.1 rule 3a).
-- This BLUF is governed by `schemas/locale.schema.json`; generated schema references are the canonical structural contract.
+- This document defines Locale 2.0, a sidecar JSON artifact for internationalizing one exact Formspec Definition or App Manifest target.
+- A valid Locale 2.0 document requires `$formspecLocale: "2.0"`, `version`, `locale`, `target`, and a `strings` object. `target` names a `definition` or `app` by canonical URL.
+- Loaded Locale identity is `(target kind, target URL, normalized locale)`. Regional-to-base fallback stays within that exact target.
+- App-targeted Locale documents may use the closed `$module.x-formspec-surface.shell.*` key family. Every dynamic string uses FEL `{{expression}}` interpolation; processors do not apply a separate `{name}` parser.
+- This BLUF is governed by `schemas/locale.schema.json`; generated references expose the canonical schema-defined structure.
 <!-- bluf:end -->
 
 ## 1. Introduction
@@ -69,13 +70,14 @@ coupling translation to structural authoring) or build bespoke
 translation infrastructure outside the spec.
 
 This specification defines a **Locale Document** — a standalone JSON
-artifact that provides localized strings for a Formspec Definition.
+artifact that provides localized strings for one exact Definition or App
+Manifest target.
 A Locale Document:
 
-- References a Definition by URL and declares compatible versions.
+- References its target by kind and URL and may declare compatible versions.
 - Maps item paths to localized strings via a flat key-value structure.
 - Supports FEL interpolation for dynamic string content.
-- Composes via a fallback cascade (regional → base → inline).
+- Composes via a fallback cascade that never crosses target identity.
 - Supports contextual variants (short, accessibility, pdf).
 
 Authors who do not need internationalization change nothing. The
@@ -134,10 +136,10 @@ artifacts:
 | Data transform | `fieldMap` | Mapping Document |
 | **Localization** | Inline string properties | **Locale Document** (this spec) |
 
-The Locale Document follows the same sidecar pattern: the Definition
-provides sensible defaults inline; the Locale Document overrides them
-for a specific language. Multiple Locale Documents MAY target the same
-Definition.
+The Locale Document follows the same sidecar pattern: a Definition provides
+inline defaults, while a Surface shell provides a closed runtime default set.
+A Locale Document overrides those strings for one target and language. Multiple
+Locale Documents MAY target the same artifact.
 
 ### 1.4 Terminology
 
@@ -165,7 +167,7 @@ Locale Document that omits a REQUIRED property.
 
 ```json
 {
-  "$formspecLocale": "1.0",
+  "$formspecLocale": "2.0",
   "url": "https://agency.gov/forms/budget/locales/fr-CA",
   "version": "1.0.0",
   "name": "budget-fr-CA",
@@ -173,7 +175,8 @@ Locale Document that omits a REQUIRED property.
   "description": "French-Canadian localization for the annual budget form.",
   "locale": "fr-CA",
   "fallback": "fr",
-  "targetDefinition": {
+  "target": {
+    "kind": "definition",
     "url": "https://agency.gov/forms/budget",
     "compatibleVersions": ">=1.0.0 <2.0.0"
   },
@@ -192,34 +195,35 @@ Locale Document that omits a REQUIRED property.
 <!-- generated:schema-ref id=locale-top-level -->
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
-| `#/properties/$formspecLocale` | `$formspecLocale` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Locale specification version. MUST be '1.0'. |
+| `#/properties/$formspecLocale` | `$formspecLocale` | <code>string</code> | yes | const: <code>"2.0"</code>; critical | Locale specification version. MUST be '2.0'. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of the locale's purpose and target audience. |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Extension namespace for vendor-specific or tooling-specific metadata. All keys MUST be x- prefixed. Processors MUST ignore unrecognized extensions. Extensions MUST NOT alter locale resolution semantics. |
 | `#/properties/fallback` | `fallback` | <code>string</code> | no | pattern: <code>^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*&#36;</code> | BCP 47 language tag of the locale to consult when a key is not found in this document's strings. Enables explicit fallback chains (e.g., fr-CA → fr). If absent, the cascade proceeds to implicit language fallback (strip region subtag) or inline defaults. Processors MUST detect circular fallback chains and terminate the cascade with a warning. |
 | `#/properties/locale` | `locale` | <code>string</code> | yes | pattern: <code>^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*&#36;</code>; critical | BCP 47 language tag identifying the locale this document provides strings for. Processors MUST perform case-insensitive comparison and SHOULD normalize to lowercase language with title-case region (e.g., 'fr-CA'). |
-| `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Module-contributed Locale string keys use the $module.<modId>.<nodeId>.<prop> prefix per ADR §4.10 (Task 6). Per ADR 0150 §4.3. |
+| `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef. Module-contributed Locale string keys use $module.<modId>.<nodeId>.<prop>. The x-formspec-surface module reserves the closed $module.x-formspec-surface.shell.<SurfaceStringKey> family for app-targeted shell text. |
 | `#/properties/name` | `name` | <code>string</code> | no | — | Machine-friendly short identifier for programmatic use. |
-| `#/properties/strings` | `strings` | <code>object</code> | yes | critical | Map of string keys to localized values. Keys follow the dot-delimited path format defined in the Locale Specification §3.1. Values are strings, optionally containing FEL interpolation via {{expression}} syntax. Keys address item properties (key.label, key.description, key.hint), context labels (key.label@context, key.hint@context), choice options (key.options.value.label), shared option sets ($optionSet.setName.value.label), validation messages (key.errors.CODE, key.constraintMessage, key.requiredMessage), form-level strings ($form.title, $form.description), shape messages ($shape.id.message), theme page strings ($page.pageId.title, $page.pageId.description), and component node strings ($component.nodeId.property). |
-| `#/properties/targetDefinition` | `targetDefinition` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/TargetDefinition</code>; critical | Binding to the target Formspec Definition and compatible version range. The locale will only be applied to Definitions matching this target. If compatibleVersions is present and the Definition version falls outside the range, the processor SHOULD warn and MAY fall back to inline strings only. The processor MUST NOT fail on a version mismatch. |
+| `#/properties/strings` | `strings` | <code>object</code> | yes | critical | Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification. |
+| `#/properties/target` | `target` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/LocaleTarget</code>; critical | Exact Definition or App Manifest target. Loaded Locale identity is (target.kind, target.url, normalized locale). A processor MUST NOT apply this document to another target or cross target identity during fallback. |
 | `#/properties/title` | `title` | <code>string</code> | no | — | Human-readable display name for the Locale Document. |
 | `#/properties/url` | `url` | <code>string</code> | no | — | Canonical identifier for this Locale Document. Stable across versions — the tuple (url, version) SHOULD be globally unique. |
 | `#/properties/version` | `version` | <code>string</code> | yes | critical | Version of this Locale Document. SemVer is RECOMMENDED. The tuple (url, version) SHOULD be unique across all published locale versions. |
 <!-- schema-ref:end -->
 
-### 2.2 Target Definition Binding
+### 2.2 Target Binding
 
-The `targetDefinition` object binds this Locale Document to a specific
-Definition.
+The `target` object binds this Locale Document to one exact artifact.
 
 | Property | Type | Cardinality | Description |
 |---|---|---|---|
-| `url` | string (URI) | **1..1** (REQUIRED) | Canonical URL of the target Definition (`url` property from the Definition). |
-| `compatibleVersions` | string | **0..1** (OPTIONAL) | Semver range expression (e.g., `">=1.0.0 <2.0.0"`) describing which Definition versions this locale supports. When absent, the locale is assumed compatible with any version. |
+| `kind` | `"definition"` or `"app"` | **1..1** (REQUIRED) | Target artifact kind. No additional value or alias is admitted. |
+| `url` | absolute URL string | **1..1** (REQUIRED) | Exact Definition URL or App Manifest `id`, according to `kind`. |
+| `compatibleVersions` | string | **0..1** (OPTIONAL) | SemVer range for the exact target version. |
 
 When `compatibleVersions` is present, a processor SHOULD verify that
-the Definition's `version` satisfies the range before applying the
-Locale Document. A processor MUST NOT fail if the range is unsatisfied;
-it SHOULD warn and MAY fall back to inline strings.
+the loaded target's `version` satisfies the range before applying the Locale
+Document. In App Manifest 2.4 association, an unsatisfied range is a resolution
+error. The processor MUST NOT retarget the Locale or fall through to another
+artifact.
 
 ### 2.3 Locale Code
 
@@ -625,16 +629,63 @@ to `@index` and `@count`.
 > warn when a `$component.` key references a node ID not present in
 > any loaded Component Document (§7.2).
 
+#### 3.1.9 Surface Shell Strings
+
+Locale 2.0 app targets may localize the Surface shell through the canonical
+family:
+
+```
+$module.x-formspec-surface.shell.<SurfaceStringKey>
+```
+
+`<SurfaceStringKey>` is closed. The Locale schema and Surface runtime inventory
+MUST contain these exact suffixes one-for-one:
+
+| Key suffix | Shell-specific FEL references |
+|---|---|
+| `slotUnavailableDefinitionForm` | none |
+| `slotUnavailableExperienceUnit` | none |
+| `slotUnavailableWidgetUnimplemented` | `$widgetName` |
+| `slotUnavailableWidgetUndeclared` | `$widgetName` |
+| `slotUnavailableWidgetData` | none |
+| `slotUnavailableStaticContent` | none |
+| `slotUnavailableEmbedUnresolved` | none |
+| `slotUnavailableEmbedCycle` | none |
+| `widgetEmpty` | `$widgetName` |
+| `notFoundTitle` | none |
+| `notFoundBody` | none |
+| `navigationLabel` | none |
+| `transitionContinue` | `$target` |
+| `transitionPending` | `$trigger` |
+| `transitionFailed` | `$trigger` |
+| `transitionTargetUnresolved` | `$to` |
+| `transitionTargetCollision` | `$to` |
+| `transitionNoResponseActions` | `$trigger` |
+| `transitionTriggerUnresolved` | `$trigger` |
+| `transitionTriggerAmbiguous` | `$trigger` |
+| `transitionNoExecutor` | `$trigger` |
+| `transitionSuppliedBySlot` | `$trigger` |
+| `transitionFireable` | `$trigger` |
+
+The shell-specific references form a read-only object supplied by the Surface
+processor. They carry strings only and expose no route table, navigation
+function, action executor, Response, or mutable host state. All ordinary FEL
+rules still apply.
+
+These keys are valid only for `target.kind: "app"` and the
+`x-formspec-surface` module. A processor MUST reject an unknown shell suffix and
+MUST NOT translate a shorter host key or legacy Surface string name into this
+family.
+
 ### 3.2 Key Resolution Rules
 
 Processors MUST apply the following rules when resolving string keys:
 
 1. Keys are **case-sensitive**. `projectName.label` and
    `ProjectName.label` are different keys.
-2. A key that does not correspond to any Item, option, or shape in the
-   target Definition SHOULD produce a **warning** but MUST NOT cause
-   failure. This allows forward-compatible Locale Documents that
-   include keys for items not yet present in older Definition versions.
+2. A key that does not correspond to a localizable member in the exact target
+   SHOULD produce a warning. Unknown Surface shell suffixes are the exception:
+   the closed schema rejects them.
 3. A Locale Document MAY contain keys for a subset of localizable
    strings. Missing keys fall through the cascade (§4).
 4. Duplicate keys within a single `strings` object are governed by
@@ -649,6 +700,10 @@ braces:
 ```
 {{<FEL expression>}}
 ```
+
+This is the only authored template syntax. A single-brace sequence such as
+`{name}` is literal text. Processors MUST NOT run the former Surface-only
+replacement parser before or after FEL interpolation.
 
 The expression is evaluated in the binding context of the Item
 identified by the string key's `<itemKey>` prefix. This gives the
@@ -723,6 +778,7 @@ the string key's prefix:
 | `$optionSet.*` | Global form context | No | All top-level `$fieldRef` |
 | `$component.<id>.*` (outside repeat) | Global form context | No | All top-level `$fieldRef` |
 | `$component.<id>.*` (inside repeat template) | Repeat instance scope | Yes | `$fieldRef` within repeat scope + parent scopes |
+| `$module.x-formspec-surface.shell.*` | Read-only shell string context | No | Only the key-specific references in §3.1.9 |
 
 For item-level keys inside repeat groups, the locale key uses the
 **template path** (indices stripped), but `{{expression}}` is evaluated
@@ -738,7 +794,16 @@ index. This enables per-instance labels:
 ## 4. Fallback Cascade
 
 When the engine resolves a localized string, it walks a fallback
-chain from most-specific to least-specific:
+chain from most-specific to least-specific. Every lookup is indexed by the
+complete target identity:
+
+```
+(target.kind, target.url, normalized locale)
+```
+
+A fallback step MUST preserve `target.kind` and `target.url`. It MUST NOT move
+from an app to a Definition, between two Definitions, or between two apps
+because their language tags match.
 
 ### 4.1 Cascade Order
 
@@ -749,22 +814,25 @@ For a requested locale code (e.g., `fr-CA`) and string key
    Document whose `locale` matches `fr-CA`.
 2. **Explicit fallback** — If not found and the Locale Document
    declares a `fallback` (e.g., `"fr"`), look up the key in the
-   Locale Document whose `locale` matches the fallback code.
+   Locale Document whose target is identical and whose `locale` matches the
+   fallback code.
    If the fallback Locale Document itself declares a `fallback`,
    continue walking the explicit chain (subject to circular detection,
    §4.3).
 3. **Implicit language fallback** — If not found after exhausting
    the explicit fallback chain, and the *original* requested locale
    code contains a region subtag, strip the region and look up the
-   base language (e.g., `fr` from `fr-CA`). This step is skipped if
+   base language (e.g., `fr` from `fr-CA`) for the same exact target. This step is skipped if
    any step in the explicit fallback chain already consulted a Locale
    Document with that base language code.
-4. **Inline default** — Use the Definition's inline string property
-   (`label`, `description`, `hint`, etc.).
+4. **Target default** — For a Definition target, use the Definition's inline
+   property. For an App Manifest Surface-shell key, use the runtime's default
+   value for that same closed key.
 
-A processor MUST walk the cascade in this order and MUST return the
-first non-null result. If all steps produce no result, the processor
-MUST return the empty string `""`.
+A processor MUST walk the cascade in this order and MUST return the first
+non-null result. It MUST NOT consult a Locale document for another target as an
+extra fallback. If all target-local steps produce no result and the target has
+no default for the key, the processor MUST return the empty string `""`.
 
 > **Example of explicit fallback to a different language:** If `fr-CA`
 > declares `fallback: "pt"`, the cascade is: (1) `fr-CA`, (2) `pt`
@@ -819,17 +887,17 @@ Resolution for locale `fr-CA`:
 
 ### 4.3 Circular Fallback Detection
 
-A processor MUST detect circular fallback chains (e.g., `fr-CA` →
-`fr` → `fr-CA`) and MUST terminate the cascade, falling through to
-inline defaults. Processors SHOULD emit a warning when a circular
-fallback is detected.
+A processor MUST detect circular fallback chains for one target (e.g.,
+`fr-CA` → `fr` → `fr-CA`) and MUST terminate the cascade, falling through to
+that target's default. Processors SHOULD emit a warning.
 
 ### 4.4 Multiple Locale Documents
 
-An engine MAY have multiple Locale Documents loaded simultaneously.
-The engine maintains a locale cascade — an ordered list of Locale
-Documents consulted during string resolution. The `setLocale()` call
-(§6.2) determines which cascade is active.
+An engine MAY have multiple Locale Documents loaded simultaneously. It indexes
+them by the complete target-and-locale tuple. The same normalized locale may
+therefore exist for an app and any number of Definitions. Duplicate complete
+tuples are invalid; processors MUST NOT choose by load order. `setLocale()`
+selects a language within a requested target, not one global cross-target list.
 
 ## 5. FEL Functions
 
@@ -949,9 +1017,11 @@ Register a Locale Document in the engine's locale store.
 - The input is a parsed Locale Document object conforming to this
   specification.
 - Processors MUST validate the `$formspecLocale` version and
-  `targetDefinition` binding before accepting the document.
-- If a Locale Document with the same `locale` code is already loaded,
-  the new document MUST replace it.
+  exact `target` binding before accepting the document.
+- The store key is `(target.kind, target.url, normalized locale)`. A second
+  document with the same complete tuple is a duplicate and MUST be rejected;
+  it does not replace the first by load order.
+- The same normalized locale MAY be loaded for distinct targets.
 - Loading a Locale Document MUST NOT trigger reactive updates until
   the active locale is set.
 
@@ -959,9 +1029,9 @@ Register a Locale Document in the engine's locale store.
 
 Activate a locale, triggering reactive string resolution.
 
-- The input is a BCP 47 language tag.
+- The input identifies an exact target plus a BCP 47 language tag.
 - The engine MUST build the fallback cascade (§4.1) and resolve all
-  localized strings.
+  localized strings for that target.
 - If the requested locale code does not match any loaded Locale
   Document, the engine MUST fall back to inline defaults and SHOULD
   emit a warning.
@@ -980,6 +1050,7 @@ optional context.
   `"description"`).
 - `context` — optional context name for alternative labels
   (e.g., `"short"`, `"pdf"`).
+- `target` — exact `{kind, url}` identity whose Locale cascade is consulted.
 - Returns the resolved string after cascade lookup and FEL
   interpolation.
 - Returns the empty string `""` if no string is found at any cascade
@@ -998,15 +1069,17 @@ Locale Documents MUST validate against `schemas/locale.schema.json`.
 The schema enforces:
 
 - Required properties: `$formspecLocale`, `version`, `locale`,
-  `targetDefinition`, `strings`.
+  `target`, `strings`.
 - `strings` MUST be an object with string values.
 - `locale` MUST be a syntactically valid BCP 47 language tag.
-- `targetDefinition.url` MUST be a URI.
+- `target` is closed, `target.kind` is `definition` or `app`, and `target.url`
+  is an absolute URI.
+- Surface shell keys are limited to the exact §3.1.9 set.
 
 ### 7.2 Cross-Reference Validation
 
-A validator that has access to both a Locale Document and its target
-Definition SHOULD perform the following cross-reference checks:
+A validator that has access to a Locale Document, its exact target, and the
+App Manifest association SHOULD perform the following cross-reference checks:
 
 | Check | Severity | Description |
 |-------|----------|-------------|
@@ -1016,7 +1089,12 @@ Definition SHOULD perform the following cross-reference checks:
 | Invalid shape reference | Warning | A `$shape.<id>` key references a shape ID not present in the Definition. |
 | Invalid property | Error | The property segment of a key is not a recognized localizable property. |
 | Interpolation parse error | Warning | A `{{...}}` expression fails to parse as valid FEL. |
-| Version mismatch | Warning | The Definition's version does not satisfy `compatibleVersions`. |
+| Target mismatch | Error | `target.kind` or `target.url` does not identify the selected loaded Definition or App Manifest. |
+| Version mismatch | Error for App Manifest 2.4 association | The target version does not satisfy `compatibleVersions`. |
+| Reference locale mismatch | Error | App Manifest `locales[].locale` does not equal the loaded document's normalized `locale`. |
+| Duplicate target-locale tuple | Error | Two loaded documents share `(target.kind, target.url, normalized locale)`. |
+| Cross-target fallback | Error | An explicit or implicit fallback attempts to consult another target. |
+| Invalid shell target | Error | A Surface shell key appears in a Locale whose target kind is not `app` or whose app did not load the Surface module. |
 | Orphaned `$page` key | Warning | `$page.<id>` references a page ID not present in the Theme Document. |
 | Orphaned `$component` key | Warning | `$component.<id>` references a node ID not present in the Component Document. |
 | Orphaned `$optionSet` key | Warning | `$optionSet.<setName>` references an OptionSet name not declared in the Definition. |
@@ -1028,7 +1106,7 @@ The Rust linter owns the canonical Locale semantic-lint codes:
 
 | Code | Description |
 |------|-------------|
-| E1400 / W1400 | `targetDefinition.url` mismatch or compatible-version mismatch against a paired Definition. |
+| E1400 / W1400 | `target.kind` / `target.url` mismatch or compatible-version mismatch against the paired target. |
 | E1401 | Unknown reserved namespace or unsupported terminal property in a string key. |
 | E1402 | Item string key does not resolve to a Definition item path. |
 | E1403 | Item option or `$optionSet` string key does not resolve to a Definition option value. |
@@ -1051,7 +1129,9 @@ Definition-aware checks run only when lint receives `definition_document`.
 Theme-aware `$page.*` checks run only when `theme_document` is supplied.
 Component-aware `$component.*` checks run only when `component_documents` are
 supplied. Fallback-cycle checks inspect the current Locale plus
-`locale_documents` supplied in lint context.
+`locale_documents` supplied in lint context. App-target and complete-tuple
+checks run only when the App Manifest and referenced Locale documents are
+supplied; schema-only lint does not pretend to perform that graph validation.
 
 ## 8. Processing Model
 
@@ -1180,11 +1260,16 @@ This specification defines two conformance levels:
 A **Locale Core** conformant processor MUST:
 
 1. Parse and validate Locale Documents against the schema.
-2. Implement the fallback cascade as defined in §4.
-3. Evaluate FEL interpolation expressions as defined in §3.3.
-4. Implement the `locale()` FEL function (§5.1).
-5. Provide the capabilities defined in §6 (load, set active locale,
+2. Index loaded documents by complete target-and-locale tuple and reject
+   duplicates.
+3. Implement the target-bounded fallback cascade as defined in §4.
+4. Evaluate FEL interpolation expressions as defined in §3.3 without a
+   single-brace compatibility parser.
+5. Implement the `locale()` FEL function (§5.1).
+6. Provide the capabilities defined in §6 (load, set active locale,
    resolve string, query active locale).
+7. Keep the Surface shell key set one-for-one with §3.1.9 and expose only its
+   read-only key-specific FEL references.
 
 ### 10.3 Locale Extended Conformance
 
@@ -1203,6 +1288,8 @@ A conformant Locale Document MUST:
 2. Use syntactically valid BCP 47 locale codes.
 3. Use valid string key formats (§3.1).
 4. Use valid FEL syntax in interpolation expressions.
+5. Use an exact `target`; do not author `targetDefinition` in Locale 2.0.
+6. Use Surface shell keys only for an app target and only from the closed set.
 
 ## Appendix A: Complete Locale Document Example
 
@@ -1211,7 +1298,7 @@ demonstrating all key patterns defined in this specification.
 
 ```json
 {
-  "$formspecLocale": "1.0",
+  "$formspecLocale": "2.0",
   "url": "https://agency.gov/forms/grant-report/locales/fr-CA",
   "version": "1.0.0",
   "name": "grant-report-fr-CA",
@@ -1219,7 +1306,8 @@ demonstrating all key patterns defined in this specification.
   "description": "Localisation française canadienne du formulaire de rapport de subvention.",
   "locale": "fr-CA",
   "fallback": "fr",
-  "targetDefinition": {
+  "target": {
+    "kind": "definition",
     "url": "https://agency.gov/forms/grant-report",
     "compatibleVersions": ">=1.0.0 <2.0.0"
   },

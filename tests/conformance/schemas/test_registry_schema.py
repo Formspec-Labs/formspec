@@ -23,7 +23,12 @@ def _validate(instance):
 
 
 def _load_registry():
-    return json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
+    doc = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
+    # The production registry migrates in the generation/integration work
+    # package. These schema tests exercise its entries against the 1.1 shape
+    # without writing an out-of-scope authored artifact.
+    doc["$formspecRegistry"] = "1.1"
+    return doc
 
 
 def _find_entry(doc, *, category=None, status=None):
@@ -45,7 +50,7 @@ def _find_entry(doc, *, category=None, status=None):
 def _minimal_registry(entries=None):
     """Return a minimal valid registry document."""
     return {
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "publisher": {"name": "Acme Corp", "url": "https://acme.example.com"},
         "published": "2025-01-15T00:00:00Z",
         "entries": entries if entries is not None else [],
@@ -237,6 +242,68 @@ class TestWidgetShapeTokenSlots:
         with pytest.raises(ValidationError):
             _validate(_minimal_registry(entries=[entry]))
 
+
+class TestWidgetDataAndActionChannels:
+
+    def _widget_entry(self, **widget_shape_overrides):
+        widget_shape = {
+            "widgetName": "CaseSummary",
+            "props": {"type": "object"},
+            "dataInputs": [
+                {
+                    "name": "case",
+                    "required": True,
+                    "description": "Authorized case data.",
+                }
+            ],
+            "actionOutputs": [
+                {
+                    "name": "openReceipt",
+                    "description": "The person asks to open the receipt.",
+                }
+            ],
+        }
+        widget_shape.update(widget_shape_overrides)
+        return _minimal_entry("widget", widgetShape=widget_shape)
+
+    def test_closed_widget_channels_validate(self):
+        _validate(_minimal_registry(entries=[self._widget_entry()]))
+
+    def test_data_input_requires_explicit_required_boolean(self):
+        entry = self._widget_entry(
+            dataInputs=[{"name": "case", "description": "Missing required flag"}]
+        )
+
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
+
+    def test_data_input_rejects_unknown_fields(self):
+        entry = self._widget_entry(
+            dataInputs=[{"name": "case", "required": True, "schema": {}}]
+        )
+
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
+
+    def test_action_output_rejects_action_identity_fields(self):
+        entry = self._widget_entry(
+            actionOutputs=[{"name": "openReceipt", "actionRef": "open-receipt"}]
+        )
+
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
+
+    @pytest.mark.parametrize("channel", ["dataInputs", "actionOutputs"])
+    def test_channel_arrays_reject_identical_duplicate_entries(self, channel):
+        member = (
+            {"name": "case", "required": True}
+            if channel == "dataInputs"
+            else {"name": "openReceipt"}
+        )
+        entry = self._widget_entry(**{channel: [member, copy.deepcopy(member)]})
+
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
 
 class TestTokenCategoryShape:
 

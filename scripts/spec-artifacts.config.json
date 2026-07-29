@@ -182,11 +182,14 @@
         "Registry documents describe extension metadata and compatibility, but do not prescribe centralized hosting or governance.",
         "Entry lifecycle states should guide consumer behavior for adoption, warning surfaces, and retirement handling.",
         "Naming conventions and uniqueness constraints prevent collision and support cross-organization interoperability.",
+        "Widget entries keep authored configuration in widgetShape.props, declare runtime values as dataInputs[] = {name, required, description?}, and declare emitted events as actionOutputs[] = {name, description?}; processors must not merge these channels.",
         "Widget entries may declare graph-visible Theme token slots at widgetShape.tokenSlots[]; processors must not treat v4 semantics.themeTokenSlots as production authority."
       ],
       "conformanceEssentials": [
-        "A conforming registry document must include $formspecRegistry, publisher, published, and entries.",
+        "A conforming Registry 1.1 document must include $formspecRegistry='1.1', publisher, published, and entries; the 1.1 path does not accept a 1.0 discriminator alias.",
         "Registry entry names must follow x-prefixed naming rules and category-specific requirements.",
+        "Within one widgetShape, data input names and action output names must each be unique even when duplicate declarations differ in required or description; JSON Schema uniqueItems alone does not enforce this semantic rule.",
+        "Data-input entries are closed and require name plus an explicit boolean required; action-output entries are closed and require name. Neither entry shape carries source payload schemas, action IDs, route IDs, or intents.",
         "Widget token-slot declarations use widgetShape.tokenSlots[] with a slot name and accepted token categories, and feed ModuleResolver report evidence for UI Graph Policy.",
         "Processors should reject malformed registries and conflicting duplicate name/version entry pairs."
       ]
@@ -280,14 +283,18 @@
       "llm": "specs/locale/locale-spec.llm.md",
       "behaviorEssentials": [
         "Locale Documents are display-only sidecars — they MUST NOT affect data collection, validation logic, or behavioral semantics.",
-        "Resolve localized strings using a deterministic cascade: regional locale → base language locale → inline Definition defaults.",
+        "Locale 2.0 targets one exact Definition or App Manifest through target={kind,url,compatibleVersions?}; loaded identity is the complete target-kind, target-URL, normalized-locale tuple.",
+        "Resolve localized strings using a deterministic target-bounded cascade: regional locale → explicit or base language locale for the same target → that target's inline or runtime default. Fallback never crosses target identity.",
         "String keys use dot-delimited paths (itemKey.property) to target specific localizable properties; unmatched keys are silently ignored.",
-        "FEL interpolation via {{expression}} syntax is evaluated at render time against current form state; broken expressions fall back to the raw template string with a diagnostic."
+        "Surface shell strings use the closed $module.x-formspec-surface.shell.<SurfaceStringKey> family one-for-one with the runtime inventory.",
+        "FEL interpolation via {{expression}} syntax is the only authored template language and is evaluated at render time against the key-specific read-only context; broken expressions fall back to the raw template string with a diagnostic."
       ],
       "conformanceEssentials": [
-        "A conforming locale document must include $formspecLocale=1.0, version, locale, targetDefinition, and strings.",
+        "A conforming Locale 2.0 document must include $formspecLocale='2.0', version, locale, target, and strings; targetDefinition is rejected rather than translated.",
         "Processors MUST perform case-insensitive BCP 47 tag comparison and SHOULD normalize to lowercase language with title-case region.",
-        "Processors MUST detect circular fallback chains and terminate the cascade with a warning rather than looping."
+        "Processors MUST reject duplicate complete target-and-locale tuples, unknown Surface shell key suffixes, and cross-target fallback.",
+        "Processors MUST detect circular fallback chains within one target and terminate the cascade with a warning rather than looping.",
+        "Single-brace strings such as {name} remain literal; processors do not run the retired Surface-only replacement parser."
       ]
     },
     {
@@ -660,14 +667,17 @@
         "`readSurfaceDraft` may expose non-publishable state with diagnostics; `exportSurfaceDocument` is the fail-closed publication gate for schema shape and Surface-local rules.",
         "Route reachability is local to the Surface document: every route must be reachable from `entry` via transitions or embed-route slots, and unresolved embed-route bindings fail E607.",
         "Surface declares transition triggers only. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.",
+        "Surface 0.2 image bindings require alt exactly for kind=image, preserve it exactly, treat the empty string as decorative, and forbid alt on every other static-content kind; title, URL, and filename are never fallback text.",
+        "Surface 0.2 module-widget bindings map Registry 1.1 data input names to exact {catalogRef,sourceRef} Data Sources 1.0 pairs and action output names to exact {actionRef} Response Actions IDs; config remains static authored configuration.",
         "Component 1.2 targetSurfaceRoutes[] may target Surface route and slot ids, but Surface does not list mounted Components or own Component membership; cross-artifact resolution belongs to App Manifest resolution and app-graph validation.",
         "`routeClass` is an OPTIONAL closed, non-extensible vocabulary (`intake|proof|ceremony|verification|attestation|authentication|operation`) naming what a route presents. Exactly one value, `intake`, admits tenant chrome theming; every other value refuses. Rules derive from it and are enforced on consuming artifacts, not restated on the route; it is orthogonal to access posture and route lifecycle."
       ],
       "conformanceEssentials": [
-        "A conforming published Surface document must include `$formspecSurface='0.1'`, `id`, `entry`, and at least one route with at least one slot.",
+        "A conforming published Surface document must include `$formspecSurface='0.2'`, `id`, `entry`, and at least one route with at least one slot; the 0.2 path does not accept a 0.1 discriminator alias.",
         "Processors must reject or diagnose draft/export attempts with missing entry route, empty route set, duplicate route ids, routes without slots, duplicate slot ids, unresolved embed-route targets, or unreachable routes.",
         "E606 covers unreachable routes and E607 covers unresolved embed-route slot targets.",
-        "Surface `module-widget` slots must resolve their declared `moduleId` and `widgetName` through loaded module contributions; `binding.config` validates against the contributing widget's `widgetShape.props`.",
+        "Surface module-widget slots must resolve moduleId and widgetName through loaded module contributions, validate binding.config against widgetShape.props, resolve every data/action binding by exact declared name, and never discover sources or actions from filenames, order, local ids, or same-named fields.",
+        "A missing required widget input makes the widget unavailable; an absent optional input is omitted from the read-only named input object.",
         "Component targetSurfaceRoutes[] claims resolve against Surface route and slot ids in app-graph validation; Surface-local conformance does not synthesize Component membership.",
         "App Manifest Surface references use URL/version sibling identity, never local fixture paths, filenames, URL suffix conventions, or implicit sibling discovery.",
         "`routeClass` has no default: absence means *unclassified*, a distinct state from `operation`, and processors must not treat absence as `operation`. At authoring time an unclassified route cannot fire a class-keyed refusal and remains publishable; at runtime the Surface Shell separately refuses tenant theming because silence does not grant theme authority."
@@ -678,16 +688,17 @@
       "schema": "schemas/surface.schema.json",
       "llm": "specs/surface/surface-shell-spec.llm.md",
       "behaviorEssentials": [
-        "A Surface Shell composes published Surface documents into an app route table, resolves one route for an incoming path, plans every slot and transition, and returns diagnostics without inventing missing content.",
-        "The renderer-independent core owns route matching, slot resolution, theme authority, transition posture, and diagnostics; bindings render those decisions and hosts own navigation, action execution, and bundle verification.",
+        "A Surface Shell composes published Surface documents into an app route table, resolves and plans routes, slots, theme authority, transitions, and diagnostics without inventing content; bindings render those decisions while hosts own navigation, action execution, and bundle verification.",
         "Ambiguous route handles and path collisions fail closed: the shell reports the ambiguity and resolves no affected route.",
         "Every slot type and static-content kind is handled exhaustively. Malformed runtime input produces an unavailable plan plus a dedicated diagnostic instead of a thrown exception or generic fallback.",
         "The route composition layer owns effective Theme-token emission. Platform values remain under tenant overrides, nested renderers suppress duplicate emission, and no renderer writes beyond an element or output subtree it owns.",
-        "Transitions become supplied-by-slot only when the rendered binding actually publishes the matching control. Host-rendered fireable controls require an explicit executor, and navigation follows only a completed Response Action with a valid validation report.",
+        "App Manifest 2.4 selects the entry Surface by exact entrySurface URL under zero/one/many rules; the selected Surface's entry remains the only route selector, and manifest order or local ids never substitute.",
+        "Transitions become supplied-by-slot only when the rendered binding publishes the matching form control or Registry-declared Surface-mapped widget output. A widget receives only emitAction(outputName), and each emission uses one stable invocation identity: duplicate in-flight delivery coalesces, Response Actions retry preserves identity and Response snapshot, durable outcomes replay, obsolete-generation completion is ignored, and a current successful result navigates at most once through exactly one eligible transition.",
+        "Shell text uses Locale 2.0's closed app-targeted $module.x-formspec-surface.shell.* family and FEL {{...}} context; the Surface-only {name} parser is retired.",
         "A signed bundle export is verified before any bundle-derived output is rendered."
       ],
       "conformanceEssentials": [
-        "Route lookup, app entry, and route-handle resolution return no route when identity or matching is ambiguous, and report the matching runtime diagnostic.",
+        "Route lookup, App Manifest 2.4 entry selection, and route-handle resolution return no route when identity or matching is ambiguous, and report APP-ENTRY-AMBIGUOUS, APP-ENTRY-SURFACE-UNRESOLVED, or the matching route diagnostic.",
         "Unknown slot types and static-content kinds fail closed with SLOT-TYPE-UNKNOWN or STATIC-CONTENT-KIND-UNKNOWN; dispatch does not throw.",
         "Tenant Theme tokens reach only admitted route subtrees, are layered over platform tokens key by key, and are emitted once by the composition owner with cleanup.",
         "Transition conditions resolve to active, condition-false, or condition-unevaluable; unevaluable conditions do not fire and report TRANSITION-CONDITION-UNEVALUABLE.",
@@ -702,21 +713,44 @@
       "bluf": "specs/bundle/app-manifest-spec.bluf.md",
       "llm": "specs/bundle/app-manifest-spec.llm.md",
       "behaviorEssentials": [
-        "App Manifest (formerly Bundle Manifest, reframed v2.0, extended by v2.1 for Data Sources and v2.2 for Components) is a pure composition envelope: names an app by composing zero-or-more Definitions, zero-or-more Surfaces, zero-or-more Registries, optional Data Sources catalogs, optional per-handle Component documents, plus optional substrate Modules (ModuleRef[]) and Sessions (SessionRef[]) and any combination of optional single-cardinality siblings (Experience, Response Actions, legacy Component, Theme, References, Ontology) by canonical URL and version.",
+        "App Manifest (formerly Bundle Manifest, reframed v2.0 and extended through v2.4) is a pure composition document: it names an app by canonical sibling URLs and versions without inlining or synthesizing artifacts.",
         "Absent siblings invoke each sibling spec's existing defaults; no synthesis, no inline sidecars, no shims on existing primary specs.",
-        "App `id` MUST be distinct from every sibling URL (singles and array entries); locales[].locale, mappings[].handle, components[].handle, definitions[].url, and dataSources[].url MUST be unique within their array.",
+        "App `id` MUST be distinct from every sibling URL. In 2.4 Locale references are unique by URL, while loaded Locale identity is the complete target-kind, target-URL, normalized-locale tuple; the same tag may serve distinct targets.",
         "App `version` is strict SemVer 2.0.0; per-SiblingRef.version accepts exact SemVer or range expressions resolved at sibling-resolution time.",
-        "`dataSources[]` is valid only when `$formspecBundle` is `\"2.1\"` or `\"2.2\"`; `components[]` is valid only when `$formspecBundle` is `\"2.2\"`.",
-        "Forward composition graph (manifest → siblings) lives alongside sibling-owned targetDefinition and targetSurfaceRoutes references; reverse-discovery continues to work for tools that do not use App Manifest.",
+        "dataSources[] is valid from 2.1, components[] from 2.2, screeners[] from 2.3, and entrySurface only in 2.4.",
+        "App Manifest 2.4 entrySurface is an absolute URL: absent with zero Surfaces, optional and implicitly sole with one, required with two or more, and when present an exact match to one surfaces[].url. The selected Surface's entry selects the route.",
+        "Forward composition lives alongside sibling-owned targetDefinition, targetSurfaceRoutes, and Locale 2.0 target references; reverse discovery continues to work.",
         "`definitions[]` MAY be empty (non-form apps composing only surfaces/modules), single-element (form-only common case), or multi-element (multi-form apps)."
       ],
       "conformanceEssentials": [
-        "A conforming App Manifest must include $formspecBundle='2.0', '2.1', or '2.2', strict-SemVer version, uri-shaped id, and a REQUIRED definitions[] array (which MAY be empty).",
-        "Processors MUST enforce array uniqueness (locale tag, mapping handle, component handle, module id, session id, definition url, dataSources url), id-vs-sibling-URL distinctness, §5.3 sibling-pin consistency, and §5.4 module coherence at resolution time.",
+        "A conforming App Manifest must use a supported $formspecBundle value through '2.4', strict-SemVer version, URI-shaped id, and a REQUIRED definitions[] array which MAY be empty.",
+        "Processors MUST enforce version-specific array uniqueness, id-vs-sibling-URL distinctness, sibling-pin consistency, Locale 2.0 target association, Screener target association, and module coherence at resolution time.",
         "Loaded sibling discriminators must match the slot per the §3.4 table; Definition is identified by `$formspec` (unqualified) while every other sibling carries `$formspec<Type>`.",
         "Documents with $formspecBundle='1.0' (legacy Bundle Manifest) MUST be rejected — the 1.0 → 2.0 plural-shape change is BREAKING per ADR 0150 §11.2.",
-        "Documents with dataSources[] MUST declare $formspecBundle='2.1' or '2.2'; documents with components[] MUST declare $formspecBundle='2.2'.",
-        "App Manifest does NOT introduce shims, aliases, or backwards-compat fields on existing primary specs; existing artifacts remain unchanged."
+        "Documents with newer members must meet their version gate; entrySurface is valid only in 2.4 and never accepts a local Surface id or route override.",
+        "For 2.4, each Locale reference URL is unique, its locale matches the loaded Locale 2.0 document, and its target is this app or a loaded Definition; fallback never crosses that target.",
+        "App Manifest does NOT introduce shims or aliases: older documents retain historical behavior, while the 2.4 path requires migration."
+      ]
+    },
+    {
+      "spec": "specs/bundle/surface-bundle-signing-profile.md",
+      "schema": "schemas/surface-bundle-signing-v1.schema.json",
+      "bluf": "specs/bundle/surface-bundle-signing-profile.bluf.md",
+      "llm": "specs/bundle/surface-bundle-signing-profile.llm.md",
+      "semanticCapsule": "specs/bundle/surface-bundle-signing-profile.semantic.md",
+      "behaviorEssentials": [
+        "The Signed Surface Bundle Profile signs one closed payload containing publisher claim, release identity and sequence, complete App Manifest, and complete URL-keyed documents map; authentic bytes are not automatically admitted.",
+        "The signed preimage is the exact profile domain, one zero byte, and RFC 8785 JCS bytes of the signed payload; the lower-case SHA-256 digest covers those same bytes.",
+        "Only protected COSE headers select method_uri and kid. Sidecar methods, keys, signer names, signing times, affirmations, and raw-public-key bypasses do not affect verification.",
+        "Acquisition, parsing, digest, signature verification, host validation, dereference, and rendering consume one immutable byte snapshot; refetch or mutation creates a new candidate.",
+        "Pinned release mode matches an allowlisted digest. Monotonic mode atomically re-evaluates and commits only after host admission, so failed checks and concurrent conflicts never advance durable state."
+      ],
+      "conformanceEssentials": [
+        "A conforming artifact validates against surface-bundle-signing-v1.schema.json and uses profile='formspec-surface-bundle-signing-v1', detached COSE_Sign1, protected method_uri, and protected kid.",
+        "Verification distinguishes verified, failed, and unverified; host admission then distinguishes admitted, refused, and unavailable without rewriting the integrity receipt.",
+        "Deployment trust must authorize the signed publisher and exact app or canonical app namespace, allowed method, key validity interval, and revocation state at host-observed checkedAt.",
+        "A production implementation must refuse payload mutation, another signing domain, unknown or missing kid, raw-key or sidecar-key bypass, unsigned signer claims, wrong publisher or app, stale/conflicting release state, and failed host admission.",
+        "The historical v10 spike signatures are not production conformance vectors because they use the spike domain, sidecar public keys, and unsigned signer claims."
       ]
     }
   ]

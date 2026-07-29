@@ -35,6 +35,10 @@
  * in that table is not in this array.
  */
 export const SURFACE_DIAGNOSTIC_CODES = [
+  /** A multi-Surface App Manifest omits its required explicit entry Surface. */
+  'APP-ENTRY-AMBIGUOUS',
+  /** App Manifest entrySurface does not resolve to one loaded Surface URL. */
+  'APP-ENTRY-SURFACE-UNRESOLVED',
   /** A bundle manifest slot names a URL absent from `documents`. */
   'BUNDLE-DOCUMENT-MISSING',
   /** A manifest slot resolved to something that is not the artifact it claims. */
@@ -69,6 +73,16 @@ export const SURFACE_DIAGNOSTIC_CODES = [
   'WIDGET-UNDECLARED',
   /** The Registry declares the widget; nothing the host registered implements it. */
   'WIDGET-UNIMPLEMENTED',
+  /** A required Registry input is unbound or its exact Data Sources value cannot be delivered. */
+  'WIDGET-DATA-REQUIRED-UNAVAILABLE',
+  /** A widget emitted a name absent from its Registry actionOutputs declaration. */
+  'WIDGET-ACTION-OUTPUT-UNDECLARED',
+  /** A declared widget output has no exact Surface action binding. */
+  'WIDGET-ACTION-OUTPUT-UNMAPPED',
+  /** A mapped widget output names no unique loaded Response Actions action. */
+  'WIDGET-ACTION-REF-UNRESOLVED',
+  /** One completed widget action would select more than one current eligible transition. */
+  'WIDGET-ACTION-TRANSITION-AMBIGUOUS',
   /** Two Registry documents declare the same entry `name`. */
   'REGISTRY-ENTRY-NAME-COLLISION',
   /** A `static-content` slot carries a `kind` outside the closed vocabulary. */
@@ -104,6 +118,8 @@ export type SurfaceDiagnosticSeverity = 'error' | 'warning' | 'info';
  * site. A `default` arm would let a new code arrive with an invented weight.
  */
 export const SURFACE_DIAGNOSTIC_SEVERITY = {
+  'APP-ENTRY-AMBIGUOUS': 'error',
+  'APP-ENTRY-SURFACE-UNRESOLVED': 'error',
   'BUNDLE-DOCUMENT-MISSING': 'error',
   'BUNDLE-DOCUMENT-SHAPE': 'error',
   'SURFACE-ENTRY-UNRESOLVED': 'error',
@@ -121,9 +137,14 @@ export const SURFACE_DIAGNOSTIC_SEVERITY = {
   'EXPERIENCE-UNIT-UNRESOLVED': 'error',
   'WIDGET-UNDECLARED': 'error',
   'WIDGET-UNIMPLEMENTED': 'error',
+  'WIDGET-DATA-REQUIRED-UNAVAILABLE': 'error',
+  'WIDGET-ACTION-OUTPUT-UNDECLARED': 'error',
+  'WIDGET-ACTION-OUTPUT-UNMAPPED': 'error',
+  'WIDGET-ACTION-REF-UNRESOLVED': 'error',
+  'WIDGET-ACTION-TRANSITION-AMBIGUOUS': 'error',
   'REGISTRY-ENTRY-NAME-COLLISION': 'warning',
   'STATIC-CONTENT-KIND-UNKNOWN': 'error',
-  'STATIC-IMAGE-NO-ALT': 'warning',
+  'STATIC-IMAGE-NO-ALT': 'error',
   'STATIC-IMAGE-SOURCE-REFUSED': 'error',
   'THEME-UNCLASSIFIED-REFUSED': 'info',
   'THEME-DOCUMENT-ROOT-CONTAMINATED': 'error',

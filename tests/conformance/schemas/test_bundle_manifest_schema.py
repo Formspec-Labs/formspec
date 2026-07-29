@@ -6,7 +6,8 @@ singular `registry` becomes `registries[]`; `surfaces[]` and `modules[]` and
 `sessions[]` arrive. `$formspecBundle` bumps "1.0" -> "2.0" so strict-validating
 consumers fail-loud rather than silently mis-parse the structurally different
 document. App Manifest v2.1 adds `dataSources[]` as an additive minor slot.
-App Manifest v2.2 adds `components[]`; v2.3 adds `screeners[]`.
+App Manifest v2.2 adds `components[]`; v2.3 adds `screeners[]`; v2.4 adds
+fail-closed `entrySurface` and target-aware Locale association.
 """
 
 from __future__ import annotations
@@ -59,7 +60,13 @@ class TestAppManifestSchemaShape:
         }
 
     def test_formspec_bundle_accepts_current_two_x_versions(self) -> None:
-        assert BUNDLE_SCHEMA["properties"]["$formspecBundle"]["enum"] == ["2.0", "2.1", "2.2", "2.3"]
+        assert BUNDLE_SCHEMA["properties"]["$formspecBundle"]["enum"] == [
+            "2.0",
+            "2.1",
+            "2.2",
+            "2.3",
+            "2.4",
+        ]
 
     def test_singular_definition_property_retired(self) -> None:
         assert "definition" not in BUNDLE_SCHEMA["properties"]
@@ -78,17 +85,24 @@ class TestAppManifestSchemaShape:
 
     def test_data_sources_is_an_array_and_v2_1_or_later(self) -> None:
         assert BUNDLE_SCHEMA["properties"]["dataSources"]["type"] == "array"
-        assert BUNDLE_SCHEMA["allOf"][0]["then"]["properties"]["$formspecBundle"]["enum"] == ["2.1", "2.2", "2.3"]
+        assert BUNDLE_SCHEMA["allOf"][0]["then"]["properties"]["$formspecBundle"]["enum"] == ["2.1", "2.2", "2.3", "2.4"]
 
     def test_components_is_an_array_and_v2_2_or_later(self) -> None:
         assert BUNDLE_SCHEMA["properties"]["components"]["type"] == "array"
         assert BUNDLE_SCHEMA["properties"]["components"]["items"]["$ref"] == "#/$defs/ComponentRef"
-        assert BUNDLE_SCHEMA["allOf"][1]["then"]["properties"]["$formspecBundle"]["enum"] == ["2.2", "2.3"]
+        assert BUNDLE_SCHEMA["allOf"][1]["then"]["properties"]["$formspecBundle"]["enum"] == ["2.2", "2.3", "2.4"]
 
-    def test_screeners_is_an_array_and_v2_3_only(self) -> None:
+    def test_screeners_is_an_array_and_v2_3_or_later(self) -> None:
         assert BUNDLE_SCHEMA["properties"]["screeners"]["type"] == "array"
         assert BUNDLE_SCHEMA["properties"]["screeners"]["items"]["$ref"] == "#/$defs/SiblingRef"
-        assert BUNDLE_SCHEMA["allOf"][2]["then"]["properties"]["$formspecBundle"]["const"] == "2.3"
+        assert BUNDLE_SCHEMA["allOf"][2]["then"]["properties"]["$formspecBundle"]["enum"] == ["2.3", "2.4"]
+
+    def test_entry_surface_is_an_absolute_url_gated_to_v2_4(self) -> None:
+        entry_surface = BUNDLE_SCHEMA["properties"]["entrySurface"]
+        assert entry_surface["type"] == "string"
+        assert entry_surface["format"] == "uri"
+        assert entry_surface["pattern"].startswith("^")
+        assert BUNDLE_SCHEMA["allOf"][3]["then"]["properties"]["$formspecBundle"]["const"] == "2.4"
 
     def test_component_ref_requires_handle(self) -> None:
         component_ref = BUNDLE_SCHEMA["$defs"]["ComponentRef"]
@@ -139,6 +153,17 @@ class TestAppManifestPositiveFixtures:
         """ADR 0153 A10: screeners[] is an App Manifest v2.3 association slot."""
         _validator().validate(_fixture_bundle("app-with-screeners-v2-3.json"))
 
+    @pytest.mark.parametrize(
+        "fixture",
+        [
+            "app-entry-single-implicit-v2-4.json",
+            "app-entry-explicit-v2-4.json",
+            "app-locales-target-aware-v2-4.json",
+        ],
+    )
+    def test_app_manifest_v2_4_positive_fixtures_validate(self, fixture: str) -> None:
+        _validator().validate(_fixture_bundle(fixture))
+
 
 class TestAppManifestNegativeFixtures:
     def test_missing_definitions_rejected(self) -> None:
@@ -181,3 +206,15 @@ class TestAppManifestNegativeFixtures:
         with pytest.raises(ValidationError) as excinfo:
             _validator().validate(_fixture_bundle("invalid-screeners-in-2-2.json"))
         assert "2.3" in str(excinfo.value) or "$formspecBundle" in str(excinfo.value)
+
+    @pytest.mark.parametrize(
+        "fixture",
+        [
+            "invalid-entry-surface-missing-v2-4.json",
+            "invalid-entry-surface-without-surfaces-v2-4.json",
+            "invalid-entry-surface-in-v2-3.json",
+        ],
+    )
+    def test_invalid_entry_surface_shapes_are_rejected(self, fixture: str) -> None:
+        with pytest.raises(ValidationError):
+            _validator().validate(_fixture_bundle(fixture))

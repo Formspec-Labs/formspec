@@ -1,0 +1,162 @@
+{
+  "surfaceVersion": "0.2",
+  "cases": [
+    {
+      "name": "meaningful-image-alt",
+      "valid": true,
+      "slot": {
+        "id": "seal",
+        "slotType": "static-content",
+        "binding": {
+          "kind": "image",
+          "content": "https://example.gov/assets/seal.svg",
+          "alt": "Agency seal"
+        }
+      },
+      "expectedDom": {
+        "alt": "Agency seal",
+        "decorative": false
+      },
+      "forbiddenAltSources": [
+        "slot.title",
+        "binding.content",
+        "url",
+        "filename"
+      ]
+    },
+    {
+      "name": "decorative-image-alt",
+      "valid": true,
+      "slot": {
+        "id": "rule-art",
+        "slotType": "static-content",
+        "binding": {
+          "kind": "image",
+          "content": "https://example.gov/assets/rule.svg",
+          "alt": ""
+        }
+      },
+      "expectedDom": {
+        "alt": "",
+        "decorative": true
+      },
+      "forbiddenAltSources": [
+        "slot.title",
+        "binding.content",
+        "url",
+        "filename"
+      ]
+    },
+    {
+      "name": "missing-image-alt",
+      "valid": false,
+      "slot": {
+        "id": "unnamed-image",
+        "title": "This is not an alt fallback",
+        "slotType": "static-content",
+        "binding": {
+          "kind": "image",
+          "content": "https://example.gov/assets/unnamed.png"
+        }
+      },
+      "expectedPlan": "unavailable",
+      "expectedDiagnostic": "STATIC-IMAGE-NO-ALT"
+    },
+    {
+      "name": "alt-forbidden-on-text",
+      "valid": false,
+      "slot": {
+        "id": "body",
+        "slotType": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "Literal body",
+          "alt": "Illegal alias"
+        }
+      }
+    },
+    {
+      "name": "qualified-widget-data-and-action-bindings",
+      "valid": true,
+      "slot": {
+        "id": "case-summary",
+        "slotType": "module-widget",
+        "binding": {
+          "moduleId": "x-agency-case",
+          "widgetName": "CaseSummary",
+          "config": {
+            "compact": true
+          },
+          "dataBindings": {
+            "case": {
+              "catalogRef": "https://example.gov/apps/intake/data-sources",
+              "sourceRef": "host:active-case"
+            }
+          },
+          "actionBindings": {
+            "openReceipt": {
+              "actionRef": "open-receipt"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "unqualified-widget-source-rejected",
+      "valid": false,
+      "slot": {
+        "id": "case-summary",
+        "slotType": "module-widget",
+        "binding": {
+          "moduleId": "x-agency-case",
+          "widgetName": "CaseSummary",
+          "dataBindings": {
+            "case": {
+              "catalogRef": "https://example.gov/apps/intake/data-sources",
+              "sourceRef": "active-case"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "inline-widget-payload-rejected",
+      "valid": false,
+      "slot": {
+        "id": "case-summary",
+        "slotType": "module-widget",
+        "binding": {
+          "moduleId": "x-agency-case",
+          "widgetName": "CaseSummary",
+          "dataBindings": {
+            "case": {
+              "catalogRef": "https://example.gov/apps/intake/data-sources",
+              "sourceRef": "host:active-case",
+              "value": {
+                "invented": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "widget-action-route-override-rejected",
+      "valid": false,
+      "slot": {
+        "id": "case-summary",
+        "slotType": "module-widget",
+        "binding": {
+          "moduleId": "x-agency-case",
+          "widgetName": "CaseSummary",
+          "actionBindings": {
+            "openReceipt": {
+              "actionRef": "open-receipt",
+              "routeRef": "receipt"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -110,4 +110,40 @@ describe('emitTokenProperties (via FormspecRender)', () => {
 
         el.remove();
     });
+
+    it('layers a partial tenant Theme over platform spacing and radii', async () => {
+        const { FormspecRender, defaultTheme } = await import('../../src/index');
+        if (!customElements.get('formspec-render')) {
+            customElements.define('formspec-render', FormspecRender);
+        }
+
+        const el = document.createElement('formspec-render') as InstanceType<typeof FormspecRender>;
+        document.body.appendChild(el);
+        el.themeDocument = {
+            $formspecTheme: '1.0',
+            version: '1.0.0',
+            title: 'Tenant presentation',
+            tokens: { 'color.primary': '#7A1F3D' },
+        };
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:form',
+            version: '1.0.0',
+            title: 'Test',
+            items: [],
+        };
+        el.render();
+
+        const container = el.querySelector('.formspec-container') as HTMLElement;
+        expect(container.style.getPropertyValue('--formspec-color-primary')).toBe('#7A1F3D');
+        expect(container.style.getPropertyValue('--formspec-spacing-md')).toBe(
+            defaultTheme.tokens?.['spacing.md'],
+        );
+        expect(container.style.getPropertyValue('--formspec-radius-md')).toBe(
+            defaultTheme.tokens?.['radius.md'],
+        );
+        expect(el.getEffectiveTheme().title).toBe('Tenant presentation');
+
+        el.remove();
+    });
 });

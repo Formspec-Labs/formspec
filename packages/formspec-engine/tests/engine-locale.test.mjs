@@ -22,11 +22,11 @@ function minDef(overrides = {}) {
 /** Minimal locale document. */
 function makeLocale(locale, strings, opts = {}) {
   return {
-    $formspecLocale: '1.0',
+    $formspecLocale: '2.0',
     locale,
     version: '1.0.0',
     fallback: opts.fallback,
-    targetDefinition: { url: 'https://example.org/form' },
+    target: { kind: 'definition', url: 'https://example.org/form' },
     strings,
   };
 }

@@ -74,6 +74,22 @@ describe('theme authority — structural refusal', () => {
     expect(tokens['spacing.md']).toBeDefined();
   });
 
+  it('preserves tenant presentation metadata on an admitting route', () => {
+    const authority = createThemeAuthority({
+      tenantTheme: {
+        ...tenantTheme,
+        title: 'Tenant presentation',
+        description: 'Tenant description',
+      },
+    });
+    const grant = authority.grantFor(
+      route({ id: 'r', path: '/r', routeClass: 'intake', slots: [] as never }),
+    );
+
+    expect(grant.themeDocument.title).toBe('Tenant presentation');
+    expect(grant.themeDocument.description).toBe('Tenant description');
+  });
+
   it('treats an absent routeClass as its own posture, and refuses', () => {
     const grant = grantFor(undefined);
     expect(grant.posture).toBe('unclassified');

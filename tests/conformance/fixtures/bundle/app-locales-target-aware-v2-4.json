@@ -1,0 +1,28 @@
+{
+  "fixture": "app-locales-target-aware-v2-4",
+  "purpose": "App Manifest 2.4 keys Locale references by URL, so one language may be loaded for distinct app and Definition targets.",
+  "expected": {"valid": true},
+  "bundle": {
+    "$formspecBundle": "2.4",
+    "version": "2.4.0",
+    "id": "https://example.gov/apps/target-aware-locales",
+    "definitions": [
+      {
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0"
+      }
+    ],
+    "locales": [
+      {
+        "url": "https://example.gov/locales/intake-app-en",
+        "version": "2.0.0",
+        "locale": "en-US"
+      },
+      {
+        "url": "https://example.gov/locales/intake-definition-en",
+        "version": "2.0.0",
+        "locale": "en-US"
+      }
+    ]
+  }
+}

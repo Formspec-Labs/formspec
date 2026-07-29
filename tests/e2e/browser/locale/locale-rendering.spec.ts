@@ -46,10 +46,10 @@ const COMPONENT = {
 };
 
 const LOCALE_FR = {
-  $formspecLocale: '1.0',
+  $formspecLocale: '2.0',
   version: '1.0.0',
   locale: 'fr',
-  targetDefinition: { url: 'urn:test:locale-e2e' },
+  target: { kind: 'definition', url: 'urn:test:locale-e2e' },
   strings: {
     'name.label': 'Nom complet',
     'name.hint': 'Entrez votre nom',
@@ -68,10 +68,10 @@ const LOCALE_FR = {
 };
 
 const LOCALE_AR = {
-  $formspecLocale: '1.0',
+  $formspecLocale: '2.0',
   version: '1.0.0',
   locale: 'ar',
-  targetDefinition: { url: 'urn:test:locale-e2e' },
+  target: { kind: 'definition', url: 'urn:test:locale-e2e' },
   strings: {
     'name.label': 'الاسم الكامل',
     '$form.title': 'نموذج اختبار',

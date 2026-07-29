@@ -130,11 +130,11 @@ mod tests {
         let options = lint_options_from_wasm_json(Some(
             r#"{
                 "mode": "strict",
-                "registryDocuments": [{"$formspecRegistry": "1.0"}],
+                "registryDocuments": [{"$formspecRegistry": "1.1"}],
                 "definitionDocument": {"$formspec": "1.0"},
                 "themeDocument": {"$formspecTheme": "1.0"},
                 "componentDocuments": [{"$formspecComponent": "1.0"}],
-                "localeDocuments": [{"$formspecLocale": "1.0"}],
+                "localeDocuments": [{"$formspecLocale": "2.0"}],
                 "appGraphValidationReport": {
                     "ok": true,
                     "summary": {
@@ -182,11 +182,11 @@ mod tests {
     fn lint_options_accept_snake_case_host_keys() {
         let options = lint_options_from_wasm_json(Some(
             r#"{
-                "registry_documents": [{"$formspecRegistry": "1.0"}],
+                "registry_documents": [{"$formspecRegistry": "1.1"}],
                 "definition_document": {"$formspec": "1.0"},
                 "theme_document": {"$formspecTheme": "1.0"},
                 "component_documents": [{"$formspecComponent": "1.0"}],
-                "locale_documents": [{"$formspecLocale": "1.0"}],
+                "locale_documents": [{"$formspecLocale": "2.0"}],
                 "app_graph_validation_report": {
                     "ok": true,
                     "summary": {

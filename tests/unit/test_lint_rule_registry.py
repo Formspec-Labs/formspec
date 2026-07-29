@@ -331,6 +331,11 @@ def _check_diagnostics_against_registry(
 #: comp-*.json files and threads them through `bundle_component_documents`.
 DEFERRED_BINDING_CODES: set[str] = set()
 
+#: Codes produced by AppGraphValidator and carried unchanged through the Rust
+#: lint result bridge. Their fixtures are validator case corpora rather than
+#: single documents that `lint(document)` can execute by itself.
+APP_GRAPH_VALIDATOR_CODES = {"E611", "E612"}
+
 
 def test_every_tested_rule_has_at_least_one_triggering_fixture() -> None:
     rules = _rules_by_code()
@@ -351,6 +356,28 @@ def test_every_tested_rule_has_at_least_one_triggering_fixture() -> None:
                 assert (REPO_ROOT / rel_path).exists(), (
                     f"{code}: fixture path does not exist: {rel_path}"
                 )
+            continue
+        if code in APP_GRAPH_VALIDATOR_CODES:
+            fixtures = rule.get("fixtures")
+            assert isinstance(fixtures, list) and fixtures, (
+                f"{code}: AppGraphValidator rules must declare their case corpus"
+            )
+            for rel_path in fixtures:
+                fixture_path = REPO_ROOT / rel_path
+                assert fixture_path.exists(), (
+                    f"{code}: fixture path does not exist: {rel_path}"
+                )
+                corpus = json.loads(fixture_path.read_text(encoding="utf-8"))
+                cases = corpus.get("cases")
+                assert isinstance(cases, list), (
+                    f"{code}: AppGraphValidator fixture must expose cases[]: {rel_path}"
+                )
+                assert any(
+                    diagnostic.get("code") == code
+                    for case in cases
+                    for diagnostic in case.get("expected", {}).get("diagnostics", [])
+                    if isinstance(diagnostic, dict)
+                ), f"{code}: no case expects this diagnostic in {rel_path}"
             continue
 
         fixtures = rule.get("fixtures")

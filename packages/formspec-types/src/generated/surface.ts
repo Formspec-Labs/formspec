@@ -19,11 +19,11 @@ export type Slot = {
    */
   id: string;
   /**
-   * Closed v0.1 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Closed at v0.1 — extensions land via the module Registry's `slot-type` contribution category in a future rev.
+   * Closed v0.2 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
    */
   slotType: 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route';
   /**
-   * OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.1 carries no normative position vocabulary.
+   * OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.2 carries no normative position vocabulary.
    */
   position?: string;
   title?: string;
@@ -43,9 +43,9 @@ export type Slot = {
  */
 export interface SurfaceDocument {
   /**
-   * Surface specification version. MUST be '0.1'.
+   * Surface specification version. MUST be '0.2'.
    */
-  $formspecSurface: '0.1';
+  $formspecSurface: '0.2';
   /**
    * Stable identifier for this Surface document. Unique within the bundle.
    */
@@ -86,7 +86,7 @@ export interface Route {
    */
   id: string;
   /**
-   * URL-style path for this route. SHOULD start with '/'. v0.1 route parameters use simple URI Template markers like '/matter/{matterId}'. Colon-prefixed framework parameters, wildcards, regex captures, matrix/query parameters, optional segments, URI Template operators, and malformed markers are invalid. Paths with no `{name}` markers and no params[] remain opaque non-empty strings.
+   * URL-style path for this route. SHOULD start with '/'. v0.2 route parameters use simple URI Template markers like '/matter/{matterId}'. Colon-prefixed framework parameters, wildcards, regex captures, matrix/query parameters, optional segments, URI Template operators, and malformed markers are invalid. Paths with no `{name}` markers and no params[] remain opaque non-empty strings.
    */
   path: string;
   /**
@@ -102,7 +102,7 @@ export interface Route {
    */
   title?: string;
   /**
-   * Slots bound on this route. Each slot has a typed binding per §6.2 closed taxonomy. v0.1 does NOT pin slot positions in the schema — `position` is an optional renderer hint. Each slot has exactly one slotType discriminator.
+   * Slots bound on this route. Each slot has a typed binding per §6.2 closed taxonomy. v0.2 does NOT pin slot positions in the schema — `position` is an optional renderer hint. Each slot has exactly one slotType discriminator.
    *
    * @minItems 1
    */
@@ -127,7 +127,7 @@ export interface RouteParam {
    */
   name: string;
   /**
-   * Route parameter value type. v0.1 admits strings only; richer coercion belongs to runtime or Data Sources consumers.
+   * Route parameter value type. v0.2 admits strings only; richer coercion belongs to runtime or Data Sources consumers.
    */
   type: 'string';
   description?: string;
@@ -176,4 +176,40 @@ export interface RouteParamMap {
    * via the `patternProperty` "^[a-zA-Z][a-zA-Z0-9_-]*$".
    */
   [k: string]: string;
+}
+/**
+ * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * via the `definition` "WidgetDataBindings".
+ */
+export interface WidgetDataBindings {
+  /**
+   * This interface was referenced by `WidgetDataBindings`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z][A-Za-z0-9_-]*$".
+   */
+  [k: string]: {
+    /**
+     * Canonical Data Sources URL. App-graph validation requires an exact match to one App Manifest dataSources[].url.
+     */
+    catalogRef: string;
+    /**
+     * Data Sources 1.0 source id. App-graph validation resolves it only within catalogRef; unqualified source lookup is forbidden.
+     */
+    sourceRef: string;
+  };
+}
+/**
+ * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * via the `definition` "WidgetActionBindings".
+ */
+export interface WidgetActionBindings {
+  /**
+   * This interface was referenced by `WidgetActionBindings`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z][A-Za-z0-9_-]*$".
+   */
+  [k: string]: {
+    /**
+     * Exact actions[].id from one loaded Response Actions document. This value is not a route id, intent, or widget output name.
+     */
+    actionRef: string;
+  };
 }

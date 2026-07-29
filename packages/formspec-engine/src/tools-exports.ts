@@ -64,7 +64,7 @@ export { interpolateMessage } from './interpolate-message.js';
 export type { InterpolateResult, InterpolationWarning } from './interpolate-message.js';
 
 export { LocaleStore } from './locale.js';
-export type { LookupResult } from './locale.js';
+export type { LocaleTargetIdentity, LookupResult } from './locale.js';
 
 export {
     analyzeExperience,

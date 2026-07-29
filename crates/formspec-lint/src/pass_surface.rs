@@ -424,7 +424,7 @@ mod tests {
     #[test]
     fn e606_fires_on_dangling_entry_route() {
         let doc: Value = serde_json::json!({
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "caseDashboard",
             "entry": "missingRoute",
             "routes": [
@@ -483,7 +483,7 @@ mod tests {
     #[test]
     fn e610_fires_on_missing_embed_route_param() {
         let doc: Value = serde_json::json!({
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "caseDashboard",
             "entry": "home",
             "routes": [
@@ -526,7 +526,7 @@ mod tests {
     #[test]
     fn e610_fires_when_declared_param_is_absent_from_path() {
         let doc: Value = serde_json::json!({
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "caseDashboard",
             "entry": "case",
             "routes": [
@@ -558,7 +558,7 @@ mod tests {
     #[test]
     fn e610_fires_when_path_marker_is_undeclared() {
         let doc: Value = serde_json::json!({
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "caseDashboard",
             "entry": "case",
             "routes": [

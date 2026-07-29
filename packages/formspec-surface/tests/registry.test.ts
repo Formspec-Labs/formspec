@@ -124,7 +124,7 @@ describe('flattenRegistryEntries', () => {
 
   it('refuses every declaration in an ambiguous name group and reports it once', () => {
     const second = {
-      $formspecRegistry: '1.0',
+      $formspecRegistry: '1.1',
       entries: [{ name: 'x-acme-banner', category: 'widget', version: '9.9.9', status: 'stable' }],
     } as unknown as RegistryDocument;
     const { entries: flat, diagnostics } = flattenRegistryEntries([registryDocument, second]);
@@ -134,7 +134,7 @@ describe('flattenRegistryEntries', () => {
   });
 
   it('handles a registry with no entries', () => {
-    const empty = { $formspecRegistry: '1.0' } as unknown as RegistryDocument;
+    const empty = { $formspecRegistry: '1.1' } as unknown as RegistryDocument;
     expect(flattenRegistryEntries([empty]).entries).toEqual([]);
   });
 });

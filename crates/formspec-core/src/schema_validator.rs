@@ -428,10 +428,13 @@ mod tests {
     #[test]
     fn test_detect_locale() {
         let doc = json!({
-            "$formspecLocale": "1.0",
+            "$formspecLocale": "2.0",
             "version": "1.0.0",
             "locale": "en",
-            "targetDefinition": { "url": "https://example.org/forms/x" },
+            "target": {
+                "kind": "definition",
+                "url": "https://example.org/forms/x"
+            },
             "strings": {}
         });
         assert_eq!(detect_document_type(&doc), Some(DocumentType::Locale));

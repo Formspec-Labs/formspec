@@ -5,6 +5,11 @@ import type { LocaleDocument } from '@formspec-org/types';
 
 export type { LocaleDocument };
 
+export interface LocaleTargetIdentity {
+    kind: LocaleDocument['target']['kind'];
+    url: string;
+}
+
 /**
  * Rich lookup result exposing which cascade level produced the value.
  */
@@ -25,6 +30,7 @@ export class LocaleStore {
     readonly version: EngineSignal<number>;
 
     private _documents = new Map<string, LocaleDocument>();
+    private _activeTarget: LocaleTargetIdentity | null;
     private _rx: EngineReactiveRuntime;
     private _directionMode: 'ltr' | 'rtl' | 'auto';
     private _directionVersion: EngineSignal<number>;
@@ -33,9 +39,14 @@ export class LocaleStore {
         'ar', 'he', 'fa', 'ur', 'ps', 'sd', 'yi',
     ]);
 
-    constructor(rx: EngineReactiveRuntime, directionMode?: 'ltr' | 'rtl' | 'auto') {
+    constructor(
+        rx: EngineReactiveRuntime,
+        directionMode?: 'ltr' | 'rtl' | 'auto',
+        activeTarget?: LocaleTargetIdentity,
+    ) {
         this._rx = rx;
         this._directionMode = directionMode ?? 'ltr';
+        this._activeTarget = activeTarget ? { ...activeTarget } : null;
         this.activeLocale = rx.signal('');
         this.version = rx.signal(0);
         this._directionVersion = rx.signal(0);
@@ -57,9 +68,25 @@ export class LocaleStore {
 
     loadLocale(doc: LocaleDocument): void {
         const code = LocaleStore.normalizeCode(doc.locale);
-        this._documents.set(code, { ...doc, locale: code });
+        const target = { ...doc.target };
+        if (this._activeTarget === null) {
+            this._activeTarget = { kind: target.kind, url: target.url };
+        }
+        this._documents.set(
+            LocaleStore.documentKey(target, code),
+            { ...doc, target, locale: code },
+        );
         // Any loaded locale can affect cascade resolution for the active locale.
         this.version.value += 1;
+    }
+
+    setTarget(target: LocaleTargetIdentity): void {
+        this._activeTarget = { ...target };
+        this.version.value += 1;
+    }
+
+    getActiveTarget(): LocaleTargetIdentity | null {
+        return this._activeTarget ? { ...this._activeTarget } : null;
     }
 
     setLocale(code: string): void {
@@ -67,8 +94,12 @@ export class LocaleStore {
         this.version.value += 1;
     }
 
-    getAvailableLocales(): string[] {
-        return [...this._documents.keys()];
+    getAvailableLocales(target: LocaleTargetIdentity | null = this._activeTarget): string[] {
+        if (target === null) return [];
+        const prefix = LocaleStore.targetKey(target);
+        return [...this._documents.entries()]
+            .filter(([, document]) => LocaleStore.targetKey(document.target) === prefix)
+            .map(([, document]) => document.locale);
     }
 
     lookupKey(key: string): string | null {
@@ -76,24 +107,35 @@ export class LocaleStore {
     }
 
     lookupKeyWithMeta(key: string): LookupResult {
-        const activeCode = this.activeLocale.value;
+        if (this._activeTarget === null) return { value: null, source: null };
+        return this.lookupKeyForTarget(key, this._activeTarget);
+    }
+
+    lookupKeyForTarget(
+        key: string,
+        target: LocaleTargetIdentity,
+        localeCode: string = this.activeLocale.value,
+    ): LookupResult {
+        const activeCode = LocaleStore.normalizeCode(localeCode);
         if (!activeCode) return { value: null, source: null };
-        return this._cascadeLookup(key, activeCode, new Set());
+        return this._cascadeLookup(key, target, activeCode, activeCode, new Set());
     }
 
     private _cascadeLookup(
         key: string,
+        target: LocaleTargetIdentity,
         code: string,
+        requestedCode: string,
         visited: Set<string>,
     ): LookupResult {
         if (visited.has(code)) return { value: null, source: null };
         visited.add(code);
 
-        const doc = this._documents.get(code);
+        const doc = this._documents.get(LocaleStore.documentKey(target, code));
 
         // Direct hit in this document
         if (doc && key in doc.strings) {
-            const isActive = code === this.activeLocale.value;
+            const isActive = code === requestedCode;
             return {
                 value: doc.strings[key],
                 source: isActive ? 'regional' : (doc.fallback != null ? 'fallback' : 'implicit'),
@@ -104,7 +146,13 @@ export class LocaleStore {
         // Explicit fallback chain
         if (doc?.fallback) {
             const fallbackCode = LocaleStore.normalizeCode(doc.fallback);
-            const result = this._cascadeLookup(key, fallbackCode, visited);
+            const result = this._cascadeLookup(
+                key,
+                target,
+                fallbackCode,
+                requestedCode,
+                visited,
+            );
             if (result.value !== null) {
                 return { ...result, source: 'fallback' };
             }
@@ -115,7 +163,13 @@ export class LocaleStore {
         if (dashIdx > 0) {
             const baseCode = code.substring(0, dashIdx);
             if (!visited.has(baseCode)) {
-                const result = this._cascadeLookup(key, baseCode, visited);
+                const result = this._cascadeLookup(
+                    key,
+                    target,
+                    baseCode,
+                    requestedCode,
+                    visited,
+                );
                 if (result.value !== null) {
                     return { ...result, source: 'implicit' };
                 }
@@ -131,6 +185,14 @@ export class LocaleStore {
      */
     static normalizeCode(code: string): string {
         return normalizeBcp47(code);
+    }
+
+    private static targetKey(target: LocaleTargetIdentity): string {
+        return JSON.stringify([target.kind, target.url]);
+    }
+
+    private static documentKey(target: LocaleTargetIdentity, locale: string): string {
+        return JSON.stringify([target.kind, target.url, LocaleStore.normalizeCode(locale)]);
     }
 }
 

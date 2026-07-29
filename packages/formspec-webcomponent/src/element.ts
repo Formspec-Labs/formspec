@@ -15,7 +15,6 @@ import type {
     RegistryDocument,
     RegistryEntry,
     ScreenerDocument,
-    ThemeDocument as SchemaThemeDocument,
     ValidationResult,
 } from '@formspec-org/types';
 import type { EngineReplayEvent, Issuer, IssuerSource } from '@formspec-org/engine';
@@ -44,7 +43,7 @@ import {
     type ComponentGraphProjectionContext,
     type LayoutHostEvidence,
 } from '@formspec-org/layout';
-import { buildPlatformTheme } from '@formspec-org/layout';
+import { buildPlatformTheme, mergePlatformAndTenantTheme } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
 const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1', '1.2']);
 
@@ -771,7 +770,9 @@ export class FormspecRender extends HTMLElement {
     }
 
     /** @internal */ getEffectiveTheme(): ThemeDocument {
-        return this._themeDocument || defaultThemeJson as ThemeDocument;
+        return this._themeDocument
+            ? mergePlatformAndTenantTheme(defaultThemeJson, this._themeDocument)
+            : mergePlatformAndTenantTheme(defaultThemeJson);
     }
 
     private cleanup() {
@@ -835,7 +836,7 @@ export class FormspecRender extends HTMLElement {
             componentDocument: this._componentDocument ?? undefined,
             ...(this._componentGraph ? { componentGraph: this._componentGraph } : {}),
             ...(this._hostEvidence ? { hostEvidence: this._hostEvidence } : {}),
-            theme: (this._themeDocument || this.getEffectiveTheme()) as unknown as SchemaThemeDocument,
+            theme: this.getEffectiveTheme(),
             activeBreakpoint: this.activeBreakpoint,
             findItem: (key: string) => this.findItemByKey(key),
             isComponentAvailable: (type: string) => !!globalRegistry.get(type),

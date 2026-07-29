@@ -128,3 +128,42 @@ export function buildPlatformTheme(): ThemeDocument {
         selectors: platformSelectors,
     };
 }
+
+/**
+ * Put the complete platform Theme below an optional tenant Theme.
+ *
+ * Tenant document metadata wins when present, while token maps receive the
+ * Theme §3.7 cascade explicitly: platform values first and tenant overrides
+ * second. The returned token map is always new, so neither input is mutated
+ * when a renderer emits or otherwise handles the result.
+ */
+type ThemeTokenDocument = { tokens?: Record<string, string | number> };
+
+export function mergePlatformAndTenantTheme<
+    TPlatform extends { tokens?: Record<string, string | number> },
+    TTenant extends { tokens?: Record<string, string | number> },
+>(
+    platformTheme: TPlatform,
+    tenantTheme: TTenant,
+): Omit<TPlatform, 'tokens'> &
+    Omit<TTenant, 'tokens'> &
+    { tokens: Record<string, string | number> };
+export function mergePlatformAndTenantTheme<
+    TPlatform extends { tokens?: Record<string, string | number> },
+>(
+    platformTheme: TPlatform,
+    tenantTheme?: null,
+): Omit<TPlatform, 'tokens'> & { tokens: Record<string, string | number> };
+export function mergePlatformAndTenantTheme(
+    platformTheme: ThemeTokenDocument,
+    tenantTheme?: ThemeTokenDocument | null,
+) {
+    return {
+        ...platformTheme,
+        ...(tenantTheme ?? {}),
+        tokens: {
+            ...(platformTheme.tokens ?? {}),
+            ...(tenantTheme?.tokens ?? {}),
+        },
+    };
+}

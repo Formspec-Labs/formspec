@@ -1,0 +1,19 @@
+{
+  "fixture": "invalid-entry-surface-missing-v2-4",
+  "purpose": "Two Surfaces require entrySurface in App Manifest 2.4.",
+  "expected": {
+    "valid": false,
+    "errorContains": "entrySurface",
+    "diagnostic": "APP-ENTRY-AMBIGUOUS"
+  },
+  "bundle": {
+    "$formspecBundle": "2.4",
+    "version": "2.4.0",
+    "id": "https://example.gov/apps/ambiguous-entry",
+    "definitions": [],
+    "surfaces": [
+      {"url": "https://example.gov/apps/ambiguous-entry/a"},
+      {"url": "https://example.gov/apps/ambiguous-entry/b"}
+    ]
+  }
+}

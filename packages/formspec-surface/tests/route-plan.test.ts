@@ -22,7 +22,7 @@ const DEF = 'https://example.test/def';
 const definition = { $formspec: '1.0', url: DEF, items: [] } as unknown as FormDefinition;
 
 /**
- * One unclassified route carrying, in order: an image slot (no alt channel), a
+ * One unclassified route carrying, in order: a malformed image with no alt, a
  * form pointing at a Definition the release does not contain, a widget nothing
  * declares, an embed naming a route that is not there, and a transition nothing
  * can fire. Every one of these is a per-route stage.

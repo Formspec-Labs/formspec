@@ -8,32 +8,40 @@
  *
  * ## What a widget is given, and what it is deliberately not
  *
- * - `config` — the authored `binding.config`, the ONLY channel the Surface
- *   schema gives a slot for reaching a widget. Lint E604 validates it against
- *   the Registry entry's `widgetShape.props`; nothing validates it at runtime,
- *   so a widget reads it defensively.
- * - `data` — host-supplied runtime data, resolved through
- *   {@link SurfaceWidgetDataResolver}. **The bundle has no channel for this.**
- *   A queue needs applications and a receipt needs a submission, and a
- *   `module-widget` binding carries `{moduleId, widgetName, config}` and nothing
- *   else — no props channel bound to a Data Source, no query (gap ledger
- *   `widget-data-binding`). Until one exists, runtime data is a host input, and
- *   naming it as one is more honest than a widget inventing rows.
+ * - `config` — the authored `binding.config`, kept strictly as static
+ *   configuration. Lint E604 validates it against the Registry entry's
+ *   `widgetShape.props`; nothing validates it at runtime, so a widget reads it
+ *   defensively.
+ * - `data` — a frozen object keyed only by Registry-declared input names. Each
+ *   value came through the Surface binding's exact Data Sources catalog/source
+ *   pair and the canonical loader's availability, authorization and validation
+ *   checks. Configuration never enters this object.
  * - `headingLevel` — where this widget's own headings sit in the page outline.
  *   A widget that hardcodes `<h2>` breaks the outline the moment it is embedded.
  * - `admitsTenantTheme` — whether the route it landed on admits tenant chrome.
  *   A widget does not decide this and cannot change it; it is told, so a widget
  *   that would otherwise paint a tenant accent can render its unbranded form.
  *
- * A widget is NOT given navigation, a submit channel, or the route table. A
+ * - `emitAction` — the only action capability. The widget names a declared
+ *   output. It never sees the mapped Response Actions id or a route.
+ *
+ * A widget is NOT given navigation, an executor, or the route table. A
  * module-supplied widget navigating the app is a module deciding the app's
  * route graph, and transitions are the shell's (`transitions.ts`).
  */
 import type { ReactNode } from 'react';
 import type { HeadingLevel, RouteClass, WidgetModule } from '@formspec-org/surface';
+import type {
+  ResponseActionInvocationResult,
+  ResponseActionInvokerResult,
+  SubmitResult,
+} from '@formspec-org/react';
+import type { ResponseActionsDocument } from '@formspec-org/types';
 
 export interface SurfaceWidgetRouteContext {
   surfaceId: string;
+  /** Exact App Manifest Surface URL, when the route came from a resolved export. */
+  surfaceRef?: string | undefined;
   routeId: string;
   routeClass: RouteClass | undefined;
   /** Resolved route parameters for the current URL. */
@@ -49,8 +57,10 @@ export interface SurfaceWidgetProps {
   headingLevel: HeadingLevel;
   /** Authored `binding.config`. `{}` when the slot declares none. */
   config: Readonly<Record<string, unknown>>;
-  /** Host-supplied. `undefined` when the host supplies no resolver. */
-  data: unknown;
+  /** Frozen object containing only successfully delivered declared inputs. */
+  data: Readonly<Record<string, unknown>>;
+  /** The widget's sole action capability; the shell owns mapping and execution. */
+  emitAction: (outputName: string) => void;
   admitsTenantTheme: boolean;
 }
 
@@ -58,18 +68,75 @@ export type SurfaceWidget = (props: SurfaceWidgetProps) => ReactNode;
 
 export type SurfaceWidgetModule = WidgetModule<SurfaceWidget>;
 
-/**
- * The host's seam for runtime data. Called once per module-widget slot.
- *
- * This is deliberately a host port rather than a bundle field: adding a data
- * channel to the `module-widget` binding is a schema decision (`widget-data-binding`),
- * and a renderer inventing one would fork the vocabulary before the schema
- * settles it.
- */
-export type SurfaceWidgetDataResolver = (input: {
+export interface SurfaceWidgetActionSource {
   moduleId: string;
   widgetName: string;
   slotId: string;
   route: SurfaceWidgetRouteContext;
-  config: Readonly<Record<string, unknown>>;
-}) => unknown;
+  outputName: string;
+}
+
+export interface SurfaceWidgetActionExecutorInput {
+  /** Exact loaded document that uniquely publishes `actionRef`. */
+  document: ResponseActionsDocument;
+  actionRef: string;
+  /** Shell-generated and stable for this logical emission and its retries. */
+  invocationId: string;
+  source: SurfaceWidgetActionSource;
+}
+
+/**
+ * Host adapter to the existing Response Actions executor. The shell supplies
+ * identity and exact action resolution; this port owns preconditions,
+ * validation, effects, retry, idempotency and durable execution.
+ */
+export type SurfaceWidgetActionExecutor = (
+  input: SurfaceWidgetActionExecutorInput,
+) =>
+  | ResponseActionInvokerResult<SubmitResult>
+  | Promise<ResponseActionInvokerResult<SubmitResult>>;
+
+export interface SurfaceWidgetActionOutcomeKey {
+  generation: string;
+  source: SurfaceWidgetActionSource;
+}
+
+export interface SurfaceWidgetStoredActionOutcome {
+  invocationId: string;
+  result: ResponseActionInvocationResult<SubmitResult>;
+}
+
+/**
+ * Optional host persistence for already-recorded terminals.
+ *
+ * `read` returns the prior logical delivery only when the host considers it
+ * eligible for replay (for example, a durable completion whose UI
+ * acknowledgement was interrupted). The stored value carries the original
+ * shell invocation id, so a remounted shell reuses it rather than allocating a
+ * second logical action.
+ */
+export interface SurfaceWidgetActionOutcomeStore {
+  read(
+    key: SurfaceWidgetActionOutcomeKey,
+  ):
+    | SurfaceWidgetStoredActionOutcome
+    | undefined
+    | Promise<SurfaceWidgetStoredActionOutcome | undefined>;
+  write(
+    key: SurfaceWidgetActionOutcomeKey,
+    outcome: SurfaceWidgetStoredActionOutcome,
+  ): void | Promise<void>;
+}
+
+export interface SurfaceWidgetActionReport {
+  invocationId: string;
+  actionRef?: string | undefined;
+  outputName: string;
+  result?: ResponseActionInvocationResult<SubmitResult> | undefined;
+  navigation:
+    | 'not-attempted'
+    | 'none'
+    | 'advanced'
+    | 'ambiguous'
+    | 'obsolete-generation';
+}

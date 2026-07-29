@@ -22,10 +22,12 @@
  *   as data evidence"), so a renderer must narrow every artifact by hand.
  *
  * It is built to produce a validation report, not to hand a renderer typed
- * artifacts. This does the second job and only the second job: **no validation,
- * no version gating, no schema checks.** A host that wants the report runs
- * `resolveArtifacts` alongside. The validating bundle-export arm still belongs
- * beside `resolveArtifacts`, and the ledger entry stays open for it.
+ * artifacts. This hands the renderer typed artifacts and resolves the App
+ * Manifest entry Surface that runtime composition needs. It does not validate
+ * discriminators, schemas, sibling versions, or unsupported manifest versions.
+ * A host that wants that report runs `resolveArtifacts` alongside. The
+ * validating bundle-export arm still belongs beside `resolveArtifacts`, and the
+ * ledger entry stays open for it.
  *
  * ## Missing documents are diagnostics, not exceptions
  *
@@ -38,12 +40,15 @@
  * authenticity and deployment admission remain separate host decisions.
  */
 import type {
+  DataSourcesDocument,
   ExperienceDocument,
   FormDefinition,
   RegistryDocument,
+  ResponseActionsDocument,
   SurfaceDocument,
   ThemeDocument,
 } from '@formspec-org/types';
+import type { DataSourceCatalogHandle } from './data-source-loader.js';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 
 export interface BundleArtifactRef {
@@ -62,7 +67,9 @@ export interface BundleManifest {
   theme?: BundleArtifactRef;
   registries?: readonly BundleArtifactRef[];
   responseActions?: BundleArtifactRef;
+  dataSources?: readonly BundleArtifactRef[];
   surfaces?: readonly BundleArtifactRef[];
+  entrySurface?: string;
   modules?: readonly { id: string; version: string }[];
   sessions?: readonly unknown[];
 }
@@ -76,11 +83,26 @@ export interface ResolvedBundle {
   manifest: BundleManifest;
   title: string | undefined;
   surfaces: readonly SurfaceDocument[];
+  /**
+   * The exact loaded Surface selected by App Manifest 2.4.
+   *
+   * `null` means 2.4 selected no Surface (valid zero-Surface app, ambiguous
+   * omission, or unresolved explicit selector). Older 2.x bundles omit this
+   * property so composition retains their historical manifest-order rule.
+   */
+  entrySurface?: SurfaceDocument | null;
+  /**
+   * Manifest URL for each resolved Surface object. Object identity preserves
+   * the exact ref even when malformed documents repeat a local `id`.
+   */
+  surfaceRefs?: ReadonlyMap<SurfaceDocument, string> | undefined;
   experiences: readonly ExperienceDocument[];
   /** The TENANT theme. Which routes may see it is `theme-authority.ts`'s call. */
   tenantTheme: ThemeDocument | undefined;
   registries: readonly RegistryDocument[];
-  responseActions: readonly { actions?: readonly { id?: unknown; intent?: unknown }[] }[];
+  responseActions: readonly ResponseActionsDocument[];
+  /** Exact manifested catalog handles; source ids are never resolved globally. */
+  dataSources?: readonly DataSourceCatalogHandle[] | undefined;
   /** Definitions keyed by the URL a `definition-form` binding names. */
   definitions: ReadonlyMap<string, FormDefinition>;
   diagnostics: readonly SurfaceDiagnostic[];
@@ -129,16 +151,94 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
     });
   }
 
-  const surfaces = lookupAll<SurfaceDocument>(bundle.manifest.surfaces, 'Surface');
+  const surfaceRefs = new Map<SurfaceDocument, string>();
+  const resolvedSurfaces = (bundle.manifest.surfaces ?? []).flatMap((ref) => {
+    const found = lookup<SurfaceDocument>(ref, 'Surface');
+    if (found === undefined) return [];
+    surfaceRefs.set(found, ref.url);
+    return [{ ref, document: found }];
+  });
+  const surfaces = resolvedSurfaces.map(({ document }) => document);
+
+  let entrySurface: SurfaceDocument | null | undefined;
+  if (bundle.manifest.$formspecBundle === '2.4') {
+    const refs = bundle.manifest.surfaces ?? [];
+    const selector = bundle.manifest.entrySurface;
+
+    if (selector !== undefined) {
+      const manifestMatches = refs.filter((ref) => ref.url === selector).length;
+      const loadedMatches = resolvedSurfaces.filter(({ ref }) => ref.url === selector);
+      if (manifestMatches === 1 && loadedMatches.length === 1) {
+        entrySurface = loadedMatches[0]?.document ?? null;
+      } else {
+        entrySurface = null;
+        diagnostics.push(
+          surfaceDiagnostic(
+            'APP-ENTRY-SURFACE-UNRESOLVED',
+            `App Manifest entrySurface "${selector}" does not resolve to exactly one manifested and loaded Surface.`,
+            { source: selector },
+            {
+              reason: 'entry-surface-unresolved',
+              entrySurface: selector,
+              manifestMatches,
+              loadedMatches: loadedMatches.length,
+            },
+          ),
+        );
+      }
+    } else if (refs.length > 1) {
+      entrySurface = null;
+      diagnostics.push(
+        surfaceDiagnostic(
+          'APP-ENTRY-AMBIGUOUS',
+          'App Manifest 2.4 declares more than one Surface without selecting entrySurface.',
+          {},
+          {
+            reason: 'entry-surface-required',
+            surfaceCount: refs.length,
+          },
+        ),
+      );
+    } else if (refs.length === 1) {
+      const soleUrl = refs[0]?.url;
+      const loadedMatches = soleUrl === undefined
+        ? []
+        : resolvedSurfaces.filter(({ ref }) => ref.url === soleUrl);
+      if (soleUrl !== undefined && loadedMatches.length === 1) {
+        entrySurface = loadedMatches[0]?.document ?? null;
+      } else {
+        entrySurface = null;
+        diagnostics.push(
+          surfaceDiagnostic(
+            'APP-ENTRY-SURFACE-UNRESOLVED',
+            `App Manifest entry Surface "${soleUrl ?? '<missing>'}" does not resolve to exactly one loaded Surface.`,
+            soleUrl === undefined ? {} : { source: soleUrl },
+            {
+              reason: 'entry-surface-unresolved',
+              entrySurface: soleUrl,
+              manifestMatches: 1,
+              loadedMatches: loadedMatches.length,
+            },
+          ),
+        );
+      }
+    } else {
+      entrySurface = null;
+    }
+  }
   const experienceRefs = bundle.manifest.experiences ??
     (bundle.manifest.experience ? [bundle.manifest.experience] : []);
   const experiences = lookupAll<ExperienceDocument>(experienceRefs, 'Experience');
   const registries = lookupAll<RegistryDocument>(bundle.manifest.registries, 'Registry');
   const tenantTheme = lookup<ThemeDocument>(bundle.manifest.theme, 'Theme');
-  const responseActionsDocument = lookup<{ actions?: readonly { id?: unknown; intent?: unknown }[] }>(
+  const responseActionsDocument = lookup<ResponseActionsDocument>(
     bundle.manifest.responseActions,
     'Response Actions document',
   );
+  const dataSources = (bundle.manifest.dataSources ?? []).flatMap((ref) => {
+    const document = lookup<DataSourcesDocument>(ref, 'Data Sources catalog');
+    return document === undefined ? [] : [{ catalogRef: ref.url, document }];
+  });
 
   const definitions = new Map<string, FormDefinition>();
   for (const ref of bundle.manifest.definitions ?? []) {
@@ -150,10 +250,13 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
     manifest: bundle.manifest,
     title: typeof bundle.manifest.title === 'string' ? bundle.manifest.title : undefined,
     surfaces,
+    ...(entrySurface === undefined ? {} : { entrySurface }),
+    surfaceRefs,
     experiences,
     tenantTheme,
     registries,
     responseActions: responseActionsDocument ? [responseActionsDocument] : [],
+    dataSources,
     definitions,
     diagnostics,
   };

@@ -28,10 +28,10 @@ describe('locale integration', () => {
 
     it('buffers locale documents set before definition', () => {
         const localeDoc = {
-            $formspecLocale: '1.0',
+            $formspecLocale: '2.0',
             locale: 'fr',
             version: '1.0.0',
-            targetDefinition: { url: 'urn:test:form' },
+            target: { kind: 'definition', url: 'urn:test:form' },
             strings: { 'name.label': 'Nom' },
         };
         // Set locale docs before definition — should not throw
@@ -41,10 +41,10 @@ describe('locale integration', () => {
 
     it('loads buffered locale documents when engine is created', () => {
         const localeDoc = {
-            $formspecLocale: '1.0',
+            $formspecLocale: '2.0',
             locale: 'fr',
             version: '1.0.0',
-            targetDefinition: { url: 'urn:test:form' },
+            target: { kind: 'definition', url: 'urn:test:form' },
             strings: { 'name.label': 'Nom' },
         };
         el.localeDocuments = localeDoc;
@@ -59,10 +59,10 @@ describe('locale integration', () => {
         el.definition = singleFieldDef();
         el.render();
         el.localeDocuments = {
-            $formspecLocale: '1.0',
+            $formspecLocale: '2.0',
             locale: 'de',
             version: '1.0.0',
-            targetDefinition: { url: 'urn:test:form' },
+            target: { kind: 'definition', url: 'urn:test:form' },
             strings: { 'name.label': 'Name (DE)' },
         };
         expect(el.getEngine().getAvailableLocales()).toContain('de');
@@ -73,17 +73,17 @@ describe('locale integration', () => {
         el.render();
         el.localeDocuments = [
             {
-                $formspecLocale: '1.0',
+                $formspecLocale: '2.0',
                 locale: 'fr',
                 version: '1.0.0',
-                targetDefinition: { url: 'urn:test:form' },
+                target: { kind: 'definition', url: 'urn:test:form' },
                 strings: { 'name.label': 'Nom' },
             },
             {
-                $formspecLocale: '1.0',
+                $formspecLocale: '2.0',
                 locale: 'es',
                 version: '1.0.0',
-                targetDefinition: { url: 'urn:test:form' },
+                target: { kind: 'definition', url: 'urn:test:form' },
                 strings: { 'name.label': 'Nombre' },
             },
         ];
@@ -98,10 +98,10 @@ describe('locale integration', () => {
         el.definition = singleFieldDef();
         el.render();
         el.localeDocuments = {
-            $formspecLocale: '1.0',
+            $formspecLocale: '2.0',
             locale: 'fr',
             version: '1.0.0',
-            targetDefinition: { url: 'urn:test:form' },
+            target: { kind: 'definition', url: 'urn:test:form' },
             strings: {},
         };
         el.locale = 'fr';
@@ -123,10 +123,10 @@ describe('locale integration', () => {
         };
         el.render();
         el.localeDocuments = {
-            $formspecLocale: '1.0',
+            $formspecLocale: '2.0',
             locale: 'ar',
             version: '1.0.0',
-            targetDefinition: { url: 'urn:test:form' },
+            target: { kind: 'definition', url: 'urn:test:form' },
             strings: {},
         };
         el.locale = 'ar';
@@ -140,10 +140,10 @@ describe('locale integration', () => {
         };
         el.render();
         el.localeDocuments = {
-            $formspecLocale: '1.0',
+            $formspecLocale: '2.0',
             locale: 'en',
             version: '1.0.0',
-            targetDefinition: { url: 'urn:test:form' },
+            target: { kind: 'definition', url: 'urn:test:form' },
             strings: {},
         };
         el.locale = 'en';
@@ -152,10 +152,10 @@ describe('locale integration', () => {
 
     it('buffers locale set before definition and applies after engine creation', () => {
         el.localeDocuments = {
-            $formspecLocale: '1.0',
+            $formspecLocale: '2.0',
             locale: 'fr',
             version: '1.0.0',
-            targetDefinition: { url: 'urn:test:form' },
+            target: { kind: 'definition', url: 'urn:test:form' },
             strings: {},
         };
         el.locale = 'fr';

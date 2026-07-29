@@ -17,12 +17,11 @@
  *    validated route silently becomes unreachable and nothing on screen says
  *    so. Collision is tested over **patterns**, not authored strings — see
  *    `routePathPatternKey`.
- * 3. **The app entry is the FIRST Surface's entry route** (§2.5), and an
- *    unresolved `entry` yields no app entry at all. Never the Surface's first
- *    route, and **never another Surface's entry**: falling through lands a
- *    respondent on a caseworker screen because someone mistyped a route id, and
- *    the diagnostic that would have explained it is the one nobody reads
- *    because the app appeared to work.
+ * 3. **App Manifest 2.4 selects one exact entry Surface** (§2.5), and that
+ *    Surface's own `entry` selects the route. Selection is carried as the loaded
+ *    Surface object so local ids and array order cannot become aliases. Older
+ *    2.x callers that supply no selection retain their historical first-Surface
+ *    rule. An unresolved selection or route yields no app entry at all.
  * 4. **A group's label is `surface.title ?? surface.id`, and nothing else.**
  *    `SurfaceDocument.title` is optional and the spike's bundle omits it on
  *    both Surfaces, which is how the spike ended up typing "For the person
@@ -76,15 +75,23 @@ export interface SurfaceApp {
   routes: readonly SurfaceRouteHandle[];
   groups: readonly SurfaceRouteGroup[];
   /**
-   * Where the app opens: the FIRST Surface's entry route in manifest order.
-   * `undefined` when that Surface's `entry` names no route it declares — the
-   * app then has no entry and the shell reports rather than searches (§2.5).
+   * Where the app opens: the selected Surface's entry route.
+   * `undefined` when Surface or route selection failed; the shell reports
+   * rather than searching (§2.5).
    */
   entry: SurfaceRouteHandle | undefined;
   diagnostics: readonly SurfaceDiagnostic[];
 }
 
 export interface SurfaceCompositionOptions {
+  /**
+   * Exact loaded Surface object selected by App Manifest 2.4.
+   *
+   * Omit or pass `undefined` only for a pre-2.4 caller, whose historical rule
+   * selects the first Surface. `null` explicitly selects none and never falls
+   * back by order.
+   */
+  entrySurface?: SurfaceDocument | null | undefined;
   /**
    * Host-supplied navigation label. Called only when the shell needs a label;
    * returning `undefined` falls back to `title ?? id`. This is the seam for a
@@ -103,7 +110,7 @@ export function composeSurfaceApp(
   const groups: SurfaceRouteGroup[] = [];
   const byPattern = new Map<string, SurfaceRouteHandle[]>();
   const byHandle = new Map<string, SurfaceRouteHandle[]>();
-  /** Per-Surface entry handle, in manifest order. Index 0 is the app entry. */
+  /** Per-Surface entry handle, in manifest order. */
   const surfaceEntries: (SurfaceRouteHandle | undefined)[] = [];
 
   for (const surface of surfaces) {
@@ -200,8 +207,38 @@ export function composeSurfaceApp(
     );
   }
 
-  // §2.5: the FIRST Surface's entry, or nothing. Never a later Surface's.
-  const candidateEntry = surfaceEntries[0];
+  const selectedSurface = options.entrySurface === undefined
+    ? surfaces[0]
+    : options.entrySurface;
+  const selectedSurfaceIndexes = selectedSurface === null || selectedSurface === undefined
+    ? []
+    : surfaces.flatMap((surface, index) => (surface === selectedSurface ? [index] : []));
+
+  if (
+    selectedSurface !== null &&
+    selectedSurface !== undefined &&
+    selectedSurfaceIndexes.length !== 1
+  ) {
+    diagnostics.push(
+      surfaceDiagnostic(
+        'APP-ENTRY-SURFACE-UNRESOLVED',
+        'The selected entry Surface does not identify exactly one composed Surface object.',
+        {},
+        {
+          reason: 'entry-surface-object-unresolved',
+          loadedMatches: selectedSurfaceIndexes.length,
+        },
+      ),
+    );
+  }
+
+  // §2.5: only the selected Surface's entry, or nothing. Never another Surface's.
+  const selectedSurfaceIndex = selectedSurfaceIndexes.length === 1
+    ? selectedSurfaceIndexes[0]
+    : undefined;
+  const candidateEntry = selectedSurfaceIndex === undefined
+    ? undefined
+    : surfaceEntries[selectedSurfaceIndex];
   const entry =
     candidateEntry === undefined ||
     ambiguousHandles.has(`${candidateEntry.surfaceId}\u0000${candidateEntry.routeId}`)

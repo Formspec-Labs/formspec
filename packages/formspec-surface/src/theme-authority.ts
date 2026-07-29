@@ -29,7 +29,7 @@
  * could disagree with the validator that signed the bundle off.
  */
 import { ROUTE_CLASS_THEME_AUTHORITY } from '@formspec-org/app-graph';
-import { buildPlatformTheme } from '@formspec-org/layout';
+import { buildPlatformTheme, mergePlatformAndTenantTheme } from '@formspec-org/layout';
 import type { SurfaceDocument, ThemeDocument } from '@formspec-org/types';
 import {
   surfaceDiagnostic,
@@ -158,8 +158,9 @@ function tokensOf(theme: ThemeDocument | undefined): ThemeTokens {
 export function createThemeAuthority(input: ThemeAuthorityInput = {}): ThemeAuthority {
   const platformTheme = input.platformTheme ?? (buildPlatformTheme() as ThemeDocument);
   const platformTokens = tokensOf(platformTheme);
-  // The tenant Theme is read exactly here, into a plain token map. Nothing
-  // below this line holds the document.
+  // The tenant Theme is read exactly here. The normalized copy below preserves
+  // its presentation metadata while replacing its tokens with the alias-aware
+  // map; no branch retains or mutates the caller's document.
   const authored = tokensOf(input.tenantTheme);
   const aliases = input.tokenAliases ?? {};
   const tenantTokens: ThemeTokens = {};
@@ -173,6 +174,9 @@ export function createThemeAuthority(input: ThemeAuthorityInput = {}): ThemeAuth
 
   const tenantTokenKeys = Object.keys(tenantTokens);
   const tenantTokenValues = Object.values(tenantTokens).map(String);
+  const normalizedTenantTheme = input.tenantTheme
+    ? { ...input.tenantTheme, tokens: tenantTokens }
+    : undefined;
 
   function platformOnlyGrant(
     routeClass: RouteClass | undefined,
@@ -224,22 +228,16 @@ export function createThemeAuthority(input: ThemeAuthorityInput = {}): ThemeAuth
         return platformOnlyGrant(routeClass, 'refuses', ROUTE_CLASS_THEME_REASON[routeClass]);
       }
 
-      // Admitted. The platform theme goes UNDER the tenant's, because
-      // `FormspecForm`'s `themeDocument` prop REPLACES rather than layers:
-      // handing it a one-token tenant Theme drops every platform token and the
-      // form loses its spacing, radii and colours (gap ledger
-      // `platform-theme-merge`). The cascade belongs beside `buildPlatformTheme`
-      // in `@formspec-org/layout`; until it lands there, it is here, once,
-      // rather than in every host.
+      // Admitted. One shared layout helper owns the platform-under-tenant
+      // cascade for every renderer.
       return {
         routeClass,
         posture: 'admits',
         admitsTenantTheme: true,
         reason: ROUTE_CLASS_THEME_REASON[routeClass],
-        themeDocument: {
-          ...platformTheme,
-          tokens: { ...platformTokens, ...tenantTokens },
-        } as ThemeDocument,
+        themeDocument: normalizedTenantTheme
+          ? mergePlatformAndTenantTheme(platformTheme, normalizedTenantTheme)
+          : mergePlatformAndTenantTheme(platformTheme),
         tenantTokenKeys,
         diagnostics: [],
       };

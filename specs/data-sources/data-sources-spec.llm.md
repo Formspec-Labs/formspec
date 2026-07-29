@@ -13,7 +13,7 @@ Source schema: `schemas/data-sources.schema.json`
 - Route or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
 - The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
 - Fine-grained actor, operation, route, widget, or field authorization stays fail-closed here by decision, not by deferral: runtime data-access authorization is server-side engine territory (ADR 0117, Zanzibar-lineage behind `AuthorizationPort`), and ADR 0152 (accepted) covers authoring-time write authority only.
-- ADR 0153 gate 5 "Closed" is the catalog contract only — availability validator (`fs-r2od`) and runtime loader (`fs-9d5e`) are tracked in [`thoughts/2026-05-26-open-work-index.md`](../../../thoughts/2026-05-26-open-work-index.md).
+- ADR 0153 gate 5 "Closed" is the catalog contract. The availability validator (`fs-r2od`) and runtime loader (`fs-9d5e`) are now implemented; their durable source and test evidence lives in the linked tracker records.
 
 ## Critical Schema Fields
 

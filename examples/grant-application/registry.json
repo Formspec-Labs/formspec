@@ -1,5 +1,5 @@
 {
-  "$formspecRegistry": "1.0",
+  "$formspecRegistry": "1.1",
   "$schema": "https://formspec.org/schemas/registry/v1.0/registry.json",
   "publisher": {
     "name": "Grant Application Example",

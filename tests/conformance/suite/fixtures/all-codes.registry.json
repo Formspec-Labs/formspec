@@ -1,5 +1,5 @@
 {
-  "$formspecRegistry": "1.0",
+  "$formspecRegistry": "1.1",
   "$schema": "https://formspec.org/schemas/registry/1.0",
   "name": "conformance-all-codes",
   "version": "1.0.0",

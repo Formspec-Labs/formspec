@@ -4,10 +4,10 @@ import { createRawProject } from '../src/index.js';
 /** Minimal locale document payload for locale.load. */
 function localeDoc(locale: string, strings: Record<string, string> = {}) {
   return {
-    $formspecLocale: '1.0',
+    $formspecLocale: '2.0',
     locale,
     version: '0.1.0',
-    targetDefinition: { url: 'urn:formspec:test' },
+    target: { kind: 'definition', url: 'urn:formspec:test' },
     strings,
   };
 }
@@ -243,10 +243,10 @@ describe('locale handlers return rebuildComponentTree: false', () => {
   });
 });
 
-// ── State normalizer: locale targetDefinition URL sync ──────────────
+// ── State normalizer: Definition-target Locale URL sync ─────────────
 
-describe('state normalizer — locale targetDefinition sync', () => {
-  it('syncs locale targetDefinition.url when definition URL changes', () => {
+describe('state normalizer — Locale target sync', () => {
+  it('syncs a Definition-target Locale URL when definition URL changes', () => {
     const project = createRawProject();
     project.dispatch({ type: 'locale.load', payload: { document: localeDoc('fr') } });
 
@@ -254,18 +254,41 @@ describe('state normalizer — locale targetDefinition sync', () => {
     project.dispatch({ type: 'definition.setDefinitionProperty', payload: { property: 'url', value: 'urn:formspec:new-url' } });
 
     const locale = project.state.locales['fr'];
-    expect(locale.targetDefinition.url).toBe('urn:formspec:new-url');
+    expect(locale.target.url).toBe('urn:formspec:new-url');
   });
 
-  it('syncs all loaded locale targetDefinition URLs', () => {
+  it('syncs all loaded Definition-target Locale URLs', () => {
     const project = createRawProject();
     project.dispatch({ type: 'locale.load', payload: { document: localeDoc('fr') } });
     project.dispatch({ type: 'locale.load', payload: { document: localeDoc('de') } });
 
     project.dispatch({ type: 'definition.setDefinitionProperty', payload: { property: 'url', value: 'urn:formspec:multi' } });
 
-    expect(project.state.locales['fr'].targetDefinition.url).toBe('urn:formspec:multi');
-    expect(project.state.locales['de'].targetDefinition.url).toBe('urn:formspec:multi');
+    expect(project.state.locales['fr'].target.url).toBe('urn:formspec:multi');
+    expect(project.state.locales['de'].target.url).toBe('urn:formspec:multi');
+  });
+
+  it('does not rewrite an app-target Locale when the Definition URL changes', () => {
+    const project = createRawProject();
+    project.dispatch({
+      type: 'locale.load',
+      payload: {
+        document: {
+          ...localeDoc('fr'),
+          target: { kind: 'app', url: 'urn:formspec:app' },
+        },
+      },
+    });
+
+    project.dispatch({
+      type: 'definition.setDefinitionProperty',
+      payload: { property: 'url', value: 'urn:formspec:new-url' },
+    });
+
+    expect(project.state.locales['fr'].target).toEqual({
+      kind: 'app',
+      url: 'urn:formspec:app',
+    });
   });
 });
 
@@ -288,7 +311,7 @@ describe('project.import — locale support', () => {
           fr: {
             locale: 'fr',
             version: '0.1.0',
-            targetDefinition: { url: 'urn:formspec:imported' },
+            target: { kind: 'definition', url: 'urn:formspec:imported' },
             strings: { greeting: 'Bonjour' },
           },
         },
@@ -319,7 +342,7 @@ describe('project.import — locale support', () => {
           fr: {
             locale: 'fr',
             version: '0.1.0',
-            targetDefinition: { url: 'urn:formspec:new' },
+            target: { kind: 'definition', url: 'urn:formspec:new' },
             strings: {},
           },
         },
@@ -352,7 +375,7 @@ describe('export — locale documents', () => {
     expect(bundle.locales!['fr']).toBeDefined();
 
     const exported = bundle.locales!['fr'] as Record<string, unknown>;
-    expect(exported.$formspecLocale).toBe('1.0');
+    expect(exported.$formspecLocale).toBe('2.0');
     expect(exported.locale).toBe('fr');
     expect(exported.version).toBe('0.1.0');
     expect(exported.name).toBe('Français');

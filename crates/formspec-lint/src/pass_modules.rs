@@ -837,7 +837,7 @@ mod tests {
 
     fn module_registry(module_name: &str, contributes: &[&str]) -> Value {
         json!({
-            "$formspecRegistry": "1.0",
+            "$formspecRegistry": "1.1",
             "publisher": { "name": "Test" },
             "entries": [{
                 "name": module_name,
@@ -853,7 +853,7 @@ mod tests {
 
     fn widget_registry_with_module() -> Value {
         json!({
-            "$formspecRegistry": "1.0",
+            "$formspecRegistry": "1.1",
             "publisher": { "name": "Test" },
             "entries": [
                 {
@@ -971,7 +971,7 @@ mod tests {
     #[test]
     fn e603_surface_module_widget_requires_declared_module() {
         let doc = json!({
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "dashboard",
             "entry": "home",
             "modules": [{ "id": "x-other-mod", "version": "1.0.0" }],
@@ -1002,7 +1002,7 @@ mod tests {
     #[test]
     fn e603_surface_module_widget_requires_known_widget_name() {
         let doc = json!({
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "dashboard",
             "entry": "home",
             "modules": [{ "id": "x-test-mod", "version": "1.0.0" }],
@@ -1126,7 +1126,7 @@ mod tests {
     #[test]
     fn e604_surface_module_widget_config_checked() {
         let doc = json!({
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "dashboard",
             "entry": "home",
             "modules": [{ "id": "x-test-mod", "version": "1.0.0" }],

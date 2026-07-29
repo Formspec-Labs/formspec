@@ -30,10 +30,14 @@ export type {
 
 export type StandardResponseActionIntent = 'save-draft' | 'autosave' | 'review' | 'submit' | 'request-evidence';
 
-export interface ResponseActionsDocumentInput {
-    actions?: ResponseAction[];
-    [key: string]: unknown;
-}
+/**
+ * The document accepted by the engine.
+ *
+ * The generated schema type is authoritative at this package boundary. Keep
+ * smaller, read-only views in the caller that needs them rather than widening
+ * this type and making schema-invalid documents appear supported.
+ */
+export type ResponseActionsDocumentInput = ResponseActionsDocument;
 
 export interface ActionRefFinding {
     code: 'COMP-REFERENTIAL-INTEGRITY';

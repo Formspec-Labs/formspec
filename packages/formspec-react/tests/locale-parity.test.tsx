@@ -49,10 +49,10 @@ describe('React locale parity', () => {
 
         flushSync(() => {
             result.current!.loadLocale({
-                $formspecLocale: '1.0',
+                $formspecLocale: '2.0',
                 version: '1.0.0',
                 locale: 'ar',
-                targetDefinition: { url: definition.url },
+                target: { kind: 'definition', url: definition.url },
                 strings: { '$form.title': 'طلب' },
             });
             result.current!.setLocale('ar');

@@ -315,16 +315,45 @@ app-graph report.
 | Per-artifact source schemas | `AppGraphValidator` schema phase | `schema` | Runs only on loaded documents with selected schemas. |
 | Module admission, module dependency, contribution ownership, widget prop schema | `ModuleResolver` | `module-resolution` | Imported from the typed `ModuleResolutionReport`. The validator passes the full report to cross-artifact validators as context evidence, imports only top-level resolver diagnostics, and does not duplicate module resolution logic. |
 | Surface draft publishability, local route reachability, unresolved embed-route targets, duplicate route/slot ids | Surface export/local lint | `surface-local` | Imported or pre-run by Surface tools. Cross-artifact checks remain separate. |
-| Surface slots to loaded Definitions, Experience units, Response Actions, and Data Sources | `AppGraphValidator` | `cross-artifact` | Validates relationships across already loaded artifacts. The shared kernel currently enforces Surface `experience-unit` `unitRef` resolution and URL-exact route-local Definition context. |
+| App Manifest 2.4 entry Surface and selected Surface entry route | `AppGraphValidator` | `cross-artifact` | Selects by exact manifested and loaded Surface URL. It never falls back by array order, local Surface id, filename, or route id after an explicit error. |
+| Surface slots to loaded Definitions, Experience units, Response Actions, and Data Sources | `AppGraphValidator` | `cross-artifact` | Validates relationships across already loaded artifacts. The shared kernel enforces Surface `experience-unit` `unitRef` resolution, URL-exact route-local Definition context, and qualified Data Sources availability. |
 | Experience target Definitions and unit references | `AppGraphValidator` | `cross-artifact` | Checks that references name loaded Definitions and units. |
 | Response Actions targetDefinition and Surface transition trigger references | `AppGraphValidator` | `cross-artifact` | Response Actions remains the executor; validator only checks declared references. The shared kernel rejects Surface transition triggers that are neither loaded Response Actions `actions[*].id` values nor closed-core Response Actions intents declared by exactly one loaded action; it does not promote Runtime Plan commands or direct `x-` extension-intent triggers. |
-| Data Sources availability selectors to loaded Surfaces, routes, slots, Definitions, and modules | `AppGraphValidator` | `cross-artifact` | Payload fetching and cache behavior remain out of scope. |
+| Data Sources catalog identity and availability selectors to loaded Surfaces, routes, slots, Definitions, and admitted modules | `AppGraphValidator` | `cross-artifact` | Catalog URL identity and Surface URL plus route/slot identity are exact. Route ids are not graph-global. Payload fetching, cache behavior, and runtime authorization remain out of scope. |
+| Surface 0.2 widget data bindings to Registry 1.1 inputs and Data Sources | `AppGraphValidator` | `cross-artifact` | Resolves the widget through its module contribution, then checks the declared input and exact `(catalogRef, sourceRef)` pair. App, exact Surface, qualified route, qualified slot, or matching module availability may cover the widget; Definition-only availability does not. The optional source payload schema remains Data Sources authority and no payload is fetched here. |
+| Surface 0.2 widget action bindings and completed-action transition candidates | `AppGraphValidator` | `cross-artifact` | `E612` rejects undeclared outputs and unresolved exact action ids. `E611` credits a widget only through Registry output plus Surface mapping plus the same resolved action. Zero transition candidates reports a stay result; more than one reports ambiguity and selects none. |
+| App Manifest 2.4 Locale reference and target association | `AppGraphValidator` | `cross-artifact` | Locale reference URLs are unique, reference and document language tags compare after BCP 47 case normalization, the target is the current app or one exact loaded Definition, and normalized `(target kind, target URL, locale)` tuples are unique. |
 | Screener `surface:<route-id>` terminal-hop targets | `AppGraphValidator` | `cross-artifact` | Applies only to Screener handles associated by App Manifest v2.3 `screeners[]` URL/version evidence. The shared kernel enforces exactly-one loaded Surface `routes[].id` resolution and does not infer association from TraceIndex, Runtime Plan, hostEvidence, filenames, loaded Definitions, or Surface route names. |
 | UI graph policy to routes, locale keys, responsive rules, hidden Definition refs, and Theme widget refs/token slots/categories | UI Graph Policy spec plus `AppGraphValidator` | `cross-artifact` | `specs/app-graph/ui-graph-policy-spec.md` defines the prose boundary and `ui-graph-policy` is an admitted report origin. The shared kernel currently enforces host-evidence-backed Surface/route, policy-local Locale-owner, Locale-owner module-id resolution against completed ModuleResolver evidence, hidden Definition reference diagnostics, Theme widgetRef resolution against completed ModuleResolver widget contribution evidence, Theme token-slot checks against completed ModuleResolver `widgetTokenSlots[]` evidence, Theme token reference/category checks over exactly-one loaded Theme evidence, and custom `x-*` category compatibility against completed ModuleResolver `tokenCategories[]` evidence; runtime hidden-state and consumer checks remain later gates. |
 | Fine-grained actor, route, operation, widget, field, or source authorization | Future authorization contract | `authorization-boundary` | Until a dedicated authorization contract lands, such fields fail closed rather than receiving semantics. |
 | Response Actions invocation, idempotency replay, effect execution, and ledger append | Response Actions runtime and LedgerPort gates | not validator-owned | The validator may check references but must not execute behavior. |
 | Component Surface/route target resolution, duplicate route claims, route-bound control Definition context, fake `targetDefinition` rejection, and node identity disambiguation | Component Surface/route identity contract plus `AppGraphValidator` gates | `cross-artifact` | The shared kernel currently enforces loaded Component membership, Surface/route/slot target resolution, duplicate route claims, exact-only Surface version mismatch, ref-less Component handle rejection, evidence-limited fake `targetDefinition` rejection, URL-based `definition-form` route context for route-bound Components with bound controls, stable route-scoped nodePath segment availability (`nodeId`, then `bind`, then `id`), sibling segment ambiguity, and duplicate constructed graph-wide Component node identity keys. Studio/kernel graph-wide operations and provenance validation remain later gates. |
 | Component projection output and renderer fallback | Projection/runtime/renderer gates | not validator-owned | The validator may check future Component graph identity, but it must not render Components or choose fallback behavior. |
+
+### 7.1 vNext Surface graph diagnostics
+
+The built-in vNext checks use these stable diagnostic families:
+
+| Code | Severity | Meaning |
+|---|---|---|
+| `APP-ENTRY-AMBIGUOUS` | error | App Manifest 2.4 declares multiple Surfaces without `entrySurface`. |
+| `APP-ENTRY-SURFACE-UNRESOLVED` | error | An explicit `entrySurface` does not match exactly one manifested and loaded Surface URL. |
+| `SURFACE-ENTRY-UNRESOLVED` | error | The selected Surface's `entry` does not match exactly one route in that Surface. |
+| `DATA-SOURCE-CATALOG-REF` | error | A loaded Data Sources catalog is not manifested exactly once or its document `id` differs from that reference URL. |
+| `DATA-SOURCE-ID-COLLISION` | error | A catalog declares the same source id more than once. |
+| `DATA-SOURCE-AVAILABILITY-REF` | error | A Definition, Surface, qualified route, qualified slot, or module availability selector does not resolve. |
+| `APP-GRAPH-WIDGET-DATA-BINDING` | error | An optional widget data binding names an undeclared input, catalog, source, or unavailable source. |
+| `WIDGET-DATA-REQUIRED-UNAVAILABLE` | error | A required Registry input is unbound or its exact source descriptor is unavailable. |
+| `E612` | error | A Surface widget action binding names an output the resolved Registry widget does not declare or an `actionRef` that does not resolve to exactly one loaded Response Actions action. |
+| `WIDGET-ACTION-TRANSITION-AMBIGUOUS` | error | A completed widget action has more than one transition candidate on the same qualified route; no candidate is selected. |
+| `APP-GRAPH-WIDGET-ACTION-TRANSITION` | info | A completed widget action has no transition candidate on the same qualified route; the route stays unchanged. |
+| `APP-GRAPH-LOCALE-REF` | error | App Manifest Locale reference URL uniqueness or reference-to-document locale coherence fails. |
+| `APP-GRAPH-LOCALE-TARGET` | error | A Locale target or its optional compatible-version range does not resolve against the current app graph. |
+| `APP-GRAPH-LOCALE-DUPLICATE` | error | Loaded Locales duplicate a normalized `(target kind, target URL, locale)` tuple. |
+
+Every rule above reads only resolved artifact handles and completed
+ModuleResolver evidence. It does not fetch source payloads, choose a runtime
+route, execute an action, or inspect filenames and local paths for identity.
 
 ## 8. Unsupported Features and Authorization
 
@@ -343,18 +372,16 @@ or per-source authorization semantics.
 ## 9. Conformance
 
 This v0.1 draft defines the prose validator contract, the shared report
-schema/generation evidence, and source conformance for the initial Component
+schema/generation evidence, and paired source conformance for Component
 route-target, route-bound-control Definition-context, Component node identity,
 Screener `surface:<route-id>` target, UI Graph Policy Surface/route, UI Graph
-Policy Locale-owner, hidden Definition, and Theme widgetRef validator families.
-A conforming future implementation will
-need later gates to provide:
+Policy Locale-owner, hidden Definition, Theme widgetRef, App Manifest 2.4 entry,
+Data Sources availability, Surface widget data/action, and Locale association
+validator families. A conforming future implementation still needs later gates
+to provide:
 
-1. broader fixture-backed conformance beyond the Component route-target /
-   route-bound-control / node-identity, Screener surface-target,
-   UI Graph Policy Surface/route, UI Graph Policy Locale-owner, hidden
-   Definition, Theme widgetRef families, and typed `ModuleResolutionReport`
-   diagnostic handoff,
+1. broader fixture-backed conformance beyond these built-in families and the
+   typed `ModuleResolutionReport` diagnostic handoff,
 2. broader extraction from lint, studio-core, and spike-local lessons without fixture
    assumptions, and
 3. production consumers wired to shared validator output.

@@ -1,0 +1,22 @@
+{
+  "fixture": "app-entry-explicit-v2-4",
+  "purpose": "App Manifest 2.4 selects one of two Surfaces by exact canonical URL.",
+  "expected": {"valid": true},
+  "bundle": {
+    "$formspecBundle": "2.4",
+    "version": "2.4.0",
+    "id": "https://example.gov/apps/multi-surface",
+    "definitions": [],
+    "surfaces": [
+      {
+        "url": "https://example.gov/apps/multi-surface/respondent",
+        "version": "0.2.0"
+      },
+      {
+        "url": "https://example.gov/apps/multi-surface/staff",
+        "version": "0.2.0"
+      }
+    ],
+    "entrySurface": "https://example.gov/apps/multi-surface/respondent"
+  }
+}

@@ -896,10 +896,10 @@ describe('useLocale', () => {
 
         flushSync(() => {
             engine.loadLocale({
-                $formspecLocale: 'https://example.com/formspec/locale/1.0',
+                $formspecLocale: '2.0',
                 locale: 'de-DE',
                 version: '1.0.0',
-                targetDefinition: { url: 'about:test' },
+                target: { kind: 'definition', url: testDefinition.url },
                 strings: {},
             });
         });

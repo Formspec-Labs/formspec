@@ -1,0 +1,20 @@
+{
+  "fixture": "invalid-entry-surface-unresolved-v2-4",
+  "purpose": "An explicit App Manifest 2.4 entrySurface must exactly match one surfaces[].url; local ids and normalized guesses are not aliases.",
+  "expected": {
+    "valid": false,
+    "phase": "cross-artifact",
+    "diagnostic": "APP-ENTRY-SURFACE-UNRESOLVED"
+  },
+  "bundle": {
+    "$formspecBundle": "2.4",
+    "version": "2.4.0",
+    "id": "https://example.gov/apps/unresolved-entry",
+    "definitions": [],
+    "surfaces": [
+      {"url": "https://example.gov/apps/unresolved-entry/respondent"},
+      {"url": "https://example.gov/apps/unresolved-entry/staff"}
+    ],
+    "entrySurface": "https://example.gov/apps/unresolved-entry/respondent/"
+  }
+}

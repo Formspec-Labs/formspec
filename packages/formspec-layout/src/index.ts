@@ -78,7 +78,12 @@ export {
 export type { PopupPlacement } from './popup-position.js';
 
 // Platform defaults & theme generation
-export { platformDefaults, platformSelectors, buildPlatformTheme } from './platform-defaults.js';
+export {
+    platformDefaults,
+    platformSelectors,
+    buildPlatformTheme,
+    mergePlatformAndTenantTheme,
+} from './platform-defaults.js';
 
 // UI Graph Policy route-landmark projection (shared by React + webcomponent)
 export { resolveRouteLandmark } from './route-landmark-projection.js';

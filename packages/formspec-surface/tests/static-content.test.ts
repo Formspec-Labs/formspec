@@ -78,10 +78,13 @@ describe('planStaticContent', () => {
     expect(plan).toEqual({ kind: 'divider' });
   });
 
-  it('names an image from the slot title when the author gave one', () => {
+  it('uses authored alternative text exactly and ignores the slot title as an alt source', () => {
     const { plan, diagnostics } = planStaticContent({
-      binding: { kind: 'image', content: 'https://example.test/seal.png' },
-      slotTitle: 'Department seal',
+      binding: {
+        kind: 'image',
+        content: 'https://example.test/seal.png',
+        alt: 'Department seal',
+      },
       staticAssetResolver: admitAuthoredSource,
       site,
     });
@@ -91,51 +94,58 @@ describe('planStaticContent', () => {
       alt: 'Department seal',
       decorative: false,
     });
-    // D8. The diagnostic fires on EVERY image slot, including this one
-    // (§3.4.2, §7.3). A region label pressed into service is a fallback, not an
-    // authored alt; silencing here would hide finding F1's size behind the
-    // workaround and make the fire count useless as a measure of the gap.
-    expect(diagnostics.map((d) => d.code)).toEqual(['STATIC-IMAGE-NO-ALT']);
-    expect(diagnostics[0]?.details).toMatchObject({ source: 'slot.title', finding: 'F1' });
+    expect(diagnostics).toEqual([]);
   });
 
-  it('fires STATIC-IMAGE-NO-ALT on every image slot and no other kind', () => {
-    const fires = (binding: Record<string, unknown>, slotTitle?: string) =>
+  it('requires an authored string alt for every image and no other kind', () => {
+    const result = (binding: Record<string, unknown>) =>
       planStaticContent({
         binding,
         site,
         staticAssetResolver: admitAuthoredSource,
-        ...(slotTitle ? { slotTitle } : {}),
-      }).diagnostics.map((d) => d.code);
-    expect(fires({ kind: 'image', content: 'a.png' })).toEqual(['STATIC-IMAGE-NO-ALT']);
-    expect(fires({ kind: 'image', content: 'a.png' }, 'Seal')).toEqual(['STATIC-IMAGE-NO-ALT']);
-    expect(fires({ kind: 'text', content: 'a' })).toEqual([]);
-    expect(fires({ kind: 'heading', content: 'a' })).toEqual([]);
-    expect(fires({ kind: 'divider', content: '' })).toEqual([]);
+      });
+    expect(result({ kind: 'image', content: 'a.png' })).toMatchObject({
+      plan: undefined,
+      diagnostics: [{ code: 'STATIC-IMAGE-NO-ALT' }],
+    });
+    expect(result({ kind: 'image', content: 'a.png', alt: 42 })).toMatchObject({
+      plan: undefined,
+      diagnostics: [{ code: 'STATIC-IMAGE-NO-ALT' }],
+    });
+    expect(result({ kind: 'text', content: 'a' }).diagnostics).toEqual([]);
+    expect(result({ kind: 'heading', content: 'a' }).diagnostics).toEqual([]);
+    expect(result({ kind: 'divider', content: '' }).diagnostics).toEqual([]);
   });
 
-  it('marks an unnamed image decorative AND says the channel is missing', () => {
+  it('preserves an explicit empty alt as the author’s decorative choice', () => {
     const { plan, diagnostics } = planStaticContent({
-      binding: { kind: 'image', content: 'https://example.test/seal.png' },
+      binding: {
+        kind: 'image',
+        content: 'https://example.test/seal.png',
+        alt: '',
+      },
       staticAssetResolver: admitAuthoredSource,
       site,
     });
     expect(plan).toMatchObject({ kind: 'image', alt: '', decorative: true });
-    expect(diagnostics.map((d) => d.code)).toEqual(['STATIC-IMAGE-NO-ALT']);
+    expect(diagnostics).toEqual([]);
   });
 
   it('refuses to plan an image when the host supplies no asset resolver', () => {
     const { plan, diagnostics } = planStaticContent({
-      binding: { kind: 'image', content: 'https://untrusted.example/seal.png' },
+      binding: {
+        kind: 'image',
+        content: 'https://untrusted.example/seal.png',
+        alt: 'Department seal',
+      },
       site,
     });
 
     expect(plan).toBeUndefined();
     expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
-      'STATIC-IMAGE-NO-ALT',
       'STATIC-IMAGE-SOURCE-REFUSED',
     ]);
-    expect(diagnostics[1]?.details).toEqual({
+    expect(diagnostics[0]?.details).toEqual({
       authoredSource: 'https://untrusted.example/seal.png',
       reason: 'resolver-absent',
     });
@@ -152,8 +162,7 @@ describe('planStaticContent', () => {
     };
 
     const { plan, diagnostics } = planStaticContent({
-      binding: { kind: 'image', content: 'asset:seal' },
-      slotTitle: 'Department seal',
+      binding: { kind: 'image', content: 'asset:seal', alt: 'Department seal' },
       staticAssetResolver,
       site,
     });
@@ -162,9 +171,7 @@ describe('planStaticContent', () => {
       kind: 'image',
       src: 'https://cdn.example.test/safe/seal.png',
     });
-    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
-      'STATIC-IMAGE-NO-ALT',
-    ]);
+    expect(diagnostics).toEqual([]);
   });
 
   it.each([
@@ -187,7 +194,7 @@ describe('planStaticContent', () => {
     },
   ])('renders the image unavailable after $name', ({ resolver, reason }) => {
     const { plan, diagnostics } = planStaticContent({
-      binding: { kind: 'image', content: 'asset:seal' },
+      binding: { kind: 'image', content: 'asset:seal', alt: 'Department seal' },
       staticAssetResolver: resolver,
       site,
     });

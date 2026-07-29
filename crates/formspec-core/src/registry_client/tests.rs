@@ -8,7 +8,7 @@ use super::*;
 
 fn sample_registry_json() -> serde_json::Value {
     json!({
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "publisher": {
             "name": "Test Org",
             "url": "https://test.org",
@@ -96,7 +96,7 @@ fn parse_valid_registry() {
 #[test]
 fn publisher_preferred_homepage_parses() {
     let doc = json!({
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "published": "2026-05-21T00:00:00Z",
         "publisher": {
             "name": "Acme",
@@ -121,7 +121,7 @@ fn publisher_preferred_homepage_parses() {
 #[test]
 fn publisher_name_langmap_parses() {
     let doc = json!({
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "published": "2026-05-21T00:00:00Z",
         "publisher": {
             "name": {
@@ -141,7 +141,7 @@ fn publisher_name_langmap_parses() {
 #[test]
 fn publisher_name_langmap_preserved_in_wire_summary() {
     let doc = json!({
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "published": "2026-05-21T00:00:00Z",
         "publisher": {
             "name": {
@@ -166,7 +166,7 @@ fn publisher_name_langmap_preserved_in_wire_summary() {
 #[test]
 fn publisher_legacy_url_aliases_homepage_and_warns() {
     let doc = json!({
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "published": "2026-05-21T00:00:00Z",
         "publisher": { "name": "Acme", "url": "https://acme.example" },
         "entries": []
@@ -188,7 +188,7 @@ fn publisher_legacy_url_aliases_homepage_and_warns() {
 #[test]
 fn publisher_legacy_contact_string_warns() {
     let doc = json!({
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "published": "2026-05-21T00:00:00Z",
         "publisher": {
             "name": "Acme",
@@ -211,7 +211,7 @@ fn publisher_legacy_contact_string_warns() {
 #[test]
 fn publisher_contact_point_preferred() {
     let doc = json!({
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "published": "2026-05-21T00:00:00Z",
         "publisher": {
             "name": "Acme",
@@ -235,7 +235,7 @@ fn publisher_contact_point_preferred() {
 #[test]
 fn publisher_wire_summary_includes_preferred_and_legacy_fields() {
     let doc = json!({
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "published": "2026-05-21T00:00:00Z",
         "publisher": {
             "name": "Acme",

@@ -1,4 +1,5 @@
-- This document defines the registry format for publishing Formspec extension metadata.
-- A valid registry document requires `$formspecRegistry`, `publisher`, `published`, and `entries`.
+- This document defines Registry 1.1, the format for publishing Formspec extension metadata.
+- A valid Registry 1.1 document requires `$formspecRegistry: "1.1"`, `publisher`, `published`, and `entries`.
 - Registry entries standardize naming, lifecycle, and compatibility bounds for extension interoperability.
-- This BLUF is governed by `schemas/registry.schema.json`; generated references are the structural contract.
+- A module widget declares configuration through `widgetShape.props`, runtime data through closed `widgetShape.dataInputs[]`, and emitted events through closed `widgetShape.actionOutputs[]`; input names and output names are unique within their respective lists.
+- This BLUF is governed by `schemas/registry.schema.json`; generated references expose the schema-defined structure.

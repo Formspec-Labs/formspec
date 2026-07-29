@@ -1,7 +1,12 @@
 /** @filedesc Bundle-export dereference — typed artifacts, and absences reported not thrown. */
 import { describe, expect, it } from 'vitest';
 import { bundleIsRenderable, dereferenceBundleExport } from '../src/bundle.js';
-import { bundleExport, tenantTheme } from './fixtures.js';
+import {
+  bundleExport,
+  respondentSurface,
+  staffSurface,
+  tenantTheme,
+} from './fixtures.js';
 
 describe('dereferenceBundleExport', () => {
   it('resolves every manifest slot into a typed artifact', () => {
@@ -59,5 +64,80 @@ describe('dereferenceBundleExport', () => {
       documents: { ...withExperience.documents, 'exp:1': { $formspecExperience: '1.0', units: [] } },
     });
     expect(resolved.experiences).toHaveLength(1);
+  });
+
+  it('selects the exact second Surface URL without changing route-table order in 2.4', () => {
+    const resolved = dereferenceBundleExport(bundleExport({
+      $formspecBundle: '2.4',
+      entrySurface: 'surface:staff',
+    }));
+
+    expect(resolved.surfaces).toEqual([respondentSurface, staffSurface]);
+    expect(resolved.entrySurface).toBe(staffSurface);
+    expect(resolved.diagnostics).toEqual([]);
+  });
+
+  it('keeps exact entry selection stable when manifest Surface order changes', () => {
+    const resolved = dereferenceBundleExport(bundleExport({
+      $formspecBundle: '2.4',
+      surfaces: [{ url: 'surface:staff' }, { url: 'surface:respondent' }],
+      entrySurface: 'surface:respondent',
+    }));
+
+    expect(resolved.surfaces).toEqual([staffSurface, respondentSurface]);
+    expect(resolved.entrySurface).toBe(respondentSurface);
+  });
+
+  it('implicitly selects the sole loaded Surface in 2.4', () => {
+    const resolved = dereferenceBundleExport(bundleExport({
+      $formspecBundle: '2.4',
+      surfaces: [{ url: 'surface:staff' }],
+    }));
+
+    expect(resolved.entrySurface).toBe(staffSurface);
+    expect(resolved.diagnostics).toEqual([]);
+  });
+
+  it('refuses a multi-Surface 2.4 manifest that omits entrySurface', () => {
+    const resolved = dereferenceBundleExport(bundleExport({ $formspecBundle: '2.4' }));
+
+    expect(resolved.entrySurface).toBeNull();
+    expect(resolved.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'APP-ENTRY-AMBIGUOUS',
+    );
+  });
+
+  it('refuses an explicit selector that is unresolved instead of falling back', () => {
+    const resolved = dereferenceBundleExport(bundleExport({
+      $formspecBundle: '2.4',
+      entrySurface: 'surface:missing',
+    }));
+
+    expect(resolved.entrySurface).toBeNull();
+    expect(resolved.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'APP-ENTRY-SURFACE-UNRESOLVED',
+    );
+  });
+
+  it('refuses an explicit selector that ambiguously matches duplicate refs', () => {
+    const resolved = dereferenceBundleExport(bundleExport({
+      $formspecBundle: '2.4',
+      surfaces: [{ url: 'surface:respondent' }, { url: 'surface:respondent' }],
+      entrySurface: 'surface:respondent',
+    }));
+
+    expect(resolved.entrySurface).toBeNull();
+    expect(resolved.diagnostics.find(
+      (diagnostic) => diagnostic.code === 'APP-ENTRY-SURFACE-UNRESOLVED',
+    )?.details).toMatchObject({ manifestMatches: 2, loadedMatches: 2 });
+  });
+
+  it('does not apply the 2.4 selector to an older App Manifest', () => {
+    const resolved = dereferenceBundleExport(bundleExport({
+      $formspecBundle: '2.3',
+      entrySurface: 'surface:staff',
+    }));
+
+    expect(Object.prototype.hasOwnProperty.call(resolved, 'entrySurface')).toBe(false);
   });
 });

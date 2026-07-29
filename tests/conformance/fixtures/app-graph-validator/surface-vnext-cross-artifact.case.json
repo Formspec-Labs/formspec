@@ -1,0 +1,1709 @@
+{
+  "id": "surface-vnext-cross-artifact",
+  "description": "Paired AppGraphValidator corpus for App Manifest 2.4 entry selection, Data Sources availability, Surface 0.2 widget data/actions, and Locale 2.0 association.",
+  "handles": {
+    "manifest.base": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/base",
+      "document": {
+        "$formspecBundle": "2.4",
+        "id": "https://example.gov/apps/vnext",
+        "version": "1.0.0",
+        "definitions": [
+          {
+            "url": "https://example.gov/definitions/intake",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://example.gov/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ],
+        "dataSources": [
+          {
+            "url": "https://example.gov/data-sources/main",
+            "version": "1.0.0"
+          }
+        ],
+        "registries": [
+          {
+            "url": "https://example.gov/registries/widgets",
+            "version": "1.1.0"
+          }
+        ],
+        "responseActions": {
+          "url": "https://example.gov/response-actions/main",
+          "version": "1.0.0"
+        },
+        "modules": [
+          {
+            "id": "x-acme-ui",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.two": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/two",
+      "document": {
+        "$formspecBundle": "2.4",
+        "id": "https://example.gov/apps/vnext",
+        "version": "1.0.0",
+        "definitions": [],
+        "surfaces": [
+          {
+            "url": "https://example.gov/surfaces/respondent",
+            "version": "1.0.0"
+          },
+          {
+            "url": "https://example.gov/surfaces/reviewer",
+            "version": "1.0.0"
+          }
+        ],
+        "entrySurface": "https://example.gov/surfaces/respondent",
+        "dataSources": [
+          {
+            "url": "https://example.gov/data-sources/main",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-acme-ui",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.two-no-entry": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/two-no-entry",
+      "document": {
+        "$formspecBundle": "2.4",
+        "id": "https://example.gov/apps/vnext",
+        "version": "1.0.0",
+        "definitions": [],
+        "surfaces": [
+          {
+            "url": "https://example.gov/surfaces/respondent",
+            "version": "1.0.0"
+          },
+          {
+            "url": "https://example.gov/surfaces/reviewer",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.explicit-missing": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/explicit-missing",
+      "document": {
+        "$formspecBundle": "2.4",
+        "id": "https://example.gov/apps/vnext",
+        "version": "1.0.0",
+        "definitions": [],
+        "surfaces": [
+          {
+            "url": "https://example.gov/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ],
+        "entrySurface": "https://example.gov/surfaces/not-manifested"
+      }
+    },
+    "manifest.locale-one": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/locale-one",
+      "document": {
+        "$formspecBundle": "2.4",
+        "id": "https://example.gov/apps/vnext",
+        "version": "1.0.0",
+        "definitions": [
+          {
+            "url": "https://example.gov/definitions/intake",
+            "version": "1.0.0"
+          }
+        ],
+        "locales": [
+          {
+            "url": "https://example.gov/locales/en-us",
+            "version": "1.0.0",
+            "locale": "en-US"
+          }
+        ]
+      }
+    },
+    "manifest.locale-duplicate-ref": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/locale-duplicate-ref",
+      "document": {
+        "$formspecBundle": "2.4",
+        "id": "https://example.gov/apps/vnext",
+        "version": "1.0.0",
+        "definitions": [],
+        "locales": [
+          {
+            "url": "https://example.gov/locales/en-us",
+            "version": "1.0.0",
+            "locale": "en-US"
+          },
+          {
+            "url": "https://example.gov/locales/en-us",
+            "version": "1.0.0",
+            "locale": "fr-FR"
+          }
+        ]
+      }
+    },
+    "manifest.locale-two": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/locale-two",
+      "document": {
+        "$formspecBundle": "2.4",
+        "id": "https://example.gov/apps/vnext",
+        "version": "1.0.0",
+        "definitions": [],
+        "locales": [
+          {
+            "url": "https://example.gov/locales/en-us",
+            "version": "1.0.0",
+            "locale": "en-US"
+          },
+          {
+            "url": "https://example.gov/locales/en-us-copy",
+            "version": "1.0.0",
+            "locale": "en-us"
+          }
+        ]
+      }
+    },
+    "definition.intake": {
+      "slot": "definitions[0]",
+      "artifactKind": "definition",
+      "status": "loaded",
+      "source": "memory://definition/intake",
+      "ref": {
+        "url": "https://example.gov/definitions/intake",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspec": "1.0",
+        "url": "https://example.gov/definitions/intake",
+        "version": "1.0.0",
+        "status": "active",
+        "title": "Intake",
+        "items": []
+      }
+    },
+    "surface.valid": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/valid",
+      "ref": {
+        "url": "https://example.gov/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "profile",
+                "slotType": "module-widget",
+                "binding": {
+                  "moduleId": "x-acme-ui",
+                  "widgetName": "ProfileCard",
+                  "dataBindings": {
+                    "profile": {
+                      "catalogRef": "https://example.gov/data-sources/main",
+                      "sourceRef": "host:profile"
+                    }
+                  },
+                  "actionBindings": {
+                    "completed": {
+                      "actionRef": "saveProfile"
+                    }
+                  }
+                }
+              }
+            ],
+            "transitions": [
+              {
+                "trigger": "saveProfile",
+                "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.no-widget": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/no-widget",
+      "ref": {
+        "url": "https://example.gov/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "content",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Ready"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.reviewer": {
+      "slot": "surfaces[1]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/reviewer",
+      "ref": {
+        "url": "https://example.gov/surfaces/reviewer",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "reviewer",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/review",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.bad-entry": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/bad-entry",
+      "ref": {
+        "url": "https://example.gov/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "missing",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.data-missing": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/data-missing",
+      "ref": {
+        "url": "https://example.gov/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "profile",
+                "slotType": "module-widget",
+                "binding": {
+                  "moduleId": "x-acme-ui",
+                  "widgetName": "ProfileCard",
+                  "dataBindings": {
+                    "profile": {
+                      "catalogRef": "https://example.gov/data-sources/main",
+                      "sourceRef": "host:missing"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.data-undeclared": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/data-undeclared",
+      "ref": {
+        "url": "https://example.gov/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "profile",
+                "slotType": "module-widget",
+                "binding": {
+                  "moduleId": "x-acme-ui",
+                  "widgetName": "ProfileCard",
+                  "dataBindings": {
+                    "profile": {
+                      "catalogRef": "https://example.gov/data-sources/main",
+                      "sourceRef": "host:profile"
+                    },
+                    "notDeclared": {
+                      "catalogRef": "https://example.gov/data-sources/main",
+                      "sourceRef": "host:profile"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.wrong-widget-vocabulary": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/wrong-widget-vocabulary",
+      "ref": {
+        "url": "https://example.gov/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "profile",
+                "slotType": "module-widget",
+                "binding": {
+                  "moduleId": "x-acme-ui",
+                  "widgetName": "x-acme-profile-card",
+                  "actionBindings": {
+                    "completed": {
+                      "actionRef": "saveProfile"
+                    }
+                  }
+                }
+              }
+            ],
+            "transitions": [
+              {
+                "trigger": "saveProfile",
+                "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.action-undeclared": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/action-undeclared",
+      "ref": {
+        "url": "https://example.gov/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "profile",
+                "slotType": "module-widget",
+                "binding": {
+                  "moduleId": "x-acme-ui",
+                  "widgetName": "ProfileCard",
+                  "dataBindings": {
+                    "profile": {
+                      "catalogRef": "https://example.gov/data-sources/main",
+                      "sourceRef": "host:profile"
+                    }
+                  },
+                  "actionBindings": {
+                    "notDeclared": {
+                      "actionRef": "saveProfile"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.action-unresolved": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/action-unresolved",
+      "ref": {
+        "url": "https://example.gov/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "profile",
+                "slotType": "module-widget",
+                "binding": {
+                  "moduleId": "x-acme-ui",
+                  "widgetName": "ProfileCard",
+                  "dataBindings": {
+                    "profile": {
+                      "catalogRef": "https://example.gov/data-sources/main",
+                      "sourceRef": "host:profile"
+                    }
+                  },
+                  "actionBindings": {
+                    "completed": {
+                      "actionRef": "missingAction"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.action-ambiguous": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/action-ambiguous",
+      "ref": {
+        "url": "https://example.gov/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "profile",
+                "slotType": "module-widget",
+                "binding": {
+                  "moduleId": "x-acme-ui",
+                  "widgetName": "ProfileCard",
+                  "dataBindings": {
+                    "profile": {
+                      "catalogRef": "https://example.gov/data-sources/main",
+                      "sourceRef": "host:profile"
+                    }
+                  },
+                  "actionBindings": {
+                    "completed": {
+                      "actionRef": "saveProfile"
+                    }
+                  }
+                }
+              }
+            ],
+            "transitions": [
+              {
+                "trigger": "saveProfile",
+                "to": "done"
+              },
+              {
+                "trigger": "submit",
+                "to": "other"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          },
+          {
+            "id": "other",
+            "path": "/other",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.action-zero": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/action-zero",
+      "ref": {
+        "url": "https://example.gov/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [
+              {
+                "id": "profile",
+                "slotType": "module-widget",
+                "binding": {
+                  "moduleId": "x-acme-ui",
+                  "widgetName": "ProfileCard",
+                  "dataBindings": {
+                    "profile": {
+                      "catalogRef": "https://example.gov/data-sources/main",
+                      "sourceRef": "host:profile"
+                    }
+                  },
+                  "actionBindings": {
+                    "completed": {
+                      "actionRef": "saveProfile"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "registry.widgets": {
+      "slot": "registries[0]",
+      "artifactKind": "registry",
+      "status": "loaded",
+      "source": "memory://registry/widgets",
+      "ref": {
+        "url": "https://example.gov/registries/widgets",
+        "version": "1.1.0"
+      },
+      "document": {
+        "$formspecRegistry": "1.1",
+        "id": "https://example.gov/registries/widgets",
+        "version": "1.1.0",
+        "entries": [
+          {
+            "name": "x-acme-ui",
+            "category": "module",
+            "version": "1.0.0",
+            "contributes": [
+              "x-acme-profile-card"
+            ]
+          },
+          {
+            "name": "x-acme-profile-card",
+            "category": "widget",
+            "version": "1.0.0",
+            "widgetShape": {
+              "widgetName": "ProfileCard",
+              "props": {},
+              "dataInputs": [
+                {
+                  "name": "profile",
+                  "required": true
+                },
+                {
+                  "name": "optionalNote",
+                  "required": false
+                }
+              ],
+              "actionOutputs": [
+                {
+                  "name": "completed"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "response-actions.main": {
+      "slot": "responseActions",
+      "artifactKind": "responseActions",
+      "status": "loaded",
+      "source": "memory://response-actions/main",
+      "ref": {
+        "url": "https://example.gov/response-actions/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecResponseActions": "1.0",
+        "version": "1.0.0",
+        "actions": [
+          {
+            "id": "saveProfile",
+            "intent": "submit"
+          }
+        ]
+      }
+    },
+    "catalog.app": {
+      "slot": "dataSources[0]",
+      "artifactKind": "dataSources",
+      "status": "loaded",
+      "source": "memory://data-sources/app",
+      "ref": {
+        "url": "https://example.gov/data-sources/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecDataSources": "1.0",
+        "id": "https://example.gov/data-sources/main",
+        "version": "1.0.0",
+        "sources": [
+          {
+            "id": "host:profile",
+            "kind": "host-state",
+            "owner": "host",
+            "scope": "session",
+            "availability": {
+              "level": "app"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "snapshot"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "degraded-widget",
+              "provenance": {
+                "kind": "host-state",
+                "source": "host:profile"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "catalog.bad-id": {
+      "slot": "dataSources[0]",
+      "artifactKind": "dataSources",
+      "status": "loaded",
+      "source": "memory://data-sources/bad-id",
+      "ref": {
+        "url": "https://example.gov/data-sources/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecDataSources": "1.0",
+        "id": "https://example.gov/data-sources/other",
+        "version": "1.0.0",
+        "sources": [
+          {
+            "id": "host:profile",
+            "kind": "host-state",
+            "owner": "host",
+            "scope": "session",
+            "availability": {
+              "level": "app"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "snapshot"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "degraded-widget",
+              "provenance": {
+                "kind": "host-state",
+                "source": "host:profile"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "catalog.bad-route": {
+      "slot": "dataSources[0]",
+      "artifactKind": "dataSources",
+      "status": "loaded",
+      "source": "memory://data-sources/bad-route",
+      "ref": {
+        "url": "https://example.gov/data-sources/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecDataSources": "1.0",
+        "id": "https://example.gov/data-sources/main",
+        "version": "1.0.0",
+        "sources": [
+          {
+            "id": "route:params",
+            "kind": "route-params",
+            "owner": "host",
+            "scope": "route",
+            "availability": {
+              "level": "route",
+              "surfaceRef": "https://example.gov/surfaces/not-loaded",
+              "routeRef": "start"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "none"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "empty-state",
+              "provenance": {
+                "kind": "route-params",
+                "source": "route:params"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "catalog.route-qualified": {
+      "slot": "dataSources[0]",
+      "artifactKind": "dataSources",
+      "status": "loaded",
+      "source": "memory://data-sources/route-qualified",
+      "ref": {
+        "url": "https://example.gov/data-sources/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecDataSources": "1.0",
+        "id": "https://example.gov/data-sources/main",
+        "version": "1.0.0",
+        "sources": [
+          {
+            "id": "route:params",
+            "kind": "route-params",
+            "owner": "host",
+            "scope": "route",
+            "availability": {
+              "level": "route",
+              "surfaceRef": "https://example.gov/surfaces/respondent",
+              "routeRef": "start"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "none"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "empty-state",
+              "provenance": {
+                "kind": "route-params",
+                "source": "route:params"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "catalog.slot-qualified": {
+      "slot": "dataSources[0]",
+      "artifactKind": "dataSources",
+      "status": "loaded",
+      "source": "memory://data-sources/slot-qualified",
+      "ref": {
+        "url": "https://example.gov/data-sources/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecDataSources": "1.0",
+        "id": "https://example.gov/data-sources/main",
+        "version": "1.0.0",
+        "sources": [
+          {
+            "id": "host:profile",
+            "kind": "host-state",
+            "owner": "host",
+            "scope": "route",
+            "availability": {
+              "level": "slot",
+              "surfaceRef": "https://example.gov/surfaces/respondent",
+              "routeRef": "start",
+              "slotId": "profile"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "snapshot"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "degraded-widget",
+              "provenance": {
+                "kind": "host-state",
+                "source": "host:profile"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "catalog.slot-missing": {
+      "slot": "dataSources[0]",
+      "artifactKind": "dataSources",
+      "status": "loaded",
+      "source": "memory://data-sources/slot-missing",
+      "ref": {
+        "url": "https://example.gov/data-sources/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecDataSources": "1.0",
+        "id": "https://example.gov/data-sources/main",
+        "version": "1.0.0",
+        "sources": [
+          {
+            "id": "host:profile",
+            "kind": "host-state",
+            "owner": "host",
+            "scope": "route",
+            "availability": {
+              "level": "slot",
+              "surfaceRef": "https://example.gov/surfaces/respondent",
+              "routeRef": "start",
+              "slotId": "not-present"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "snapshot"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "degraded-widget",
+              "provenance": {
+                "kind": "host-state",
+                "source": "host:profile"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "catalog.module": {
+      "slot": "dataSources[0]",
+      "artifactKind": "dataSources",
+      "status": "loaded",
+      "source": "memory://data-sources/module",
+      "ref": {
+        "url": "https://example.gov/data-sources/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecDataSources": "1.0",
+        "id": "https://example.gov/data-sources/main",
+        "version": "1.0.0",
+        "sources": [
+          {
+            "id": "host:profile",
+            "kind": "host-state",
+            "owner": "module",
+            "scope": "session",
+            "availability": {
+              "level": "module",
+              "moduleId": "x-acme-ui"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "snapshot"
+              },
+              "authorizationBoundary": "module",
+              "failureMode": "degraded-widget",
+              "provenance": {
+                "kind": "host-state",
+                "source": "x-acme-ui"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "catalog.definition": {
+      "slot": "dataSources[0]",
+      "artifactKind": "dataSources",
+      "status": "loaded",
+      "source": "memory://data-sources/definition",
+      "ref": {
+        "url": "https://example.gov/data-sources/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecDataSources": "1.0",
+        "id": "https://example.gov/data-sources/main",
+        "version": "1.0.0",
+        "sources": [
+          {
+            "id": "host:profile",
+            "kind": "host-state",
+            "owner": "host",
+            "scope": "definition",
+            "availability": {
+              "level": "definition",
+              "definitionRef": "https://example.gov/definitions/intake"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "snapshot"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "degraded-widget",
+              "provenance": {
+                "kind": "host-state",
+                "source": "host:profile"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "catalog.schema": {
+      "slot": "dataSources[0]",
+      "artifactKind": "dataSources",
+      "status": "loaded",
+      "source": "memory://data-sources/schema",
+      "ref": {
+        "url": "https://example.gov/data-sources/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecDataSources": "1.0",
+        "id": "https://example.gov/data-sources/main",
+        "version": "1.0.0",
+        "sources": [
+          {
+            "id": "host:profile",
+            "kind": "host-state",
+            "owner": "host",
+            "scope": "session",
+            "availability": {
+              "level": "app"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "snapshot"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "degraded-widget",
+              "provenance": {
+                "kind": "host-state",
+                "source": "host:profile"
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "displayName": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "catalog.schema-invalid": {
+      "slot": "dataSources[0]",
+      "artifactKind": "dataSources",
+      "status": "loaded",
+      "source": "memory://data-sources/schema-invalid",
+      "ref": {
+        "url": "https://example.gov/data-sources/main",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecDataSources": "1.0",
+        "id": "https://example.gov/data-sources/main",
+        "version": "1.0.0",
+        "sources": [
+          {
+            "id": "host:profile",
+            "kind": "host-state",
+            "owner": "host",
+            "scope": "session",
+            "availability": {
+              "level": "app"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "snapshot"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "degraded-widget",
+              "provenance": {
+                "kind": "host-state",
+                "source": "host:profile"
+              }
+            },
+            "schema": false
+          }
+        ]
+      }
+    },
+    "locale.app-en": {
+      "slot": "locales[0]",
+      "artifactKind": "locale",
+      "status": "loaded",
+      "source": "memory://locale/app-en",
+      "ref": {
+        "url": "https://example.gov/locales/en-us",
+        "version": "1.0.0",
+        "locale": "en-US"
+      },
+      "document": {
+        "$formspecLocale": "2.0",
+        "url": "https://example.gov/locales/en-us",
+        "version": "1.0.0",
+        "locale": "en-us",
+        "target": {
+          "kind": "app",
+          "url": "https://example.gov/apps/vnext",
+          "compatibleVersions": "^1.0.0"
+        },
+        "strings": {}
+      }
+    },
+    "locale.ref-mismatch": {
+      "slot": "locales[0]",
+      "artifactKind": "locale",
+      "status": "loaded",
+      "source": "memory://locale/ref-mismatch",
+      "ref": {
+        "url": "https://example.gov/locales/en-us",
+        "version": "1.0.0",
+        "locale": "en-US"
+      },
+      "document": {
+        "$formspecLocale": "2.0",
+        "url": "https://example.gov/locales/en-us",
+        "version": "1.0.0",
+        "locale": "fr-FR",
+        "target": {
+          "kind": "app",
+          "url": "https://example.gov/apps/vnext"
+        },
+        "strings": {}
+      }
+    },
+    "locale.target-missing": {
+      "slot": "locales[0]",
+      "artifactKind": "locale",
+      "status": "loaded",
+      "source": "memory://locale/target-missing",
+      "ref": {
+        "url": "https://example.gov/locales/en-us",
+        "version": "1.0.0",
+        "locale": "en-US"
+      },
+      "document": {
+        "$formspecLocale": "2.0",
+        "url": "https://example.gov/locales/en-us",
+        "version": "1.0.0",
+        "locale": "en-US",
+        "target": {
+          "kind": "definition",
+          "url": "https://example.gov/definitions/not-loaded"
+        },
+        "strings": {}
+      }
+    },
+    "locale.app-en-copy": {
+      "slot": "locales[1]",
+      "artifactKind": "locale",
+      "status": "loaded",
+      "source": "memory://locale/app-en-copy",
+      "ref": {
+        "url": "https://example.gov/locales/en-us-copy",
+        "version": "1.0.0",
+        "locale": "en-us"
+      },
+      "document": {
+        "$formspecLocale": "2.0",
+        "url": "https://example.gov/locales/en-us-copy",
+        "version": "1.0.0",
+        "locale": "en-US",
+        "target": {
+          "kind": "app",
+          "url": "https://example.gov/apps/vnext"
+        },
+        "strings": {}
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "complete-widget-graph-valid",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "definitions": ["definition.intake"],
+          "surfaces": ["surface.valid"],
+          "dataSources": ["catalog.app"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": true,
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "catalog-id-must-match-manifest-ref",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.no-widget"],
+          "dataSources": ["catalog.bad-id"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "DATA-SOURCE-CATALOG-REF",
+            "reason": "catalog-id-mismatch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "availability-route-requires-qualified-surface",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.no-widget"],
+          "dataSources": ["catalog.bad-route"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "DATA-SOURCE-AVAILABILITY-REF",
+            "reason": "surface-unresolved"
+          }
+        ]
+      }
+    },
+    {
+      "id": "availability-route-identity-is-surface-qualified",
+      "request": {
+        "manifest": "manifest.two",
+        "artifacts": {
+          "surfaces": ["surface.no-widget", "surface.reviewer"],
+          "dataSources": ["catalog.route-qualified"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": true,
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "availability-slot-resolves-exact-qualified-slot",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.valid"],
+          "dataSources": ["catalog.slot-qualified"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": true,
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "availability-slot-rejects-missing-qualified-slot",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.no-widget"],
+          "dataSources": ["catalog.slot-missing"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "DATA-SOURCE-AVAILABILITY-REF",
+            "reason": "qualified-slot-unresolved"
+          }
+        ]
+      }
+    },
+    {
+      "id": "availability-module-requires-admitted-module",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.no-widget"],
+          "dataSources": ["catalog.module"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": true,
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "widget-required-binding-rejects-missing-source",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.data-missing"],
+          "dataSources": ["catalog.app"],
+          "registries": ["registry.widgets"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "WIDGET-DATA-REQUIRED-UNAVAILABLE",
+            "reason": "source-unresolved"
+          }
+        ]
+      }
+    },
+    {
+      "id": "widget-binding-rejects-undeclared-input",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.data-undeclared"],
+          "dataSources": ["catalog.app"],
+          "registries": ["registry.widgets"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-WIDGET-DATA-BINDING",
+            "reason": "input-undeclared"
+          }
+        ]
+      }
+    },
+    {
+      "id": "definition-availability-does-not-cover-widget",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "definitions": ["definition.intake"],
+          "surfaces": ["surface.valid"],
+          "dataSources": ["catalog.definition"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "WIDGET-DATA-REQUIRED-UNAVAILABLE",
+            "reason": "source-unavailable"
+          }
+        ]
+      }
+    },
+    {
+      "id": "optional-source-payload-schema-is-admitted",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.valid"],
+          "dataSources": ["catalog.schema"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": true,
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "malformed-source-payload-schema-is-unavailable",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.valid"],
+          "dataSources": ["catalog.schema-invalid"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "WIDGET-DATA-REQUIRED-UNAVAILABLE",
+            "reason": "source-payload-schema-invalid"
+          }
+        ]
+      }
+    },
+    {
+      "id": "entry-surface-required-for-multiple-surfaces",
+      "request": {
+        "manifest": "manifest.two-no-entry",
+        "artifacts": {
+          "surfaces": ["surface.no-widget", "surface.reviewer"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "APP-ENTRY-AMBIGUOUS",
+            "reason": "entry-surface-required"
+          }
+        ]
+      }
+    },
+    {
+      "id": "explicit-entry-surface-never-falls-back",
+      "request": {
+        "manifest": "manifest.explicit-missing",
+        "artifacts": {
+          "surfaces": ["surface.no-widget"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "APP-ENTRY-SURFACE-UNRESOLVED",
+            "reason": "entry-surface-unresolved"
+          }
+        ]
+      }
+    },
+    {
+      "id": "selected-surface-entry-must-resolve",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.bad-entry"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "SURFACE-ENTRY-UNRESOLVED",
+            "reason": "surface-entry-unresolved"
+          }
+        ]
+      }
+    },
+    {
+      "id": "widget-action-output-must-be-declared",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.action-undeclared"],
+          "dataSources": ["catalog.app"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "E612",
+            "reason": "widget-output-undeclared"
+          }
+        ]
+      }
+    },
+    {
+      "id": "widget-action-ref-must-resolve",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.action-unresolved"],
+          "dataSources": ["catalog.app"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "E612",
+            "reason": "widget-action-ref-unresolved"
+          }
+        ]
+      }
+    },
+    {
+      "id": "e611-credits-exact-widget-action-source",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.valid"],
+          "dataSources": ["catalog.app"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": true,
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "e611-rejects-contribution-id-as-widget-name",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.wrong-widget-vocabulary"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": true,
+        "diagnostics": [
+          {
+            "code": "E611",
+            "reason": "transition-unfireable",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    {
+      "id": "completed-widget-action-refuses-ambiguous-transition",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.action-ambiguous"],
+          "dataSources": ["catalog.app"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "WIDGET-ACTION-TRANSITION-AMBIGUOUS",
+            "reason": "multiple-eligible-transitions"
+          }
+        ]
+      }
+    },
+    {
+      "id": "completed-widget-action-with-zero-transition-reports-stay",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.action-zero"],
+          "dataSources": ["catalog.app"],
+          "registries": ["registry.widgets"],
+          "responseActions": ["response-actions.main"]
+        },
+        "admittedModules": ["x-acme-ui"]
+      },
+      "expected": {
+        "ok": true,
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-WIDGET-ACTION-TRANSITION",
+            "reason": "no-eligible-transition",
+            "severity": "info"
+          }
+        ]
+      }
+    },
+    {
+      "id": "locale-ref-and-app-target-are-coherent",
+      "request": {
+        "manifest": "manifest.locale-one",
+        "artifacts": {
+          "locales": ["locale.app-en"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "locale-reference-urls-are-unique",
+      "request": {
+        "manifest": "manifest.locale-duplicate-ref"
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-LOCALE-REF",
+            "reason": "duplicate-reference-url"
+          }
+        ]
+      }
+    },
+    {
+      "id": "locale-reference-tag-matches-loaded-document",
+      "request": {
+        "manifest": "manifest.locale-one",
+        "artifacts": {
+          "locales": ["locale.ref-mismatch"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-LOCALE-REF",
+            "reason": "reference-document-mismatch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "locale-target-must-be-loaded-app-or-definition",
+      "request": {
+        "manifest": "manifest.locale-one",
+        "artifacts": {
+          "locales": ["locale.target-missing"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-LOCALE-TARGET",
+            "reason": "target-unresolved"
+          }
+        ]
+      }
+    },
+    {
+      "id": "locale-normalized-target-tuples-are-unique",
+      "request": {
+        "manifest": "manifest.locale-two",
+        "artifacts": {
+          "locales": ["locale.app-en", "locale.app-en-copy"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-LOCALE-DUPLICATE",
+            "reason": "duplicate-normalized-target-locale"
+          }
+        ]
+      }
+    }
+  ]
+}

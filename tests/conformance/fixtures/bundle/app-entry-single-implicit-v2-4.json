@@ -1,0 +1,17 @@
+{
+  "fixture": "app-entry-single-implicit-v2-4",
+  "purpose": "App Manifest 2.4 may select its sole Surface implicitly.",
+  "expected": {"valid": true},
+  "bundle": {
+    "$formspecBundle": "2.4",
+    "version": "2.4.0",
+    "id": "https://example.gov/apps/single-surface",
+    "definitions": [],
+    "surfaces": [
+      {
+        "url": "https://example.gov/apps/single-surface/respondent",
+        "version": "0.2.0"
+      }
+    ]
+  }
+}

@@ -3,9 +3,9 @@
  *
  * A queue table is the most obvious candidate for a first-party widget: every
  * operator surface in every tenant needs one. It is also the widget the platform
- * was furthest from having, because a table is nothing without rows and a
- * `module-widget` binding has no channel to supply them (gap ledger
- * `widget-data-binding`).
+ * was furthest from having, because a table is nothing without rows. Surface
+ * 0.2 now supplies them only through Registry-declared named Data Sources
+ * inputs; configuration remains a separate channel.
  *
  * So the contract is narrow and honest: **it renders whatever rows it is given.**
  * Columns come from `binding.config` when the author declared them, and from the

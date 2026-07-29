@@ -51,10 +51,16 @@ export const projectHandlers = {
     if (p.locales && typeof p.locales === 'object') {
       state.locales = {};
       for (const [code, localeData] of Object.entries(p.locales)) {
-        const locale = normalizeBcp47((localeData as LocaleState).locale ?? code);
+        const imported = localeData as LocaleState;
+        const locale = normalizeBcp47(imported.locale ?? code);
         state.locales[locale] = {
-          ...(localeData as LocaleState),
+          ...imported,
+          $formspecLocale: '2.0',
           locale,
+          target: imported.target ?? {
+            kind: 'definition',
+            url: state.definition.url,
+          },
         };
       }
 

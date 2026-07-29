@@ -1,0 +1,21 @@
+{
+  "fixture": "invalid-duplicate-locale-url-v2-4",
+  "purpose": "App Manifest 2.4 Locale references are unique by URL, not by language tag.",
+  "expected": {"valid": false, "errorContains": "locale url"},
+  "bundle": {
+    "$formspecBundle": "2.4",
+    "version": "2.4.0",
+    "id": "https://example.gov/apps/duplicate-locale-url",
+    "definitions": [],
+    "locales": [
+      {
+        "url": "https://example.gov/locales/shared",
+        "locale": "en-US"
+      },
+      {
+        "url": "https://example.gov/locales/shared",
+        "locale": "fr-CA"
+      }
+    ]
+  }
+}

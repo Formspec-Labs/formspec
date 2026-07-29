@@ -9,8 +9,7 @@ use serde_json::Value;
 use crate::semantic_helpers::{
     compatible_version_satisfied, component_node_ids, definition_shape_ids, definition_url,
     definition_version, error, item_option_values, json_path_member, option_set_values,
-    resolve_item_path, scan_interpolations, target_definition_compatible_versions,
-    target_definition_url, theme_page_ids, warning,
+    resolve_item_path, scan_interpolations, theme_page_ids, warning,
 };
 use crate::tree;
 use crate::types::{LintDiagnostic, LintOptions};
@@ -40,6 +39,31 @@ const DATA_TERMINALS: &[&str] = &[
     "value",
     "bind",
     "path",
+];
+const SURFACE_SHELL_STRING_KEYS: &[&str] = &[
+    "slotUnavailableDefinitionForm",
+    "slotUnavailableExperienceUnit",
+    "slotUnavailableWidgetUnimplemented",
+    "slotUnavailableWidgetUndeclared",
+    "slotUnavailableWidgetData",
+    "slotUnavailableStaticContent",
+    "slotUnavailableEmbedUnresolved",
+    "slotUnavailableEmbedCycle",
+    "widgetEmpty",
+    "notFoundTitle",
+    "notFoundBody",
+    "navigationLabel",
+    "transitionContinue",
+    "transitionPending",
+    "transitionFailed",
+    "transitionTargetUnresolved",
+    "transitionTargetCollision",
+    "transitionNoResponseActions",
+    "transitionTriggerUnresolved",
+    "transitionTriggerAmbiguous",
+    "transitionNoExecutor",
+    "transitionSuppliedBySlot",
+    "transitionFireable",
 ];
 
 pub(crate) fn lint_locale(locale: &Value, options: &LintOptions) -> Vec<LintDiagnostic> {
@@ -74,7 +98,7 @@ pub(crate) fn lint_locale(locale: &Value, options: &LintOptions) -> Vec<LintDiag
         component_nodes: component_nodes_by_id(&options.component_documents),
         diagnostics: Vec::new(),
     };
-    analyzer.check_target_definition();
+    analyzer.check_definition_target();
     analyzer.check_strings();
     analyzer.check_fallbacks();
     analyzer.diagnostics
@@ -94,33 +118,39 @@ struct Analyzer<'a> {
 }
 
 impl<'a> Analyzer<'a> {
-    fn check_target_definition(&mut self) {
+    fn check_definition_target(&mut self) {
+        let Some(target) = self.locale.get("target") else {
+            return;
+        };
+        if target.get("kind").and_then(Value::as_str) != Some("definition") {
+            return;
+        }
         let Some(definition) = self.options.definition_document.as_ref() else {
             return;
         };
         if let (Some(target_url), Some(def_url)) = (
-            target_definition_url(self.locale),
+            target.get("url").and_then(Value::as_str),
             definition_url(definition),
         ) && target_url != def_url
         {
             self.diagnostics.push(error(
                 crate::LintCode::E1400,
                 PASS,
-                "$.targetDefinition.url",
+                "$.target.url",
                 format!(
-                    "Locale targetDefinition.url ({target_url:?}) does not match paired Definition url ({def_url:?})"
+                    "Locale target.url ({target_url:?}) does not match paired Definition url ({def_url:?})"
                 ),
             ));
         }
         if let (Some(range), Some(version)) = (
-            target_definition_compatible_versions(self.locale),
+            target.get("compatibleVersions").and_then(Value::as_str),
             definition_version(definition),
         ) && compatible_version_satisfied(range, version) != Some(true)
         {
             self.diagnostics.push(warning(
                 crate::LintCode::W1400,
                 PASS,
-                "$.targetDefinition.compatibleVersions",
+                "$.target.compatibleVersions",
                 format!(
                     "Locale compatibleVersions ({range:?}) does not confidently include paired Definition version ({version:?})"
                 ),
@@ -175,12 +205,40 @@ impl<'a> Analyzer<'a> {
             "optionSet" => self.check_option_set_key(&parts[1..], json_path),
             "page" => self.check_page_key(&parts[1..], json_path),
             "component" => self.check_component_key(&parts[1..], json_path),
+            "module" => self.check_module_key(&parts[1..], json_path),
             other => self.diagnostics.push(error(
                 crate::LintCode::E1401,
                 PASS,
                 json_path,
                 format!("Locale string key uses unknown reserved namespace ${other}"),
             )),
+        }
+    }
+
+    fn check_module_key(&mut self, parts: &[String], json_path: &str) {
+        if parts.len() != 3 || parts.iter().any(String::is_empty) {
+            self.diagnostics.push(error(
+                crate::LintCode::E1401,
+                PASS,
+                json_path,
+                "Locale $module key must use $module.<modId>.<nodeId>.<property>",
+            ));
+            return;
+        }
+
+        if parts[0] == "x-formspec-surface"
+            && parts[1] == "shell"
+            && !SURFACE_SHELL_STRING_KEYS.contains(&strip_context(&parts[2]))
+        {
+            self.diagnostics.push(error(
+                crate::LintCode::E1401,
+                PASS,
+                json_path,
+                format!(
+                    "Locale Surface shell key references unknown SurfaceStringKey {:?}",
+                    strip_context(&parts[2])
+                ),
+            ));
         }
     }
 
@@ -421,23 +479,17 @@ impl<'a> Analyzer<'a> {
     }
 
     fn check_fallbacks(&mut self) {
-        let Some(locale) = self.locale.get("locale").and_then(Value::as_str) else {
+        let Some(identity) = locale_identity(self.locale) else {
             return;
         };
-        let mut fallback_by_locale = HashMap::new();
-        add_locale_fallback(self.locale, &mut fallback_by_locale);
+        let mut fallback_by_identity = HashMap::new();
+        add_locale_fallback(self.locale, &mut fallback_by_identity);
         for peer in &self.options.locale_documents {
-            add_locale_fallback(peer, &mut fallback_by_locale);
+            add_locale_fallback(peer, &mut fallback_by_identity);
         }
 
-        if let Some(fallback) = fallback_by_locale.get(locale)
-            && !fallback.is_empty()
-            && !fallback_by_locale.contains_key(fallback)
-            && !self
-                .options
-                .locale_documents
-                .iter()
-                .any(|doc| doc.get("locale").and_then(Value::as_str) == Some(fallback))
+        if let Some(Some(fallback)) = fallback_by_identity.get(&identity)
+            && !fallback_by_identity.contains_key(&identity.with_locale(fallback))
         {
             self.diagnostics.push(warning(
                 crate::LintCode::W1401,
@@ -449,7 +501,7 @@ impl<'a> Analyzer<'a> {
 
         let mut seen = HashSet::new();
         let mut stack = HashSet::new();
-        if has_fallback_cycle(locale, &fallback_by_locale, &mut seen, &mut stack) {
+        if has_fallback_cycle(&identity, &fallback_by_identity, &mut seen, &mut stack) {
             self.diagnostics.push(error(
                 crate::LintCode::E1406,
                 PASS,
@@ -578,38 +630,72 @@ fn split_locale_key(key: &str) -> Vec<String> {
     parts
 }
 
-fn add_locale_fallback(doc: &Value, fallback_by_locale: &mut HashMap<String, String>) {
-    let Some(locale) = doc.get("locale").and_then(Value::as_str) else {
-        return;
-    };
-    if let Some(fallback) = doc.get("fallback").and_then(Value::as_str) {
-        fallback_by_locale.insert(locale.to_string(), fallback.to_string());
-    } else {
-        fallback_by_locale.entry(locale.to_string()).or_default();
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct LocaleIdentity {
+    target_kind: String,
+    target_url: String,
+    locale: String,
+}
+
+impl LocaleIdentity {
+    fn with_locale(&self, locale: &str) -> Self {
+        Self {
+            target_kind: self.target_kind.clone(),
+            target_url: self.target_url.clone(),
+            locale: normalize_locale(locale),
+        }
     }
 }
 
+fn locale_identity(doc: &Value) -> Option<LocaleIdentity> {
+    let target = doc.get("target")?;
+    Some(LocaleIdentity {
+        target_kind: target.get("kind")?.as_str()?.to_string(),
+        target_url: target.get("url")?.as_str()?.to_string(),
+        locale: normalize_locale(doc.get("locale")?.as_str()?),
+    })
+}
+
+fn normalize_locale(locale: &str) -> String {
+    locale.to_ascii_lowercase()
+}
+
+fn add_locale_fallback(
+    doc: &Value,
+    fallback_by_identity: &mut HashMap<LocaleIdentity, Option<String>>,
+) {
+    let Some(identity) = locale_identity(doc) else {
+        return;
+    };
+    let fallback = doc
+        .get("fallback")
+        .and_then(Value::as_str)
+        .map(normalize_locale);
+    fallback_by_identity.insert(identity, fallback);
+}
+
 fn has_fallback_cycle(
-    locale: &str,
-    fallback_by_locale: &HashMap<String, String>,
-    seen: &mut HashSet<String>,
-    stack: &mut HashSet<String>,
+    identity: &LocaleIdentity,
+    fallback_by_identity: &HashMap<LocaleIdentity, Option<String>>,
+    seen: &mut HashSet<LocaleIdentity>,
+    stack: &mut HashSet<LocaleIdentity>,
 ) -> bool {
-    if !stack.insert(locale.to_string()) {
+    if !stack.insert(identity.clone()) {
         return true;
     }
-    if !seen.insert(locale.to_string()) {
-        stack.remove(locale);
+    if !seen.insert(identity.clone()) {
+        stack.remove(identity);
         return false;
     }
-    if let Some(next) = fallback_by_locale.get(locale)
-        && !next.is_empty()
-        && fallback_by_locale.contains_key(next)
-        && has_fallback_cycle(next, fallback_by_locale, seen, stack)
-    {
-        return true;
+    if let Some(Some(next_locale)) = fallback_by_identity.get(identity) {
+        let next = identity.with_locale(next_locale);
+        if fallback_by_identity.contains_key(&next)
+            && has_fallback_cycle(&next, fallback_by_identity, seen, stack)
+        {
+            return true;
+        }
     }
-    stack.remove(locale);
+    stack.remove(identity);
     false
 }
 
@@ -656,10 +742,13 @@ mod tests {
             }
         });
         let locale = json!({
-            "$formspecLocale": "1.0",
+            "$formspecLocale": "2.0",
             "version": "1.0.0",
             "locale": "fr-CA",
-            "targetDefinition": { "url": "https://example.com/forms/locale" },
+            "target": {
+                "kind": "definition",
+                "url": "https://example.com/forms/locale"
+            },
             "strings": {
                 "$page.intro.subtitle": "Subtitle",
                 "$component.main.label": "Main",
@@ -693,5 +782,176 @@ mod tests {
             diag.path.contains("$component.body.text")
                 || diag.path.contains("choice.options.yes.label")
         }));
+    }
+
+    #[test]
+    fn definition_target_is_checked_but_app_target_is_not_compared_to_definition() {
+        let definition = json!({
+            "$formspec": "1.0",
+            "url": "https://example.com/forms/expected",
+            "version": "1.0.0",
+            "status": "draft",
+            "title": "Locale test",
+            "items": []
+        });
+        let definition_locale =
+            locale_document("definition", "https://example.com/forms/other", "en", None);
+        let app_locale = locale_document("app", "https://example.com/apps/intake", "en", None);
+        let options = LintOptions {
+            definition_document: Some(definition),
+            no_fel: true,
+            ..Default::default()
+        };
+
+        let definition_diagnostics = lint_locale(&definition_locale, &options);
+        let app_diagnostics = lint_locale(&app_locale, &options);
+
+        assert!(
+            definition_diagnostics
+                .iter()
+                .any(|diag| { diag.code == crate::LintCode::E1400 && diag.path == "$.target.url" })
+        );
+        assert!(
+            !app_diagnostics
+                .iter()
+                .any(|diag| diag.code == crate::LintCode::E1400)
+        );
+    }
+
+    #[test]
+    fn module_keys_admit_generic_addresses_and_only_known_surface_shell_keys() {
+        let mut locale = locale_document("app", "https://example.com/apps/intake", "en", None);
+        locale["strings"] = json!({
+            "$module.x-reviewer.case.heading": "Review",
+            "$module.x-formspec-surface.shell.navigationLabel": "Pages",
+            "$module.x-formspec-surface.shell.notAKey": "Unknown"
+        });
+
+        let diagnostics = lint_locale(
+            &locale,
+            &LintOptions {
+                no_fel: true,
+                ..Default::default()
+            },
+        );
+
+        assert!(
+            diagnostics.iter().any(|diag| {
+                diag.code == crate::LintCode::E1401 && diag.path.contains("notAKey")
+            })
+        );
+        assert!(!diagnostics.iter().any(|diag| {
+            diag.path.contains("x-reviewer") || diag.path.contains("navigationLabel")
+        }));
+    }
+
+    #[test]
+    fn fallback_lookup_is_case_insensitive_and_bounded_to_target_identity() {
+        let current = locale_document(
+            "definition",
+            "https://example.com/forms/a",
+            "fr-CA",
+            Some("FR"),
+        );
+        let same_target = locale_document("definition", "https://example.com/forms/a", "fr", None);
+        let other_target = locale_document("definition", "https://example.com/forms/b", "fr", None);
+
+        let resolved = lint_locale(
+            &current,
+            &LintOptions {
+                locale_documents: vec![same_target],
+                no_fel: true,
+                ..Default::default()
+            },
+        );
+        let isolated = lint_locale(
+            &current,
+            &LintOptions {
+                locale_documents: vec![other_target],
+                no_fel: true,
+                ..Default::default()
+            },
+        );
+
+        assert!(
+            !resolved
+                .iter()
+                .any(|diag| diag.code == crate::LintCode::W1401)
+        );
+        assert!(
+            isolated
+                .iter()
+                .any(|diag| diag.code == crate::LintCode::W1401)
+        );
+    }
+
+    #[test]
+    fn fallback_cycle_detection_never_crosses_target_identity() {
+        let current = locale_document(
+            "definition",
+            "https://example.com/forms/a",
+            "fr-CA",
+            Some("fr"),
+        );
+        let same_target = locale_document(
+            "definition",
+            "https://example.com/forms/a",
+            "fr",
+            Some("fr-CA"),
+        );
+        let other_target = locale_document(
+            "definition",
+            "https://example.com/forms/b",
+            "fr",
+            Some("fr-CA"),
+        );
+
+        let cycle = lint_locale(
+            &current,
+            &LintOptions {
+                locale_documents: vec![same_target],
+                no_fel: true,
+                ..Default::default()
+            },
+        );
+        let isolated = lint_locale(
+            &current,
+            &LintOptions {
+                locale_documents: vec![other_target],
+                no_fel: true,
+                ..Default::default()
+            },
+        );
+
+        assert!(cycle.iter().any(|diag| diag.code == crate::LintCode::E1406));
+        assert!(
+            !isolated
+                .iter()
+                .any(|diag| diag.code == crate::LintCode::E1406)
+        );
+    }
+
+    fn locale_document(
+        target_kind: &str,
+        target_url: &str,
+        locale: &str,
+        fallback: Option<&str>,
+    ) -> Value {
+        let mut document = json!({
+            "$formspecLocale": "2.0",
+            "version": "1.0.0",
+            "locale": locale,
+            "target": {
+                "kind": target_kind,
+                "url": target_url
+            },
+            "strings": {
+                "$form.title": "Example"
+            }
+        });
+        if let Some(fallback) = fallback {
+            document["fallback"] = json!(fallback);
+        }
+        document
     }
 }

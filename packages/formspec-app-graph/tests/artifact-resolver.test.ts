@@ -10,6 +10,7 @@ const SECOND_COMPONENT_URL = 'https://example.gov/components/summary';
 const DATASOURCES_URL = 'https://example.gov/data-sources';
 const LOCALE_URL = 'https://example.gov/locales/en';
 const MAPPING_URL = 'https://example.gov/mappings/default';
+const SCREENER_URL = 'https://example.gov/screeners/eligibility';
 
 function manifest(partial: Record<string, unknown> = {}) {
   return {
@@ -175,6 +176,44 @@ describe('resolveArtifacts', () => {
     });
     expect(components.diagnostics.map((entry) => entry.code)).toContain('ARTIFACT-COMPONENTS-VERSION-GATE');
     expect(loader).not.toHaveBeenCalled();
+  });
+
+  it('admits App Manifest 2.4 and every earlier gated sibling family', async () => {
+    const report = await resolveArtifacts({
+      manifest: manifest({
+        $formspecBundle: '2.4',
+        definitions: [],
+        dataSources: [{ url: DATASOURCES_URL, version: '1.0.0' }],
+        components: [{ url: COMPONENT_URL, version: '1.0.0', handle: 'review' }],
+        screeners: [{ url: SCREENER_URL, version: '1.0.0' }],
+      }),
+      loader: memoryLoader({
+        [DATASOURCES_URL]: {
+          $formspecDataSources: '1.0',
+          id: DATASOURCES_URL,
+          version: '1.0.0',
+          sources: [],
+        },
+        [COMPONENT_URL]: {
+          $formspecComponent: '1.2',
+          url: COMPONENT_URL,
+          version: '1.0.0',
+          tree: { component: 'Stack', children: [] },
+        },
+        [SCREENER_URL]: {
+          $formspecScreener: '1.0',
+          id: SCREENER_URL,
+          version: '1.0.0',
+        },
+      }),
+    });
+
+    expect(report.ok).toBe(true);
+    expect(report.summary).toMatchObject({
+      declaredRefs: 3,
+      loadedArtifacts: 3,
+      errors: 0,
+    });
   });
 
   it('honors support profile artifact kinds and URI schemes before loading', async () => {

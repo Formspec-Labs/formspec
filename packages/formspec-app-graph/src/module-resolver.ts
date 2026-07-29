@@ -24,6 +24,7 @@ import {
   type PostureModuleField,
   type PostureModuleRef,
 } from './posture-admission.js';
+import { resolveWidgetContribution } from './widget-contribution.js';
 
 export interface ModuleResolverRegistryEntry {
   name: string;
@@ -34,6 +35,8 @@ export interface ModuleResolverRegistryEntry {
   widgetShape?: {
     props?: unknown;
     tokenSlots?: unknown;
+    dataInputs?: unknown;
+    actionOutputs?: unknown;
   };
   categoryShape?: {
     prefix?: unknown;
@@ -169,13 +172,24 @@ function asRecord(value: unknown): JsonRecord | undefined {
 }
 
 function recordArray(value: unknown): JsonRecord[] {
-  return Array.isArray(value)
-    ? value.flatMap((entry) => asRecord(entry) ? [entry as JsonRecord] : [])
-    : [];
+  if (!Array.isArray(value)) return [];
+  const records: JsonRecord[] = [];
+  for (let index = 0; index < value.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(value, index)) continue;
+    const entry = asRecord(value[index]);
+    if (entry) records.push(entry);
+  }
+  return records;
 }
 
 function stringValue(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
+}
+
+function ownValue(value: JsonRecord | undefined, key: string): unknown {
+  return value && Object.prototype.hasOwnProperty.call(value, key)
+    ? value[key]
+    : undefined;
 }
 
 function extensionName(value: unknown): string | undefined {
@@ -306,9 +320,9 @@ function registryInputFromHandle(handle: ResolvedArtifactHandle): ModuleResolver
   if (handle.artifactKind !== 'registry') return undefined;
   const document = loadedDocument(handle);
   if (!document) return undefined;
-  const entries = recordArray(document.entries).flatMap((entry) => {
-    const name = stringValue(entry.name);
-    const category = stringValue(entry.category);
+  const entries = recordArray(ownValue(document, 'entries')).flatMap((entry) => {
+    const name = stringValue(ownValue(entry, 'name'));
+    const category = stringValue(ownValue(entry, 'category'));
     return name && category ? [{ ...entry, name, category } as ModuleResolverRegistryEntry] : [];
   });
   if (entries.length === 0) return undefined;
@@ -320,61 +334,27 @@ function registryInputFromHandle(handle: ResolvedArtifactHandle): ModuleResolver
   };
 }
 
-/**
- * Map a Surface `module-widget` binding's `widgetName` to the RegistryEntry `name` that
- * carries it.
- *
- * **The two `widgetName` fields are different vocabularies, and this asymmetry is
- * deliberate — do not unify it with {@link uiGraphPolicyUses}.** ADR 0160 §2.4:
- *
- * - `surface.schema.json` `$defs/Slot` module-widget `binding.widgetName` carries **no
- *   pattern** and is documented as "matches `widgetShape.widgetName`". It is the
- *   module's own (often PascalCase) widget name, NOT a contribution id — so it must be
- *   mapped here before it can resolve against `RegistryEntry.name`.
- * - `ui-graph-policy.schema.json` `$defs/WidgetRef.widgetName` carries the pattern
- *   `^x-[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$` — the SAME vocabulary as
- *   `RegistryEntry.name`. It is already the contribution id, so `uiGraphPolicyUses`
- *   uses it directly and MUST NOT route through this function: the lookup keys on
- *   `widgetShape.widgetName`, would miss, and would silently mis-resolve the day a
- *   module names a `widgetShape.widgetName` that collides with some contribution id.
- *
- * Same JSON key, two schemas, two vocabularies. Conflating them is what v9 finding 41
- * half-diagnosed.
- */
-function widgetContributionNameFor(
-  moduleId: string,
-  widgetName: string,
-  registries: readonly ModuleResolverRegistryInput[],
-): string | undefined {
-  const allEntries = registries.flatMap((registry) => registry.entries);
-  for (const registry of registries) {
-    const entriesByName = new Map(registry.entries.map((entry) => [entry.name, entry]));
-    const moduleEntry = entriesByName.get(moduleId);
-    if (moduleEntry?.category !== 'module') continue;
-    for (const contributionName of moduleEntry.contributes ?? []) {
-      const contribution = allEntries.find((entry) => entry.name === contributionName);
-      if (contribution?.category !== 'widget') continue;
-      const shape = asRecord(contribution.widgetShape);
-      if (stringValue(shape?.widgetName) === widgetName) return contributionName;
-    }
-  }
-  return undefined;
-}
-
 function surfaceUses(
   handle: ResolvedArtifactHandle,
   document: JsonRecord,
   registries: readonly ModuleResolverRegistryInput[],
 ): ModuleResolverContributionUse[] {
-  return recordArray(document.routes).flatMap((route, routeIndex) =>
-    recordArray(route.slots).flatMap((slot, slotIndex) => {
-      if (slot.slotType !== 'module-widget') return [];
-      const binding = asRecord(slot.binding);
+  return recordArray(ownValue(document, 'routes')).flatMap((route, routeIndex) =>
+    recordArray(ownValue(route, 'slots')).flatMap((slot, slotIndex) => {
+      if (ownValue(slot, 'slotType') !== 'module-widget') return [];
+      const binding = asRecord(ownValue(slot, 'binding'));
       if (!binding) return [];
-      const moduleId = stringValue(binding.moduleId);
-      const widgetName = stringValue(binding.widgetName);
+      const moduleId = stringValue(ownValue(binding, 'moduleId'));
+      const widgetName = stringValue(ownValue(binding, 'widgetName'));
       if (!moduleId || !widgetName) return [];
-      const name = widgetContributionNameFor(moduleId, widgetName, registries) ?? widgetName;
+      // Surface binding names use `widgetShape.widgetName`. UI Graph Policy
+      // widget refs use contribution ids directly and must not pass through
+      // this lookup; the identical JSON key belongs to a different vocabulary.
+      const contribution = resolveWidgetContribution(
+        { moduleId, widgetName },
+        registries.flatMap((registry) => registry.entries),
+      );
+      const name = contribution?.name ?? widgetName;
       const use: ModuleResolverContributionUse = {
         site: 'surface.module-widget.binding.widgetName',
         name,
@@ -382,8 +362,9 @@ function surfaceUses(
         expectedOwnerModuleId: moduleId,
         source: sourceForGraphHandle(handle, `/routes/${routeIndex}/slots/${slotIndex}/binding/widgetName`),
       };
-      if (binding.config !== undefined) {
-        use.payload = binding.config;
+      const config = ownValue(binding, 'config');
+      if (config !== undefined) {
+        use.payload = config;
         use.payloadSource = sourceForGraphHandle(handle, `/routes/${routeIndex}/slots/${slotIndex}/binding/config`);
       }
       return [use];
@@ -519,12 +500,12 @@ function documentInputFromHandle(
 }
 
 /**
- * `widgetRef.widgetName` is used as the contribution name **verbatim**, unlike the
- * Surface path at {@link surfaceUses}, which maps through
- * {@link widgetContributionNameFor}. That is correct, not an oversight: this field's
- * schema pattern is the `RegistryEntry.name` vocabulary, so it is already the
- * contribution id. See {@link widgetContributionNameFor} for the full three-vocabulary
- * discipline (ADR 0160 §2.4) before changing either side.
+ * `widgetRef.widgetName` is used as the contribution name **verbatim**, unlike
+ * the Surface path at {@link surfaceUses}, which resolves
+ * `widgetShape.widgetName` through {@link resolveWidgetContribution}. That is
+ * correct, not an oversight: this field uses the `RegistryEntry.name`
+ * vocabulary, so it is already the contribution id. Keep those vocabularies
+ * distinct per ADR 0160 §2.4.
  */
 function uiGraphPolicyUses(
   evidence: NonNullable<AppGraphHostEvidence['uiGraphPolicies']>[number],

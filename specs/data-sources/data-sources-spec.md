@@ -22,7 +22,10 @@ depends_on:
 
 This document is a draft normative companion to [Formspec v1.0 core specification](../core/spec.md) and [App Manifest](../bundle/app-manifest-spec.md). It defines a peer app-graph Data Sources catalog for sources that must be resolved across an app, route, slot, module, or external resource boundary.
 
-This document is additive. It does not replace Definition-local `instances`, does not define a runtime loader, and does not authorize fine-grained access policy.
+This document is additive. It does not replace Definition-local `instances` or
+authorize fine-grained access policy. Section 12 defines the narrow runtime
+loader boundary for admitted source descriptions; it does not define the
+server-side authorization policy behind that boundary.
 
 ## Bottom Line Up Front
 
@@ -33,7 +36,7 @@ This document is additive. It does not replace Definition-local `instances`, doe
 - Route or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
 - The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
 - Fine-grained actor, operation, route, widget, or field authorization stays fail-closed here by decision, not by deferral: runtime data-access authorization is server-side engine territory (ADR 0117, Zanzibar-lineage behind `AuthorizationPort`), and ADR 0152 (accepted) covers authoring-time write authority only.
-- ADR 0153 gate 5 "Closed" is the catalog contract only — availability validator (`fs-r2od`) and runtime loader (`fs-9d5e`) are tracked in [`thoughts/2026-05-26-open-work-index.md`](../../../thoughts/2026-05-26-open-work-index.md).
+- ADR 0153 gate 5 "Closed" is the catalog contract. The availability validator (`fs-r2od`) and runtime loader (`fs-9d5e`) are now implemented; their durable source and test evidence lives in the linked tracker records.
 <!-- bluf:end -->
 
 ## 1. Purpose and Scope
@@ -57,7 +60,8 @@ In scope:
 
 Out of scope:
 
-- fetching, subscribing, caching, or materializing source payloads,
+- prescribing host-specific fetching, subscription, cache storage, or source
+  materialization beyond the loader behavior in §12,
 - defining a query language,
 - executing Response Actions,
 - changing Definition-local `instances`,
@@ -249,26 +253,107 @@ App Manifest v2.1 Data Sources references are covered in `tests/conformance/fixt
 
 ## 11. Contract vs stack implementation
 
-This v1.0 document closes the **catalog contract** (ADR 0153 gate 5). Shared graph loading and validation exist elsewhere; this spec still does not define runtime behavior.
+This v1.0 document closes the **catalog contract** (ADR 0153 gate 5) and
+defines the narrow snapshot-loader behavior in §12. Shared graph loading,
+validation, and the reference runtime live in the named packages below.
 
 | Concern | Status | Where |
 |---|---|---|
 | Peer artifact spec + schema + fixtures | **Closed** (this document) | §3–§10 |
 | `ArtifactResolver` / `ModuleResolver` load `dataSources[]` siblings | **Closed** (contract + kernel) | ADR 0153 gates 4, 12; `artifact-resolver-spec.md` |
-| `AppGraphValidator` availability cross-artifact checks | **Open** | Stack ticket [`fs-r2od`](../../../.tickets/fs-r2od.md) |
-| Payload fetch, cache enforcement, host loader port | **Open** | Stack ticket [`fs-9d5e`](../../../.tickets/fs-9d5e.md); requires normative loader slice (§12) |
+| `AppGraphValidator` availability cross-artifact checks | **Closed** | `@formspec-org/app-graph`; stack ticket [`fs-r2od`](../../../.tickets/fs-r2od.md) |
+| Payload fetch and host loader port | **Closed for snapshot MVP** | §12; `@formspec-org/surface` canonical port and HTTP document-resource bridge |
+| Full cache, subscription, and draft-delivery enforcement | **Open** | Later runtime work; not implied by the snapshot MVP |
 | Source-to-Definition-instance bridge | **Open** | Explicit mapping only; not implied by catalog |
 | Renderer fallback / query language | **Out of scope** | — |
 | Fine-grained runtime data-access authorization | **Out of this artifact by decision** | ADR 0117 (server-side engine behind `AuthorizationPort`); ADR 0152 §4.3 / §6 declines the axis |
 
 **Cold-read index:** [`thoughts/2026-05-26-open-work-index.md`](../../../thoughts/2026-05-26-open-work-index.md).
 
-## 12. Runtime loader (future normative slice)
+## 12. Runtime loader
 
-The catalog declares `runtime` delivery, cache, staleness, failure, and provenance metadata. **No processor in this spec version fetches or materializes payloads.** When a loader lands:
+The catalog declares a source. A host loads its value. These remain separate
+facts.
 
-1. A host **`DataSourceLoader`** (name TBD) port resolves declared sources against loaded graph handles — not fixture paths.
-2. **Definition `instances`** remain the authority for `@instance()` inside a Definition unless an explicit, documented bridge maps a catalog `sources[].id` to an instance name.
-3. **Definition-local** URL / `formspec-fn:` loading in Core §2.1.7 and `FormEngine` stays valid for form-only apps without a peer catalog.
+### 12.1 Canonical port
 
-Implementation tracking: tickets `fs-r2od` (validator availability) then `fs-9d5e` (loader MVP). Do not treat ADR 0153 gate 5 "Closed" as runtime-complete.
+A Data-Sources-Aware Runtime MUST expose one `DataSourceLoader` port. Its input
+is:
+
+- the exact manifested catalog URL;
+- the exact source id within that catalog;
+- the loaded catalog and source declarations; and
+- the active Surface URL/id, route id, slot id, module id, widget name, route
+  parameters, and opaque route/session generation.
+
+The source identity is always `(catalogRef, sourceRef)`. The runtime MUST resolve
+the catalog and source exactly once before calling the loader. It MUST NOT pass
+fixture paths, infer a source from a filename or widget name, perform
+unqualified source lookup, or use widget configuration as payload.
+
+The loader returns either:
+
+- `loaded`, with a value and explicit `fresh` or `stale` status; or
+- `unavailable`, with a reason.
+
+The loader does not make an authorization decision and does not validate its own
+payload. Keeping those decisions outside the load port prevents an HTTP client
+from silently becoming policy or schema authority.
+
+### 12.2 Delivery order and fail-closed behavior
+
+Before exposing a value to a consumer, the runtime MUST perform these steps in
+order:
+
+1. recheck the source's declared availability against the exact active use;
+2. obtain a host authorization verdict at
+   `runtime.authorizationBoundary`;
+3. call `DataSourceLoader`; and
+4. when `source.schema` is present, validate the returned value with the host's
+   JSON Schema validator.
+
+A missing authorization port is a refusal. A declared payload schema with no
+validator is a validation failure. Exceptions at any stage are unavailable
+outcomes, not successful empty values. The runtime MUST NOT expose a partial
+named input object when a required input fails.
+
+For Surface module widgets:
+
+- the delivered object is read-only and keyed only by Registry-declared input
+  names;
+- an unbound optional input is absent;
+- any failed required input makes the widget unavailable and reports
+  `WIDGET-DATA-REQUIRED-UNAVAILABLE`;
+- a failed optional `degraded-widget` input is absent while the remaining
+  successfully delivered inputs may render;
+- `empty-state` renders an explicit empty state, not `{}`, `null`, sample data,
+  or another source;
+- `block-render` withholds the widget and renders the shell's unavailable
+  posture; and
+- `stale-ok` admits a loader result explicitly marked `stale`. Every other
+  failure mode rejects stale data.
+
+Full snapshot expiration, subscription lifetime, draft synchronization, and
+cross-process cache coordination remain outside this MVP. A loader MUST still
+state freshness; a consumer MUST NOT infer it from a local clock.
+
+### 12.3 `document-resource` bridge
+
+The reference runtime includes one production bridge for HTTP(S)
+`document-resource` sources. It passes the exact
+`runtime.provenance.source` URL and the full qualified load request to a
+host-injected resource reader. The host reader owns origin policy, credentials,
+HTTP implementation, telemetry, and transport retries. The bridge refuses
+non-HTTP provenance and every other source family rather than guessing.
+
+### 12.4 Definition-instance boundary
+
+Definition `instances` remain the authority for `@instance()` inside a
+Definition unless a separate, explicit bridge maps a catalog source id to an
+instance name. Definition-local URL / `formspec-fn:` loading in Core §2.1.7 and
+`FormEngine` stays valid for form-only apps without a peer catalog. Neither
+mechanism aliases the other by name, URL, or load order.
+
+Implementation tracking: `fs-r2od` closed graph validation and `fs-9d5e`
+closed this snapshot loader MVP on 2026-07-28. Neither ticket claims the full
+cache, subscription, or draft-delivery lifecycle.

@@ -40,9 +40,12 @@ export interface ReceiptPanelData {
   facts?: readonly ReceiptFact[];
 }
 
-function readData(data: unknown): ReceiptPanelData {
+function readReceiptInput(data: unknown): ReceiptPanelData {
   if (typeof data !== 'object' || data === null) return {};
-  const record = data as Record<string, unknown>;
+  const namedInputs = data as Record<string, unknown>;
+  const receipt = namedInputs.receipt;
+  if (typeof receipt !== 'object' || receipt === null) return {};
+  const record = receipt as Record<string, unknown>;
   const text = (key: string): string | undefined =>
     typeof record[key] === 'string' && record[key] !== '' ? (record[key] as string) : undefined;
   const facts = Array.isArray(record.facts)
@@ -71,7 +74,7 @@ function formatWhen(iso: string): string {
 }
 
 export function ReceiptPanel({ data, route, headingLevel, slot, config }: SurfaceWidgetProps) {
-  const parsed = readData(data);
+  const parsed = readReceiptInput(data);
   // The address bar is a fact about this page, not invented content: a
   // `/receipt/{caseRef}` route IS addressed by the reference.
   const caseRefParamName = typeof config.caseRefParam === 'string' ? config.caseRefParam : 'caseRef';

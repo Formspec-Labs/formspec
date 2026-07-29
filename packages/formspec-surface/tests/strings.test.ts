@@ -9,7 +9,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_SURFACE_STRINGS,
+  SURFACE_LOCALE_KEY_PREFIX,
   SURFACE_STRING_KEYS,
+  resolveSurfaceLocaleStrings,
   resolveSurfaceStrings,
 } from '../src/strings.js';
 import { composeSurfaceApp } from '../src/composition.js';
@@ -35,12 +37,12 @@ describe('the string table', () => {
 });
 
 describe('host overrides', () => {
-  it('takes a plain string and interpolates the same vars the default gets', () => {
+  it('takes a plain string exactly and does not run the retired single-brace parser', () => {
     const strings = resolveSurfaceStrings({
       slotUnavailableWidgetUndeclared: 'Bileşen “{widgetName}” bu sürümde tanımlı değil.',
     });
     expect(strings('slotUnavailableWidgetUndeclared', { widgetName: 'x-queue' })).toBe(
-      'Bileşen “x-queue” bu sürümde tanımlı değil.',
+      'Bileşen “{widgetName}” bu sürümde tanımlı değil.',
     );
   });
 
@@ -57,9 +59,54 @@ describe('host overrides', () => {
     expect(strings('notFoundBody')).toBe(DEFAULT_SURFACE_STRINGS.notFoundBody({}));
   });
 
-  it('leaves an unknown placeholder alone rather than printing "undefined"', () => {
+  it('leaves every single-brace sequence literal', () => {
     const strings = resolveSurfaceStrings({ notFoundTitle: 'No {thing} here.' });
     expect(strings('notFoundTitle', {})).toBe('No {thing} here.');
+  });
+});
+
+describe('Locale 2.0 adapter', () => {
+  const interpolate = (template: string, vars: Readonly<Record<string, string>>) =>
+    template.replace(/\{\{\$([A-Za-z][A-Za-z0-9_]*)\}\}/g, (whole, name: string) =>
+      Object.prototype.hasOwnProperty.call(vars, name) ? (vars[name] as string) : whole,
+    );
+
+  it('uses the canonical shell key and passes read-only shell variables to FEL', () => {
+    const lookedUp: string[] = [];
+    const strings = resolveSurfaceLocaleStrings({
+      lookup: (key) => {
+        lookedUp.push(key);
+        return key.endsWith('.transitionContinue') ? 'Devam: {{$target}}' : null;
+      },
+      interpolate,
+    });
+
+    expect(strings('transitionContinue', { target: 'Makbuz' })).toBe('Devam: Makbuz');
+    expect(lookedUp).toEqual([
+      `${SURFACE_LOCALE_KEY_PREFIX}transitionContinue`,
+    ]);
+  });
+
+  it('falls through a missing localized key to the built-in English default', () => {
+    const strings = resolveSurfaceLocaleStrings({
+      lookup: () => null,
+      interpolate,
+    });
+
+    expect(strings('transitionContinue', { target: 'Receipt' })).toBe(
+      DEFAULT_SURFACE_STRINGS.transitionContinue({ target: 'Receipt' }),
+    );
+  });
+
+  it('treats single braces in authored Locale text as literal', () => {
+    const strings = resolveSurfaceLocaleStrings({
+      lookup: () => 'Literal {target}; FEL {{$target}}',
+      interpolate,
+    });
+
+    expect(strings('transitionContinue', { target: 'Receipt' })).toBe(
+      'Literal {target}; FEL Receipt',
+    );
   });
 });
 
@@ -77,7 +124,10 @@ describe('the transition planner reads the table', () => {
       handle: apply,
       app,
       hasExecutor: false,
-      strings: { transitionNoResponseActions: 'Bu sürüm “{trigger}” işlemini tanımlamıyor.' },
+      strings: {
+        transitionNoResponseActions: ({ trigger = '' }) =>
+          `Bu sürüm “${trigger}” işlemini tanımlamıyor.`,
+      },
     });
     expect(transitions[0]?.reason).toBe('Bu sürüm “submit” işlemini tanımlamıyor.');
   });

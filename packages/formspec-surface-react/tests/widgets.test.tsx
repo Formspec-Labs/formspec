@@ -26,7 +26,8 @@ function props(overrides: Partial<SurfaceWidgetProps> = {}): SurfaceWidgetProps 
     route: { surfaceId: 's', routeId: 'r', routeClass: 'intake', params: {} },
     headingLevel: 2,
     config: {},
-    data: undefined,
+    data: {},
+    emitAction: () => {},
     admitsTenantTheme: true,
     ...overrides,
   };
@@ -119,7 +120,13 @@ describe('ReceiptPanel', () => {
     const container = render(
       <ReceiptPanel
         {...props({
-          data: { caseRef: 'RA-2026-0412', issuer: 'City Housing', facts: [{ label: 'Amount', value: '£1,850' }] },
+          data: {
+            receipt: {
+              caseRef: 'RA-2026-0412',
+              issuer: 'City Housing',
+              facts: [{ label: 'Amount', value: '£1,850' }],
+            },
+          },
         })}
       />,
     );
@@ -141,8 +148,24 @@ describe('ReceiptPanel', () => {
   });
 
   it('drops malformed fact rows rather than rendering "undefined"', () => {
-    const container = render(<ReceiptPanel {...props({ data: { facts: [{ label: 'ok' }, 'nope'] } })} />);
+    const container = render(
+      <ReceiptPanel
+        {...props({ data: { receipt: { facts: [{ label: 'ok' }, 'nope'] } } })}
+      />,
+    );
     expect(container.querySelector('[data-widget-empty]')).not.toBeNull();
+  });
+
+  it('does not treat unqualified host data as an admitted named input', () => {
+    const container = render(
+      <ReceiptPanel
+        {...props({
+          data: { caseRef: 'UNQUALIFIED' },
+          route: { surfaceId: 's', routeId: 'r', routeClass: 'proof', params: {} },
+        })}
+      />,
+    );
+    expect(container.querySelector('[data-probe="receipt-facts"]')).toBeNull();
   });
 });
 

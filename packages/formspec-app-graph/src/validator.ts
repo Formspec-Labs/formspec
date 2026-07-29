@@ -31,12 +31,16 @@ import {
 } from './report.js';
 import { validateComponentRouteTargets } from './component-routes.js';
 import { validateComponentGraphContexts } from './component-graph-context.js';
+import { validateAppEntry } from './app-entry.js';
+import { validateDataSources } from './data-sources.js';
 import { validateExperienceActionRefs } from './experience-action-refs.js';
+import { validateLocaleAssociations } from './locale-associations.js';
 import { validateNeedsCoverage } from './needs-coverage.js';
 import { validateScreenerSurfaceTargets } from './screener-surface-targets.js';
 import { validateSurfaceDefinitionSlots } from './surface-definition-slots.js';
 import { validateSurfaceExperienceUnits } from './surface-experience-units.js';
 import { validateSurfaceResponseActionTriggers } from './surface-response-action-triggers.js';
+import { validateSurfaceWidgetActions } from './surface-widget-actions.js';
 import { validateThemeTokenRegistry } from './theme-token-registry.js';
 import { validateUiGraphPolicy } from './ui-graph-policy.js';
 
@@ -321,14 +325,18 @@ function runCrossArtifactValidators(
   evidenceResults: readonly AppGraphEvidenceSchemaResult[],
 ): AppGraphDiagnostic[] {
   const allValidators = [
+    validateAppEntry,
     validateComponentRouteTargets,
     validateComponentGraphContexts,
+    validateDataSources,
     validateExperienceActionRefs,
+    validateLocaleAssociations,
     validateNeedsCoverage,
     validateScreenerSurfaceTargets,
     validateSurfaceDefinitionSlots,
     validateSurfaceExperienceUnits,
     validateSurfaceResponseActionTriggers,
+    validateSurfaceWidgetActions,
     validateThemeTokenRegistry,
     validateUiGraphPolicy,
     ...(validators ?? []),

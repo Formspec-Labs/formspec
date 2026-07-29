@@ -6,17 +6,19 @@
  */
 
 /* eslint-disable */
-import type { ModuleRef, TargetDefinition } from './common.js';
+import type { ModuleRef } from './common.js';
 /**
- * A Formspec Locale Document — a sidecar JSON artifact that provides internationalized strings for a Formspec Definition. A Locale Document binds to a Definition by URL, maps item paths to localized strings via a flat key-value structure, supports FEL interpolation for dynamic content via {{expression}} syntax, and composes via a fallback cascade (regional → base language → inline defaults). Multiple Locale Documents MAY target the same Definition, one per locale. A Locale Document MUST NOT affect data collection, validation logic, or behavioral semantics — it controls only the display strings presented to the user.
+ * A Formspec Locale Document provides internationalized strings for one exact Definition or App Manifest target. Locale 2.0 replaces targetDefinition with target.kind plus target.url, admits the closed Surface shell key family, uses FEL {{expression}} interpolation as its only authored template syntax, and keeps every fallback step within the same target identity. A Locale Document MUST NOT affect data collection, validation logic, authorization, or behavioral semantics.
  */
-export interface LocaleDocument {
+export type LocaleDocument = {
+  [k: string]: unknown;
+} & {
   /**
-   * Locale specification version. MUST be '1.0'.
+   * Locale specification version. MUST be '2.0'.
    */
-  $formspecLocale: '1.0';
+  $formspecLocale: '2.0';
   /**
-   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Module-contributed Locale string keys use the $module.<modId>.<nodeId>.<prop> prefix per ADR §4.10 (Task 6). Per ADR 0150 §4.3.
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef. Module-contributed Locale string keys use $module.<modId>.<nodeId>.<prop>. The x-formspec-surface module reserves the closed $module.x-formspec-surface.shell.<SurfaceStringKey> family for app-targeted shell text.
    */
   modules?: ModuleRef[];
   /**
@@ -47,9 +49,9 @@ export interface LocaleDocument {
    * BCP 47 language tag of the locale to consult when a key is not found in this document's strings. Enables explicit fallback chains (e.g., fr-CA → fr). If absent, the cascade proceeds to implicit language fallback (strip region subtag) or inline defaults. Processors MUST detect circular fallback chains and terminate the cascade with a warning.
    */
   fallback?: string;
-  targetDefinition: TargetDefinition;
+  target: LocaleTarget;
   /**
-   * Map of string keys to localized values. Keys follow the dot-delimited path format defined in the Locale Specification §3.1. Values are strings, optionally containing FEL interpolation via {{expression}} syntax. Keys address item properties (key.label, key.description, key.hint), context labels (key.label@context, key.hint@context), choice options (key.options.value.label), shared option sets ($optionSet.setName.value.label), validation messages (key.errors.CODE, key.constraintMessage, key.requiredMessage), form-level strings ($form.title, $form.description), shape messages ($shape.id.message), theme page strings ($page.pageId.title, $page.pageId.description), and component node strings ($component.nodeId.property).
+   * Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification.
    */
   strings: {
     [k: string]: string;
@@ -58,8 +60,55 @@ export interface LocaleDocument {
    * Extension namespace for vendor-specific or tooling-specific metadata. All keys MUST be x- prefixed. Processors MUST ignore unrecognized extensions. Extensions MUST NOT alter locale resolution semantics.
    */
   extensions?: {};
-}
+};
+/**
+ * Closed one-to-one mapping to SurfaceStringKey. A new shell string requires a Locale schema revision.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "SurfaceShellStringKey".
+ */
+export type SurfaceShellStringKey =
+  | '$module.x-formspec-surface.shell.slotUnavailableDefinitionForm'
+  | '$module.x-formspec-surface.shell.slotUnavailableExperienceUnit'
+  | '$module.x-formspec-surface.shell.slotUnavailableWidgetUnimplemented'
+  | '$module.x-formspec-surface.shell.slotUnavailableWidgetUndeclared'
+  | '$module.x-formspec-surface.shell.slotUnavailableWidgetData'
+  | '$module.x-formspec-surface.shell.slotUnavailableStaticContent'
+  | '$module.x-formspec-surface.shell.slotUnavailableEmbedUnresolved'
+  | '$module.x-formspec-surface.shell.slotUnavailableEmbedCycle'
+  | '$module.x-formspec-surface.shell.widgetEmpty'
+  | '$module.x-formspec-surface.shell.notFoundTitle'
+  | '$module.x-formspec-surface.shell.notFoundBody'
+  | '$module.x-formspec-surface.shell.navigationLabel'
+  | '$module.x-formspec-surface.shell.transitionContinue'
+  | '$module.x-formspec-surface.shell.transitionPending'
+  | '$module.x-formspec-surface.shell.transitionFailed'
+  | '$module.x-formspec-surface.shell.transitionTargetUnresolved'
+  | '$module.x-formspec-surface.shell.transitionTargetCollision'
+  | '$module.x-formspec-surface.shell.transitionNoResponseActions'
+  | '$module.x-formspec-surface.shell.transitionTriggerUnresolved'
+  | '$module.x-formspec-surface.shell.transitionTriggerAmbiguous'
+  | '$module.x-formspec-surface.shell.transitionNoExecutor'
+  | '$module.x-formspec-surface.shell.transitionSuppliedBySlot'
+  | '$module.x-formspec-surface.shell.transitionFireable';
 /**
  * Extension object whose keys must be prefixed with x-.
  */
 export interface Extensions {}
+/**
+ * Exact Definition or App Manifest target. Loaded Locale identity is (target.kind, target.url, normalized locale). A processor MUST NOT apply this document to another target or cross target identity during fallback.
+ */
+export interface LocaleTarget {
+  /**
+   * Target artifact kind. No aliases or additional kinds are admitted in Locale 2.0.
+   */
+  kind: 'definition' | 'app';
+  /**
+   * Canonical absolute URL of the target Definition or App Manifest.
+   */
+  url: string;
+  /**
+   * Optional SemVer range checked against the selected target's version.
+   */
+  compatibleVersions?: string;
+}

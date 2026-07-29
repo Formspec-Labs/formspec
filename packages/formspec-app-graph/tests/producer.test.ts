@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  produceBundleExportAppGraphValidationReport,
   produceAppGraphValidationReport,
   type AppGraphHostEvidence,
   type ArtifactLoader,
@@ -144,4 +145,56 @@ describe('produceAppGraphValidationReport', () => {
       assertNoFixturePathEvidence(result.report);
     });
   }
+});
+
+describe('produceBundleExportAppGraphValidationReport', () => {
+  const surfaceUrl = 'https://example.gov/surfaces/inline';
+  const manifest = {
+    $formspecBundle: '2.4',
+    id: 'https://example.gov/apps/inline',
+    version: '1.0.0',
+    definitions: [],
+    surfaces: [{ url: surfaceUrl, version: '1.0.0' }],
+  };
+  const surface = {
+    $formspecSurface: '0.2',
+    id: 'inline',
+    entry: 'start',
+    routes: [{ id: 'start', path: '/', slots: [] }],
+  };
+
+  it('completes schema and cross-artifact validation before typed dereference', async () => {
+    const result = await produceBundleExportAppGraphValidationReport({
+      manifest,
+      documents: { [surfaceUrl]: surface },
+      source: 'memory://inline-export',
+      schemaValidators: () => ({ ok: true }),
+    });
+
+    expect(result.artifactResolutionReport.ok).toBe(true);
+    expect(result.report.ok).toBe(true);
+    expect(result.report.phases).toContainEqual({
+      phase: 'cross-artifact',
+      status: 'completed',
+    });
+    expect(result.artifactResolutionReport.artifacts.surfaces?.[0]?.document).toBe(surface);
+  });
+
+  it('does not treat an inherited document key as inline export content', async () => {
+    const documents = Object.create({ [surfaceUrl]: surface }) as Record<string, unknown>;
+    const result = await produceBundleExportAppGraphValidationReport({
+      manifest,
+      documents,
+      source: 'memory://inline-export',
+      schemaValidators: () => ({ ok: true }),
+    });
+
+    expect(result.report.ok).toBe(false);
+    expect(result.report.diagnostics.map((entry) => entry.code)).toContain('ARTIFACT-MISSING');
+    expect(result.report.phases).toContainEqual({
+      phase: 'cross-artifact',
+      status: 'skipped',
+      reason: 'unresolved-artifacts',
+    });
+  });
 });

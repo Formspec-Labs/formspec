@@ -477,10 +477,10 @@ export class RawProject implements IProjectCore {
       bundle.locales = {};
       for (const [code, ls] of Object.entries(this._state.locales)) {
         bundle.locales[code] = {
-          $formspecLocale: '1.0',
+          $formspecLocale: '2.0',
           locale: ls.locale,
           version: ls.version,
-          targetDefinition: ls.targetDefinition,
+          target: ls.target,
           strings: ls.strings,
           ...(ls.fallback ? { fallback: ls.fallback } : {}),
           ...(ls.name ? { name: ls.name } : {}),

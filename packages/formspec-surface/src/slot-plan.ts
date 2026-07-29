@@ -44,6 +44,12 @@ import {
   type SurfaceStaticAssetResolver,
 } from './static-content.js';
 import type { WidgetKey, WidgetRegistry, WidgetResolution } from './registry.js';
+import {
+  dataSourceAvailableToWidget,
+  resolveDataSourceDescriptor,
+  type DataSourceCatalogHandle,
+  type WidgetDataInputPlan,
+} from './data-source-loader.js';
 
 export type SurfaceSlot = SurfaceRoute['slots'][number];
 
@@ -71,6 +77,10 @@ export type SlotPlan<TComponent> = SlotPlanBase &
         slotType: 'module-widget';
         key: WidgetKey;
         config?: Readonly<Record<string, unknown>>;
+        /** Registry-declared inputs after exact qualified-source resolution. */
+        dataInputs: readonly WidgetDataInputPlan[];
+        /** Registry-declared outputs with their exact authored mappings, if any. */
+        actionOutputs: readonly WidgetActionOutputPlan[];
         resolution: WidgetResolution<TComponent>;
       }
     | { slotType: 'static-content'; content: StaticContentPlan | undefined }
@@ -103,10 +113,19 @@ export interface SlotPlanContext<TComponent> {
   definitions: ReadonlyMap<string, FormDefinition>;
   registryEntries: readonly RegistryEntry[];
   widgets: WidgetRegistry<TComponent>;
+  /** Exact manifested Data Sources catalog handles. */
+  dataSources?: readonly DataSourceCatalogHandle[] | undefined;
+  /** Manifest URL of `handle.surface`, required by Surface/route/slot availability. */
+  surfaceRef?: string | undefined;
   /** Level route content starts at. Default 2 — the route title is the `h1`. */
   headingBaseLevel?: HeadingLevel;
   /** Host admission boundary for authored static image sources. */
   staticAssetResolver?: SurfaceStaticAssetResolver | undefined;
+}
+
+export interface WidgetActionOutputPlan {
+  name: string;
+  actionRef?: string | undefined;
 }
 
 export interface RoutePlan<TComponent> {
@@ -233,19 +252,112 @@ function planSlot<TComponent>(
       const resolution = context.widgets.resolve(key);
       const diagnostic = context.widgets.diagnose(key, resolution, site);
       if (diagnostic) diagnostics.push(diagnostic);
+      const widgetShape =
+        resolution.status !== 'undeclared' ? resolution.entry?.widgetShape : undefined;
+      const declaredInputs = Array.isArray(widgetShape?.dataInputs)
+        ? widgetShape.dataInputs
+        : [];
+      const declaredOutputs = Array.isArray(widgetShape?.actionOutputs)
+        ? widgetShape.actionOutputs
+        : [];
+      const dataBindings = ownRecord(binding, 'dataBindings');
+      const actionBindings = ownRecord(binding, 'actionBindings');
+      const dataInputs: WidgetDataInputPlan[] = declaredInputs.map((declared) => {
+        const authored = ownRecord(dataBindings, declared.name);
+        if (!authored) {
+          return {
+            name: declared.name,
+            required: declared.required,
+            status: 'unbound',
+            reason: 'the Surface binding does not map this declared input',
+          };
+        }
+        const catalogRef = ownString(authored, 'catalogRef');
+        const sourceRef = ownString(authored, 'sourceRef');
+        if (catalogRef === undefined || sourceRef === undefined) {
+          return {
+            name: declared.name,
+            required: declared.required,
+            status: 'unresolved',
+            reason: 'the Surface binding does not contain a qualified catalog/source pair',
+          };
+        }
+        const descriptor = resolveDataSourceDescriptor(
+          context.dataSources ?? [],
+          { catalogRef, sourceRef },
+        );
+        if (!descriptor) {
+          return {
+            name: declared.name,
+            required: declared.required,
+            status: 'unresolved',
+            reason: `the exact source (${catalogRef}, ${sourceRef}) is not loaded once`,
+          };
+        }
+        const available = dataSourceAvailableToWidget(descriptor, {
+          surfaceId: context.handle.surfaceId,
+          surfaceRef: context.surfaceRef,
+          routeId: context.handle.routeId,
+          slotId: slot.id,
+          moduleId: key.moduleId,
+          widgetName: key.widgetName,
+          params: {},
+        });
+        if (!available) {
+          return {
+            name: declared.name,
+            required: declared.required,
+            status: 'unavailable',
+            reason: 'the source availability selector does not cover this widget',
+            descriptor,
+          };
+        }
+        return {
+          name: declared.name,
+          required: declared.required,
+          status: 'ready',
+          descriptor,
+        };
+      });
+      for (const input of dataInputs) {
+        if (input.required && input.status !== 'ready') {
+          diagnostics.push(
+            surfaceDiagnostic(
+              'WIDGET-DATA-REQUIRED-UNAVAILABLE',
+              `Required widget input "${input.name}" is unavailable: ${input.reason}.`,
+              site,
+              {
+                moduleId: key.moduleId,
+                widgetName: key.widgetName,
+                inputName: input.name,
+                status: input.status,
+              },
+            ),
+          );
+        }
+      }
+      const actionOutputs: WidgetActionOutputPlan[] = declaredOutputs.map((declared) => {
+        const authored = ownRecord(actionBindings, declared.name);
+        return {
+          name: declared.name,
+          ...(authored && ownString(authored, 'actionRef') !== undefined
+            ? { actionRef: ownString(authored, 'actionRef') }
+            : {}),
+        };
+      });
       const plan: SlotPlan<TComponent> = {
         ...shared,
         slotType: 'module-widget',
         key,
+        dataInputs,
+        actionOutputs,
         resolution,
       };
-      // `config` is the ONLY data channel a module-widget binding has, and it is
-      // validated against `widgetShape.props` by lint E604 rather than by any
-      // runtime. It carries configuration, not content: there is still no way
-      // for a slot to bind a widget to a Data Source or a query (gap ledger
-      // `widget-data-binding`).
-      if (binding.config && typeof binding.config === 'object') {
-        plan.config = binding.config as Record<string, unknown>;
+      // Configuration stays separate from the qualified runtime input channel.
+      // It is passed intact after E604 authoring validation.
+      const config = ownRecord(binding, 'config');
+      if (config) {
+        plan.config = config;
       }
       return plan;
     }
@@ -254,7 +366,6 @@ function planSlot<TComponent>(
       const result = planStaticContent({
         binding,
         headingBaseLevel,
-        slotTitle: typeof slot.title === 'string' ? slot.title : undefined,
         staticAssetResolver: context.staticAssetResolver,
         site,
       });
@@ -330,4 +441,24 @@ function planSlot<TComponent>(
 
 function exhaustive(value: never): never {
   throw new Error(`Unhandled slot type: ${String(value)}`);
+}
+
+function ownRecord(
+  value: object | null | undefined,
+  key: PropertyKey,
+): Readonly<Record<string, unknown>> | undefined {
+  if (!value || !Object.prototype.hasOwnProperty.call(value, key)) return undefined;
+  const candidate = (value as Record<PropertyKey, unknown>)[key];
+  return typeof candidate === 'object' && candidate !== null && !Array.isArray(candidate)
+    ? (candidate as Readonly<Record<string, unknown>>)
+    : undefined;
+}
+
+function ownString(
+  value: Readonly<Record<string, unknown>>,
+  key: string,
+): string | undefined {
+  if (!Object.prototype.hasOwnProperty.call(value, key)) return undefined;
+  const candidate = value[key];
+  return typeof candidate === 'string' ? candidate : undefined;
 }

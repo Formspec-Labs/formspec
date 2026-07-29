@@ -1,5 +1,5 @@
 {
-  "$formspecRegistry": "1.0",
+  "$formspecRegistry": "1.1",
   "publisher": {
     "name": "Example Fixture Publisher"
   },

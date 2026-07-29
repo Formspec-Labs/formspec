@@ -32,10 +32,13 @@ def _validate(doc: dict) -> None:
 
 def _minimal_locale(strings: dict) -> dict:
     return {
-        "$formspecLocale": "1.0",
+        "$formspecLocale": "2.0",
         "version": "1.0.0",
         "locale": "en-US",
-        "targetDefinition": {"url": "https://example.org/forms/test"},
+        "target": {
+            "kind": "definition",
+            "url": "https://example.org/forms/test",
+        },
         "strings": strings,
     }
 

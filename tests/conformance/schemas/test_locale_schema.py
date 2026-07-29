@@ -28,10 +28,13 @@ def _validate(instance: dict) -> None:
 
 def _minimal_locale() -> dict:
     return {
-        "$formspecLocale": "1.0",
+        "$formspecLocale": "2.0",
         "version": "1.0.0",
         "locale": "fr-CA",
-        "targetDefinition": {"url": "https://example.gov/forms/intake"},
+        "target": {
+            "kind": "definition",
+            "url": "https://example.gov/forms/intake",
+        },
         "strings": {
             "$form.title": "Demande",
             "applicantName.label": "Nom du demandeur",
@@ -43,7 +46,7 @@ class TestLocaleSchema:
     def test_minimal_locale_is_valid(self) -> None:
         _validate(_minimal_locale())
 
-    @pytest.mark.parametrize("field", ["$formspecLocale", "version", "locale", "targetDefinition", "strings"])
+    @pytest.mark.parametrize("field", ["$formspecLocale", "version", "locale", "target", "strings"])
     def test_required_fields(self, field: str) -> None:
         doc = _minimal_locale()
         del doc[field]
@@ -64,3 +67,64 @@ class TestLocaleSchema:
         with pytest.raises(ValidationError):
             _validate(doc)
 
+    def test_app_target_is_valid(self) -> None:
+        doc = _minimal_locale()
+        doc["target"] = {
+            "kind": "app",
+            "url": "https://example.gov/apps/intake",
+            "compatibleVersions": "^2.4.0",
+        }
+        doc["strings"] = {
+            "$module.x-formspec-surface.shell.notFoundTitle": "Introuvable"
+        }
+
+        _validate(doc)
+
+    def test_target_definition_alias_is_rejected(self) -> None:
+        doc = _minimal_locale()
+        doc["targetDefinition"] = doc.pop("target")
+
+        with pytest.raises(ValidationError):
+            _validate(doc)
+
+    @pytest.mark.parametrize("kind", ["surface", "manifest", "definition-app"])
+    def test_unknown_target_kind_is_rejected(self, kind: str) -> None:
+        doc = _minimal_locale()
+        doc["target"]["kind"] = kind
+
+        with pytest.raises(ValidationError):
+            _validate(doc)
+
+    def test_unknown_surface_shell_key_is_rejected(self) -> None:
+        doc = _minimal_locale()
+        doc["target"] = {
+            "kind": "app",
+            "url": "https://example.gov/apps/intake",
+        }
+        doc["strings"] = {
+            "$module.x-formspec-surface.shell.futureAlias": "Not admitted"
+        }
+
+        with pytest.raises(ValidationError):
+            _validate(doc)
+
+    def test_surface_shell_key_requires_app_target(self) -> None:
+        doc = _minimal_locale()
+        doc["strings"] = {
+            "$module.x-formspec-surface.shell.notFoundTitle": "Introuvable"
+        }
+
+        with pytest.raises(ValidationError):
+            _validate(doc)
+
+    def test_every_closed_surface_shell_key_is_schema_valid(self) -> None:
+        shell_keys = LOCALE_SCHEMA["$defs"]["SurfaceShellStringKey"]["enum"]
+        assert len(shell_keys) == len(set(shell_keys)) == 23
+        for key in shell_keys:
+            doc = _minimal_locale()
+            doc["target"] = {
+                "kind": "app",
+                "url": "https://example.gov/apps/intake",
+            }
+            doc["strings"] = {key: "Texte {{locale()}}"}
+            _validate(doc)

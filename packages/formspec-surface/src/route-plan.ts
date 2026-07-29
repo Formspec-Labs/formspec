@@ -26,6 +26,7 @@ import type { ExperienceDocument, FormDefinition, RegistryEntry } from '@formspe
 import type { SurfaceApp, SurfaceRouteHandle } from './composition.js';
 import type { SurfaceDiagnostic } from './diagnostics.js';
 import type { WidgetRegistry } from './registry.js';
+import type { DataSourceCatalogHandle } from './data-source-loader.js';
 import { planRoute, type SlotPlan } from './slot-plan.js';
 import type { HeadingLevel, SurfaceStaticAssetResolver } from './static-content.js';
 import type { SurfaceStringOverrides, SurfaceStrings } from './strings.js';
@@ -47,10 +48,15 @@ export interface SurfaceRoutePlanInput<TComponent> {
   definitions: ReadonlyMap<string, FormDefinition>;
   registryEntries: readonly RegistryEntry[];
   widgets: WidgetRegistry<TComponent>;
+  dataSources?: readonly DataSourceCatalogHandle[] | undefined;
+  /** Exact manifest URL for the matched Surface document. */
+  surfaceRef?: string | undefined;
   responseActions?: readonly ResponseActionsDocumentLike[] | undefined;
   themeAuthority: ThemeAuthority;
   /** Whether the host supplied a Response Actions executor. Never assumed. */
   hasExecutor?: boolean | undefined;
+  /** Whether mapped widget outputs can reach a Response Actions executor. */
+  hasWidgetActionExecutor?: boolean | undefined;
   /** Host-owned FEL evaluation over validated bundle state. */
   evaluateCondition?: TransitionConditionEvaluator | undefined;
   /**
@@ -66,6 +72,7 @@ export interface SurfaceRoutePlanInput<TComponent> {
 
 export interface SurfaceRoutePlan<TComponent> {
   handle: SurfaceRouteHandle;
+  surfaceRef?: string | undefined;
   params: Readonly<Record<string, string>>;
   slots: readonly SlotPlan<TComponent>[];
   grant: ThemeGrant;
@@ -92,6 +99,8 @@ export function planMatchedRoute<TComponent>(
     definitions: input.definitions,
     registryEntries: input.registryEntries,
     widgets: input.widgets,
+    dataSources: input.dataSources,
+    surfaceRef: input.surfaceRef,
     headingBaseLevel,
     staticAssetResolver: input.staticAssetResolver,
   });
@@ -103,7 +112,9 @@ export function planMatchedRoute<TComponent>(
     responseActions,
     hasExecutor: input.hasExecutor ?? false,
     params: input.params ?? {},
-    slotSuppliedTriggers: slotSuppliedTriggers(route.slots, responseActions),
+    slotSuppliedTriggers: slotSuppliedTriggers(route.slots, responseActions, {
+      includeWidgetActions: input.hasWidgetActionExecutor ?? false,
+    }),
     ...(input.evaluateCondition !== undefined
       ? { evaluateCondition: input.evaluateCondition }
       : {}),
@@ -112,6 +123,7 @@ export function planMatchedRoute<TComponent>(
 
   return {
     handle: input.handle,
+    surfaceRef: input.surfaceRef,
     params: input.params ?? {},
     slots: route.slots,
     grant,

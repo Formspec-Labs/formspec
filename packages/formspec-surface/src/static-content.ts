@@ -38,7 +38,7 @@
  */
 import { surfaceDiagnostic, type SurfaceDiagnostic, type SurfaceDiagnosticSite } from './diagnostics.js';
 
-/** Closed at v0.1 — `surface.schema.json` `$defs/Slot`, `static-content` gate. */
+/** Closed at v0.2 — `surface.schema.json` `$defs/Slot`, `static-content` gate. */
 export const STATIC_CONTENT_KINDS = ['heading', 'text', 'image', 'divider'] as const;
 export type StaticContentKind = (typeof STATIC_CONTENT_KINDS)[number];
 
@@ -47,6 +47,7 @@ export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 export interface StaticContentBinding {
   kind?: unknown;
   content?: unknown;
+  alt?: unknown;
   level?: unknown;
 }
 
@@ -81,8 +82,6 @@ export interface StaticContentPlanInput {
   binding: StaticContentBinding;
   /** Level the enclosing container's content starts at. Default 2. */
   headingBaseLevel?: HeadingLevel;
-  /** `slot.title`, the only accessible-name channel an image slot has. */
-  slotTitle?: string | undefined;
   /** Required before an authored image source may reach a binding. */
   staticAssetResolver?: SurfaceStaticAssetResolver | undefined;
   site: SurfaceDiagnosticSite;
@@ -150,34 +149,18 @@ export function planStaticContent(input: StaticContentPlanInput): StaticContentP
       return { plan: { kind: 'text', content }, diagnostics };
 
     case 'image': {
-      // `content` is "a URL or asset ref" (surface-spec §5). There is NO
-      // alt-text field in the binding — the closest thing is `slot.title`,
-      // which is optional and is a region label rather than a description of
-      // the image. An image with no accessible name is a WCAG 2.2 SC 1.1.1
-      // failure and the shell cannot invent one, so: never synthesize a name
-      // from the URL (a filename read aloud is confidently wrong), use
-      // `slot.title` when the author gave one, mark the image decorative
-      // otherwise.
-      //
-      // The diagnostic fires on EVERY image slot, both branches
-      // (surface-shell-spec §3.4.2, §7.3). Silencing it on the `slot.title`
-      // branch hides the schema gap behind the workaround: a region label
-      // pressed into service is a fallback, not an authored alt, and the count
-      // of fires is the measure of finding F1's size. **Closing this needs an
-      // `alt` field on the static-content binding in `surface.schema.json`
-      // (finding F1, owner: Surface) — it is not closable in a renderer**, so
-      // this diagnostic stays lit until that schema change lands.
-      const alt = input.slotTitle ?? '';
-      diagnostics.push(
-        surfaceDiagnostic(
-          'STATIC-IMAGE-NO-ALT',
-          alt === ''
-            ? 'An image slot has no alternative text: the static-content binding carries no alt field and the slot has no title. It is rendered as decorative, which is wrong if it carries meaning.'
-            : `An image slot has no authored alternative text: the static-content binding carries no alt field, so the slot title "${alt}" is standing in for one. A region label is not a description of the image.`,
-          site,
-          { src: content, accessibleName: alt, source: alt === '' ? 'none' : 'slot.title', finding: 'F1' },
-        ),
-      );
+      if (typeof binding.alt !== 'string') {
+        diagnostics.push(
+          surfaceDiagnostic(
+            'STATIC-IMAGE-NO-ALT',
+            'An image binding has no authored alternative text. The image is unavailable because the shell cannot infer a description from its title, URL, or filename.',
+            site,
+            { src: content, authoredAlt: binding.alt },
+          ),
+        );
+        return { plan: undefined, diagnostics };
+      }
+      const alt = binding.alt;
       const admittedSource = admitStaticImageSource(
         input.staticAssetResolver,
         content,

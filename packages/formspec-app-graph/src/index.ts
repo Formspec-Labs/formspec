@@ -15,13 +15,16 @@ export {
   type AppGraphComponentNodeIdentity,
 } from './component-identity.js';
 export {
+  produceBundleExportAppGraphValidationReport,
   produceAppGraphValidationReport,
   type AppGraphReportProducerRequest,
   type AppGraphReportProducerResult,
+  type BundleExportAppGraphReportProducerRequest,
 } from './producer.js';
 export {
   artifactResolutionGraphInput,
   resolveArtifacts,
+  resolveBundleExportArtifacts,
   type ArtifactResolutionGraphInput,
   type ArtifactLoader,
   type ArtifactLoaderDiagnosticInput,
@@ -29,6 +32,7 @@ export {
   type ArtifactLoaderOutcome,
   type ArtifactResolverRequest,
   type ArtifactResolverSupportProfile,
+  type BundleExportArtifactResolverRequest,
 } from './artifact-resolver.js';
 export {
   evaluateActorPostureAdmission,
@@ -57,11 +61,21 @@ export {
   validateComponentGraphContexts,
 } from './component-graph-context.js';
 export {
+  validateAppEntry,
+} from './app-entry.js';
+export {
   validateComponentRouteTargets,
 } from './component-routes.js';
 export {
   validateExperienceActionRefs,
 } from './experience-action-refs.js';
+export {
+  validateDataSources,
+} from './data-sources.js';
+export {
+  normalizeLocaleTag,
+  validateLocaleAssociations,
+} from './locale-associations.js';
 export {
   validateNeedsCoverage,
   type NeedsEarlFrame,
@@ -81,12 +95,21 @@ export {
   validateSurfaceResponseActionTriggers,
 } from './surface-response-action-triggers.js';
 export {
+  routeHasWidgetActionSource,
+  validateSurfaceWidgetActions,
+} from './surface-widget-actions.js';
+export {
   validateThemeTokenRegistry,
 } from './theme-token-registry.js';
 export {
   PLATFORM_BRAND_TOKEN_KEY,
   PLATFORM_TOKEN_KEYS,
 } from './platform-token-keys.js';
+export {
+  resolveWidgetContribution,
+  type WidgetContributionEntry,
+  type WidgetContributionIdentity,
+} from './widget-contribution.js';
 // `ROUTE_CLASS_THEME_AUTHORITY` is a RENDERING rule that until now only a
 // validator could import: it was exported from its module but not from this
 // index, and the package `exports` field only exposes `.`. A rule a renderer

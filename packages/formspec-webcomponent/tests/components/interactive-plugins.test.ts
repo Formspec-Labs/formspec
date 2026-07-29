@@ -30,6 +30,7 @@ function responseActions(...ids: string[]) {
     return {
         $formspecResponseActions: '1.0',
         version: '1.0.0',
+        targetDefinition: { url: 'urn:test:form' },
         actions: ids.map(id => ({
             id,
             intent: 'submit',

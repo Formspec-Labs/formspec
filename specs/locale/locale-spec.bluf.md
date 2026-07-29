@@ -1,4 +1,5 @@
-- This document defines the Locale Document — a sidecar JSON artifact for internationalizing Formspec Definitions.
-- A valid locale requires `$formspecLocale`, `version`, `locale`, `targetDefinition`, and a `strings` object.
-- String resolution uses a fallback cascade (regional → base → inline defaults) with FEL interpolation via `{{expression}}` syntax; `null` without `$`/`@` and without a static-literal expression preserves the `{{…}}` text (§3.3.1 rule 3a).
-- This BLUF is governed by `schemas/locale.schema.json`; generated schema references are the canonical structural contract.
+- This document defines Locale 2.0, a sidecar JSON artifact for internationalizing one exact Formspec Definition or App Manifest target.
+- A valid Locale 2.0 document requires `$formspecLocale: "2.0"`, `version`, `locale`, `target`, and a `strings` object. `target` names a `definition` or `app` by canonical URL.
+- Loaded Locale identity is `(target kind, target URL, normalized locale)`. Regional-to-base fallback stays within that exact target.
+- App-targeted Locale documents may use the closed `$module.x-formspec-surface.shell.*` key family. Every dynamic string uses FEL `{{expression}}` interpolation; processors do not apply a separate `{name}` parser.
+- This BLUF is governed by `schemas/locale.schema.json`; generated references expose the canonical schema-defined structure.

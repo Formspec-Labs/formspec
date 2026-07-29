@@ -1,7 +1,7 @@
 /**
  * Locale command handlers.
  *
- * Locale documents provide translated strings for a form definition.
+ * Locale documents provide translated strings for one exact app or Definition.
  * Each locale is keyed by its BCP 47 code in ProjectState.locales.
  *
  * All handlers return `{ rebuildComponentTree: false }` because locale
@@ -36,10 +36,13 @@ export const localeHandlers = {
     const locale = normalizeBcp47(rawLocale);
 
     const localeState: LocaleState = {
-      $formspecLocale: '1.0',
+      $formspecLocale: '2.0',
       locale,
       version: (doc.version as string) ?? '0.1.0',
-      targetDefinition: (doc.targetDefinition as LocaleState['targetDefinition']) ?? { url: '' },
+      target: (doc.target as LocaleState['target']) ?? {
+        kind: 'definition',
+        url: state.definition.url,
+      },
       strings: (doc.strings as Record<string, string>) ?? {},
     };
 

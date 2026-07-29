@@ -847,6 +847,32 @@
       "runtimeScope": "spec-conformance-only",
       "runtimeRationale": "UI Graph Policy v0.1 defines the normative host-loaded structural policy document, schema, generated types, host evidence boundary, host-evidence schema result reporting, Surface/route semantic diagnostics, policy-local and ModuleResolver-backed Locale-owner executable diagnostics, hidden Definition reference diagnostics, Theme widgetRef ModuleResolver evidence diagnostics, executable Theme token-slot checks over ModuleResolver token-slot evidence, executable Theme token reference/category checks over exactly-one loaded Theme evidence, custom token-category evidence compatibility, report-origin readiness, and fixture corpus only. Studio feedback, runtime hidden-state behavior, consumer wiring, and any future App Manifest policy slot remain later gates and must add crate/package surfaces when they consume this contract."
     },
+    "surface-bundle-signing": {
+      "status": "enforced",
+      "spec": "specs/bundle/surface-bundle-signing-profile.md",
+      "schema": "schemas/surface-bundle-signing-v1.schema.json",
+      "conformance": [
+        "packages/formspec-surface-bundle-signing/tests/profile-contract.test.ts",
+        "packages/formspec-surface-bundle-signing/tests/adversarial-conformance.test.ts"
+      ],
+      "crates": [],
+      "fixtures": [
+        "packages/formspec-surface-bundle-signing/tests/fixtures/adversarial-vectors.json"
+      ],
+      "packages": {
+        "surface-bundle-signing": [
+          "packages/formspec-surface-bundle-signing/src/",
+          "packages/formspec-surface-bundle-signing/tests/"
+        ]
+      },
+      "checks": [
+        "The schema and profile tests pin the signed payload, protected COSE headers, canonical JSON, and raw-byte snapshot rules",
+        "Adversarial vectors cover publisher and app mismatch, unknown or replaced keys, expiry, revocation, stale release, payload mutation, and monotonic release commit",
+        "Verification snapshots mutable trust and release policy before asynchronous work and commits release state only after host validation succeeds"
+      ],
+      "runtimeScope": "package-conformance-only",
+      "runtimeRationale": "The signing profile is consumed by the TypeScript signing and browser-verification packages. It defines no formspec-lint document type or Rust runtime surface, so claiming a crate path would be false coverage."
+    },
     "surface": {
       "status": "enforced",
       "spec": "specs/surface/surface-spec.md",
@@ -957,20 +983,28 @@
       "schema": "schemas/bundle-manifest.schema.json",
       "conformance": [
         "tests/conformance/schemas/test_bundle_manifest_schema.py",
-        "tests/conformance/spec/test_bundle_manifest_semantics.py"
+        "tests/conformance/spec/test_bundle_manifest_semantics.py",
+        "tests/conformance/test_app_graph_surface_vnext_cross_artifact_fixture_corpus.py"
       ],
       "crates": [],
       "fixtures": [
-        "tests/conformance/fixtures/bundle/"
+        "tests/conformance/fixtures/bundle/",
+        "tests/conformance/fixtures/app-graph-validator/surface-vnext-cross-artifact.case.json"
       ],
-      "packages": {},
+      "packages": {
+        "app-graph": [
+          "packages/formspec-app-graph/src/validator.ts",
+          "packages/formspec-app-graph/tests/surface-vnext-cross-artifact-conformance.test.ts"
+        ]
+      },
       "checks": [
-        "App Manifest schema shape, closed surface, required-property enforcement, $formspecBundle 2.0/2.1/2.2 version gating, and SemVer strictness are pinned by schema conformance tests",
-        "Spec semantics tests assert array-key uniqueness (locales[].locale, mappings[].handle, components[].handle) and id-vs-sibling-URL distinctness, including dataSources[] and components[] URLs — invariants JSON Schema cannot express — by inspecting fixture authoring intent; processor-side enforcement of these rules awaits a loader implementation",
-        "Fixture corpus covers definition-only minimal, full-singles, locales+mappings, multi-definition app, non-form app (empty definitions[]), modules+sessions, v2.1 dataSources[], v2.2 components[], and the negative postures (missing definitions[], duplicate locale tag, duplicate mapping handle, duplicate component handle, singular/default component conflict, id-equals-sibling-url, unknown property, bad SemVer, retired $formspecBundle:'1.0', dataSources[] on v2.0, components[] on v2.1)"
+        "App Manifest schema shape, closed surface, required-property enforcement, $formspecBundle 2.0 through 2.4 version gating, and SemVer strictness are pinned by schema conformance tests",
+        "Spec semantics tests assert exact entrySurface selection, target-aware Locale references, array-key uniqueness, and id-vs-sibling-URL distinctness for invariants JSON Schema cannot express",
+        "AppGraphValidator enforces fail-closed Surface entry selection, loaded Surface entry routes, Locale target/reference coherence, unique Locale reference URLs, and duplicate normalized target-and-locale tuples",
+        "Fixture corpora cover historical manifest versions, 2.4 explicit and implicit entry selection, ambiguous and unresolved entries, app and Definition Locale targets, locale-reference mismatch, unknown targets, and duplicate normalized target-and-locale tuples"
       ],
-      "runtimeScope": "spec-conformance-only",
-      "runtimeRationale": "App Manifest v2.x (reframed from Bundle Manifest v1.0 and extended by v2.1 for dataSources[] plus v2.2 for components[]) defines a declarative composition envelope with no business logic; schema validation plus the §6.1 processor rules are sufficient. Loader implementations (Rust crate, TS module, Python loader) are explicitly out of scope per §6.3. As a consequence, §6.1 rule 4 (§5.3 sibling-pin consistency) and rule 6 (§5.4 module coherence) require an online sibling-resolver and are NOT covered by the static fixture corpus; conformance suites that exercise rules 4+6 must stub the sibling-load seam. This row gains crate / package surfaces — and corresponding integration fixtures — once a renderer / Studio / MCP consumer adopts the App Manifest."
+      "runtimeScope": "package-conformance-only",
+      "runtimeRationale": "App Manifest v2.x remains a declarative composition document. Static schema and semantics suites cover its local shape and intent, while AppGraphValidator now consumes resolved sibling artifacts to enforce the 2.4 entry-Surface and target-aware Locale rules. Runtime loading, admission, and rendering remain separate host responsibilities."
     },
     "needs": {
       "status": "enforced",

@@ -1,7 +1,10 @@
 {
-    "$formspecLocale": "1.0",
+    "$formspecLocale": "2.0",
     "locale": "en",
     "version": "1.0.0",
-    "targetDefinition": "contact",
+    "target": {
+        "kind": "definition",
+        "url": "urn:formspec:contact"
+    },
     "strings": {}
 }

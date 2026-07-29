@@ -15,7 +15,7 @@ fn p2_presentation_gallery_kind_resolves_via_e603() {
     // x-formspec-presentation-gallery (NOT x-formspec-presentation-kind-gallery)
     // so the admission set matches the doc-level value.
     let registry = json!({
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "$schema": "https://formspec.org/schemas/registry/v1.0/registry.json",
         "publisher": { "name": "Test", "url": "https://test.org" },
         "published": "2026-05-24T00:00:00Z",
@@ -89,7 +89,7 @@ fn p2_presentation_gallery_kind_fails_e603_when_wrong_module_declared() {
     // rejecting ^x- values; that's tracked as an independent finding, not
     // the BLOCKER B-1 scope.)
     let registry = json!({
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "$schema": "https://formspec.org/schemas/registry/v1.0/registry.json",
         "publisher": { "name": "Test", "url": "https://test.org" },
         "published": "2026-05-24T00:00:00Z",

@@ -1,7 +1,7 @@
 ---
 title: Formspec Extension Registry
-version: 1.0.0-draft.1
-date: 2026-05-25
+version: 1.1.0-draft.1
+date: 2026-07-28
 depends_on:
   - specs/ontology/ontology-spec.md
   - specs/app-graph/module-resolver-spec.md
@@ -9,10 +9,10 @@ depends_on:
   - specs/bundle/app-manifest-spec.md
 ---
 
-# Formspec Extension Registry v1.0
+# Formspec Extension Registry v1.1
 
-**Version:** 1.0.0-draft.1  
-**Date:** 2026-04-09  
+**Version:** 1.1.0-draft.1
+**Date:** 2026-07-28
 **Editors:** Formspec Working Group  
 **Companion to:** Formspec v1.0 — A JSON-Native Declarative Form Standard  
 
@@ -41,7 +41,7 @@ This document is a **draft specification**. It is a companion to the Formspec
 v1.0 core specification and does not modify or extend the core extension
 mechanisms defined in §8 of that specification. Implementors are encouraged to
 experiment with this specification and provide feedback, but MUST NOT treat it
-as stable for production use until a 1.0.0 release is published.
+as stable for production use until a stable release is published.
 
 ## Conventions and Terminology
 
@@ -68,10 +68,11 @@ Additional terms:
 ## Bottom Line Up Front
 
 <!-- bluf:start file=extension-registry.bluf.md -->
-- This document defines the registry format for publishing Formspec extension metadata.
-- A valid registry document requires `$formspecRegistry`, `publisher`, `published`, and `entries`.
+- This document defines Registry 1.1, the format for publishing Formspec extension metadata.
+- A valid Registry 1.1 document requires `$formspecRegistry: "1.1"`, `publisher`, `published`, and `entries`.
 - Registry entries standardize naming, lifecycle, and compatibility bounds for extension interoperability.
-- This BLUF is governed by `schemas/registry.schema.json`; generated references are the structural contract.
+- A module widget declares configuration through `widgetShape.props`, runtime data through closed `widgetShape.dataInputs[]`, and emitted events through closed `widgetShape.actionOutputs[]`; input names and output names are unique within their respective lists.
+- This BLUF is governed by `schemas/registry.schema.json`; generated references expose the schema-defined structure.
 <!-- bluf:end -->
 
 ---
@@ -108,7 +109,7 @@ properties:
 <!-- generated:schema-ref id=registry-top-level -->
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
-| `#/properties/$formspecRegistry` | `$formspecRegistry` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Registry specification version. MUST be '1.0'. |
+| `#/properties/$formspecRegistry` | `$formspecRegistry` | <code>string</code> | yes | const: <code>"1.1"</code>; critical | Registry specification version. MUST be '1.1'. |
 | `#/properties/$schema` | `$schema` | <code>string</code> | no | — | Optional JSON Schema URI for editor validation and autocompletion. |
 | `#/properties/entries` | `entries` | <code>array</code> | yes | critical | Array of extension registry entries. Each entry describes one extension with its category, version, compatibility bounds, and category-specific metadata. Within a single document, the (name, version) tuple MUST be unique. |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Registry-level extension properties for vendor-specific metadata. All property keys MUST be x-prefixed. |
@@ -214,7 +215,7 @@ No additional required properties. The `schemaUrl` is RECOMMENDED.
 | Category | Required category-specific property |
 |---|---|
 | `unit-kind` | `semantics` — processor/renderer obligations for Experience UnitKind |
-| `widget` | `widgetShape` — widget contract (props/childrenPolicy/fallback plus optional `tokenSlots[]`); the `props` sub-schema validates Theme `widgetConfig` for module-supplied widgets, and `tokenSlots[]` supplies Registry evidence for UI Graph Policy Theme token-slot checks |
+| `widget` | `widgetShape` — widget contract with separate authored `props`, runtime `dataInputs[]`, emitted `actionOutputs[]`, children policy, fallback, and optional `tokenSlots[]` |
 | `action-intent` | `validation` — full ValidationTuple per Validation Mapping §6.1 |
 | `slot-type` | `slotShape` — Surface slot binding contract |
 | `validation-mapping-row` | `row` — closed MappingEntry shape per VM §6 (contributes a row after the MasterTable four-constraint demotion) |
@@ -227,6 +228,35 @@ names the token key prefix consumed by ModuleResolver and UI Graph Policy.
 Custom token-category prefixes MUST be `x-*`; platform prefixes remain owned by
 the platform Token Registry. Every key in `categoryShape.tokens` MUST start
 with `categoryShape.prefix + "."`.
+
+#### 3.2.1 Widget configuration, data inputs, and action outputs
+
+Registry 1.1 separates three channels that processors MUST NOT merge:
+
+| Channel | Registry member | Meaning |
+|---|---|---|
+| Authored configuration | `widgetShape.props` | JSON Schema for static values supplied by `binding.config` or Theme widget configuration. |
+| Runtime data | `widgetShape.dataInputs[]` | Closed declarations `{name, required, description?}`. |
+| Emitted events | `widgetShape.actionOutputs[]` | Closed declarations `{name, description?}`. |
+
+Each `dataInputs[]` entry MUST contain a stable `name` and an explicit boolean
+`required`. Each `actionOutputs[]` entry MUST contain a stable `name`. The
+optional `description` explains the channel to an author; it does not affect
+identity. Input names MUST be unique within one widget shape. Output names MUST
+be unique within one widget shape. JSON Schema closes each entry shape and
+rejects duplicate identical objects; a registry-aware semantic validator MUST
+also reject repeated names whose descriptions differ.
+
+The Registry does not repeat a data source payload schema. Surface 0.2 maps an
+input name to the qualified pair `(catalogRef, sourceRef)`, and Data Sources 1.0
+remains authoritative for its schema, authorization, delivery, failure, cache,
+stale, and provenance rules. `widgetShape.props` MUST NOT serve as a runtime
+payload channel.
+
+An action output name describes an event the widget may emit. It is not a
+Response Actions action id, a route id, an intent, or a generic host command.
+Surface 0.2 maps the output name to one exact `actionRef`. A processor MUST NOT
+fall back from an undeclared or unmapped output to a same-named action.
 
 **`concept`** — Concept identity (Ontology specification):
 
@@ -505,6 +535,19 @@ in Formspec v1.0 §1) that additionally implements the following behaviors:
    MAY provide default version and filter metadata. The Ontology Document's
    values take precedence when both are present.
 
+9. **Widget channel separation.** Treat `widgetShape.props`,
+   `dataInputs[]`, and `actionOutputs[]` as separate channels. A processor MUST
+   NOT accept configuration as runtime data or infer an action from an output
+   name.
+
+10. **Widget name uniqueness.** Reject duplicate `dataInputs[].name` values and
+    duplicate `actionOutputs[].name` values within one widget shape, even when
+    the duplicate objects differ in `description`.
+
+11. **Exact Surface use.** Resolve a Surface 0.2 data or action binding only
+    against the matching Registry declaration. Do not alias an undeclared input
+    or output to a same-named prop, source, action, route, or intent.
+
 ---
 
 ## 8. Examples
@@ -513,8 +556,8 @@ in Formspec v1.0 §1) that additionally implements the following behaviors:
 
 ```json
 {
-  "$formspecRegistry": "1.0",
-  "$schema": "https://formspec.org/schemas/registry/v1.0/registry.json",
+  "$formspecRegistry": "1.1",
+  "$schema": "https://formspec.org/schemas/registry/v1.1/registry.json",
   "publisher": {
     "name": "Federal Grants Commission",
     "url": "https://grants.gov",
@@ -588,6 +631,47 @@ in Formspec v1.0 §1) that additionally implements the following behaviors:
 }
 ```
 
+### 8.2 Widget data and action declarations
+
+```json
+{
+  "name": "x-formspec-case-summary",
+  "category": "widget",
+  "version": "1.0.0",
+  "status": "stable",
+  "description": "Shows a case summary and lets the person open its receipt.",
+  "compatibility": {
+    "formspecVersion": ">=1.0.0 <2.0.0"
+  },
+  "widgetShape": {
+    "widgetName": "caseSummary",
+    "props": {
+      "type": "object",
+      "properties": {
+        "compact": {"type": "boolean"}
+      }
+    },
+    "dataInputs": [
+      {
+        "name": "case",
+        "required": true,
+        "description": "Authorized case data."
+      }
+    ],
+    "actionOutputs": [
+      {
+        "name": "openReceipt",
+        "description": "The person asks to open the receipt."
+      }
+    ]
+  }
+}
+```
+
+`case` and `openReceipt` are stable channel names. They are not a payload
+schema, source id, action id, route id, or intent. Surface 0.2 supplies those
+exact associations.
+
 ---
 
 ## Appendix A: Registry Entry JSON Schema
@@ -599,7 +683,7 @@ the top-level `$formspecRegistry`, `publisher`, and `published` properties.
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/schemas/registry/v1.0/entry.json",
+  "$id": "https://formspec.org/schemas/registry/v1.1/entry.json",
   "title": "Formspec Registry Entry",
   "type": "object",
   "required": ["name", "category", "version", "status", "description", "compatibility"],
@@ -705,7 +789,46 @@ the top-level `$formspecRegistry`, `publisher`, and `published` properties.
       "items": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef" }
     },
     "semantics":      { "type": "object", "description": "REQUIRED for `unit-kind`." },
-    "widgetShape":    { "type": "object", "description": "REQUIRED for `widget`; may include `tokenSlots[]` evidence for UI Graph Policy Theme token-slot checks." },
+    "widgetShape": {
+      "type": "object",
+      "description": "REQUIRED for `widget`; configuration, runtime data, and action events are separate channels.",
+      "properties": {
+        "widgetName": { "type": "string" },
+        "props": { "type": "object" },
+        "dataInputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "required"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+              "required": { "type": "boolean" },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "actionOutputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "childrenPolicy": { "type": "string" },
+        "fallback": { "type": "string" },
+        "tokenSlots": { "type": "array" }
+      }
+    },
     "validation":     { "type": "object", "description": "REQUIRED for `action-intent` (full ValidationTuple per VM §6.1)." },
     "slotShape":      { "type": "object", "description": "REQUIRED for `slot-type`." },
     "row":            { "type": "object", "description": "REQUIRED for `validation-mapping-row` (closed MappingEntry shape per VM §6)." },

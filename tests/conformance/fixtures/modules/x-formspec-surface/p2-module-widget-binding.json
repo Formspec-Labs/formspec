@@ -1,5 +1,5 @@
 {
-  "$formspecSurface": "0.1",
+  "$formspecSurface": "0.2",
   "id": "p2-module-widget-fixture",
   "title": "P2 module-widget binding fixture",
   "modules": [

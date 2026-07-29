@@ -8,8 +8,9 @@
  * majority of the closed code set surfaced only as on-page copy — unloggable,
  * unalarmable, uncountable, and gone the moment the route unmounted.
  */
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { StrictMode, act, useState } from 'react';
+import { initFormspecEngine } from '@formspec-org/engine';
 import {
   composeSurfaceApp,
   resolveSurfaceStrings,
@@ -18,7 +19,13 @@ import {
   type SurfaceStaticAssetResolver,
   type SurfaceDiagnostic,
 } from '@formspec-org/surface';
-import type { ExperienceDocument, SurfaceDocument, ThemeDocument } from '@formspec-org/types';
+import type {
+  ExperienceDocument,
+  FormDefinition,
+  ResponseActionsDocument,
+  SurfaceDocument,
+  ThemeDocument,
+} from '@formspec-org/types';
 import {
   navigateAfterCompletedAction,
   SurfaceApp,
@@ -26,10 +33,14 @@ import {
 import { starterWidgetModule } from '../src/widgets/index.js';
 import { render, textOf } from './render.js';
 
+beforeAll(async () => {
+  await initFormspecEngine();
+});
+
 const TENANT = '#7A1F3D';
 
 const surface = {
-  $formspecSurface: '0.1',
+  $formspecSurface: '0.2',
   id: 'demo',
   entry: 'noisy',
   routes: [
@@ -40,7 +51,23 @@ const surface = {
       // No `routeClass`: THEME-UNCLASSIFIED-REFUSED is a per-route diagnostic
       // too, and it was equally invisible.
       slots: [
-        { id: 'seal', slotType: 'static-content', binding: { kind: 'image', content: 'seal.png' } },
+        {
+          id: 'seal',
+          title: 'Seal region',
+          slotType: 'static-content',
+          binding: { kind: 'image', content: 'seal.png', alt: 'Department emblem' },
+        },
+        {
+          id: 'decorative',
+          slotType: 'static-content',
+          binding: { kind: 'image', content: 'rule.png', alt: '' },
+        },
+        {
+          id: 'missing-alt',
+          title: 'This title is not alternative text',
+          slotType: 'static-content',
+          binding: { kind: 'image', content: 'unnamed.png' },
+        },
         { id: 'form', slotType: 'definition-form', binding: { definitionRef: 'urn:absent' } },
         { id: 'w', slotType: 'module-widget', binding: { moduleId: 'x-chrome', widgetName: 'ghost' } },
         { id: 'e', slotType: 'embed-route', binding: { routeRef: 'nowhere' } },
@@ -82,6 +109,87 @@ function mount(overrides: Record<string, unknown> = {}) {
   return { container, codes: () => (seen.at(-1) ?? []).map((d) => d.code), last: () => seen.at(-1) ?? [] };
 }
 
+describe('generated Response Actions engine seam', () => {
+  it('runs a generated document through Surface React without a cast', async () => {
+    const definitionUrl = 'urn:test:surface-response-actions';
+    const responseActions = {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: definitionUrl },
+      actions: [
+        {
+          id: 'submitApplication',
+          intent: 'submit',
+          effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+        },
+      ],
+    } satisfies ResponseActionsDocument;
+    const seamSurface = {
+      $formspecSurface: '0.2',
+      id: 'seam',
+      entry: 'intake',
+      routes: [
+        {
+          id: 'intake',
+          path: '/intake',
+          title: 'Intake',
+          routeClass: 'intake',
+          slots: [
+            {
+              id: 'form',
+              slotType: 'definition-form',
+              binding: { definitionRef: definitionUrl },
+            },
+          ],
+          transitions: [{ trigger: 'submit', to: 'receipt' }],
+        },
+        {
+          id: 'receipt',
+          path: '/receipt',
+          title: 'Receipt',
+          routeClass: 'proof',
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const seamDefinition = {
+      $formspec: '1.0',
+      url: definitionUrl,
+      version: '1.0.0',
+      title: 'Application',
+      items: [],
+    } as unknown as FormDefinition;
+    const seamBundle: ResolvedBundle = {
+      manifest: { $formspecBundle: '2.2', title: 'Seam test' },
+      title: 'Seam test',
+      surfaces: [seamSurface],
+      experiences: [],
+      tenantTheme: undefined,
+      registries: [],
+      responseActions: [responseActions],
+      definitions: new Map([[definitionUrl, seamDefinition]]),
+      diagnostics: [],
+    };
+    const onNavigate = vi.fn();
+    const container = render(
+      <SurfaceApp
+        bundle={seamBundle}
+        location="/intake"
+        onNavigate={onNavigate}
+        setDocumentTitle={false}
+      />,
+    );
+    const submit = container.querySelector<HTMLButtonElement>('button.formspec-submit');
+
+    expect(submit).not.toBeNull();
+    await act(async () => {
+      submit?.click();
+      await Promise.resolve();
+    });
+    expect(onNavigate).toHaveBeenCalledWith('/receipt');
+  });
+});
+
 describe('every diagnostic reaches the host (§7.1, D4)', () => {
   it('delivers per-slot diagnostics to onDiagnostics, not only to the page', () => {
     const { codes } = mount();
@@ -112,7 +220,11 @@ describe('every diagnostic reaches the host (§7.1, D4)', () => {
     const slotDiagnostic = mount()
       .last()
       .find((d) => d.code === 'STATIC-IMAGE-NO-ALT');
-    expect(slotDiagnostic?.site).toEqual({ surfaceId: 'demo', routeId: 'noisy', slotId: 'seal' });
+    expect(slotDiagnostic?.site).toEqual({
+      surfaceId: 'demo',
+      routeId: 'noisy',
+      slotId: 'missing-alt',
+    });
   });
 
   it('renders an authored image source unavailable until the host admits it', () => {
@@ -126,15 +238,27 @@ describe('every diagnostic reaches the host (§7.1, D4)', () => {
 
   it('renders only the image source returned by the host resolver', () => {
     const staticAssetResolver: SurfaceStaticAssetResolver = ({ source }) =>
-      source === 'seal.png'
-        ? { status: 'admitted', source: 'https://cdn.example.test/seal.png' }
+      source === 'seal.png' || source === 'rule.png'
+        ? { status: 'admitted', source: `https://cdn.example.test/${source}` }
         : { status: 'refused', reason: 'origin-not-allowed' };
     const { container, codes } = mount({ staticAssetResolver });
-    const image = container.querySelector<HTMLImageElement>('.fs-surface-static-image');
+    const image = container.querySelector<HTMLImageElement>(
+      '[data-slot="seal"] .fs-surface-static-image',
+    );
+    const decorative = container.querySelector<HTMLImageElement>(
+      '[data-slot="decorative"] .fs-surface-static-image',
+    );
 
     expect(codes()).not.toContain('STATIC-IMAGE-SOURCE-REFUSED');
     expect(image?.getAttribute('src')).toBe('https://cdn.example.test/seal.png');
     expect(image?.getAttribute('src')).not.toBe('seal.png');
+    expect(image?.getAttribute('alt')).toBe('Department emblem');
+    expect(image?.getAttribute('alt')).not.toBe('Seal region');
+    expect(decorative?.getAttribute('alt')).toBe('');
+    expect(decorative?.getAttribute('role')).toBe('presentation');
+    expect(
+      container.querySelector('[data-slot="missing-alt"] .fs-surface-static-image'),
+    ).toBeNull();
   });
 });
 
@@ -436,7 +560,7 @@ describe('navigation', () => {
 
   it('keeps parameters parsed from the matched route through completed-action navigation', async () => {
     const parameterSurface = {
-      $formspecSurface: '0.1',
+      $formspecSurface: '0.2',
       id: 'cases',
       entry: 'case',
       routes: [
@@ -489,7 +613,7 @@ describe('navigation', () => {
 
   it('does not fire a transition whose target URL is collision-refused', () => {
     const collisionSource = {
-      $formspecSurface: '0.1',
+      $formspecSurface: '0.2',
       id: 'staff',
       entry: 'start',
       routes: [
@@ -511,7 +635,7 @@ describe('navigation', () => {
       ],
     } as unknown as SurfaceDocument;
     const collisionClaimant = {
-      $formspecSurface: '0.1',
+      $formspecSurface: '0.2',
       id: 'oversight',
       entry: 'queue',
       routes: [
@@ -543,7 +667,7 @@ describe('navigation', () => {
 
   it('rechecks a collision-refused target after an adversarial completed action', () => {
     const collisionSource = {
-      $formspecSurface: '0.1',
+      $formspecSurface: '0.2',
       id: 'staff',
       entry: 'start',
       routes: [
@@ -564,7 +688,7 @@ describe('navigation', () => {
       ],
     } as unknown as SurfaceDocument;
     const collisionClaimant = {
-      $formspecSurface: '0.1',
+      $formspecSurface: '0.2',
       id: 'oversight',
       entry: 'queue',
       routes: [
@@ -629,7 +753,7 @@ describe('navigation', () => {
 
   it('renders every collision claimant as unavailable while preserving other links', () => {
     const firstSurface = {
-      $formspecSurface: '0.1',
+      $formspecSurface: '0.2',
       id: 'first',
       entry: 'shared-first',
       routes: [
@@ -650,7 +774,7 @@ describe('navigation', () => {
       ],
     } as unknown as SurfaceDocument;
     const secondSurface = {
-      $formspecSurface: '0.1',
+      $formspecSurface: '0.2',
       id: 'second',
       entry: 'shared-second',
       routes: [

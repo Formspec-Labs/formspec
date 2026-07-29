@@ -7,6 +7,7 @@ import type {
 import {
   artifactResolutionGraphInput,
   resolveArtifacts,
+  resolveBundleExportArtifacts,
   type ArtifactResolverRequest,
 } from './artifact-resolver.js';
 import {
@@ -44,10 +45,23 @@ export interface AppGraphReportProducerResult {
   report: AppGraphValidationReport;
 }
 
-export async function produceAppGraphValidationReport(
-  request: AppGraphReportProducerRequest,
-): Promise<AppGraphReportProducerResult> {
-  const artifactResolutionReport = await resolveArtifacts(request);
+export type BundleExportAppGraphReportProducerRequest = Omit<
+  AppGraphReportProducerRequest,
+  'loader'
+> & {
+  /**
+   * Exact canonical URL to parsed document map from a verified inline export.
+   *
+   * Only own keys are documents. Values remain unknown until schema and graph
+   * validation complete.
+   */
+  documents: Readonly<Record<string, unknown>>;
+};
+
+function finishAppGraphValidationReport(
+  request: Omit<AppGraphReportProducerRequest, 'manifest' | 'loader'>,
+  artifactResolutionReport: ArtifactResolutionReport,
+): AppGraphReportProducerResult {
   const graphInput = artifactResolutionGraphInput(artifactResolutionReport);
   const moduleResolutionReport = resolveModules(moduleResolverInputFromAppGraph({
     manifest: graphInput.manifest,
@@ -75,4 +89,29 @@ export async function produceAppGraphValidationReport(
     moduleResolutionReport,
     report,
   };
+}
+
+export async function produceAppGraphValidationReport(
+  request: AppGraphReportProducerRequest,
+): Promise<AppGraphReportProducerResult> {
+  return finishAppGraphValidationReport(request, await resolveArtifacts(request));
+}
+
+/**
+ * Run the complete resolver, module, schema, and cross-artifact pipeline over a
+ * verified inline export before any consumer dereferences typed Surface data.
+ */
+export async function produceBundleExportAppGraphValidationReport(
+  request: BundleExportAppGraphReportProducerRequest,
+): Promise<AppGraphReportProducerResult> {
+  const { documents, ...pipelineRequest } = request;
+  const artifactResolutionReport = await resolveBundleExportArtifacts({
+    manifest: request.manifest,
+    documents,
+    ...(request.support ? { support: request.support } : {}),
+    ...(request.source ? { source: request.source } : {}),
+    ...(request.digest ? { digest: request.digest } : {}),
+    ...(request.schemaId ? { schemaId: request.schemaId } : {}),
+  });
+  return finishAppGraphValidationReport(pipelineRequest, artifactResolutionReport);
 }

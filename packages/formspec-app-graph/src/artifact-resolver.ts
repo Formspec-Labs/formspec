@@ -62,6 +62,18 @@ export interface ArtifactResolverRequest {
   schemaId?: string;
 }
 
+/**
+ * An exported bundle whose sibling documents are already present in memory.
+ *
+ * This is the validating counterpart to renderer-specific typed
+ * dereferencing. Documents stay `unknown`; the ArtifactResolver owns evidence
+ * about what was loaded, not application-level casts.
+ */
+export interface BundleExportArtifactResolverRequest
+  extends Omit<ArtifactResolverRequest, 'loader'> {
+  documents: Readonly<Record<string, unknown>>;
+}
+
 export interface ArtifactResolutionGraphInput {
   manifest: ResolvedArtifactHandle;
   handles: ResolvedArtifactHandle[];
@@ -93,7 +105,7 @@ interface ParsedRef {
 }
 
 const DEFAULT_SUPPORT: Required<ArtifactResolverSupportProfile> = {
-  bundleVersions: ['2.0', '2.1', '2.2', '2.3'],
+  bundleVersions: ['2.0', '2.1', '2.2', '2.3', '2.4'],
   artifactKinds: [
     'definition',
     'experience',
@@ -139,8 +151,16 @@ function record(value: unknown): Record<string, unknown> | undefined {
 }
 
 function stringProp(value: Record<string, unknown> | undefined, key: string): string | undefined {
-  const candidate = value?.[key];
+  const candidate = value && Object.prototype.hasOwnProperty.call(value, key)
+    ? value[key]
+    : undefined;
   return typeof candidate === 'string' ? candidate : undefined;
+}
+
+function ownProp(value: Record<string, unknown> | undefined, key: string): unknown {
+  return value && Object.prototype.hasOwnProperty.call(value, key)
+    ? value[key]
+    : undefined;
 }
 
 function supportProfile(support: ArtifactResolverSupportProfile | undefined): Required<ArtifactResolverSupportProfile> {
@@ -153,9 +173,18 @@ function supportProfile(support: ArtifactResolverSupportProfile | undefined): Re
 
 function versionAllowed(bundleVersion: string | undefined, minimum: SlotSpec['minBundleVersion']): boolean {
   if (!minimum) return true;
-  if (minimum === '2.1') return bundleVersion === '2.1' || bundleVersion === '2.2' || bundleVersion === '2.3';
-  if (minimum === '2.2') return bundleVersion === '2.2' || bundleVersion === '2.3';
-  return bundleVersion === '2.3';
+  if (minimum === '2.1') {
+    return bundleVersion === '2.1'
+      || bundleVersion === '2.2'
+      || bundleVersion === '2.3'
+      || bundleVersion === '2.4';
+  }
+  if (minimum === '2.2') {
+    return bundleVersion === '2.2'
+      || bundleVersion === '2.3'
+      || bundleVersion === '2.4';
+  }
+  return bundleVersion === '2.3' || bundleVersion === '2.4';
 }
 
 function versionGateCode(minimum: SlotSpec['minBundleVersion']): string {
@@ -169,21 +198,23 @@ function declaredRefs(manifest: unknown): DeclaredRef[] {
   if (!manifestRecord) return [];
   const refs: DeclaredRef[] = [];
   for (const spec of SLOT_SPECS) {
-    const value = manifestRecord[spec.manifestKey];
+    const value = ownProp(manifestRecord, spec.manifestKey);
     if (value === undefined) continue;
     if (spec.cardinality === 'array') {
       if (!Array.isArray(value)) {
         refs.push({ spec, slot: spec.manifestKey, pointer: `/${spec.manifestKey}`, value });
         continue;
       }
-      value.forEach((entry, index) => {
+      for (let index = 0; index < value.length; index += 1) {
+        if (!Object.prototype.hasOwnProperty.call(value, index)) continue;
+        const entry = value[index];
         refs.push({
           spec,
           slot: `${spec.manifestKey}[${index}]`,
           pointer: `/${spec.manifestKey}/${index}`,
           value: entry,
         });
-      });
+      }
     } else {
       refs.push({ spec, slot: spec.manifestKey, pointer: `/${spec.manifestKey}`, value });
     }
@@ -368,7 +399,7 @@ function artifactIdentity(document: unknown): ArtifactResolutionIdentity | undef
 
 function discriminatorMatches(document: unknown, discriminator: string): boolean {
   const doc = record(document);
-  return doc?.[discriminator] !== undefined;
+  return ownProp(doc, discriminator) !== undefined;
 }
 
 function isExactVersion(value: string | undefined): value is string {
@@ -686,4 +717,33 @@ export async function resolveArtifacts(request: ArtifactResolverRequest): Promis
     summary,
     phase: { phase: 'artifact-resolution', status: 'completed' },
   };
+}
+
+/**
+ * Validate an inline bundle export through the same ArtifactResolver path as
+ * externally loaded artifacts.
+ *
+ * Only exact own keys count as bundled documents. Prototype properties are not
+ * bundle contents and must never satisfy a manifest reference.
+ */
+export function resolveBundleExportArtifacts(
+  request: BundleExportArtifactResolverRequest,
+): Promise<ArtifactResolutionReport> {
+  const { documents, ...resolverRequest } = request;
+  return resolveArtifacts({
+    ...resolverRequest,
+    loader: ({ ref }) => {
+      const url = ref.url;
+      if (typeof url !== 'string' || !Object.prototype.hasOwnProperty.call(documents, url)) {
+        return typeof url === 'string'
+          ? { status: 'missing', source: url }
+          : { status: 'missing' };
+      }
+      return {
+        status: 'loaded',
+        document: documents[url],
+        source: url,
+      };
+    },
+  });
 }

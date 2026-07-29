@@ -52,10 +52,10 @@ test('FieldViewModel label resolves from locale store', () => {
 
     // Load locale with translated label
     deps.localeStore.loadLocale({
-        $formspecLocale: '1.0',
+        $formspecLocale: '2.0',
         locale: 'fr',
         version: '1.0.0',
-        targetDefinition: { url: '' },
+        target: { kind: 'definition', url: '' },
         strings: { 'email.label': 'Adresse courriel' },
     });
     deps.localeStore.setLocale('fr');
@@ -70,10 +70,10 @@ test('FieldViewModel label with FEL interpolation', () => {
     const vm = createFieldViewModel(deps);
 
     deps.localeStore.loadLocale({
-        $formspecLocale: '1.0',
+        $formspecLocale: '2.0',
         locale: 'fr',
         version: '1.0.0',
-        targetDefinition: { url: '' },
+        target: { kind: 'definition', url: '' },
         strings: { 'email.label': 'Total: {{$count}} éléments' },
     });
     deps.localeStore.setLocale('fr');
@@ -94,10 +94,10 @@ test('FieldViewModel label context cascade (6-step)', () => {
 
     // Load locale with context label
     deps.localeStore.loadLocale({
-        $formspecLocale: '1.0',
+        $formspecLocale: '2.0',
         locale: 'fr',
         version: '1.0.0',
-        targetDefinition: { url: '' },
+        target: { kind: 'definition', url: '' },
         strings: { 'email.label@short': 'Courriel (court)' },
     });
     deps.localeStore.setLocale('fr');
@@ -118,10 +118,10 @@ test('FieldViewModel hint resolves from locale', () => {
     assert.equal(vm.hint.value, 'Enter your email');
 
     deps.localeStore.loadLocale({
-        $formspecLocale: '1.0',
+        $formspecLocale: '2.0',
         locale: 'fr',
         version: '1.0.0',
-        targetDefinition: { url: '' },
+        target: { kind: 'definition', url: '' },
         strings: { 'email.hint': 'Entrez votre courriel' },
     });
     deps.localeStore.setLocale('fr');
@@ -136,10 +136,10 @@ test('FieldViewModel description resolves from locale', () => {
     assert.equal(vm.description.value, 'Work or personal email');
 
     deps.localeStore.loadLocale({
-        $formspecLocale: '1.0',
+        $formspecLocale: '2.0',
         locale: 'fr',
         version: '1.0.0',
-        targetDefinition: { url: '' },
+        target: { kind: 'definition', url: '' },
         strings: { 'email.description': 'Courriel professionnel ou personnel' },
     });
     deps.localeStore.setLocale('fr');
@@ -192,10 +192,10 @@ test('FieldViewModel errors with locale-resolved messages', () => {
     assert.equal(vm.firstError.value, 'This field is required');
 
     deps.localeStore.loadLocale({
-        $formspecLocale: '1.0',
+        $formspecLocale: '2.0',
         locale: 'fr',
         version: '1.0.0',
-        targetDefinition: { url: '' },
+        target: { kind: 'definition', url: '' },
         strings: { 'email.errors.REQUIRED': 'Ce champ est obligatoire' },
     });
     deps.localeStore.setLocale('fr');
@@ -214,10 +214,10 @@ test('FieldViewModel option labels resolve from locale', () => {
     assert.deepEqual(vm.options.value.map(o => o.label), ['Yes', 'No']);
 
     deps.localeStore.loadLocale({
-        $formspecLocale: '1.0',
+        $formspecLocale: '2.0',
         locale: 'fr',
         version: '1.0.0',
-        targetDefinition: { url: '' },
+        target: { kind: 'definition', url: '' },
         strings: {
             'email.options.yes.label': 'Oui',
             'email.options.no.label': 'Non',
@@ -239,10 +239,10 @@ test('FieldViewModel option labels use $optionSet fallback', () => {
     const vm = createFieldViewModel(deps);
 
     deps.localeStore.loadLocale({
-        $formspecLocale: '1.0',
+        $formspecLocale: '2.0',
         locale: 'fr',
         version: '1.0.0',
-        targetDefinition: { url: '' },
+        target: { kind: 'definition', url: '' },
         strings: {
             '$optionSet.yesNo.yes.label': 'Oui (partagé)',
         },
@@ -262,10 +262,10 @@ test('FieldViewModel validation code synthesis from constraintKind', () => {
     const vm = createFieldViewModel(deps);
 
     deps.localeStore.loadLocale({
-        $formspecLocale: '1.0',
+        $formspecLocale: '2.0',
         locale: 'fr',
         version: '1.0.0',
-        targetDefinition: { url: '' },
+        target: { kind: 'definition', url: '' },
         strings: { 'email.errors.REQUIRED': 'Obligatoire' },
     });
     deps.localeStore.setLocale('fr');

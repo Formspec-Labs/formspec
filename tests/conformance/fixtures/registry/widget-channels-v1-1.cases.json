@@ -1,0 +1,105 @@
+{
+  "registryVersion": "1.1",
+  "cases": [
+    {
+      "name": "separate-closed-channels",
+      "schemaValid": true,
+      "semanticValid": true,
+      "widgetShape": {
+        "widgetName": "CaseSummary",
+        "props": {
+          "type": "object",
+          "properties": {
+            "compact": {"type": "boolean"}
+          }
+        },
+        "dataInputs": [
+          {
+            "name": "case",
+            "required": true,
+            "description": "Authorized case data."
+          },
+          {
+            "name": "receipt",
+            "required": false
+          }
+        ],
+        "actionOutputs": [
+          {
+            "name": "openReceipt",
+            "description": "The person asks to open the receipt."
+          }
+        ]
+      }
+    },
+    {
+      "name": "duplicate-data-input-name",
+      "schemaValid": true,
+      "semanticValid": false,
+      "semanticError": "duplicate dataInputs name: case",
+      "widgetShape": {
+        "widgetName": "CaseSummary",
+        "dataInputs": [
+          {
+            "name": "case",
+            "required": true,
+            "description": "First declaration."
+          },
+          {
+            "name": "case",
+            "required": false,
+            "description": "Different object, same forbidden name."
+          }
+        ]
+      }
+    },
+    {
+      "name": "duplicate-action-output-name",
+      "schemaValid": true,
+      "semanticValid": false,
+      "semanticError": "duplicate actionOutputs name: openReceipt",
+      "widgetShape": {
+        "widgetName": "CaseSummary",
+        "actionOutputs": [
+          {
+            "name": "openReceipt",
+            "description": "First declaration."
+          },
+          {
+            "name": "openReceipt",
+            "description": "Different object, same forbidden name."
+          }
+        ]
+      }
+    },
+    {
+      "name": "data-input-entry-is-closed",
+      "schemaValid": false,
+      "semanticValid": true,
+      "widgetShape": {
+        "widgetName": "CaseSummary",
+        "dataInputs": [
+          {
+            "name": "case",
+            "required": true,
+            "schema": {"type": "object"}
+          }
+        ]
+      }
+    },
+    {
+      "name": "action-output-entry-is-not-an-action-map",
+      "schemaValid": false,
+      "semanticValid": true,
+      "widgetShape": {
+        "widgetName": "CaseSummary",
+        "actionOutputs": [
+          {
+            "name": "openReceipt",
+            "actionRef": "open-receipt"
+          }
+        ]
+      }
+    }
+  ]
+}

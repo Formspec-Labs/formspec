@@ -22,8 +22,45 @@ describe('composeSurfaceApp', () => {
     expect(app.groups[0]?.routes).toHaveLength(2);
   });
 
-  it('opens on the first Surface’s entry route', () => {
+  it('retains the historical first-Surface entry rule when no 2.4 selection is supplied', () => {
     expect(app.entry?.routeId).toBe('apply');
+  });
+
+  it('opens on the exact selected Surface object even when it is second', () => {
+    const selected = composeSurfaceApp([respondentSurface, staffSurface], {
+      entrySurface: staffSurface,
+    });
+    expect(selected.entry?.surface).toBe(staffSurface);
+    expect(selected.entry?.routeId).toBe('queue');
+  });
+
+  it('does not change an explicit entry when Surface array order changes', () => {
+    const selected = composeSurfaceApp([staffSurface, respondentSurface], {
+      entrySurface: respondentSurface,
+    });
+    expect(selected.entry?.surface).toBe(respondentSurface);
+    expect(selected.entry?.routeId).toBe('apply');
+  });
+
+  it('treats an explicit no-selection state as terminal', () => {
+    expect(
+      composeSurfaceApp(
+        [respondentSurface, staffSurface],
+        { entrySurface: null },
+      ).entry,
+    ).toBeUndefined();
+  });
+
+  it('refuses an equal-looking Surface that is not the loaded object', () => {
+    const equalLooking = { ...staffSurface };
+    const selected = composeSurfaceApp([respondentSurface, staffSurface], {
+      entrySurface: equalLooking,
+    });
+
+    expect(selected.entry).toBeUndefined();
+    expect(selected.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'APP-ENTRY-SURFACE-UNRESOLVED',
+    );
   });
 
   it('labels a group with the Surface id when the document carries no title', () => {

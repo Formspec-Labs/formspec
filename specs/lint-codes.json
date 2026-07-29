@@ -261,11 +261,23 @@
       "severity": "warning",
       "title": "Surface transition has no validator-readable trigger source (SURFACE-TRANSITION-UNFIREABLE)",
       "specRef": "specs/surface/surface-shell-spec.md#54-e611--catching-it-before-publication",
-      "suggestedFix": "add a definition-form slot whose Definition has a Response Action publishing this trigger, embed a route that has one, or remove the transition",
+      "suggestedFix": "add a definition-form source, map a Registry-declared widget output to this exact Response Action, embed a route that has one of those sources, or remove the transition",
       "fixtures": [
         "tests/conformance/fixtures/app-graph-validator/surface-response-action-triggers.case.json"
       ],
-      "state": "draft"
+      "state": "tested"
+    },
+    {
+      "code": "E612",
+      "pass": 8,
+      "severity": "error",
+      "title": "Surface widget action binding names an undeclared output or unresolved action (SURFACE-WIDGET-ACTION-REF)",
+      "specRef": "specs/app-graph/app-graph-validator-spec.md#71-vnext-surface-graph-diagnostics",
+      "suggestedFix": "declare the output in Registry widgetShape.actionOutputs and map it to one exact loaded Response Actions action id",
+      "fixtures": [
+        "tests/conformance/fixtures/app-graph-validator/surface-vnext-cross-artifact.case.json"
+      ],
+      "state": "tested"
     },
     {
       "code": "W700",

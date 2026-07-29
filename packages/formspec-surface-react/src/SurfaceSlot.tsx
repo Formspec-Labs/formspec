@@ -22,26 +22,73 @@
  * embedded title sat at the same rank as its host while its content sat one
  * deeper. {@link SurfaceSlotFrame} is both paths now.
  */
-import type { ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { FormspecForm } from '@formspec-org/react';
 import type {
   ResponseAction,
   ResponseActionInvocationResult,
+  ResponseActionsDocument as ReactResponseActionsDocument,
   SubmitResult,
 } from '@formspec-org/react';
+import type { ResponseActionsDocument as GeneratedResponseActionsDocument } from '@formspec-org/types';
 import {
+  loadWidgetDataInputs,
   responseActionsDocumentForDefinition,
-  type ResponseActionsDocumentLike,
+  surfaceDiagnostic,
+  type DataSourceAuthorizer,
+  type DataSourceLoader,
+  type DataSourcePayloadValidator,
+  type PlannedTransition,
   type SlotPlan,
+  type SurfaceDiagnostic,
   type SurfaceStrings,
   type ThemeGrant,
+  type WidgetDataDelivery,
 } from '@formspec-org/surface';
 import { Heading, nextLevel } from './heading.js';
 import type {
   SurfaceWidget,
-  SurfaceWidgetDataResolver,
+  SurfaceWidgetActionExecutor,
+  SurfaceWidgetActionOutcomeStore,
+  SurfaceWidgetActionReport,
   SurfaceWidgetRouteContext,
 } from './widget-api.js';
+import {
+  allocateWidgetActionInvocationId,
+  createWidgetActionCoordinator,
+  responseActionsDocumentForAction,
+  type WidgetActionCoordinator,
+} from './widget-action-runtime.js';
+import { WidgetEmptyState } from './widgets/empty-state.js';
+
+export type ResolvedDefinitionFormPlan = Extract<
+  SlotPlan<SurfaceWidget>,
+  { slotType: 'definition-form' }
+> & {
+  status: 'ready';
+  definition: NonNullable<
+    Extract<SlotPlan<SurfaceWidget>, { slotType: 'definition-form' }>['definition']
+  >;
+};
+
+export interface SurfaceDefinitionFormRenderInput {
+  plan: ResolvedDefinitionFormPlan;
+  grant: ThemeGrant;
+  route: SurfaceWidgetRouteContext;
+  responseActionsDocument: ReactResponseActionsDocument | undefined;
+  /** Preserve the shell's completed-action navigation boundary. */
+  onActionCompleted?: ((action: ResponseAction) => void) | undefined;
+}
+
+export type SurfaceDefinitionFormRenderer = (
+  input: SurfaceDefinitionFormRenderInput,
+) => ReactNode;
 
 export interface SurfaceSlotProps {
   plan: SlotPlan<SurfaceWidget>;
@@ -49,7 +96,9 @@ export interface SurfaceSlotProps {
   route: SurfaceWidgetRouteContext;
   /** The shell's own person-facing strings, host-overridable (§3.0). */
   strings: SurfaceStrings;
-  widgetData?: SurfaceWidgetDataResolver | undefined;
+  dataSourceLoader?: DataSourceLoader | undefined;
+  authorizeDataSource?: DataSourceAuthorizer | undefined;
+  validateDataSourcePayload?: DataSourcePayloadValidator | undefined;
   /** Shows the design rationale on `experience-unit` slots. Off for respondents. */
   showExperienceNeeds?: boolean | undefined;
   /**
@@ -60,9 +109,21 @@ export interface SurfaceSlotProps {
    * Actions, so a renderer that invented one would be wrong. Passing it is what
    * makes a form-bearing route able to fire its own transition.
    */
-  responseActionsDocuments?: readonly ResponseActionsDocumentLike[] | undefined;
+  responseActionsDocuments?: readonly GeneratedResponseActionsDocument[] | undefined;
+  transitions?: readonly PlannedTransition[] | undefined;
+  widgetActionExecutor?: SurfaceWidgetActionExecutor | undefined;
+  widgetActionOutcomeStore?: SurfaceWidgetActionOutcomeStore | undefined;
+  widgetActionCoordinator?: WidgetActionCoordinator | undefined;
+  /** Route + opaque session generation; late action completions cannot navigate across it. */
+  runtimeGeneration?: string | undefined;
+  onWidgetActionReport?: ((report: SurfaceWidgetActionReport) => void) | undefined;
+  onRuntimeDiagnosticsChange?:
+    | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
+    | undefined;
+  renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   /** A published Action reached a successful terminal with a valid report. */
   onActionCompleted?: ((action: ResponseAction) => void) | undefined;
+  onAdvance?: ((transition: PlannedTransition) => void) | undefined;
 }
 
 /** The action that is safe to use for route advancement, or no action. */
@@ -123,17 +184,31 @@ export function SurfaceSlot({
   grant,
   route,
   strings,
-  widgetData,
+  dataSourceLoader,
+  authorizeDataSource,
+  validateDataSourcePayload,
   showExperienceNeeds = false,
   responseActionsDocuments,
+  transitions,
+  widgetActionExecutor,
+  widgetActionOutcomeStore,
+  widgetActionCoordinator,
+  runtimeGeneration,
+  onWidgetActionReport,
+  onRuntimeDiagnosticsChange,
+  renderDefinitionForm,
   onActionCompleted,
+  onAdvance,
 }: SurfaceSlotProps): ReactNode {
   switch (plan.slotType) {
     case 'definition-form': {
       if (plan.status === 'unresolved' || plan.definition === undefined) {
         return <UnavailableSlot>{strings('slotUnavailableDefinitionForm')}</UnavailableSlot>;
       }
-      const responseActionsDocument = responseActionsDocumentForDefinition(
+      // This annotation is the compile-time cross-package contract: the
+      // generated schema document must pass directly into React's engine seam.
+      const responseActionsDocument: ReactResponseActionsDocument | undefined =
+        responseActionsDocumentForDefinition(
         responseActionsDocuments ?? [],
         plan.definitionRef,
       );
@@ -141,34 +216,20 @@ export function SurfaceSlot({
       // directly. On a refusing route that object was built from the platform
       // token registry and never saw a tenant token — which is what makes the
       // boundary structural rather than a styling choice.
-      return (
-        <FormspecForm
-          definition={plan.definition}
-          themeDocument={grant.themeDocument}
-          registryEntries={plan.registryEntries as unknown[]}
-          // `@formspec-org/types` generates `ResponseActionsDocument` from the
-          // schema; `@formspec-org/react` takes the engine's
-          // `ResponseActionsDocumentInput`. Neither is assignable to the other,
-          // which is a shipped-type mismatch rather than a shell decision —
-          // finding F6, owner `formspec-types` / `formspec-engine`.
-          responseActionsDocument={(responseActionsDocument ?? null) as never}
-          emitThemeTokens={false}
-          {...(onActionCompleted
-            ? {
-                // `onSubmit` requests the renderer's declared submit control.
-                // It is intentionally a no-op: durable effects have not reached
-                // their terminal yet.
-                onSubmit: () => {},
-                onActionResult: (
-                  result: ResponseActionInvocationResult<SubmitResult>,
-                ) => {
-                  const action = completedFormAction(result);
-                  if (action) onActionCompleted(action);
-                },
-              }
-            : {})}
-        />
-      );
+      const renderInput: SurfaceDefinitionFormRenderInput = {
+        plan: {
+          ...plan,
+          status: 'ready',
+          definition: plan.definition,
+        },
+        grant,
+        route,
+        responseActionsDocument,
+        onActionCompleted,
+      };
+      return renderDefinitionForm
+        ? renderDefinitionForm(renderInput)
+        : renderDefaultDefinitionForm(renderInput);
     }
 
     case 'experience-unit': {
@@ -217,23 +278,24 @@ export function SurfaceSlot({
       // A resolved-but-undeclared widget still renders — the host supplied a
       // component. `WIDGET-UNDECLARED` is already in the plan's diagnostics
       // (§3.3): a shell MAY render it, and MUST say it did.
-      const Widget = resolution.component;
       return (
-        <Widget
-          moduleId={key.moduleId}
-          widgetName={key.widgetName}
-          slot={{ id: plan.slotId, title: plan.title }}
+        <SurfaceWidgetSlot
+          plan={plan}
+          grant={grant}
           route={route}
-          headingLevel={plan.headingBaseLevel}
-          config={plan.config ?? {}}
-          data={widgetData?.({
-            moduleId: key.moduleId,
-            widgetName: key.widgetName,
-            slotId: plan.slotId,
-            route,
-            config: plan.config ?? {},
-          })}
-          admitsTenantTheme={grant.admitsTenantTheme}
+          strings={strings}
+          dataSourceLoader={dataSourceLoader}
+          authorizeDataSource={authorizeDataSource}
+          validateDataSourcePayload={validateDataSourcePayload}
+          responseActionsDocuments={responseActionsDocuments ?? []}
+          transitions={transitions ?? []}
+          widgetActionExecutor={widgetActionExecutor}
+          widgetActionOutcomeStore={widgetActionOutcomeStore}
+          widgetActionCoordinator={widgetActionCoordinator}
+          runtimeGeneration={runtimeGeneration ?? `${route.surfaceId}/${route.routeId}`}
+          onWidgetActionReport={onWidgetActionReport}
+          onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+          onAdvance={onAdvance}
         />
       );
     }
@@ -258,11 +320,8 @@ export function SurfaceSlot({
               className="fs-surface-static-image"
               src={content.src}
               alt={content.alt}
-              // A decorative image is announced to nobody. That is the correct
-              // treatment for an image with no accessible name, and the wrong
-              // outcome for an image that carries meaning — which is why the
-              // missing alt channel reports on EVERY image slot (finding F1)
-              // rather than only on this branch.
+              // Empty alt is an explicit authored decorative choice in Surface
+              // 0.2. Missing alt never reaches this renderer.
               {...(content.decorative ? { role: 'presentation' } : {})}
             />
           );
@@ -299,10 +358,21 @@ export function SurfaceSlot({
               grant={grant}
               route={route}
               strings={strings}
-              widgetData={widgetData}
+              dataSourceLoader={dataSourceLoader}
+              authorizeDataSource={authorizeDataSource}
+              validateDataSourcePayload={validateDataSourcePayload}
               showExperienceNeeds={showExperienceNeeds}
               responseActionsDocuments={responseActionsDocuments}
+              transitions={transitions}
+              widgetActionExecutor={widgetActionExecutor}
+              widgetActionOutcomeStore={widgetActionOutcomeStore}
+              widgetActionCoordinator={widgetActionCoordinator}
+              runtimeGeneration={runtimeGeneration}
+              onWidgetActionReport={onWidgetActionReport}
+              onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+              renderDefinitionForm={renderDefinitionForm}
               onActionCompleted={onActionCompleted}
+              onAdvance={onAdvance}
             />
           ))}
         </div>
@@ -312,6 +382,411 @@ export function SurfaceSlot({
     case 'unknown':
       return <UnavailableSlot>{strings('slotUnavailableStaticContent')}</UnavailableSlot>;
   }
+}
+
+export function renderDefaultDefinitionForm({
+  plan,
+  grant,
+  responseActionsDocument,
+  onActionCompleted,
+}: SurfaceDefinitionFormRenderInput): ReactNode {
+  return (
+    <FormspecForm
+      definition={plan.definition}
+      themeDocument={grant.themeDocument}
+      registryEntries={[...plan.registryEntries]}
+      responseActionsDocument={responseActionsDocument ?? null}
+      emitThemeTokens={false}
+      {...(onActionCompleted
+        ? {
+            // `onSubmit` requests the renderer's declared submit control. It is
+            // a no-op because durable effects have not reached a terminal yet.
+            onSubmit: () => {},
+            onActionResult: (
+              result: ResponseActionInvocationResult<SubmitResult>,
+            ) => {
+              const action = completedFormAction(result);
+              if (action) onActionCompleted(action);
+            },
+          }
+        : {})}
+    />
+  );
+}
+
+type ModuleWidgetPlan = Extract<SlotPlan<SurfaceWidget>, { slotType: 'module-widget' }>;
+
+interface SurfaceWidgetSlotProps {
+  plan: ModuleWidgetPlan;
+  grant: ThemeGrant;
+  route: SurfaceWidgetRouteContext;
+  strings: SurfaceStrings;
+  dataSourceLoader?: DataSourceLoader | undefined;
+  authorizeDataSource?: DataSourceAuthorizer | undefined;
+  validateDataSourcePayload?: DataSourcePayloadValidator | undefined;
+  responseActionsDocuments: readonly GeneratedResponseActionsDocument[];
+  transitions: readonly PlannedTransition[];
+  widgetActionExecutor?: SurfaceWidgetActionExecutor | undefined;
+  widgetActionOutcomeStore?: SurfaceWidgetActionOutcomeStore | undefined;
+  widgetActionCoordinator?: WidgetActionCoordinator | undefined;
+  runtimeGeneration: string;
+  onWidgetActionReport?: ((report: SurfaceWidgetActionReport) => void) | undefined;
+  onRuntimeDiagnosticsChange?:
+    | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
+    | undefined;
+  onAdvance?: ((transition: PlannedTransition) => void) | undefined;
+}
+
+const EMPTY_WIDGET_DATA = Object.freeze({}) as Readonly<Record<string, unknown>>;
+const READY_WITH_NO_DATA: WidgetDataDelivery = {
+  status: 'ready',
+  data: EMPTY_WIDGET_DATA,
+  degradedInputs: [],
+  diagnostics: [],
+};
+
+type WidgetDataState = WidgetDataDelivery | { status: 'loading' };
+
+function SurfaceWidgetSlot({
+  plan,
+  grant,
+  route,
+  strings,
+  dataSourceLoader,
+  authorizeDataSource,
+  validateDataSourcePayload,
+  responseActionsDocuments,
+  transitions,
+  widgetActionExecutor,
+  widgetActionOutcomeStore,
+  widgetActionCoordinator,
+  runtimeGeneration,
+  onWidgetActionReport,
+  onRuntimeDiagnosticsChange,
+  onAdvance,
+}: SurfaceWidgetSlotProps): ReactNode {
+  const [delivery, setDelivery] = useState<WidgetDataState>(
+    plan.dataInputs.length === 0 ? READY_WITH_NO_DATA : { status: 'loading' },
+  );
+  const activeGeneration = useRef(runtimeGeneration);
+  activeGeneration.current = runtimeGeneration;
+  const localActionCoordinator = useRef(createWidgetActionCoordinator());
+  const actionCoordinator = widgetActionCoordinator ?? localActionCoordinator.current;
+  const navigatedInvocations = useRef(new Set<string>());
+  const dataDiagnosticScope = `widget-data:${runtimeGeneration}:${plan.slotId}`;
+
+  useEffect(() => {
+    let current = true;
+    if (plan.dataInputs.length > 0) setDelivery({ status: 'loading' });
+    onRuntimeDiagnosticsChange?.(dataDiagnosticScope, []);
+
+    void loadWidgetDataInputs({
+      inputs: plan.dataInputs,
+      context: {
+        surfaceId: route.surfaceId,
+        surfaceRef: route.surfaceRef,
+        routeId: route.routeId,
+        slotId: plan.slotId,
+        moduleId: plan.key.moduleId,
+        widgetName: plan.key.widgetName,
+        params: route.params,
+        sessionGeneration: runtimeGeneration,
+      },
+      loader: dataSourceLoader,
+      authorize: authorizeDataSource,
+      validatePayload: validateDataSourcePayload,
+      site: {
+        surfaceId: route.surfaceId,
+        routeId: route.routeId,
+        slotId: plan.slotId,
+      },
+    }).then((result) => {
+      if (!current) return;
+      setDelivery(result);
+      onRuntimeDiagnosticsChange?.(dataDiagnosticScope, result.diagnostics);
+    });
+
+    return () => {
+      current = false;
+      onRuntimeDiagnosticsChange?.(dataDiagnosticScope, []);
+    };
+  }, [
+    authorizeDataSource,
+    dataDiagnosticScope,
+    dataSourceLoader,
+    onRuntimeDiagnosticsChange,
+    plan.dataInputs,
+    plan.key.moduleId,
+    plan.key.widgetName,
+    plan.slotId,
+    route.params,
+    route.routeId,
+    route.surfaceId,
+    route.surfaceRef,
+    runtimeGeneration,
+    validateDataSourcePayload,
+  ]);
+
+  const reportRefusal = useCallback(
+    (
+      invocationId: string,
+      outputName: string,
+      code:
+        | 'WIDGET-ACTION-OUTPUT-UNDECLARED'
+        | 'WIDGET-ACTION-OUTPUT-UNMAPPED'
+        | 'WIDGET-ACTION-REF-UNRESOLVED'
+        | 'WIDGET-ACTION-TRANSITION-AMBIGUOUS',
+      message: string,
+      details: Readonly<Record<string, unknown>>,
+    ) => {
+      onRuntimeDiagnosticsChange?.(
+        `widget-action:${runtimeGeneration}:${plan.slotId}:${invocationId}`,
+        [
+          surfaceDiagnostic(
+            code,
+            message,
+            {
+              surfaceId: route.surfaceId,
+              routeId: route.routeId,
+              slotId: plan.slotId,
+            },
+            details,
+          ),
+        ],
+      );
+      onWidgetActionReport?.({
+        invocationId,
+        outputName,
+        navigation: code === 'WIDGET-ACTION-TRANSITION-AMBIGUOUS'
+          ? 'ambiguous'
+          : 'not-attempted',
+      });
+    },
+    [
+      onRuntimeDiagnosticsChange,
+      onWidgetActionReport,
+      plan.slotId,
+      route.routeId,
+      route.surfaceId,
+      runtimeGeneration,
+    ],
+  );
+
+  const emitAction = useCallback(
+    (outputName: string) => {
+      const declared = plan.actionOutputs.filter((output) => output.name === outputName);
+      if (declared.length !== 1) {
+        const invocationId = allocateWidgetActionInvocationId();
+        reportRefusal(
+          invocationId,
+          outputName,
+          'WIDGET-ACTION-OUTPUT-UNDECLARED',
+          `Widget "${plan.key.widgetName}" emitted undeclared output "${outputName}".`,
+          {
+            moduleId: plan.key.moduleId,
+            widgetName: plan.key.widgetName,
+            outputName,
+            declarationCount: declared.length,
+          },
+        );
+        return;
+      }
+      const actionRef = declared[0]?.actionRef;
+      if (!actionRef) {
+        const invocationId = allocateWidgetActionInvocationId();
+        reportRefusal(
+          invocationId,
+          outputName,
+          'WIDGET-ACTION-OUTPUT-UNMAPPED',
+          `Declared widget output "${outputName}" has no Surface action binding.`,
+          {
+            moduleId: plan.key.moduleId,
+            widgetName: plan.key.widgetName,
+            outputName,
+          },
+        );
+        return;
+      }
+      const document = responseActionsDocumentForAction(
+        responseActionsDocuments,
+        actionRef,
+      );
+      if (!document) {
+        const invocationId = allocateWidgetActionInvocationId();
+        reportRefusal(
+          invocationId,
+          outputName,
+          'WIDGET-ACTION-REF-UNRESOLVED',
+          `Widget output "${outputName}" maps to action "${actionRef}", which does not resolve exactly once.`,
+          {
+            moduleId: plan.key.moduleId,
+            widgetName: plan.key.widgetName,
+            outputName,
+            actionRef,
+          },
+        );
+        return;
+      }
+      if (!widgetActionExecutor) {
+        const invocationId = allocateWidgetActionInvocationId();
+        onWidgetActionReport?.({
+          invocationId,
+          actionRef,
+          outputName,
+          navigation: 'not-attempted',
+        });
+        return;
+      }
+
+      const source = {
+        moduleId: plan.key.moduleId,
+        widgetName: plan.key.widgetName,
+        slotId: plan.slotId,
+        route,
+        outputName,
+      };
+      const emittedGeneration = runtimeGeneration;
+      const emission = actionCoordinator.emit({
+          generation: emittedGeneration,
+          document,
+          actionRef,
+          source,
+          executor: widgetActionExecutor,
+          outcomeStore: widgetActionOutcomeStore,
+        });
+      if (!emission.started) return;
+      void emission.completion
+        .then(({ invocationId, result }) => {
+          if (activeGeneration.current !== emittedGeneration) {
+            onWidgetActionReport?.({
+              invocationId,
+              actionRef,
+              outputName,
+              result,
+              navigation: 'obsolete-generation',
+            });
+            return;
+          }
+
+          const action = completedFormAction(result);
+          if (!action || action.id !== actionRef) {
+            onWidgetActionReport?.({
+              invocationId,
+              actionRef,
+              outputName,
+              result,
+              navigation: 'none',
+            });
+            return;
+          }
+
+          const eligible = transitions.filter(
+            (transition) =>
+              transition.status === 'supplied-by-slot' &&
+              transition.actionId === action.id,
+          );
+          if (eligible.length > 1) {
+            reportRefusal(
+              invocationId,
+              outputName,
+              'WIDGET-ACTION-TRANSITION-AMBIGUOUS',
+              `Completed widget action "${action.id}" selects more than one eligible transition. Navigation was refused.`,
+              {
+                actionRef,
+                outputName,
+                targets: eligible.map((transition) => transition.to),
+              },
+            );
+            return;
+          }
+          const transition = eligible[0];
+          if (!transition) {
+            onWidgetActionReport?.({
+              invocationId,
+              actionRef,
+              outputName,
+              result,
+              navigation: 'none',
+            });
+            return;
+          }
+          if (navigatedInvocations.current.has(invocationId)) return;
+          navigatedInvocations.current.add(invocationId);
+          onWidgetActionReport?.({
+            invocationId,
+            actionRef,
+            outputName,
+            result,
+            navigation: 'advanced',
+          });
+          onAdvance?.(transition);
+        })
+        .catch(() => undefined);
+    },
+    [
+      onAdvance,
+      actionCoordinator,
+      onWidgetActionReport,
+      plan.actionOutputs,
+      plan.key.moduleId,
+      plan.key.widgetName,
+      plan.slotId,
+      reportRefusal,
+      responseActionsDocuments,
+      route,
+      runtimeGeneration,
+      transitions,
+      widgetActionExecutor,
+      widgetActionOutcomeStore,
+    ],
+  );
+
+  if (delivery.status === 'loading') {
+    return (
+      <div
+        className="fs-surface-widget-loading"
+        data-widget-data="loading"
+        aria-busy="true"
+      />
+    );
+  }
+  if (delivery.status === 'unavailable') {
+    const modes = delivery.failures
+      .map((failure) => failure.failureMode)
+      .filter((mode): mode is NonNullable<typeof mode> => mode !== undefined);
+    const emptyState = modes.length > 0 && modes.every((mode) => mode === 'empty-state');
+    if (emptyState) {
+      return <WidgetEmptyState>{strings('widgetEmpty')}</WidgetEmptyState>;
+    }
+    return (
+      <div
+        data-widget-data="unavailable"
+        data-widget-failure-mode={modes.join(' ')}
+      >
+        <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>
+      </div>
+    );
+  }
+
+  const Widget = plan.resolution.status === 'resolved'
+    ? plan.resolution.component
+    : undefined;
+  if (!Widget) {
+    return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
+  }
+  return (
+    <Widget
+      moduleId={plan.key.moduleId}
+      widgetName={plan.key.widgetName}
+      slot={{ id: plan.slotId, title: plan.title }}
+      route={route}
+      headingLevel={plan.headingBaseLevel}
+      config={plan.config ?? {}}
+      data={delivery.data}
+      emitAction={emitAction}
+      admitsTenantTheme={grant.admitsTenantTheme}
+    />
+  );
 }
 
 function UnavailableSlot({ children }: { children: ReactNode }) {

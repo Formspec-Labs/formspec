@@ -20,7 +20,7 @@ export function surface(
   extra: Partial<SurfaceDocument> = {},
 ): SurfaceDocument {
   return {
-    $formspecSurface: '0.1',
+    $formspecSurface: '0.2',
     id,
     entry,
     routes: routes as SurfaceDocument['routes'],
@@ -36,7 +36,7 @@ export const tenantTheme = {
 } as unknown as ThemeDocument;
 
 export const registryDocument: RegistryDocument = {
-  $formspecRegistry: '1.0',
+  $formspecRegistry: '1.1',
   entries: [
     {
       name: 'x-acme-chrome',

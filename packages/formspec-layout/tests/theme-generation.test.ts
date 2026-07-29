@@ -4,6 +4,7 @@ import {
     platformDefaults,
     platformSelectors,
     buildPlatformTheme,
+    mergePlatformAndTenantTheme,
 } from '../src/platform-defaults';
 
 describe('platformDefaults', () => {
@@ -104,5 +105,45 @@ describe('buildPlatformTheme', () => {
         expect(theme.tokens?.['color.ring']).toBeUndefined();
         expect(theme.tokens?.['color.dark.ring']).toBeUndefined();
         expect(theme.tokens?.['color.primary']).toBe('#27594f');
+    });
+});
+
+describe('mergePlatformAndTenantTheme', () => {
+    it('keeps platform tokens below tenant overrides and preserves tenant metadata', () => {
+        const platform = buildPlatformTheme();
+        const tenant = {
+            $formspecTheme: '1.0' as const,
+            version: '2.0.0',
+            title: 'Tenant presentation',
+            defaults: { labelPosition: 'start' as const },
+            tokens: {
+                'color.primary': '#7A1F3D',
+            },
+        };
+
+        const merged = mergePlatformAndTenantTheme(platform, tenant);
+
+        expect(merged.tokens?.['spacing.md']).toBe(platform.tokens?.['spacing.md']);
+        expect(merged.tokens?.['radius.md']).toBe(platform.tokens?.['radius.md']);
+        expect(merged.tokens?.['color.primary']).toBe('#7A1F3D');
+        expect(merged.title).toBe('Tenant presentation');
+        expect(merged.defaults).toBe(tenant.defaults);
+    });
+
+    it('does not mutate either input or share their token maps', () => {
+        const platform = buildPlatformTheme();
+        const tenant = {
+            $formspecTheme: '1.0' as const,
+            version: '2.0.0',
+            tokens: { 'color.primary': '#7A1F3D' },
+        };
+        const platformTokens = { ...platform.tokens };
+        const tenantTokens = { ...tenant.tokens };
+
+        const merged = mergePlatformAndTenantTheme(platform, tenant);
+        merged.tokens!['spacing.md'] = 'changed';
+
+        expect(platform.tokens).toEqual(platformTokens);
+        expect(tenant.tokens).toEqual(tenantTokens);
     });
 });

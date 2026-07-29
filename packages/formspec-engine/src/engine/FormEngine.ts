@@ -201,7 +201,10 @@ export class FormEngine implements IFormEngine {
 
         // Locale store — direction mode from formPresentation.direction or 'ltr'
         const directionMode = definition.formPresentation?.direction ?? 'ltr';
-        this._localeStore = new LocaleStore(this._rx, directionMode);
+        this._localeStore = new LocaleStore(this._rx, directionMode, {
+            kind: 'definition',
+            url: definition.url,
+        });
         this.localeSignal = this._localeStore.version;
         this._variableDefs = [...(this.definition.variables ?? [])];
 

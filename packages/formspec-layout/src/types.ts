@@ -6,10 +6,9 @@ import type {
     FormDefinition,
     FormItem,
     AppGraphValidationReport,
-    ThemeDocument,
     UiGraphPolicyDocument,
 } from '@formspec-org/types';
-import type { PresentationBlock } from './theme-resolver.js';
+import type { PresentationBlock, ThemeDocument } from './theme-resolver.js';
 
 export type { FormItem };
 

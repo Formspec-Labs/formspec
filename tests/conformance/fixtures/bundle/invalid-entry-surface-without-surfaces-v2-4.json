@@ -1,0 +1,16 @@
+{
+  "fixture": "invalid-entry-surface-without-surfaces-v2-4",
+  "purpose": "entrySurface is forbidden when the manifest has no Surface.",
+  "expected": {
+    "valid": false,
+    "errorContains": "surfaces",
+    "diagnostic": "APP-ENTRY-SURFACE-UNRESOLVED"
+  },
+  "bundle": {
+    "$formspecBundle": "2.4",
+    "version": "2.4.0",
+    "id": "https://example.gov/apps/no-surfaces",
+    "definitions": [],
+    "entrySurface": "https://example.gov/apps/no-surfaces/missing"
+  }
+}

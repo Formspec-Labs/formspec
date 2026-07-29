@@ -8,11 +8,14 @@ const rx = preactReactiveRuntime;
 /** Helper: build a minimal locale document. */
 function makeLocale(locale, strings, opts = {}) {
   return {
-    $formspecLocale: '1.0',
+    $formspecLocale: '2.0',
     locale,
     version: opts.version ?? '1.0.0',
     fallback: opts.fallback,
-    targetDefinition: { url: 'https://example.org/form' },
+    target: {
+      kind: opts.targetKind ?? 'definition',
+      url: opts.targetUrl ?? 'https://example.org/form',
+    },
     strings,
   };
 }
@@ -83,6 +86,40 @@ test('lookup works with non-normalized locale codes', () => {
   store.loadLocale(makeLocale('FR-ca', { 'name.label': 'Nom' }));
   store.setLocale('fr-CA');
   assert.equal(store.lookupKey('name.label'), 'Nom');
+});
+
+test('documents with the same locale remain isolated by target kind and URL', () => {
+  const store = new LocaleStore(rx);
+  store.loadLocale(makeLocale('en', { heading: 'Definition A' }));
+  store.loadLocale(makeLocale('en', { heading: 'Definition B' }, {
+    targetUrl: 'https://example.org/other-form',
+  }));
+  store.loadLocale(makeLocale('en', { heading: 'App' }, {
+    targetKind: 'app',
+    targetUrl: 'https://example.org/app',
+  }));
+  store.setLocale('en');
+
+  expectTarget('definition', 'https://example.org/form', 'Definition A');
+  expectTarget('definition', 'https://example.org/other-form', 'Definition B');
+  expectTarget('app', 'https://example.org/app', 'App');
+
+  function expectTarget(kind, url, expected) {
+    store.setTarget({ kind, url });
+    assert.equal(store.lookupKey('heading'), expected);
+  }
+});
+
+test('explicit and implicit fallback never consult another target', () => {
+  const store = new LocaleStore(rx);
+  store.loadLocale(makeLocale('fr-CA', {}, { fallback: 'fr' }));
+  store.loadLocale(makeLocale('fr', { heading: 'Wrong target' }, {
+    targetUrl: 'https://example.org/other-form',
+  }));
+  store.setTarget({ kind: 'definition', url: 'https://example.org/form' });
+  store.setLocale('fr-CA');
+
+  assert.equal(store.lookupKey('heading'), null);
 });
 
 // --- setLocale changes active locale ---

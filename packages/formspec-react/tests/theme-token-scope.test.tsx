@@ -42,6 +42,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { initFormspecEngine } from '@formspec-org/engine';
+import { buildPlatformTheme } from '@formspec-org/layout';
 import { FormspecProvider } from '../src/context';
 import { FormspecForm } from '../src/renderer';
 
@@ -51,6 +52,7 @@ beforeAll(async () => {
 
 const TENANT_BRAND = '#7A1F3D';
 const PLATFORM_BRAND = '#27594f';
+const PLATFORM_THEME = buildPlatformTheme();
 
 const definition = {
     $formspec: '1.0',
@@ -77,6 +79,13 @@ const platformTheme = {
     $formspecTheme: '1.0',
     version: '1.0.0',
     tokens: { 'color.primary': PLATFORM_BRAND },
+};
+
+const partialTenantTheme = {
+    $formspecTheme: '1.0',
+    version: '1.0.0',
+    title: 'Tenant presentation',
+    tokens: { 'color.primary': TENANT_BRAND },
 };
 
 /** Every `--formspec-*` inline custom property currently set on `<html>`. */
@@ -149,6 +158,26 @@ describe('theme token scope — ADR 0161 runtime half', () => {
         container.remove();
     });
 
+    it('layers a partial tenant Theme over platform spacing and radii', () => {
+        const { root, container } = mount(
+            <FormspecForm definition={definition} themeDocument={partialTenantTheme} />,
+        );
+
+        const scope = container.querySelector<HTMLElement>('.formspec-theme-scope')!;
+        const form = container.querySelector<HTMLElement>('.formspec-container')!;
+        expect(scope.style.getPropertyValue('--formspec-color-primary')).toBe(TENANT_BRAND);
+        expect(scope.style.getPropertyValue('--formspec-spacing-md')).toBe(
+            PLATFORM_THEME.tokens?.['spacing.md'],
+        );
+        expect(form.style.getPropertyValue('--formspec-radius-md')).toBe(
+            PLATFORM_THEME.tokens?.['radius.md'],
+        );
+        expect(documentRootFormspecProperties()).toEqual([]);
+
+        flushSync(() => root.unmount());
+        container.remove();
+    });
+
     it('lets an owning shell disable both provider and form-container emission', () => {
         const { root, container } = mount(
             <FormspecForm
@@ -213,8 +242,12 @@ describe('theme token scope — ADR 0161 runtime half', () => {
         ));
 
         expect(scope.style.getPropertyValue('--formspec-color-primary')).toBe(PLATFORM_BRAND);
-        expect(scope.style.getPropertyValue('--formspec-spacing-md')).toBe('');
-        expect(scope.style.getPropertyValue('--formspec-color-dark-primary')).toBe('');
+        expect(scope.style.getPropertyValue('--formspec-spacing-md')).toBe(
+            PLATFORM_THEME.tokens?.['spacing.md'],
+        );
+        expect(scope.style.getPropertyValue('--formspec-color-dark-primary')).toBe(
+            PLATFORM_THEME.tokens?.['color.dark.primary'],
+        );
 
         flushSync(() => root.unmount());
         container.remove();
