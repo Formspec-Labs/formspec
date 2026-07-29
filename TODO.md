@@ -122,12 +122,19 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
    **Acceptance:** TypeScript types regenerated; downstream policy-studio + formspec-studio regen tracked separately.
 
 - **FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification extension property** · `fs-du1p` · P4
+   blocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`
 
-   Formalize x-data-classification extension schema from compliance exploration thoughts/research/2026-03-23-compliance-exploration.md §3.3. Sensitivity levels (public/internal/confidential/restricted/pii), categories (PII/PHI/financial), regulatory tags. Independently valuable — classification metadata enables compliance workflows without crypto architecture (ADR-0074).
+   After `fs-lb8y` selects the canonical disclosure-classification axis, formalize
+   `x-data-classification` only if that decision retains it. The compliance
+   exploration proposes sensitivity levels
+   (public/internal/confidential/restricted/pii), categories
+   (PII/PHI/financial), and regulatory tags. Do not land this as a parallel axis
+   to `accessControl.class`.
 
    **Acceptance:**
-     - x-data-classification entry in formspec-common.registry.json; schema validates sensitivity+categories+regulatory tags; compliance lint rule C001 emits warnings for unclassified PHI fields; clinical-intake example annotated.
-     - Gates FORMSPEC-FIELD-CLASSIFICATION-001 (deferred).
+     - `fs-lb8y` records that `x-data-classification` is canonical or explicitly maps it to the chosen axis.
+     - If retained, `formspec-common.registry.json` registers the extension, its schema validates sensitivity, categories, and regulatory tags, C001 warns for unclassified PHI fields, and the clinical-intake example uses it.
+     - If retired, this ticket closes with the replacement mapping and no duplicate schema.
 
 - **WOS Formspec-Coprocessor integrator alignment (P11-BL-051)** · `fs-op37` · P4
 
@@ -1120,11 +1127,20 @@ Work that has been researched and decided against for now. Tracked here so it is
    **Acceptance:** Concrete use case where content-addressed identity solves a cross-stack integrity problem that current hash chains (§9.2) don't.
 
 - **FORMSPEC-FIELD-CLASSIFICATION-001 — Field-level access classification [DEFERRED]** · `fs-fvgk` · P4
-   blocked-by FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification… `fs-du1p`
+   blocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`, FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification… `fs-du1p`
 
-   ADR 0074 (thoughts/adr/0074-formspec-native-field-level-transparency.md) proposes accessControl on items, bucketed response encryption, key bags, Privacy Profile + Access-Class Registry companion docs, Phase 5 Emission in the processing model, cross-class FEL rules. DEFERRED: ADR proposes a crypto architecture (key-wrapped DEKs, bucketed Response) as a major version bump before any production users exist. Simpler higher-value first step is x-data-classification metadata (FORMSPEC-DATA-CLASSIFICATION-001) — field-level sensitivity labeling without encryption. Build labeling first, prove classification workflows, then add crypto.
+   ADR 0074 (thoughts/adr/0074-formspec-native-field-level-transparency.md)
+   proposes `accessControl` on items, bucketed response encryption, key bags, a
+   Privacy Profile and Access-Class Registry, Phase 5 Emission, and cross-class
+   FEL rules. This remains deferred. `fs-lb8y` must first choose whether
+   `accessControl.class` or `x-data-classification` is canonical; this ticket MUST
+   follow that decision rather than assuming both axes or assuming `fs-du1p`
+   lands unchanged.
 
-   **Acceptance:** x-data-classification extension is spec'd AND used in a deployed form with compliance requirements.
+   **Acceptance:**
+     - `fs-lb8y` has selected and documented one canonical classification axis.
+     - The labeling prerequisite is implemented and exercised in a form with compliance requirements.
+     - Any later encryption design uses that axis and does not introduce a parallel vocabulary.
 
 - **FORMSPEC-INTAKEHANDOFF-EMISSION-001 — Native IntakeHandoff custody envelope [DEFERRED]** · `fs-hixs` · P4
    links ADR 0079 — Formspec Native IntakeHandoff Emission residue… `fs-n8xe`

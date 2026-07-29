@@ -32,7 +32,13 @@ No other content changed during promotion.
 **What this specification deliberately does NOT decide:**
 
 - **The PURPOSE port mint.** Whether the Need concern becomes a substrate concern port is [ADR 0159](../../../thoughts/adr/0159-product-substrate-recognition.md)'s call, via an amendment running Amendment A2's exhibit-scoring bar. This spec defines the artifact either way.
-- **Cross-stack ownership of Journey identifiers.** Needs v1 defines the local `journeys[]` shape and resolution rules in S3. Processors MUST follow that shipped behavior until a versioned specification change revises it. ADR 0159 Amendment A3 remains open; it must ratify or revise this local decision. This specification does not treat A3 as accepted.
+- **Cross-stack ownership of Journey identifiers.** Needs v1 defines the local
+  `journeys[]` shape and resolution rules in S3. The shape landed in commit
+  `406e14b6`, which the currently observed `origin/main` contains; no package
+  tag, release, or deployment is claimed here. Processors implementing this
+  version MUST follow those rules until a versioned specification change
+  revises them. ADR 0159 Amendment A3 remains open; it must ratify or revise
+  this local decision. This specification does not treat A3 as accepted.
 - **Regeneration semantics beyond anchor pinning.** This spec defines the `need:` anchor grammar and its revision pin (S8). Three-way merge, edit preservation, orphan queues, and review flows are the GENERATION discipline's (ADR 0159 §cross-cutting ports), unmodified by this spec.
 - **The `needs.adoption` authority handle.** Reserved as a future [ADR 0152](../../../thoughts/adr/0152-multi-actor-authorization-scope.md) §4.2 registry row (S10.2) — reserved, not minted. Minting it is a 0152 table amendment.
 - **Deferred surface** (recorded in the exploration §12): structured Given/When/Then `criteria[]`; Observation→Rulespec-assertion promotion tooling; route-level and Definition-level citations; richer edge roles on `needRefs`; a ReqIF export projector; the JOURNEYS.md projection generator; PLANNING-row citation conventions; INTEGRITY attestation of adopted Needs; automated analytics ingestion. Reserved diagnostic codes for the deferred checks are registered in S9.5 so they are not re-minted incompatibly.
@@ -211,7 +217,14 @@ A **Journey** is a persona-level grouping key: the kind of person a set of Needs
 
 A processor MUST report a `NEED-DOC-001` finding (S9.4) for any `need.journey` not present in `journeys[]` when `journeys[]` is declared. A document MAY omit `journeys[]` entirely; `need.journey` values are then free grouping strings.
 
-For Needs v1, this specification owns the local `journeys[]` identifiers and `need.journey` resolution rules. The Experience Document owns Unit grouping under tasks. This shipped processor behavior is provisional at the cross-stack level: processors MUST follow it until a versioned specification change revises it. Proposed ADR 0159 Amendment A3 must ratify or revise the local decision.
+For Needs v1, this specification owns the local `journeys[]` identifiers and
+`need.journey` resolution rules. The Experience Document owns Unit grouping
+under tasks. This behavior landed in commit `406e14b6`, which the currently
+observed `origin/main` contains; no package tag, release, or deployment is
+claimed here. It remains provisional at the cross-stack level: processors
+implementing this version MUST follow it until a versioned specification
+change revises it. Proposed ADR 0159 Amendment A3 must ratify or revise the
+local decision.
 
 ## 4. The Need
 
