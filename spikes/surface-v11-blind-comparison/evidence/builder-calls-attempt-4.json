@@ -1,0 +1,77 @@
+{
+  "calls": [
+    {
+      "name": "formspec_wireframes_start_app",
+      "arguments": {
+        "app_id": "https://northstar.example/apps/night-operations",
+        "title": "Northstar Observatory",
+        "version": "1.0.0",
+        "surface_url": "https://northstar.example/surfaces/night-operations",
+        "surface_version": "1.0.0",
+        "brief": "Responsive internal single-site night-operations console for an astronomy crew. Shared navigation: Night, Targets, Timeline, Systems, Handoff. Keep current night state and UTC/local toggle visible on every route; record desktop and narrow-screen intent in route content."
+      }
+    },
+    { "name": "formspec_wireframes_add_route", "arguments": { "route_id": "night", "path": "/night", "title": "Night Operations", "route_class": "operation" } },
+    { "name": "formspec_wireframes_add_route", "arguments": { "route_id": "targets", "path": "/targets", "title": "Target Queue", "route_class": "operation" } },
+    { "name": "formspec_wireframes_add_route", "arguments": { "route_id": "targetDetail", "path": "/targets/{targetId}", "params": [{ "name": "targetId", "type": "string", "description": "Target identifier", "example": "M42" }], "title": "Target Detail", "route_class": "operation" } },
+    { "name": "formspec_wireframes_add_route", "arguments": { "route_id": "timeline", "path": "/timeline", "title": "Night Timeline", "route_class": "operation" } },
+    { "name": "formspec_wireframes_add_route", "arguments": { "route_id": "systems", "path": "/systems", "title": "Systems", "route_class": "operation" } },
+    { "name": "formspec_wireframes_add_route", "arguments": { "route_id": "handoff", "path": "/handoff", "title": "Shift Handoff", "route_class": "operation" } },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "night", "slot_id": "nightConsole", "position": "main", "title": "Night console", "slot_type": "static-content",
+        "binding": { "kind": "text", "content": "DESKTOP / NARROW: persistent header has Northstar Observatory, shared nav (Night, Targets, Timeline, Systems, Handoff), night state ACTIVE, and UTC/local toggle (LOCAL selected; UTC available). Critical warning: WIND 38 km/h—dome close threshold approaching. Local 22:14 EDT | UTC 02:14. Weather: clear, -3 C, humidity 28%, wind 38 km/h. Dome: open / warning. Telescope: tracking M42 / healthy. Current target: M42 Orion Nebula, exposure 3 of 8. Next events: 22:30 slew to NGC 2024; 23:10 autofocus. Include populated status cards, loading weather example, and empty next-event example." }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "targets", "slot_id": "targetQueue", "position": "main", "title": "Ranked target queue", "slot_type": "static-content",
+        "binding": { "kind": "text", "content": "DESKTOP table / NARROW stacked cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Search targets and filters: status, priority, visibility. Ranked queue columns: rank, object, type, priority, visibility window, estimated duration, status. 1 M42 | nebula | P1 | 21:40–03:50 local | 48 min | observing. 2 NGC 2024 | nebula | P2 | 22:30–04:10 | 35 min | queued. 3 M31 | galaxy | P3 | 00:20–05:40 | 55 min | queued. Include empty filtered-results and loading queue examples; select M42 opens target detail." }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "targetDetail", "slot_id": "targetRecord", "position": "main", "title": "Target record", "slot_type": "static-content",
+        "binding": { "kind": "text", "content": "DESKTOP two columns / NARROW single column. Persistent shared nav, ACTIVE night state, UTC/local toggle. Breadcrumb: Targets > M42; visible Back to target queue. M42 Orion Nebula. Coordinates RA 05h35m17s, Dec -05d23m28s. Finder preview placeholder. Visibility: rises 19:22, transit 00:41, sets 05:56; altitude now 47 degrees. Exposure sequence: 8 x 360s L, 6 x 300s R/G/B. Notes: check wind before next slew. Actions: Queue next, Skip tonight, Mark observed. Include warning wind conflict, loading finder preview, and empty notes state." }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "timeline", "slot_id": "nightPlan", "position": "main", "title": "Night plan", "slot_type": "static-content",
+        "binding": { "kind": "text", "content": "DESKTOP timeline / NARROW chronological cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Group the plan into Completed: polar alignment 20:05, calibration frames 20:40. Current: M42 exposure sequence, 22:14. Upcoming: NGC 2024 slew 22:30; M31 sequence 00:20. Delayed: guider calibration, planned 21:55, delayed to 22:45 because of wind. Include loading timeline and empty upcoming-work examples." }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "systems", "slot_id": "systemBoard", "position": "main", "title": "Observatory systems", "slot_type": "static-content",
+        "binding": { "kind": "text", "content": "DESKTOP system grid / NARROW stacked status cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Telescope: HEALTHY, tracking; Dome: WARNING, wind threshold approaching; Camera: HEALTHY, -15 C; Guider: OFFLINE, no lock; Weather station: WARNING, gust sensor intermittent. Show healthy, warning, and offline legend. Troubleshooting panel: guider reset steps, dome wind interlock, weather-station last reading. Include loading telemetry and empty diagnostics examples." }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "handoff", "slot_id": "handoffReport", "position": "main", "title": "Shift handoff", "slot_type": "static-content",
+        "binding": { "kind": "text", "content": "DESKTOP three summary columns / NARROW stacked sections. Persistent shared nav, ACTIVE night state, UTC/local toggle. Completed observations: M42 partial L sequence, calibration frames. Unresolved alerts: critical wind threshold, guider offline, intermittent gust sensor. Next-shift priorities: diagnose guider, resume M42 if wind clears, execute NGC 2024. Primary action: Download handoff. Include populated report, loading export, and empty completed-observations examples." }
+      }
+    },
+    { "name": "formspec_wireframes_add_transition", "arguments": { "route_id": "night", "trigger": "navigate-targets", "to": "targets" } },
+    { "name": "formspec_wireframes_add_transition", "arguments": { "route_id": "night", "trigger": "navigate-timeline", "to": "timeline" } },
+    { "name": "formspec_wireframes_add_transition", "arguments": { "route_id": "night", "trigger": "navigate-systems", "to": "systems" } },
+    { "name": "formspec_wireframes_add_transition", "arguments": { "route_id": "night", "trigger": "navigate-handoff", "to": "handoff" } },
+    { "name": "formspec_wireframes_add_transition", "arguments": { "route_id": "targets", "trigger": "open-target", "to": "targetDetail", "params": { "targetId": "M42" } } },
+    { "name": "formspec_wireframes_add_transition", "arguments": { "route_id": "targetDetail", "trigger": "back-to-targets", "to": "targets" } },
+    { "name": "formspec_wireframes_add_transition", "arguments": { "route_id": "targets", "trigger": "navigate-night", "to": "night" } },
+    { "name": "formspec_wireframes_add_transition", "arguments": { "route_id": "timeline", "trigger": "navigate-night", "to": "night" } },
+    { "name": "formspec_wireframes_add_transition", "arguments": { "route_id": "systems", "trigger": "navigate-night", "to": "night" } },
+    { "name": "formspec_wireframes_add_transition", "arguments": { "route_id": "handoff", "trigger": "navigate-night", "to": "night" } },
+    { "name": "formspec_wireframes_read_summary", "arguments": {} },
+    { "name": "formspec_wireframes_preview", "arguments": {} },
+    { "name": "formspec_wireframes_validate", "arguments": {} },
+    { "name": "formspec_wireframes_export", "arguments": {} }
+  ]
+}

@@ -1,0 +1,1841 @@
+{
+  "calls": [
+    {
+      "name": "formspec_wireframes_start_app",
+      "arguments": {
+        "app_id": "https://formspec.cloud/apps/saas-v1",
+        "title": "Formspec Cloud",
+        "version": "0.12.0",
+        "surface_url": "https://formspec.cloud/app",
+        "surface_version": "0.12.0",
+        "brief": "Managed hosted-forms and signature SaaS. Customer and administrator work stays in the app; public respondents use a short mobile-first flow. Every exposed capability is live, assisted, preview, or disabled."
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "dashboard",
+        "path": "/app",
+        "title": "Dashboard",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "onboarding",
+        "path": "/app/get-started",
+        "title": "Set up organization",
+        "route_class": "authentication"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "forms",
+        "path": "/app/forms",
+        "title": "Forms",
+        "route_class": "intake"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "formDetail",
+        "path": "/app/forms/{formId}",
+        "params": [
+          {
+            "name": "formId",
+            "type": "string",
+            "description": "Tenant-scoped published or draft form identifier.",
+            "example": "frm_annual-intake"
+          }
+        ],
+        "title": "Form detail",
+        "route_class": "intake"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "formPreview",
+        "path": "/app/forms/preview",
+        "title": "Hosted form preview",
+        "route_class": "intake"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "responses",
+        "path": "/app/responses",
+        "title": "Responses and exports",
+        "route_class": "proof"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "signatures",
+        "path": "/app/signatures",
+        "title": "Signature workflows",
+        "route_class": "ceremony"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "integrations",
+        "path": "/app/integrations",
+        "title": "API and webhooks",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "admin",
+        "path": "/app/admin",
+        "title": "Organization administration",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "billing",
+        "path": "/app/billing",
+        "title": "Usage and billing",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "supportTrust",
+        "path": "/app/support",
+        "title": "Support, status, and trust",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "publicRespond",
+        "path": "/respond",
+        "title": "Complete a form",
+        "route_class": "intake"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "publicReceipt",
+        "path": "/receipt",
+        "title": "Submission receipt",
+        "route_class": "verification"
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_definition",
+      "arguments": {
+        "operation": "declare",
+        "definition_url": "https://formspec.cloud/definitions/saas-v1-workflows",
+        "version": "0.12.0"
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_definition",
+      "arguments": {
+        "operation": "add_field",
+        "definition_url": "https://formspec.cloud/definitions/saas-v1-workflows",
+        "path": "organizationName",
+        "label": "Organization name",
+        "data_type": "string",
+        "required": true,
+        "presentation": {
+          "widgetHint": "TextInput",
+          "layout": {
+            "flow": "stack"
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_definition",
+      "arguments": {
+        "operation": "add_field",
+        "definition_url": "https://formspec.cloud/definitions/saas-v1-workflows",
+        "path": "workspaceName",
+        "label": "Workspace name",
+        "data_type": "string",
+        "required": true,
+        "presentation": {
+          "widgetHint": "TextInput",
+          "layout": {
+            "flow": "stack"
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_definition",
+      "arguments": {
+        "operation": "add_field",
+        "definition_url": "https://formspec.cloud/definitions/saas-v1-workflows",
+        "path": "environment",
+        "label": "First environment",
+        "data_type": "choice",
+        "choices": [
+          {
+            "value": "production",
+            "label": "Production"
+          },
+          {
+            "value": "sandbox",
+            "label": "Sandbox"
+          }
+        ],
+        "required": true,
+        "presentation": {
+          "widgetHint": "RadioGroup",
+          "layout": {
+            "flow": "stack"
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_definition",
+      "arguments": {
+        "operation": "add_field",
+        "definition_url": "https://formspec.cloud/definitions/saas-v1-workflows",
+        "path": "fullName",
+        "label": "Full name",
+        "data_type": "string",
+        "required": true,
+        "presentation": {
+          "widgetHint": "TextInput",
+          "layout": {
+            "flow": "stack"
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_definition",
+      "arguments": {
+        "operation": "add_field",
+        "definition_url": "https://formspec.cloud/definitions/saas-v1-workflows",
+        "path": "email",
+        "label": "Email address",
+        "data_type": "string",
+        "required": true,
+        "semantic_type": "https://schema.org/email",
+        "presentation": {
+          "widgetHint": "TextInput",
+          "layout": {
+            "flow": "stack"
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_definition",
+      "arguments": {
+        "operation": "add_field",
+        "definition_url": "https://formspec.cloud/definitions/saas-v1-workflows",
+        "path": "request",
+        "label": "Your response",
+        "data_type": "text",
+        "required": true,
+        "presentation": {
+          "widgetHint": "TextInput",
+          "layout": {
+            "flow": "stack"
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_definition",
+      "arguments": {
+        "operation": "add_field",
+        "definition_url": "https://formspec.cloud/definitions/saas-v1-workflows",
+        "path": "acceptNotices",
+        "label": "I agree to receive submission notices",
+        "data_type": "boolean",
+        "required": true,
+        "presentation": {
+          "widgetHint": "Toggle",
+          "layout": {
+            "flow": "stack"
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "navReview",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Review"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.review"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "navSaveDraft",
+          "intent": "save-draft",
+          "actor": "user",
+          "label": {
+            "literal": "Save draft"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.save-draft"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "navSubmit",
+          "intent": "submit",
+          "actor": "user",
+          "label": {
+            "literal": "Continue"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.submit"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "navEvidence",
+          "intent": "request-evidence",
+          "actor": "user",
+          "label": {
+            "literal": "View proof"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.evidence"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "dashboardOpenForms",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open forms"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openForms"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "dashboardStartOnboarding",
+          "intent": "submit",
+          "actor": "user",
+          "label": {
+            "literal": "Start onboarding"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.startOnboarding"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "dashboardOpenResponses",
+          "intent": "request-evidence",
+          "actor": "user",
+          "label": {
+            "literal": "Open responses"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openResponses"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "dashboardOpenIntegrations",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open integrations"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openIntegrations"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "dashboardOpenAdmin",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open administration"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openAdmin"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "dashboardOpenBilling",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open billing"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openBilling"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_action",
+      "arguments": {
+        "action": {
+          "id": "dashboardOpenPublicRespond",
+          "intent": "submit",
+          "actor": "user",
+          "label": {
+            "literal": "Open public form"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openPublicRespond"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_registry",
+      "arguments": {
+        "operation": "declare",
+        "version": "0.12.0"
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_registry",
+      "arguments": {
+        "operation": "add_module",
+        "module_id": "x-saas-shell",
+        "module_version": "0.12.0",
+        "entry_version": "0.12.0",
+        "status": "stable",
+        "description": "Reusable SaaS route panel for content, status, data, and navigation actions.",
+        "contributes": [
+          "x-saas-route-panel"
+        ],
+        "formspec_version": "2.4"
+      }
+    },
+    {
+      "name": "formspec_wireframes_edit_registry",
+      "arguments": {
+        "operation": "add_widget",
+        "version": "0.12.0",
+        "contribution_id": "x-saas-route-panel",
+        "widget_name": "SaaSRoutePanel",
+        "description": "Reusable panel mounted on every SaaS route.",
+        "widget_shape": {
+          "props": {
+            "title": {
+              "type": "string"
+            },
+            "featureState": {
+              "type": "string"
+            }
+          },
+          "dataInputs": [
+            {
+              "name": "primaryData",
+              "required": false
+            }
+          ],
+          "actionOutputs": [
+            {
+              "name": "review"
+            },
+            {
+              "name": "saveDraft"
+            },
+            {
+              "name": "submit"
+            },
+            {
+              "name": "evidence"
+            },
+            {
+              "name": "openForms"
+            },
+            {
+              "name": "startOnboarding"
+            },
+            {
+              "name": "openResponses"
+            },
+            {
+              "name": "openIntegrations"
+            },
+            {
+              "name": "openAdmin"
+            },
+            {
+              "name": "openBilling"
+            },
+            {
+              "name": "openPublicRespond"
+            }
+          ],
+          "childrenPolicy": "none",
+          "fallback": "Render the route title and feature-state text when module loading fails."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_materialize_data_sources",
+      "arguments": {
+        "catalog_id": "https://formspec.cloud/data-sources/saas-v1",
+        "version": "0.12.0",
+        "title": "Formspec Cloud SaaS data",
+        "description": "Tenant-scoped live data for responses, billing, support, status, and trust views.",
+        "sources": [
+          {
+            "id": "query:responses",
+            "kind": "query-result",
+            "owner": "host",
+            "scope": "route",
+            "availability": {
+              "level": "route",
+              "routeRef": "responses",
+              "surfaceRef": "https://formspec.cloud/app"
+            },
+            "runtime": {
+              "delivery": "live",
+              "cache": {
+                "mode": "subscribe",
+                "staleAfter": "PT30S"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "degraded-widget",
+              "provenance": {
+                "kind": "query-result",
+                "source": "tenant response and proof query"
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "responses": {
+                  "type": "array"
+                },
+                "exportFormats": {
+                  "type": "array"
+                },
+                "proofStatus": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Tenant responses, export options, and verifier-backed proof status."
+          },
+          {
+            "id": "host:billing",
+            "kind": "host-state",
+            "owner": "host",
+            "scope": "route",
+            "availability": {
+              "level": "route",
+              "routeRef": "billing",
+              "surfaceRef": "https://formspec.cloud/app"
+            },
+            "runtime": {
+              "delivery": "live",
+              "cache": {
+                "mode": "subscribe",
+                "staleAfter": "PT60S"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "stale-ok",
+              "provenance": {
+                "kind": "host-state",
+                "source": "billing and entitlement service"
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "plan": {
+                  "type": "string"
+                },
+                "usage": {
+                  "type": "object"
+                },
+                "limits": {
+                  "type": "object"
+                },
+                "billingStatus": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Current plan, usage, limits, billing state, and entitlements."
+          },
+          {
+            "id": "resource:support-trust",
+            "kind": "document-resource",
+            "owner": "host",
+            "scope": "route",
+            "availability": {
+              "level": "route",
+              "routeRef": "supportTrust",
+              "surfaceRef": "https://formspec.cloud/app"
+            },
+            "runtime": {
+              "delivery": "snapshot",
+              "cache": {
+                "mode": "snapshot",
+                "staleAfter": "PT5M"
+              },
+              "authorizationBoundary": "host",
+              "failureMode": "stale-ok",
+              "provenance": {
+                "kind": "document-resource",
+                "source": "status, incident, support, and trust services"
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "serviceStatus": {
+                  "type": "array"
+                },
+                "incidents": {
+                  "type": "array"
+                },
+                "supportAccess": {
+                  "type": "array"
+                },
+                "trustDocuments": {
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Customer-visible service health, incidents, support access, and trust documents."
+          }
+        ]
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_experience_unit",
+      "arguments": {
+        "unit_id": "respondJourney",
+        "kind": "data-entry",
+        "title": "Complete, review, and submit a response",
+        "actor_ref": "publicRespondent",
+        "task_refs": [
+          "enterDetails",
+          "reviewResponse",
+          "submitResponse",
+          "receiveReceipt"
+        ]
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "dashboard",
+        "slot_id": "dashboardSummary",
+        "position": "main",
+        "title": "Customer dashboard",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — Workspace summary, published forms, responses, signatures, and plan usage. Connected navigation includes Forms, Responses, Integrations, Administration, Billing, Support, and public completion."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "onboarding",
+        "slot_id": "onboardingChecklist",
+        "position": "main",
+        "title": "Organization setup",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — Create organization, workspace, production and sandbox environments, and invite teammates. SSO/SAML/SCIM is ASSISTED with visible request status."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "forms",
+        "slot_id": "formsList",
+        "position": "main",
+        "title": "Form library",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — Curated templates or Studio import; publish, share, version pin, basic branding. Collaborative authoring is PREVIEW."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "formDetail",
+        "slot_id": "formWorkspace",
+        "position": "main",
+        "title": "Form detail",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — Draft/published version, hosted link, share controls, response count, notifications, and PDF status for tenant formId."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "formPreview",
+        "slot_id": "previewFrame",
+        "position": "main",
+        "title": "Hosted form preview",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "PREVIEW — Check mobile layout, validation, review, and confirmation before publishing."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "responses",
+        "slot_id": "responseQueue",
+        "position": "main",
+        "title": "Responses and proof",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — View tenant responses, export CSV/JSON, receipts, certificates, and proof status. Bulk export packages are ASSISTED."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "signatures",
+        "slot_id": "signatureQueue",
+        "position": "main",
+        "title": "Signature workflows",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — Basic envelopes, status, reminders, completion, and certificates. Enhanced identity proofing, witness/notary, and bulk send are DISABLED."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "integrations",
+        "slot_id": "integrationSetup",
+        "position": "main",
+        "title": "Developer setup",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — API keys, generated API docs, sandbox/test, one webhook, delivery history. Connectors are PREVIEW; large imports are ASSISTED."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "admin",
+        "slot_id": "adminControls",
+        "position": "main",
+        "title": "Organization administration",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — Organization, workspaces, roles, invitations, branding, feature visibility. Domains and retention/legal hold are ASSISTED; DSAR self-service is DISABLED."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "billing",
+        "slot_id": "planUsage",
+        "position": "main",
+        "title": "Plan and usage",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — Plan limits, usage, billing status, and entitlements; availability reflects entitlement, feature state, deployment profile, and adapter health."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "supportTrust",
+        "slot_id": "supportTrustHub",
+        "position": "main",
+        "title": "Support, status, and trust",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — Status, support, incident records, trust center, and subprocessors. Dedicated review is ASSISTED; active-active is DISABLED."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "publicRespond",
+        "slot_id": "publicSubmission",
+        "position": "main",
+        "title": "Public submission",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — Anonymous mobile completion with validation, review, submit, notices, and confirmation. No respondent account or dashboard."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "publicReceipt",
+        "slot_id": "receiptStatus",
+        "position": "main",
+        "title": "Receipt and verification",
+        "slot_type": "static-content",
+        "binding": {
+          "kind": "text",
+          "content": "LIVE — Submission receipt and verifier-backed proof status. Hosted general verification is DISABLED; documented CLI/library verification remains available."
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "onboarding",
+        "slot_id": "onboardingForm",
+        "position": "main",
+        "title": "Organization details",
+        "slot_type": "definition-form",
+        "binding": {
+          "definitionRef": "https://formspec.cloud/definitions/saas-v1-workflows",
+          "presentation": "setup"
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "publicRespond",
+        "slot_id": "publicResponseForm",
+        "position": "main",
+        "title": "Response details",
+        "slot_type": "definition-form",
+        "binding": {
+          "definitionRef": "https://formspec.cloud/definitions/saas-v1-workflows",
+          "presentation": "mobile"
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "publicRespond",
+        "slot_id": "respondJourneySteps",
+        "position": "aside",
+        "title": "Completion steps",
+        "slot_type": "experience-unit",
+        "binding": {
+          "unitRef": "respondJourney"
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "dashboard",
+        "slot_id": "dashboardPanel",
+        "position": "aside",
+        "title": "Dashboard actions",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Dashboard",
+            "featureState": "live"
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "onboarding",
+        "slot_id": "onboardingPanel",
+        "position": "aside",
+        "title": "Onboarding actions",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Set up organization",
+            "featureState": "live"
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "forms",
+        "slot_id": "formsPanel",
+        "position": "aside",
+        "title": "Form library actions",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Forms",
+            "featureState": "live"
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "formDetail",
+        "slot_id": "formDetailPanel",
+        "position": "aside",
+        "title": "Form detail actions",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Form detail",
+            "featureState": "live"
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "formPreview",
+        "slot_id": "formPreviewPanel",
+        "position": "aside",
+        "title": "Preview actions",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Hosted form preview",
+            "featureState": "preview"
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "responses",
+        "slot_id": "responsesPanel",
+        "position": "aside",
+        "title": "Response actions and data",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Responses and exports",
+            "featureState": "live"
+          },
+          "dataBindings": {
+            "primaryData": {
+              "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+              "sourceRef": "query:responses"
+            }
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "signatures",
+        "slot_id": "signaturesPanel",
+        "position": "aside",
+        "title": "Signature actions",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Signature workflows",
+            "featureState": "live"
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "integrations",
+        "slot_id": "integrationsPanel",
+        "position": "aside",
+        "title": "Integration actions",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "API and webhooks",
+            "featureState": "live"
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "admin",
+        "slot_id": "adminPanel",
+        "position": "aside",
+        "title": "Administration actions",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Organization administration",
+            "featureState": "live"
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "billing",
+        "slot_id": "billingPanel",
+        "position": "aside",
+        "title": "Billing actions and data",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Usage and billing",
+            "featureState": "live"
+          },
+          "dataBindings": {
+            "primaryData": {
+              "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+              "sourceRef": "host:billing"
+            }
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "supportTrust",
+        "slot_id": "supportTrustPanel",
+        "position": "aside",
+        "title": "Support and trust actions and data",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Support, status, and trust",
+            "featureState": "live"
+          },
+          "dataBindings": {
+            "primaryData": {
+              "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+              "sourceRef": "resource:support-trust"
+            }
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "publicRespond",
+        "slot_id": "publicRespondPanel",
+        "position": "aside",
+        "title": "Public response actions",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Complete a form",
+            "featureState": "live"
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "publicReceipt",
+        "slot_id": "publicReceiptPanel",
+        "position": "aside",
+        "title": "Receipt actions",
+        "slot_type": "module-widget",
+        "binding": {
+          "moduleId": "x-saas-shell",
+          "widgetName": "SaaSRoutePanel",
+          "config": {
+            "title": "Submission receipt",
+            "featureState": "live"
+          },
+          "actionBindings": {
+            "review": {
+              "actionRef": "navReview"
+            },
+            "saveDraft": {
+              "actionRef": "navSaveDraft"
+            },
+            "submit": {
+              "actionRef": "navSubmit"
+            },
+            "evidence": {
+              "actionRef": "navEvidence"
+            },
+            "openForms": {
+              "actionRef": "dashboardOpenForms"
+            },
+            "startOnboarding": {
+              "actionRef": "dashboardStartOnboarding"
+            },
+            "openResponses": {
+              "actionRef": "dashboardOpenResponses"
+            },
+            "openIntegrations": {
+              "actionRef": "dashboardOpenIntegrations"
+            },
+            "openAdmin": {
+              "actionRef": "dashboardOpenAdmin"
+            },
+            "openBilling": {
+              "actionRef": "dashboardOpenBilling"
+            },
+            "openPublicRespond": {
+              "actionRef": "dashboardOpenPublicRespond"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "dashboard",
+        "trigger": "dashboardOpenForms",
+        "to": "forms"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "dashboard",
+        "trigger": "dashboardStartOnboarding",
+        "to": "onboarding"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "dashboard",
+        "trigger": "dashboardOpenResponses",
+        "to": "responses"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "dashboard",
+        "trigger": "dashboardOpenIntegrations",
+        "to": "integrations"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "dashboard",
+        "trigger": "dashboardOpenAdmin",
+        "to": "admin"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "dashboard",
+        "trigger": "dashboardOpenBilling",
+        "to": "billing"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "dashboard",
+        "trigger": "dashboardOpenPublicRespond",
+        "to": "publicRespond"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "onboarding",
+        "trigger": "navSubmit",
+        "to": "dashboard"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "forms",
+        "trigger": "navReview",
+        "to": "formDetail",
+        "params": {
+          "formId": "frm_annual-intake"
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "formDetail",
+        "trigger": "navSaveDraft",
+        "to": "formPreview"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "formDetail",
+        "trigger": "navSubmit",
+        "to": "responses"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "formPreview",
+        "trigger": "navReview",
+        "to": "formDetail",
+        "params": {
+          "formId": "frm_annual-intake"
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "responses",
+        "trigger": "navReview",
+        "to": "signatures"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "responses",
+        "trigger": "navEvidence",
+        "to": "supportTrust"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "signatures",
+        "trigger": "navReview",
+        "to": "responses"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "integrations",
+        "trigger": "navReview",
+        "to": "billing"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "admin",
+        "trigger": "navReview",
+        "to": "onboarding"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "billing",
+        "trigger": "navReview",
+        "to": "admin"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "supportTrust",
+        "trigger": "navReview",
+        "to": "dashboard"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "publicRespond",
+        "trigger": "navReview",
+        "to": "publicReceipt"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "publicReceipt",
+        "trigger": "navEvidence",
+        "to": "supportTrust"
+      }
+    },
+    {
+      "name": "formspec_wireframes_read_summary",
+      "arguments": {}
+    },
+    {
+      "name": "formspec_wireframes_preview",
+      "arguments": {}
+    },
+    {
+      "name": "formspec_wireframes_validate",
+      "arguments": {}
+    },
+    {
+      "name": "formspec_wireframes_export",
+      "arguments": {}
+    }
+  ]
+}

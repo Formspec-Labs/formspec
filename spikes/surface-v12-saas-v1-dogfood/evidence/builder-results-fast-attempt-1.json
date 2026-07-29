@@ -1,0 +1,2762 @@
+{
+  "calls": [
+    {
+      "index": 0,
+      "call": {
+        "name": "formspec_wireframes_start_app",
+        "arguments": {
+          "app_id": "https://formspec.cloud/apps/saas-v1",
+          "title": "Formspec Cloud",
+          "version": "0.12.0",
+          "surface_url": "https://formspec.cloud/app",
+          "surface_version": "0.12.0",
+          "brief": "Managed hosted-forms and signature SaaS. Customer and administrator work stays in the app; public respondents use a short mobile-first flow. Every exposed capability is live, assisted, preview, or disabled."
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "app": {
+            "id": "https://formspec.cloud/apps/saas-v1",
+            "title": "Formspec Cloud",
+            "version": "0.12.0",
+            "surface_url": "https://formspec.cloud/app",
+            "surface_id": "app",
+            "entry_surface": "https://formspec.cloud/app"
+          },
+          "surface": {
+            "publishable": false,
+            "diagnostics": [
+              {
+                "code": "SURFACE-ENTRY-MISSING",
+                "message": "Surface draft has no entry route. The first addRoute call sets entry.",
+                "details": {
+                  "surfaceId": "app"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTES-EMPTY",
+                "message": "Surface draft must declare at least one route before export.",
+                "details": {
+                  "surfaceId": "app"
+                }
+              }
+            ]
+          },
+          "routes": [],
+          "definitions": [],
+          "actions": [
+            {
+              "id": "navReview",
+              "intent": "review"
+            },
+            {
+              "id": "navSaveDraft",
+              "intent": "save-draft"
+            },
+            {
+              "id": "navSubmit",
+              "intent": "submit"
+            },
+            {
+              "id": "navEvidence",
+              "intent": "request-evidence"
+            }
+          ],
+          "experience_units": [],
+          "registry": {
+            "modules": [],
+            "entries": []
+          },
+          "data_sources": [],
+          "unresolved_references": [],
+          "diagnostic_counts": {
+            "current": false,
+            "errors": null,
+            "warnings": null,
+            "infos": null,
+            "schema_failures": null,
+            "skipped_phases": null
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"app\":{\"id\":\"https://formspec.cloud/apps/saas-v1\",\"title\":\"Formspec Cloud\",\"version\":\"0.12.0\",\"surface_url\":\"https://formspec.cloud/app\",\"surface_id\":\"app\",\"entry_surface\":\"https://formspec.cloud/app\"},\"surface\":{\"publishable\":false,\"diagnostics\":[{\"code\":\"SURFACE-ENTRY-MISSING\",\"message\":\"Surface draft has no entry route. The first addRoute call sets entry.\",\"details\":{\"surfaceId\":\"app\"}},{\"code\":\"SURFACE-ROUTES-EMPTY\",\"message\":\"Surface draft must declare at least one route before export.\",\"details\":{\"surfaceId\":\"app\"}}]},\"routes\":[],\"definitions\":[],\"actions\":[],\"experience_units\":[],\"registry\":{\"modules\":[],\"entries\":[]},\"data_sources\":[],\"unresolved_references\":[],\"diagnostic_counts\":{\"current\":false,\"errors\":null,\"warnings\":null,\"infos\":null,\"schema_failures\":null,\"skipped_phases\":null}}}"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "dashboard",
+          "path": "/app",
+          "title": "Dashboard",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "onboarding",
+          "path": "/app/get-started",
+          "title": "Set up organization",
+          "route_class": "authentication"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "forms",
+          "path": "/app/forms",
+          "title": "Forms",
+          "route_class": "intake"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "formDetail",
+          "path": "/app/forms/{formId}",
+          "params": [
+            {
+              "name": "formId",
+              "type": "string",
+              "description": "Tenant-scoped published or draft form identifier.",
+              "example": "frm_annual-intake"
+            }
+          ],
+          "title": "Form detail",
+          "route_class": "intake"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "formPreview",
+          "path": "/app/forms/preview",
+          "title": "Hosted form preview",
+          "route_class": "intake"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "responses",
+          "path": "/app/responses",
+          "title": "Responses and exports",
+          "route_class": "proof"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "signatures",
+          "path": "/app/signatures",
+          "title": "Signature workflows",
+          "route_class": "ceremony"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "integrations",
+          "path": "/app/integrations",
+          "title": "API and webhooks",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "admin",
+          "path": "/app/admin",
+          "title": "Organization administration",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "billing",
+          "path": "/app/billing",
+          "title": "Usage and billing",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "supportTrust",
+          "path": "/app/support",
+          "title": "Support, status, and trust",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "publicRespond",
+          "path": "/respond",
+          "title": "Complete a form",
+          "route_class": "intake"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "publicReceipt",
+          "path": "/receipt",
+          "title": "Submission receipt",
+          "route_class": "verification"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "call": {
+        "name": "formspec_wireframes_edit_definition",
+        "arguments": {
+          "operation": "declare",
+          "definition_url": "https://formspec.cloud/definitions/saas-navigation",
+          "version": "0.12.0"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "call": {
+        "name": "formspec_wireframes_add_action",
+        "arguments": {
+          "action": {
+            "id": "navReview",
+            "intent": "review",
+            "actor": "user",
+            "label": {
+              "literal": "Review"
+            },
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec.navigation.review"
+              }
+            ]
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "call": {
+        "name": "formspec_wireframes_add_action",
+        "arguments": {
+          "action": {
+            "id": "navSaveDraft",
+            "intent": "save-draft",
+            "actor": "user",
+            "label": {
+              "literal": "Save draft"
+            },
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec.navigation.save-draft"
+              }
+            ]
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "call": {
+        "name": "formspec_wireframes_add_action",
+        "arguments": {
+          "action": {
+            "id": "navSubmit",
+            "intent": "submit",
+            "actor": "user",
+            "label": {
+              "literal": "Continue"
+            },
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec.navigation.submit"
+              }
+            ]
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "call": {
+        "name": "formspec_wireframes_add_action",
+        "arguments": {
+          "action": {
+            "id": "navEvidence",
+            "intent": "request-evidence",
+            "actor": "user",
+            "label": {
+              "literal": "View proof"
+            },
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec.navigation.evidence"
+              }
+            ]
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "dashboard",
+          "slot_id": "dashboardSummary",
+          "position": "main",
+          "title": "Customer dashboard",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — Workspace summary: published forms, recent responses, signature status, and plan usage. Navigation: Forms, Responses, Signatures, Integrations, Administration, Billing, Support."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "onboarding",
+          "slot_id": "onboardingChecklist",
+          "position": "main",
+          "title": "Organization setup",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — Create organization, workspace, production and sandbox environments, and invite a teammate. SSO/SAML/SCIM is ASSISTED with visible request status."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "forms",
+          "slot_id": "formsList",
+          "position": "main",
+          "title": "Form library",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — Create from curated template or import Studio output; publish, share, pin a version, and set basic branding. Collaborative authoring is PREVIEW."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "formDetail",
+          "slot_id": "formWorkspace",
+          "position": "main",
+          "title": "Form detail",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — Draft and published version, hosted link, share controls, response count, owner notices, and PDF status for selected tenant formId."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "formPreview",
+          "slot_id": "previewFrame",
+          "position": "main",
+          "title": "Hosted form preview",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "PREVIEW — Check public mobile layout, validation, review, and confirmation before publishing; production submissions remain unavailable until publication."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "responses",
+          "slot_id": "responseQueue",
+          "position": "main",
+          "title": "Responses and proof",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — View tenant responses, export CSV/JSON, and fetch receipts, certificates, and verifier-backed proof status. Bulk export packages are ASSISTED."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "signatures",
+          "slot_id": "signatureQueue",
+          "position": "main",
+          "title": "Signature workflows",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — Send basic envelopes, view signer status, remind, complete, and retrieve certificates. Enhanced identity proofing, witness/notary, and bulk send are DISABLED."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "integrations",
+          "slot_id": "integrationSetup",
+          "position": "main",
+          "title": "Developer setup",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — API keys, generated API docs, sandbox/test mode, one webhook target, and delivery history. Connectors and workflow-initiated intake are PREVIEW; large imports are ASSISTED."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 27,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "admin",
+          "slot_id": "adminControls",
+          "position": "main",
+          "title": "Organization administration",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — Organization, workspaces, roles, invitations, branding, and feature-state visibility. Custom domains, advanced retention/legal hold, and regulated posture review are ASSISTED. DSAR self-service is DISABLED."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 28,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "billing",
+          "slot_id": "planUsage",
+          "position": "main",
+          "title": "Plan and usage",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — Plan limits, usage, billing status, and entitlements. Availability reflects entitlement, feature state, deployment profile, and adapter health."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 29,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "supportTrust",
+          "slot_id": "supportTrustHub",
+          "position": "main",
+          "title": "Support, status, and trust",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — Status for form runtime, proof, email, and webhooks; support and incident records; trust center and subprocessors. Dedicated review is ASSISTED; multi-region active-active is DISABLED."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 30,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "publicRespond",
+          "slot_id": "publicSubmission",
+          "position": "main",
+          "title": "Public submission",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — Anonymous mobile-first completion with validation, review, submission, notifications, and confirmation. No respondent account or dashboard is required."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 31,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "publicReceipt",
+          "slot_id": "receiptStatus",
+          "position": "main",
+          "title": "Receipt and verification",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "LIVE — Submission receipt and verifier-backed proof status. Hosted general-purpose verification is DISABLED; the documented CLI/library path remains available."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 32,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "dashboard",
+          "trigger": "navReview",
+          "to": "forms"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 33,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "dashboard",
+          "trigger": "navEvidence",
+          "to": "responses"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 34,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "onboarding",
+          "trigger": "navSubmit",
+          "to": "dashboard"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 35,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "forms",
+          "trigger": "navReview",
+          "to": "formDetail",
+          "params": {
+            "formId": "frm_annual-intake"
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 36,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "formDetail",
+          "trigger": "navSaveDraft",
+          "to": "formPreview"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 37,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "formDetail",
+          "trigger": "navSubmit",
+          "to": "responses"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 38,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "formPreview",
+          "trigger": "navReview",
+          "to": "formDetail",
+          "params": {
+            "formId": "frm_annual-intake"
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 39,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "responses",
+          "trigger": "navReview",
+          "to": "signatures"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 40,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "responses",
+          "trigger": "navEvidence",
+          "to": "supportTrust"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 41,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "signatures",
+          "trigger": "navReview",
+          "to": "responses"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 42,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "integrations",
+          "trigger": "navReview",
+          "to": "billing"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 43,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "admin",
+          "trigger": "navReview",
+          "to": "onboarding"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 44,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "billing",
+          "trigger": "navReview",
+          "to": "admin"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 45,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "supportTrust",
+          "trigger": "navReview",
+          "to": "dashboard"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 46,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "publicRespond",
+          "trigger": "navReview",
+          "to": "publicReceipt"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 47,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "publicReceipt",
+          "trigger": "navEvidence",
+          "to": "supportTrust"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 48,
+      "call": {
+        "name": "formspec_wireframes_read_summary",
+        "arguments": {}
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "app": {
+            "id": "https://formspec.cloud/apps/saas-v1",
+            "title": "Formspec Cloud",
+            "version": "0.12.0",
+            "surface_url": "https://formspec.cloud/app",
+            "surface_id": "app",
+            "entry_surface": "https://formspec.cloud/app"
+          },
+          "surface": {
+            "publishable": false,
+            "diagnostics": [
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'onboarding' is not reachable from entry 'dashboard'.",
+                "details": {
+                  "surfaceId": "app",
+                  "routeId": "onboarding",
+                  "entry": "dashboard"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'integrations' is not reachable from entry 'dashboard'.",
+                "details": {
+                  "surfaceId": "app",
+                  "routeId": "integrations",
+                  "entry": "dashboard"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'admin' is not reachable from entry 'dashboard'.",
+                "details": {
+                  "surfaceId": "app",
+                  "routeId": "admin",
+                  "entry": "dashboard"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'billing' is not reachable from entry 'dashboard'.",
+                "details": {
+                  "surfaceId": "app",
+                  "routeId": "billing",
+                  "entry": "dashboard"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'publicRespond' is not reachable from entry 'dashboard'.",
+                "details": {
+                  "surfaceId": "app",
+                  "routeId": "publicRespond",
+                  "entry": "dashboard"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'publicReceipt' is not reachable from entry 'dashboard'.",
+                "details": {
+                  "surfaceId": "app",
+                  "routeId": "publicReceipt",
+                  "entry": "dashboard"
+                }
+              }
+            ]
+          },
+          "routes": [
+            {
+              "id": "dashboard",
+              "path": "/app",
+              "title": "Dashboard",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "dashboardSummary",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Customer dashboard"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navReview",
+                  "to": "forms"
+                },
+                {
+                  "trigger": "navEvidence",
+                  "to": "responses"
+                }
+              ]
+            },
+            {
+              "id": "onboarding",
+              "path": "/app/get-started",
+              "title": "Set up organization",
+              "route_class": "authentication",
+              "slots": [
+                {
+                  "id": "onboardingChecklist",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Organization setup"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navSubmit",
+                  "to": "dashboard"
+                }
+              ]
+            },
+            {
+              "id": "forms",
+              "path": "/app/forms",
+              "title": "Forms",
+              "route_class": "intake",
+              "slots": [
+                {
+                  "id": "formsList",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Form library"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navReview",
+                  "to": "formDetail"
+                }
+              ]
+            },
+            {
+              "id": "formDetail",
+              "path": "/app/forms/{formId}",
+              "title": "Form detail",
+              "route_class": "intake",
+              "slots": [
+                {
+                  "id": "formWorkspace",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Form detail"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navSaveDraft",
+                  "to": "formPreview"
+                },
+                {
+                  "trigger": "navSubmit",
+                  "to": "responses"
+                }
+              ]
+            },
+            {
+              "id": "formPreview",
+              "path": "/app/forms/preview",
+              "title": "Hosted form preview",
+              "route_class": "intake",
+              "slots": [
+                {
+                  "id": "previewFrame",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Hosted form preview"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navReview",
+                  "to": "formDetail"
+                }
+              ]
+            },
+            {
+              "id": "responses",
+              "path": "/app/responses",
+              "title": "Responses and exports",
+              "route_class": "proof",
+              "slots": [
+                {
+                  "id": "responseQueue",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Responses and proof"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navReview",
+                  "to": "signatures"
+                },
+                {
+                  "trigger": "navEvidence",
+                  "to": "supportTrust"
+                }
+              ]
+            },
+            {
+              "id": "signatures",
+              "path": "/app/signatures",
+              "title": "Signature workflows",
+              "route_class": "ceremony",
+              "slots": [
+                {
+                  "id": "signatureQueue",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Signature workflows"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navReview",
+                  "to": "responses"
+                }
+              ]
+            },
+            {
+              "id": "integrations",
+              "path": "/app/integrations",
+              "title": "API and webhooks",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "integrationSetup",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Developer setup"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navReview",
+                  "to": "billing"
+                }
+              ]
+            },
+            {
+              "id": "admin",
+              "path": "/app/admin",
+              "title": "Organization administration",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "adminControls",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Organization administration"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navReview",
+                  "to": "onboarding"
+                }
+              ]
+            },
+            {
+              "id": "billing",
+              "path": "/app/billing",
+              "title": "Usage and billing",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "planUsage",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Plan and usage"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navReview",
+                  "to": "admin"
+                }
+              ]
+            },
+            {
+              "id": "supportTrust",
+              "path": "/app/support",
+              "title": "Support, status, and trust",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "supportTrustHub",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Support, status, and trust"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navReview",
+                  "to": "dashboard"
+                }
+              ]
+            },
+            {
+              "id": "publicRespond",
+              "path": "/respond",
+              "title": "Complete a form",
+              "route_class": "intake",
+              "slots": [
+                {
+                  "id": "publicSubmission",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Public submission"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navReview",
+                  "to": "publicReceipt"
+                }
+              ]
+            },
+            {
+              "id": "publicReceipt",
+              "path": "/receipt",
+              "title": "Submission receipt",
+              "route_class": "verification",
+              "slots": [
+                {
+                  "id": "receiptStatus",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Receipt and verification"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navEvidence",
+                  "to": "supportTrust"
+                }
+              ]
+            }
+          ],
+          "definitions": [
+            {
+              "url": "https://formspec.cloud/definitions/saas-navigation",
+              "version": "0.12.0",
+              "fields": []
+            }
+          ],
+          "actions": [
+            {
+              "id": "navReview",
+              "intent": "review"
+            },
+            {
+              "id": "navSaveDraft",
+              "intent": "save-draft"
+            },
+            {
+              "id": "navSubmit",
+              "intent": "submit"
+            },
+            {
+              "id": "navEvidence",
+              "intent": "request-evidence"
+            }
+          ],
+          "experience_units": [],
+          "registry": {
+            "modules": [],
+            "entries": []
+          },
+          "data_sources": [],
+          "unresolved_references": [],
+          "diagnostic_counts": {
+            "current": false,
+            "errors": null,
+            "warnings": null,
+            "infos": null,
+            "schema_failures": null,
+            "skipped_phases": null
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"app\":{\"id\":\"https://formspec.cloud/apps/saas-v1\",\"title\":\"Formspec Cloud\",\"version\":\"0.12.0\",\"surface_url\":\"https://formspec.cloud/app\",\"surface_id\":\"app\",\"entry_surface\":\"https://formspec.cloud/app\"},\"surface\":{\"publishable\":false,\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'onboarding' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"onboarding\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'integrations' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"integrations\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'admin' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"admin\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'billing' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"billing\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicRespond' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicRespond\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicReceipt' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicReceipt\",\"entry\":\"dashboard\"}}]},\"routes\":[{\"id\":\"dashboard\",\"path\":\"/app\",\"title\":\"Dashboard\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"dashboardSummary\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Customer dashboard\"}],\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"forms\"},{\"trigger\":\"navEvidence\",\"to\":\"responses\"}]},{\"id\":\"onboarding\",\"path\":\"/app/get-started\",\"title\":\"Set up organization\",\"route_class\":\"authentication\",\"slots\":[{\"id\":\"onboardingChecklist\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Organization setup\"}],\"transitions\":[{\"trigger\":\"navSubmit\",\"to\":\"dashboard\"}]},{\"id\":\"forms\",\"path\":\"/app/forms\",\"title\":\"Forms\",\"route_class\":\"intake\",\"slots\":[{\"id\":\"formsList\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Form library\"}],\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"formDetail\"}]},{\"id\":\"formDetail\",\"path\":\"/app/forms/{formId}\",\"title\":\"Form detail\",\"route_class\":\"intake\",\"slots\":[{\"id\":\"formWorkspace\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Form detail\"}],\"transitions\":[{\"trigger\":\"navSaveDraft\",\"to\":\"formPreview\"},{\"trigger\":\"navSubmit\",\"to\":\"responses\"}]},{\"id\":\"formPreview\",\"path\":\"/app/forms/preview\",\"title\":\"Hosted form preview\",\"route_class\":\"intake\",\"slots\":[{\"id\":\"previewFrame\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Hosted form preview\"}],\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"formDetail\"}]},{\"id\":\"responses\",\"path\":\"/app/responses\",\"title\":\"Responses and exports\",\"route_class\":\"proof\",\"slots\":[{\"id\":\"responseQueue\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Responses and proof\"}],\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"signatures\"},{\"trigger\":\"navEvidence\",\"to\":\"supportTrust\"}]},{\"id\":\"signatures\",\"path\":\"/app/signatures\",\"title\":\"Signature workflows\",\"route_class\":\"ceremony\",\"slots\":[{\"id\":\"signatureQueue\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Signature workflows\"}],\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"responses\"}]},{\"id\":\"integrations\",\"path\":\"/app/integrations\",\"title\":\"API and webhooks\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"integrationSetup\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Developer setup\"}],\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"billing\"}]},{\"id\":\"admin\",\"path\":\"/app/admin\",\"title\":\"Organization administration\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"adminControls\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Organization administration\"}],\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"onboarding\"}]},{\"id\":\"billing\",\"path\":\"/app/billing\",\"title\":\"Usage and billing\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"planUsage\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Plan and usage\"}],\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"admin\"}]},{\"id\":\"supportTrust\",\"path\":\"/app/support\",\"title\":\"Support, status, and trust\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"supportTrustHub\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Support, status, and trust\"}],\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"dashboard\"}]},{\"id\":\"publicRespond\",\"path\":\"/respond\",\"title\":\"Complete a form\",\"route_class\":\"intake\",\"slots\":[{\"id\":\"publicSubmission\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Public submission\"}],\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"publicReceipt\"}]},{\"id\":\"publicReceipt\",\"path\":\"/receipt\",\"title\":\"Submission receipt\",\"route_class\":\"verification\",\"slots\":[{\"id\":\"receiptStatus\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Receipt and verification\"}],\"transitions\":[{\"trigger\":\"navEvidence\",\"to\":\"supportTrust\"}]}],\"definitions\":[{\"url\":\"https://formspec.cloud/definitions/saas-navigation\",\"version\":\"0.12.0\",\"fields\":[]}],\"actions\":[{\"id\":\"navReview\",\"intent\":\"review\"},{\"id\":\"navSaveDraft\",\"intent\":\"save-draft\"},{\"id\":\"navSubmit\",\"intent\":\"submit\"},{\"id\":\"navEvidence\",\"intent\":\"request-evidence\"}],\"experience_units\":[],\"registry\":{\"modules\":[],\"entries\":[]},\"data_sources\":[],\"unresolved_references\":[],\"diagnostic_counts\":{\"current\":false,\"errors\":null,\"warnings\":null,\"infos\":null,\"schema_failures\":null,\"skipped_phases\":null}}}"
+        }
+      ]
+    },
+    {
+      "index": 49,
+      "call": {
+        "name": "formspec_wireframes_preview",
+        "arguments": {}
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "manifest": {
+            "$formspecBundle": "2.4",
+            "version": "0.12.0",
+            "id": "https://formspec.cloud/apps/saas-v1",
+            "title": "Formspec Cloud",
+            "definitions": [
+              {
+                "url": "https://formspec.cloud/definitions/saas-navigation",
+                "version": "0.12.0"
+              }
+            ],
+            "responseActions": {
+              "url": "urn:formspec:doc:4b06bd9eac5eb2f7:responseActions"
+            },
+            "registries": [],
+            "surfaces": [
+              {
+                "url": "https://formspec.cloud/app",
+                "version": "0.12.0"
+              }
+            ],
+            "entrySurface": "https://formspec.cloud/app",
+            "modules": [],
+            "sessions": []
+          },
+          "surface": {
+            "$formspecSurface": "0.2",
+            "id": "app",
+            "routes": [
+              {
+                "id": "dashboard",
+                "path": "/app",
+                "slots": [
+                  {
+                    "id": "dashboardSummary",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — Workspace summary: published forms, recent responses, signature status, and plan usage. Navigation: Forms, Responses, Signatures, Integrations, Administration, Billing, Support."
+                    },
+                    "position": "main",
+                    "title": "Customer dashboard"
+                  }
+                ],
+                "title": "Dashboard",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "navReview",
+                    "to": "forms"
+                  },
+                  {
+                    "trigger": "navEvidence",
+                    "to": "responses"
+                  }
+                ]
+              },
+              {
+                "id": "onboarding",
+                "path": "/app/get-started",
+                "slots": [
+                  {
+                    "id": "onboardingChecklist",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — Create organization, workspace, production and sandbox environments, and invite a teammate. SSO/SAML/SCIM is ASSISTED with visible request status."
+                    },
+                    "position": "main",
+                    "title": "Organization setup"
+                  }
+                ],
+                "title": "Set up organization",
+                "routeClass": "authentication",
+                "transitions": [
+                  {
+                    "trigger": "navSubmit",
+                    "to": "dashboard"
+                  }
+                ]
+              },
+              {
+                "id": "forms",
+                "path": "/app/forms",
+                "slots": [
+                  {
+                    "id": "formsList",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — Create from curated template or import Studio output; publish, share, pin a version, and set basic branding. Collaborative authoring is PREVIEW."
+                    },
+                    "position": "main",
+                    "title": "Form library"
+                  }
+                ],
+                "title": "Forms",
+                "routeClass": "intake",
+                "transitions": [
+                  {
+                    "trigger": "navReview",
+                    "to": "formDetail",
+                    "params": {
+                      "formId": "frm_annual-intake"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "formDetail",
+                "path": "/app/forms/{formId}",
+                "slots": [
+                  {
+                    "id": "formWorkspace",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — Draft and published version, hosted link, share controls, response count, owner notices, and PDF status for selected tenant formId."
+                    },
+                    "position": "main",
+                    "title": "Form detail"
+                  }
+                ],
+                "params": [
+                  {
+                    "name": "formId",
+                    "type": "string",
+                    "description": "Tenant-scoped published or draft form identifier.",
+                    "example": "frm_annual-intake"
+                  }
+                ],
+                "title": "Form detail",
+                "routeClass": "intake",
+                "transitions": [
+                  {
+                    "trigger": "navSaveDraft",
+                    "to": "formPreview"
+                  },
+                  {
+                    "trigger": "navSubmit",
+                    "to": "responses"
+                  }
+                ]
+              },
+              {
+                "id": "formPreview",
+                "path": "/app/forms/preview",
+                "slots": [
+                  {
+                    "id": "previewFrame",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "PREVIEW — Check public mobile layout, validation, review, and confirmation before publishing; production submissions remain unavailable until publication."
+                    },
+                    "position": "main",
+                    "title": "Hosted form preview"
+                  }
+                ],
+                "title": "Hosted form preview",
+                "routeClass": "intake",
+                "transitions": [
+                  {
+                    "trigger": "navReview",
+                    "to": "formDetail",
+                    "params": {
+                      "formId": "frm_annual-intake"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "responses",
+                "path": "/app/responses",
+                "slots": [
+                  {
+                    "id": "responseQueue",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — View tenant responses, export CSV/JSON, and fetch receipts, certificates, and verifier-backed proof status. Bulk export packages are ASSISTED."
+                    },
+                    "position": "main",
+                    "title": "Responses and proof"
+                  }
+                ],
+                "title": "Responses and exports",
+                "routeClass": "proof",
+                "transitions": [
+                  {
+                    "trigger": "navReview",
+                    "to": "signatures"
+                  },
+                  {
+                    "trigger": "navEvidence",
+                    "to": "supportTrust"
+                  }
+                ]
+              },
+              {
+                "id": "signatures",
+                "path": "/app/signatures",
+                "slots": [
+                  {
+                    "id": "signatureQueue",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — Send basic envelopes, view signer status, remind, complete, and retrieve certificates. Enhanced identity proofing, witness/notary, and bulk send are DISABLED."
+                    },
+                    "position": "main",
+                    "title": "Signature workflows"
+                  }
+                ],
+                "title": "Signature workflows",
+                "routeClass": "ceremony",
+                "transitions": [
+                  {
+                    "trigger": "navReview",
+                    "to": "responses"
+                  }
+                ]
+              },
+              {
+                "id": "integrations",
+                "path": "/app/integrations",
+                "slots": [
+                  {
+                    "id": "integrationSetup",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — API keys, generated API docs, sandbox/test mode, one webhook target, and delivery history. Connectors and workflow-initiated intake are PREVIEW; large imports are ASSISTED."
+                    },
+                    "position": "main",
+                    "title": "Developer setup"
+                  }
+                ],
+                "title": "API and webhooks",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "navReview",
+                    "to": "billing"
+                  }
+                ]
+              },
+              {
+                "id": "admin",
+                "path": "/app/admin",
+                "slots": [
+                  {
+                    "id": "adminControls",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — Organization, workspaces, roles, invitations, branding, and feature-state visibility. Custom domains, advanced retention/legal hold, and regulated posture review are ASSISTED. DSAR self-service is DISABLED."
+                    },
+                    "position": "main",
+                    "title": "Organization administration"
+                  }
+                ],
+                "title": "Organization administration",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "navReview",
+                    "to": "onboarding"
+                  }
+                ]
+              },
+              {
+                "id": "billing",
+                "path": "/app/billing",
+                "slots": [
+                  {
+                    "id": "planUsage",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — Plan limits, usage, billing status, and entitlements. Availability reflects entitlement, feature state, deployment profile, and adapter health."
+                    },
+                    "position": "main",
+                    "title": "Plan and usage"
+                  }
+                ],
+                "title": "Usage and billing",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "navReview",
+                    "to": "admin"
+                  }
+                ]
+              },
+              {
+                "id": "supportTrust",
+                "path": "/app/support",
+                "slots": [
+                  {
+                    "id": "supportTrustHub",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — Status for form runtime, proof, email, and webhooks; support and incident records; trust center and subprocessors. Dedicated review is ASSISTED; multi-region active-active is DISABLED."
+                    },
+                    "position": "main",
+                    "title": "Support, status, and trust"
+                  }
+                ],
+                "title": "Support, status, and trust",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "navReview",
+                    "to": "dashboard"
+                  }
+                ]
+              },
+              {
+                "id": "publicRespond",
+                "path": "/respond",
+                "slots": [
+                  {
+                    "id": "publicSubmission",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — Anonymous mobile-first completion with validation, review, submission, notifications, and confirmation. No respondent account or dashboard is required."
+                    },
+                    "position": "main",
+                    "title": "Public submission"
+                  }
+                ],
+                "title": "Complete a form",
+                "routeClass": "intake",
+                "transitions": [
+                  {
+                    "trigger": "navReview",
+                    "to": "publicReceipt"
+                  }
+                ]
+              },
+              {
+                "id": "publicReceipt",
+                "path": "/receipt",
+                "slots": [
+                  {
+                    "id": "receiptStatus",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "LIVE — Submission receipt and verifier-backed proof status. Hosted general-purpose verification is DISABLED; the documented CLI/library path remains available."
+                    },
+                    "position": "main",
+                    "title": "Receipt and verification"
+                  }
+                ],
+                "title": "Submission receipt",
+                "routeClass": "verification",
+                "transitions": [
+                  {
+                    "trigger": "navEvidence",
+                    "to": "supportTrust"
+                  }
+                ]
+              }
+            ],
+            "entry": "dashboard"
+          },
+          "publishable": false,
+          "diagnostics": [
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'onboarding' is not reachable from entry 'dashboard'.",
+              "details": {
+                "surfaceId": "app",
+                "routeId": "onboarding",
+                "entry": "dashboard"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'integrations' is not reachable from entry 'dashboard'.",
+              "details": {
+                "surfaceId": "app",
+                "routeId": "integrations",
+                "entry": "dashboard"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'admin' is not reachable from entry 'dashboard'.",
+              "details": {
+                "surfaceId": "app",
+                "routeId": "admin",
+                "entry": "dashboard"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'billing' is not reachable from entry 'dashboard'.",
+              "details": {
+                "surfaceId": "app",
+                "routeId": "billing",
+                "entry": "dashboard"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'publicRespond' is not reachable from entry 'dashboard'.",
+              "details": {
+                "surfaceId": "app",
+                "routeId": "publicRespond",
+                "entry": "dashboard"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'publicReceipt' is not reachable from entry 'dashboard'.",
+              "details": {
+                "surfaceId": "app",
+                "routeId": "publicReceipt",
+                "entry": "dashboard"
+              }
+            }
+          ]
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"manifest\":{\"$formspecBundle\":\"2.4\",\"version\":\"0.12.0\",\"id\":\"https://formspec.cloud/apps/saas-v1\",\"title\":\"Formspec Cloud\",\"definitions\":[{\"url\":\"https://formspec.cloud/definitions/saas-navigation\",\"version\":\"0.12.0\"}],\"responseActions\":{\"url\":\"urn:formspec:doc:4b06bd9eac5eb2f7:responseActions\"},\"registries\":[],\"surfaces\":[{\"url\":\"https://formspec.cloud/app\",\"version\":\"0.12.0\"}],\"entrySurface\":\"https://formspec.cloud/app\",\"modules\":[],\"sessions\":[]},\"surface\":{\"$formspecSurface\":\"0.2\",\"id\":\"app\",\"routes\":[{\"id\":\"dashboard\",\"path\":\"/app\",\"slots\":[{\"id\":\"dashboardSummary\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — Workspace summary: published forms, recent responses, signature status, and plan usage. Navigation: Forms, Responses, Signatures, Integrations, Administration, Billing, Support.\"},\"position\":\"main\",\"title\":\"Customer dashboard\"}],\"title\":\"Dashboard\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"forms\"},{\"trigger\":\"navEvidence\",\"to\":\"responses\"}]},{\"id\":\"onboarding\",\"path\":\"/app/get-started\",\"slots\":[{\"id\":\"onboardingChecklist\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — Create organization, workspace, production and sandbox environments, and invite a teammate. SSO/SAML/SCIM is ASSISTED with visible request status.\"},\"position\":\"main\",\"title\":\"Organization setup\"}],\"title\":\"Set up organization\",\"routeClass\":\"authentication\",\"transitions\":[{\"trigger\":\"navSubmit\",\"to\":\"dashboard\"}]},{\"id\":\"forms\",\"path\":\"/app/forms\",\"slots\":[{\"id\":\"formsList\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — Create from curated template or import Studio output; publish, share, pin a version, and set basic branding. Collaborative authoring is PREVIEW.\"},\"position\":\"main\",\"title\":\"Form library\"}],\"title\":\"Forms\",\"routeClass\":\"intake\",\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"formDetail\",\"params\":{\"formId\":\"frm_annual-intake\"}}]},{\"id\":\"formDetail\",\"path\":\"/app/forms/{formId}\",\"slots\":[{\"id\":\"formWorkspace\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — Draft and published version, hosted link, share controls, response count, owner notices, and PDF status for selected tenant formId.\"},\"position\":\"main\",\"title\":\"Form detail\"}],\"params\":[{\"name\":\"formId\",\"type\":\"string\",\"description\":\"Tenant-scoped published or draft form identifier.\",\"example\":\"frm_annual-intake\"}],\"title\":\"Form detail\",\"routeClass\":\"intake\",\"transitions\":[{\"trigger\":\"navSaveDraft\",\"to\":\"formPreview\"},{\"trigger\":\"navSubmit\",\"to\":\"responses\"}]},{\"id\":\"formPreview\",\"path\":\"/app/forms/preview\",\"slots\":[{\"id\":\"previewFrame\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"PREVIEW — Check public mobile layout, validation, review, and confirmation before publishing; production submissions remain unavailable until publication.\"},\"position\":\"main\",\"title\":\"Hosted form preview\"}],\"title\":\"Hosted form preview\",\"routeClass\":\"intake\",\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"formDetail\",\"params\":{\"formId\":\"frm_annual-intake\"}}]},{\"id\":\"responses\",\"path\":\"/app/responses\",\"slots\":[{\"id\":\"responseQueue\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — View tenant responses, export CSV/JSON, and fetch receipts, certificates, and verifier-backed proof status. Bulk export packages are ASSISTED.\"},\"position\":\"main\",\"title\":\"Responses and proof\"}],\"title\":\"Responses and exports\",\"routeClass\":\"proof\",\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"signatures\"},{\"trigger\":\"navEvidence\",\"to\":\"supportTrust\"}]},{\"id\":\"signatures\",\"path\":\"/app/signatures\",\"slots\":[{\"id\":\"signatureQueue\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — Send basic envelopes, view signer status, remind, complete, and retrieve certificates. Enhanced identity proofing, witness/notary, and bulk send are DISABLED.\"},\"position\":\"main\",\"title\":\"Signature workflows\"}],\"title\":\"Signature workflows\",\"routeClass\":\"ceremony\",\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"responses\"}]},{\"id\":\"integrations\",\"path\":\"/app/integrations\",\"slots\":[{\"id\":\"integrationSetup\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — API keys, generated API docs, sandbox/test mode, one webhook target, and delivery history. Connectors and workflow-initiated intake are PREVIEW; large imports are ASSISTED.\"},\"position\":\"main\",\"title\":\"Developer setup\"}],\"title\":\"API and webhooks\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"billing\"}]},{\"id\":\"admin\",\"path\":\"/app/admin\",\"slots\":[{\"id\":\"adminControls\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — Organization, workspaces, roles, invitations, branding, and feature-state visibility. Custom domains, advanced retention/legal hold, and regulated posture review are ASSISTED. DSAR self-service is DISABLED.\"},\"position\":\"main\",\"title\":\"Organization administration\"}],\"title\":\"Organization administration\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"onboarding\"}]},{\"id\":\"billing\",\"path\":\"/app/billing\",\"slots\":[{\"id\":\"planUsage\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — Plan limits, usage, billing status, and entitlements. Availability reflects entitlement, feature state, deployment profile, and adapter health.\"},\"position\":\"main\",\"title\":\"Plan and usage\"}],\"title\":\"Usage and billing\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"admin\"}]},{\"id\":\"supportTrust\",\"path\":\"/app/support\",\"slots\":[{\"id\":\"supportTrustHub\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — Status for form runtime, proof, email, and webhooks; support and incident records; trust center and subprocessors. Dedicated review is ASSISTED; multi-region active-active is DISABLED.\"},\"position\":\"main\",\"title\":\"Support, status, and trust\"}],\"title\":\"Support, status, and trust\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"dashboard\"}]},{\"id\":\"publicRespond\",\"path\":\"/respond\",\"slots\":[{\"id\":\"publicSubmission\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — Anonymous mobile-first completion with validation, review, submission, notifications, and confirmation. No respondent account or dashboard is required.\"},\"position\":\"main\",\"title\":\"Public submission\"}],\"title\":\"Complete a form\",\"routeClass\":\"intake\",\"transitions\":[{\"trigger\":\"navReview\",\"to\":\"publicReceipt\"}]},{\"id\":\"publicReceipt\",\"path\":\"/receipt\",\"slots\":[{\"id\":\"receiptStatus\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"LIVE — Submission receipt and verifier-backed proof status. Hosted general-purpose verification is DISABLED; the documented CLI/library path remains available.\"},\"position\":\"main\",\"title\":\"Receipt and verification\"}],\"title\":\"Submission receipt\",\"routeClass\":\"verification\",\"transitions\":[{\"trigger\":\"navEvidence\",\"to\":\"supportTrust\"}]}],\"entry\":\"dashboard\"},\"publishable\":false,\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'onboarding' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"onboarding\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'integrations' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"integrations\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'admin' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"admin\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'billing' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"billing\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicRespond' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicRespond\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicReceipt' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicReceipt\",\"entry\":\"dashboard\"}}]}}"
+        }
+      ]
+    },
+    {
+      "index": 50,
+      "call": {
+        "name": "formspec_wireframes_validate",
+        "arguments": {}
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "artifactResolutionReport": {
+            "ok": false,
+            "manifest": {
+              "slot": "app",
+              "artifactKind": "appManifest",
+              "status": "loaded",
+              "document": {
+                "$formspecBundle": "2.4",
+                "version": "0.12.0",
+                "id": "https://formspec.cloud/apps/saas-v1",
+                "title": "Formspec Cloud",
+                "definitions": [
+                  {
+                    "url": "https://formspec.cloud/definitions/saas-navigation",
+                    "version": "0.12.0"
+                  }
+                ],
+                "responseActions": {
+                  "url": "urn:formspec:doc:4b06bd9eac5eb2f7:responseActions"
+                },
+                "registries": [],
+                "surfaces": [
+                  {
+                    "url": "https://formspec.cloud/app",
+                    "version": "0.12.0"
+                  }
+                ],
+                "entrySurface": "https://formspec.cloud/app",
+                "modules": [],
+                "sessions": []
+              },
+              "identity": {
+                "version": "0.12.0",
+                "id": "https://formspec.cloud/apps/saas-v1"
+              }
+            },
+            "artifacts": {
+              "definitions": [
+                {
+                  "slot": "definitions[0]",
+                  "artifactKind": "definition",
+                  "source": "studio-core:bundle-local:definitions[0]",
+                  "ref": {
+                    "url": "https://formspec.cloud/definitions/saas-navigation",
+                    "version": "0.12.0"
+                  },
+                  "status": "loaded",
+                  "document": {
+                    "$formspec": "1.0",
+                    "url": "https://formspec.cloud/definitions/saas-navigation",
+                    "version": "0.12.0",
+                    "status": "draft",
+                    "title": "",
+                    "items": []
+                  },
+                  "identity": {
+                    "url": "https://formspec.cloud/definitions/saas-navigation",
+                    "version": "0.12.0"
+                  },
+                  "diagnostics": []
+                }
+              ],
+              "responseActions": [
+                {
+                  "slot": "responseActions",
+                  "artifactKind": "responseActions",
+                  "source": "studio-core:bundle-local:responseActions",
+                  "ref": {
+                    "url": "urn:formspec:doc:4b06bd9eac5eb2f7:responseActions"
+                  },
+                  "status": "loaded",
+                  "document": {
+                    "$formspecResponseActions": "1.0",
+                    "version": "1.0.0",
+                    "actions": [
+                      {
+                        "id": "navReview",
+                        "intent": "review",
+                        "actor": "user",
+                        "label": {
+                          "literal": "Review"
+                        },
+                        "effects": [
+                          {
+                            "type": "hostEvent",
+                            "eventName": "formspec.navigation.review"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "navSaveDraft",
+                        "intent": "save-draft",
+                        "actor": "user",
+                        "label": {
+                          "literal": "Save draft"
+                        },
+                        "effects": [
+                          {
+                            "type": "hostEvent",
+                            "eventName": "formspec.navigation.save-draft"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "navSubmit",
+                        "intent": "submit",
+                        "actor": "user",
+                        "label": {
+                          "literal": "Continue"
+                        },
+                        "effects": [
+                          {
+                            "type": "hostEvent",
+                            "eventName": "formspec.navigation.submit"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "navEvidence",
+                        "intent": "request-evidence",
+                        "actor": "user",
+                        "label": {
+                          "literal": "View proof"
+                        },
+                        "effects": [
+                          {
+                            "type": "hostEvent",
+                            "eventName": "formspec.navigation.evidence"
+                          }
+                        ]
+                      }
+                    ],
+                    "targetDefinition": {
+                      "url": "https://formspec.cloud/definitions/saas-navigation"
+                    }
+                  },
+                  "identity": {
+                    "url": "urn:formspec:doc:4b06bd9eac5eb2f7:responseActions"
+                  },
+                  "diagnostics": []
+                }
+              ],
+              "surfaces": [
+                {
+                  "slot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "ref": {
+                    "url": "https://formspec.cloud/app",
+                    "version": "0.12.0"
+                  },
+                  "status": "x-studio-bundle-local-unpublishable",
+                  "diagnostics": [
+                    {
+                      "code": "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE",
+                      "severity": "error",
+                      "phase": "artifact-resolution",
+                      "origin": "artifact-resolver",
+                      "message": "Bundle-local Surface 'https://formspec.cloud/app' is not publishable; addRoute + bindSlot fill it.",
+                      "primarySource": {
+                        "artifactSlot": "surfaces[0]",
+                        "artifactKind": "surface",
+                        "source": "studio-core:bundle-local:surfaces[0]",
+                        "ref": {
+                          "url": "https://formspec.cloud/app",
+                          "version": "0.12.0"
+                        }
+                      },
+                      "details": {
+                        "slot": "surfaces[0]",
+                        "url": "https://formspec.cloud/app",
+                        "fillWith": [
+                          "addRoute",
+                          "bindSlot"
+                        ],
+                        "kernelCode": "VALIDATION",
+                        "kernelMessage": "Surface 'app' is not publishable.",
+                        "kernelDetails": {
+                          "operation": "exportSurfaceDocument",
+                          "surfaceId": "app",
+                          "diagnostics": [
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'onboarding' is not reachable from entry 'dashboard'.",
+                              "details": {
+                                "surfaceId": "app",
+                                "routeId": "onboarding",
+                                "entry": "dashboard"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'integrations' is not reachable from entry 'dashboard'.",
+                              "details": {
+                                "surfaceId": "app",
+                                "routeId": "integrations",
+                                "entry": "dashboard"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'admin' is not reachable from entry 'dashboard'.",
+                              "details": {
+                                "surfaceId": "app",
+                                "routeId": "admin",
+                                "entry": "dashboard"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'billing' is not reachable from entry 'dashboard'.",
+                              "details": {
+                                "surfaceId": "app",
+                                "routeId": "billing",
+                                "entry": "dashboard"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'publicRespond' is not reachable from entry 'dashboard'.",
+                              "details": {
+                                "surfaceId": "app",
+                                "routeId": "publicRespond",
+                                "entry": "dashboard"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'publicReceipt' is not reachable from entry 'dashboard'.",
+                              "details": {
+                                "surfaceId": "app",
+                                "routeId": "publicReceipt",
+                                "entry": "dashboard"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "diagnostics": [
+              {
+                "code": "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE",
+                "severity": "error",
+                "phase": "artifact-resolution",
+                "origin": "artifact-resolver",
+                "message": "Bundle-local Surface 'https://formspec.cloud/app' is not publishable; addRoute + bindSlot fill it.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "ref": {
+                    "url": "https://formspec.cloud/app",
+                    "version": "0.12.0"
+                  }
+                },
+                "details": {
+                  "slot": "surfaces[0]",
+                  "url": "https://formspec.cloud/app",
+                  "fillWith": [
+                    "addRoute",
+                    "bindSlot"
+                  ],
+                  "kernelCode": "VALIDATION",
+                  "kernelMessage": "Surface 'app' is not publishable.",
+                  "kernelDetails": {
+                    "operation": "exportSurfaceDocument",
+                    "surfaceId": "app",
+                    "diagnostics": [
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'onboarding' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "onboarding",
+                          "entry": "dashboard"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'integrations' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "integrations",
+                          "entry": "dashboard"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'admin' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "admin",
+                          "entry": "dashboard"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'billing' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "billing",
+                          "entry": "dashboard"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'publicRespond' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "publicRespond",
+                          "entry": "dashboard"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'publicReceipt' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "publicReceipt",
+                          "entry": "dashboard"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "summary": {
+              "declaredRefs": 3,
+              "loadedArtifacts": 2,
+              "missingArtifacts": 0,
+              "unsupportedRefs": 0,
+              "discriminatorMismatches": 0,
+              "versionMismatches": 0,
+              "identityMismatches": 0,
+              "errors": 1,
+              "warnings": 0,
+              "infos": 0
+            },
+            "phase": {
+              "phase": "artifact-resolution",
+              "status": "completed"
+            }
+          },
+          "moduleResolutionReport": {
+            "ok": true,
+            "modules": [],
+            "documents": [],
+            "contributions": [],
+            "diagnostics": [],
+            "summary": {
+              "modules": 0,
+              "admittedModules": 0,
+              "deniedModules": 0,
+              "documents": 0,
+              "contributions": 0,
+              "unresolvedDependencies": 0,
+              "unresolvedContributions": 0,
+              "payloadFailures": 0,
+              "errors": 0,
+              "warnings": 0,
+              "infos": 0
+            },
+            "phase": {
+              "phase": "module-resolution",
+              "status": "completed"
+            }
+          },
+          "report": {
+            "ok": false,
+            "summary": {
+              "artifacts": 4,
+              "loadedArtifacts": 3,
+              "schemaFailures": 0,
+              "unvalidatedArtifacts": 0,
+              "graphErrors": 0,
+              "errors": 1,
+              "warnings": 0,
+              "infos": 0,
+              "importedDiagnostics": 1,
+              "unsupportedFeatures": 0,
+              "skippedPhases": 1
+            },
+            "schemaResults": [
+              {
+                "slot": "app",
+                "artifactKind": "appManifest",
+                "status": "completed",
+                "ok": true,
+                "diagnostics": []
+              },
+              {
+                "slot": "definitions[0]",
+                "artifactKind": "definition",
+                "status": "completed",
+                "ok": true,
+                "diagnostics": []
+              },
+              {
+                "slot": "responseActions",
+                "artifactKind": "responseActions",
+                "status": "completed",
+                "ok": true,
+                "diagnostics": []
+              }
+            ],
+            "evidenceResults": [],
+            "diagnostics": [
+              {
+                "code": "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE",
+                "severity": "error",
+                "phase": "artifact-resolution",
+                "origin": "artifact-resolver",
+                "message": "Bundle-local Surface 'https://formspec.cloud/app' is not publishable; addRoute + bindSlot fill it.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "ref": {
+                    "url": "https://formspec.cloud/app",
+                    "version": "0.12.0"
+                  }
+                },
+                "details": {
+                  "slot": "surfaces[0]",
+                  "url": "https://formspec.cloud/app",
+                  "fillWith": [
+                    "addRoute",
+                    "bindSlot"
+                  ],
+                  "kernelCode": "VALIDATION",
+                  "kernelMessage": "Surface 'app' is not publishable.",
+                  "kernelDetails": {
+                    "operation": "exportSurfaceDocument",
+                    "surfaceId": "app",
+                    "diagnostics": [
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'onboarding' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "onboarding",
+                          "entry": "dashboard"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'integrations' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "integrations",
+                          "entry": "dashboard"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'admin' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "admin",
+                          "entry": "dashboard"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'billing' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "billing",
+                          "entry": "dashboard"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'publicRespond' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "publicRespond",
+                          "entry": "dashboard"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'publicReceipt' is not reachable from entry 'dashboard'.",
+                        "details": {
+                          "surfaceId": "app",
+                          "routeId": "publicReceipt",
+                          "entry": "dashboard"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "phases": [
+              {
+                "phase": "artifact-resolution",
+                "status": "completed"
+              },
+              {
+                "phase": "schema",
+                "status": "completed"
+              },
+              {
+                "phase": "module-resolution",
+                "status": "completed"
+              },
+              {
+                "phase": "surface-local",
+                "status": "not-run"
+              },
+              {
+                "phase": "cross-artifact",
+                "status": "skipped",
+                "reason": "unresolved-artifacts"
+              },
+              {
+                "phase": "authorization-boundary",
+                "status": "not-run"
+              },
+              {
+                "phase": "unsupported",
+                "status": "not-run"
+              }
+            ]
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"artifactResolutionReport\":{\"ok\":false,\"manifest\":{\"slot\":\"app\",\"artifactKind\":\"appManifest\",\"status\":\"loaded\",\"document\":{\"$formspecBundle\":\"2.4\",\"version\":\"0.12.0\",\"id\":\"https://formspec.cloud/apps/saas-v1\",\"title\":\"Formspec Cloud\",\"definitions\":[{\"url\":\"https://formspec.cloud/definitions/saas-navigation\",\"version\":\"0.12.0\"}],\"responseActions\":{\"url\":\"urn:formspec:doc:4b06bd9eac5eb2f7:responseActions\"},\"registries\":[],\"surfaces\":[{\"url\":\"https://formspec.cloud/app\",\"version\":\"0.12.0\"}],\"entrySurface\":\"https://formspec.cloud/app\",\"modules\":[],\"sessions\":[]},\"identity\":{\"version\":\"0.12.0\",\"id\":\"https://formspec.cloud/apps/saas-v1\"}},\"artifacts\":{\"definitions\":[{\"slot\":\"definitions[0]\",\"artifactKind\":\"definition\",\"source\":\"studio-core:bundle-local:definitions[0]\",\"ref\":{\"url\":\"https://formspec.cloud/definitions/saas-navigation\",\"version\":\"0.12.0\"},\"status\":\"loaded\",\"document\":{\"$formspec\":\"1.0\",\"url\":\"https://formspec.cloud/definitions/saas-navigation\",\"version\":\"0.12.0\",\"status\":\"draft\",\"title\":\"\",\"items\":[]},\"identity\":{\"url\":\"https://formspec.cloud/definitions/saas-navigation\",\"version\":\"0.12.0\"},\"diagnostics\":[]}],\"responseActions\":[{\"slot\":\"responseActions\",\"artifactKind\":\"responseActions\",\"source\":\"studio-core:bundle-local:responseActions\",\"ref\":{\"url\":\"urn:formspec:doc:4b06bd9eac5eb2f7:responseActions\"},\"status\":\"loaded\",\"document\":{\"$formspecResponseActions\":\"1.0\",\"version\":\"1.0.0\",\"actions\":[{\"id\":\"navReview\",\"intent\":\"review\",\"actor\":\"user\",\"label\":{\"literal\":\"Review\"},\"effects\":[{\"type\":\"hostEvent\",\"eventName\":\"formspec.navigation.review\"}]},{\"id\":\"navSaveDraft\",\"intent\":\"save-draft\",\"actor\":\"user\",\"label\":{\"literal\":\"Save draft\"},\"effects\":[{\"type\":\"hostEvent\",\"eventName\":\"formspec.navigation.save-draft\"}]},{\"id\":\"navSubmit\",\"intent\":\"submit\",\"actor\":\"user\",\"label\":{\"literal\":\"Continue\"},\"effects\":[{\"type\":\"hostEvent\",\"eventName\":\"formspec.navigation.submit\"}]},{\"id\":\"navEvidence\",\"intent\":\"request-evidence\",\"actor\":\"user\",\"label\":{\"literal\":\"View proof\"},\"effects\":[{\"type\":\"hostEvent\",\"eventName\":\"formspec.navigation.evidence\"}]}],\"targetDefinition\":{\"url\":\"https://formspec.cloud/definitions/saas-navigation\"}},\"identity\":{\"url\":\"urn:formspec:doc:4b06bd9eac5eb2f7:responseActions\"},\"diagnostics\":[]}],\"surfaces\":[{\"slot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"ref\":{\"url\":\"https://formspec.cloud/app\",\"version\":\"0.12.0\"},\"status\":\"x-studio-bundle-local-unpublishable\",\"diagnostics\":[{\"code\":\"ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE\",\"severity\":\"error\",\"phase\":\"artifact-resolution\",\"origin\":\"artifact-resolver\",\"message\":\"Bundle-local Surface 'https://formspec.cloud/app' is not publishable; addRoute + bindSlot fill it.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"ref\":{\"url\":\"https://formspec.cloud/app\",\"version\":\"0.12.0\"}},\"details\":{\"slot\":\"surfaces[0]\",\"url\":\"https://formspec.cloud/app\",\"fillWith\":[\"addRoute\",\"bindSlot\"],\"kernelCode\":\"VALIDATION\",\"kernelMessage\":\"Surface 'app' is not publishable.\",\"kernelDetails\":{\"operation\":\"exportSurfaceDocument\",\"surfaceId\":\"app\",\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'onboarding' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"onboarding\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'integrations' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"integrations\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'admin' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"admin\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'billing' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"billing\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicRespond' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicRespond\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicReceipt' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicReceipt\",\"entry\":\"dashboard\"}}]}}}]}]},\"diagnostics\":[{\"code\":\"ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE\",\"severity\":\"error\",\"phase\":\"artifact-resolution\",\"origin\":\"artifact-resolver\",\"message\":\"Bundle-local Surface 'https://formspec.cloud/app' is not publishable; addRoute + bindSlot fill it.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"ref\":{\"url\":\"https://formspec.cloud/app\",\"version\":\"0.12.0\"}},\"details\":{\"slot\":\"surfaces[0]\",\"url\":\"https://formspec.cloud/app\",\"fillWith\":[\"addRoute\",\"bindSlot\"],\"kernelCode\":\"VALIDATION\",\"kernelMessage\":\"Surface 'app' is not publishable.\",\"kernelDetails\":{\"operation\":\"exportSurfaceDocument\",\"surfaceId\":\"app\",\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'onboarding' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"onboarding\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'integrations' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"integrations\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'admin' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"admin\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'billing' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"billing\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicRespond' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicRespond\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicReceipt' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicReceipt\",\"entry\":\"dashboard\"}}]}}}],\"summary\":{\"declaredRefs\":3,\"loadedArtifacts\":2,\"missingArtifacts\":0,\"unsupportedRefs\":0,\"discriminatorMismatches\":0,\"versionMismatches\":0,\"identityMismatches\":0,\"errors\":1,\"warnings\":0,\"infos\":0},\"phase\":{\"phase\":\"artifact-resolution\",\"status\":\"completed\"}},\"moduleResolutionReport\":{\"ok\":true,\"modules\":[],\"documents\":[],\"contributions\":[],\"diagnostics\":[],\"summary\":{\"modules\":0,\"admittedModules\":0,\"deniedModules\":0,\"documents\":0,\"contributions\":0,\"unresolvedDependencies\":0,\"unresolvedContributions\":0,\"payloadFailures\":0,\"errors\":0,\"warnings\":0,\"infos\":0},\"phase\":{\"phase\":\"module-resolution\",\"status\":\"completed\"}},\"report\":{\"ok\":false,\"summary\":{\"artifacts\":4,\"loadedArtifacts\":3,\"schemaFailures\":0,\"unvalidatedArtifacts\":0,\"graphErrors\":0,\"errors\":1,\"warnings\":0,\"infos\":0,\"importedDiagnostics\":1,\"unsupportedFeatures\":0,\"skippedPhases\":1},\"schemaResults\":[{\"slot\":\"app\",\"artifactKind\":\"appManifest\",\"status\":\"completed\",\"ok\":true,\"diagnostics\":[]},{\"slot\":\"definitions[0]\",\"artifactKind\":\"definition\",\"status\":\"completed\",\"ok\":true,\"diagnostics\":[]},{\"slot\":\"responseActions\",\"artifactKind\":\"responseActions\",\"status\":\"completed\",\"ok\":true,\"diagnostics\":[]}],\"evidenceResults\":[],\"diagnostics\":[{\"code\":\"ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE\",\"severity\":\"error\",\"phase\":\"artifact-resolution\",\"origin\":\"artifact-resolver\",\"message\":\"Bundle-local Surface 'https://formspec.cloud/app' is not publishable; addRoute + bindSlot fill it.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"ref\":{\"url\":\"https://formspec.cloud/app\",\"version\":\"0.12.0\"}},\"details\":{\"slot\":\"surfaces[0]\",\"url\":\"https://formspec.cloud/app\",\"fillWith\":[\"addRoute\",\"bindSlot\"],\"kernelCode\":\"VALIDATION\",\"kernelMessage\":\"Surface 'app' is not publishable.\",\"kernelDetails\":{\"operation\":\"exportSurfaceDocument\",\"surfaceId\":\"app\",\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'onboarding' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"onboarding\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'integrations' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"integrations\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'admin' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"admin\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'billing' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"billing\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicRespond' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicRespond\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicReceipt' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicReceipt\",\"entry\":\"dashboard\"}}]}}}],\"phases\":[{\"phase\":\"artifact-resolution\",\"status\":\"completed\"},{\"phase\":\"schema\",\"status\":\"completed\"},{\"phase\":\"module-resolution\",\"status\":\"completed\"},{\"phase\":\"surface-local\",\"status\":\"not-run\"},{\"phase\":\"cross-artifact\",\"status\":\"skipped\",\"reason\":\"unresolved-artifacts\"},{\"phase\":\"authorization-boundary\",\"status\":\"not-run\"},{\"phase\":\"unsupported\",\"status\":\"not-run\"}]}}}"
+        }
+      ]
+    },
+    {
+      "index": 51,
+      "call": {
+        "name": "formspec_wireframes_export",
+        "arguments": {}
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Bundle 'https://formspec.cloud/apps/saas-v1' is not publishable: 1 member(s) refused.",
+          "details": {
+            "operation": "exportBundle",
+            "unpublishable": [
+              {
+                "slot": "surfaces",
+                "url": "https://formspec.cloud/app",
+                "reason": "Surface 'app' is not publishable.",
+                "details": {
+                  "operation": "exportSurfaceDocument",
+                  "surfaceId": "app",
+                  "diagnostics": [
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'onboarding' is not reachable from entry 'dashboard'.",
+                      "details": {
+                        "surfaceId": "app",
+                        "routeId": "onboarding",
+                        "entry": "dashboard"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'integrations' is not reachable from entry 'dashboard'.",
+                      "details": {
+                        "surfaceId": "app",
+                        "routeId": "integrations",
+                        "entry": "dashboard"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'admin' is not reachable from entry 'dashboard'.",
+                      "details": {
+                        "surfaceId": "app",
+                        "routeId": "admin",
+                        "entry": "dashboard"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'billing' is not reachable from entry 'dashboard'.",
+                      "details": {
+                        "surfaceId": "app",
+                        "routeId": "billing",
+                        "entry": "dashboard"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'publicRespond' is not reachable from entry 'dashboard'.",
+                      "details": {
+                        "surfaceId": "app",
+                        "routeId": "publicRespond",
+                        "entry": "dashboard"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'publicReceipt' is not reachable from entry 'dashboard'.",
+                      "details": {
+                        "surfaceId": "app",
+                        "routeId": "publicReceipt",
+                        "entry": "dashboard"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Bundle 'https://formspec.cloud/apps/saas-v1' is not publishable: 1 member(s) refused.\",\"details\":{\"operation\":\"exportBundle\",\"unpublishable\":[{\"slot\":\"surfaces\",\"url\":\"https://formspec.cloud/app\",\"reason\":\"Surface 'app' is not publishable.\",\"details\":{\"operation\":\"exportSurfaceDocument\",\"surfaceId\":\"app\",\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'onboarding' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"onboarding\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'integrations' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"integrations\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'admin' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"admin\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'billing' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"billing\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicRespond' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicRespond\",\"entry\":\"dashboard\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'publicReceipt' is not reachable from entry 'dashboard'.\",\"details\":{\"surfaceId\":\"app\",\"routeId\":\"publicReceipt\",\"entry\":\"dashboard\"}}]}}]}}}"
+        }
+      ]
+    }
+  ]
+}

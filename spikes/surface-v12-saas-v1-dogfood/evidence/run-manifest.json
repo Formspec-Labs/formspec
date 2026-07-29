@@ -1,0 +1,48 @@
+{
+  "experiment": "surface-v12-saas-v1-dogfood",
+  "date": "2026-07-29",
+  "input": "formspec-server/SAAS-V1.md",
+  "candidate": {
+    "formspecStudioBaseCommit": "b0d82505ce4725372c030cef99b5f38d0e4e6503",
+    "formspecEvidenceBaseCommit": "81021647dac025b0df170e5bac12d3104274eed6",
+    "formspecServerInputCommit": "6feafecc5c253fcc4a2c4a9ee1f423bdc288d96d",
+    "wireframesMcpVersion": "0.2.0",
+    "sourceState": "working-tree candidate; not committed"
+  },
+  "finalReplay": {
+    "attempt": 7,
+    "publicToolCalls": 92,
+    "toolErrors": 0,
+    "routes": 13,
+    "definitions": 1,
+    "definitionFields": 7,
+    "actions": 11,
+    "experienceUnits": 1,
+    "registryModules": 1,
+    "registryEntries": 2,
+    "dataSources": 3,
+    "schemaFailures": 0,
+    "graphErrors": 0,
+    "validationErrors": 0,
+    "validationWarnings": 0,
+    "validationInfos": 0,
+    "exportedDocuments": 6,
+    "timing": "not reliably recorded"
+  },
+  "sha256": {
+    "formspec-server/SAAS-V1.md": "558207dd897df12f407dd60e77ea9e33087605f11e1a64002d1e0f02a2b5364a",
+    "formspec-mcp-wireframes/dist/tool-catalog.json": "6b6321c32e7d6d6a3ad1f689d66346aa7727996fe166316bc6b0d31d9c7faf5c",
+    "evidence/builder-calls-structured-attempt-7.json": "cf704dbf2d82b78d06c8700894a6d03556de36e89ffc10cfd4711faecab670ea",
+    "evidence/builder-results-structured-attempt-7.json": "69e09a98daaf0adc0f949afa10e0a3dd0aa413beec3d63fb4e4c911addef1f7f",
+    "evidence/builder-notes-structured-attempt-7.md": "f1b20f788ebc8be0196e6e2b7d7824f42d325260f0dad20d5d9bfc692bcd9716",
+    "evidence/scorecard.json": "e46e8795bae740b4864064fc1f293255011972ed88537fe31300a8d8910f3418",
+    "evidence/result.md": "b799aeb0ff71903d0b750b99758aa8b0bd6bed098b4015b3d5c4e043377907fe"
+  },
+  "limits": [
+    "Hashes detect later file drift; they do not prove agent isolation or timing.",
+    "The final transcript was replayed through the public MCP server from a blind builder's ordered call plan.",
+    "The builder iterated using its own public diagnostics while catalog defects found by the dogfood run were corrected between replays.",
+    "Visible feature posture, forms, data bindings, actions, layouts, and navigation controls are structured wireframe declarations, not browser or runtime proof.",
+    "The public session intentionally supports one editable bundle-local Definition; the v12 proof groups its onboarding and public-response fields in that document."
+  ]
+}

@@ -1,0 +1,468 @@
+{
+  "calls": [
+    {
+      "name": "formspec_wireframes_start_app",
+      "arguments": {
+        "app_id": "urn:formspec:app:northstar-observatory",
+        "title": "Northstar Observatory",
+        "version": "1.0.0",
+        "surface_url": "urn:formspec:surface:northstar-observatory:night-operations",
+        "surface_version": "1.0.0",
+        "brief": "Responsive multi-route night-operations console for one astronomy crew. Every route keeps shared navigation, current-night state, and a UTC/local toggle visible."
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "night",
+        "path": "/night",
+        "title": "Night Operations",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "targets",
+        "path": "/targets",
+        "title": "Target Queue",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "target_detail",
+        "path": "/targets/{targetId}",
+        "params": [
+          {
+            "name": "targetId",
+            "type": "string",
+            "description": "Target queue object identifier.",
+            "example": "M42"
+          }
+        ],
+        "title": "Target Detail",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "timeline",
+        "path": "/timeline",
+        "title": "Night Timeline",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "systems",
+        "path": "/systems",
+        "title": "Systems Status",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_route",
+      "arguments": {
+        "route_id": "handoff",
+        "path": "/handoff",
+        "title": "Shift Handoff",
+        "route_class": "operation"
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "night",
+        "slot_id": "night_main",
+        "slot_type": "static-content",
+        "content": {
+          "shared_navigation": [
+            "Night",
+            "Targets",
+            "Timeline",
+            "Systems",
+            "Handoff"
+          ],
+          "persistent_context": {
+            "night_state": "Night active — Jul 29 observing shift",
+            "time_toggle": "Local | UTC",
+            "critical_alert": "CRITICAL WIND: sustained 41 mph, gusting 52 mph — dome closure enforced"
+          },
+          "heading": "Night Operations",
+          "status_grid": [
+            "Local time 22:14 EDT",
+            "UTC time 02:14 UTC",
+            "Weather: 41°F, humidity 31%, wind critical",
+            "Dome: CLOSED — wind interlock",
+            "Telescope: PARKED — waiting for safe wind"
+          ],
+          "current_target": "M42 Orion Nebula — paused — 3 of 8 exposures complete",
+          "next_two_events": [
+            "02:25 UTC — reassess wind interlock",
+            "02:40 UTC — begin NGC 2024 if conditions recover"
+          ],
+          "view_states": [
+            "Populated status cards",
+            "Loading skeleton for current target",
+            "Persistent warning banner"
+          ],
+          "layout_intent": {
+            "desktop": "Persistent left navigation; alert across the top; status cards in a three-column grid; current target and next events side by side.",
+            "narrow": "Top navigation becomes a compact menu; alert remains pinned; status cards, target, and events stack in reading order."
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "targets",
+        "slot_id": "targets_main",
+        "slot_type": "static-content",
+        "content": {
+          "shared_navigation": [
+            "Night",
+            "Targets",
+            "Timeline",
+            "Systems",
+            "Handoff"
+          ],
+          "persistent_context": {
+            "night_state": "Night active — wind hold",
+            "time_toggle": "Local | UTC"
+          },
+          "heading": "Ranked Target Queue",
+          "controls": [
+            "Search by object name",
+            "Filter by type",
+            "Filter by priority",
+            "Filter by status",
+            "Clear filters"
+          ],
+          "columns": [
+            "Rank",
+            "Object",
+            "Type",
+            "Priority",
+            "Visibility window",
+            "Estimated duration",
+            "Status"
+          ],
+          "rows": [
+            "1 | M42 | Emission nebula | Critical | 22:10–01:35 local | 42 min | Paused",
+            "2 | NGC 2024 | Nebula | High | 22:35–02:10 local | 28 min | Ready",
+            "3 | M31 | Galaxy | Normal | 23:20–03:50 local | 55 min | Queued"
+          ],
+          "view_states": [
+            "Populated ranked table",
+            "Empty result: No targets match these filters",
+            "Loading row skeletons"
+          ],
+          "layout_intent": {
+            "desktop": "Search and filters above a full-width sortable table.",
+            "narrow": "Controls collapse into a filter drawer; each row becomes a ranked card with all seven fields."
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "target_detail",
+        "slot_id": "target_detail_main",
+        "slot_type": "static-content",
+        "content": {
+          "shared_navigation": [
+            "Night",
+            "Targets",
+            "Timeline",
+            "Systems",
+            "Handoff"
+          ],
+          "persistent_context": {
+            "night_state": "Night active — wind hold",
+            "time_toggle": "Local | UTC"
+          },
+          "breadcrumb": "Targets / M42 Orion Nebula",
+          "heading": "M42 Orion Nebula",
+          "coordinates": "RA 05h 35m 17.3s; Dec −05° 23′ 28″; J2000",
+          "finder_preview": "[Finder-preview image placeholder with field-of-view overlay]",
+          "visibility_facts": [
+            "Altitude 48° and rising",
+            "Azimuth 151° southeast",
+            "Airmass 1.34",
+            "Observable until 01:35 local"
+          ],
+          "exposure_sequence": [
+            "Luminance: 4 × 300 s",
+            "H-alpha: 4 × 600 s",
+            "Calibration frame after sequence"
+          ],
+          "notes": "Resume after the wind interlock clears. Keep the guide star selected during the filter change.",
+          "actions": [
+            "Queue next",
+            "Skip tonight",
+            "Mark observed"
+          ],
+          "view_states": [
+            "Populated target",
+            "Loading finder preview",
+            "Warning: visibility window closes in 48 minutes"
+          ],
+          "layout_intent": {
+            "desktop": "Breadcrumb and actions remain visible above a two-column detail and finder layout; exposure sequence and notes span the width below.",
+            "narrow": "Breadcrumb, summary, finder placeholder, facts, sequence, notes, and actions stack; primary action stays visible."
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "timeline",
+        "slot_id": "timeline_main",
+        "slot_type": "static-content",
+        "content": {
+          "shared_navigation": [
+            "Night",
+            "Targets",
+            "Timeline",
+            "Systems",
+            "Handoff"
+          ],
+          "persistent_context": {
+            "night_state": "Night active — wind hold",
+            "time_toggle": "Local | UTC"
+          },
+          "heading": "Night Timeline",
+          "groups": {
+            "completed": [
+              "20:10 local — twilight flats — completed",
+              "21:05 local — focus and alignment — completed"
+            ],
+            "current": [
+              "22:14 local — M42 exposure sequence — paused by wind interlock"
+            ],
+            "upcoming": [
+              "22:25 local — wind reassessment",
+              "22:40 local — NGC 2024 — DELAYED 20 minutes",
+              "23:35 local — M31"
+            ]
+          },
+          "view_states": [
+            "Populated grouped timeline",
+            "Delayed warning treatment",
+            "Loading placeholder for recalculated times"
+          ],
+          "layout_intent": {
+            "desktop": "Vertical time rail with completed, current, and upcoming groups visible together.",
+            "narrow": "Single-column cards retain group labels, status, delay, and time."
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "systems",
+        "slot_id": "systems_main",
+        "slot_type": "static-content",
+        "content": {
+          "shared_navigation": [
+            "Night",
+            "Targets",
+            "Timeline",
+            "Systems",
+            "Handoff"
+          ],
+          "persistent_context": {
+            "night_state": "Night active — wind hold",
+            "time_toggle": "Local | UTC"
+          },
+          "heading": "Systems Status",
+          "systems": [
+            "Telescope — HEALTHY — parked, tracking drive ready",
+            "Dome — WARNING — closed by high-wind interlock",
+            "Camera — OFFLINE — cooling controller connection lost",
+            "Guider — HEALTHY — guide star retained",
+            "Weather station — WARNING — critical wind readings"
+          ],
+          "troubleshooting_panel": [
+            "Camera: verify controller power and network link",
+            "Retry camera connection",
+            "Open diagnostics",
+            "Escalate to observatory engineer"
+          ],
+          "view_states": [
+            "Healthy system card",
+            "Warning system card",
+            "Offline system card",
+            "Loading health-check indicator"
+          ],
+          "layout_intent": {
+            "desktop": "Five status cards in a responsive grid with a persistent troubleshooting panel on the right.",
+            "narrow": "Status cards stack; troubleshooting becomes an expandable panel below the offline card."
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_bind_slot",
+      "arguments": {
+        "route_id": "handoff",
+        "slot_id": "handoff_main",
+        "slot_type": "static-content",
+        "content": {
+          "shared_navigation": [
+            "Night",
+            "Targets",
+            "Timeline",
+            "Systems",
+            "Handoff"
+          ],
+          "persistent_context": {
+            "night_state": "Night active — wind hold",
+            "time_toggle": "Local | UTC"
+          },
+          "heading": "Shift Handoff",
+          "completed_observations": [
+            "Twilight flats — 24 usable frames",
+            "M42 — 3 luminance exposures captured before pause"
+          ],
+          "unresolved_alerts": [
+            "Critical wind interlock remains active",
+            "Camera cooling controller is offline"
+          ],
+          "next_shift_priorities": [
+            "Confirm safe wind before opening dome",
+            "Restore camera cooling controller",
+            "Resume M42, then run NGC 2024"
+          ],
+          "actions": [
+            "Download handoff"
+          ],
+          "view_states": [
+            "Populated handoff groups",
+            "Empty alternative: No unresolved alerts",
+            "Loading export indicator"
+          ],
+          "layout_intent": {
+            "desktop": "Three summary panels appear side by side with Download handoff in the page header.",
+            "narrow": "Summary panels stack in shift order; Download handoff remains a full-width action."
+          }
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "night",
+        "trigger": "nav.targets",
+        "to": "targets"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "night",
+        "trigger": "nav.timeline",
+        "to": "timeline"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "night",
+        "trigger": "nav.systems",
+        "to": "systems"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "night",
+        "trigger": "nav.handoff",
+        "to": "handoff"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "targets",
+        "trigger": "nav.night",
+        "to": "night"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "target_detail",
+        "trigger": "nav.night",
+        "to": "night"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "timeline",
+        "trigger": "nav.night",
+        "to": "night"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "systems",
+        "trigger": "nav.night",
+        "to": "night"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "handoff",
+        "trigger": "nav.night",
+        "to": "night"
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "targets",
+        "trigger": "select.target",
+        "to": "target_detail",
+        "params": {
+          "targetId": "M42"
+        }
+      }
+    },
+    {
+      "name": "formspec_wireframes_add_transition",
+      "arguments": {
+        "route_id": "target_detail",
+        "trigger": "breadcrumb.targets",
+        "to": "targets"
+      }
+    },
+    {
+      "name": "formspec_wireframes_read_summary",
+      "arguments": {}
+    },
+    {
+      "name": "formspec_wireframes_preview",
+      "arguments": {}
+    },
+    {
+      "name": "formspec_wireframes_validate",
+      "arguments": {}
+    },
+    {
+      "name": "formspec_wireframes_export",
+      "arguments": {}
+    }
+  ]
+}

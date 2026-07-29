@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "2",
+  "scoring": "single-frozen-scorecard",
+  "scoreSchema": {
+    "binaryKeys": [
+      "exportValid",
+      "structuredPreviewAvailable",
+      "allRoutesReachable",
+      "parameterizedDetailCoherent"
+    ],
+    "numericKeys": [
+      "acceptanceChecksPassed",
+      "elapsedMilliseconds",
+      "publicToolCalls",
+      "toolErrors",
+      "toolRecoveries",
+      "unsupportedOperations",
+      "assumptionCount",
+      "repeatedFailureStages"
+    ]
+  },
+  "primaryLevels": [
+    {
+      "level": 0,
+      "meaning": "No export"
+    },
+    {
+      "level": 1,
+      "meaning": "The export fails schema or AppGraph validation"
+    },
+    {
+      "level": 2,
+      "meaning": "The export validates but lacks a coherent multi-route structure"
+    },
+    {
+      "level": 3,
+      "meaning": "The structure is coherent but misses one or more of the nine mission checks"
+    },
+    {
+      "level": 4,
+      "meaning": "The public-tool result validates and structurally satisfies all nine mission checks without source access or hand repair"
+    }
+  ],
+  "hardFailures": [
+    "missing export",
+    "schema or AppGraph validation failure",
+    "hand-edited exported artifact",
+    "missing or unreachable required route",
+    "source or internal API required to finish"
+  ],
+  "secondaryEvidence": [
+    "elapsed time",
+    "public tool calls",
+    "tool errors and recoveries",
+    "unsupported operations",
+    "assumptions",
+    "repeated failure stages"
+  ],
+  "hardGateRule": "Secondary evidence explains the authoring experience but never overrides the primary level."
+}

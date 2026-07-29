@@ -1,0 +1,37 @@
+{
+  "experiment": "surface-v11-blind-comparison",
+  "date": "2026-07-29",
+  "candidate": {
+    "formspecStudioBaseCommit": "b0d82505ce4725372c030cef99b5f38d0e4e6503",
+    "formspecEvidenceBaseCommit": "81021647dac025b0df170e5bac12d3104274eed6",
+    "wireframesMcpVersion": "0.2.0",
+    "sourceState": "working-tree candidate; not committed"
+  },
+  "finalReplay": {
+    "attempt": 8,
+    "publicToolCalls": 35,
+    "toolErrors": 0,
+    "schemaFailures": 0,
+    "graphErrors": 0,
+    "validationErrors": 0,
+    "validationWarnings": 10,
+    "exportedDocuments": 3,
+    "timing": "not reliably recorded"
+  },
+  "sha256": {
+    "protocol/mission-selection.md": "ab0ae38f1be7ca8064aa6d1d3bf445fae619c42c197f4b7bd632ccf13157aa57",
+    "protocol/builder-instruction.md": "7dc35bbe23f14d95d8d05693cd5d63fedb36c0d2ac59b1efa8984bbfa2554d3d",
+    "protocol/rubric.json": "a962ec4b784c72e8ecad49a5e5fca599d9e440610d54a81e8f66650cc7d4ae8f",
+    "formspec-mcp-wireframes/dist/tool-catalog.json": "cbefeac3bf618ab77d7af861240af64d12c6d53b1edf21f9c869d96925617662",
+    "evidence/builder-calls-attempt-8.json": "06f236e1fd948370f1c89dd93121eb03559ed51a6de4bc019d1c5e02fe48139a",
+    "evidence/builder-results-attempt-8.json": "e648dc8bd8e81b1c9600dcc02a1c9ae4151ad50b9134b6e77d0f3646995d9f8d",
+    "evidence/scorecard.json": "834ce21e91246fe58e71e179fb3b84e83a22f7cb320376bb552e2ae21332489b",
+    "evidence/result.md": "ac8b118790933a6de3fd4f82e22e93aa03de7db731055ad5382cbf26c3c54d2f"
+  },
+  "limits": [
+    "Hashes detect later file drift; they do not prove agent isolation or timing.",
+    "The final transcript was replayed through the public MCP server from a blind builder's ordered call plan.",
+    "The builder recovered across iterations using only its own public results, while the catalog was corrected between reproduced failures.",
+    "No browser or runtime behavior was tested."
+  ]
+}

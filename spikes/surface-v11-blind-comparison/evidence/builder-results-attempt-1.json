@@ -1,0 +1,1836 @@
+{
+  "calls": [
+    {
+      "index": 0,
+      "call": {
+        "name": "formspec_wireframes_start_app",
+        "arguments": {
+          "app_id": "https://northstar-observatory.example/apps/night-operations",
+          "title": "Northstar Observatory",
+          "version": "1.0.0",
+          "surface_url": "https://northstar-observatory.example/surfaces/night-operations",
+          "surface_version": "1.0.0",
+          "brief": "Responsive multi-route internal console for a single-site astronomy crew operating one observing night. Every view keeps Northstar navigation, current-night state, and a Local/UTC control visible."
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "app": {
+            "id": "https://northstar-observatory.example/apps/night-operations",
+            "title": "Northstar Observatory",
+            "version": "1.0.0",
+            "surface_url": "https://northstar-observatory.example/surfaces/night-operations",
+            "surface_id": "night-operations",
+            "entry_surface": "https://northstar-observatory.example/surfaces/night-operations"
+          },
+          "surface": {
+            "publishable": false,
+            "diagnostics": [
+              {
+                "code": "SURFACE-ENTRY-MISSING",
+                "message": "Surface draft has no entry route. The first addRoute call sets entry.",
+                "details": {
+                  "surfaceId": "night-operations"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTES-EMPTY",
+                "message": "Surface draft must declare at least one route before export.",
+                "details": {
+                  "surfaceId": "night-operations"
+                }
+              }
+            ]
+          },
+          "routes": [],
+          "definitions": [],
+          "actions": [],
+          "experience_units": [],
+          "registry": {
+            "modules": [],
+            "entries": []
+          },
+          "data_sources": [],
+          "unresolved_references": [],
+          "diagnostic_counts": {
+            "current": false,
+            "errors": null,
+            "warnings": null,
+            "infos": null,
+            "schema_failures": null,
+            "skipped_phases": null
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"app\":{\"id\":\"https://northstar-observatory.example/apps/night-operations\",\"title\":\"Northstar Observatory\",\"version\":\"1.0.0\",\"surface_url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"surface_id\":\"night-operations\",\"entry_surface\":\"https://northstar-observatory.example/surfaces/night-operations\"},\"surface\":{\"publishable\":false,\"diagnostics\":[{\"code\":\"SURFACE-ENTRY-MISSING\",\"message\":\"Surface draft has no entry route. The first addRoute call sets entry.\",\"details\":{\"surfaceId\":\"night-operations\"}},{\"code\":\"SURFACE-ROUTES-EMPTY\",\"message\":\"Surface draft must declare at least one route before export.\",\"details\":{\"surfaceId\":\"night-operations\"}}]},\"routes\":[],\"definitions\":[],\"actions\":[],\"experience_units\":[],\"registry\":{\"modules\":[],\"entries\":[]},\"data_sources\":[],\"unresolved_references\":[],\"diagnostic_counts\":{\"current\":false,\"errors\":null,\"warnings\":null,\"infos\":null,\"schema_failures\":null,\"skipped_phases\":null}}}"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "night",
+          "path": "/night",
+          "title": "Night overview",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "targets",
+          "path": "/targets",
+          "title": "Target queue",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "target_detail",
+          "path": "/targets/{targetId}",
+          "params": [
+            {
+              "name": "targetId",
+              "type": "string",
+              "description": "Selected observing target identifier",
+              "example": "M42"
+            }
+          ],
+          "title": "Target detail",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "timeline",
+          "path": "/timeline",
+          "title": "Night timeline",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "systems",
+          "path": "/systems",
+          "title": "Observatory systems",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "handoff",
+          "path": "/handoff",
+          "title": "Shift handoff",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "night",
+          "slot_id": "night-content",
+          "kind": "static-content",
+          "title": "Northstar Observatory — Night overview",
+          "content": "Persistent shell: navigation links for Night, Targets, Target detail through the queue, Timeline, Systems, and Handoff; current night state OBSERVING; Local / UTC toggle. Main populated view: local time 22:14 EDT and UTC 02:14; weather 6 C, humidity 38%, wind 31 km/h gusting 48 km/h; dome OPEN warning; telescope TRACKING healthy; current target M42 Orion Nebula with progress; next two events 22:28 filter change and 22:42 slew to NGC 2392. Persistent CRITICAL WIND warning with safety guidance. Also show a loading skeleton and an empty next-events example. Desktop: alert across the top, status cards in a grid, current target beside the event list. Narrow screen: sticky alert and shell controls, then one-column cards with actions kept visible."
+        }
+      },
+      "isError": true,
+      "structuredContent": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "MCP error -32602: Input validation error: Invalid arguments for tool formspec_wireframes_bind_slot: [\n  {\n    \"code\": \"invalid_union_discriminator\",\n    \"options\": [\n      \"definition-form\",\n      \"experience-unit\",\n      \"module-widget\",\n      \"static-content\",\n      \"embed-route\"\n    ],\n    \"path\": [\n      \"slot_type\"\n    ],\n    \"message\": \"Invalid discriminator value. Expected 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route'\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "targets",
+          "slot_id": "targets-content",
+          "kind": "static-content",
+          "title": "Northstar Observatory — Ranked target queue",
+          "content": "Persistent shell: navigation links for Night, Targets, Target detail through the queue, Timeline, Systems, and Handoff; current night state OBSERVING; Local / UTC toggle. Search by object and filter by type, status, priority, and visible-now. Recognizable ranked table with columns Rank, Object, Type, Priority, Visibility window, Estimated duration, and Status. Populated examples: 1 M42 nebula critical 21:50-23:10 42 min observing; 2 NGC 2392 planetary nebula high 22:35-00:20 28 min queued; 3 HD 189733 exoplanet high 00:45-03:30 95 min queued. Each row opens /targets/{targetId}. Include loading rows and a no-targets empty result with Clear filters. Desktop: full sortable table and filter bar. Narrow screen: filters in a compact drawer and ranked cards preserving every field."
+        }
+      },
+      "isError": true,
+      "structuredContent": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "MCP error -32602: Input validation error: Invalid arguments for tool formspec_wireframes_bind_slot: [\n  {\n    \"code\": \"invalid_union_discriminator\",\n    \"options\": [\n      \"definition-form\",\n      \"experience-unit\",\n      \"module-widget\",\n      \"static-content\",\n      \"embed-route\"\n    ],\n    \"path\": [\n      \"slot_type\"\n    ],\n    \"message\": \"Invalid discriminator value. Expected 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route'\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "target_detail",
+          "slot_id": "target-detail-content",
+          "kind": "static-content",
+          "title": "Northstar Observatory — Target detail",
+          "content": "Persistent shell: navigation links for Night, Targets, Target detail through the queue, Timeline, Systems, and Handoff; current night state OBSERVING; Local / UTC toggle. Visible breadcrumb Targets / M42 and Back to target queue. Coordinates: RA 05h 35m 17.3s, Dec -05° 23′ 28″, epoch J2000. Finder-preview image placeholder with sky orientation. Visibility facts: altitude 54°, azimuth 181°, airmass 1.23, visible until 23:10. Exposure sequence table: L 6x120s, R 4x180s, G 4x180s, B 4x180s, with progress and a loading example. Crew notes and an empty-notes example. Prominent actions: Queue next, Skip tonight, Mark observed. Desktop: finder and facts side by side, sequence and notes below. Narrow screen: breadcrumb, finder, facts, sequence, notes, then sticky action group."
+        }
+      },
+      "isError": true,
+      "structuredContent": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "MCP error -32602: Input validation error: Invalid arguments for tool formspec_wireframes_bind_slot: [\n  {\n    \"code\": \"invalid_union_discriminator\",\n    \"options\": [\n      \"definition-form\",\n      \"experience-unit\",\n      \"module-widget\",\n      \"static-content\",\n      \"embed-route\"\n    ],\n    \"path\": [\n      \"slot_type\"\n    ],\n    \"message\": \"Invalid discriminator value. Expected 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route'\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "timeline",
+          "slot_id": "timeline-content",
+          "kind": "static-content",
+          "title": "Northstar Observatory — Night timeline",
+          "content": "Persistent shell: navigation links for Night, Targets, Target detail through the queue, Timeline, Systems, and Handoff; current night state OBSERVING; Local / UTC toggle. Group the plan into Completed, Current, and Upcoming. Completed: twilight flats 19:41 and M31 calibration 21:32. Current: M42 exposure sequence 21:50-22:32 with live progress. Upcoming: filter change 22:28, NGC 2392 22:42, HD 189733 00:45. Mark NGC 2392 DELAYED by 14 minutes due to wind and show its revised time. Include loading timeline placeholders and an empty upcoming group. Desktop: aligned time rail with group labels. Narrow screen: stacked chronological cards retaining state and delay badges."
+        }
+      },
+      "isError": true,
+      "structuredContent": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "MCP error -32602: Input validation error: Invalid arguments for tool formspec_wireframes_bind_slot: [\n  {\n    \"code\": \"invalid_union_discriminator\",\n    \"options\": [\n      \"definition-form\",\n      \"experience-unit\",\n      \"module-widget\",\n      \"static-content\",\n      \"embed-route\"\n    ],\n    \"path\": [\n      \"slot_type\"\n    ],\n    \"message\": \"Invalid discriminator value. Expected 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route'\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "systems",
+          "slot_id": "systems-content",
+          "kind": "static-content",
+          "title": "Northstar Observatory — System health",
+          "content": "Persistent shell: navigation links for Night, Targets, Target detail through the queue, Timeline, Systems, and Handoff; current night state OBSERVING; Local / UTC toggle. Status matrix covers all five systems and all three health states: Telescope healthy and tracking; Dome warning because wind interlock is armed; Camera healthy and cooling; Guider offline with lost connection; Weather station healthy with live readings. Each row shows last update and important telemetry. Troubleshooting panel focuses on the offline Guider with checks for power, cable, service restart, and escalation, plus View logs and Retry connection controls. Include system-status loading cards. Desktop: status matrix beside the troubleshooting panel. Narrow screen: status cards followed by a full-width troubleshooting panel; warning and offline labels never rely on color alone."
+        }
+      },
+      "isError": true,
+      "structuredContent": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "MCP error -32602: Input validation error: Invalid arguments for tool formspec_wireframes_bind_slot: [\n  {\n    \"code\": \"invalid_union_discriminator\",\n    \"options\": [\n      \"definition-form\",\n      \"experience-unit\",\n      \"module-widget\",\n      \"static-content\",\n      \"embed-route\"\n    ],\n    \"path\": [\n      \"slot_type\"\n    ],\n    \"message\": \"Invalid discriminator value. Expected 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route'\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "handoff",
+          "slot_id": "handoff-content",
+          "kind": "static-content",
+          "title": "Northstar Observatory — Shift handoff",
+          "content": "Persistent shell: navigation links for Night, Targets, Target detail through the queue, Timeline, Systems, and Handoff; current night state OBSERVING; Local / UTC toggle. Three clear summary groups: Completed observations with M31 calibration and M42 exposure details; Unresolved alerts with the critical wind warning and offline Guider, owner and latest update; Next-shift priorities with finish M42, recover Guider, and begin HD 189733 before 00:45. Prominent Download handoff action with file-format and generated-time context. Include an empty completed-observations example for a new shift and loading placeholders while the handoff is assembled. Desktop: three summary columns and download action in the header. Narrow screen: ordered stacked groups with unresolved alerts first and a full-width download action."
+        }
+      },
+      "isError": true,
+      "structuredContent": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "MCP error -32602: Input validation error: Invalid arguments for tool formspec_wireframes_bind_slot: [\n  {\n    \"code\": \"invalid_union_discriminator\",\n    \"options\": [\n      \"definition-form\",\n      \"experience-unit\",\n      \"module-widget\",\n      \"static-content\",\n      \"embed-route\"\n    ],\n    \"path\": [\n      \"slot_type\"\n    ],\n    \"message\": \"Invalid discriminator value. Expected 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route'\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "night",
+          "trigger": "Open Targets",
+          "to": "targets"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Open Targets' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Open Targets"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Open Targets' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Open Targets\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "night",
+          "trigger": "Open Timeline",
+          "to": "timeline"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Open Timeline' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Open Timeline"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Open Timeline' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Open Timeline\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "night",
+          "trigger": "Open Systems",
+          "to": "systems"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Open Systems' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Open Systems"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Open Systems' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Open Systems\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "night",
+          "trigger": "Open Handoff",
+          "to": "handoff"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Open Handoff' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Open Handoff"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Open Handoff' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Open Handoff\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "targets",
+          "trigger": "Open Night",
+          "to": "night"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Open Night' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Open Night"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Open Night' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Open Night\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "targets",
+          "trigger": "Open selected target",
+          "to": "target_detail",
+          "params": {
+            "targetId": "selectedTargetId"
+          }
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Open selected target' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Open selected target"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Open selected target' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Open selected target\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "target_detail",
+          "trigger": "Back to target queue",
+          "to": "targets"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Back to target queue' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Back to target queue"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Back to target queue' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Back to target queue\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "target_detail",
+          "trigger": "Open Night",
+          "to": "night"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Open Night' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Open Night"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Open Night' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Open Night\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "timeline",
+          "trigger": "Open Night",
+          "to": "night"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Open Night' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Open Night"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Open Night' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Open Night\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "systems",
+          "trigger": "Open Night",
+          "to": "night"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Open Night' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Open Night"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Open Night' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Open Night\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "handoff",
+          "trigger": "Open Night",
+          "to": "night"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Open Night' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Open Night"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Open Night' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Open Night\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "target_detail",
+          "trigger": "Queue next",
+          "to": "target_detail"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Queue next' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Queue next"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Queue next' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Queue next\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "target_detail",
+          "trigger": "Skip tonight",
+          "to": "target_detail"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Skip tonight' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Skip tonight"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Skip tonight' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Skip tonight\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "target_detail",
+          "trigger": "Mark observed",
+          "to": "target_detail"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Mark observed' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Mark observed"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Mark observed' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Mark observed\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 27,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "handoff",
+          "trigger": "Download handoff",
+          "to": "handoff"
+        }
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Surface transition trigger 'Download handoff' must be a Response Actions action id or closed-core action intent.",
+          "details": {
+            "operation": "addTransition",
+            "trigger": "Download handoff"
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Surface transition trigger 'Download handoff' must be a Response Actions action id or closed-core action intent.\",\"details\":{\"operation\":\"addTransition\",\"trigger\":\"Download handoff\"}}}"
+        }
+      ]
+    },
+    {
+      "index": 28,
+      "call": {
+        "name": "formspec_wireframes_read_summary",
+        "arguments": {}
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "app": {
+            "id": "https://northstar-observatory.example/apps/night-operations",
+            "title": "Northstar Observatory",
+            "version": "1.0.0",
+            "surface_url": "https://northstar-observatory.example/surfaces/night-operations",
+            "surface_id": "night-operations",
+            "entry_surface": "https://northstar-observatory.example/surfaces/night-operations"
+          },
+          "surface": {
+            "publishable": false,
+            "diagnostics": [
+              {
+                "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                "message": "Surface route 'night' has no slots; schema-valid routes require at least one slot.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "night"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                "message": "Surface route 'targets' has no slots; schema-valid routes require at least one slot.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "targets"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                "message": "Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "target_detail"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                "message": "Surface route 'timeline' has no slots; schema-valid routes require at least one slot.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "timeline"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                "message": "Surface route 'systems' has no slots; schema-valid routes require at least one slot.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "systems"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                "message": "Surface route 'handoff' has no slots; schema-valid routes require at least one slot.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "handoff"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'targets' is not reachable from entry 'night'.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "targets",
+                  "entry": "night"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'target_detail' is not reachable from entry 'night'.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "target_detail",
+                  "entry": "night"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'timeline' is not reachable from entry 'night'.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "timeline",
+                  "entry": "night"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'systems' is not reachable from entry 'night'.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "systems",
+                  "entry": "night"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTE-UNREACHABLE",
+                "message": "Surface route 'handoff' is not reachable from entry 'night'.",
+                "details": {
+                  "surfaceId": "night-operations",
+                  "routeId": "handoff",
+                  "entry": "night"
+                }
+              }
+            ]
+          },
+          "routes": [
+            {
+              "id": "night",
+              "path": "/night",
+              "title": "Night overview",
+              "route_class": "operation",
+              "slots": [],
+              "transitions": []
+            },
+            {
+              "id": "targets",
+              "path": "/targets",
+              "title": "Target queue",
+              "route_class": "operation",
+              "slots": [],
+              "transitions": []
+            },
+            {
+              "id": "target_detail",
+              "path": "/targets/{targetId}",
+              "title": "Target detail",
+              "route_class": "operation",
+              "slots": [],
+              "transitions": []
+            },
+            {
+              "id": "timeline",
+              "path": "/timeline",
+              "title": "Night timeline",
+              "route_class": "operation",
+              "slots": [],
+              "transitions": []
+            },
+            {
+              "id": "systems",
+              "path": "/systems",
+              "title": "Observatory systems",
+              "route_class": "operation",
+              "slots": [],
+              "transitions": []
+            },
+            {
+              "id": "handoff",
+              "path": "/handoff",
+              "title": "Shift handoff",
+              "route_class": "operation",
+              "slots": [],
+              "transitions": []
+            }
+          ],
+          "definitions": [],
+          "actions": [],
+          "experience_units": [],
+          "registry": {
+            "modules": [],
+            "entries": []
+          },
+          "data_sources": [],
+          "unresolved_references": [],
+          "diagnostic_counts": {
+            "current": false,
+            "errors": null,
+            "warnings": null,
+            "infos": null,
+            "schema_failures": null,
+            "skipped_phases": null
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"app\":{\"id\":\"https://northstar-observatory.example/apps/night-operations\",\"title\":\"Northstar Observatory\",\"version\":\"1.0.0\",\"surface_url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"surface_id\":\"night-operations\",\"entry_surface\":\"https://northstar-observatory.example/surfaces/night-operations\"},\"surface\":{\"publishable\":false,\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'night' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"night\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'targets' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'timeline' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'systems' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'handoff' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'targets' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'target_detail' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'timeline' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'systems' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'handoff' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\",\"entry\":\"night\"}}]},\"routes\":[{\"id\":\"night\",\"path\":\"/night\",\"title\":\"Night overview\",\"route_class\":\"operation\",\"slots\":[],\"transitions\":[]},{\"id\":\"targets\",\"path\":\"/targets\",\"title\":\"Target queue\",\"route_class\":\"operation\",\"slots\":[],\"transitions\":[]},{\"id\":\"target_detail\",\"path\":\"/targets/{targetId}\",\"title\":\"Target detail\",\"route_class\":\"operation\",\"slots\":[],\"transitions\":[]},{\"id\":\"timeline\",\"path\":\"/timeline\",\"title\":\"Night timeline\",\"route_class\":\"operation\",\"slots\":[],\"transitions\":[]},{\"id\":\"systems\",\"path\":\"/systems\",\"title\":\"Observatory systems\",\"route_class\":\"operation\",\"slots\":[],\"transitions\":[]},{\"id\":\"handoff\",\"path\":\"/handoff\",\"title\":\"Shift handoff\",\"route_class\":\"operation\",\"slots\":[],\"transitions\":[]}],\"definitions\":[],\"actions\":[],\"experience_units\":[],\"registry\":{\"modules\":[],\"entries\":[]},\"data_sources\":[],\"unresolved_references\":[],\"diagnostic_counts\":{\"current\":false,\"errors\":null,\"warnings\":null,\"infos\":null,\"schema_failures\":null,\"skipped_phases\":null}}}"
+        }
+      ]
+    },
+    {
+      "index": 29,
+      "call": {
+        "name": "formspec_wireframes_preview",
+        "arguments": {}
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "manifest": {
+            "$formspecBundle": "2.4",
+            "version": "1.0.0",
+            "id": "https://northstar-observatory.example/apps/night-operations",
+            "title": "Northstar Observatory",
+            "definitions": [],
+            "registries": [],
+            "surfaces": [
+              {
+                "url": "https://northstar-observatory.example/surfaces/night-operations",
+                "version": "1.0.0"
+              }
+            ],
+            "entrySurface": "https://northstar-observatory.example/surfaces/night-operations",
+            "modules": [],
+            "sessions": []
+          },
+          "surface": {
+            "$formspecSurface": "0.2",
+            "id": "night-operations",
+            "routes": [
+              {
+                "id": "night",
+                "path": "/night",
+                "slots": [],
+                "title": "Night overview",
+                "routeClass": "operation"
+              },
+              {
+                "id": "targets",
+                "path": "/targets",
+                "slots": [],
+                "title": "Target queue",
+                "routeClass": "operation"
+              },
+              {
+                "id": "target_detail",
+                "path": "/targets/{targetId}",
+                "slots": [],
+                "params": [
+                  {
+                    "name": "targetId",
+                    "type": "string",
+                    "description": "Selected observing target identifier",
+                    "example": "M42"
+                  }
+                ],
+                "title": "Target detail",
+                "routeClass": "operation"
+              },
+              {
+                "id": "timeline",
+                "path": "/timeline",
+                "slots": [],
+                "title": "Night timeline",
+                "routeClass": "operation"
+              },
+              {
+                "id": "systems",
+                "path": "/systems",
+                "slots": [],
+                "title": "Observatory systems",
+                "routeClass": "operation"
+              },
+              {
+                "id": "handoff",
+                "path": "/handoff",
+                "slots": [],
+                "title": "Shift handoff",
+                "routeClass": "operation"
+              }
+            ],
+            "entry": "night"
+          },
+          "publishable": false,
+          "diagnostics": [
+            {
+              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+              "message": "Surface route 'night' has no slots; schema-valid routes require at least one slot.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "night"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+              "message": "Surface route 'targets' has no slots; schema-valid routes require at least one slot.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "targets"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+              "message": "Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "target_detail"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+              "message": "Surface route 'timeline' has no slots; schema-valid routes require at least one slot.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "timeline"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+              "message": "Surface route 'systems' has no slots; schema-valid routes require at least one slot.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "systems"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+              "message": "Surface route 'handoff' has no slots; schema-valid routes require at least one slot.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "handoff"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'targets' is not reachable from entry 'night'.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "targets",
+                "entry": "night"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'target_detail' is not reachable from entry 'night'.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "target_detail",
+                "entry": "night"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'timeline' is not reachable from entry 'night'.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "timeline",
+                "entry": "night"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'systems' is not reachable from entry 'night'.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "systems",
+                "entry": "night"
+              }
+            },
+            {
+              "code": "SURFACE-ROUTE-UNREACHABLE",
+              "message": "Surface route 'handoff' is not reachable from entry 'night'.",
+              "details": {
+                "surfaceId": "night-operations",
+                "routeId": "handoff",
+                "entry": "night"
+              }
+            }
+          ]
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"manifest\":{\"$formspecBundle\":\"2.4\",\"version\":\"1.0.0\",\"id\":\"https://northstar-observatory.example/apps/night-operations\",\"title\":\"Northstar Observatory\",\"definitions\":[],\"registries\":[],\"surfaces\":[{\"url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"version\":\"1.0.0\"}],\"entrySurface\":\"https://northstar-observatory.example/surfaces/night-operations\",\"modules\":[],\"sessions\":[]},\"surface\":{\"$formspecSurface\":\"0.2\",\"id\":\"night-operations\",\"routes\":[{\"id\":\"night\",\"path\":\"/night\",\"slots\":[],\"title\":\"Night overview\",\"routeClass\":\"operation\"},{\"id\":\"targets\",\"path\":\"/targets\",\"slots\":[],\"title\":\"Target queue\",\"routeClass\":\"operation\"},{\"id\":\"target_detail\",\"path\":\"/targets/{targetId}\",\"slots\":[],\"params\":[{\"name\":\"targetId\",\"type\":\"string\",\"description\":\"Selected observing target identifier\",\"example\":\"M42\"}],\"title\":\"Target detail\",\"routeClass\":\"operation\"},{\"id\":\"timeline\",\"path\":\"/timeline\",\"slots\":[],\"title\":\"Night timeline\",\"routeClass\":\"operation\"},{\"id\":\"systems\",\"path\":\"/systems\",\"slots\":[],\"title\":\"Observatory systems\",\"routeClass\":\"operation\"},{\"id\":\"handoff\",\"path\":\"/handoff\",\"slots\":[],\"title\":\"Shift handoff\",\"routeClass\":\"operation\"}],\"entry\":\"night\"},\"publishable\":false,\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'night' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"night\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'targets' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'timeline' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'systems' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'handoff' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'targets' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'target_detail' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'timeline' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'systems' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'handoff' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\",\"entry\":\"night\"}}]}}"
+        }
+      ]
+    },
+    {
+      "index": 30,
+      "call": {
+        "name": "formspec_wireframes_validate",
+        "arguments": {}
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "artifactResolutionReport": {
+            "ok": false,
+            "manifest": {
+              "slot": "app",
+              "artifactKind": "appManifest",
+              "status": "loaded",
+              "document": {
+                "$formspecBundle": "2.4",
+                "version": "1.0.0",
+                "id": "https://northstar-observatory.example/apps/night-operations",
+                "title": "Northstar Observatory",
+                "definitions": [],
+                "registries": [],
+                "surfaces": [
+                  {
+                    "url": "https://northstar-observatory.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                ],
+                "entrySurface": "https://northstar-observatory.example/surfaces/night-operations",
+                "modules": [],
+                "sessions": []
+              },
+              "identity": {
+                "version": "1.0.0",
+                "id": "https://northstar-observatory.example/apps/night-operations"
+              }
+            },
+            "artifacts": {
+              "surfaces": [
+                {
+                  "slot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "ref": {
+                    "url": "https://northstar-observatory.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  },
+                  "status": "x-studio-bundle-local-unpublishable",
+                  "diagnostics": [
+                    {
+                      "code": "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE",
+                      "severity": "error",
+                      "phase": "artifact-resolution",
+                      "origin": "artifact-resolver",
+                      "message": "Bundle-local Surface 'https://northstar-observatory.example/surfaces/night-operations' is not publishable; addRoute + bindSlot fill it.",
+                      "primarySource": {
+                        "artifactSlot": "surfaces[0]",
+                        "artifactKind": "surface",
+                        "source": "studio-core:bundle-local:surfaces[0]",
+                        "ref": {
+                          "url": "https://northstar-observatory.example/surfaces/night-operations",
+                          "version": "1.0.0"
+                        }
+                      },
+                      "details": {
+                        "slot": "surfaces[0]",
+                        "url": "https://northstar-observatory.example/surfaces/night-operations",
+                        "fillWith": [
+                          "addRoute",
+                          "bindSlot"
+                        ],
+                        "kernelCode": "VALIDATION",
+                        "kernelMessage": "Surface 'night-operations' is not publishable.",
+                        "kernelDetails": {
+                          "operation": "exportSurfaceDocument",
+                          "surfaceId": "night-operations",
+                          "diagnostics": [
+                            {
+                              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                              "message": "Surface route 'night' has no slots; schema-valid routes require at least one slot.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "night"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                              "message": "Surface route 'targets' has no slots; schema-valid routes require at least one slot.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "targets"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                              "message": "Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "target_detail"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                              "message": "Surface route 'timeline' has no slots; schema-valid routes require at least one slot.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "timeline"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                              "message": "Surface route 'systems' has no slots; schema-valid routes require at least one slot.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "systems"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                              "message": "Surface route 'handoff' has no slots; schema-valid routes require at least one slot.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "handoff"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'targets' is not reachable from entry 'night'.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "targets",
+                                "entry": "night"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'target_detail' is not reachable from entry 'night'.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "target_detail",
+                                "entry": "night"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'timeline' is not reachable from entry 'night'.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "timeline",
+                                "entry": "night"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'systems' is not reachable from entry 'night'.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "systems",
+                                "entry": "night"
+                              }
+                            },
+                            {
+                              "code": "SURFACE-ROUTE-UNREACHABLE",
+                              "message": "Surface route 'handoff' is not reachable from entry 'night'.",
+                              "details": {
+                                "surfaceId": "night-operations",
+                                "routeId": "handoff",
+                                "entry": "night"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "diagnostics": [
+              {
+                "code": "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE",
+                "severity": "error",
+                "phase": "artifact-resolution",
+                "origin": "artifact-resolver",
+                "message": "Bundle-local Surface 'https://northstar-observatory.example/surfaces/night-operations' is not publishable; addRoute + bindSlot fill it.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "ref": {
+                    "url": "https://northstar-observatory.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "details": {
+                  "slot": "surfaces[0]",
+                  "url": "https://northstar-observatory.example/surfaces/night-operations",
+                  "fillWith": [
+                    "addRoute",
+                    "bindSlot"
+                  ],
+                  "kernelCode": "VALIDATION",
+                  "kernelMessage": "Surface 'night-operations' is not publishable.",
+                  "kernelDetails": {
+                    "operation": "exportSurfaceDocument",
+                    "surfaceId": "night-operations",
+                    "diagnostics": [
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'night' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "night"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'targets' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "targets"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "target_detail"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'timeline' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "timeline"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'systems' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "systems"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'handoff' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "handoff"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'targets' is not reachable from entry 'night'.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "targets",
+                          "entry": "night"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'target_detail' is not reachable from entry 'night'.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "target_detail",
+                          "entry": "night"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'timeline' is not reachable from entry 'night'.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "timeline",
+                          "entry": "night"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'systems' is not reachable from entry 'night'.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "systems",
+                          "entry": "night"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'handoff' is not reachable from entry 'night'.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "handoff",
+                          "entry": "night"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "summary": {
+              "declaredRefs": 1,
+              "loadedArtifacts": 0,
+              "missingArtifacts": 0,
+              "unsupportedRefs": 0,
+              "discriminatorMismatches": 0,
+              "versionMismatches": 0,
+              "identityMismatches": 0,
+              "errors": 1,
+              "warnings": 0,
+              "infos": 0
+            },
+            "phase": {
+              "phase": "artifact-resolution",
+              "status": "completed"
+            }
+          },
+          "moduleResolutionReport": {
+            "ok": true,
+            "modules": [],
+            "documents": [],
+            "contributions": [],
+            "diagnostics": [],
+            "summary": {
+              "modules": 0,
+              "admittedModules": 0,
+              "deniedModules": 0,
+              "documents": 0,
+              "contributions": 0,
+              "unresolvedDependencies": 0,
+              "unresolvedContributions": 0,
+              "payloadFailures": 0,
+              "errors": 0,
+              "warnings": 0,
+              "infos": 0
+            },
+            "phase": {
+              "phase": "module-resolution",
+              "status": "completed"
+            }
+          },
+          "report": {
+            "ok": false,
+            "summary": {
+              "artifacts": 2,
+              "loadedArtifacts": 1,
+              "schemaFailures": 0,
+              "unvalidatedArtifacts": 0,
+              "graphErrors": 0,
+              "errors": 1,
+              "warnings": 0,
+              "infos": 0,
+              "importedDiagnostics": 1,
+              "unsupportedFeatures": 0,
+              "skippedPhases": 1
+            },
+            "schemaResults": [
+              {
+                "slot": "app",
+                "artifactKind": "appManifest",
+                "status": "completed",
+                "ok": true,
+                "diagnostics": []
+              }
+            ],
+            "evidenceResults": [],
+            "diagnostics": [
+              {
+                "code": "ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE",
+                "severity": "error",
+                "phase": "artifact-resolution",
+                "origin": "artifact-resolver",
+                "message": "Bundle-local Surface 'https://northstar-observatory.example/surfaces/night-operations' is not publishable; addRoute + bindSlot fill it.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "ref": {
+                    "url": "https://northstar-observatory.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "details": {
+                  "slot": "surfaces[0]",
+                  "url": "https://northstar-observatory.example/surfaces/night-operations",
+                  "fillWith": [
+                    "addRoute",
+                    "bindSlot"
+                  ],
+                  "kernelCode": "VALIDATION",
+                  "kernelMessage": "Surface 'night-operations' is not publishable.",
+                  "kernelDetails": {
+                    "operation": "exportSurfaceDocument",
+                    "surfaceId": "night-operations",
+                    "diagnostics": [
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'night' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "night"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'targets' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "targets"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "target_detail"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'timeline' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "timeline"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'systems' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "systems"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                        "message": "Surface route 'handoff' has no slots; schema-valid routes require at least one slot.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "handoff"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'targets' is not reachable from entry 'night'.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "targets",
+                          "entry": "night"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'target_detail' is not reachable from entry 'night'.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "target_detail",
+                          "entry": "night"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'timeline' is not reachable from entry 'night'.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "timeline",
+                          "entry": "night"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'systems' is not reachable from entry 'night'.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "systems",
+                          "entry": "night"
+                        }
+                      },
+                      {
+                        "code": "SURFACE-ROUTE-UNREACHABLE",
+                        "message": "Surface route 'handoff' is not reachable from entry 'night'.",
+                        "details": {
+                          "surfaceId": "night-operations",
+                          "routeId": "handoff",
+                          "entry": "night"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "phases": [
+              {
+                "phase": "artifact-resolution",
+                "status": "completed"
+              },
+              {
+                "phase": "schema",
+                "status": "completed"
+              },
+              {
+                "phase": "module-resolution",
+                "status": "completed"
+              },
+              {
+                "phase": "surface-local",
+                "status": "not-run"
+              },
+              {
+                "phase": "cross-artifact",
+                "status": "skipped",
+                "reason": "unresolved-artifacts"
+              },
+              {
+                "phase": "authorization-boundary",
+                "status": "not-run"
+              },
+              {
+                "phase": "unsupported",
+                "status": "not-run"
+              }
+            ]
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"artifactResolutionReport\":{\"ok\":false,\"manifest\":{\"slot\":\"app\",\"artifactKind\":\"appManifest\",\"status\":\"loaded\",\"document\":{\"$formspecBundle\":\"2.4\",\"version\":\"1.0.0\",\"id\":\"https://northstar-observatory.example/apps/night-operations\",\"title\":\"Northstar Observatory\",\"definitions\":[],\"registries\":[],\"surfaces\":[{\"url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"version\":\"1.0.0\"}],\"entrySurface\":\"https://northstar-observatory.example/surfaces/night-operations\",\"modules\":[],\"sessions\":[]},\"identity\":{\"version\":\"1.0.0\",\"id\":\"https://northstar-observatory.example/apps/night-operations\"}},\"artifacts\":{\"surfaces\":[{\"slot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"ref\":{\"url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"version\":\"1.0.0\"},\"status\":\"x-studio-bundle-local-unpublishable\",\"diagnostics\":[{\"code\":\"ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE\",\"severity\":\"error\",\"phase\":\"artifact-resolution\",\"origin\":\"artifact-resolver\",\"message\":\"Bundle-local Surface 'https://northstar-observatory.example/surfaces/night-operations' is not publishable; addRoute + bindSlot fill it.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"ref\":{\"url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"details\":{\"slot\":\"surfaces[0]\",\"url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"fillWith\":[\"addRoute\",\"bindSlot\"],\"kernelCode\":\"VALIDATION\",\"kernelMessage\":\"Surface 'night-operations' is not publishable.\",\"kernelDetails\":{\"operation\":\"exportSurfaceDocument\",\"surfaceId\":\"night-operations\",\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'night' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"night\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'targets' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'timeline' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'systems' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'handoff' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'targets' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'target_detail' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'timeline' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'systems' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'handoff' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\",\"entry\":\"night\"}}]}}}]}]},\"diagnostics\":[{\"code\":\"ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE\",\"severity\":\"error\",\"phase\":\"artifact-resolution\",\"origin\":\"artifact-resolver\",\"message\":\"Bundle-local Surface 'https://northstar-observatory.example/surfaces/night-operations' is not publishable; addRoute + bindSlot fill it.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"ref\":{\"url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"details\":{\"slot\":\"surfaces[0]\",\"url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"fillWith\":[\"addRoute\",\"bindSlot\"],\"kernelCode\":\"VALIDATION\",\"kernelMessage\":\"Surface 'night-operations' is not publishable.\",\"kernelDetails\":{\"operation\":\"exportSurfaceDocument\",\"surfaceId\":\"night-operations\",\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'night' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"night\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'targets' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'timeline' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'systems' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'handoff' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'targets' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'target_detail' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'timeline' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'systems' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'handoff' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\",\"entry\":\"night\"}}]}}}],\"summary\":{\"declaredRefs\":1,\"loadedArtifacts\":0,\"missingArtifacts\":0,\"unsupportedRefs\":0,\"discriminatorMismatches\":0,\"versionMismatches\":0,\"identityMismatches\":0,\"errors\":1,\"warnings\":0,\"infos\":0},\"phase\":{\"phase\":\"artifact-resolution\",\"status\":\"completed\"}},\"moduleResolutionReport\":{\"ok\":true,\"modules\":[],\"documents\":[],\"contributions\":[],\"diagnostics\":[],\"summary\":{\"modules\":0,\"admittedModules\":0,\"deniedModules\":0,\"documents\":0,\"contributions\":0,\"unresolvedDependencies\":0,\"unresolvedContributions\":0,\"payloadFailures\":0,\"errors\":0,\"warnings\":0,\"infos\":0},\"phase\":{\"phase\":\"module-resolution\",\"status\":\"completed\"}},\"report\":{\"ok\":false,\"summary\":{\"artifacts\":2,\"loadedArtifacts\":1,\"schemaFailures\":0,\"unvalidatedArtifacts\":0,\"graphErrors\":0,\"errors\":1,\"warnings\":0,\"infos\":0,\"importedDiagnostics\":1,\"unsupportedFeatures\":0,\"skippedPhases\":1},\"schemaResults\":[{\"slot\":\"app\",\"artifactKind\":\"appManifest\",\"status\":\"completed\",\"ok\":true,\"diagnostics\":[]}],\"evidenceResults\":[],\"diagnostics\":[{\"code\":\"ARTIFACT-STUDIO-BUNDLE-LOCAL-UNPUBLISHABLE\",\"severity\":\"error\",\"phase\":\"artifact-resolution\",\"origin\":\"artifact-resolver\",\"message\":\"Bundle-local Surface 'https://northstar-observatory.example/surfaces/night-operations' is not publishable; addRoute + bindSlot fill it.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"ref\":{\"url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"details\":{\"slot\":\"surfaces[0]\",\"url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"fillWith\":[\"addRoute\",\"bindSlot\"],\"kernelCode\":\"VALIDATION\",\"kernelMessage\":\"Surface 'night-operations' is not publishable.\",\"kernelDetails\":{\"operation\":\"exportSurfaceDocument\",\"surfaceId\":\"night-operations\",\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'night' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"night\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'targets' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'timeline' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'systems' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'handoff' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'targets' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'target_detail' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'timeline' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'systems' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'handoff' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\",\"entry\":\"night\"}}]}}}],\"phases\":[{\"phase\":\"artifact-resolution\",\"status\":\"completed\"},{\"phase\":\"schema\",\"status\":\"completed\"},{\"phase\":\"module-resolution\",\"status\":\"completed\"},{\"phase\":\"surface-local\",\"status\":\"not-run\"},{\"phase\":\"cross-artifact\",\"status\":\"skipped\",\"reason\":\"unresolved-artifacts\"},{\"phase\":\"authorization-boundary\",\"status\":\"not-run\"},{\"phase\":\"unsupported\",\"status\":\"not-run\"}]}}}"
+        }
+      ]
+    },
+    {
+      "index": 31,
+      "call": {
+        "name": "formspec_wireframes_export",
+        "arguments": {}
+      },
+      "isError": true,
+      "structuredContent": {
+        "ok": false,
+        "error": {
+          "code": "VALIDATION",
+          "message": "Bundle 'https://northstar-observatory.example/apps/night-operations' is not publishable: 1 member(s) refused.",
+          "details": {
+            "operation": "exportBundle",
+            "unpublishable": [
+              {
+                "slot": "surfaces",
+                "url": "https://northstar-observatory.example/surfaces/night-operations",
+                "reason": "Surface 'night-operations' is not publishable.",
+                "details": {
+                  "operation": "exportSurfaceDocument",
+                  "surfaceId": "night-operations",
+                  "diagnostics": [
+                    {
+                      "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                      "message": "Surface route 'night' has no slots; schema-valid routes require at least one slot.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "night"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                      "message": "Surface route 'targets' has no slots; schema-valid routes require at least one slot.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "targets"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                      "message": "Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "target_detail"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                      "message": "Surface route 'timeline' has no slots; schema-valid routes require at least one slot.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "timeline"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                      "message": "Surface route 'systems' has no slots; schema-valid routes require at least one slot.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "systems"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-WITHOUT-SLOTS",
+                      "message": "Surface route 'handoff' has no slots; schema-valid routes require at least one slot.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "handoff"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'targets' is not reachable from entry 'night'.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "targets",
+                        "entry": "night"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'target_detail' is not reachable from entry 'night'.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "target_detail",
+                        "entry": "night"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'timeline' is not reachable from entry 'night'.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "timeline",
+                        "entry": "night"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'systems' is not reachable from entry 'night'.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "systems",
+                        "entry": "night"
+                      }
+                    },
+                    {
+                      "code": "SURFACE-ROUTE-UNREACHABLE",
+                      "message": "Surface route 'handoff' is not reachable from entry 'night'.",
+                      "details": {
+                        "surfaceId": "night-operations",
+                        "routeId": "handoff",
+                        "entry": "night"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":false,\"error\":{\"code\":\"VALIDATION\",\"message\":\"Bundle 'https://northstar-observatory.example/apps/night-operations' is not publishable: 1 member(s) refused.\",\"details\":{\"operation\":\"exportBundle\",\"unpublishable\":[{\"slot\":\"surfaces\",\"url\":\"https://northstar-observatory.example/surfaces/night-operations\",\"reason\":\"Surface 'night-operations' is not publishable.\",\"details\":{\"operation\":\"exportSurfaceDocument\",\"surfaceId\":\"night-operations\",\"diagnostics\":[{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'night' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"night\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'targets' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'target_detail' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'timeline' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'systems' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\"}},{\"code\":\"SURFACE-ROUTE-WITHOUT-SLOTS\",\"message\":\"Surface route 'handoff' has no slots; schema-valid routes require at least one slot.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'targets' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"targets\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'target_detail' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"target_detail\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'timeline' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"timeline\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'systems' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"systems\",\"entry\":\"night\"}},{\"code\":\"SURFACE-ROUTE-UNREACHABLE\",\"message\":\"Surface route 'handoff' is not reachable from entry 'night'.\",\"details\":{\"surfaceId\":\"night-operations\",\"routeId\":\"handoff\",\"entry\":\"night\"}}]}}]}}}"
+        }
+      ]
+    }
+  ]
+}

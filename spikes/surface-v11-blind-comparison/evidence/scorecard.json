@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "2",
+  "scoring": "single-frozen-scorecard",
+  "attempt": 8,
+  "primaryLevel": 4,
+  "primaryMeaning": "The public-tool result validates and structurally satisfies all nine mission checks without source access or hand repair.",
+  "exportValid": true,
+  "structuredPreviewAvailable": true,
+  "allRoutesReachable": true,
+  "parameterizedDetailCoherent": true,
+  "acceptanceChecksPassed": 9,
+  "elapsedMilliseconds": -1,
+  "elapsedMillisecondsStatus": "not recorded in the supplied evidence; -1 is an unavailable-value sentinel",
+  "publicToolCalls": 35,
+  "toolErrors": 0,
+  "toolRecoveries": 0,
+  "unsupportedOperations": 0,
+  "assumptionCount": 0,
+  "repeatedFailureStages": 0,
+  "checks": [
+    {
+      "id": 1,
+      "passed": true,
+      "evidence": "The export manifest title is Northstar Observatory. Its Surface has exactly six routes with paths /night, /targets, /targets/{targetId}, /timeline, /systems, and /handoff."
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "evidence": "The preview Surface enters at night. Its transition graph reaches targets, timeline, systems, and handoff from night, reaches targetDetail from targets with targetId=M42, and provides return paths through night or targets. Every route's visible binding records persistent navigation, ACTIVE night state, and a LOCAL/UTC toggle.",
+      "qualification": "This is structural reachability. Validation emits E611 warnings because the static-content routes do not contain a recognized producer that can fire the transition actions."
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "evidence": "The /night binding contains local and UTC times; weather; dome and telescope states; current target M42 and exposure progress; two next events; and a persistent critical-wind warning with speed and close threshold."
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "evidence": "The /targets binding specifies a desktop table and narrow stacked cards, search plus status, priority, and visibility filters, and a ranked queue containing object, type, priority, visibility window, estimated duration, and status."
+    },
+    {
+      "id": 5,
+      "passed": true,
+      "evidence": "The parameterized /targets/{targetId} route declares a string targetId with example M42. Its binding includes coordinates, a finder-preview placeholder, rise/transit/set and altitude facts, an exposure sequence, notes, Queue next, Skip tonight, and Mark observed, plus a breadcrumb and Back to target queue. The incoming transition supplies targetId=M42."
+    },
+    {
+      "id": 6,
+      "passed": true,
+      "evidence": "The /timeline binding separately labels completed, current, upcoming, and delayed work, including guider calibration delayed from 21:55 to 22:45 because of wind."
+    },
+    {
+      "id": 7,
+      "passed": true,
+      "evidence": "The /systems binding names telescope, dome, camera, guider, and weather station; uses HEALTHY, WARNING, and OFFLINE states with a legend; and includes a troubleshooting section."
+    },
+    {
+      "id": 8,
+      "passed": true,
+      "evidence": "The /handoff binding contains completed observations, unresolved alerts, next-shift priorities, and a Download handoff action label."
+    },
+    {
+      "id": 9,
+      "passed": true,
+      "evidence": "The preview exposes a coherent Manifest ($formspecBundle 2.4) and Surface ($formspecSurface 0.2), entry route night, six routes, route parameters, slots, and transitions. Route bindings represent populated, empty, loading, warning, and offline examples and give desktop and narrow-screen layout intent. Preview reports publishable=true with no diagnostics."
+    }
+  ],
+  "validation": {
+    "toolCallSucceeded": true,
+    "reportOk": true,
+    "artifactResolutionOk": true,
+    "moduleResolutionOk": true,
+    "artifacts": 4,
+    "loadedArtifacts": 4,
+    "schemaFailures": 0,
+    "unvalidatedArtifacts": 0,
+    "graphErrors": 0,
+    "errors": 0,
+    "warnings": 10,
+    "infos": 0,
+    "importedDiagnostics": 0,
+    "unsupportedFeatures": 0,
+    "skippedPhases": 0,
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "completed"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ],
+    "warningSummary": {
+      "code": "E611",
+      "severity": "warning",
+      "count": 10,
+      "phase": "cross-artifact",
+      "origin": "app-graph-validator",
+      "meaning": "Each declared transition resolves to an action, but the route has no definition-form, Registry-declared module-widget, or embedded-route source recognized as able to produce that action.",
+      "affectedTransitions": [
+        "night:navigate-targets",
+        "night:navigate-timeline",
+        "night:navigate-systems",
+        "night:navigate-handoff",
+        "targets:open-target",
+        "targets:navigate-night",
+        "targetDetail:back-to-targets",
+        "timeline:navigate-night",
+        "systems:navigate-night",
+        "handoff:navigate-night"
+      ]
+    }
+  },
+  "hardFailures": [],
+  "remainingWarningsAndLimitations": [
+    "The ten E611 diagnostics are warnings, not validation errors. They leave interaction firing unproven even though the route graph is structurally connected.",
+    "All six route regions are static-content text. The target-detail commands and Download handoff appear as labels in that text rather than as structured executable actions.",
+    "The navigation definition is declared but empty; shared navigation is represented by repeated route content, response-action declarations, and transition edges rather than a reusable rendered navigation region.",
+    "Layout and view-state intent are recorded as structured slot bindings containing text; v11 performs no browser or runtime interaction check.",
+    "Elapsed time is absent from the supplied result, so no timing comparison is possible."
+  ],
+  "conclusion": "Level 4, 9 of 9. The direct public summary, preview, validation, and export show a valid, coherent six-route Northstar Observatory Surface that represents every numbered mission requirement. The result earns the structural pass defined for v11. The score does not claim runnable navigation or command behavior: validation leaves ten transition-producer warnings, and the mission-specific commands, responsive layouts, and view states remain declarative text rather than runtime-tested UI."
+}

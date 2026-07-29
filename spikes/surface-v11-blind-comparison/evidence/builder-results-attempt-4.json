@@ -1,0 +1,1901 @@
+{
+  "calls": [
+    {
+      "index": 0,
+      "call": {
+        "name": "formspec_wireframes_start_app",
+        "arguments": {
+          "app_id": "https://northstar.example/apps/night-operations",
+          "title": "Northstar Observatory",
+          "version": "1.0.0",
+          "surface_url": "https://northstar.example/surfaces/night-operations",
+          "surface_version": "1.0.0",
+          "brief": "Responsive internal single-site night-operations console for an astronomy crew. Shared navigation: Night, Targets, Timeline, Systems, Handoff. Keep current night state and UTC/local toggle visible on every route; record desktop and narrow-screen intent in route content."
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "app": {
+            "id": "https://northstar.example/apps/night-operations",
+            "title": "Northstar Observatory",
+            "version": "1.0.0",
+            "surface_url": "https://northstar.example/surfaces/night-operations",
+            "surface_id": "night-operations",
+            "entry_surface": "https://northstar.example/surfaces/night-operations"
+          },
+          "surface": {
+            "publishable": false,
+            "diagnostics": [
+              {
+                "code": "SURFACE-ENTRY-MISSING",
+                "message": "Surface draft has no entry route. The first addRoute call sets entry.",
+                "details": {
+                  "surfaceId": "night-operations"
+                }
+              },
+              {
+                "code": "SURFACE-ROUTES-EMPTY",
+                "message": "Surface draft must declare at least one route before export.",
+                "details": {
+                  "surfaceId": "night-operations"
+                }
+              }
+            ]
+          },
+          "routes": [],
+          "definitions": [],
+          "actions": [],
+          "experience_units": [],
+          "registry": {
+            "modules": [],
+            "entries": []
+          },
+          "data_sources": [],
+          "unresolved_references": [],
+          "diagnostic_counts": {
+            "current": false,
+            "errors": null,
+            "warnings": null,
+            "infos": null,
+            "schema_failures": null,
+            "skipped_phases": null
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"app\":{\"id\":\"https://northstar.example/apps/night-operations\",\"title\":\"Northstar Observatory\",\"version\":\"1.0.0\",\"surface_url\":\"https://northstar.example/surfaces/night-operations\",\"surface_id\":\"night-operations\",\"entry_surface\":\"https://northstar.example/surfaces/night-operations\"},\"surface\":{\"publishable\":false,\"diagnostics\":[{\"code\":\"SURFACE-ENTRY-MISSING\",\"message\":\"Surface draft has no entry route. The first addRoute call sets entry.\",\"details\":{\"surfaceId\":\"night-operations\"}},{\"code\":\"SURFACE-ROUTES-EMPTY\",\"message\":\"Surface draft must declare at least one route before export.\",\"details\":{\"surfaceId\":\"night-operations\"}}]},\"routes\":[],\"definitions\":[],\"actions\":[],\"experience_units\":[],\"registry\":{\"modules\":[],\"entries\":[]},\"data_sources\":[],\"unresolved_references\":[],\"diagnostic_counts\":{\"current\":false,\"errors\":null,\"warnings\":null,\"infos\":null,\"schema_failures\":null,\"skipped_phases\":null}}}"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "night",
+          "path": "/night",
+          "title": "Night Operations",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "targets",
+          "path": "/targets",
+          "title": "Target Queue",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "targetDetail",
+          "path": "/targets/{targetId}",
+          "params": [
+            {
+              "name": "targetId",
+              "type": "string",
+              "description": "Target identifier",
+              "example": "M42"
+            }
+          ],
+          "title": "Target Detail",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "timeline",
+          "path": "/timeline",
+          "title": "Night Timeline",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "systems",
+          "path": "/systems",
+          "title": "Systems",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "call": {
+        "name": "formspec_wireframes_add_route",
+        "arguments": {
+          "route_id": "handoff",
+          "path": "/handoff",
+          "title": "Shift Handoff",
+          "route_class": "operation"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "night",
+          "slot_id": "nightConsole",
+          "position": "main",
+          "title": "Night console",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "DESKTOP / NARROW: persistent header has Northstar Observatory, shared nav (Night, Targets, Timeline, Systems, Handoff), night state ACTIVE, and UTC/local toggle (LOCAL selected; UTC available). Critical warning: WIND 38 km/h—dome close threshold approaching. Local 22:14 EDT | UTC 02:14. Weather: clear, -3 C, humidity 28%, wind 38 km/h. Dome: open / warning. Telescope: tracking M42 / healthy. Current target: M42 Orion Nebula, exposure 3 of 8. Next events: 22:30 slew to NGC 2024; 23:10 autofocus. Include populated status cards, loading weather example, and empty next-event example."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "targets",
+          "slot_id": "targetQueue",
+          "position": "main",
+          "title": "Ranked target queue",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "DESKTOP table / NARROW stacked cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Search targets and filters: status, priority, visibility. Ranked queue columns: rank, object, type, priority, visibility window, estimated duration, status. 1 M42 | nebula | P1 | 21:40–03:50 local | 48 min | observing. 2 NGC 2024 | nebula | P2 | 22:30–04:10 | 35 min | queued. 3 M31 | galaxy | P3 | 00:20–05:40 | 55 min | queued. Include empty filtered-results and loading queue examples; select M42 opens target detail."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "targetDetail",
+          "slot_id": "targetRecord",
+          "position": "main",
+          "title": "Target record",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "DESKTOP two columns / NARROW single column. Persistent shared nav, ACTIVE night state, UTC/local toggle. Breadcrumb: Targets > M42; visible Back to target queue. M42 Orion Nebula. Coordinates RA 05h35m17s, Dec -05d23m28s. Finder preview placeholder. Visibility: rises 19:22, transit 00:41, sets 05:56; altitude now 47 degrees. Exposure sequence: 8 x 360s L, 6 x 300s R/G/B. Notes: check wind before next slew. Actions: Queue next, Skip tonight, Mark observed. Include warning wind conflict, loading finder preview, and empty notes state."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "timeline",
+          "slot_id": "nightPlan",
+          "position": "main",
+          "title": "Night plan",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "DESKTOP timeline / NARROW chronological cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Group the plan into Completed: polar alignment 20:05, calibration frames 20:40. Current: M42 exposure sequence, 22:14. Upcoming: NGC 2024 slew 22:30; M31 sequence 00:20. Delayed: guider calibration, planned 21:55, delayed to 22:45 because of wind. Include loading timeline and empty upcoming-work examples."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "systems",
+          "slot_id": "systemBoard",
+          "position": "main",
+          "title": "Observatory systems",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "DESKTOP system grid / NARROW stacked status cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Telescope: HEALTHY, tracking; Dome: WARNING, wind threshold approaching; Camera: HEALTHY, -15 C; Guider: OFFLINE, no lock; Weather station: WARNING, gust sensor intermittent. Show healthy, warning, and offline legend. Troubleshooting panel: guider reset steps, dome wind interlock, weather-station last reading. Include loading telemetry and empty diagnostics examples."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "call": {
+        "name": "formspec_wireframes_bind_slot",
+        "arguments": {
+          "route_id": "handoff",
+          "slot_id": "handoffReport",
+          "position": "main",
+          "title": "Shift handoff",
+          "slot_type": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "DESKTOP three summary columns / NARROW stacked sections. Persistent shared nav, ACTIVE night state, UTC/local toggle. Completed observations: M42 partial L sequence, calibration frames. Unresolved alerts: critical wind threshold, guider offline, intermittent gust sensor. Next-shift priorities: diagnose guider, resume M42 if wind clears, execute NGC 2024. Primary action: Download handoff. Include populated report, loading export, and empty completed-observations examples."
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "night",
+          "trigger": "navigate-targets",
+          "to": "targets"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "night",
+          "trigger": "navigate-timeline",
+          "to": "timeline"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "night",
+          "trigger": "navigate-systems",
+          "to": "systems"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "night",
+          "trigger": "navigate-handoff",
+          "to": "handoff"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "targets",
+          "trigger": "open-target",
+          "to": "targetDetail",
+          "params": {
+            "targetId": "M42"
+          }
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "targetDetail",
+          "trigger": "back-to-targets",
+          "to": "targets"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "targets",
+          "trigger": "navigate-night",
+          "to": "night"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "timeline",
+          "trigger": "navigate-night",
+          "to": "night"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "systems",
+          "trigger": "navigate-night",
+          "to": "night"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "call": {
+        "name": "formspec_wireframes_add_transition",
+        "arguments": {
+          "route_id": "handoff",
+          "trigger": "navigate-night",
+          "to": "night"
+        }
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":null}"
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "call": {
+        "name": "formspec_wireframes_read_summary",
+        "arguments": {}
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "app": {
+            "id": "https://northstar.example/apps/night-operations",
+            "title": "Northstar Observatory",
+            "version": "1.0.0",
+            "surface_url": "https://northstar.example/surfaces/night-operations",
+            "surface_id": "night-operations",
+            "entry_surface": "https://northstar.example/surfaces/night-operations"
+          },
+          "surface": {
+            "publishable": true,
+            "diagnostics": []
+          },
+          "routes": [
+            {
+              "id": "night",
+              "path": "/night",
+              "title": "Night Operations",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "nightConsole",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Night console"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navigate-targets",
+                  "to": "targets"
+                },
+                {
+                  "trigger": "navigate-timeline",
+                  "to": "timeline"
+                },
+                {
+                  "trigger": "navigate-systems",
+                  "to": "systems"
+                },
+                {
+                  "trigger": "navigate-handoff",
+                  "to": "handoff"
+                }
+              ]
+            },
+            {
+              "id": "targets",
+              "path": "/targets",
+              "title": "Target Queue",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "targetQueue",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Ranked target queue"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "open-target",
+                  "to": "targetDetail"
+                },
+                {
+                  "trigger": "navigate-night",
+                  "to": "night"
+                }
+              ]
+            },
+            {
+              "id": "targetDetail",
+              "path": "/targets/{targetId}",
+              "title": "Target Detail",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "targetRecord",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Target record"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "back-to-targets",
+                  "to": "targets"
+                }
+              ]
+            },
+            {
+              "id": "timeline",
+              "path": "/timeline",
+              "title": "Night Timeline",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "nightPlan",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Night plan"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navigate-night",
+                  "to": "night"
+                }
+              ]
+            },
+            {
+              "id": "systems",
+              "path": "/systems",
+              "title": "Systems",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "systemBoard",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Observatory systems"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navigate-night",
+                  "to": "night"
+                }
+              ]
+            },
+            {
+              "id": "handoff",
+              "path": "/handoff",
+              "title": "Shift Handoff",
+              "route_class": "operation",
+              "slots": [
+                {
+                  "id": "handoffReport",
+                  "slot_type": "static-content",
+                  "position": "main",
+                  "title": "Shift handoff"
+                }
+              ],
+              "transitions": [
+                {
+                  "trigger": "navigate-night",
+                  "to": "night"
+                }
+              ]
+            }
+          ],
+          "definitions": [],
+          "actions": [],
+          "experience_units": [],
+          "registry": {
+            "modules": [],
+            "entries": []
+          },
+          "data_sources": [],
+          "unresolved_references": [],
+          "diagnostic_counts": {
+            "current": false,
+            "errors": null,
+            "warnings": null,
+            "infos": null,
+            "schema_failures": null,
+            "skipped_phases": null
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"app\":{\"id\":\"https://northstar.example/apps/night-operations\",\"title\":\"Northstar Observatory\",\"version\":\"1.0.0\",\"surface_url\":\"https://northstar.example/surfaces/night-operations\",\"surface_id\":\"night-operations\",\"entry_surface\":\"https://northstar.example/surfaces/night-operations\"},\"surface\":{\"publishable\":true,\"diagnostics\":[]},\"routes\":[{\"id\":\"night\",\"path\":\"/night\",\"title\":\"Night Operations\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"nightConsole\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Night console\"}],\"transitions\":[{\"trigger\":\"navigate-targets\",\"to\":\"targets\"},{\"trigger\":\"navigate-timeline\",\"to\":\"timeline\"},{\"trigger\":\"navigate-systems\",\"to\":\"systems\"},{\"trigger\":\"navigate-handoff\",\"to\":\"handoff\"}]},{\"id\":\"targets\",\"path\":\"/targets\",\"title\":\"Target Queue\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"targetQueue\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Ranked target queue\"}],\"transitions\":[{\"trigger\":\"open-target\",\"to\":\"targetDetail\"},{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"targetDetail\",\"path\":\"/targets/{targetId}\",\"title\":\"Target Detail\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"targetRecord\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Target record\"}],\"transitions\":[{\"trigger\":\"back-to-targets\",\"to\":\"targets\"}]},{\"id\":\"timeline\",\"path\":\"/timeline\",\"title\":\"Night Timeline\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"nightPlan\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Night plan\"}],\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"systems\",\"path\":\"/systems\",\"title\":\"Systems\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"systemBoard\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Observatory systems\"}],\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"handoff\",\"path\":\"/handoff\",\"title\":\"Shift Handoff\",\"route_class\":\"operation\",\"slots\":[{\"id\":\"handoffReport\",\"slot_type\":\"static-content\",\"position\":\"main\",\"title\":\"Shift handoff\"}],\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]}],\"definitions\":[],\"actions\":[],\"experience_units\":[],\"registry\":{\"modules\":[],\"entries\":[]},\"data_sources\":[],\"unresolved_references\":[],\"diagnostic_counts\":{\"current\":false,\"errors\":null,\"warnings\":null,\"infos\":null,\"schema_failures\":null,\"skipped_phases\":null}}}"
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "call": {
+        "name": "formspec_wireframes_preview",
+        "arguments": {}
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "manifest": {
+            "$formspecBundle": "2.4",
+            "version": "1.0.0",
+            "id": "https://northstar.example/apps/night-operations",
+            "title": "Northstar Observatory",
+            "definitions": [],
+            "registries": [],
+            "surfaces": [
+              {
+                "url": "https://northstar.example/surfaces/night-operations",
+                "version": "1.0.0"
+              }
+            ],
+            "entrySurface": "https://northstar.example/surfaces/night-operations",
+            "modules": [],
+            "sessions": []
+          },
+          "surface": {
+            "$formspecSurface": "0.2",
+            "id": "night-operations",
+            "routes": [
+              {
+                "id": "night",
+                "path": "/night",
+                "slots": [
+                  {
+                    "id": "nightConsole",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "DESKTOP / NARROW: persistent header has Northstar Observatory, shared nav (Night, Targets, Timeline, Systems, Handoff), night state ACTIVE, and UTC/local toggle (LOCAL selected; UTC available). Critical warning: WIND 38 km/h—dome close threshold approaching. Local 22:14 EDT | UTC 02:14. Weather: clear, -3 C, humidity 28%, wind 38 km/h. Dome: open / warning. Telescope: tracking M42 / healthy. Current target: M42 Orion Nebula, exposure 3 of 8. Next events: 22:30 slew to NGC 2024; 23:10 autofocus. Include populated status cards, loading weather example, and empty next-event example."
+                    },
+                    "position": "main",
+                    "title": "Night console"
+                  }
+                ],
+                "title": "Night Operations",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "navigate-targets",
+                    "to": "targets"
+                  },
+                  {
+                    "trigger": "navigate-timeline",
+                    "to": "timeline"
+                  },
+                  {
+                    "trigger": "navigate-systems",
+                    "to": "systems"
+                  },
+                  {
+                    "trigger": "navigate-handoff",
+                    "to": "handoff"
+                  }
+                ]
+              },
+              {
+                "id": "targets",
+                "path": "/targets",
+                "slots": [
+                  {
+                    "id": "targetQueue",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "DESKTOP table / NARROW stacked cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Search targets and filters: status, priority, visibility. Ranked queue columns: rank, object, type, priority, visibility window, estimated duration, status. 1 M42 | nebula | P1 | 21:40–03:50 local | 48 min | observing. 2 NGC 2024 | nebula | P2 | 22:30–04:10 | 35 min | queued. 3 M31 | galaxy | P3 | 00:20–05:40 | 55 min | queued. Include empty filtered-results and loading queue examples; select M42 opens target detail."
+                    },
+                    "position": "main",
+                    "title": "Ranked target queue"
+                  }
+                ],
+                "title": "Target Queue",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "open-target",
+                    "to": "targetDetail",
+                    "params": {
+                      "targetId": "M42"
+                    }
+                  },
+                  {
+                    "trigger": "navigate-night",
+                    "to": "night"
+                  }
+                ]
+              },
+              {
+                "id": "targetDetail",
+                "path": "/targets/{targetId}",
+                "slots": [
+                  {
+                    "id": "targetRecord",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "DESKTOP two columns / NARROW single column. Persistent shared nav, ACTIVE night state, UTC/local toggle. Breadcrumb: Targets > M42; visible Back to target queue. M42 Orion Nebula. Coordinates RA 05h35m17s, Dec -05d23m28s. Finder preview placeholder. Visibility: rises 19:22, transit 00:41, sets 05:56; altitude now 47 degrees. Exposure sequence: 8 x 360s L, 6 x 300s R/G/B. Notes: check wind before next slew. Actions: Queue next, Skip tonight, Mark observed. Include warning wind conflict, loading finder preview, and empty notes state."
+                    },
+                    "position": "main",
+                    "title": "Target record"
+                  }
+                ],
+                "params": [
+                  {
+                    "name": "targetId",
+                    "type": "string",
+                    "description": "Target identifier",
+                    "example": "M42"
+                  }
+                ],
+                "title": "Target Detail",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "back-to-targets",
+                    "to": "targets"
+                  }
+                ]
+              },
+              {
+                "id": "timeline",
+                "path": "/timeline",
+                "slots": [
+                  {
+                    "id": "nightPlan",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "DESKTOP timeline / NARROW chronological cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Group the plan into Completed: polar alignment 20:05, calibration frames 20:40. Current: M42 exposure sequence, 22:14. Upcoming: NGC 2024 slew 22:30; M31 sequence 00:20. Delayed: guider calibration, planned 21:55, delayed to 22:45 because of wind. Include loading timeline and empty upcoming-work examples."
+                    },
+                    "position": "main",
+                    "title": "Night plan"
+                  }
+                ],
+                "title": "Night Timeline",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "navigate-night",
+                    "to": "night"
+                  }
+                ]
+              },
+              {
+                "id": "systems",
+                "path": "/systems",
+                "slots": [
+                  {
+                    "id": "systemBoard",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "DESKTOP system grid / NARROW stacked status cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Telescope: HEALTHY, tracking; Dome: WARNING, wind threshold approaching; Camera: HEALTHY, -15 C; Guider: OFFLINE, no lock; Weather station: WARNING, gust sensor intermittent. Show healthy, warning, and offline legend. Troubleshooting panel: guider reset steps, dome wind interlock, weather-station last reading. Include loading telemetry and empty diagnostics examples."
+                    },
+                    "position": "main",
+                    "title": "Observatory systems"
+                  }
+                ],
+                "title": "Systems",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "navigate-night",
+                    "to": "night"
+                  }
+                ]
+              },
+              {
+                "id": "handoff",
+                "path": "/handoff",
+                "slots": [
+                  {
+                    "id": "handoffReport",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "DESKTOP three summary columns / NARROW stacked sections. Persistent shared nav, ACTIVE night state, UTC/local toggle. Completed observations: M42 partial L sequence, calibration frames. Unresolved alerts: critical wind threshold, guider offline, intermittent gust sensor. Next-shift priorities: diagnose guider, resume M42 if wind clears, execute NGC 2024. Primary action: Download handoff. Include populated report, loading export, and empty completed-observations examples."
+                    },
+                    "position": "main",
+                    "title": "Shift handoff"
+                  }
+                ],
+                "title": "Shift Handoff",
+                "routeClass": "operation",
+                "transitions": [
+                  {
+                    "trigger": "navigate-night",
+                    "to": "night"
+                  }
+                ]
+              }
+            ],
+            "entry": "night"
+          },
+          "publishable": true,
+          "diagnostics": []
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"manifest\":{\"$formspecBundle\":\"2.4\",\"version\":\"1.0.0\",\"id\":\"https://northstar.example/apps/night-operations\",\"title\":\"Northstar Observatory\",\"definitions\":[],\"registries\":[],\"surfaces\":[{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}],\"entrySurface\":\"https://northstar.example/surfaces/night-operations\",\"modules\":[],\"sessions\":[]},\"surface\":{\"$formspecSurface\":\"0.2\",\"id\":\"night-operations\",\"routes\":[{\"id\":\"night\",\"path\":\"/night\",\"slots\":[{\"id\":\"nightConsole\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP / NARROW: persistent header has Northstar Observatory, shared nav (Night, Targets, Timeline, Systems, Handoff), night state ACTIVE, and UTC/local toggle (LOCAL selected; UTC available). Critical warning: WIND 38 km/h—dome close threshold approaching. Local 22:14 EDT | UTC 02:14. Weather: clear, -3 C, humidity 28%, wind 38 km/h. Dome: open / warning. Telescope: tracking M42 / healthy. Current target: M42 Orion Nebula, exposure 3 of 8. Next events: 22:30 slew to NGC 2024; 23:10 autofocus. Include populated status cards, loading weather example, and empty next-event example.\"},\"position\":\"main\",\"title\":\"Night console\"}],\"title\":\"Night Operations\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-targets\",\"to\":\"targets\"},{\"trigger\":\"navigate-timeline\",\"to\":\"timeline\"},{\"trigger\":\"navigate-systems\",\"to\":\"systems\"},{\"trigger\":\"navigate-handoff\",\"to\":\"handoff\"}]},{\"id\":\"targets\",\"path\":\"/targets\",\"slots\":[{\"id\":\"targetQueue\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP table / NARROW stacked cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Search targets and filters: status, priority, visibility. Ranked queue columns: rank, object, type, priority, visibility window, estimated duration, status. 1 M42 | nebula | P1 | 21:40–03:50 local | 48 min | observing. 2 NGC 2024 | nebula | P2 | 22:30–04:10 | 35 min | queued. 3 M31 | galaxy | P3 | 00:20–05:40 | 55 min | queued. Include empty filtered-results and loading queue examples; select M42 opens target detail.\"},\"position\":\"main\",\"title\":\"Ranked target queue\"}],\"title\":\"Target Queue\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"open-target\",\"to\":\"targetDetail\",\"params\":{\"targetId\":\"M42\"}},{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"targetDetail\",\"path\":\"/targets/{targetId}\",\"slots\":[{\"id\":\"targetRecord\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP two columns / NARROW single column. Persistent shared nav, ACTIVE night state, UTC/local toggle. Breadcrumb: Targets > M42; visible Back to target queue. M42 Orion Nebula. Coordinates RA 05h35m17s, Dec -05d23m28s. Finder preview placeholder. Visibility: rises 19:22, transit 00:41, sets 05:56; altitude now 47 degrees. Exposure sequence: 8 x 360s L, 6 x 300s R/G/B. Notes: check wind before next slew. Actions: Queue next, Skip tonight, Mark observed. Include warning wind conflict, loading finder preview, and empty notes state.\"},\"position\":\"main\",\"title\":\"Target record\"}],\"params\":[{\"name\":\"targetId\",\"type\":\"string\",\"description\":\"Target identifier\",\"example\":\"M42\"}],\"title\":\"Target Detail\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"back-to-targets\",\"to\":\"targets\"}]},{\"id\":\"timeline\",\"path\":\"/timeline\",\"slots\":[{\"id\":\"nightPlan\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP timeline / NARROW chronological cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Group the plan into Completed: polar alignment 20:05, calibration frames 20:40. Current: M42 exposure sequence, 22:14. Upcoming: NGC 2024 slew 22:30; M31 sequence 00:20. Delayed: guider calibration, planned 21:55, delayed to 22:45 because of wind. Include loading timeline and empty upcoming-work examples.\"},\"position\":\"main\",\"title\":\"Night plan\"}],\"title\":\"Night Timeline\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"systems\",\"path\":\"/systems\",\"slots\":[{\"id\":\"systemBoard\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP system grid / NARROW stacked status cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Telescope: HEALTHY, tracking; Dome: WARNING, wind threshold approaching; Camera: HEALTHY, -15 C; Guider: OFFLINE, no lock; Weather station: WARNING, gust sensor intermittent. Show healthy, warning, and offline legend. Troubleshooting panel: guider reset steps, dome wind interlock, weather-station last reading. Include loading telemetry and empty diagnostics examples.\"},\"position\":\"main\",\"title\":\"Observatory systems\"}],\"title\":\"Systems\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"handoff\",\"path\":\"/handoff\",\"slots\":[{\"id\":\"handoffReport\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP three summary columns / NARROW stacked sections. Persistent shared nav, ACTIVE night state, UTC/local toggle. Completed observations: M42 partial L sequence, calibration frames. Unresolved alerts: critical wind threshold, guider offline, intermittent gust sensor. Next-shift priorities: diagnose guider, resume M42 if wind clears, execute NGC 2024. Primary action: Download handoff. Include populated report, loading export, and empty completed-observations examples.\"},\"position\":\"main\",\"title\":\"Shift handoff\"}],\"title\":\"Shift Handoff\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]}],\"entry\":\"night\"},\"publishable\":true,\"diagnostics\":[]}}"
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "call": {
+        "name": "formspec_wireframes_validate",
+        "arguments": {}
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "artifactResolutionReport": {
+            "ok": true,
+            "manifest": {
+              "slot": "app",
+              "artifactKind": "appManifest",
+              "status": "loaded",
+              "document": {
+                "$formspecBundle": "2.4",
+                "version": "1.0.0",
+                "id": "https://northstar.example/apps/night-operations",
+                "title": "Northstar Observatory",
+                "definitions": [],
+                "registries": [],
+                "surfaces": [
+                  {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                ],
+                "entrySurface": "https://northstar.example/surfaces/night-operations",
+                "modules": [],
+                "sessions": []
+              },
+              "identity": {
+                "version": "1.0.0",
+                "id": "https://northstar.example/apps/night-operations"
+              }
+            },
+            "artifacts": {
+              "surfaces": [
+                {
+                  "slot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  },
+                  "status": "loaded",
+                  "document": {
+                    "$formspecSurface": "0.2",
+                    "id": "night-operations",
+                    "routes": [
+                      {
+                        "id": "night",
+                        "path": "/night",
+                        "slots": [
+                          {
+                            "id": "nightConsole",
+                            "slotType": "static-content",
+                            "binding": {
+                              "kind": "text",
+                              "content": "DESKTOP / NARROW: persistent header has Northstar Observatory, shared nav (Night, Targets, Timeline, Systems, Handoff), night state ACTIVE, and UTC/local toggle (LOCAL selected; UTC available). Critical warning: WIND 38 km/h—dome close threshold approaching. Local 22:14 EDT | UTC 02:14. Weather: clear, -3 C, humidity 28%, wind 38 km/h. Dome: open / warning. Telescope: tracking M42 / healthy. Current target: M42 Orion Nebula, exposure 3 of 8. Next events: 22:30 slew to NGC 2024; 23:10 autofocus. Include populated status cards, loading weather example, and empty next-event example."
+                            },
+                            "position": "main",
+                            "title": "Night console"
+                          }
+                        ],
+                        "title": "Night Operations",
+                        "routeClass": "operation",
+                        "transitions": [
+                          {
+                            "trigger": "navigate-targets",
+                            "to": "targets"
+                          },
+                          {
+                            "trigger": "navigate-timeline",
+                            "to": "timeline"
+                          },
+                          {
+                            "trigger": "navigate-systems",
+                            "to": "systems"
+                          },
+                          {
+                            "trigger": "navigate-handoff",
+                            "to": "handoff"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "targets",
+                        "path": "/targets",
+                        "slots": [
+                          {
+                            "id": "targetQueue",
+                            "slotType": "static-content",
+                            "binding": {
+                              "kind": "text",
+                              "content": "DESKTOP table / NARROW stacked cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Search targets and filters: status, priority, visibility. Ranked queue columns: rank, object, type, priority, visibility window, estimated duration, status. 1 M42 | nebula | P1 | 21:40–03:50 local | 48 min | observing. 2 NGC 2024 | nebula | P2 | 22:30–04:10 | 35 min | queued. 3 M31 | galaxy | P3 | 00:20–05:40 | 55 min | queued. Include empty filtered-results and loading queue examples; select M42 opens target detail."
+                            },
+                            "position": "main",
+                            "title": "Ranked target queue"
+                          }
+                        ],
+                        "title": "Target Queue",
+                        "routeClass": "operation",
+                        "transitions": [
+                          {
+                            "trigger": "open-target",
+                            "to": "targetDetail",
+                            "params": {
+                              "targetId": "M42"
+                            }
+                          },
+                          {
+                            "trigger": "navigate-night",
+                            "to": "night"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "targetDetail",
+                        "path": "/targets/{targetId}",
+                        "slots": [
+                          {
+                            "id": "targetRecord",
+                            "slotType": "static-content",
+                            "binding": {
+                              "kind": "text",
+                              "content": "DESKTOP two columns / NARROW single column. Persistent shared nav, ACTIVE night state, UTC/local toggle. Breadcrumb: Targets > M42; visible Back to target queue. M42 Orion Nebula. Coordinates RA 05h35m17s, Dec -05d23m28s. Finder preview placeholder. Visibility: rises 19:22, transit 00:41, sets 05:56; altitude now 47 degrees. Exposure sequence: 8 x 360s L, 6 x 300s R/G/B. Notes: check wind before next slew. Actions: Queue next, Skip tonight, Mark observed. Include warning wind conflict, loading finder preview, and empty notes state."
+                            },
+                            "position": "main",
+                            "title": "Target record"
+                          }
+                        ],
+                        "params": [
+                          {
+                            "name": "targetId",
+                            "type": "string",
+                            "description": "Target identifier",
+                            "example": "M42"
+                          }
+                        ],
+                        "title": "Target Detail",
+                        "routeClass": "operation",
+                        "transitions": [
+                          {
+                            "trigger": "back-to-targets",
+                            "to": "targets"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "timeline",
+                        "path": "/timeline",
+                        "slots": [
+                          {
+                            "id": "nightPlan",
+                            "slotType": "static-content",
+                            "binding": {
+                              "kind": "text",
+                              "content": "DESKTOP timeline / NARROW chronological cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Group the plan into Completed: polar alignment 20:05, calibration frames 20:40. Current: M42 exposure sequence, 22:14. Upcoming: NGC 2024 slew 22:30; M31 sequence 00:20. Delayed: guider calibration, planned 21:55, delayed to 22:45 because of wind. Include loading timeline and empty upcoming-work examples."
+                            },
+                            "position": "main",
+                            "title": "Night plan"
+                          }
+                        ],
+                        "title": "Night Timeline",
+                        "routeClass": "operation",
+                        "transitions": [
+                          {
+                            "trigger": "navigate-night",
+                            "to": "night"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "systems",
+                        "path": "/systems",
+                        "slots": [
+                          {
+                            "id": "systemBoard",
+                            "slotType": "static-content",
+                            "binding": {
+                              "kind": "text",
+                              "content": "DESKTOP system grid / NARROW stacked status cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Telescope: HEALTHY, tracking; Dome: WARNING, wind threshold approaching; Camera: HEALTHY, -15 C; Guider: OFFLINE, no lock; Weather station: WARNING, gust sensor intermittent. Show healthy, warning, and offline legend. Troubleshooting panel: guider reset steps, dome wind interlock, weather-station last reading. Include loading telemetry and empty diagnostics examples."
+                            },
+                            "position": "main",
+                            "title": "Observatory systems"
+                          }
+                        ],
+                        "title": "Systems",
+                        "routeClass": "operation",
+                        "transitions": [
+                          {
+                            "trigger": "navigate-night",
+                            "to": "night"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "handoff",
+                        "path": "/handoff",
+                        "slots": [
+                          {
+                            "id": "handoffReport",
+                            "slotType": "static-content",
+                            "binding": {
+                              "kind": "text",
+                              "content": "DESKTOP three summary columns / NARROW stacked sections. Persistent shared nav, ACTIVE night state, UTC/local toggle. Completed observations: M42 partial L sequence, calibration frames. Unresolved alerts: critical wind threshold, guider offline, intermittent gust sensor. Next-shift priorities: diagnose guider, resume M42 if wind clears, execute NGC 2024. Primary action: Download handoff. Include populated report, loading export, and empty completed-observations examples."
+                            },
+                            "position": "main",
+                            "title": "Shift handoff"
+                          }
+                        ],
+                        "title": "Shift Handoff",
+                        "routeClass": "operation",
+                        "transitions": [
+                          {
+                            "trigger": "navigate-night",
+                            "to": "night"
+                          }
+                        ]
+                      }
+                    ],
+                    "entry": "night"
+                  },
+                  "identity": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  },
+                  "diagnostics": []
+                }
+              ]
+            },
+            "diagnostics": [],
+            "summary": {
+              "declaredRefs": 1,
+              "loadedArtifacts": 1,
+              "missingArtifacts": 0,
+              "unsupportedRefs": 0,
+              "discriminatorMismatches": 0,
+              "versionMismatches": 0,
+              "identityMismatches": 0,
+              "errors": 0,
+              "warnings": 0,
+              "infos": 0
+            },
+            "phase": {
+              "phase": "artifact-resolution",
+              "status": "completed"
+            }
+          },
+          "moduleResolutionReport": {
+            "ok": true,
+            "modules": [],
+            "documents": [],
+            "contributions": [],
+            "diagnostics": [],
+            "summary": {
+              "modules": 0,
+              "admittedModules": 0,
+              "deniedModules": 0,
+              "documents": 0,
+              "contributions": 0,
+              "unresolvedDependencies": 0,
+              "unresolvedContributions": 0,
+              "payloadFailures": 0,
+              "errors": 0,
+              "warnings": 0,
+              "infos": 0
+            },
+            "phase": {
+              "phase": "module-resolution",
+              "status": "completed"
+            }
+          },
+          "report": {
+            "ok": false,
+            "summary": {
+              "artifacts": 2,
+              "loadedArtifacts": 2,
+              "schemaFailures": 0,
+              "unvalidatedArtifacts": 0,
+              "graphErrors": 10,
+              "errors": 10,
+              "warnings": 0,
+              "infos": 0,
+              "importedDiagnostics": 0,
+              "unsupportedFeatures": 0,
+              "skippedPhases": 0
+            },
+            "schemaResults": [
+              {
+                "slot": "app",
+                "artifactKind": "appManifest",
+                "status": "completed",
+                "ok": true,
+                "diagnostics": []
+              },
+              {
+                "slot": "surfaces[0]",
+                "artifactKind": "surface",
+                "status": "completed",
+                "ok": true,
+                "diagnostics": []
+              }
+            ],
+            "evidenceResults": [],
+            "diagnostics": [
+              {
+                "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+                "severity": "error",
+                "phase": "cross-artifact",
+                "origin": "app-graph-validator",
+                "message": "Surface route 'night' transition trigger 'navigate-targets' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "jsonPointer": "/routes/0/transitions/0/trigger",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "relatedSources": [],
+                "details": {
+                  "reason": "trigger-unresolved",
+                  "routeId": "night",
+                  "trigger": "navigate-targets",
+                  "closedIntents": [
+                    "autosave",
+                    "request-evidence",
+                    "review",
+                    "save-draft",
+                    "submit"
+                  ],
+                  "knownActionIds": [],
+                  "matchingActionIds": []
+                }
+              },
+              {
+                "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+                "severity": "error",
+                "phase": "cross-artifact",
+                "origin": "app-graph-validator",
+                "message": "Surface route 'night' transition trigger 'navigate-timeline' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "jsonPointer": "/routes/0/transitions/1/trigger",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "relatedSources": [],
+                "details": {
+                  "reason": "trigger-unresolved",
+                  "routeId": "night",
+                  "trigger": "navigate-timeline",
+                  "closedIntents": [
+                    "autosave",
+                    "request-evidence",
+                    "review",
+                    "save-draft",
+                    "submit"
+                  ],
+                  "knownActionIds": [],
+                  "matchingActionIds": []
+                }
+              },
+              {
+                "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+                "severity": "error",
+                "phase": "cross-artifact",
+                "origin": "app-graph-validator",
+                "message": "Surface route 'night' transition trigger 'navigate-systems' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "jsonPointer": "/routes/0/transitions/2/trigger",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "relatedSources": [],
+                "details": {
+                  "reason": "trigger-unresolved",
+                  "routeId": "night",
+                  "trigger": "navigate-systems",
+                  "closedIntents": [
+                    "autosave",
+                    "request-evidence",
+                    "review",
+                    "save-draft",
+                    "submit"
+                  ],
+                  "knownActionIds": [],
+                  "matchingActionIds": []
+                }
+              },
+              {
+                "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+                "severity": "error",
+                "phase": "cross-artifact",
+                "origin": "app-graph-validator",
+                "message": "Surface route 'night' transition trigger 'navigate-handoff' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "jsonPointer": "/routes/0/transitions/3/trigger",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "relatedSources": [],
+                "details": {
+                  "reason": "trigger-unresolved",
+                  "routeId": "night",
+                  "trigger": "navigate-handoff",
+                  "closedIntents": [
+                    "autosave",
+                    "request-evidence",
+                    "review",
+                    "save-draft",
+                    "submit"
+                  ],
+                  "knownActionIds": [],
+                  "matchingActionIds": []
+                }
+              },
+              {
+                "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+                "severity": "error",
+                "phase": "cross-artifact",
+                "origin": "app-graph-validator",
+                "message": "Surface route 'targets' transition trigger 'open-target' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "jsonPointer": "/routes/1/transitions/0/trigger",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "relatedSources": [],
+                "details": {
+                  "reason": "trigger-unresolved",
+                  "routeId": "targets",
+                  "trigger": "open-target",
+                  "closedIntents": [
+                    "autosave",
+                    "request-evidence",
+                    "review",
+                    "save-draft",
+                    "submit"
+                  ],
+                  "knownActionIds": [],
+                  "matchingActionIds": []
+                }
+              },
+              {
+                "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+                "severity": "error",
+                "phase": "cross-artifact",
+                "origin": "app-graph-validator",
+                "message": "Surface route 'targets' transition trigger 'navigate-night' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "jsonPointer": "/routes/1/transitions/1/trigger",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "relatedSources": [],
+                "details": {
+                  "reason": "trigger-unresolved",
+                  "routeId": "targets",
+                  "trigger": "navigate-night",
+                  "closedIntents": [
+                    "autosave",
+                    "request-evidence",
+                    "review",
+                    "save-draft",
+                    "submit"
+                  ],
+                  "knownActionIds": [],
+                  "matchingActionIds": []
+                }
+              },
+              {
+                "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+                "severity": "error",
+                "phase": "cross-artifact",
+                "origin": "app-graph-validator",
+                "message": "Surface route 'targetDetail' transition trigger 'back-to-targets' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "jsonPointer": "/routes/2/transitions/0/trigger",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "relatedSources": [],
+                "details": {
+                  "reason": "trigger-unresolved",
+                  "routeId": "targetDetail",
+                  "trigger": "back-to-targets",
+                  "closedIntents": [
+                    "autosave",
+                    "request-evidence",
+                    "review",
+                    "save-draft",
+                    "submit"
+                  ],
+                  "knownActionIds": [],
+                  "matchingActionIds": []
+                }
+              },
+              {
+                "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+                "severity": "error",
+                "phase": "cross-artifact",
+                "origin": "app-graph-validator",
+                "message": "Surface route 'timeline' transition trigger 'navigate-night' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "jsonPointer": "/routes/3/transitions/0/trigger",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "relatedSources": [],
+                "details": {
+                  "reason": "trigger-unresolved",
+                  "routeId": "timeline",
+                  "trigger": "navigate-night",
+                  "closedIntents": [
+                    "autosave",
+                    "request-evidence",
+                    "review",
+                    "save-draft",
+                    "submit"
+                  ],
+                  "knownActionIds": [],
+                  "matchingActionIds": []
+                }
+              },
+              {
+                "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+                "severity": "error",
+                "phase": "cross-artifact",
+                "origin": "app-graph-validator",
+                "message": "Surface route 'systems' transition trigger 'navigate-night' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "jsonPointer": "/routes/4/transitions/0/trigger",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "relatedSources": [],
+                "details": {
+                  "reason": "trigger-unresolved",
+                  "routeId": "systems",
+                  "trigger": "navigate-night",
+                  "closedIntents": [
+                    "autosave",
+                    "request-evidence",
+                    "review",
+                    "save-draft",
+                    "submit"
+                  ],
+                  "knownActionIds": [],
+                  "matchingActionIds": []
+                }
+              },
+              {
+                "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+                "severity": "error",
+                "phase": "cross-artifact",
+                "origin": "app-graph-validator",
+                "message": "Surface route 'handoff' transition trigger 'navigate-night' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.",
+                "primarySource": {
+                  "artifactSlot": "surfaces[0]",
+                  "artifactKind": "surface",
+                  "source": "studio-core:bundle-local:surfaces[0]",
+                  "jsonPointer": "/routes/5/transitions/0/trigger",
+                  "ref": {
+                    "url": "https://northstar.example/surfaces/night-operations",
+                    "version": "1.0.0"
+                  }
+                },
+                "relatedSources": [],
+                "details": {
+                  "reason": "trigger-unresolved",
+                  "routeId": "handoff",
+                  "trigger": "navigate-night",
+                  "closedIntents": [
+                    "autosave",
+                    "request-evidence",
+                    "review",
+                    "save-draft",
+                    "submit"
+                  ],
+                  "knownActionIds": [],
+                  "matchingActionIds": []
+                }
+              }
+            ],
+            "phases": [
+              {
+                "phase": "artifact-resolution",
+                "status": "completed"
+              },
+              {
+                "phase": "schema",
+                "status": "completed"
+              },
+              {
+                "phase": "module-resolution",
+                "status": "completed"
+              },
+              {
+                "phase": "surface-local",
+                "status": "not-run"
+              },
+              {
+                "phase": "cross-artifact",
+                "status": "completed"
+              },
+              {
+                "phase": "authorization-boundary",
+                "status": "not-run"
+              },
+              {
+                "phase": "unsupported",
+                "status": "not-run"
+              }
+            ]
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"artifactResolutionReport\":{\"ok\":true,\"manifest\":{\"slot\":\"app\",\"artifactKind\":\"appManifest\",\"status\":\"loaded\",\"document\":{\"$formspecBundle\":\"2.4\",\"version\":\"1.0.0\",\"id\":\"https://northstar.example/apps/night-operations\",\"title\":\"Northstar Observatory\",\"definitions\":[],\"registries\":[],\"surfaces\":[{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}],\"entrySurface\":\"https://northstar.example/surfaces/night-operations\",\"modules\":[],\"sessions\":[]},\"identity\":{\"version\":\"1.0.0\",\"id\":\"https://northstar.example/apps/night-operations\"}},\"artifacts\":{\"surfaces\":[{\"slot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"},\"status\":\"loaded\",\"document\":{\"$formspecSurface\":\"0.2\",\"id\":\"night-operations\",\"routes\":[{\"id\":\"night\",\"path\":\"/night\",\"slots\":[{\"id\":\"nightConsole\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP / NARROW: persistent header has Northstar Observatory, shared nav (Night, Targets, Timeline, Systems, Handoff), night state ACTIVE, and UTC/local toggle (LOCAL selected; UTC available). Critical warning: WIND 38 km/h—dome close threshold approaching. Local 22:14 EDT | UTC 02:14. Weather: clear, -3 C, humidity 28%, wind 38 km/h. Dome: open / warning. Telescope: tracking M42 / healthy. Current target: M42 Orion Nebula, exposure 3 of 8. Next events: 22:30 slew to NGC 2024; 23:10 autofocus. Include populated status cards, loading weather example, and empty next-event example.\"},\"position\":\"main\",\"title\":\"Night console\"}],\"title\":\"Night Operations\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-targets\",\"to\":\"targets\"},{\"trigger\":\"navigate-timeline\",\"to\":\"timeline\"},{\"trigger\":\"navigate-systems\",\"to\":\"systems\"},{\"trigger\":\"navigate-handoff\",\"to\":\"handoff\"}]},{\"id\":\"targets\",\"path\":\"/targets\",\"slots\":[{\"id\":\"targetQueue\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP table / NARROW stacked cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Search targets and filters: status, priority, visibility. Ranked queue columns: rank, object, type, priority, visibility window, estimated duration, status. 1 M42 | nebula | P1 | 21:40–03:50 local | 48 min | observing. 2 NGC 2024 | nebula | P2 | 22:30–04:10 | 35 min | queued. 3 M31 | galaxy | P3 | 00:20–05:40 | 55 min | queued. Include empty filtered-results and loading queue examples; select M42 opens target detail.\"},\"position\":\"main\",\"title\":\"Ranked target queue\"}],\"title\":\"Target Queue\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"open-target\",\"to\":\"targetDetail\",\"params\":{\"targetId\":\"M42\"}},{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"targetDetail\",\"path\":\"/targets/{targetId}\",\"slots\":[{\"id\":\"targetRecord\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP two columns / NARROW single column. Persistent shared nav, ACTIVE night state, UTC/local toggle. Breadcrumb: Targets > M42; visible Back to target queue. M42 Orion Nebula. Coordinates RA 05h35m17s, Dec -05d23m28s. Finder preview placeholder. Visibility: rises 19:22, transit 00:41, sets 05:56; altitude now 47 degrees. Exposure sequence: 8 x 360s L, 6 x 300s R/G/B. Notes: check wind before next slew. Actions: Queue next, Skip tonight, Mark observed. Include warning wind conflict, loading finder preview, and empty notes state.\"},\"position\":\"main\",\"title\":\"Target record\"}],\"params\":[{\"name\":\"targetId\",\"type\":\"string\",\"description\":\"Target identifier\",\"example\":\"M42\"}],\"title\":\"Target Detail\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"back-to-targets\",\"to\":\"targets\"}]},{\"id\":\"timeline\",\"path\":\"/timeline\",\"slots\":[{\"id\":\"nightPlan\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP timeline / NARROW chronological cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Group the plan into Completed: polar alignment 20:05, calibration frames 20:40. Current: M42 exposure sequence, 22:14. Upcoming: NGC 2024 slew 22:30; M31 sequence 00:20. Delayed: guider calibration, planned 21:55, delayed to 22:45 because of wind. Include loading timeline and empty upcoming-work examples.\"},\"position\":\"main\",\"title\":\"Night plan\"}],\"title\":\"Night Timeline\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"systems\",\"path\":\"/systems\",\"slots\":[{\"id\":\"systemBoard\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP system grid / NARROW stacked status cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Telescope: HEALTHY, tracking; Dome: WARNING, wind threshold approaching; Camera: HEALTHY, -15 C; Guider: OFFLINE, no lock; Weather station: WARNING, gust sensor intermittent. Show healthy, warning, and offline legend. Troubleshooting panel: guider reset steps, dome wind interlock, weather-station last reading. Include loading telemetry and empty diagnostics examples.\"},\"position\":\"main\",\"title\":\"Observatory systems\"}],\"title\":\"Systems\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"handoff\",\"path\":\"/handoff\",\"slots\":[{\"id\":\"handoffReport\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP three summary columns / NARROW stacked sections. Persistent shared nav, ACTIVE night state, UTC/local toggle. Completed observations: M42 partial L sequence, calibration frames. Unresolved alerts: critical wind threshold, guider offline, intermittent gust sensor. Next-shift priorities: diagnose guider, resume M42 if wind clears, execute NGC 2024. Primary action: Download handoff. Include populated report, loading export, and empty completed-observations examples.\"},\"position\":\"main\",\"title\":\"Shift handoff\"}],\"title\":\"Shift Handoff\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]}],\"entry\":\"night\"},\"identity\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"},\"diagnostics\":[]}]},\"diagnostics\":[],\"summary\":{\"declaredRefs\":1,\"loadedArtifacts\":1,\"missingArtifacts\":0,\"unsupportedRefs\":0,\"discriminatorMismatches\":0,\"versionMismatches\":0,\"identityMismatches\":0,\"errors\":0,\"warnings\":0,\"infos\":0},\"phase\":{\"phase\":\"artifact-resolution\",\"status\":\"completed\"}},\"moduleResolutionReport\":{\"ok\":true,\"modules\":[],\"documents\":[],\"contributions\":[],\"diagnostics\":[],\"summary\":{\"modules\":0,\"admittedModules\":0,\"deniedModules\":0,\"documents\":0,\"contributions\":0,\"unresolvedDependencies\":0,\"unresolvedContributions\":0,\"payloadFailures\":0,\"errors\":0,\"warnings\":0,\"infos\":0},\"phase\":{\"phase\":\"module-resolution\",\"status\":\"completed\"}},\"report\":{\"ok\":false,\"summary\":{\"artifacts\":2,\"loadedArtifacts\":2,\"schemaFailures\":0,\"unvalidatedArtifacts\":0,\"graphErrors\":10,\"errors\":10,\"warnings\":0,\"infos\":0,\"importedDiagnostics\":0,\"unsupportedFeatures\":0,\"skippedPhases\":0},\"schemaResults\":[{\"slot\":\"app\",\"artifactKind\":\"appManifest\",\"status\":\"completed\",\"ok\":true,\"diagnostics\":[]},{\"slot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"status\":\"completed\",\"ok\":true,\"diagnostics\":[]}],\"evidenceResults\":[],\"diagnostics\":[{\"code\":\"APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER\",\"severity\":\"error\",\"phase\":\"cross-artifact\",\"origin\":\"app-graph-validator\",\"message\":\"Surface route 'night' transition trigger 'navigate-targets' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"jsonPointer\":\"/routes/0/transitions/0/trigger\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"relatedSources\":[],\"details\":{\"reason\":\"trigger-unresolved\",\"routeId\":\"night\",\"trigger\":\"navigate-targets\",\"closedIntents\":[\"autosave\",\"request-evidence\",\"review\",\"save-draft\",\"submit\"],\"knownActionIds\":[],\"matchingActionIds\":[]}},{\"code\":\"APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER\",\"severity\":\"error\",\"phase\":\"cross-artifact\",\"origin\":\"app-graph-validator\",\"message\":\"Surface route 'night' transition trigger 'navigate-timeline' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"jsonPointer\":\"/routes/0/transitions/1/trigger\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"relatedSources\":[],\"details\":{\"reason\":\"trigger-unresolved\",\"routeId\":\"night\",\"trigger\":\"navigate-timeline\",\"closedIntents\":[\"autosave\",\"request-evidence\",\"review\",\"save-draft\",\"submit\"],\"knownActionIds\":[],\"matchingActionIds\":[]}},{\"code\":\"APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER\",\"severity\":\"error\",\"phase\":\"cross-artifact\",\"origin\":\"app-graph-validator\",\"message\":\"Surface route 'night' transition trigger 'navigate-systems' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"jsonPointer\":\"/routes/0/transitions/2/trigger\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"relatedSources\":[],\"details\":{\"reason\":\"trigger-unresolved\",\"routeId\":\"night\",\"trigger\":\"navigate-systems\",\"closedIntents\":[\"autosave\",\"request-evidence\",\"review\",\"save-draft\",\"submit\"],\"knownActionIds\":[],\"matchingActionIds\":[]}},{\"code\":\"APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER\",\"severity\":\"error\",\"phase\":\"cross-artifact\",\"origin\":\"app-graph-validator\",\"message\":\"Surface route 'night' transition trigger 'navigate-handoff' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"jsonPointer\":\"/routes/0/transitions/3/trigger\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"relatedSources\":[],\"details\":{\"reason\":\"trigger-unresolved\",\"routeId\":\"night\",\"trigger\":\"navigate-handoff\",\"closedIntents\":[\"autosave\",\"request-evidence\",\"review\",\"save-draft\",\"submit\"],\"knownActionIds\":[],\"matchingActionIds\":[]}},{\"code\":\"APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER\",\"severity\":\"error\",\"phase\":\"cross-artifact\",\"origin\":\"app-graph-validator\",\"message\":\"Surface route 'targets' transition trigger 'open-target' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"jsonPointer\":\"/routes/1/transitions/0/trigger\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"relatedSources\":[],\"details\":{\"reason\":\"trigger-unresolved\",\"routeId\":\"targets\",\"trigger\":\"open-target\",\"closedIntents\":[\"autosave\",\"request-evidence\",\"review\",\"save-draft\",\"submit\"],\"knownActionIds\":[],\"matchingActionIds\":[]}},{\"code\":\"APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER\",\"severity\":\"error\",\"phase\":\"cross-artifact\",\"origin\":\"app-graph-validator\",\"message\":\"Surface route 'targets' transition trigger 'navigate-night' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"jsonPointer\":\"/routes/1/transitions/1/trigger\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"relatedSources\":[],\"details\":{\"reason\":\"trigger-unresolved\",\"routeId\":\"targets\",\"trigger\":\"navigate-night\",\"closedIntents\":[\"autosave\",\"request-evidence\",\"review\",\"save-draft\",\"submit\"],\"knownActionIds\":[],\"matchingActionIds\":[]}},{\"code\":\"APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER\",\"severity\":\"error\",\"phase\":\"cross-artifact\",\"origin\":\"app-graph-validator\",\"message\":\"Surface route 'targetDetail' transition trigger 'back-to-targets' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"jsonPointer\":\"/routes/2/transitions/0/trigger\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"relatedSources\":[],\"details\":{\"reason\":\"trigger-unresolved\",\"routeId\":\"targetDetail\",\"trigger\":\"back-to-targets\",\"closedIntents\":[\"autosave\",\"request-evidence\",\"review\",\"save-draft\",\"submit\"],\"knownActionIds\":[],\"matchingActionIds\":[]}},{\"code\":\"APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER\",\"severity\":\"error\",\"phase\":\"cross-artifact\",\"origin\":\"app-graph-validator\",\"message\":\"Surface route 'timeline' transition trigger 'navigate-night' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"jsonPointer\":\"/routes/3/transitions/0/trigger\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"relatedSources\":[],\"details\":{\"reason\":\"trigger-unresolved\",\"routeId\":\"timeline\",\"trigger\":\"navigate-night\",\"closedIntents\":[\"autosave\",\"request-evidence\",\"review\",\"save-draft\",\"submit\"],\"knownActionIds\":[],\"matchingActionIds\":[]}},{\"code\":\"APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER\",\"severity\":\"error\",\"phase\":\"cross-artifact\",\"origin\":\"app-graph-validator\",\"message\":\"Surface route 'systems' transition trigger 'navigate-night' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"jsonPointer\":\"/routes/4/transitions/0/trigger\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"relatedSources\":[],\"details\":{\"reason\":\"trigger-unresolved\",\"routeId\":\"systems\",\"trigger\":\"navigate-night\",\"closedIntents\":[\"autosave\",\"request-evidence\",\"review\",\"save-draft\",\"submit\"],\"knownActionIds\":[],\"matchingActionIds\":[]}},{\"code\":\"APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER\",\"severity\":\"error\",\"phase\":\"cross-artifact\",\"origin\":\"app-graph-validator\",\"message\":\"Surface route 'handoff' transition trigger 'navigate-night' does not resolve to a loaded Response Actions action id or to exactly one loaded Response Actions action with that closed intent.\",\"primarySource\":{\"artifactSlot\":\"surfaces[0]\",\"artifactKind\":\"surface\",\"source\":\"studio-core:bundle-local:surfaces[0]\",\"jsonPointer\":\"/routes/5/transitions/0/trigger\",\"ref\":{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}},\"relatedSources\":[],\"details\":{\"reason\":\"trigger-unresolved\",\"routeId\":\"handoff\",\"trigger\":\"navigate-night\",\"closedIntents\":[\"autosave\",\"request-evidence\",\"review\",\"save-draft\",\"submit\"],\"knownActionIds\":[],\"matchingActionIds\":[]}}],\"phases\":[{\"phase\":\"artifact-resolution\",\"status\":\"completed\"},{\"phase\":\"schema\",\"status\":\"completed\"},{\"phase\":\"module-resolution\",\"status\":\"completed\"},{\"phase\":\"surface-local\",\"status\":\"not-run\"},{\"phase\":\"cross-artifact\",\"status\":\"completed\"},{\"phase\":\"authorization-boundary\",\"status\":\"not-run\"},{\"phase\":\"unsupported\",\"status\":\"not-run\"}]}}}"
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "call": {
+        "name": "formspec_wireframes_export",
+        "arguments": {}
+      },
+      "isError": false,
+      "structuredContent": {
+        "ok": true,
+        "value": {
+          "manifest": {
+            "$formspecBundle": "2.4",
+            "version": "1.0.0",
+            "id": "https://northstar.example/apps/night-operations",
+            "title": "Northstar Observatory",
+            "definitions": [],
+            "registries": [],
+            "surfaces": [
+              {
+                "url": "https://northstar.example/surfaces/night-operations",
+                "version": "1.0.0"
+              }
+            ],
+            "entrySurface": "https://northstar.example/surfaces/night-operations",
+            "modules": [],
+            "sessions": []
+          },
+          "documents": {
+            "https://northstar.example/surfaces/night-operations": {
+              "$formspecSurface": "0.2",
+              "id": "night-operations",
+              "routes": [
+                {
+                  "id": "night",
+                  "path": "/night",
+                  "slots": [
+                    {
+                      "id": "nightConsole",
+                      "slotType": "static-content",
+                      "binding": {
+                        "kind": "text",
+                        "content": "DESKTOP / NARROW: persistent header has Northstar Observatory, shared nav (Night, Targets, Timeline, Systems, Handoff), night state ACTIVE, and UTC/local toggle (LOCAL selected; UTC available). Critical warning: WIND 38 km/h—dome close threshold approaching. Local 22:14 EDT | UTC 02:14. Weather: clear, -3 C, humidity 28%, wind 38 km/h. Dome: open / warning. Telescope: tracking M42 / healthy. Current target: M42 Orion Nebula, exposure 3 of 8. Next events: 22:30 slew to NGC 2024; 23:10 autofocus. Include populated status cards, loading weather example, and empty next-event example."
+                      },
+                      "position": "main",
+                      "title": "Night console"
+                    }
+                  ],
+                  "title": "Night Operations",
+                  "routeClass": "operation",
+                  "transitions": [
+                    {
+                      "trigger": "navigate-targets",
+                      "to": "targets"
+                    },
+                    {
+                      "trigger": "navigate-timeline",
+                      "to": "timeline"
+                    },
+                    {
+                      "trigger": "navigate-systems",
+                      "to": "systems"
+                    },
+                    {
+                      "trigger": "navigate-handoff",
+                      "to": "handoff"
+                    }
+                  ]
+                },
+                {
+                  "id": "targets",
+                  "path": "/targets",
+                  "slots": [
+                    {
+                      "id": "targetQueue",
+                      "slotType": "static-content",
+                      "binding": {
+                        "kind": "text",
+                        "content": "DESKTOP table / NARROW stacked cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Search targets and filters: status, priority, visibility. Ranked queue columns: rank, object, type, priority, visibility window, estimated duration, status. 1 M42 | nebula | P1 | 21:40–03:50 local | 48 min | observing. 2 NGC 2024 | nebula | P2 | 22:30–04:10 | 35 min | queued. 3 M31 | galaxy | P3 | 00:20–05:40 | 55 min | queued. Include empty filtered-results and loading queue examples; select M42 opens target detail."
+                      },
+                      "position": "main",
+                      "title": "Ranked target queue"
+                    }
+                  ],
+                  "title": "Target Queue",
+                  "routeClass": "operation",
+                  "transitions": [
+                    {
+                      "trigger": "open-target",
+                      "to": "targetDetail",
+                      "params": {
+                        "targetId": "M42"
+                      }
+                    },
+                    {
+                      "trigger": "navigate-night",
+                      "to": "night"
+                    }
+                  ]
+                },
+                {
+                  "id": "targetDetail",
+                  "path": "/targets/{targetId}",
+                  "slots": [
+                    {
+                      "id": "targetRecord",
+                      "slotType": "static-content",
+                      "binding": {
+                        "kind": "text",
+                        "content": "DESKTOP two columns / NARROW single column. Persistent shared nav, ACTIVE night state, UTC/local toggle. Breadcrumb: Targets > M42; visible Back to target queue. M42 Orion Nebula. Coordinates RA 05h35m17s, Dec -05d23m28s. Finder preview placeholder. Visibility: rises 19:22, transit 00:41, sets 05:56; altitude now 47 degrees. Exposure sequence: 8 x 360s L, 6 x 300s R/G/B. Notes: check wind before next slew. Actions: Queue next, Skip tonight, Mark observed. Include warning wind conflict, loading finder preview, and empty notes state."
+                      },
+                      "position": "main",
+                      "title": "Target record"
+                    }
+                  ],
+                  "params": [
+                    {
+                      "name": "targetId",
+                      "type": "string",
+                      "description": "Target identifier",
+                      "example": "M42"
+                    }
+                  ],
+                  "title": "Target Detail",
+                  "routeClass": "operation",
+                  "transitions": [
+                    {
+                      "trigger": "back-to-targets",
+                      "to": "targets"
+                    }
+                  ]
+                },
+                {
+                  "id": "timeline",
+                  "path": "/timeline",
+                  "slots": [
+                    {
+                      "id": "nightPlan",
+                      "slotType": "static-content",
+                      "binding": {
+                        "kind": "text",
+                        "content": "DESKTOP timeline / NARROW chronological cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Group the plan into Completed: polar alignment 20:05, calibration frames 20:40. Current: M42 exposure sequence, 22:14. Upcoming: NGC 2024 slew 22:30; M31 sequence 00:20. Delayed: guider calibration, planned 21:55, delayed to 22:45 because of wind. Include loading timeline and empty upcoming-work examples."
+                      },
+                      "position": "main",
+                      "title": "Night plan"
+                    }
+                  ],
+                  "title": "Night Timeline",
+                  "routeClass": "operation",
+                  "transitions": [
+                    {
+                      "trigger": "navigate-night",
+                      "to": "night"
+                    }
+                  ]
+                },
+                {
+                  "id": "systems",
+                  "path": "/systems",
+                  "slots": [
+                    {
+                      "id": "systemBoard",
+                      "slotType": "static-content",
+                      "binding": {
+                        "kind": "text",
+                        "content": "DESKTOP system grid / NARROW stacked status cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Telescope: HEALTHY, tracking; Dome: WARNING, wind threshold approaching; Camera: HEALTHY, -15 C; Guider: OFFLINE, no lock; Weather station: WARNING, gust sensor intermittent. Show healthy, warning, and offline legend. Troubleshooting panel: guider reset steps, dome wind interlock, weather-station last reading. Include loading telemetry and empty diagnostics examples."
+                      },
+                      "position": "main",
+                      "title": "Observatory systems"
+                    }
+                  ],
+                  "title": "Systems",
+                  "routeClass": "operation",
+                  "transitions": [
+                    {
+                      "trigger": "navigate-night",
+                      "to": "night"
+                    }
+                  ]
+                },
+                {
+                  "id": "handoff",
+                  "path": "/handoff",
+                  "slots": [
+                    {
+                      "id": "handoffReport",
+                      "slotType": "static-content",
+                      "binding": {
+                        "kind": "text",
+                        "content": "DESKTOP three summary columns / NARROW stacked sections. Persistent shared nav, ACTIVE night state, UTC/local toggle. Completed observations: M42 partial L sequence, calibration frames. Unresolved alerts: critical wind threshold, guider offline, intermittent gust sensor. Next-shift priorities: diagnose guider, resume M42 if wind clears, execute NGC 2024. Primary action: Download handoff. Include populated report, loading export, and empty completed-observations examples."
+                      },
+                      "position": "main",
+                      "title": "Shift handoff"
+                    }
+                  ],
+                  "title": "Shift Handoff",
+                  "routeClass": "operation",
+                  "transitions": [
+                    {
+                      "trigger": "navigate-night",
+                      "to": "night"
+                    }
+                  ]
+                }
+              ],
+              "entry": "night"
+            }
+          }
+        }
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"value\":{\"manifest\":{\"$formspecBundle\":\"2.4\",\"version\":\"1.0.0\",\"id\":\"https://northstar.example/apps/night-operations\",\"title\":\"Northstar Observatory\",\"definitions\":[],\"registries\":[],\"surfaces\":[{\"url\":\"https://northstar.example/surfaces/night-operations\",\"version\":\"1.0.0\"}],\"entrySurface\":\"https://northstar.example/surfaces/night-operations\",\"modules\":[],\"sessions\":[]},\"documents\":{\"https://northstar.example/surfaces/night-operations\":{\"$formspecSurface\":\"0.2\",\"id\":\"night-operations\",\"routes\":[{\"id\":\"night\",\"path\":\"/night\",\"slots\":[{\"id\":\"nightConsole\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP / NARROW: persistent header has Northstar Observatory, shared nav (Night, Targets, Timeline, Systems, Handoff), night state ACTIVE, and UTC/local toggle (LOCAL selected; UTC available). Critical warning: WIND 38 km/h—dome close threshold approaching. Local 22:14 EDT | UTC 02:14. Weather: clear, -3 C, humidity 28%, wind 38 km/h. Dome: open / warning. Telescope: tracking M42 / healthy. Current target: M42 Orion Nebula, exposure 3 of 8. Next events: 22:30 slew to NGC 2024; 23:10 autofocus. Include populated status cards, loading weather example, and empty next-event example.\"},\"position\":\"main\",\"title\":\"Night console\"}],\"title\":\"Night Operations\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-targets\",\"to\":\"targets\"},{\"trigger\":\"navigate-timeline\",\"to\":\"timeline\"},{\"trigger\":\"navigate-systems\",\"to\":\"systems\"},{\"trigger\":\"navigate-handoff\",\"to\":\"handoff\"}]},{\"id\":\"targets\",\"path\":\"/targets\",\"slots\":[{\"id\":\"targetQueue\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP table / NARROW stacked cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Search targets and filters: status, priority, visibility. Ranked queue columns: rank, object, type, priority, visibility window, estimated duration, status. 1 M42 | nebula | P1 | 21:40–03:50 local | 48 min | observing. 2 NGC 2024 | nebula | P2 | 22:30–04:10 | 35 min | queued. 3 M31 | galaxy | P3 | 00:20–05:40 | 55 min | queued. Include empty filtered-results and loading queue examples; select M42 opens target detail.\"},\"position\":\"main\",\"title\":\"Ranked target queue\"}],\"title\":\"Target Queue\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"open-target\",\"to\":\"targetDetail\",\"params\":{\"targetId\":\"M42\"}},{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"targetDetail\",\"path\":\"/targets/{targetId}\",\"slots\":[{\"id\":\"targetRecord\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP two columns / NARROW single column. Persistent shared nav, ACTIVE night state, UTC/local toggle. Breadcrumb: Targets > M42; visible Back to target queue. M42 Orion Nebula. Coordinates RA 05h35m17s, Dec -05d23m28s. Finder preview placeholder. Visibility: rises 19:22, transit 00:41, sets 05:56; altitude now 47 degrees. Exposure sequence: 8 x 360s L, 6 x 300s R/G/B. Notes: check wind before next slew. Actions: Queue next, Skip tonight, Mark observed. Include warning wind conflict, loading finder preview, and empty notes state.\"},\"position\":\"main\",\"title\":\"Target record\"}],\"params\":[{\"name\":\"targetId\",\"type\":\"string\",\"description\":\"Target identifier\",\"example\":\"M42\"}],\"title\":\"Target Detail\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"back-to-targets\",\"to\":\"targets\"}]},{\"id\":\"timeline\",\"path\":\"/timeline\",\"slots\":[{\"id\":\"nightPlan\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP timeline / NARROW chronological cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Group the plan into Completed: polar alignment 20:05, calibration frames 20:40. Current: M42 exposure sequence, 22:14. Upcoming: NGC 2024 slew 22:30; M31 sequence 00:20. Delayed: guider calibration, planned 21:55, delayed to 22:45 because of wind. Include loading timeline and empty upcoming-work examples.\"},\"position\":\"main\",\"title\":\"Night plan\"}],\"title\":\"Night Timeline\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"systems\",\"path\":\"/systems\",\"slots\":[{\"id\":\"systemBoard\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP system grid / NARROW stacked status cards. Persistent shared nav, ACTIVE night state, UTC/local toggle. Telescope: HEALTHY, tracking; Dome: WARNING, wind threshold approaching; Camera: HEALTHY, -15 C; Guider: OFFLINE, no lock; Weather station: WARNING, gust sensor intermittent. Show healthy, warning, and offline legend. Troubleshooting panel: guider reset steps, dome wind interlock, weather-station last reading. Include loading telemetry and empty diagnostics examples.\"},\"position\":\"main\",\"title\":\"Observatory systems\"}],\"title\":\"Systems\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]},{\"id\":\"handoff\",\"path\":\"/handoff\",\"slots\":[{\"id\":\"handoffReport\",\"slotType\":\"static-content\",\"binding\":{\"kind\":\"text\",\"content\":\"DESKTOP three summary columns / NARROW stacked sections. Persistent shared nav, ACTIVE night state, UTC/local toggle. Completed observations: M42 partial L sequence, calibration frames. Unresolved alerts: critical wind threshold, guider offline, intermittent gust sensor. Next-shift priorities: diagnose guider, resume M42 if wind clears, execute NGC 2024. Primary action: Download handoff. Include populated report, loading export, and empty completed-observations examples.\"},\"position\":\"main\",\"title\":\"Shift handoff\"}],\"title\":\"Shift Handoff\",\"routeClass\":\"operation\",\"transitions\":[{\"trigger\":\"navigate-night\",\"to\":\"night\"}]}],\"entry\":\"night\"}}}}"
+        }
+      ]
+    }
+  ]
+}
