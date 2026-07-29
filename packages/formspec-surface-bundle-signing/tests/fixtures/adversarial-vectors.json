@@ -1,0 +1,76 @@
+[
+  {
+    "id": "valid-authorized-current",
+    "expectedStatus": "verified"
+  },
+  {
+    "id": "one-byte-mutation",
+    "expectedStatus": "failed",
+    "expectedCode": "integrity-failed"
+  },
+  {
+    "id": "wrong-domain",
+    "expectedStatus": "failed",
+    "expectedCode": "integrity-failed"
+  },
+  {
+    "id": "unsupported-method",
+    "expectedStatus": "unverified",
+    "expectedCode": "integrity-unsupported"
+  },
+  {
+    "id": "unknown-key",
+    "expectedStatus": "unverified",
+    "expectedCode": "verifier-unavailable"
+  },
+  {
+    "id": "forged-with-replacement-sidecar-key",
+    "expectedStatus": "failed",
+    "expectedCode": "candidate-invalid"
+  },
+  {
+    "id": "altered-signer-metadata",
+    "expectedStatus": "failed",
+    "expectedCode": "candidate-invalid"
+  },
+  {
+    "id": "wrong-publisher",
+    "expectedStatus": "failed",
+    "expectedCode": "publisher-unauthorized"
+  },
+  {
+    "id": "wrong-app",
+    "expectedStatus": "failed",
+    "expectedCode": "app-unauthorized"
+  },
+  {
+    "id": "expired-authority",
+    "expectedStatus": "failed",
+    "expectedCode": "authority-expired"
+  },
+  {
+    "id": "revoked-key",
+    "expectedStatus": "failed",
+    "expectedCode": "authority-revoked"
+  },
+  {
+    "id": "conflicting-json-protected-method",
+    "expectedStatus": "failed",
+    "expectedCode": "candidate-invalid"
+  },
+  {
+    "id": "raw-public-key-bypass",
+    "expectedStatus": "failed",
+    "expectedCode": "candidate-invalid"
+  },
+  {
+    "id": "old-but-valid-release",
+    "expectedStatus": "failed",
+    "expectedCode": "release-stale"
+  },
+  {
+    "id": "same-sequence-different-bytes",
+    "expectedStatus": "failed",
+    "expectedCode": "release-sequence-conflict"
+  }
+]

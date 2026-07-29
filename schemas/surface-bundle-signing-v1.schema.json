@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/surface-bundle-signing/1.0",
+  "title": "Signed Surface Bundle Profile 1.0",
+  "description": "Closed production artifact carrying a SurfaceBundleSignedPayloadV1 object and its detached COSE_Sign1 signature. App Manifest and bundled document schemas are applied after integrity, trust, and release verification.",
+  "type": "object",
+  "required": ["signedPayload", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "signedPayload": {
+      "$ref": "#/$defs/SurfaceBundleSignedPayloadV1"
+    },
+    "signature": {
+      "$ref": "#/$defs/DetachedCoseSign1"
+    }
+  },
+  "$defs": {
+    "CanonicalAbsoluteUri": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:",
+      "minLength": 3
+    },
+    "SurfaceBundleSignedPayloadV1": {
+      "type": "object",
+      "required": [
+        "profile",
+        "publisher",
+        "release",
+        "manifest",
+        "documents"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "type": "string",
+          "const": "formspec-surface-bundle-signing-v1"
+        },
+        "publisher": {
+          "type": "object",
+          "required": ["id"],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/CanonicalAbsoluteUri"
+            }
+          }
+        },
+        "release": {
+          "type": "object",
+          "required": ["id", "sequence"],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "manifest": {
+          "type": "object",
+          "required": ["id"],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/CanonicalAbsoluteUri"
+            }
+          }
+        },
+        "documents": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/CanonicalAbsoluteUri"
+          },
+          "additionalProperties": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "DetachedCoseSign1": {
+      "type": "object",
+      "required": ["format", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "type": "string",
+          "const": "COSE_Sign1"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "minLength": 1,
+          "description": "Unpadded base64url encoding of a detached COSE_Sign1. method_uri and kid exist only in its protected header."
+        }
+      }
+    }
+  }
+}

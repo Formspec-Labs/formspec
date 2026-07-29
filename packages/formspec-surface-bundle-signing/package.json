@@ -1,0 +1,43 @@
+{
+  "name": "@formspec-org/surface-bundle-signing",
+  "description": "Signed Surface-bundle preimage, verification, publisher trust, and release admission policy",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Formspec-org/formspec.git",
+    "directory": "packages/formspec-surface-bundle-signing"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@integrity-stack/cose": "file:../../../integrity-stack/packages/integrity-cose",
+    "@integrity-stack/signature-port": "file:../../../integrity-stack/packages/integrity-signature-port",
+    "canonicalize": "^3.0.0",
+    "jsonc-parser": "^3.3.1"
+  },
+  "devDependencies": {
+    "@integrity-stack/signature-adapter-webcrypto": "file:../../../integrity-stack/packages/integrity-signature-adapter-webcrypto",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.2"
+  }
+}

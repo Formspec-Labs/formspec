@@ -1,0 +1,6 @@
+- The Signed Surface Bundle Profile defines the exact payload and bytes a publisher signs before a production host renders a Surface app.
+- A valid artifact contains only `signedPayload` and a detached `COSE_Sign1`; protected `method_uri` and `kid` select the verification method and independently configured key.
+- The preimage is the profile domain, one zero byte, and RFC 8785 JSON Canonicalization Scheme bytes of the closed signed payload. The bundle digest is SHA-256 over those same bytes.
+- Verification and admission are separate decisions. An authentic bundle still needs publisher/app trust, release policy, owning-schema, app-graph, actor, entry, and dereference checks.
+- Pinned release mode admits allowlisted digests. Monotonic mode atomically rechecks and commits only after every host admission check passes.
+- The historical v10 spike signatures are not production conformance vectors because they use a different domain, sidecar keys, and unsigned signer claims.
