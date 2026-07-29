@@ -1,6 +1,6 @@
 /**
- * @filedesc Stage 4/5 — a Formspec-native authored signature over the bundle
- * export, and its offline verification.
+ * @filedesc Stage 4/5 — a bundle-export signature built from shipped INTEGRITY
+ * primitives, and its offline verification.
  *
  * **Everything cryptographic here is shipped substrate.** JCS canonicalization
  * (`canonicalize`, the same package `studio-core` uses for trace digests), the
@@ -24,9 +24,11 @@
  *
  *     formspec.spike-v10.bundle-export.signed-payload.v1 || 0x00 || JCS(export)
  *
- * The resulting record conforms to `response.schema.json` `$defs/AuthoredSignature`
- * and is Ajv-validated against it. **The domain tag is spike-local and is not a
- * promotion candidate**; a real bundle-signing profile is a spec change.
+ * The resulting record uses the `AuthoredSignature` shape, but deliberately
+ * fails that schema's Response-only `signedPayload.canonicalization` `const`.
+ * The run Ajv-validates and reports that gap. **The domain tag is spike-local
+ * and is not a promotion candidate**; a real bundle-signing profile is a spec
+ * change.
  *
  * ## Why detached
  *
@@ -99,21 +101,35 @@ export interface DevKeyPair {
 }
 
 /**
- * A dev key, generated per run. Nothing in this spike is a production key
- * ceremony; the key exists so the signature can be produced and checked, and
- * the public half is committed with the evidence so the offline verification is
- * reproducible from the evidence set alone.
+ * Public test-only key material from RFC 8032 test vector 1.
+ *
+ * This is deliberately not secret and MUST NOT be used outside the spike. A
+ * stable fixture key makes two runs over identical bundle bytes produce
+ * identical evidence, which keeps downstream browser measurements pinned to a
+ * reproducible input instead of a fresh random key.
  */
-export async function generateDevKey(): Promise<DevKeyPair> {
-  const pair = (await webcrypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])) as CryptoKeyPair;
-  const publicKeyRaw = new Uint8Array(await webcrypto.subtle.exportKey('raw', pair.publicKey));
+const DEV_FIXTURE_PRIVATE_KEY_PKCS8_HEX =
+  '302e020100300506032b6570042204209d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60';
+const DEV_FIXTURE_PUBLIC_KEY_HEX =
+  'd75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a';
+
+export async function loadDevFixtureKey(): Promise<DevKeyPair> {
+  const privateKeyBytes = new Uint8Array(Buffer.from(DEV_FIXTURE_PRIVATE_KEY_PKCS8_HEX, 'hex'));
+  const privateKey = await webcrypto.subtle.importKey(
+    'pkcs8',
+    privateKeyBytes as BufferSource,
+    { name: 'Ed25519' },
+    false,
+    ['sign'],
+  );
+  const publicKeyRaw = new Uint8Array(Buffer.from(DEV_FIXTURE_PUBLIC_KEY_HEX, 'hex'));
   const kid = await deriveKid(SUITE_ID, publicKeyRaw);
-  return { privateKey: pair.privateKey, publicKeyRaw, kid };
+  return { privateKey, publicKeyRaw, kid };
 }
 
-/** The `AuthoredSignature` record plus the wire bytes that back it. */
+/** The AuthoredSignature-shaped record plus the wire bytes that back it. */
 export interface SignOutcome {
-  /** Conforms to `response.schema.json` `$defs/AuthoredSignature`. */
+  /** Matches the fields but not the Response-only canonicalization `const`. */
   record: Record<string, unknown>;
   /** Detached COSE_Sign1 envelope, base64. */
   coseSign1Base64: string;

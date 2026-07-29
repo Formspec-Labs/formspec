@@ -5,7 +5,7 @@
  * invents a fact — every string rendered is read out of `evidence/lifecycle.json`,
  * which is written by the stage runners from the substrate's own returns.
  *
- * Written for a NON-ENGINEER. The default view is six plain-language stages and
+ * Written for a NON-ENGINEER. The default view is seven plain-language stages and
  * a verdict board; substrate state is behind `<details>` and never the first
  * thing a reader meets. Refusals quote the substrate verbatim because the whole
  * point of a refusal beat is that the machine said it, not that we did.
@@ -29,13 +29,13 @@ export interface WalkthroughInput {
 }
 
 const STAGE_TITLES: Record<string, { label: string; plain: string }> = {
-  idea: { label: 'Idea', plain: 'Someone describes the job' },
+  discover: { label: 'Discover', plain: 'Needs establish why the product should exist' },
+  idea: { label: 'Idea', plain: 'Experience turns purpose into actors, tasks, and units' },
   plan: { label: 'Plan', plain: 'It becomes a real form' },
-  needs: { label: 'Needs', plain: 'Why each screen exists, on the record' },
   build: { label: 'Build', plain: 'A person takes over' },
   'sign-off': { label: 'Sign-off', plain: 'It gets signed, on the record' },
   release: { label: 'Release', plain: 'The brand goes on, where it is allowed' },
-  feedback: { label: 'Feedback', plain: 'A change request rebuilds it' },
+  iteration: { label: 'Iteration', plain: 'A change request rebuilds it' },
 };
 
 function esc(value: unknown): string {
@@ -350,7 +350,7 @@ export function renderWalkthrough(input: WalkthroughInput): string {
 
 <div class="wrap">
   <header class="masthead">
-    <p class="eyebrow">One application &middot; six stages &middot; nothing hidden</p>
+    <p class="eyebrow">One application &middot; seven stages &middot; nothing hidden</p>
     <h1>${esc(input.exemplar.title)}</h1>
     <p class="standfirst">One small government form, from the sentence someone said out loud to a signed release to a change request that rebuilds it. Everything below is what actually happened &mdash; what the system allowed, what it refused, and what it ${moatHeld ? 'kept when the AI rebuilt it' : 'lost'}.</p>
   </header>
@@ -428,7 +428,7 @@ export function renderWalkthrough(input: WalkthroughInput): string {
 </div>
 </body>
 </html>
-`;
+`.replace(/[ \t]+$/gm, '');
 }
 
 export function writeWalkthrough(input: WalkthroughInput): string {

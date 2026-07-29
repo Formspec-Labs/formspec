@@ -1,7 +1,7 @@
 {
   "verification": {
     "result": "verified",
-    "recomputedDigest": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
+    "recomputedDigest": "006a885e4ee1fc85a4367f7e49404388a5d1ca0041c42895f4557426ea040e3d",
     "digestMatches": true,
     "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
     "methodRegistryVersion": "1.1.0",
@@ -17,7 +17,7 @@
   },
   "tamperCheck": {
     "result": "failed",
-    "recomputedDigest": "a1eb6790ac40488a71bed2fea6ae5ad1dbe448f281bf305404f27990203b5550",
+    "recomputedDigest": "c36a4d0f5d3e5a5ca713bb150be23bea28ec7eed3e183e3f3bdb65dd69001b2f",
     "digestMatches": false,
     "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
     "methodRegistryVersion": "1.1.0",

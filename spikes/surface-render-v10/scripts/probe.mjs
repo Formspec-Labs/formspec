@@ -312,6 +312,11 @@ const main = async () => {
   // ── R1: the signature, checked by the app's own path ──────────────────────
   const signature = await applyPage.evaluate(async () => {
     const probe = window.__spikeProbe;
+    const sha256 = async (text) => {
+      const bytes = new TextEncoder().encode(text);
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+      return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+    };
     const clean = await probe.verify();
     // One character altered in the Theme's brand token — the falsification.
     const tampered = structuredClone(probe.bundleExport);
@@ -363,17 +368,24 @@ const main = async () => {
       failedTrustworthy: probe.isTrustworthy(failed),
       renderGateMatrix,
       inputsRead: probe.inputPaths,
+      inputRawSha256: {
+        bundle: await sha256(probe.rawInputs.bundle),
+        signature: await sha256(probe.rawInputs.signature),
+        methodRegistry: await sha256(probe.rawInputs.methodRegistry),
+      },
     };
   });
 
-  write('signature-verification.json', {
-    title: 'surface-render-v10 — browser signature verification',
+  write('signature-verification-current.json', {
+    title: 'surface-render-v10 — current browser signature verification',
     description:
-      'The signed bundle export verified in Chromium with the shipped COSE + WebCrypto path, before shell core '
-      + 'or the React binding loads and before anything bundle-derived renders. Numbers taken from the running '
-      + 'app\'s own verifyBundleSignature via window.__spikeProbe, not recomputed in Node.',
+      'The current signed bundle export verified in Chromium with the shipped COSE + WebCrypto path, before '
+      + 'shell core or the React binding loads and before anything bundle-derived renders. Numbers came from '
+      + 'the running app\'s own verifyBundleSignature via window.__spikeProbe, not a second Node verifier. '
+      + 'This remains quarantined spike evidence, not a production signing-profile conformance vector.',
     capturedFrom: `${BASE}/apply (vite preview of the static build)`,
     inputsRead: Object.values(signature.inputsRead),
+    inputRawSha256: signature.inputRawSha256,
     primitivesUsed: {
       canonicalization:
         'canonicalize (RFC 8785 JCS), domain-framed formspec.spike-v10.bundle-export.signed-payload.v1',

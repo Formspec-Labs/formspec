@@ -26,542 +26,61 @@
       }
     ]
   },
-  "generatedAt": "2026-07-27T09:00:00Z",
+  "measurementDate": "2026-07-29",
   "stages": [
     {
-      "stage": "idea",
-      "narration": "Someone describes the job in four sentences. Before a single question exists, the AI writes down who is involved and what each person is trying to get done — one entry per sentence.",
+      "stage": "discover",
+      "narration": "Before anyone designs a screen, people write down who needs help and why. The AI notices one more need in the drop-off numbers. It may record that finding, but when it tries to approve its own idea the system stops it: a machine may notice a need; only a person may commit the organisation to one.",
       "substrateState": {
-        "hasExperience": true,
-        "experienceUrl": "urn:formspec:doc:1feb5fb90254133a:experience",
-        "units": [
+        "journeys": [
           {
-            "id": "applyForHelp",
-            "title": "Tell us about your household",
-            "actor": "applicant",
-            "tasks": [
-              "submitApplication"
-            ],
-            "fromBrief": "B1"
+            "id": "applicant",
+            "title": "The Applicant"
           },
           {
-            "id": "certifyDeclaration",
-            "title": "Sign your declaration",
-            "actor": "applicant",
-            "tasks": [
-              "certifyTruth"
-            ],
-            "fromBrief": "B2"
-          },
-          {
-            "id": "collectReceipt",
-            "title": "Keep your receipt",
-            "actor": "applicant",
-            "tasks": [
-              "proveSubmission"
-            ],
-            "fromBrief": "B3"
-          },
-          {
-            "id": "reviewApplication",
-            "title": "Work the queue",
-            "actor": "caseworker",
-            "tasks": [
-              "decideApplication"
-            ],
-            "fromBrief": "B4"
+            "id": "caseworker",
+            "title": "The Caseworker"
           }
         ],
-        "hasDefinition": false,
-        "artifact": "evidence/stage-1-idea.experience.json"
+        "needsPaired": 6,
+        "adoptedNeeds": 5,
+        "proposedNeeds": 1,
+        "experienceActors": 0,
+        "experienceTasks": 0,
+        "experienceUnits": 0,
+        "surfaceRoutes": 0,
+        "artifact": "evidence/stage-0-discover.needs-document.json"
       },
       "beats": [
         {
           "seq": 1,
-          "stage": "idea",
+          "stage": "discover",
           "actor": "ai-agent",
           "verb": "wireframeFromBrief",
-          "intent": "Start a new app from what the person asked for.",
+          "intent": "Open the bundle workspace where the Needs document can be paired.",
           "outcome": "admitted",
           "details": {
             "bundleId": "https://benefits.example.gov/apps/assistance",
-            "briefLines": 4
+            "briefLines": 4,
+            "implementationScaffold": "The kernel also mints an empty Experience and an empty respondent Surface here. They contain no actors, tasks, units, or routes; their substantive content starts in Idea and Plan."
           }
         },
         {
           "seq": 2,
-          "stage": "idea",
+          "stage": "discover",
           "actor": "system",
           "verb": "wireframeFromBrief",
           "intent": "Keep the request itself, so later steps can point back at the words someone wrote.",
           "outcome": "recorded",
-          "message": "It does not. The request is read, used once, and thrown away — nothing stores the original words. What survives is the four journey entries it produced. A gap we found and reported, rather than papered over.",
+          "message": "It does not. The request is read, used once, and thrown away. The Needs document is the durable source for purpose; Experience units later carry the brief lines forward as design inputs.",
           "details": {
             "finding": "no-brief-persistence",
-            "technical": "`wireframeFromBrief` accepts the brief as an argument and discards it — it forwards only id, version and title to `createBundle`, and no verb persists the brief text. It survives into the substrate only as the units it produced."
+            "technical": "`wireframeFromBrief` accepts the brief as an argument and discards it. It forwards only id, version and title to `createBundle`; no verb persists the brief text."
           }
         },
         {
           "seq": 3,
-          "stage": "idea",
-          "actor": "ai-agent",
-          "verb": "addExperienceUnit",
-          "intent": "Write down one step of the journey: \"Tell us about your household\" — this is for the applicant.",
-          "outcome": "admitted",
-          "details": {
-            "unitId": "applyForHelp",
-            "kind": "data-entry",
-            "actorRef": "applicant",
-            "taskRefs": [
-              "submitApplication"
-            ],
-            "fromBrief": "B1"
-          }
-        },
-        {
-          "seq": 4,
-          "stage": "idea",
-          "actor": "ai-agent",
-          "verb": "addExperienceUnit",
-          "intent": "Write down one step of the journey: \"Sign your declaration\" — this is for the applicant.",
-          "outcome": "admitted",
-          "details": {
-            "unitId": "certifyDeclaration",
-            "kind": "attestation",
-            "actorRef": "applicant",
-            "taskRefs": [
-              "certifyTruth"
-            ],
-            "fromBrief": "B2"
-          }
-        },
-        {
-          "seq": 5,
-          "stage": "idea",
-          "actor": "ai-agent",
-          "verb": "addExperienceUnit",
-          "intent": "Write down one step of the journey: \"Keep your receipt\" — this is for the applicant.",
-          "outcome": "admitted",
-          "details": {
-            "unitId": "collectReceipt",
-            "kind": "confirmation",
-            "actorRef": "applicant",
-            "taskRefs": [
-              "proveSubmission"
-            ],
-            "fromBrief": "B3"
-          }
-        },
-        {
-          "seq": 6,
-          "stage": "idea",
-          "actor": "ai-agent",
-          "verb": "addExperienceUnit",
-          "intent": "Write down one step of the journey: \"Work the queue\" — this is for the caseworker.",
-          "outcome": "admitted",
-          "details": {
-            "unitId": "reviewApplication",
-            "kind": "review",
-            "actorRef": "caseworker",
-            "taskRefs": [
-              "decideApplication"
-            ],
-            "fromBrief": "B4"
-          }
-        }
-      ]
-    },
-    {
-      "stage": "plan",
-      "narration": "The AI turns that into a real form: the questions people will answer, and the four pages the app has. Then it tries to label each page — this one is an everyday form, this one is a signing ceremony, this one is legal proof a court can read. The system refuses every time. Calling a page legal proof is a claim about the real world, and here only a person is allowed to make it.",
-      "substrateState": {
-        "routes": [
-          {
-            "id": "apply",
-            "routeClass": null
-          },
-          {
-            "id": "certify",
-            "routeClass": null
-          },
-          {
-            "id": "receipt",
-            "routeClass": null
-          }
-        ],
-        "classifiedRoutes": 0,
-        "items": [
-          "householdSize",
-          "monthlyRent",
-          "monthsBehind",
-          "hardshipReason"
-        ],
-        "artifact": "evidence/stage-2-plan.surface.json"
-      },
-      "beats": [
-        {
-          "seq": 7,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "declareDefinition",
-          "intent": "Create the form that will hold the questions.",
-          "outcome": "admitted",
-          "details": {
-            "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
-          }
-        },
-        {
-          "seq": 8,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addDefinitionStub",
-          "intent": "Write the questions people will answer: \"Household size\", \"Monthly rent\", \"Months behind on rent\", \"What happened\".",
-          "outcome": "admitted",
-          "details": {
-            "items": [
-              {
-                "path": "householdSize",
-                "dataType": "integer",
-                "fromBrief": "B1"
-              },
-              {
-                "path": "monthlyRent",
-                "dataType": "decimal",
-                "fromBrief": "B1"
-              },
-              {
-                "path": "monthsBehind",
-                "dataType": "integer",
-                "fromBrief": "B1"
-              },
-              {
-                "path": "hardshipReason",
-                "dataType": "text",
-                "fromBrief": "B1"
-              }
-            ]
-          }
-        },
-        {
-          "seq": 9,
-          "stage": "plan",
-          "actor": "system",
-          "verb": "(none)",
-          "intent": "Link each step of the journey to the questions it collects.",
-          "outcome": "recorded",
-          "message": "There is no way to do it. Once a journey step exists, nothing can attach questions to it. The two only meet later, on the page that shows both. Another gap we found and reported.",
-          "details": {
-            "finding": "no-bindItem-verb",
-            "availableBinders": [
-              "bindActor",
-              "bindTask"
-            ],
-            "technical": "No kernel op writes `unit.itemRefs` after a unit exists — `bindActor` and `bindTask` exist, `bindItem` does not, and `addUnit` conflicts on re-add. The Experience-to-Definition link is unreachable through the verb surface; the two meet on the Surface route that binds both instead."
-          }
-        },
-        {
-          "seq": 10,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addAction",
-          "intent": "Say what happens when somebody presses Submit.",
-          "outcome": "admitted",
-          "details": {
-            "actionId": "submitApplication",
-            "intent": "submit",
-            "note": "No declareResponseActions verb exists in the ADR 0160 v1 family; the kernel op mints the document on first call."
-          }
-        },
-        {
-          "seq": 11,
-          "stage": "plan",
-          "actor": "system",
-          "verb": "(check)",
-          "intent": "Check that the finished app can still find what Submit does.",
-          "outcome": "recorded",
-          "message": "It can. The app lists the Submit behaviour in its index, so the finished package carries it and the Submit button has something to point at.",
-          "details": {
-            "finding": "response-actions-minted-and-declared",
-            "manifestSlots": [
-              "$formspecBundle",
-              "version",
-              "id",
-              "title",
-              "definitions",
-              "experience",
-              "responseActions",
-              "registries",
-              "surfaces",
-              "modules",
-              "sessions"
-            ],
-            "technical": "`addAction` now writes the manifest `responseActions` slot in the same op that mints the document, `readAppManifest` emits it, `exportBundle` serialises it, and `resolveBundleLocal` serves it. Previously the document was minted and no slot named it, so nothing in the graph could resolve the Submit behaviour and the transitions that fire it stayed unresolved.",
-            "adr0160": "§4.2(b) mirror of the fixed `ensureExperience` defect; §6.5 excludes Locale, Mapping and Data Sources — not Response Actions",
-            "whyItMattered": "response-actions-spec §10 forbids implicit default Actions, so `FormspecForm` injects a submit button ONLY when a Response Actions document publishes a submit-intent Action. A bundle that drops the document at export renders a form nobody can submit — measured by surface-render-v10 before this fix."
-          }
-        },
-        {
-          "seq": 12,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addSurface",
-          "intent": "Give staff their own app. A caseworker queue is not a page an applicant should ever reach.",
-          "outcome": "admitted",
-          "details": {
-            "surfaceUrl": "https://benefits.example.gov/apps/assistance/surfaces/staff",
-            "surfaceId": "staff"
-          }
-        },
-        {
-          "seq": 13,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addRoute",
-          "intent": "Label /apply as an everyday form people fill in. It collects answers from the person applying. It is the one kind of page where an organisation may put its own brand. In this deployment, only a person may make that call.",
-          "outcome": "refused",
-          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'intake'; deployment posture protects it.",
-          "details": {
-            "routeId": "apply",
-            "wantedRouteClass": "intake",
-            "errorCode": "VALIDATION",
-            "operation": "addRoute",
-            "surfaceId": "respondent",
-            "reason": "vocabulary-protected",
-            "vocabulary": "surface.routeClass",
-            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
-            "actorKind": "ai-agent",
-            "value": "intake"
-          }
-        },
-        {
-          "seq": 14,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addRoute",
-          "intent": "Add /apply without the label, and carry on. The refusal stopped one field, not the work.",
-          "outcome": "admitted",
-          "details": {
-            "routeId": "apply",
-            "routeClass": null
-          }
-        },
-        {
-          "seq": 15,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "bindSlot",
-          "intent": "Put on /apply the things that belong there.",
-          "outcome": "admitted",
-          "details": {
-            "routeId": "apply",
-            "slots": [
-              {
-                "id": "applyForm",
-                "type": "definition-form"
-              },
-              {
-                "id": "applyJourney",
-                "type": "experience-unit"
-              },
-              {
-                "id": "applyChrome",
-                "type": "module-widget"
-              }
-            ]
-          }
-        },
-        {
-          "seq": 16,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addRoute",
-          "intent": "Label /certify as a signing ceremony. The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it. In this deployment, only a person may make that call.",
-          "outcome": "refused",
-          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'ceremony'; deployment posture protects it.",
-          "details": {
-            "routeId": "certify",
-            "wantedRouteClass": "ceremony",
-            "errorCode": "VALIDATION",
-            "operation": "addRoute",
-            "surfaceId": "respondent",
-            "reason": "vocabulary-protected",
-            "vocabulary": "surface.routeClass",
-            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
-            "actorKind": "ai-agent",
-            "value": "ceremony"
-          }
-        },
-        {
-          "seq": 17,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addRoute",
-          "intent": "Add /certify without the label, and carry on. The refusal stopped one field, not the work.",
-          "outcome": "admitted",
-          "details": {
-            "routeId": "certify",
-            "routeClass": null
-          }
-        },
-        {
-          "seq": 18,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "bindSlot",
-          "intent": "Put on /certify the things that belong there.",
-          "outcome": "admitted",
-          "details": {
-            "routeId": "certify",
-            "slots": [
-              {
-                "id": "certifyJourney",
-                "type": "static-content"
-              },
-              {
-                "id": "certifyChrome",
-                "type": "module-widget"
-              }
-            ]
-          }
-        },
-        {
-          "seq": 19,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addRoute",
-          "intent": "Label /receipt/{caseRef} as legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it. In this deployment, only a person may make that call.",
-          "outcome": "refused",
-          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.",
-          "details": {
-            "routeId": "receipt",
-            "wantedRouteClass": "proof",
-            "errorCode": "VALIDATION",
-            "operation": "addRoute",
-            "surfaceId": "respondent",
-            "reason": "vocabulary-protected",
-            "vocabulary": "surface.routeClass",
-            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
-            "actorKind": "ai-agent",
-            "value": "proof"
-          }
-        },
-        {
-          "seq": 20,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addRoute",
-          "intent": "Add /receipt/{caseRef} without the label, and carry on. The refusal stopped one field, not the work.",
-          "outcome": "admitted",
-          "details": {
-            "routeId": "receipt",
-            "routeClass": null
-          }
-        },
-        {
-          "seq": 21,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "bindSlot",
-          "intent": "Put on /receipt/{caseRef} the things that belong there.",
-          "outcome": "admitted",
-          "details": {
-            "routeId": "receipt",
-            "slots": [
-              {
-                "id": "receiptJourney",
-                "type": "static-content"
-              },
-              {
-                "id": "receiptChrome",
-                "type": "module-widget"
-              }
-            ]
-          }
-        },
-        {
-          "seq": 22,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addRoute",
-          "intent": "Label /queue as an internal staff screen. A screen only staff see. It makes no claim to anyone outside the building — which is itself a statement, not the absence of one. In this deployment, only a person may make that call.",
-          "outcome": "refused",
-          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'operation'; deployment posture protects it.",
-          "details": {
-            "routeId": "queue",
-            "wantedRouteClass": "operation",
-            "errorCode": "VALIDATION",
-            "operation": "addRoute",
-            "surfaceId": "staff",
-            "reason": "vocabulary-protected",
-            "vocabulary": "surface.routeClass",
-            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
-            "actorKind": "ai-agent",
-            "value": "operation"
-          }
-        },
-        {
-          "seq": 23,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "addRoute",
-          "intent": "Add /queue without the label, and carry on. The refusal stopped one field, not the work.",
-          "outcome": "admitted",
-          "details": {
-            "routeId": "queue",
-            "routeClass": null
-          }
-        },
-        {
-          "seq": 24,
-          "stage": "plan",
-          "actor": "ai-agent",
-          "verb": "bindSlot",
-          "intent": "Put on /queue the things that belong there.",
-          "outcome": "admitted",
-          "details": {
-            "routeId": "queue",
-            "slots": [
-              {
-                "id": "queueJourney",
-                "type": "static-content"
-              },
-              {
-                "id": "queueChrome",
-                "type": "module-widget"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "stage": "needs",
-      "narration": "Somebody wrote down what people actually said they needed, and the app is checked against it. Four needs, four screens, and at first nothing connects them — the checker says so out loud. Then the AI notices something in the drop-off numbers and writes down a fifth need. It tries to approve its own idea and is stopped: a machine may notice a need, only a person may commit to one. A person approves it, each screen is linked to what it is for, and the check comes back clean.",
-      "substrateState": {
-        "needsPaired": 6,
-        "adoptedNeeds": 5,
-        "proposedNeeds": 1,
-        "unservedBefore": [
-          "decide-without-chasing-paper",
-          "proof-of-filing",
-          "sign-without-a-trip-to-the-office",
-          "works-without-good-internet"
-        ],
-        "unservedAfter": [],
-        "unjustifiedBefore": [
-          "applyForHelp",
-          "certifyDeclaration",
-          "collectReceipt",
-          "reviewApplication"
-        ],
-        "unjustifiedAfter": [],
-        "citations": 5,
-        "artifact": "evidence/stage-2_5-needs.needs-document.json"
-      },
-      "beats": [
-        {
-          "seq": 25,
-          "stage": "needs",
+          "stage": "discover",
           "actor": "human",
           "verb": "pairNeedsDocument",
           "intent": "Hand the app the written record of what people said they needed.",
@@ -604,37 +123,8 @@
           }
         },
         {
-          "seq": 26,
-          "stage": "needs",
-          "actor": "system",
-          "verb": "coverage",
-          "intent": "Ask the app which of these needs it actually serves.",
-          "outcome": "recorded",
-          "message": "Nothing serves any of them yet. 4 needs have nothing built for them, and 4 screens say nothing about why they exist. The release is not stopped by any of it — this is a report, not a gate.",
-          "details": {
-            "unserved": [
-              "decide-without-chasing-paper",
-              "proof-of-filing",
-              "sign-without-a-trip-to-the-office",
-              "works-without-good-internet"
-            ],
-            "unjustified": [
-              "applyForHelp",
-              "certifyDeclaration",
-              "collectReceipt",
-              "reviewApplication"
-            ],
-            "codes": {
-              "NEED-COVERAGE-001": 4,
-              "NEED-COVERAGE-002": 4
-            },
-            "reportErrors": 4,
-            "artifact": "evidence/stage-2_5-needs.before.coverage.json"
-          }
-        },
-        {
-          "seq": 27,
-          "stage": "needs",
+          "seq": 4,
+          "stage": "discover",
           "actor": "ai-agent",
           "verb": "proposeNeed",
           "intent": "Write down something the drop-off numbers keep showing: people start on a phone and cannot finish later.",
@@ -648,23 +138,23 @@
           }
         },
         {
-          "seq": 28,
-          "stage": "needs",
+          "seq": 5,
+          "stage": "discover",
           "actor": "ai-agent",
           "verb": "adoptNeed",
           "intent": "Approve its own idea and move on.",
           "outcome": "refused",
-          "message": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. An AI may file a Need; only a human may adopt one (needs-spec S4.3).",
+          "message": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. Only a human may adopt an AI-proposed Need (needs-spec S4.3).",
           "details": {
             "needId": "finish-on-another-device",
             "reason": "adoption-floor",
             "why": "A machine may notice that something is missing. Deciding the organisation will commit to it is a different act, and it belongs to a person.",
-            "note": "This refusal is not this deployment's choice. It is in the standard, and it holds even where nobody has configured anything — unlike the page-label refusals earlier, which are this deployment narrowing."
+            "note": "This refusal is not this deployment's choice. It is in the standard, and it holds even where nobody has configured anything — unlike the page-label refusals later, which are this deployment narrowing."
           }
         },
         {
-          "seq": 29,
-          "stage": "needs",
+          "seq": 6,
+          "stage": "discover",
           "actor": "human",
           "verb": "adoptNeed",
           "intent": "Read what the AI noticed, agree with it, and commit the organisation to it.",
@@ -673,59 +163,587 @@
             "needId": "finish-on-another-device",
             "note": "The record still says the AI found this. Approving it does not rewrite who noticed it, and it does not count as changing the words — so nothing already built goes stale just because somebody said yes."
           }
+        }
+      ]
+    },
+    {
+      "stage": "idea",
+      "narration": "The AI reads the adopted Needs and turns purpose into an Experience: four units that name who is involved and what each person is trying to get done. No form question or page exists yet.",
+      "substrateState": {
+        "hasExperience": true,
+        "experienceUrl": "urn:formspec:doc:1feb5fb90254133a:experience",
+        "units": [
+          {
+            "id": "applyForHelp",
+            "title": "Tell us about your household",
+            "actor": "applicant",
+            "tasks": [
+              "submitApplication"
+            ],
+            "fromBrief": "B1"
+          },
+          {
+            "id": "certifyDeclaration",
+            "title": "Sign your declaration",
+            "actor": "applicant",
+            "tasks": [
+              "certifyTruth"
+            ],
+            "fromBrief": "B2"
+          },
+          {
+            "id": "collectReceipt",
+            "title": "Keep your receipt",
+            "actor": "applicant",
+            "tasks": [
+              "proveSubmission"
+            ],
+            "fromBrief": "B3"
+          },
+          {
+            "id": "reviewApplication",
+            "title": "Work the queue",
+            "actor": "caseworker",
+            "tasks": [
+              "decideApplication"
+            ],
+            "fromBrief": "B4"
+          }
+        ],
+        "hasDefinition": false,
+        "artifact": "evidence/stage-1-idea.experience.json",
+        "unservedBefore": [
+          "decide-without-chasing-paper",
+          "finish-on-another-device",
+          "proof-of-filing",
+          "sign-without-a-trip-to-the-office",
+          "works-without-good-internet"
+        ],
+        "unservedAfter": [],
+        "unjustifiedBefore": [
+          "applyForHelp",
+          "certifyDeclaration",
+          "collectReceipt",
+          "reviewApplication"
+        ],
+        "unjustifiedAfter": [],
+        "citations": 5
+      },
+      "beats": [
+        {
+          "seq": 7,
+          "stage": "idea",
+          "actor": "ai-agent",
+          "verb": "addExperienceUnit",
+          "intent": "Write down one Experience unit: \"Tell us about your household\" — this is for the applicant.",
+          "outcome": "admitted",
+          "details": {
+            "unitId": "applyForHelp",
+            "kind": "data-entry",
+            "actorRef": "applicant",
+            "taskRefs": [
+              "submitApplication"
+            ],
+            "fromBrief": "B1"
+          }
         },
         {
-          "seq": 30,
-          "stage": "needs",
+          "seq": 8,
+          "stage": "idea",
+          "actor": "ai-agent",
+          "verb": "addExperienceUnit",
+          "intent": "Write down one Experience unit: \"Sign your declaration\" — this is for the applicant.",
+          "outcome": "admitted",
+          "details": {
+            "unitId": "certifyDeclaration",
+            "kind": "attestation",
+            "actorRef": "applicant",
+            "taskRefs": [
+              "certifyTruth"
+            ],
+            "fromBrief": "B2"
+          }
+        },
+        {
+          "seq": 9,
+          "stage": "idea",
+          "actor": "ai-agent",
+          "verb": "addExperienceUnit",
+          "intent": "Write down one Experience unit: \"Keep your receipt\" — this is for the applicant.",
+          "outcome": "admitted",
+          "details": {
+            "unitId": "collectReceipt",
+            "kind": "confirmation",
+            "actorRef": "applicant",
+            "taskRefs": [
+              "proveSubmission"
+            ],
+            "fromBrief": "B3"
+          }
+        },
+        {
+          "seq": 10,
+          "stage": "idea",
+          "actor": "ai-agent",
+          "verb": "addExperienceUnit",
+          "intent": "Write down one Experience unit: \"Work the queue\" — this is for the caseworker.",
+          "outcome": "admitted",
+          "details": {
+            "unitId": "reviewApplication",
+            "kind": "review",
+            "actorRef": "caseworker",
+            "taskRefs": [
+              "decideApplication"
+            ],
+            "fromBrief": "B4"
+          }
+        },
+        {
+          "seq": 11,
+          "stage": "idea",
+          "actor": "system",
+          "verb": "coverage",
+          "intent": "Ask which adopted needs the new Experience serves before any links are written.",
+          "outcome": "recorded",
+          "message": "Nothing is linked yet. 5 adopted needs have nothing connected to them, and 4 Experience units cannot say why they exist. This report does not stop Plan or Release.",
+          "details": {
+            "unserved": [
+              "decide-without-chasing-paper",
+              "finish-on-another-device",
+              "proof-of-filing",
+              "sign-without-a-trip-to-the-office",
+              "works-without-good-internet"
+            ],
+            "unjustified": [
+              "applyForHelp",
+              "certifyDeclaration",
+              "collectReceipt",
+              "reviewApplication"
+            ],
+            "codes": {
+              "NEED-COVERAGE-001": 5,
+              "NEED-COVERAGE-002": 4
+            },
+            "blockingErrors": 0,
+            "artifact": "evidence/stage-1-idea.before.coverage.json"
+          }
+        },
+        {
+          "seq": 12,
+          "stage": "idea",
           "actor": "ai-agent",
           "verb": "citeNeed",
-          "intent": "Link each screen to what it is there for.",
+          "intent": "Link each Experience unit to the adopted need it serves.",
           "outcome": "admitted",
           "details": {
             "citations": [
               {
-                "screen": "applyForHelp",
+                "unit": "applyForHelp",
                 "need": "works-without-good-internet",
                 "because": "This is the long form. It is where a dropped connection costs the most."
               },
               {
-                "screen": "applyForHelp",
+                "unit": "applyForHelp",
                 "need": "finish-on-another-device",
                 "because": "And it is the screen someone would want to leave and come back to."
               },
               {
-                "screen": "certifyDeclaration",
+                "unit": "certifyDeclaration",
                 "need": "sign-without-a-trip-to-the-office",
                 "because": "This is the signature that replaces the trip across town."
               },
               {
-                "screen": "collectReceipt",
+                "unit": "collectReceipt",
                 "need": "proof-of-filing",
                 "because": "This is the receipt someone shows a landlord or a court."
               },
               {
-                "screen": "reviewApplication",
+                "unit": "reviewApplication",
                 "need": "decide-without-chasing-paper",
                 "because": "This is the caseworker screen where the chasing either happens or stops."
               }
             ],
-            "note": "The link carries no version number, on purpose. A screen serves the need as currently written, so fixing a typo in the wording never quietly unlinks it."
+            "note": "The link carries no version number, on purpose. A unit serves the need as currently written, so fixing a typo in the wording never quietly unlinks it."
           }
         },
         {
-          "seq": 31,
-          "stage": "needs",
+          "seq": 13,
+          "stage": "idea",
           "actor": "system",
           "verb": "coverage",
           "intent": "Ask the same question again.",
           "outcome": "recorded",
-          "message": "Clean. Every need the organisation has committed to has something built for it, and every screen can say why it exists. The one candidate nobody has ruled on yet is not counted either way — it is not a commitment.",
+          "message": "Clean. Every need the organisation has committed to has something built for it, and every Experience unit can say why it exists. The one candidate nobody has ruled on yet is not counted either way — it is not a commitment.",
           "details": {
             "unserved": [],
             "unjustified": [],
             "codes": {},
-            "reportErrors": 4,
-            "artifact": "evidence/stage-2_5-needs.after.coverage.json"
+            "blockingErrors": 0,
+            "artifact": "evidence/stage-1-idea.after.coverage.json"
+          }
+        }
+      ]
+    },
+    {
+      "stage": "plan",
+      "narration": "The AI turns that into a real form: the questions people will answer, and the four pages the app has. Then it tries to label each page — this one is an everyday form, this one is a signing ceremony, this one is legal proof a court can read. The system refuses every time. Calling a page legal proof is a claim about the real world, and here only a person is allowed to make it.",
+      "substrateState": {
+        "routes": [
+          {
+            "id": "apply",
+            "routeClass": null
+          },
+          {
+            "id": "certify",
+            "routeClass": null
+          },
+          {
+            "id": "receipt",
+            "routeClass": null
+          }
+        ],
+        "classifiedRoutes": 0,
+        "items": [
+          "householdSize",
+          "monthlyRent",
+          "monthsBehind",
+          "hardshipReason"
+        ],
+        "artifact": "evidence/stage-2-plan.surface.json"
+      },
+      "beats": [
+        {
+          "seq": 14,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "declareDefinition",
+          "intent": "Create the form that will hold the questions.",
+          "outcome": "admitted",
+          "details": {
+            "url": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+          }
+        },
+        {
+          "seq": 15,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addDefinitionStub",
+          "intent": "Write the questions people will answer: \"Household size\", \"Monthly rent\", \"Months behind on rent\", \"What happened\".",
+          "outcome": "admitted",
+          "details": {
+            "items": [
+              {
+                "path": "householdSize",
+                "dataType": "integer",
+                "fromBrief": "B1"
+              },
+              {
+                "path": "monthlyRent",
+                "dataType": "decimal",
+                "fromBrief": "B1"
+              },
+              {
+                "path": "monthsBehind",
+                "dataType": "integer",
+                "fromBrief": "B1"
+              },
+              {
+                "path": "hardshipReason",
+                "dataType": "text",
+                "fromBrief": "B1"
+              }
+            ]
+          }
+        },
+        {
+          "seq": 16,
+          "stage": "plan",
+          "actor": "system",
+          "verb": "(none)",
+          "intent": "Link each step of the journey to the questions it collects.",
+          "outcome": "recorded",
+          "message": "There is no way to do it. Once a journey step exists, nothing can attach questions to it. The two only meet later, on the page that shows both. Another gap we found and reported.",
+          "details": {
+            "finding": "no-bindItem-verb",
+            "availableBinders": [
+              "bindActor",
+              "bindTask"
+            ],
+            "technical": "No kernel op writes `unit.itemRefs` after a unit exists — `bindActor` and `bindTask` exist, `bindItem` does not, and `addUnit` conflicts on re-add. The Experience-to-Definition link is unreachable through the verb surface; the two meet on the Surface route that binds both instead."
+          }
+        },
+        {
+          "seq": 17,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addAction",
+          "intent": "Say what happens when somebody presses Submit.",
+          "outcome": "admitted",
+          "details": {
+            "actionId": "submitApplication",
+            "intent": "submit",
+            "note": "No declareResponseActions verb exists in the ADR 0160 v1 family; the kernel op mints the document on first call."
+          }
+        },
+        {
+          "seq": 18,
+          "stage": "plan",
+          "actor": "system",
+          "verb": "(check)",
+          "intent": "Check that the finished app can still find what Submit does.",
+          "outcome": "recorded",
+          "message": "It can. The app lists the Submit behaviour in its index, so the finished package carries it and the Submit button has something to point at.",
+          "details": {
+            "finding": "response-actions-minted-and-declared",
+            "manifestSlots": [
+              "$formspecBundle",
+              "version",
+              "id",
+              "title",
+              "definitions",
+              "experience",
+              "responseActions",
+              "registries",
+              "surfaces",
+              "entrySurface",
+              "modules",
+              "sessions"
+            ],
+            "technical": "`addAction` now writes the manifest `responseActions` slot in the same op that mints the document, `readAppManifest` emits it, `exportBundle` serialises it, and `resolveBundleLocal` serves it. Previously the document was minted and no slot named it, so nothing in the graph could resolve the Submit behaviour and the transitions that fire it stayed unresolved.",
+            "adr0160": "§4.2(b) mirror of the fixed `ensureExperience` defect; §6.5 excludes Locale, Mapping and Data Sources — not Response Actions",
+            "whyItMattered": "response-actions-spec §10 forbids implicit default Actions, so `FormspecForm` injects a submit button ONLY when a Response Actions document publishes a submit-intent Action. A bundle that drops the document at export renders a form nobody can submit — measured by surface-render-v10 before this fix."
+          }
+        },
+        {
+          "seq": 19,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addSurface",
+          "intent": "Give staff their own app. A caseworker queue is not a page an applicant should ever reach.",
+          "outcome": "admitted",
+          "details": {
+            "surfaceUrl": "https://benefits.example.gov/apps/assistance/surfaces/staff",
+            "surfaceId": "staff"
+          }
+        },
+        {
+          "seq": 20,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Label /apply as an everyday form people fill in. It collects answers from the person applying. It is the one kind of page where an organisation may put its own brand. In this deployment, only a person may make that call.",
+          "outcome": "refused",
+          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'intake'; deployment posture protects it.",
+          "details": {
+            "routeId": "apply",
+            "wantedRouteClass": "intake",
+            "errorCode": "VALIDATION",
+            "operation": "addRoute",
+            "surfaceId": "respondent",
+            "reason": "vocabulary-protected",
+            "vocabulary": "surface.routeClass",
+            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+            "actorKind": "ai-agent",
+            "value": "intake"
+          }
+        },
+        {
+          "seq": 21,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Add /apply without the label, and carry on. The refusal stopped one field, not the work.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "apply",
+            "routeClass": null
+          }
+        },
+        {
+          "seq": 22,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "bindSlot",
+          "intent": "Put on /apply the things that belong there.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "apply",
+            "slots": [
+              {
+                "id": "applyForm",
+                "type": "definition-form"
+              },
+              {
+                "id": "applyJourney",
+                "type": "experience-unit"
+              },
+              {
+                "id": "applyChrome",
+                "type": "module-widget"
+              }
+            ]
+          }
+        },
+        {
+          "seq": 23,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Label /certify as a signing ceremony. The act of signing, as it happens. What the signer sees IS what is signed, so nobody else gets to restyle it. In this deployment, only a person may make that call.",
+          "outcome": "refused",
+          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'ceremony'; deployment posture protects it.",
+          "details": {
+            "routeId": "certify",
+            "wantedRouteClass": "ceremony",
+            "errorCode": "VALIDATION",
+            "operation": "addRoute",
+            "surfaceId": "respondent",
+            "reason": "vocabulary-protected",
+            "vocabulary": "surface.routeClass",
+            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+            "actorKind": "ai-agent",
+            "value": "ceremony"
+          }
+        },
+        {
+          "seq": 24,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Add /certify without the label, and carry on. The refusal stopped one field, not the work.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "certify",
+            "routeClass": null
+          }
+        },
+        {
+          "seq": 25,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "bindSlot",
+          "intent": "Put on /certify the things that belong there.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "certify",
+            "slots": [
+              {
+                "id": "certifyJourney",
+                "type": "static-content"
+              },
+              {
+                "id": "certifyChrome",
+                "type": "module-widget"
+              }
+            ]
+          }
+        },
+        {
+          "seq": 26,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Label /receipt/{caseRef} as legal proof that someone else relies on. The page a landlord or a court reads as evidence. How it looks is part of what they rely on, so nobody may restyle it. In this deployment, only a person may make that call.",
+          "outcome": "refused",
+          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'proof'; deployment posture protects it.",
+          "details": {
+            "routeId": "receipt",
+            "wantedRouteClass": "proof",
+            "errorCode": "VALIDATION",
+            "operation": "addRoute",
+            "surfaceId": "respondent",
+            "reason": "vocabulary-protected",
+            "vocabulary": "surface.routeClass",
+            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+            "actorKind": "ai-agent",
+            "value": "proof"
+          }
+        },
+        {
+          "seq": 27,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Add /receipt/{caseRef} without the label, and carry on. The refusal stopped one field, not the work.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "receipt",
+            "routeClass": null
+          }
+        },
+        {
+          "seq": 28,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "bindSlot",
+          "intent": "Put on /receipt/{caseRef} the things that belong there.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "receipt",
+            "slots": [
+              {
+                "id": "receiptJourney",
+                "type": "static-content"
+              },
+              {
+                "id": "receiptChrome",
+                "type": "module-widget"
+              }
+            ]
+          }
+        },
+        {
+          "seq": 29,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Label /queue as an internal staff screen. A screen only staff see. It makes no claim to anyone outside the building — which is itself a statement, not the absence of one. In this deployment, only a person may make that call.",
+          "outcome": "refused",
+          "message": "Actor 'urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10' (ai-agent) is not permitted to write 'surface.routeClass' = 'operation'; deployment posture protects it.",
+          "details": {
+            "routeId": "queue",
+            "wantedRouteClass": "operation",
+            "errorCode": "VALIDATION",
+            "operation": "addRoute",
+            "surfaceId": "staff",
+            "reason": "vocabulary-protected",
+            "vocabulary": "surface.routeClass",
+            "actor": "urn:formspec:actor:ai-agent:wireframes-mcp:lifecycle-v10",
+            "actorKind": "ai-agent",
+            "value": "operation"
+          }
+        },
+        {
+          "seq": 30,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "addRoute",
+          "intent": "Add /queue without the label, and carry on. The refusal stopped one field, not the work.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "queue",
+            "routeClass": null
+          }
+        },
+        {
+          "seq": 31,
+          "stage": "plan",
+          "actor": "ai-agent",
+          "verb": "bindSlot",
+          "intent": "Put on /queue the things that belong there.",
+          "outcome": "admitted",
+          "details": {
+            "routeId": "queue",
+            "slots": [
+              {
+                "id": "queueJourney",
+                "type": "static-content"
+              },
+              {
+                "id": "queueChrome",
+                "type": "module-widget"
+              }
+            ]
           }
         }
       ]
@@ -1042,6 +1060,11 @@
       "narration": "The organisation puts its brand colour on all four pages. The system allows it on the application form and refuses it on the other three — because on a receipt, a signing screen and a staff console, how the page looks is part of what people rely on. Then the sign-off is re-checked from the saved files alone, with nothing running.",
       "substrateState": {
         "crossArtifactStatus": "completed",
+        "schemaIds": {
+          "appManifest": "https://formspec.org/schemas/bundleManifest/2.4",
+          "surface": "https://formspec.org/schemas/surface/0.2",
+          "registry": "https://formspec.org/schemas/registry/v1.1/registry.json"
+        },
         "diagnosticCounts": {
           "THEME-ROUTE-CLASS": 3
         },
@@ -1133,7 +1156,7 @@
       ]
     },
     {
-      "stage": "feedback",
+      "stage": "iteration",
       "narration": "Two weeks in, caseworkers report a missing question. The request grows by one line, and the AI rebuilds the app from it. Only one question matters here: are the two changes the designer made by hand still in the app afterwards?",
       "substrateState": {
         "changeRequest": "CR1",
@@ -1144,15 +1167,15 @@
         },
         "mergeEntryPoint": "kernel.regenerateSurfaceDocument",
         "artifacts": [
-          "evidence/stage-6-feedback.regenerated.surface.json",
-          "evidence/stage-6-feedback.merged.surface.json",
+          "evidence/stage-6-iteration.regenerated.surface.json",
+          "evidence/stage-6-iteration.merged.surface.json",
           "evidence/bar5-merge-report.json"
         ]
       },
       "beats": [
         {
           "seq": 52,
-          "stage": "feedback",
+          "stage": "iteration",
           "actor": "human",
           "verb": "(change request)",
           "intent": "People are dropping out halfway through. Split the form: ask about the household on one page and about the money on the next. And we need to know whether any children live in the household.",
@@ -1166,7 +1189,7 @@
         },
         {
           "seq": 53,
-          "stage": "feedback",
+          "stage": "iteration",
           "actor": "ai-agent",
           "verb": "regenerate",
           "intent": "Rebuild the app from the updated request.",
@@ -1182,7 +1205,7 @@
         },
         {
           "seq": 54,
-          "stage": "feedback",
+          "stage": "iteration",
           "actor": "ai-agent",
           "verb": "merge",
           "intent": "Keep the designer's hand-made changes through the rebuild.",
@@ -1268,7 +1291,7 @@
       "evidence": {
         "verification": {
           "result": "verified",
-          "recomputedDigest": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
+          "recomputedDigest": "006a885e4ee1fc85a4367f7e49404388a5d1ca0041c42895f4557426ea040e3d",
           "digestMatches": true,
           "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
           "methodRegistryVersion": "1.1.0",
@@ -1299,7 +1322,7 @@
     },
     {
       "id": "BAR 3",
-      "title": "The AI was refused 6 times — and kept working",
+      "title": "The AI was refused 5 times — and kept working",
       "met": true,
       "criterion": "The AI is refused every page label and the app's look. Each refusal names what was blocked and who was blocked. The AI carries on building. Nothing slips through. A person then does both, under the very same rule.",
       "evidence": {
@@ -1365,12 +1388,12 @@
           "oldGenerated": "evidence/bar5-old-generated.surface.json",
           "designerEdited": "evidence/bar5-designer-edited.surface.json",
           "newGenerated": "evidence/bar5-new-generated.surface.json",
-          "merged": "evidence/stage-6-feedback.merged.surface.json"
+          "merged": "evidence/stage-6-iteration.merged.surface.json"
         },
         "mergeAttempt": {
           "attempted": true,
           "entryPoint": "kernel.regenerateSurfaceDocument",
-          "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 348 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
+          "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 357 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 16 further files name the corpus without executing it."
         },
         "mergeReport": {
           "version": "1.0",
@@ -1571,7 +1594,7 @@
             "@formspec-org/engine",
             "@formspec-org/types"
           ],
-          "exportsSeen": 348,
+          "exportsSeen": 357,
           "patternsScanned": {
             "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
             "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
@@ -1668,6 +1691,7 @@
             "packages/formspec-core/tests/regeneration-merge-conformance.test.ts"
           ],
           "mentionsOnly": [
+            "crates/formspec-lint/docs/rustdoc-md/API.md",
             "crates/formspec-lint/src/pass_modules.rs",
             "crates/formspec-lint/src/types.rs",
             "crates/formspec-py/src/document.rs",
@@ -1774,14 +1798,15 @@
     },
     {
       "id": "BAR 7",
-      "title": "Every screen can say why it exists — and the AI could not sign off on that itself",
+      "title": "Every Experience unit can say why it exists — and the AI could not adopt its own proposed Need",
       "met": true,
-      "qualifier": "Measured twice on the same app. Before anything was linked, 4 things people said they needed had nothing built for them and 4 screens could not say why they existed. Afterwards, none. The AI was allowed to write down a new need and stopped from approving it — and that stop is in the standard, not in this deployment's settings.",
-      "criterion": "A written record of what people need is checked against the finished app. The check names what is unserved and what is unexplained, it never stops the release, an AI may add to the record but not approve its own addition, and once each screen is linked to what it is for, the check comes back clean.",
+      "qualifier": "Measured twice on the same app. Before anything was linked, 5 adopted needs had nothing connected to them and 4 Experience units could not say why they existed. Afterwards, none. The AI was allowed to write down a new Need and stopped from adopting its own proposal — and that stop is in the standard, not in this deployment's settings.",
+      "criterion": "A written record of what people need is checked against the Experience. The check names every unserved adopted Need and every unexplained Experience unit, it never stops the release, an AI may add to the record but not adopt its own proposed Need, and once each unit cites what it serves, the check comes back clean.",
       "evidence": {
         "before": {
           "unserved": [
             "decide-without-chasing-paper",
+            "finish-on-another-device",
             "proof-of-filing",
             "sign-without-a-trip-to-the-office",
             "works-without-good-internet"
@@ -1793,29 +1818,29 @@
             "reviewApplication"
           ],
           "codes": {
-            "NEED-COVERAGE-001": 4,
+            "NEED-COVERAGE-001": 5,
             "NEED-COVERAGE-002": 4
           },
-          "reportErrors": 4
+          "blockingErrors": 0
         },
         "after": {
           "unserved": [],
           "unjustified": [],
           "codes": {},
-          "reportErrors": 4
+          "blockingErrors": 0
         },
         "proposedByTheAgent": "finish-on-another-device",
-        "agentSelfApprovalRefusal": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. An AI may file a Need; only a human may adopt one (needs-spec S4.3).",
+        "agentSelfApprovalRefusal": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. Only a human may adopt an AI-proposed Need (needs-spec S4.3).",
         "citations": 5,
         "coverageBlockedNothing": true,
-        "errorsBefore": 4,
-        "errorsAfter": 4,
+        "blockingErrorsBefore": 0,
+        "blockingErrorsAfter": 0,
         "corpus": "spikes/lifecycle-demo-v10/corpus/assistance.needs.json",
         "artifacts": [
-          "evidence/stage-2_5-needs.before.coverage.json",
-          "evidence/stage-2_5-needs.after.coverage.json",
-          "evidence/stage-2_5-needs.needs-document.json",
-          "evidence/stage-2_5-needs.experience.json"
+          "evidence/stage-0-discover.needs-document.json",
+          "evidence/stage-1-idea.experience.json",
+          "evidence/stage-1-idea.before.coverage.json",
+          "evidence/stage-1-idea.after.coverage.json"
         ],
         "reservedCodesEmitted": []
       }
@@ -1826,7 +1851,7 @@
       "signatureId": "sig-lifecycle-v10-ceremony-v10-0001",
       "documentId": "rentAssistanceRelease",
       "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1",
-      "signatureValue": "0oRYSKMBJwRQKOTCHo4OfkKB7beIlngbGzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WECrrXA6zSGolm49jQGBk3V+SBx8rWL8dRcBMC2KBUp1YLQRWB5jkOsmomf898/95d0TzdPOUsgCN+pqMs0UdXAG",
+      "signatureValue": "0oRYSKMBJwRQvNHVa1hF8h5Uzlt2T8HVUjoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEBVAfFbZeONH1CVQzMpGBMhD4NSW0rq3SP6+p5KNXs+d8qqff/NrCXJH8QA5WeTXG3O38/mYzVQwxDdXbgdJrAC",
       "signerId": "product-owner",
       "signerName": "R. Okonjo, Product Owner",
       "consentAccepted": true,
@@ -1836,24 +1861,24 @@
       "signedPayload": {
         "canonicalization": "formspec-spike-v10-bundle-export-signing-v1",
         "digestAlgorithm": "sha-256",
-        "digest": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
+        "digest": "006a885e4ee1fc85a4367f7e49404388a5d1ca0041c42895f4557426ea040e3d",
         "responseId": "https://benefits.example.gov/apps/assistance",
         "definitionUrl": "https://benefits.example.gov/apps/assistance",
         "definitionVersion": "1.0.0",
         "signedAt": "2026-07-27T09:30:00Z",
         "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1"
       },
-      "documentHash": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
+      "documentHash": "006a885e4ee1fc85a4367f7e49404388a5d1ca0041c42895f4557426ea040e3d",
       "documentHashAlgorithm": "sha-256",
       "signatureProvider": "urn:formspec:spike-v10:signature:provider:in-repo-ed25519",
       "ceremonyId": "ceremony-v10-0001"
     },
-    "publicKeyBase64": "C/RYdgiYu1FmuL8S7nLLO6hJOy6imv7aFh+RZBjhDYY=",
+    "publicKeyBase64": "11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
     "schemaValid": false
   },
   "verification": {
     "result": "verified",
-    "recomputedDigest": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
+    "recomputedDigest": "006a885e4ee1fc85a4367f7e49404388a5d1ca0041c42895f4557426ea040e3d",
     "digestMatches": true,
     "methodUriFromEnvelope": "urn:formspec:sig-method:ed25519-cose-sign1@1",
     "methodRegistryVersion": "1.1.0",
@@ -1873,12 +1898,12 @@
       "oldGenerated": "evidence/bar5-old-generated.surface.json",
       "designerEdited": "evidence/bar5-designer-edited.surface.json",
       "newGenerated": "evidence/bar5-new-generated.surface.json",
-      "merged": "evidence/stage-6-feedback.merged.surface.json"
+      "merged": "evidence/stage-6-iteration.merged.surface.json"
     },
     "mergeAttempt": {
       "attempted": true,
       "entryPoint": "kernel.regenerateSurfaceDocument",
-      "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 348 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 15 further files name the corpus without executing it."
+      "outcome": "The merge ran through kernel.regenerateSurfaceDocument, which composes @formspec-org/studio-core.regenerationMerge, @formspec-org/studio-core.regenerationMergeSurface, @formspec-org/studio-core.regenerationMergeWithAdapter, @formspec-org/studio-core.RegenerationMergeInputError. 357 runtime exports across 5 substrate packages were enumerated and scanned twice; 4 carry a regeneration-merge entry-point name (/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i) and 9 carry the merge spec's own §3/§9 identity vocabulary (/anchor|x-?generation|generationmarker|designeredit|preservation/i). The spec is Draft 1.0.0-draft.1, the report schema ships, and 17 three-way fixture scenarios ship carrying expected merge OUTPUTS, 10 of which assert that a designer-only value survives. This run replayed 17 of them through the shipped entry point: 17 reproduced the expected merged document and 17 reproduced the expected report. They are executed by packages/formspec-core/tests/regeneration-merge-conformance.test.ts. The Python conformance suite still collects 17 tests under `-k regeneration`, all of them in tests/conformance/spec/test_regeneration_merge_report_schema.py — report-schema tests that do not run a merge; the executable corpus runner is TypeScript-side. 16 further files name the corpus without executing it."
     },
     "mergeReport": {
       "version": "1.0",
@@ -2079,7 +2104,7 @@
         "@formspec-org/engine",
         "@formspec-org/types"
       ],
-      "exportsSeen": 348,
+      "exportsSeen": 357,
       "patternsScanned": {
         "mergeEntryPoint": "/regenerat|three.?way|mergereport|mergedraft|sourceanchor/i",
         "anchorIdentity": "/anchor|x-?generation|generationmarker|designeredit|preservation/i"
@@ -2176,6 +2201,7 @@
         "packages/formspec-core/tests/regeneration-merge-conformance.test.ts"
       ],
       "mentionsOnly": [
+        "crates/formspec-lint/docs/rustdoc-md/API.md",
         "crates/formspec-lint/src/pass_modules.rs",
         "crates/formspec-lint/src/types.rs",
         "crates/formspec-py/src/document.rs",
@@ -2255,6 +2281,7 @@
     "before": {
       "unserved": [
         "decide-without-chasing-paper",
+        "finish-on-another-device",
         "proof-of-filing",
         "sign-without-a-trip-to-the-office",
         "works-without-good-internet"
@@ -2266,19 +2293,19 @@
         "reviewApplication"
       ],
       "codes": {
-        "NEED-COVERAGE-001": 4,
+        "NEED-COVERAGE-001": 5,
         "NEED-COVERAGE-002": 4
       },
-      "reportErrors": 4
+      "blockingErrors": 0
     },
     "after": {
       "unserved": [],
       "unjustified": [],
       "codes": {},
-      "reportErrors": 4
+      "blockingErrors": 0
     },
     "proposedNeedId": "finish-on-another-device",
-    "refusalMessage": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. An AI may file a Need; only a human may adopt one (needs-spec S4.3).",
+    "refusalMessage": "Need 'finish-on-another-device' was filed by an AI and cannot be adopted by an actor of kind 'ai-agent'. Only a human may adopt an AI-proposed Need (needs-spec S4.3).",
     "citations": 5
   }
 }

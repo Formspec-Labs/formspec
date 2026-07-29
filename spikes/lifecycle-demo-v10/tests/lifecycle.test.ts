@@ -1,6 +1,6 @@
 /**
- * @filedesc The v10 walk — ONE exemplar through six lifecycle stages, with the
- * six pre-registered bars asserted rather than reported.
+ * @filedesc The v10 walk — ONE exemplar through the seven ADR 0159 A3
+ * lifecycle stages, with every bar asserted rather than reported.
  *
  * Pre-registration lives in
  * `formspec/thoughts/spikes/2026-07-26-lifecycle-demo-v10.md` §Pre-registered
@@ -34,22 +34,22 @@ import {
   ROUTES,
   UNITS,
 } from '../src/exemplar.js';
-import { stageNeeds } from '../src/needs.js';
+import { connectNeedsToExperience, stageDiscover } from '../src/needs.js';
 import {
   countByCode,
   ensureEngine,
   mcpFor,
   scopeOfDiagnostic,
   stageBuild,
-  stageFeedback,
   stageIdea,
+  stageIteration,
   stagePlan,
   stageRelease,
   stageSignOff,
   type WalkState,
 } from '../src/stages.js';
 import {
-  generateDevKey,
+  loadDevFixtureKey,
   signBundleExport,
   verifyOffline,
 } from '../src/signing.js';
@@ -66,18 +66,19 @@ describe('spike v10 — the lifecycle demo', () => {
   it('walks one app through seven stages and reports the seven bars', async () => {
     await ensureEngine();
     const ev = new Evidence();
-    const state: WalkState = { agent: mcpFor('ai-agent', 'idea-plan-build') };
+    const state: WalkState = { agent: mcpFor('ai-agent', 'discover-idea-plan-build') };
 
     // ── The walk ───────────────────────────────────────────────────────────
+    const discovery = await stageDiscover(ev, state);
     await stageIdea(ev, state);
+    const needs = await connectNeedsToExperience(ev, state, discovery);
     await stagePlan(ev, state);
-    const needs = await stageNeeds(ev, state);
     await stageBuild(ev, state);
     const { bundleExport } = await stageSignOff(ev, state);
     const human = state.human!;
 
-    // ── Sign-off: the authored signature ───────────────────────────────────
-    const key = await generateDevKey();
+    // ── Sign-off: bundle-signing evidence from shipped INTEGRITY primitives ─
+    const key = await loadDevFixtureKey();
     const signed = await signBundleExport(
       {
         bundleExport,
@@ -152,7 +153,7 @@ describe('spike v10 — the lifecycle demo', () => {
     });
     writeArtifact('stage-5-release.verification.json', { verification, tamperCheck });
 
-    await stageFeedback(ev, state);
+    await stageIteration(ev, state);
 
     // ── Bar 5 — the moat, measured in three parts ──────────────────────────
     const apiProbe = await probeApiSurface();
@@ -201,7 +202,7 @@ describe('spike v10 — the lifecycle demo', () => {
         oldGenerated: 'evidence/bar5-old-generated.surface.json',
         designerEdited: 'evidence/bar5-designer-edited.surface.json',
         newGenerated: 'evidence/bar5-new-generated.surface.json',
-        merged: 'evidence/stage-6-feedback.merged.surface.json',
+        merged: 'evidence/stage-6-iteration.merged.surface.json',
       },
       mergeAttempt: {
         attempted: true,
@@ -227,7 +228,7 @@ describe('spike v10 — the lifecycle demo', () => {
     };
     writeArtifact('bar5-moat-measurement.json', moat);
 
-    // ── The six bars ───────────────────────────────────────────────────────
+    // ── The seven current bars ─────────────────────────────────────────────
 
     // Bar 1 — trace connectivity.
     const traceRebuilt = await human.kernel.rebuildTraceIndex();
@@ -266,11 +267,11 @@ describe('spike v10 — the lifecycle demo', () => {
     const routeClassRefusals = allBeats.filter(
       (b) => b.verb === 'addRoute' && b.outcome === 'refused' && b.actor === 'ai-agent',
     );
-    // Counted, never typed: bar 3's headline states how many times the AI was
-    // told no, and a hardcoded number would go stale the first time a beat moves.
-    const aiRefusals = allBeats.filter((b) => b.outcome === 'refused' && b.actor === 'ai-agent').length;
     const themeRefusal = allBeats.find((b) => b.verb === 'declareTheme' && b.outcome === 'refused');
     const themeAdmission = allBeats.find((b) => b.verb === 'declareTheme' && b.outcome === 'admitted');
+    // Bar 3 counts only its ADR 0152 authority beats. Bar 7 owns the separate
+    // S4.3 Need-adoption refusal and must not rewrite this preregistered result.
+    const authorityRefusals = routeClassRefusals.length + (themeRefusal === undefined ? 0 : 1);
     const legible = (b: { message?: string } | undefined, vocab: string, value?: string): boolean =>
       b?.message !== undefined
       && b.message.includes(vocab)
@@ -336,10 +337,12 @@ describe('spike v10 — the lifecycle demo', () => {
     // that returns nothing.
     const needsFiredBefore = needs.before.unserved.length > 0 && needs.before.unjustified.length > 0;
     const needsCleanAfter = needs.after.unserved.length === 0 && needs.after.unjustified.length === 0;
-    const agentWasRefused = needs.refusalMessage.includes('only a human may adopt one');
+    const agentWasRefused = needs.refusalMessage.toLowerCase().includes('only a human may adopt');
     // Coverage is reportable, never blocking (needs-spec S9.3 / S11.4.2): the
-    // eight rows it fired before must not have changed the error count.
-    const coverageNeverBlocked = needs.before.reportErrors === needs.after.reportErrors;
+    // rows it fired before are warnings/infos, never blocking errors.
+    const coverageNeverBlocked =
+      needs.before.blockingErrors === 0
+      && needs.after.blockingErrors === 0;
     const bar7Met = needsFiredBefore && needsCleanAfter && agentWasRefused && coverageNeverBlocked;
 
     // Bar 2 — offline verification.
@@ -399,7 +402,7 @@ describe('spike v10 — the lifecycle demo', () => {
       },
       {
         id: 'BAR 3',
-        title: `The AI was refused ${aiRefusals} times — and kept working`,
+        title: `The AI was refused ${authorityRefusals} times — and kept working`,
         met: bar3Met,
         criterion:
           "The AI is refused every page label and the app's look. Each refusal names what was blocked and who was blocked. The AI carries on building. Nothing slips through. A person then does both, under the very same rule.",
@@ -476,13 +479,13 @@ describe('spike v10 — the lifecycle demo', () => {
       },
       {
         id: 'BAR 7',
-        title: 'Every screen can say why it exists — and the AI could not sign off on that itself',
+        title: 'Every Experience unit can say why it exists — and the AI could not adopt its own proposed Need',
         met: bar7Met,
         qualifier:
-          `Measured twice on the same app. Before anything was linked, ${needs.before.unserved.length} things people said they needed had nothing built for them and ${needs.before.unjustified.length} screens could not say why they existed. `
-          + 'Afterwards, none. The AI was allowed to write down a new need and stopped from approving it — and that stop is in the standard, not in this deployment\'s settings.',
+          `Measured twice on the same app. Before anything was linked, ${needs.before.unserved.length} adopted needs had nothing connected to them and ${needs.before.unjustified.length} Experience units could not say why they existed. `
+          + 'Afterwards, none. The AI was allowed to write down a new Need and stopped from adopting its own proposal — and that stop is in the standard, not in this deployment\'s settings.',
         criterion:
-          'A written record of what people need is checked against the finished app. The check names what is unserved and what is unexplained, it never stops the release, an AI may add to the record but not approve its own addition, and once each screen is linked to what it is for, the check comes back clean.',
+          'A written record of what people need is checked against the Experience. The check names every unserved adopted Need and every unexplained Experience unit, it never stops the release, an AI may add to the record but not adopt its own proposed Need, and once each unit cites what it serves, the check comes back clean.',
         evidence: {
           before: needs.before,
           after: needs.after,
@@ -490,14 +493,14 @@ describe('spike v10 — the lifecycle demo', () => {
           agentSelfApprovalRefusal: needs.refusalMessage,
           citations: needs.citations,
           coverageBlockedNothing: coverageNeverBlocked,
-          errorsBefore: needs.before.reportErrors,
-          errorsAfter: needs.after.reportErrors,
+          blockingErrorsBefore: needs.before.blockingErrors,
+          blockingErrorsAfter: needs.after.blockingErrors,
           corpus: 'spikes/lifecycle-demo-v10/corpus/assistance.needs.json',
           artifacts: [
-            'evidence/stage-2_5-needs.before.coverage.json',
-            'evidence/stage-2_5-needs.after.coverage.json',
-            'evidence/stage-2_5-needs.needs-document.json',
-            'evidence/stage-2_5-needs.experience.json',
+            'evidence/stage-0-discover.needs-document.json',
+            'evidence/stage-1-idea.experience.json',
+            'evidence/stage-1-idea.before.coverage.json',
+            'evidence/stage-1-idea.after.coverage.json',
           ],
           reservedCodesEmitted: Object.keys(needs.before.codes)
             .concat(Object.keys(needs.after.codes))
@@ -538,9 +541,19 @@ describe('spike v10 — the lifecycle demo', () => {
     console.log(bars.map((b) => `  ${b.id} ${b.met ? 'MET    ' : 'NOT MET'} — ${b.title}`).join('\n'));
 
     // ── Assertions ─────────────────────────────────────────────────────────
-    // All six bars are now asserted as claims. Bar 5's apparatus is asserted
+    // All seven bars are asserted as claims. Bar 5's apparatus is asserted
     // too — the probes must still have run and agreed, so a broken measurement
     // fails loudly rather than passing the bar for the wrong reason.
+    expect(ev.stages.map((stage) => stage.stage), 'ADR 0159 A3 lifecycle order').toEqual([
+      'discover',
+      'idea',
+      'plan',
+      'build',
+      'sign-off',
+      'release',
+      'iteration',
+    ]);
+    expect(whole['V10-SCHEMA-UNAVAILABLE'] ?? 0, 'all validators resolve current shipped schema IDs').toBe(0);
     expect(bar2Met, 'BAR 2 — offline signature verification').toBe(true);
     expect(bar3Met, 'BAR 3 — the 0152 beats').toBe(true);
     expect(bar4Met, 'BAR 4 — THEME-ROUTE-CLASS').toBe(true);
@@ -551,7 +564,7 @@ describe('spike v10 — the lifecycle demo', () => {
     // nothing would satisfy "clean after" trivially, and a reserved code
     // slipping out would break the v1 conformance claim (S11.3.4).
     expect(needs.before.codes['NEED-COVERAGE-001'], 'bar 7 — the checker fired before the links existed').toBeGreaterThan(0);
-    expect(needs.before.codes['NEED-COVERAGE-002'], 'bar 7 — unjustified screens were named').toBeGreaterThan(0);
+    expect(needs.before.codes['NEED-COVERAGE-002'], 'bar 7 — unjustified Experience units were named').toBeGreaterThan(0);
     expect(needs.after.codes, 'bar 7 — no NEED-* row survives the links').toEqual({});
     expect(
       Object.keys({ ...needs.before.codes, ...needs.after.codes }).filter((c) => c === 'NEED-STALE-001' || c === 'NEED-ORPHAN-001'),

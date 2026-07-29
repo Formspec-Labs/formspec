@@ -2,7 +2,7 @@
   "name": "formspec-lifecycle-demo-v10",
   "private": true,
   "version": "0.1.0",
-  "description": "Spike v10: ONE Experience-backed app walked idea → plan → build → sign-off → release → feedback, with substrate state, Formspec-native authored signatures, and a clickable walkthrough",
+  "description": "Spike v10: ONE app walked Discover/Needs → Idea/Experience → Plan → Build → Sign-off → Release → Iteration, with substrate state, a bundle-export signature built from shipped INTEGRITY primitives, and a clickable walkthrough",
   "type": "module",
   "scripts": {
     "spike": "vitest run",

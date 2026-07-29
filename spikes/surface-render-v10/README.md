@@ -24,7 +24,9 @@ Bars were pre-registered before any code: [`formspec/thoughts/spikes/2026-07-27-
 npm install
 npm run dev        # http://localhost:4173  — /apply, /certify, /receipt/RA-2026-0412, /queue
 npm run build && npm run preview   # static build, http://localhost:4174
+npm run probe      # second terminal; retakes current JSON + screenshot evidence
 npm run typecheck
+npm run test:unit
 npm run gap-ledger # rewrites evidence/gap-ledger.json from src/gaps.ts
 ```
 
@@ -33,35 +35,37 @@ into this directory, so the bytes the browser verifies are the bytes committed t
 
 ### Reproducibility — what these numbers are pinned to
 
-**The input changed, on purpose.** Fixing R2 meant fixing the exemplar bundle: the
-Theme now authors `color.primary` / `color.dark.primary` instead of the undeclared
-`color.accent`, and the App Manifest now names the Response Actions document that
-`addAction` had been minting and `exportBundle` had been dropping. So the lifecycle
-spike was re-run (`cd ../lifecycle-demo-v10&& npm run spike`) and every digest below
-moved. The numbers in the table are the current ones; the pre-fix digests are recorded
-here so a reader can tell which evidence belongs to which export.
+**The input changed, on purpose.** The lifecycle refresh aligns the exemplar with
+App Manifest 2.4, Surface 0.2 and Registry 1.1, including the manifest's explicit
+`entrySurface`. Its spike-only signature now uses a fixed RFC 8032 test key, so two
+complete lifecycle runs produce identical stage-4 bytes. The current browser result
+is separate from the frozen historical measurement; see
+[`evidence/QUARANTINED-SIGNATURE-EVIDENCE.md`](evidence/QUARANTINED-SIGNATURE-EVIDENCE.md).
 
 | | |
 |---|---|
 | Input bundle export | `../lifecycle-demo-v10/evidence/stage-4-signoff.bundle-export.json` |
-| — raw file SHA-256 | `019b2f58cc05d5eedf6dfaf87408227abd28f71e0f3ca26201d70ff38e819069` (was `ac4d783d…`) |
+| — raw file SHA-256 | `54d63131dbe575e7abaf3ead61dffb29911ed999603201be25c9822690fe366a` |
 | Input authored signature | `../lifecycle-demo-v10/evidence/stage-4-signoff.authored-signature.json` |
-| — raw file SHA-256 | `0493b8231de95c49351c76d5ab3771d1012ff1613d5e7154726f315942ccdfc5` (was `23b1a1ad…`) |
-| Signed-payload digest (domain-framed JCS, recomputed) | `a6e74d8192dc499985a00a64e6f8cc384efb579b72b5a09b000b7b464603cb37` (was `cb8e6db7…`) |
+| — raw file SHA-256 | `f83bae49519a850388d95d91f398917d715cdd654cf71ec9e856a00c37f2a10d` |
+| Input method registry | `../../registries/signature-method-registry.json` |
+| — raw file SHA-256 | `2db63aa7822ac97c7f2fa648a0ea2838511a4571dc504e9c2bef3d0436994e3c` |
+| Signed-payload digest (domain-framed JCS, recomputed) | `006a885e4ee1fc85a4367f7e49404388a5d1ca0041c42895f4557426ea040e3d` |
 | — as claimed in the signature record | identical ⇒ `digestMatches: true`, verdict `verified` |
-| Falsification digest (`#7A1F3D` → `#7A1F3E` in the Theme) | `0f00c49a5205365110cd6fc6d052cdbc133fe811598091840a214c6de54df591`, verdict `failed` |
+| Falsification digest (`#7A1F3D` → `#7A1F3E` in the Theme) | `f69bbf88d932ef8796a7bbbd7eb6ce8df7e8dd5bdecb379141f034cade9bc499`, verdict `failed` |
 | Method URI, from the COSE protected header | `urn:formspec:sig-method:ed25519-cose-sign1@1` |
 | Method registry / adapter | `1.1.0` / `urn:integrity-stack:adapter:webcrypto@1` |
 
-The two raw-file hashes are the reproducibility anchor: `shasum -a 256` those paths, and
-if they match, every number in `evidence/` was taken against the bytes you have. The
-signed-payload digest is not enough on its own — it is computed over the parsed JSON, so
-it is insensitive to whitespace the file could have been reformatted with.
+The three raw-file hashes are the reproducibility anchor: `shasum -a 256` those paths, and
+if they match, `evidence/signature-verification-current.json` was taken against the
+bytes you have. The signed-payload digest is not enough on its own — it is computed
+over parsed JSON, so it is insensitive to whitespace.
 
-Every number in `evidence/` is re-taken by `node scripts/probe.mjs` against the static
-build, and the signature numbers come from the **running app's own**
+Current JSON and screenshot evidence is re-taken by `node scripts/probe.mjs` against
+the static build. Signature numbers come from the **running app's own**
 `verifyBundleSignature` via `window.__spikeProbe` rather than from a second Node
-implementation that could agree by luck.
+implementation that could agree by luck. Named `before` measurements and
+`signature-verification.json` remain unchanged as spike history.
 
 The input remains a regenerated artifact rather than a frozen one. A future regeneration
 that changes the export changes the digest, and `evidence/` should be re-taken rather
@@ -69,8 +73,8 @@ than trusted.
 
 ## One scoping decision, stated
 
-The lifecycle spike also produced a stage-6 merged Surface
-(`stage-6-feedback.merged.surface.json`) that adds a fifth route, `/apply/money`. This
+The lifecycle spike also produced a stage-6 Iteration merged Surface
+(`stage-6-iteration.merged.surface.json`) that adds a fifth route, `/apply/money`. This
 spike renders the **stage-4 signed export only**, because the story it is testing is
 *the bundle a person signed is the app people see* — and the stage-6 merge is not
 inside the signature. Rendering it would have added a route to a screenshot at the cost
@@ -136,7 +140,7 @@ pre-verification label, so an unverified bundle does not get to name the tab eit
 The signature is checked in the browser with the shipped COSE + WebCrypto path
 **before shell core or the React binding loads and before anything
 bundle-derived renders**. The verdict is in the chrome on every route.
-`evidence/route-walk.json`, `evidence/signature-verification.json`.
+`evidence/route-walk.json`, `evidence/signature-verification-current.json`.
 
 Two strings on screen are *not* from the export, and both are ledger entries rather
 than exceptions: the navigation's group labels, because `SurfaceDocument.title` is
@@ -538,7 +542,9 @@ scripts/
 evidence/
   gap-ledger.json                            the ledger, with generated disposition counts
   route-walk.json                            four routes as rendered
-  signature-verification.json                clean + tampered verdicts, from the app's own verifier
+  signature-verification-current.json        current clean + tampered browser verdicts
+  signature-verification.json                frozen historical browser verdicts; never regenerated
+  QUARANTINED-SIGNATURE-EVIDENCE.md           exact Git objects and hashes for the frozen run
   r2-theme-reaches-but-paints-nothing.json   R2's falsification — kept as the BEFORE record
   r2-theme-reaches-and-paints.json           R2 after the fix, with before/after
   r3-theme-boundary-probe.json               R3 across all four routes, workaround deleted

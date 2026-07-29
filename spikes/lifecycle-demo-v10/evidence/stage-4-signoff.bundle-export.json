@@ -1,6 +1,6 @@
 {
   "manifest": {
-    "$formspecBundle": "2.0",
+    "$formspecBundle": "2.4",
     "version": "1.0.0",
     "id": "https://benefits.example.gov/apps/assistance",
     "title": "Rent assistance application",
@@ -36,6 +36,7 @@
         "version": "1.0.0"
       }
     ],
+    "entrySurface": "https://benefits.example.gov/apps/assistance/surfaces/respondent",
     "modules": [
       {
         "id": "x-formspec-tenant-chrome",
@@ -46,7 +47,7 @@
   },
   "documents": {
     "https://benefits.example.gov/apps/assistance/surfaces/respondent": {
-      "$formspecSurface": "0.1",
+      "$formspecSurface": "0.2",
       "id": "respondent",
       "routes": [
         {
@@ -169,7 +170,7 @@
       "entry": "apply"
     },
     "https://benefits.example.gov/apps/assistance/surfaces/staff": {
-      "$formspecSurface": "0.1",
+      "$formspecSurface": "0.2",
       "id": "staff",
       "routes": [
         {
@@ -350,7 +351,7 @@
       }
     },
     "urn:formspec:doc:1feb5fb90254133a:registry": {
-      "$formspecRegistry": "1.0",
+      "$formspecRegistry": "1.1",
       "publisher": {
         "name": "Rent assistance application"
       },

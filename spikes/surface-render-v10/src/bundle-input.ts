@@ -7,6 +7,7 @@
  */
 import bundleRaw from '../../lifecycle-demo-v10/evidence/stage-4-signoff.bundle-export.json?raw';
 import signatureRaw from '../../lifecycle-demo-v10/evidence/stage-4-signoff.authored-signature.json?raw';
+import methodRegistryRaw from '../../../registries/signature-method-registry.json?raw';
 import type { BundleExport } from '@formspec-org/surface';
 
 /** Where each input came from. Surfaced in the UI so "read in place" is checkable. */
@@ -14,6 +15,13 @@ export const INPUT_PATHS = {
   bundle: 'formspec/spikes/lifecycle-demo-v10/evidence/stage-4-signoff.bundle-export.json',
   signature: 'formspec/spikes/lifecycle-demo-v10/evidence/stage-4-signoff.authored-signature.json',
   methodRegistry: 'formspec/registries/signature-method-registry.json',
+} as const;
+
+/** Exact UTF-8 input text embedded in the static build, exposed only to the evidence probe. */
+export const RAW_INPUTS = {
+  bundle: bundleRaw,
+  signature: signatureRaw,
+  methodRegistry: methodRegistryRaw,
 } as const;
 
 export interface AuthoredSignatureFile {

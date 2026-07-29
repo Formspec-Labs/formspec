@@ -1,9 +1,9 @@
 /**
- * @filedesc The six lifecycle stages, in order, over ONE exemplar.
+ * @filedesc The six stages after Discover, in order, over ONE exemplar.
  *
- * ADR 0159 §The lifecycle thread names six stages and carries evidence at one
- * of them. This module walks all six on the ADR 0152 §9 acceptance bundle and
- * records what the substrate actually holds after each.
+ * ADR 0159 Amendment A3 names seven stages. `needs.ts` owns the first,
+ * Discover / Needs; this module walks Idea / Experience through Iteration on
+ * the ADR 0152 §9 acceptance bundle and records what the substrate holds.
  *
  * ## The actor handoff, and why it is shaped this way
  *
@@ -32,12 +32,12 @@ import {
   contextFor,
   realEvidenceSchemaValidators,
   realSchemaValidators,
+  schemaIdForArtifact,
   writeArtifact,
   type Evidence,
 } from './harness.js';
 import {
   APP_TITLE,
-  BRIEF,
   BRIEF_TEXT,
   BUNDLE_ID,
   CHANGE_REQUEST,
@@ -383,7 +383,7 @@ export interface WalkState {
   policy?: UiGraphPolicyDocument;
   baseline?: AuthoredBaseline;
   /**
-   * The Needs Document after stage 2.5, with the agent's proposal adopted.
+   * The Needs Document after Discover, with the agent's proposal adopted.
    * Carried so the handoff replay can re-pair it and re-cite the units: a
    * replay that dropped the citations would hand the person a lookalike app
    * that had forgotten why any of its screens exist.
@@ -394,40 +394,8 @@ export interface WalkState {
 export async function stageIdea(ev: Evidence, state: WalkState): Promise<void> {
   ev.openStage(
     'idea',
-    'Someone describes the job in four sentences. Before a single question exists, the AI writes down who is involved and what each person is trying to get done — one entry per sentence.',
+    'The AI reads the adopted Needs and turns purpose into an Experience: four units that name who is involved and what each person is trying to get done. No form question or page exists yet.',
   );
-
-  const created = await state.agent.wireframeFromBrief({
-    bundleId: BUNDLE_ID,
-    version: '1.0.0',
-    title: APP_TITLE,
-    brief: BRIEF_TEXT,
-    surfaceUrl: SURFACE_URL,
-    surfaceVersion: '1.0.0',
-  });
-  ev.beat({
-    actor: 'ai-agent',
-    verb: 'wireframeFromBrief',
-    intent: 'Start a new app from what the person asked for.',
-    outcome: created.ok ? 'admitted' : 'refused',
-    ...(created.ok ? {} : { message: created.error.message }),
-    details: { bundleId: BUNDLE_ID, briefLines: BRIEF.length },
-  });
-  if (!created.ok) throw new Error(`wireframeFromBrief refused: ${created.error.message}`);
-
-  ev.beat({
-    actor: 'system',
-    verb: 'wireframeFromBrief',
-    intent: 'Keep the request itself, so later steps can point back at the words someone wrote.',
-    outcome: 'recorded',
-    message:
-      'It does not. The request is read, used once, and thrown away — nothing stores the original words. What survives is the four journey entries it produced. A gap we found and reported, rather than papered over.',
-    details: {
-      finding: 'no-brief-persistence',
-      technical:
-        '`wireframeFromBrief` accepts the brief as an argument and discards it — it forwards only id, version and title to `createBundle`, and no verb persists the brief text. It survives into the substrate only as the units it produced.',
-    },
-  });
 
   for (const unit of UNITS) {
     const added = await state.agent.addExperienceUnit({
@@ -440,7 +408,7 @@ export async function stageIdea(ev: Evidence, state: WalkState): Promise<void> {
     ev.beat({
       actor: 'ai-agent',
       verb: 'addExperienceUnit',
-      intent: `Write down one step of the journey: "${unit.title}" — this is for the ${unit.actorRef}.`,
+      intent: `Write down one Experience unit: "${unit.title}" — this is for the ${unit.actorRef}.`,
       outcome: added.ok ? 'admitted' : 'refused',
       ...(added.ok ? {} : { message: added.error.message }),
       details: { unitId: unit.unitId, kind: unit.kind, actorRef: unit.actorRef, taskRefs: unit.taskRefs, fromBrief: unit.fromBrief },
@@ -1050,7 +1018,7 @@ export async function stageRelease(ev: Evidence, state: WalkState): Promise<Rele
 
   const result = await human.produceAppGraphValidationReport({
     source: `lifecycle-v10://${BUNDLE_ID}/app-manifest`,
-    schemaId: 'https://formspec.org/schemas/bundleManifest/2.3',
+    schemaId: schemaIdForArtifact('appManifest'),
     schemaValidators: realSchemaValidators(),
     evidenceSchemaValidators: realEvidenceSchemaValidators(),
     uiGraphPolicies: policies.map((document, i) => ({
@@ -1086,6 +1054,11 @@ export async function stageRelease(ev: Evidence, state: WalkState): Promise<Rele
   const crossArtifact = report.report.phases.find((p) => p.phase === 'cross-artifact');
   ev.closeStage({
     crossArtifactStatus: crossArtifact?.status ?? 'absent',
+    schemaIds: {
+      appManifest: schemaIdForArtifact('appManifest'),
+      surface: schemaIdForArtifact('surface'),
+      registry: schemaIdForArtifact('registry'),
+    },
     diagnosticCounts: countByCode(report.report.diagnostics.filter((d) => d.severity === 'error')),
     themeRouteClassFires: themeRouteClass.length,
     artifact: 'evidence/stage-5-release.validation-report.json',
@@ -1107,12 +1080,12 @@ export function scopeOfDiagnostic(d: { code: string; primarySource?: { artifactS
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Stage 6 — FEEDBACK
+// Stage 6 — ITERATION
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function stageFeedback(ev: Evidence, state: WalkState): Promise<void> {
+export async function stageIteration(ev: Evidence, state: WalkState): Promise<void> {
   ev.openStage(
-    'feedback',
+    'iteration',
     'Two weeks in, caseworkers report a missing question. The request grows by one line, and the AI rebuilds the app from it. Only one question matters here: are the two changes the designer made by hand still in the app afterwards?',
   );
 
@@ -1126,8 +1099,9 @@ export async function stageFeedback(ev: Evidence, state: WalkState): Promise<voi
 
   // Regeneration: a fresh authoring pass over the AMENDED substrate. This is
   // what the GENERATION cross-cut does — project substrate into a starting-point
-  // artifact at the target ring. Nothing here consults the designer's edits,
-  // because nothing in the substrate offers a way to.
+  // artifact at the target ring. This fresh generation pass does not consult
+  // the designer's edits; the regeneration merge immediately below compares
+  // old-generated, designer-edited, and new-generated to preserve them.
   const regenerator = mcpFor('ai-agent', 'regeneration');
   await authorBaseline(regenerator, {
     units: [...UNITS, CHANGE_REQUEST.addsUnit],
@@ -1137,7 +1111,7 @@ export async function stageFeedback(ev: Evidence, state: WalkState): Promise<voi
   });
   const regenerated = await surfaceOf(regenerator);
   state.newGeneratedSurface = structuredClone(regenerated);
-  writeArtifact('stage-6-feedback.regenerated.surface.json', regenerated);
+  writeArtifact('stage-6-iteration.regenerated.surface.json', regenerated);
   writeArtifact('bar5-new-generated.surface.json', regenerated);
 
   ev.beat({
@@ -1166,7 +1140,7 @@ export async function stageFeedback(ev: Evidence, state: WalkState): Promise<voi
   });
   state.merge = merge;
   state.mergedSurface = structuredClone(merge.merged);
-  writeArtifact('stage-6-feedback.merged.surface.json', merge.merged);
+  writeArtifact('stage-6-iteration.merged.surface.json', merge.merged);
   writeArtifact('bar5-merge-report.json', merge.report);
 
   ev.beat({
@@ -1193,8 +1167,8 @@ export async function stageFeedback(ev: Evidence, state: WalkState): Promise<voi
     },
     mergeEntryPoint: merge.entryPoint,
     artifacts: [
-      'evidence/stage-6-feedback.regenerated.surface.json',
-      'evidence/stage-6-feedback.merged.surface.json',
+      'evidence/stage-6-iteration.regenerated.surface.json',
+      'evidence/stage-6-iteration.merged.surface.json',
       'evidence/bar5-merge-report.json',
     ],
   });

@@ -1,13 +1,11 @@
 /**
  * @filedesc Spike v10 harness — output-root guard, real Ajv over the shipped
- * schema corpus, the one posture declaration all six stages share, and the
+ * schema corpus, the one posture declaration all seven stages share, and the
  * evidence recorder the walkthrough is generated from.
  *
- * Carried from v9 by import where the shape is identical (`realSchemaValidators`
- * is v9's E4 pattern verbatim); everything else is new because v10 measures a
- * different thing. v9 measured what a walled-off author could close on twelve
- * exemplars; v10 walks ONE exemplar through six lifecycle stages and measures
- * what the substrate carries between them.
+ * The output-root guard and real-Ajv corpus loading descend from v9's E4
+ * pattern. v10 adds current-schema discovery because it measures a different
+ * thing: ONE exemplar moving through seven lifecycle stages.
  */
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -39,18 +37,20 @@ const SCHEMAS_DIR = resolve(SPIKE_ROOT, '..', '..', 'schemas');
 // Real Ajv over the shipped schema corpus (v9's E4 pattern — no stubs)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SCHEMA_ID_BY_KIND: Record<string, string> = {
-  appManifest: 'https://formspec.org/schemas/bundleManifest/2.3',
-  definition: 'https://formspec.org/schemas/definition/1.0',
-  surface: 'https://formspec.org/schemas/surface/0.1',
-  registry: 'https://formspec.org/schemas/registry/v1.0/registry.json',
-  theme: 'https://formspec.org/schemas/theme/1.0',
-  dataSources: 'https://formspec.org/schemas/dataSources/1.0',
-  responseActions: 'https://formspec.org/schemas/responseActions/1.0',
-  experience: 'https://formspec.org/schemas/experience/1.0',
+const SCHEMA_FILE_BY_KIND: Record<string, string> = {
+  appManifest: 'bundle-manifest.schema.json',
+  definition: 'definition.schema.json',
+  surface: 'surface.schema.json',
+  registry: 'registry.schema.json',
+  theme: 'theme.schema.json',
+  dataSources: 'data-sources.schema.json',
+  responseActions: 'response-actions.schema.json',
+  experience: 'experience.schema.json',
+  needs: 'needs.schema.json',
 };
 
 let ajvSingleton: Ajv2020 | undefined;
+const schemaIdByFile = new Map<string, string>();
 
 export function ajv(): Ajv2020 {
   if (ajvSingleton) return ajvSingleton;
@@ -59,6 +59,7 @@ export function ajv(): Ajv2020 {
   for (const file of readdirSync(SCHEMAS_DIR).filter((name) => name.endsWith('.json'))) {
     const schema = JSON.parse(readFileSync(resolve(SCHEMAS_DIR, file), 'utf8')) as AnySchemaObject;
     if (typeof schema.$id !== 'string') continue;
+    schemaIdByFile.set(file, schema.$id);
     instance.addSchema(schema, schema.$id);
   }
   ajvSingleton = instance;
@@ -76,6 +77,24 @@ function compiled(schemaId: string): ValidateFunction | undefined {
 export interface SchemaCheck {
   ok: boolean;
   issues: Array<{ code: string; message: string; path?: string }>;
+}
+
+/**
+ * Returns the current `$id` from the shipped schema file.
+ *
+ * The demo used to repeat versioned URLs here and at each validation call.
+ * When Bundle Manifest, Surface, and Registry advanced, those copies stayed on
+ * 2.3, 0.1, and 1.0 and Ajv correctly reported all three schemas unavailable.
+ * Reading the shipped files makes the measurement follow the corpus it claims
+ * to validate, while the filenames remain the stable artifact-kind mapping.
+ */
+export function schemaIdForArtifact(artifactKind: string): string | undefined {
+  ajv();
+  const file = SCHEMA_FILE_BY_KIND[artifactKind];
+  if (file === undefined) return undefined;
+  const schemaId = schemaIdByFile.get(file);
+  if (schemaId === undefined) throw new Error(`Shipped schema '${file}' has no $id.`);
+  return schemaId;
 }
 
 function outcomeFor(schemaId: string | undefined, document: unknown): SchemaCheck {
@@ -96,8 +115,20 @@ function outcomeFor(schemaId: string | undefined, document: unknown): SchemaChec
 }
 
 export function realSchemaValidators() {
-  return (input: { artifactKind: string; schemaId?: string; document: unknown }) =>
-    outcomeFor(input.schemaId ?? SCHEMA_ID_BY_KIND[input.artifactKind], input.document);
+  return (input: { artifactKind: string; schemaId?: string; document: unknown }) => {
+    const requested = input.schemaId;
+    const current = schemaIdForArtifact(input.artifactKind);
+    if (requested !== undefined && current !== undefined && requested !== current) {
+      return {
+        ok: false,
+        issues: [{
+          code: 'V10-SCHEMA-PIN-MISMATCH',
+          message: `${input.artifactKind} requested ${requested}; the shipped schema is ${current}.`,
+        }],
+      };
+    }
+    return outcomeFor(requested ?? current, input.document);
+  };
 }
 
 export function realEvidenceSchemaValidators() {
@@ -188,7 +219,7 @@ export interface Beat {
   details?: Record<string, unknown>;
 }
 
-export type StageName = 'idea' | 'plan' | 'needs' | 'build' | 'sign-off' | 'release' | 'feedback';
+export type StageName = 'discover' | 'idea' | 'plan' | 'build' | 'sign-off' | 'release' | 'iteration';
 
 export interface StageRecord {
   stage: StageName;
@@ -244,6 +275,30 @@ export class Evidence {
     return beat;
   }
 
+  /**
+   * Adds a measured beat to a stage that has just closed.
+   *
+   * The Discover → Idea seam needs this once: coverage can only be measured
+   * after Experience units exist, while the measurement must happen before
+   * Plan creates any Definition or Surface. Keeping the beat on Idea preserves
+   * the artifact order without opening a fake eighth stage.
+   */
+  appendBeat(stage: StageName, b: Omit<Beat, 'seq' | 'stage'>): Beat {
+    if (this.current) throw new Error('appendBeat while another stage is open');
+    const target = this.stages.find((record) => record.stage === stage);
+    if (!target) throw new Error(`appendBeat could not find stage '${stage}'`);
+    const beat: Beat = { seq: ++this.seq, stage, ...b };
+    target.beats.push(beat);
+    return beat;
+  }
+
+  mergeStageState(stage: StageName, patch: Record<string, unknown>): void {
+    if (this.current) throw new Error('mergeStageState while another stage is open');
+    const target = this.stages.find((record) => record.stage === stage);
+    if (!target) throw new Error(`mergeStageState could not find stage '${stage}'`);
+    target.substrateState = { ...target.substrateState, ...patch };
+  }
+
   bar(result: BarResult): void {
     this.bars.push(result);
   }
@@ -253,7 +308,7 @@ export class Evidence {
     const doc = {
       $spike: 'formspec-lifecycle-demo-v10',
       exemplar: extra.exemplar,
-      generatedAt: '2026-07-27T09:00:00Z',
+      measurementDate: '2026-07-29',
       stages: this.stages,
       bars: this.bars,
       ...extra,

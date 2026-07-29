@@ -5,9 +5,9 @@
       "slot": "app",
       "artifactKind": "appManifest",
       "status": "loaded",
-      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.4",
       "document": {
-        "$formspecBundle": "2.0",
+        "$formspecBundle": "2.4",
         "version": "1.0.0",
         "id": "https://benefits.example.gov/apps/assistance",
         "title": "Rent assistance application",
@@ -43,6 +43,7 @@
             "version": "1.0.0"
           }
         ],
+        "entrySurface": "https://benefits.example.gov/apps/assistance/surfaces/respondent",
         "modules": [
           {
             "id": "x-formspec-tenant-chrome",
@@ -281,7 +282,7 @@
           },
           "status": "loaded",
           "document": {
-            "$formspecRegistry": "1.0",
+            "$formspecRegistry": "1.1",
             "publisher": {
               "name": "Rent assistance application"
             },
@@ -423,7 +424,7 @@
           },
           "status": "loaded",
           "document": {
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "respondent",
             "routes": [
               {
@@ -561,7 +562,7 @@
           },
           "status": "loaded",
           "document": {
-            "$formspecSurface": "0.1",
+            "$formspecSurface": "0.2",
             "id": "staff",
             "routes": [
               {
@@ -978,7 +979,7 @@
       {
         "slot": "app",
         "artifactKind": "appManifest",
-        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.4",
         "status": "completed",
         "ok": true,
         "diagnostics": []
@@ -1173,7 +1174,7 @@
         "severity": "warning",
         "phase": "cross-artifact",
         "origin": "app-graph-validator",
-        "message": "Surface route 'certify' transition trigger 'submit' resolves, but no definition-form slot on that route or an embedded route binds a Definition targeted by the matching Response Action.",
+        "message": "Surface route 'certify' transition trigger 'submit' resolves, but no definition-form or Registry-declared module-widget source on that route or an embedded route can produce the matching action.",
         "primarySource": {
           "artifactSlot": "surfaces[0]",
           "artifactKind": "surface",
@@ -1204,6 +1205,7 @@
           ],
           "triggerSourceSlotTypes": [
             "definition-form",
+            "module-widget",
             "embed-route"
           ]
         }

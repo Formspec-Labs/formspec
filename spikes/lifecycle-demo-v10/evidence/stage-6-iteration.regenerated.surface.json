@@ -1,20 +1,19 @@
 {
-  "$formspecSurface": "0.1",
+  "$formspecSurface": "0.2",
   "id": "respondent",
-  "entry": "apply",
   "routes": [
     {
       "id": "apply",
       "path": "/apply",
-      "title": "About your household",
-      "transitions": [
-        {
-          "trigger": "submit",
-          "to": "applyMoney"
-        }
-      ],
-      "routeClass": "intake",
       "slots": [
+        {
+          "id": "applyForm",
+          "slotType": "definition-form",
+          "binding": {
+            "definitionRef": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
+          },
+          "title": "Application form"
+        },
         {
           "id": "applyJourney",
           "slotType": "experience-unit",
@@ -30,36 +29,19 @@
             "moduleId": "x-formspec-tenant-chrome",
             "widgetName": "x-intake-banner"
           }
-        },
+        }
+      ],
+      "title": "About your household",
+      "transitions": [
         {
-          "id": "applyForm",
-          "slotType": "definition-form",
-          "binding": {
-            "definitionRef": "https://benefits.example.gov/apps/assistance/definitions/rent-assistance"
-          },
-          "title": "About your household"
-        },
-        {
-          "id": "applyReassurance",
-          "slotType": "static-content",
-          "binding": {
-            "kind": "text",
-            "content": "You can apply even if you have already received help this year."
-          },
-          "title": "Before you start"
+          "trigger": "submit",
+          "to": "applyMoney"
         }
       ]
     },
     {
       "id": "applyMoney",
       "path": "/apply/money",
-      "title": "Rent and income",
-      "transitions": [
-        {
-          "trigger": "submit",
-          "to": "certify"
-        }
-      ],
       "slots": [
         {
           "id": "moneyForm",
@@ -77,22 +59,18 @@
             "widgetName": "x-intake-banner"
           }
         }
+      ],
+      "title": "Rent and income",
+      "transitions": [
+        {
+          "trigger": "submit",
+          "to": "certify"
+        }
       ]
     },
     {
       "id": "certify",
       "path": "/certify",
-      "title": "Sign your declaration",
-      "transitions": [
-        {
-          "trigger": "submit",
-          "to": "receipt",
-          "params": {
-            "caseRef": "caseRef"
-          }
-        }
-      ],
-      "routeClass": "ceremony",
       "slots": [
         {
           "id": "certifyJourney",
@@ -112,21 +90,21 @@
             "widgetName": "x-ceremony-frame"
           }
         }
+      ],
+      "title": "Sign your declaration",
+      "transitions": [
+        {
+          "trigger": "submit",
+          "to": "receipt",
+          "params": {
+            "caseRef": "caseRef"
+          }
+        }
       ]
     },
     {
       "id": "receipt",
       "path": "/receipt/{caseRef}",
-      "params": [
-        {
-          "name": "caseRef",
-          "type": "string",
-          "description": "Reference printed on the submitted application receipt.",
-          "example": "RA-2026-0412"
-        }
-      ],
-      "title": "Your receipt",
-      "routeClass": "proof",
       "slots": [
         {
           "id": "receiptJourney",
@@ -146,7 +124,17 @@
             "widgetName": "x-receipt-panel"
           }
         }
-      ]
+      ],
+      "params": [
+        {
+          "name": "caseRef",
+          "type": "string",
+          "description": "Reference printed on the submitted application receipt.",
+          "example": "RA-2026-0412"
+        }
+      ],
+      "title": "Your receipt"
     }
-  ]
+  ],
+  "entry": "apply"
 }

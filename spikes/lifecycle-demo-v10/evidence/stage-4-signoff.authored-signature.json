@@ -3,7 +3,7 @@
     "signatureId": "sig-lifecycle-v10-ceremony-v10-0001",
     "documentId": "rentAssistanceRelease",
     "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1",
-    "signatureValue": "0oRYSKMBJwRQKOTCHo4OfkKB7beIlngbGzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WECrrXA6zSGolm49jQGBk3V+SBx8rWL8dRcBMC2KBUp1YLQRWB5jkOsmomf898/95d0TzdPOUsgCN+pqMs0UdXAG",
+    "signatureValue": "0oRYSKMBJwRQvNHVa1hF8h5Uzlt2T8HVUjoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEBVAfFbZeONH1CVQzMpGBMhD4NSW0rq3SP6+p5KNXs+d8qqff/NrCXJH8QA5WeTXG3O38/mYzVQwxDdXbgdJrAC",
     "signerId": "product-owner",
     "signerName": "R. Okonjo, Product Owner",
     "consentAccepted": true,
@@ -13,21 +13,21 @@
     "signedPayload": {
       "canonicalization": "formspec-spike-v10-bundle-export-signing-v1",
       "digestAlgorithm": "sha-256",
-      "digest": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
+      "digest": "006a885e4ee1fc85a4367f7e49404388a5d1ca0041c42895f4557426ea040e3d",
       "responseId": "https://benefits.example.gov/apps/assistance",
       "definitionUrl": "https://benefits.example.gov/apps/assistance",
       "definitionVersion": "1.0.0",
       "signedAt": "2026-07-27T09:30:00Z",
       "signingIntent": "urn:formspec:spike-v10:signing-intent:release-sign-off:v1"
     },
-    "documentHash": "e36778d08a6472ca8ac6fa26f8168043c9b2968816072b8a860b02a2506f8329",
+    "documentHash": "006a885e4ee1fc85a4367f7e49404388a5d1ca0041c42895f4557426ea040e3d",
     "documentHashAlgorithm": "sha-256",
     "signatureProvider": "urn:formspec:spike-v10:signature:provider:in-repo-ed25519",
     "ceremonyId": "ceremony-v10-0001"
   },
-  "coseSign1Base64": "0oRYSKMBJwRQKOTCHo4OfkKB7beIlngbGzoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WECrrXA6zSGolm49jQGBk3V+SBx8rWL8dRcBMC2KBUp1YLQRWB5jkOsmomf898/95d0TzdPOUsgCN+pqMs0UdXAG",
-  "publicKeyBase64": "C/RYdgiYu1FmuL8S7nLLO6hJOy6imv7aFh+RZBjhDYY=",
-  "kidBase64": "KOTCHo4OfkKB7beIlngbGw==",
+  "coseSign1Base64": "0oRYSKMBJwRQvNHVa1hF8h5Uzlt2T8HVUjoAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEBVAfFbZeONH1CVQzMpGBMhD4NSW0rq3SP6+p5KNXs+d8qqff/NrCXJH8QA5WeTXG3O38/mYzVQwxDdXbgdJrAC",
+  "publicKeyBase64": "11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+  "kidBase64": "vNHVa1hF8h5Uzlt2T8HVUg==",
   "schemaValid": false,
   "schemaIssues": [
     {

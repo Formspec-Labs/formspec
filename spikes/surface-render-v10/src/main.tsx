@@ -19,8 +19,9 @@ import {
 import { bundleExport } from './bundle-input.ts';
 import { isTrustworthy, verifyBundleSignature, type VerificationOutcome } from './verify.ts';
 // Spike scaffolding: hands `scripts/probe.mjs` the app's own verification path,
-// so evidence/signature-verification.json reports what the browser did rather
-// than what a second Node implementation computed. Gap ledger `shell-visual-design`.
+// so evidence/signature-verification-current.json reports what the browser did
+// rather than what a second Node implementation computed. Gap ledger
+// `shell-visual-design`.
 import './probe-hooks.ts';
 
 type BootState =

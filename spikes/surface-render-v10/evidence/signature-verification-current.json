@@ -1,0 +1,97 @@
+{
+  "title": "surface-render-v10 — current browser signature verification",
+  "description": "The current signed bundle export verified in Chromium with the shipped COSE + WebCrypto path, before shell core or the React binding loads and before anything bundle-derived renders. Numbers came from the running app's own verifyBundleSignature via window.__spikeProbe, not a second Node verifier. This remains quarantined spike evidence, not a production signing-profile conformance vector.",
+  "capturedFrom": "http://localhost:4174/apply (vite preview of the static build)",
+  "inputsRead": [
+    "formspec/spikes/lifecycle-demo-v10/evidence/stage-4-signoff.bundle-export.json",
+    "formspec/spikes/lifecycle-demo-v10/evidence/stage-4-signoff.authored-signature.json",
+    "formspec/registries/signature-method-registry.json"
+  ],
+  "inputRawSha256": {
+    "bundle": "54d63131dbe575e7abaf3ead61dffb29911ed999603201be25c9822690fe366a",
+    "signature": "f83bae49519a850388d95d91f398917d715cdd654cf71ec9e856a00c37f2a10d",
+    "methodRegistry": "2db63aa7822ac97c7f2fa648a0ea2838511a4571dc504e9c2bef3d0436994e3c"
+  },
+  "primitivesUsed": {
+    "canonicalization": "canonicalize (RFC 8785 JCS), domain-framed formspec.spike-v10.bundle-export.signed-payload.v1",
+    "coseHelpers": "@integrity-stack/cose — decodeCoseSign1WithMethodUri",
+    "verifier": "@integrity-stack/signature-adapter-webcrypto — WebCryptoVerifier",
+    "methodRegistry": "formspec/registries/signature-method-registry.json v1.1.0",
+    "note": "All shipped, all unchanged. Ed25519 verified natively in Chromium WebCrypto. The only new code is the caller."
+  },
+  "cleanExport": {
+    "signatureResult": "verified",
+    "adapterResult": "verified",
+    "digestMatches": true,
+    "trustworthy": true,
+    "recomputedDigest": "006a885e4ee1fc85a4367f7e49404388a5d1ca0041c42895f4557426ea040e3d",
+    "claimedDigest": "006a885e4ee1fc85a4367f7e49404388a5d1ca0041c42895f4557426ea040e3d",
+    "methodUriFromCoseProtectedHeader": "urn:formspec:sig-method:ed25519-cose-sign1@1",
+    "adapter": "urn:integrity-stack:adapter:webcrypto@1@0.1.0",
+    "methodRegistryVersion": "1.1.0",
+    "signer": "R. Okonjo, Product Owner",
+    "affirmation": "I have reviewed this release and I stand behind what each page in it claims to be."
+  },
+  "falsification": {
+    "what": "One character altered in the export: documents[theme].tokens['color.primary'] #7A1F3D -> #7A1F3E",
+    "signatureResult": "failed",
+    "adapterResult": "failed",
+    "digestMatches": false,
+    "trustworthy": false,
+    "recomputedDigest": "f69bbf88d932ef8796a7bbbd7eb6ce8df7e8dd5bdecb379141f034cade9bc499",
+    "appBehaviour": "Boot refuses. Nothing from the bundle reaches the screen — the person sees a refusal, not an app with a warning on it."
+  },
+  "methodUriProvenance": "Read out of the COSE protected header, never out of the JSON record beside it, so a record claiming a method the envelope does not carry cannot pass.",
+  "renderGateMatrix": [
+    {
+      "case": "verified signed export",
+      "input": {
+        "deployment": "verifying",
+        "signed": true,
+        "verdict": "verified"
+      },
+      "expected": true,
+      "observed": true
+    },
+    {
+      "case": "failed signed export",
+      "input": {
+        "deployment": "verifying",
+        "signed": true,
+        "verdict": "failed"
+      },
+      "expected": false,
+      "observed": false
+    },
+    {
+      "case": "signed export the deployment cannot verify",
+      "input": {
+        "deployment": "verifying",
+        "signed": true,
+        "verdict": "unverified"
+      },
+      "expected": false,
+      "observed": false
+    },
+    {
+      "case": "unsigned authoring preview",
+      "input": {
+        "deployment": "authoring-preview",
+        "signed": false,
+        "verdict": "unverified"
+      },
+      "expected": true,
+      "observed": true
+    },
+    {
+      "case": "unsigned input in a verifying deployment",
+      "input": {
+        "deployment": "verifying",
+        "signed": false,
+        "verdict": "unverified"
+      },
+      "expected": false,
+      "observed": false
+    }
+  ]
+}

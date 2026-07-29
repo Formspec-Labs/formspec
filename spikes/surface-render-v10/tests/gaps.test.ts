@@ -1,5 +1,9 @@
+import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   CORRECTED_GAPS,
   GAP_LEDGER,
@@ -10,6 +14,12 @@ import {
   gapLedgerErrors,
   type GapEntry,
 } from '../src/gaps.ts';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+function rawSha256(path: string): string {
+  return createHash('sha256').update(readFileSync(path)).digest('hex');
+}
 
 test('the canonical ledger has valid evidence and truthful disposition counts', () => {
   assert.deepEqual(gapLedgerErrors(), []);
@@ -71,4 +81,65 @@ test('split validation rejects a missing child or another split parent', () => {
     'no-runtime-state.childIds names missing gap "missing-child".',
     'no-runtime-state.childIds names "no-runtime-state", which is not a leaf.',
   ]);
+});
+
+test('current signature evidence follows live inputs without rewriting the frozen run', () => {
+  const historical = resolve(ROOT, 'evidence/signature-verification.json');
+  assert.equal(
+    rawSha256(historical),
+    'd5826a1b4c92bb95e4f3211802f349fd22863265445edc5a50fad5dfdd962029',
+  );
+
+  const current = JSON.parse(
+    readFileSync(
+      resolve(ROOT, 'evidence/signature-verification-current.json'),
+      'utf8',
+    ),
+  ) as {
+    inputRawSha256: {
+      bundle: string;
+      signature: string;
+      methodRegistry: string;
+    };
+    cleanExport: {
+      signatureResult: string;
+      digestMatches: boolean;
+      recomputedDigest: string;
+      claimedDigest: string;
+    };
+    falsification: { signatureResult: string; digestMatches: boolean };
+  };
+
+  assert.equal(
+    current.inputRawSha256.bundle,
+    rawSha256(
+      resolve(
+        ROOT,
+        '../lifecycle-demo-v10/evidence/stage-4-signoff.bundle-export.json',
+      ),
+    ),
+  );
+  assert.equal(
+    current.inputRawSha256.signature,
+    rawSha256(
+      resolve(
+        ROOT,
+        '../lifecycle-demo-v10/evidence/stage-4-signoff.authored-signature.json',
+      ),
+    ),
+  );
+  assert.equal(
+    current.inputRawSha256.methodRegistry,
+    rawSha256(
+      resolve(ROOT, '../../registries/signature-method-registry.json'),
+    ),
+  );
+  assert.equal(current.cleanExport.signatureResult, 'verified');
+  assert.equal(current.cleanExport.digestMatches, true);
+  assert.equal(
+    current.cleanExport.recomputedDigest,
+    current.cleanExport.claimedDigest,
+  );
+  assert.equal(current.falsification.signatureResult, 'failed');
+  assert.equal(current.falsification.digestMatches, false);
 });
