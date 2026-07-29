@@ -73,4 +73,10 @@ If a future schema rev closes any of them, `test_document_scope_rules_are_not_sc
 
 `NEED-STALE-001` and `NEED-ORPHAN-001` (S9.5) are registered so the deferred checks are not minted incompatibly later, and v1 processors MUST NOT emit them (S11.3.4). Two fixtures put the substrate in exactly the state each reserved code describes — a stale anchor, an anchor to a withdrawn Need — and assert **silence**. `test_reserved_codes_are_never_expected` refuses any fixture that expects one, so implementing either code is a deliberate act rather than a fixture drifting into it.
 
-**Not covered here:** the plain-language authoring rules of S4.1 (review-enforced, not tooling-enforced — S11.1.3), Rulespec IRI resolution behind an `AssertionGrounding.ref` (out of scope for every conformance class, S5.1), and the `needs.adoption` authority handle (reserved, not minted — S10.2). The adoption floor those rules would narrow *further* is exercised here, because the floor holds with or without a postured deployment.
+**Not covered here:** the plain-language authoring rules of S4.1
+(review-enforced, not tooling-enforced — S11.1.3), Rulespec IRI resolution
+behind an `AssertionGrounding.ref` (out of scope for every conformance class,
+S5.1), and the candidate `needs.adoption` authority handle (not reserved or
+minted — S10.2). The S4.3 human-only adoption floor for `ai-proposed` Needs
+that a future handle could narrow further is exercised here, because that
+floor holds with or without a postured deployment.

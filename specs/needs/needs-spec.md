@@ -29,18 +29,18 @@ This spec was promoted from the design exploration [`thoughts/archive/specs/2026
 
 No other content changed during promotion.
 
+**Cross-stack governance is settled.** [ADR 0159 Amendment
+A3](../../../thoughts/adr/0159-product-substrate-recognition.md#amendment-a3--purpose-minted-needs-journey-ownership-ratified-adr-accepted)
+mints `PURPOSE` as the concern that owns why software should exist and ratifies
+this specification's local `journeys[]` identifiers and `need.journey`
+resolution rules. Experience continues to own actors, tasks, and units; it
+cites Needs through `needRefs[]` and does not own a second Journey identifier
+space.
+
 **What this specification deliberately does NOT decide:**
 
-- **The PURPOSE port mint.** Whether the Need concern becomes a substrate concern port is [ADR 0159](../../../thoughts/adr/0159-product-substrate-recognition.md)'s call, via an amendment running Amendment A2's exhibit-scoring bar. This spec defines the artifact either way.
-- **Cross-stack ownership of Journey identifiers.** Needs v1 defines the local
-  `journeys[]` shape and resolution rules in S3. The shape landed in commit
-  `406e14b6`, which the currently observed `origin/main` contains; no package
-  tag, release, or deployment is claimed here. Processors implementing this
-  version MUST follow those rules until a versioned specification change
-  revises them. ADR 0159 Amendment A3 remains open; it must ratify or revise
-  this local decision. This specification does not treat A3 as accepted.
 - **Regeneration semantics beyond anchor pinning.** This spec defines the `need:` anchor grammar and its revision pin (S8). Three-way merge, edit preservation, orphan queues, and review flows are the GENERATION discipline's (ADR 0159 §cross-cutting ports), unmodified by this spec.
-- **The `needs.adoption` authority handle.** Reserved as a future [ADR 0152](../../../thoughts/adr/0152-multi-actor-authorization-scope.md) §4.2 registry row (S10.2) — reserved, not minted. Minting it is a 0152 table amendment.
+- **The `needs.adoption` authority handle.** A candidate future [ADR 0152](../../../thoughts/adr/0152-multi-actor-authorization-scope.md) §4.2 registry row (S10.2), not a member reserved by this specification. Minting it requires a 0152 table amendment with a complete operation mapping.
 - **Deferred surface** (recorded in the exploration §12): structured Given/When/Then `criteria[]`; Observation→Rulespec-assertion promotion tooling; route-level and Definition-level citations; richer edge roles on `needRefs`; a ReqIF export projector; the JOURNEYS.md projection generator; PLANNING-row citation conventions; INTEGRITY attestation of adopted Needs; automated analytics ingestion. Reserved diagnostic codes for the deferred checks are registered in S9.5 so they are not re-minted incompatibly.
 
 ## Conventions and Terminology
@@ -57,7 +57,7 @@ Additional terms:
 - **Need** -- One record in a Needs Document: an evidence-grounded, plain-language statement of why a piece of interactive software should exist, with an observable satisfaction criterion.
 - **Statement** -- The Need's Who / What / Why / Done block (S4.1).
 - **Grounding** -- A citation binding a Need to its evidence: either an **Assertion Grounding** (an IRI into a Rulespec corpus — the normative channel) or an **Observation Grounding** (a product-local research record — the empirical channel) (S5).
-- **Journey** -- A persona-level grouping key for Needs (S3). Distinct from Experience task/journey grouping of Units.
+- **Journey** -- A persona-level grouping key for Needs (S3). Distinct from Experience grouping of Units under Tasks.
 - **Adopted / Proposed / Superseded / Withdrawn** -- Need lifecycle statuses (S4.3).
 - **Coverage** -- A static predicate over a (Needs Document, bundle) pair asserting which adopted Needs are served by at least one citing artifact, and which Units cite at least one Need (S9).
 - **Needs Coverage checker** -- A processor that, in addition to document validation, computes and reports the coverage predicate.
@@ -76,7 +76,7 @@ Additional terms:
 
 <!-- bluf:start file=needs-spec.bluf.md -->
 - This document defines the Needs Document -- an authored artifact that records why software should exist: plain-language Need records (Who / What / Why / Done), each grounded in evidence from the normative channel (Rulespec assertion IRIs) or the empirical channel (Observation research records), or carrying a declared `ungroundedReason` — never silently ungrounded.
-- A Need is born `proposed` or `adopted`, is superseded rather than erased, and carries an integer `revision` over its statement and grounding. An AI may file a `proposed` Need; only a human may carry one to `adopted`.
+- A Need is born `proposed` or `adopted`, is superseded rather than erased, and carries an integer `revision` over its statement and grounding. An AI may file a `proposed` Need; only a human may carry an `ai-proposed` Need to `adopted`.
 - Experience Units cite Needs through `needRefs[]` (deliberately unpinned); GENERATION anchors cite them as `need:<id>@<revision>` (deliberately pinned). Human intent tracks the Need; machine provenance tracks the revision.
 - A Needs Coverage checker computes which adopted Needs no artifact serves (`NEED-COVERAGE-001`) and which Units serve no Need (`NEED-COVERAGE-002`). Coverage is reportable, never blocking.
 - Needs MUST NOT affect data capture, validation, or the processing model. The Needs Document is upstream of every other Formspec artifact and is cited by them, never the reverse; this BLUF is governed by `schemas/needs.schema.json`, the canonical structural contract.
@@ -217,14 +217,13 @@ A **Journey** is a persona-level grouping key: the kind of person a set of Needs
 
 A processor MUST report a `NEED-DOC-001` finding (S9.4) for any `need.journey` not present in `journeys[]` when `journeys[]` is declared. A document MAY omit `journeys[]` entirely; `need.journey` values are then free grouping strings.
 
-For Needs v1, this specification owns the local `journeys[]` identifiers and
-`need.journey` resolution rules. The Experience Document owns Unit grouping
-under tasks. This behavior landed in commit `406e14b6`, which the currently
-observed `origin/main` contains; no package tag, release, or deployment is
-claimed here. It remains provisional at the cross-stack level: processors
-implementing this version MUST follow it until a versioned specification
-change revises it. Proposed ADR 0159 Amendment A3 must ratify or revise the
-local decision.
+This specification owns the local `journeys[]` identifiers and `need.journey`
+resolution rules. [ADR 0159 Amendment
+A3](../../../thoughts/adr/0159-product-substrate-recognition.md#amendment-a3--purpose-minted-needs-journey-ownership-ratified-adr-accepted)
+ratifies that boundary: a Journey groups Needs upstream of any product
+artifact, while the Experience Document owns actors, tasks, and Units. A
+future cross-document Journey reference requires a versioned specification
+change; processors MUST NOT infer one from matching strings.
 
 ## 4. The Need
 
@@ -283,7 +282,7 @@ Normative authoring rules:
 |-----------|---------|-------|
 | (filed) → `proposed` | Candidate awaiting human judgment. | The only legal filing status when `origin` is `ai-proposed`. |
 | (filed) → `adopted` | Filed directly as adopted. | Legal only for `human-asserted` and `imported` origins. |
-| `proposed` → `adopted` | A human adopts the Need. | `adoptedBy` REQUIRED. When `origin` is `ai-proposed`, `adoptedBy.kind` MUST be `human` — an AI-filed Need never self-adopts. This is the floor; deployments MAY narrow further via the reserved authority handle (S10.2). |
+| `proposed` → `adopted` | A proposed Need is adopted. | `adoptedBy` REQUIRED. When `origin` is `ai-proposed`, `adoptedBy.kind` MUST be `human` — an AI-filed Need never self-adopts. This is the floor; a future authority handle MAY let deployments narrow it (S10.2). |
 | `proposed` → `withdrawn` | Rejected without adoption. | — |
 | `adopted` → `superseded` | Replaced by a successor Need. | The successor carries `supersedes: <this id>`; both records remain in the document. A record with `status: superseded` MUST be the target of exactly one live record's `supersedes`. |
 | `adopted` → `withdrawn` | The need turned out to be wrong. | The record remains; withdrawal is evidence, not deletion. |
@@ -500,15 +499,15 @@ A **Needs Coverage checker** MUST additionally:
 4. **Compute coverage.** Apply the S9.2 predicate over the pair.
 5. **Emit coverage findings.** `NEED-COVERAGE-001` and `NEED-COVERAGE-002` per S9.4.
 
-There is no Needs evaluation pipeline. The document is authored metadata; processors read, validate, resolve, and report. They do not "evaluate" it in the Core sense, and the four-phase Core cycle (Core S2.4) is unaffected.
+There is no Needs evaluation pipeline. The document is an authored source document; processors read, validate, resolve, and report. They do not "evaluate" it in the Core sense, and the four-phase Core cycle (Core S2.4) is unaffected.
 
-### 10.2 Write Authority (reserved)
+### 10.2 Write Authority (candidate)
 
-Who may *file* a Need is discriminated in-band by `origin` + `proposedBy` / `adoptedBy`. Who may *adopt* one is an actor-write-authority question in ADR 0152's territory. This spec **reserves** the vocabulary handle:
+Who may *file* a Need is discriminated in-band by `origin` + `proposedBy` / `adoptedBy`. Who may *adopt* one is an actor-write-authority question in ADR 0152's territory. This spec records a candidate handle; it does not reserve a member of ADR 0152's closed registry:
 
 | Handle | Kind | Protects |
 |--------|------|----------|
-| `needs.adoption` | operation (reserved — NOT minted by this spec) | writing `status: adopted` — whether by filing directly at `adopted` or by transitioning `proposed → adopted` — and writing `adoptedBy`. |
+| `needs.adoption` | operation (candidate — NOT minted) | writing `status: adopted` — whether by filing directly at `adopted` or by transitioning `proposed → adopted` — and writing `adoptedBy`. |
 
 Minting the row is an ADR 0152 §4.2 table amendment carrying its op mapping, per that ADR's registry discipline. Until minted, the floor rules of S4.3 (human-only adoption of `ai-proposed` Needs) are the only normative constraint, and they hold with or without a postured deployment. A deployment MAY NOT weaken the floor via posture; posture only narrows.
 
@@ -1237,8 +1236,8 @@ The example corpus is the lifecycle-demo bundle (`https://benefits.example.gov/a
 | OA | W3C Web Annotation Ontology 1.0 — TextQuoteSelector (`oa:exact` / `oa:prefix` / `oa:suffix`). |
 | OSLC-RM | OASIS OSLC Requirements Management — `satisfiedBy` link-type lineage for `needRefs`. |
 | 29148 | ISO/IEC/IEEE 29148 — requirement attributes and the verifiability bar on `done`. |
-| ADR 0152 | Multi-actor authorization scope, `thoughts/adr/0152-multi-actor-authorization-scope.md` (stack root) — the reserved `needs.adoption` handle's registry. |
-| ADR 0159 | Product substrate recognition, `thoughts/adr/0159-product-substrate-recognition.md` (stack root) — port ontology, the open PURPOSE mint decision, and the open Amendment A3 Journey-ownership decision; this spec does not treat A3 as accepted. |
+| ADR 0152 | Multi-actor authorization scope, `thoughts/adr/0152-multi-actor-authorization-scope.md` (stack root) — the closed registry that would have to mint the candidate `needs.adoption` handle. |
+| ADR 0159 | Product substrate recognition, `thoughts/adr/0159-product-substrate-recognition.md` (stack root) — accepted port ontology; Amendment A3 mints `PURPOSE` and ratifies Needs-local Journey identifiers. |
 
 ---
 
