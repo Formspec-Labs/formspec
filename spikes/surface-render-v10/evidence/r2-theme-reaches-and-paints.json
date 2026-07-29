@@ -47,7 +47,7 @@
       "element": "input",
       "name": "householdSize",
       "outline": "rgb(122, 31, 61) solid 2px",
-      "borderColor": "oklab(0.806438 0.00848964 0.0175967)"
+      "borderColor": "oklab(0.821084 0.0042989 0.0178124)"
     },
     "paintSites": [
       {

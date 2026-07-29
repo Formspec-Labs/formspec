@@ -13,7 +13,7 @@ app is how it was earned.
 [`@formspec-org/surface`](../../packages/formspec-surface) (renderer-independent) and
 [`@formspec-org/surface-react`](../../packages/formspec-surface-react) (the React
 binding plus the four widgets, real). This app imports them; those directories are
-deleted. The ledger keeps every closed row, so the diff between what it once said and
+deleted. The ledger keeps every historical row, so the diff between what it once said and
 what it says now is itself the evidence.
 
 Bars were pre-registered before any code: [`formspec/thoughts/spikes/2026-07-27-surface-render-v10.md`](../../thoughts/spikes/2026-07-27-surface-render-v10.md).
@@ -77,13 +77,14 @@ inside the signature. Rendering it would have added a route to a screenshot at t
 of the one claim the spike exists to make. The merged surface is worth rendering once a
 shell can show two versions side by side; that is a different spike.
 
-## The hypothesis, and the answer
+## The initial hypothesis and first-run answer
 
-> No Surface-shell renderer exists anywhere in the stack. Nothing reads a
+> **Initial hypothesis, 2026-07-27:** No Surface-shell renderer exists anywhere
+> in the stack. Nothing reads a
 > `SurfaceDocument`'s routes and slots and composes a navigable app.
 
-**Confirmed.** Every `SurfaceDocument` consumer in the stack is authoring-side or
-validation-side:
+**First-run answer: confirmed.** At that snapshot, every `SurfaceDocument`
+consumer in the stack was authoring-side or validation-side:
 
 | Where | What it does with a Surface |
 |---|---|
@@ -93,12 +94,13 @@ validation-side:
 | `formspec/crates/formspec-lint` (`pass_surface.rs`) | lints them |
 | `formspec-web/src/adapters/browser/surface-router.ts` | **never opens one.** It takes a pre-flattened `{routeId, nextRouteId}` from config and rewrites a query parameter after a response action. |
 
-`case-portal`, `formspec-cloud` and `policy-studio` contain no reference to a Surface
-document at all.
+At that snapshot, `case-portal`, `formspec-cloud`, and `policy-studio` contained
+no reference to a Surface document.
 
-So the closed slot-type taxonomy, the route-class vocabulary, the route graph and the
-transition triggers are all authored, all enforced, and all read by nothing at render
-time. This spike is the first thing in the stack that renders one.
+The closed slot-type taxonomy, route-class vocabulary, route graph, and
+transition triggers were authored and enforced, but no runtime read them. This
+spike was the first stack component to render a Surface. The current packages
+and disposition are recorded at the top of this README and in the gap report.
 
 ## What the bars measured
 
@@ -108,7 +110,7 @@ time. This spike is the first thing in the stack that renders one.
 | **R2** real Definition + theme on `/apply` via the shipped renderer | **not met** on first measurement — the Definition and the theme both arrived and the brand painted nothing. **Met** after the fix below. |
 | **R3** tenant tokens structurally absent on proof and ceremony | **met** for the shell; **falsified for the platform** on first measurement. **Met** for both after the fix below, with the shell's workaround deleted. |
 | **R4** operator route renders, every stub enumerated | **met** — and there are now zero stubs to enumerate |
-| **R5** gap report names every hand-built piece and its natural home | **met** — see `evidence/gap-ledger.json` for the current `total` / `open` / `resolved` counts |
+| **R5** gap report names every hand-built piece and its natural home | **met** — see `evidence/gap-ledger.json` for `total` and the generated `byDisposition` counts |
 
 Evidence: [`evidence/`](evidence/). Screenshots of all four routes in light and dark:
 [`evidence/screenshots/`](evidence/screenshots/).
@@ -118,9 +120,11 @@ The measurement that failed is the reason the fix exists, and a spike that overw
 its failing numbers with passing ones has thrown away its own evidence. So
 `evidence/r2-theme-reaches-but-paints-nothing.json` stays, carrying a `status` and a
 `resolvedBy` list; `evidence/r2-theme-reaches-and-paints.json` is the new measurement
-with a `before` block; and every closed gap-ledger entry keeps its row, its original
-rationale, and a `resolved` block naming what landed, what guards it, and whether the
-fix went where the entry predicted.
+with a `before` block; and every historical gap-ledger entry keeps its row. An
+`implemented` or `corrected` disposition carries a `resolved` evidence block naming
+what landed, what guards it, and whether the fix went where the entry predicted. A
+`split` names existing leaf child rows and never counts as shipped. Each leaf
+keeps its own disposition as work lands.
 
 ### R1 — met
 
@@ -314,36 +318,35 @@ are real components in `@formspec-org/surface-react`, resolved through the Regis
 identity by `{moduleId, widgetName}` — the runtime seam that did not exist when the bar
 was written.
 
-What the operator sees instead is the honest version of the remaining gap: an empty
-state that says *"Nothing is waiting. When applications arrive, they appear here."* The
-spike's first pass drew four applications with invented rents, invented months behind
-and invented waiting times, and it was the most convincing thing on the screen. The
-queue is empty because a `module-widget` binding carries `{moduleId, widgetName, config}`
-and there is still no channel from a Surface slot to a data source — `widget-data-binding`,
-still open. `evidence/route-walk.json` records the empty state per slot, so "renders
-nothing" and "renders an invention" cannot be confused in the record.
+What the operator sees instead is an explicit empty state. The spike's first
+pass drew four applications with invented rents, months behind, and waiting
+times; it was the most convincing lie on the screen. Surface 0.2, Registry 1.1,
+and Data Sources 1.0 now provide an authorized named-input channel, but this
+public spike has no staff identity or authorized operator source. The
+`operator-runtime-state` leaf therefore remains open in `case-portal`.
+`evidence/route-walk.json` records the empty state per slot, so "no authorized
+rows" cannot be confused with invented success.
 
 ### R5 — met
 
-Below, and machine-readable in `evidence/gap-ledger.json`, which carries `open` and
-`resolved` counts beside the total so a shrinking list cannot be mistaken for a short
-one. The counts live there and not in this prose — they move every time an entry
-closes, and a number in a README that disagrees with the ledger is worse than no
-number.
+Below, and machine-readable in `evidence/gap-ledger.json`, which carries generated
+`open`, `implemented`, `corrected`, and `split` counts under `byDisposition` so a
+shrinking list cannot be mistaken for a short one. The counts live there and not in
+this prose — they move every time an entry changes disposition, and a number in a
+README that disagrees with the ledger is worse than no number.
 
 ## The gap report
 
 Grouped by where they belong; counts in `evidence/gap-ledger.json`.
 
-**Closed entries keep their row.** A gap report that deletes what it fixed loses the
+**Historical entries keep their row.** A gap report that deletes what it fixed loses the
 history that makes the rest of it credible — a reader cannot tell a list that was
 always short from one that was worked down, and cannot check that the fix went where
-the entry said it belonged. So each resolved entry keeps its original `what`,
-`whyNeeded` and `homeRationale` verbatim and carries a `resolved` block: the files
-that changed, the test or diagnostic that keeps it closed, one line of before and
-after, and a `naturalHomeHeld` flag with a note on where the entry's own reasoning was
-wrong. All three predicted their home correctly; all three got a detail wrong, and
-the notes say which.
+the entry said it belonged. `implemented` and `corrected` entries carry permanent
+source and guard evidence in `resolved`; `split` entries carry existing leaf
+child IDs. Open leaves carry no disposition. The generator rejects missing or
+non-leaf children, duplicate IDs, empty evidence, and
+plan/tracker/screenshot-only evidence.
 
 ### The surface-shell package — 8, and it exists now
 
@@ -388,86 +391,89 @@ next to the form's own; and otherwise a stated refusal naming which half is miss
 `/apply` is `supplied-by-slot`. `/certify` renders the refusal, on the page, in a
 sentence and emits E611 during app-graph validation.
 
-### The registry widget family — 6, five shipped
+### The registry widget family — 6 implemented
 
 | Gap | What, and where it landed |
 |---|---|
 | ~~`module-widget-runtime`~~ **shipped** | `createWidgetRegistry`, hanging off Registry identity as the entry argued. The lookup keys on `widgetShape.widgetName` reached through the declaring module's `contributes[]` — the vocabulary a Surface binding actually writes. ADR 0160 §2.4: three fields called some variant of "widget name", three vocabularies. A registry keyed on `RegistryEntry.name` resolves nothing the day a module uses a PascalCase widget name, which the schema permits; there is a test for exactly that. |
-| `widget-data-binding` — **open** | Still no channel from a Surface slot to a data source. Two things did change: `binding.config` exists and the spike had missed it (lint E604 validates it against `widgetShape.props`), and `@formspec-org/surface-react` ships `SurfaceWidgetDataResolver` — a **host** port, named as one rather than dressed up as a bundle channel. |
+| ~~`widget-data-binding`~~ **implemented** | Registry 1.1 declares named inputs; Surface 0.2 binds each one to an exact Data Sources catalog/source pair. AppGraph validates the graph, then the canonical `DataSourceLoader` path checks availability, host authorization, load result, schema, freshness, and failure mode before giving the widget a frozen named object. `binding.config` remains configuration, never payload. |
 | ~~`widget-x-intake-banner`~~ **shipped** | Real. Everything from `binding.config`; configured with nothing, it says so instead of promising a draft store the bundle does not describe. |
 | ~~`widget-x-ceremony-frame`~~ **shipped** | Real, and **the sharp edge held without the Registry expressing it.** The widget carries no unbranded rule of its own — it paints only through `--formspec-*` properties, and on a refusing route those never saw a tenant value. It cannot reach a tenant token because none is in scope. |
 | ~~`widget-x-receipt-panel`~~ **shipped** | Real. Every fact from the host resolver, except the case reference, which comes from the route parameter — a `/receipt/{caseRef}` route IS addressed by the reference. Handed nothing: "There is no receipt to show." |
 | ~~`widget-x-queue-panel`~~ **shipped** | Real. Renders whatever rows it is given; given none, an empty state and no table. Real `<caption>`, `scope` on every header, a row header per row, focusable labelled scroll region. |
 
-The structural finding was: **a module can declare a widget it has no way to ship.** The
-delivery channel now exists — `SurfaceWidgetModule`, keyed by `widgetShape.widgetName`,
-so a module's declaration and a host's components meet on the identity the Registry
-already owns. What has not changed is the second wall: the Registry can describe props
-(`widgetShape.props`) the Surface still has no way to supply. Four of this bundle's ten
-slots are module widgets, one on every route, and two of them render empty because of
-it.
+The structural finding had two parts, and both now have explicit channels.
+`SurfaceWidgetModule`, keyed by `widgetShape.widgetName`, connects a declared
+widget to its implementation. Registry `dataInputs` and Surface `dataBindings`
+connect qualified runtime values through one authorized loader. `widgetShape.props`
+and `binding.config` still carry configuration only.
 
-### Shipped packages that own the concern but do not expose or honour it
+### Existing-package gaps
 
 | Gap | What |
 |---|---|
-| ~~`theme-token-vocabulary-bridge`~~ **resolved** | `color.accent` authored, `color.primary` consumed, nothing mapped between them. The entry framed a fork — closed vocabulary, or alias table — and the closed arm won: `token-registry-spec §2.4` makes `color.primary` normative and forbids aliasing; §5.3 makes the diagnostic mandatory. What the entry missed: W708 already existed and already fired. The release path this bundle went through never runs lint, which is why the chain was silent end to end, so the check had to land on the app-graph path too (`THEME-TOKEN-UNREGISTERED`). |
-| ~~`tenant-brand-paints-nothing`~~ **resolved** | Bridged and resolved and still invisible. Three fixes, all needed: `color.primary` normative, `color.ring` declaring `derivedFrom` (and the platform theme no longer emitting derived tokens, which is what made the CSS chain reachable), and a skin that paints the brand on headings and legends. The entry got the third cause's owner wrong by omission — the renderer's refusal to invent a submit button is correct, so that fix went to the authoring path. See R2. |
-| ~~`renderer-emits-tenant-tokens-to-document-root`~~ **resolved** | `FormspecProvider` wrote tenant tokens to `<html>` with no cleanup. Now emits onto a `display: contents` element it owns, with cleanup. The entry predicted the right home and the right shape; it assumed the provider could reuse `FormspecForm`'s container, and the provider rendered no DOM at all. See R3. |
-| `theme-authority-unexported` | `ROUTE_CLASS_THEME_AUTHORITY` is correct, exhaustive by construction, and unreachable: not re-exported from the `@formspec-org/app-graph` index, and the package `exports` field only exposes `.`. The shell reaches into `dist/`. A rule only a validator can import is a rule that only fires at authoring time. |
-| `theme-refusal-copy` | The authority map says `admits` or `refuses` and never says why in words. The shell wrote a sentence per refusing class, plus a posture for absent `routeClass` that ADR 0161 §6 declares distinct and then leaves undefined. |
-| `platform-theme-merge` | `FormspecForm`'s `themeDocument` prop replaces rather than layers. A partial tenant theme drops every platform token, and the failure looks like a styling bug. |
-| `response-actions-type-mismatch` | **New, surfaced by the R2 fix.** Now that the bundle carries a Response Actions document, the shell has to pass it to `FormspecForm` — and `@formspec-org/types`' schema-generated `ResponseActionsDocument` is not assignable to `@formspec-org/react`'s `ResponseActionsDocumentInput`. A cast at every host is the same defect as an alias table. |
-| `bundle-manifest-dereference` | Manifest URLs → typed documents. `resolveArtifacts` is exported and good, and models the wrong shape: sibling refs behind a caller-supplied loader, returning `document: unknown` as validation evidence. A bundle export has already inlined its documents, so the loader you would pass *is* the gap. |
-| ~~`route-path-grammar-mismatch`~~ **resolved** | The spec pins `{name}` markers, but the signed bundle authored `:caseRef` and schema validation accepted it. `Route.path` now rejects unpinned parameter grammars; Studio preserves `params[]` and edge maps; the regenerated signed bundle authors `/receipt/{caseRef}`; and the browser gate deep-links `/receipt/RA-2026-0412` without `ROUTE-PARAM-GRAMMAR`. |
+| ~~`theme-token-vocabulary-bridge`~~ **corrected** | The proposed alias bridge was the wrong fix: `color.primary` was already the closed brand key. Authoring now uses it, and both validation paths reject undeclared non-extension tokens. |
+| ~~`tenant-brand-paints-nothing`~~ **implemented** | Bridged and resolved and still invisible. Three fixes, all needed: `color.primary` normative, `color.ring` declaring `derivedFrom` (and the platform theme no longer emitting derived tokens, which is what made the CSS chain reachable), and a skin that paints the brand on headings and legends. The entry got the third cause's owner wrong by omission — the renderer's refusal to invent a submit button is correct, so that fix went to the authoring path. See R2. |
+| ~~`renderer-emits-tenant-tokens-to-document-root`~~ **implemented** | `FormspecProvider` wrote tenant tokens to `<html>` with no cleanup. Now emits onto a `display: contents` element it owns, with cleanup. The entry predicted the right home and the right shape; it assumed the provider could reuse `FormspecForm`'s container, and the provider rendered no DOM at all. See R3. |
+| ~~`theme-authority-unexported`~~ **implemented** | `ROUTE_CLASS_THEME_AUTHORITY` and `CLOSED_RESPONSE_ACTION_INTENTS` now have public exports, so runtime code uses the same closed vocabularies as validation. |
+| ~~`theme-refusal-copy`~~ **implemented** | The shell owns one exhaustive refusal-reason table keyed by `RouteClass`. The absent-`routeClass` policy remains an upstream specification question recorded in the row’s evidence note. |
+| ~~`platform-theme-merge`~~ **implemented** | One layout helper composes the platform Theme beneath the tenant Theme for direct React, web component, and Surface consumers. |
+| ~~`response-actions-type-mismatch`~~ **implemented** | The engine input derives from the generated Response Actions document, which now reaches `FormspecForm` without `as never`. |
+| ~~`bundle-manifest-dereference`~~ **implemented** | `resolveBundleExportArtifacts` validates exact own-key inline documents; `dereferenceBundleExport` then produces the typed renderer view with diagnostics. |
+| ~~`route-path-grammar-mismatch`~~ **implemented** | The spec pins `{name}` markers, but the signed bundle authored `:caseRef` and schema validation accepted it. `Route.path` now rejects unpinned parameter grammars; Studio preserves `params[]` and edge maps; the regenerated signed bundle authors `/receipt/{caseRef}`; and the browser gate deep-links `/receipt/RA-2026-0412` without `ROUTE-PARAM-GRAMMAR`. |
 
-Six of these nine are theming, and they are ordered above by what a tenant actually
-hits. That concentration is not a coincidence: theme authority is the one place where an
-authoring-time rule was supposed to have a runtime consequence, and the runtime half was
-never built. Three of the four closed rows are the three a tenant hits first; the fourth
-closes the route grammar before a tenant can receive a divergent bundle. Closing them
-took a spec change, schema fields, registry and authoring changes, CSS changes, renderer
-changes, and kernel changes — roughly the shape of "the runtime half was never built".
+Six of these nine are theming. That concentration is not a coincidence: Theme
+authority is where an authoring-time rule needed a runtime consequence. Eight
+rows carry `implemented` evidence and one carries `corrected` evidence.
 
-`transition-has-no-trigger-source` (filed under the surface-shell group) is **partially**
-closed and deliberately not marked resolved. The cause is fixed — the bundle now
-publishes its submit intent, so `/apply` gets a real submit button and the shell's
-stand-in stands down there. The check the entry actually asked for is not: `/certify`
-declares `{trigger: "submit", to: "receipt"}`, carries no form, and nothing on that
-route can fire it. The bundle is signed anyway. Surface lint walks the route graph for
-reachability (E606) and still never asks whether an edge can be traversed.
+`transition-has-no-trigger-source` and its authoring-time child
+`transition-edge-traversability-unchecked` are both **implemented**. The form supplies
+the declared submit control, the shell advances only after a successful action result,
+and AppGraphValidator E611 warns before signing when a resolved trigger has no
+validator-readable control source. E611 remains a warning because a private widget or
+host executor can supply behavior that static validation cannot see.
 
-### formspec-web — 3
+### formspec-web — 5
 
 | Gap | What |
 |---|---|
-| `browser-bundle-verification` | Loading an export plus its signature in a browser and gating render on the verdict. The primitives all worked unchanged; the caller did not exist. |
-| `verified-state-chrome` | Showing the verdict. A verdict nobody can see is not a trust affordance. |
-| `no-runtime-state` | A submission, a case reference, an issued receipt. Three of four routes are downstream of a submission the bundle has no room for (`sessions: []`). |
+| ~~`browser-bundle-verification`~~ **implemented** | The public host acquires raw bytes, verifies publisher/app authority and preflights release policy, validates AppGraph/actor/entry rules, dereferences and proves renderability, atomically commits the release, and only then admits and renders. Replaced or refused candidates publish no stale report, release, title, or bundle-derived DOM. |
+| ~~`verified-state-chrome`~~ **implemented** | Persistent host chrome shows authenticated publisher/release facts separately from local method, adapter, digest, and checked-at metadata. |
+| `no-runtime-state` — **split, not shipped** | The historical row now points to separate respondent, operator, and public-signer child rows. |
+| ~~`respondent-runtime-state`~~ **implemented**, tracker `fs-q1ex` | The verified public Surface reuses formspec-web’s production identity, draft, action-ledger, submit, and status boundaries. A real confirmation addresses and supplies the receipt; session refresh restores it or shows an explicit unavailable state. |
+| `public-signer-ceremony` — **open**, tracker `fs-5g59` | A separate public ceremony with an explicit control, signed preimage, mapped Response Action, idempotent invocation, and receipt evidence. |
 
-These belong in `formspec-web` because it already owns the verifier surface and the
-draft/submit/ledger ports — with stub adapters for all of them. What is missing is the
-wiring, not the concept. The shell should consume them through ports, so a host that
-cannot verify renders a refusal rather than an app.
+These belong in `formspec-web` because it owns the verifier surface and
+draft/submit/ledger ports. The ceremony remains a separate product slice;
+shipping the respondent child does not claim the ceremony or operator child.
 
-### The spec and the schema — 2, both new
-
-Neither is a renderer's to fix, and both were found by implementing a closed taxonomy
-properly rather than by reading about it.
+### case-portal — 1
 
 | Gap | What |
 |---|---|
-| `static-content-image-has-no-alt-channel` | The `static-content` binding has no `alt` field, and `kind: image` is one of its four closed kinds. An image with no accessible name is a WCAG 1.1.1 failure. The shell uses `slot.title` when the author gave one and otherwise marks the image decorative and raises `STATIC-IMAGE-NO-ALT` — decorative is right for a meaningless image and wrong for a meaningful one, and the binding gives no way to tell them apart. The fix is a schema field, not a renderer default. |
-| `transition-edge-traversability-unchecked` | Split out of `transition-has-no-trigger-source`. `/certify` declares `{trigger: "submit", to: "receipt"}`, carries no form, and so has nothing that can raise a submit — authored, schema-valid, signed, dead. E606 walks the route graph for reachability and never asks whether an edge can be traversed; `validateSurfaceResponseActionTriggers` asks only against a loaded Response Actions document, so it stays silent on a route that cannot raise the trigger at all. The app reporting it on the page is a renderer describing a defect, not the defect being caught. |
+| `operator-runtime-state` — **open**, tracker `fs-3b30` | Authorized staff queue and case state in a staff-specific host. The public respondent deployment must not receive the staff Surface or its data. |
+
+### The spec and the schema — 6
+
+These findings require an owning specification or schema before a renderer can close
+them.
+
+| Gap | What |
+|---|---|
+| ~~`static-content-image-has-no-alt-channel`~~ **implemented** | Surface 0.2 requires exact authored meaningful or empty `alt` on images. Malformed missing input is unavailable; runtime synthesizes no title, URL, filename, or fallback. |
+| ~~`transition-edge-traversability-unchecked`~~ **implemented** | AppGraphValidator E611 checks for a validator-readable trigger source before signing while preserving host-only behavior as a warning. |
+| ~~`app-entry-surface-undeclared`~~ **implemented** | App Manifest 2.4 selects one exact entry Surface and fails on ambiguous or unresolved selection. |
+| ~~`widget-action-output-undeclared`~~ **implemented** | Registry 1.1 declares output names; Surface 0.2 maps each one to an exact Response Action. Runtime refuses undeclared or unmapped emissions and preserves stable invocation identity. |
+| ~~`locale-app-integration`~~ **implemented** | Locale 2.0 targets the exact app and owns the closed shell key set. The respondent host selects app and Definition Locale documents separately; live switching updates both consumers without crossing target identity. |
+| ~~`bundle-publishing-trust-and-rollback`~~ **implemented** | The signed-bundle profile uses independently configured trust anchors, authenticated publisher/app authority, and pinned or monotonic release policy. |
 
 ### Spike scaffolding — 1
 
-`shell-visual-design`, and it is **smaller than it was** — which is checkable only
-because the entry itemised itself rather than being recorded as one opaque row.
-Structural layout CSS moved to `@formspec-org/surface-react/formspec-surface.css`,
-token-driven with no hard-coded brand. **`StubFrame` is deleted: there are no stubs left
-to mark.** What remains is genuinely spike-only: the boot copy, the gap drawer, the
-on-screen document-root probe, the `probe-hooks` window handle, and
+`shell-visual-design` is **corrected**, not an open all-or-nothing product gap.
+Structural layout, navigation, loading, empty, unavailable, refusal, and
+verification states moved into the host and Surface React packages. What
+remains is intentionally diagnostic spike furniture: boot copy, the gap drawer,
+the document-root probe, the `probe-hooks` window handle, and
 `TENANT_TOKEN_VALUES`.
 
 Deliberately *not* here, and deliberately not a gap: the `await initFormspecEngine()`
@@ -530,7 +536,7 @@ scripts/
   probe.mjs           drives the static build and re-takes every measured number
   emit-gap-ledger.ts  writes the ledger to evidence/
 evidence/
-  gap-ledger.json                            the ledger, with total / open / resolved counts
+  gap-ledger.json                            the ledger, with generated disposition counts
   route-walk.json                            four routes as rendered
   signature-verification.json                clean + tampered verdicts, from the app's own verifier
   r2-theme-reaches-but-paints-nothing.json   R2's falsification — kept as the BEFORE record

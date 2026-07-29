@@ -172,15 +172,21 @@ The dispatching question, answered on merit rather than by citation. **Yes as th
 - **E4's residual is not a residual.** [`e4-trust-redteam/README.md`](../../spikes/e4-trust-redteam/README.md) records `claim1-theme-authority-unclassified` as "the residual hole… the guard is opt-in". For MCP-authored graphs, unclassified is not the hole in the guarantee — it *is* the guarantee. E4's own framing ("the price of that (correct) call… filed here so the price stays visible and is re-measured on every run") invites exactly this re-measurement; the price is larger than the word "residual" carries.
 - **v8's §Follow-up over-claimed one word.** It states finding 18's *path* closes and finding 21 "closes outright". 21 does close — confirmed here end to end. 18's path closes in the sense that a hand-authored Registry resolves, but the arm that only uses verbs is **worse** than the arm without `declareRegistry` at all, and the follow-up does not say so. "Narrowed, at a cost" is the accurate summary.
 - **v8's schema-stub caveat cost nothing.** Real Ajv over v8's exact authoring shape produces 95 errors and zero `APP-GRAPH-SCHEMA` — per surface identical. The caveat was correct to record and its effect is zero. Recorded as finding 40 so it is not re-litigated.
-- **`x-spike-*` binding counts are unchanged: 53 sites, 38 distinct.** Nothing that shipped touched the data-source gap, which remains the widest-blast-radius unaddressed finding after the module-entry gap.
+- **At the v9 snapshot, `x-spike-*` binding counts were unchanged: 53 sites, 38 distinct.** Nothing available to that run touched the data-source gap, then the widest-blast-radius unaddressed finding after the module-entry gap.
 
-## Follow-up
+## Follow-up at the v9 snapshot
+
+**Current disposition, 2026-07-29:** this list is experiment history, not the
+active backlog. `addRoute` and `bindSlot` now refuse unknown keys,
+`addRoute` persists `routeClass`, and Wireframes-MCP exposes
+`declareDataSource`. Current tickets and the Surface v10 ledger own remaining
+work.
 
 1. **Bug, land now:** `addRoute` and `bindSlot` must not swallow keys the artifacts cannot represent. Findings 38, 41.
 2. **Decision, ADR 0152:** actor × class write authority, with `routeClass`, `declareTheme`, sensitivity, and access posture as the four consumers. Findings 38, 42, 27, 5.
 3. **Verb family, one design:** `export<Artifact>Document` as a peer of each `declare*`, mirroring `exportSurfaceDocument` including its refuse-when-unpublishable behaviour. Closes the residue of 18, 21, and 42 at once, and subsumes v8's follow-up 37. Finding 43.
 4. **Write down the current guarantee.** `THEME-ROUTE-CLASS` protects hand-authored Surfaces only. Until (2) lands, any claim that proof surfaces are structurally protected should say so.
-5. **Unchanged from v8, unaddressed:** the data-source verb (finding 2, 53 binding sites) and read-only display (finding 24). v8 ranked them second and third; nothing since has moved either, so they inherit the top of the queue once the above clears.
+5. **Unchanged from v8 at this snapshot:** the data-source verb (finding 2, 53 binding sites) and read-only display (finding 24). v8 ranked them second and third; neither had moved before the v9 run.
 
 ## Verification
 

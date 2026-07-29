@@ -18,13 +18,19 @@ case a failing test is still the interesting result.
 |---|---|---|---|
 | `claim1-theme-authority` | 6 | caught | Tenant Theme + UI Graph Policy repaints the certificate and verifier widgets |
 | `claim1-theme-authority-embedded` | 6 | caught | Same restyle, but every widget sits one `embed-route` hop below the classified route (plus a back-embed cycle) |
-| `claim1-theme-authority-unclassified` | 6 | undetected | Same restyle on routes that state no `routeClass` — the residual hole, since classification is optional |
+| `claim1-theme-authority-unclassified` | 6 | undetected | Same restyle on routes that stated no `routeClass`; undetected in the E4 run |
 | `claim2-sensitivity` | 27 | undetected | Data Sources catalog routes live draft PII and a signing secret to the co-pilot slot |
 | `claim3-client-executed` | 30 | undetected | Verifier route's action chain is `hostEvent` → `evidenceRequest` → `ledgerAppend` |
 
 Claim 1 is recorded in `reports/rollup.json` as **narrowed**, not closed:
 `narrowedSince.claim1-theme-authority` names what now catches it, and
 `stillUndetectedWhen` names the three shapes that still pass.
+
+**Later disposition:** the v9 rerun corrected E4's “residual hole” framing. At
+that snapshot, MCP-authored graphs could not persist `routeClass`, so
+unclassified was the reachable guarantee rather than a smaller residual. This
+table preserves E4's measured verdict; current Surface and ADR 0152 sources own
+the present guarantee.
 
 ## Route-class vocabulary correction — why claims 2 and 3 did not move
 

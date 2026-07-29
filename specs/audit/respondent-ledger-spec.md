@@ -1598,14 +1598,19 @@ A processor claiming conformance to the Respondent Ledger add-on:
 
 ## 17. Open follow-on work
 
-This draft intentionally leaves several adjacent deliverables for subsequent work:
+This draft intentionally leaves three adjacent deliverables for subsequent work:
 
 - example mappings from existing product audit tables into the canonical ledger model,
-- conformance fixtures that exercise the companion schemas,
 - canonicalization guidance for hash/signature generation,
 - and concrete disclosure-profile registries for export and review workflows.
 
-Companion JSON Schemas for the top-level ledger document and standalone event object are now provided at `schemas/respondent-ledger.schema.json` and `schemas/respondent-ledger-event.schema.json`. Those schemas are intended to encode the canonical wire shape defined here; they do not narrow the broader normative model beyond the constraints stated in this document.
+Companion JSON Schemas for the top-level ledger document and standalone event
+object are now provided at `schemas/respondent-ledger.schema.json` and
+`schemas/respondent-ledger-event.schema.json`. Conformance tests and fixtures
+exercise both schemas under `tests/conformance/schemas/` and
+`tests/conformance/fixtures/respondent-ledger/`. The schemas encode the
+canonical wire shape defined here; they do not narrow the broader normative
+model beyond the constraints stated in this document.
 
 ### 17.1 Changelog
 

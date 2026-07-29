@@ -20,18 +20,19 @@ depends_on:
 
 This document is a **draft specification**. It is a companion to the [Formspec v1.0 core specification](../core/spec.md) and does not modify or extend the core processing model. Implementors are encouraged to experiment with this specification and provide feedback, but MUST NOT treat it as stable for production use until a 1.0.0 release is published.
 
-This spec was promoted from the design exploration [`thoughts/2026-07-27-needs-layer-exploration.md`](../../../thoughts/2026-07-27-needs-layer-exploration.md) (stack root). It now lives in gate-wired `specs/` (`npm run docs:generate` / `docs:check`) alongside the landed [`schemas/needs.schema.json`](../../schemas/needs.schema.json); the BLUF and schema-ref blocks below are generated and MUST NOT be hand-edited.
+This spec was promoted from the design exploration [`thoughts/archive/specs/2026-07-27-needs-layer-exploration.md`](../../../thoughts/archive/specs/2026-07-27-needs-layer-exploration.md) (stack root). It now lives in gate-wired `specs/` (`npm run docs:generate` / `docs:check`) alongside the landed [`schemas/needs.schema.json`](../../schemas/needs.schema.json); the BLUF and schema-ref blocks below are generated and MUST NOT be hand-edited.
 
 **Two corrections applied at promotion**, both to schema annotations, neither to a normative rule:
 
 1. The draft's inline schema marked `$defs.Statement` `x-lm.critical` with a `description` but no `examples`, which the house rule (`formspec/CLAUDE.md` §Spec authoring contract) and the `docs:check` gate (`scripts/generate-spec-artifacts.mjs` `validateCriticalAnnotations`) both refuse. S12 and the landed schema each gained one `examples` entry on that node.
 2. The S12.3 `NeedRef` fragment and its landed counterpart in [`schemas/experience.schema.json`](../../schemas/experience.schema.json) each gained an object-level `description`. A `$defs` node reached from `Unit.needRefs` with no prose of its own leaves the reader to infer the citation's direction and its unpinnedness from the property list; the added line says both and points at S7.
 
-No other content changed.
+No other content changed during promotion.
 
 **What this specification deliberately does NOT decide:**
 
 - **The PURPOSE port mint.** Whether the Need concern becomes a substrate concern port is [ADR 0159](../../../thoughts/adr/0159-product-substrate-recognition.md)'s call, via an amendment running Amendment A2's exhibit-scoring bar. This spec defines the artifact either way.
+- **Cross-stack ownership of Journey identifiers.** Needs v1 defines the local `journeys[]` shape and resolution rules in S3. Processors MUST follow that shipped behavior until a versioned specification change revises it. ADR 0159 Amendment A3 remains open; it must ratify or revise this local decision. This specification does not treat A3 as accepted.
 - **Regeneration semantics beyond anchor pinning.** This spec defines the `need:` anchor grammar and its revision pin (S8). Three-way merge, edit preservation, orphan queues, and review flows are the GENERATION discipline's (ADR 0159 §cross-cutting ports), unmodified by this spec.
 - **The `needs.adoption` authority handle.** Reserved as a future [ADR 0152](../../../thoughts/adr/0152-multi-actor-authorization-scope.md) §4.2 registry row (S10.2) — reserved, not minted. Minting it is a 0152 table amendment.
 - **Deferred surface** (recorded in the exploration §12): structured Given/When/Then `criteria[]`; Observation→Rulespec-assertion promotion tooling; route-level and Definition-level citations; richer edge roles on `needRefs`; a ReqIF export projector; the JOURNEYS.md projection generator; PLANNING-row citation conventions; INTEGRITY attestation of adopted Needs; automated analytics ingestion. Reserved diagnostic codes for the deferred checks are registered in S9.5 so they are not re-minted incompatibly.
@@ -210,7 +211,7 @@ A **Journey** is a persona-level grouping key: the kind of person a set of Needs
 
 A processor MUST report a `NEED-DOC-001` finding (S9.4) for any `need.journey` not present in `journeys[]` when `journeys[]` is declared. A document MAY omit `journeys[]` entirely; `need.journey` values are then free grouping strings.
 
-Journey grouping of **Needs** is this document's; grouping of Experience **Units** under tasks remains the Experience Document's. Same word, two graphs, two owners — recorded here so the seam is not re-litigated.
+For Needs v1, this specification owns the local `journeys[]` identifiers and `need.journey` resolution rules. The Experience Document owns Unit grouping under tasks. This shipped processor behavior is provisional at the cross-stack level: processors MUST follow it until a versioned specification change revises it. Proposed ADR 0159 Amendment A3 must ratify or revise the local decision.
 
 ## 4. The Need
 
@@ -1217,14 +1218,14 @@ The example corpus is the lifecycle-demo bundle (`https://benefits.example.gov/a
 | [RFC 8174] | Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, May 2017. |
 | [RFC 8259] | Bray, T., Ed., "The JavaScript Object Notation (JSON) Data Interchange Format", STD 90, RFC 8259, December 2017. |
 | [RFC 3986] | Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform Resource Identifier (URI): Generic Syntax", STD 66, RFC 3986, January 2005. |
-| Exploration | The Needs Layer — requirements and discovery as substrate data, `thoughts/2026-07-27-needs-layer-exploration.md` (stack root). |
+| Exploration | The Needs Layer — requirements and discovery as substrate data, `thoughts/archive/specs/2026-07-27-needs-layer-exploration.md` (stack root). |
 | Rulespec | Rulespec Core — Vocabulary v0.2, `PKAF/spec/rkaf-core.md`. |
 | Experience | Formspec Experience Specification, `specs/experience/experience-spec.md`. |
 | OA | W3C Web Annotation Ontology 1.0 — TextQuoteSelector (`oa:exact` / `oa:prefix` / `oa:suffix`). |
 | OSLC-RM | OASIS OSLC Requirements Management — `satisfiedBy` link-type lineage for `needRefs`. |
 | 29148 | ISO/IEC/IEEE 29148 — requirement attributes and the verifiability bar on `done`. |
 | ADR 0152 | Multi-actor authorization scope, `thoughts/adr/0152-multi-actor-authorization-scope.md` (stack root) — the reserved `needs.adoption` handle's registry. |
-| ADR 0159 | Product substrate recognition, `thoughts/adr/0159-product-substrate-recognition.md` (stack root) — port ontology; the PURPOSE mint decision this spec does not make. |
+| ADR 0159 | Product substrate recognition, `thoughts/adr/0159-product-substrate-recognition.md` (stack root) — port ontology, the open PURPOSE mint decision, and the open Amendment A3 Journey-ownership decision; this spec does not treat A3 as accepted. |
 
 ---
 

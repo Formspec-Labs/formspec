@@ -11,8 +11,8 @@
  * - **the verified bundle**, and the refusal if it is not;
  * - **which widget modules exist** — the starter set, bound to the module id
  *   this bundle declares;
- * - **runtime data for widgets**, through the host port, because the bundle has
- *   no channel for it;
+ * - **runtime data loading and authorization**, through the canonical Data
+ *   Sources ports. The signed graph still decides whether any widget binds it;
  * - **a route parameter value**, because a bundle with no submission has no case
  *   reference to put in `/receipt/{caseRef}`;
  * - **spike scaffolding** — the verification chrome, the gap drawer, the
@@ -30,9 +30,10 @@ import {
   SurfaceApp,
   starterWidgetModule,
   useBrowserLocation,
-  type SurfaceWidgetDataResolver,
 } from '@formspec-org/surface-react';
 import type {
+  DataSourceAuthorizer,
+  DataSourceLoader,
   ResolvedBundle,
   SurfaceDiagnostic,
   SurfaceStaticAssetResolver,
@@ -98,29 +99,50 @@ export function App({
   );
 
   /**
-   * The host's runtime-data port.
+   * Canonical Data Sources host ports. They receive only a source the verified
+   * manifest/catalog and exact Surface binding already resolved.
    *
-   * The receipt panel gets the only true runtime facts this app has: who signed
-   * the release off and when. They are labelled as what they are — a release
-   * sign-off is not a submission, and calling it one would be the invention this
-   * spike exists to avoid.
-   *
-   * The queue panel gets nothing, and shows its empty state. That is the honest
-   * rendering of `widget-data-binding`: a `module-widget` binding carries
-   * `{moduleId, widgetName, config}` and there is no channel from a Surface slot
-   * to a Data Source. The spike's first pass drew four applications with
-   * invented rents and invented waiting times, and it was the most convincing
-   * thing on the screen.
+   * The current signed spike export declares no widget data binding, so these
+   * ports are not called and the widgets render honest empty states. If a
+   * future signed export binds the explicitly named host-state source below,
+   * it receives release-verification facts — still not invented submission or
+   * queue state.
    */
-  const widgetData: SurfaceWidgetDataResolver = ({ widgetName }) => {
-    if (widgetName !== 'x-receipt-panel') return undefined;
-    return {
-      facts: [
-        { label: 'Release signed off by', value: verification.signerName },
-        { label: 'Signed off on', value: new Date(verification.signedAt).toLocaleString() },
-      ],
-    };
-  };
+  const dataSourceLoader = useMemo<DataSourceLoader>(
+    () => ({ descriptor }) => {
+      const source = descriptor.source;
+      if (
+        source.kind !== 'host-state' ||
+        source.runtime.provenance.source !== 'spike:verified-release'
+      ) {
+        return {
+          status: 'unavailable',
+          reason: 'this spike host does not implement the declared source family',
+        };
+      }
+      return {
+        status: 'loaded',
+        freshness: 'fresh',
+        value: {
+          facts: [
+            { label: 'Release signed off by', value: verification.signerName },
+            {
+              label: 'Signed off on',
+              value: new Date(verification.signedAt).toLocaleString(),
+            },
+          ],
+        },
+      };
+    },
+    [verification],
+  );
+  const authorizeDataSource: DataSourceAuthorizer = ({ descriptor }) =>
+    descriptor.source.runtime.authorizationBoundary === 'host'
+      ? { status: 'authorized' }
+      : {
+          status: 'refused',
+          reason: 'this spike host admits only host-boundary sources',
+        };
 
   return (
     <SurfaceApp
@@ -130,7 +152,8 @@ export function App({
       routeParams={HOST_ROUTE_PARAMS}
       staticAssetResolver={staticAssetResolver}
       widgetModules={[starterWidgetModule(TENANT_CHROME_MODULE)]}
-      widgetData={widgetData}
+      dataSourceLoader={dataSourceLoader}
+      authorizeDataSource={authorizeDataSource}
       onDiagnostics={setDiagnostics}
       header={
         <>

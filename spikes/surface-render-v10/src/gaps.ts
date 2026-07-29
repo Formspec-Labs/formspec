@@ -14,6 +14,8 @@
 export type NaturalHome =
   /** The public reference UI. It already owns respondent rendering + composition roots. */
   | 'formspec-web'
+  /** The explicitly authorized staff host; never part of the public respondent deployment. */
+  | 'case-portal'
   /** A package that does not exist: reads a SurfaceDocument, composes an app. */
   | 'new: surface-shell package'
   /** The module Registry's widget contribution family (ADR 0150 §6.2). */
@@ -40,20 +42,22 @@ export type GapKind =
   | 'vocabulary-bridge';
 
 /**
- * What landed, for an entry that has been closed.
+ * Permanent evidence for an `implemented` or `corrected` entry.
  *
- * **Closed entries stay in the ledger.** A gap report that deletes what it
+ * **Historical entries stay in the ledger.** A gap report that deletes what it
  * fixed loses the history that makes the rest of it credible: a reader cannot
  * tell a list that was always short from one that was worked down, and cannot
- * check that the fix went where the entry said it belonged. So a resolved entry
- * keeps its original `what` / `whyNeeded` / `homeRationale` verbatim — including
- * where it predicted the fix belonged — and carries this beside them.
+ * check that the fix went where the entry said it belonged. An evidence-backed
+ * entry keeps its original `what` / `whyNeeded` / `homeRationale` verbatim —
+ * including where it predicted the fix belonged — and carries this beside them.
  */
+type NonEmptyReadonlyArray<T> = readonly [T, ...T[]];
+
 export interface GapResolution {
   /** Files that changed, so the claim is checkable rather than asserted. */
-  landedIn: readonly string[];
+  landedIn: NonEmptyReadonlyArray<string>;
   /** The permanent test or diagnostic that keeps it closed. */
-  guardedBy: readonly string[];
+  guardedBy: NonEmptyReadonlyArray<string>;
   /** What the app measured before and after, in one line each. */
   before: string;
   after: string;
@@ -62,7 +66,7 @@ export interface GapResolution {
   naturalHomeNote?: string;
 }
 
-export interface GapEntry {
+interface GapEntryBase {
   id: string;
   /** What the shell had to build, in product language. */
   what: string;
@@ -77,9 +81,44 @@ export interface GapEntry {
    * Several of these paths no longer exist — that is the point of keeping them.
    */
   source: string;
-  /** Present ⇒ closed. The entry and its rationale stay put; see {@link GapResolution}. */
-  resolved?: GapResolution;
+  /** Optional work tracker for a separately owned open product slice. */
+  tracker?: string;
 }
+
+export type GapDisposition = 'implemented' | 'corrected' | 'split';
+
+export interface ImplementedGapEntry extends GapEntryBase {
+  disposition: 'implemented';
+  /** Permanent source and guard evidence for the implementation claim. */
+  resolved: GapResolution;
+  childIds?: never;
+}
+
+export interface CorrectedGapEntry extends GapEntryBase {
+  disposition: 'corrected';
+  /** Permanent source and guard evidence proving the original claim false or too broad. */
+  resolved: GapResolution;
+  childIds?: never;
+}
+
+export interface SplitGapEntry extends GapEntryBase {
+  disposition: 'split';
+  /** Existing leaf rows that own every part, including children closed later. */
+  childIds: NonEmptyReadonlyArray<string>;
+  resolved?: undefined;
+}
+
+export interface OpenGapEntry extends GapEntryBase {
+  disposition?: undefined;
+  resolved?: undefined;
+  childIds?: undefined;
+}
+
+export type GapEntry =
+  | ImplementedGapEntry
+  | CorrectedGapEntry
+  | SplitGapEntry
+  | OpenGapEntry;
 
 export const GAP_LEDGER: readonly GapEntry[] = [
   {
@@ -92,6 +131,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The shipped machinery that arguably covers this is `resolveArtifacts` in `@formspec-org/app-graph` — and it is a good piece of work: it is genuinely on the public export surface (unlike `ROUTE_CLASS_THEME_AUTHORITY`), it knows all fourteen manifest slots and their `$formspec*` discriminators, it version-gates slots by `$formspecBundle` (this export is `2.0`), and it returns per-slot diagnostics instead of throwing. The spike could not use it for two reasons, and both are shape rather than quality. First, it resolves **sibling refs through a caller-supplied `ArtifactLoader`** — it models a manifest whose artifacts live somewhere else. A bundle export has already inlined them under `documents`, so the loader the spike would pass is `({ ref }) => bundleExport.documents[ref.url]`: the exact lookup that is the gap, now wrapped. Second, `ArtifactResolutionHandle.document` is `unknown` by design — the schema calls it an "opaque loaded source document… preserved only as data evidence" — so a renderer still has to narrow every artifact by hand. The resolver is built to produce a validation report, not to hand a renderer typed artifacts. The bundle-export arm, and the typing, belong beside it.',
     kind: 'missing-machinery',
     source: 'src/bundle.ts',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface/src/bundle.ts — `dereferenceBundleExport` walks every manifest slot and returns typed artifacts plus a diagnostic per absence.',
@@ -106,7 +146,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'One call. A missing document is a `BUNDLE-DOCUMENT-MISSING` diagnostic; `bundleIsRenderable()` reports structural readiness only, while signature authenticity and deployment admission remain separate host gates.',
       naturalHomeHeld: false,
       naturalHomeNote:
-        'The entry put this beside `resolveArtifacts` in `@formspec-org/app-graph`; it landed in the shell package instead. The reason is the entry’s own second point: `ArtifactResolutionHandle.document` is `unknown` BY DESIGN, because the resolver produces a validation report. Typed artifacts for a renderer is a different job, and merging it would make the resolver serve two masters. This ships the typing job and only that — no validation, no version gating — so a host runs both. **Still open upstream:** the VALIDATING bundle-export arm, which would let `resolveArtifacts` model an export whose documents are already inlined. One mechanism change from the spike, and it was a correction: throwing told a host about one absence at a time and gave it nothing to show a person.',
+        'The entry put both jobs beside `resolveArtifacts` in `@formspec-org/app-graph`; typed renderer dereference landed in Surface because `ArtifactResolutionHandle.document` is intentionally `unknown`. The validating half now also exists in AppGraph as `resolveBundleExportArtifacts`, backed by an exact-own-key loader. The host runs validation first and typed dereference second, preserving the two distinct jobs without duplicating the inline lookup.',
     },
   },
   {
@@ -119,6 +159,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'It is not respondent-specific, so formspec-web is too narrow — the operator route is in the same bundle. It has no opinion about React beyond the slot renderers it delegates to, so it wants its own package with a renderer-shaped port, the way formspec-react and formspec-webcomponent already split.',
     kind: 'missing-machinery',
     source: 'src/shell/SurfaceShell.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface — the renderer-independent core: composition, route matching, slot planning, theme authority, widget registry, transitions.',
@@ -148,6 +189,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The Surface spec §3 "Route Parameters" already defines the marker grammar and a `params[]` declaration. A matcher that reads them is spec-implementing code, not app code, so it belongs beside the shell that consumes it.',
     kind: 'missing-machinery',
     source: 'src/shell/route-match.ts',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface/src/route-path.ts — marker parsing, matching, filling, and the `params[]` cross-check from surface-spec §3.',
@@ -174,6 +216,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'This is a schema-and-authoring defect, not a renderer one. A signed, shipped bundle carries a parameter marker the spec\'s own grammar does not define, and nothing caught it — not lint, not the app-graph validator, not the signing ceremony. `path` needs a pattern and authoring tools need to emit the pinned grammar so a conforming renderer never receives this document.',
     kind: 'vocabulary-bridge',
     source: 'src/shell/route-match.ts',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/schemas/surface.schema.json — Route.path admits opaque segments and exact `{name}` markers while rejecting every unpinned v0.1 parameter grammar.',
@@ -205,6 +248,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The taxonomy is closed, so the dispatch is exhaustive and belongs at exactly one site. Putting it in formspec-web would mean the web component flavour has to write it a second time.',
     kind: 'missing-machinery',
     source: 'src/slots/SlotRenderer.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface/src/slot-plan.ts — `planRoute`, exhaustive over the taxonomy with no `default` arm and a `never` check.',
@@ -233,6 +277,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The Registry already owns widget identity, version, and `widgetShape` including `tokenSlots`. The runtime lookup should hang off the same identity, not off a second parallel table. `formspec-webcomponent` has a `ComponentRegistry`, but it keys on Definition component types (TextInput, Section) — a different vocabulary, not this one.',
     kind: 'missing-machinery',
     source: 'src/slots/ModuleWidgetSlot.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface/src/registry.ts — `createWidgetRegistry`, generic over the component type, and `widgetContributionFor`.',
@@ -247,7 +292,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'Resolution hangs off Registry identity, with three outcomes: `resolved`, `unimplemented` (declared, nothing ships it) and `undeclared`.',
       naturalHomeHeld: true,
       naturalHomeNote:
-        'Hangs off the Registry identity exactly as the rationale asked, and the vocabulary detail is load-bearing: the lookup keys on `widgetShape.widgetName` reached through the declaring module’s `contributes[]`, which is what a Surface `module-widget` binding actually writes. ADR 0160 §2.4 — three fields called some variant of “widget name”, three vocabularies. A registry keyed on `RegistryEntry.name` resolves nothing the day a module uses a PascalCase widget name, which the schema explicitly permits. **Residual:** this is a second implementation of the same walk as app-graph’s module-private `widgetContributionNameFor`, pinned to it by doc comment and test rather than by shared code.',
+        'Hangs off the Registry identity exactly as the rationale asked, and the vocabulary detail is load-bearing: the lookup keys on `widgetShape.widgetName` reached through the declaring module’s `contributes[]`, which is what a Surface `module-widget` binding actually writes. ADR 0160 §2.4 — three fields called some variant of “widget name”, three vocabularies. The pure `resolveWidgetContribution` helper now lives in AppGraph and Surface reuses it, so validation and runtime no longer maintain parallel walks.',
     },
   },
   {
@@ -259,6 +304,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'It is a tenant-supplied chrome widget: the module declares it, so the module should ship it. Today a module can declare a widget it has no way to deliver.',
     kind: 'stub-widget',
     source: 'src/widgets/tenant-chrome.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface-react/src/widgets/intake-banner.tsx',
@@ -284,6 +330,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'Same as the banner, with a sharper edge: this widget frames a signing act on a `ceremony` route, where tenant tokens are refused. A module-supplied widget that is required to render unbranded is a shape the Registry does not currently express.',
     kind: 'stub-widget',
     source: 'src/widgets/tenant-chrome.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface-react/src/widgets/ceremony-frame.tsx',
@@ -310,6 +357,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The widget is registry-shaped, but its content is not. A receipt is an artifact the platform issues, and the bundle carries no session or response data to build one from. That is the gap under the gap — recorded separately as `no-runtime-state`.',
     kind: 'stub-widget',
     source: 'src/widgets/tenant-chrome.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface-react/src/widgets/receipt-panel.tsx',
@@ -323,7 +371,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'Every fact from the host data resolver, except the case reference, which comes from the route parameter. Handed nothing: “There is no receipt to show.”',
       naturalHomeHeld: true,
       naturalHomeNote:
-        'The entry was right that the widget and the receipt are two things. The widget shipped; the receipt has not, and `no-runtime-state` stays open. The one fact the widget takes without a host is the route parameter, because a `/receipt/{caseRef}` route IS addressed by the reference — the URL is a fact, not an invention. A receipt panel that fabricates a reference number is worse than an empty one: the empty one cannot be mistaken for proof.',
+        'The entry was right that the widget and the receipt are two things. The widget shipped first; the respondent host now supplies real confirmation data through its authorized Data Source and shows an explicit unavailable state when it has none. Operator state and the public-signer ceremony remain separate children of `no-runtime-state`. The one fact the widget takes without a host is the route parameter, because a `/receipt/{caseRef}` route IS addressed by the reference — the URL is a fact, not an invention. A receipt panel that fabricates a reference number is worse than an empty one: the empty one cannot be mistaken for proof.',
     },
   },
   {
@@ -336,6 +384,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'A queue table is the most obvious candidate for a first-party widget family: every operator surface in every tenant needs one. But it needs a data source, and the Surface slot binding for a module widget carries `{moduleId, widgetName}` and nothing else — no props, no query, no binding to a Data Source. Recorded separately as `widget-data-binding`.',
     kind: 'stub-widget',
     source: 'src/widgets/tenant-chrome.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface-react/src/widgets/queue-table.tsx',
@@ -349,7 +398,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'Renders whatever rows it is given. Given none it shows an empty state and no table at all; in this spike, that is what it shows.',
       naturalHomeHeld: true,
       naturalHomeNote:
-        'Columns come from `binding.config` when the author declared them and are inferred from the rows’ own keys when they did not. A real `<caption>`, `scope` on every header, a row header per row, and a focusable labelled scroll region, because an operator tool people use all day is where accessibility stops being optional. `widget-data-binding` stays open: this queue is empty because there is still no channel from a Surface slot to a data source.',
+        'Columns come from `binding.config` when the author declared them and are inferred from the rows’ own keys when they did not. A real `<caption>`, `scope` on every header, a row header per row, and a focusable labelled scroll region, because an operator tool people use all day is where accessibility stops being optional. The data channel now exists; this public spike still shows an empty queue because no authorized operator host supplies staff data.',
     },
   },
   {
@@ -362,21 +411,24 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The Registry entry already carries `widgetShape.props` as a JSON Schema — it describes props that the Surface has no way to supply. One of the two has to move: either the slot binding gains a props channel validated against `widgetShape.props`, or widgets bind to Data Sources. Either is a schema decision, not a renderer decision.',
     kind: 'missing-machinery',
     source: 'src/slots/ModuleWidgetSlot.tsx',
-    /**
-     * OPEN, and the entry's last sentence is why. Two things changed and
-     * neither is the schema decision.
-     *
-     * `@formspec-org/surface-react` ships `SurfaceWidgetDataResolver`, a HOST
-     * port: a host that has applications can hand them to a queue widget. It is
-     * named as a host input rather than dressed up as a bundle channel.
-     *
-     * And the spike missed a channel that does exist: `binding.config`, which
-     * lint E604 validates against `widgetShape.props`. The starter widgets read
-     * it, which is where their copy comes from. But `config` is configuration,
-     * not content — there is still no ref from a slot to a Data Source and no
-     * query, so a queue still cannot say WHICH applications. A renderer
-     * inventing that would fork the vocabulary before the schema settles it.
-     */
+    disposition: 'implemented',
+    resolved: {
+      landedIn: [
+        'formspec/schemas/surface.schema.json and formspec/schemas/registry.schema.json — Surface 0.2 binds exact named Registry 1.1 inputs to qualified Data Sources 1.0 catalog/source pairs.',
+        'formspec/packages/formspec-surface/src/data-source-loader.ts and formspec/packages/formspec-surface-react/src/SurfaceSlot.tsx — one canonical loader path resolves availability, authorization, loading, schema validation, freshness, and declared failure behavior before delivering frozen named values.',
+      ],
+      guardedBy: [
+        'packages/formspec-app-graph/tests/surface-vnext-cross-artifact-conformance.test.ts — qualified catalog/source, declared input, availability, and schema coherence before admission.',
+        'packages/formspec-surface/tests/data-source-loader.test.ts and packages/formspec-surface-react/tests/widget-runtime.test.tsx — exact resolution, ordered checks, frozen named delivery, degraded and unavailable states, and no value from widget config.',
+      ],
+      before:
+        'A widget received only configuration; no authored Surface field could identify the runtime source for a named value.',
+      after:
+        'Registry declares the input, Surface binds an exact catalog/source pair, AppGraph validates it, and one authorized loader delivers only the admitted named value.',
+      naturalHomeHeld: true,
+      naturalHomeNote:
+        'The schema chose the Data Sources branch predicted by the row. Registry owns input names, Surface owns use-site bindings, and the framework-neutral loader keeps fetching and authorization out of the widget.',
+    },
   },
   {
     id: 'registry-entries-wiring',
@@ -388,6 +440,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The shell is the only thing holding both the bundle and the renderer, so the join belongs to it. The join is also lossier than it looks, which is why this is a ledger entry and not a convenience: the manifest admits an ARRAY of registries and the prop is a flat list of entries, so two registries declaring the same `name` collapse silently — `flatMap` keeps both and the renderer takes whichever it finds first. Nothing in the spec, the schema, or the validator states a precedence rule for that, and this bundle carries one registry so the spike never had to answer it. A shell that ships has to.',
     kind: 'missing-machinery',
     source: 'src/slots/DefinitionFormSlot.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface/src/registry.ts — `flattenRegistryEntries`.',
@@ -414,6 +467,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The shell owns transition posture, not an implicit affordance. The loaded Response Actions document and selected binding own whether a real control exists; app-graph validation owns the earlier warning when no validator-readable source exists.',
     kind: 'missing-machinery',
     source: 'src/shell/RouteView.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface/src/transitions.ts — selects the exact Response Actions document targeting the bound Definition and credits only controls the binding actually publishes.',
@@ -441,14 +495,68 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'formspec-web already owns the ports for this — draft store, submit transport, response-action ledger, status routes — and already has stub adapters for all of them. The shell should consume those ports rather than grow its own. What is missing is the wiring, not the concept.',
     kind: 'missing-machinery',
     source: 'src/widgets/tenant-chrome.tsx',
+    disposition: 'split',
+    childIds: [
+      'respondent-runtime-state',
+      'operator-runtime-state',
+      'public-signer-ceremony',
+    ],
     /**
-     * OPEN. The shell now has every seam this needs — `SurfaceWidgetDataResolver`
-     * for widget data, `routeParams` for route parameters, `onFireTransition`
-     * for an executor — and this spike supplies all three from the host by
-     * hand. The wiring to formspec-web's draft / submit / ledger ports has not
-     * been done, and the bundle still carries `sessions: []`. The visible cost
-     * is the queue's empty state and the receipt's two-fact panel.
+     * SPLIT, not shipped. This row remains as history; the three leaf children
+     * below name the actor boundary, disposition, and tracker for each part.
      */
+  },
+  {
+    id: 'respondent-runtime-state',
+    what: 'Persistent respondent draft, submit, action, confirmation, receipt, and refresh state for the respondent Surface.',
+    whyNeeded:
+      'The spike supplies a fixed `caseRef` and release-signature facts. It never submits a Response, recovers a receipt, or proves the journey after a fresh application load.',
+    naturalHome: 'formspec-web',
+    homeRationale:
+      'formspec-web owns the respondent controller and its draft, submit, action-ledger, status, and routing ports. The Surface host should compose those existing boundaries instead of creating a second respondent state machine.',
+    kind: 'missing-machinery',
+    source: 'src/app.tsx',
+    tracker: 'fs-q1ex',
+    disposition: 'implemented',
+    resolved: {
+      landedIn: [
+        'formspec-web/src/app/RespondentRuntime.tsx — `RespondentDefinitionController` reuses the existing identity, draft, action-ledger, submit, and status boundaries for an admitted Definition slot.',
+        'formspec-web/src/verifying-surface/respondent/VerifiedRespondentSurface.tsx, data-sources.ts, and session-store.ts — the verified Surface receives real confirmation-derived route and receipt data, release-scoped persistence, explicit unavailable output, navigation, and Locale.',
+      ],
+      guardedBy: [
+        'formspec-web/tests/app/verified-respondent-surface.test.tsx and respondent receipt/data-source/session-store tests — exact handoff, persistence, refusal, and unavailable behavior.',
+        'formspec-web/tests/e2e/signed-respondent-root.spec.ts — the production root verifies, fills, saves, resumes, submits, navigates, and refreshes a real host-port confirmation without exposing staff or ceremony state.',
+      ],
+      before:
+        'The spike supplied a fixed case reference and had no submitted Response, draft recovery, confirmation, or refreshable receipt.',
+      after:
+        'The admitted respondent Surface reuses formspec-web’s production ports, derives its route and receipt from the submit confirmation, resumes the saved draft in the active session, and refreshes a release- and browser-session-bound anonymous receipt or shows it as unavailable.',
+      naturalHomeHeld: true,
+    },
+  },
+  {
+    id: 'operator-runtime-state',
+    what: 'Authorized staff queue and case state for the operator Surface.',
+    whyNeeded:
+      'The spike renders the staff route with an empty queue and no actor authorization. A public bundle and public host cannot stand in for staff-only data and actions.',
+    naturalHome: 'case-portal',
+    homeRationale:
+      'The operator Surface belongs in an explicitly authorized staff host with a staff-specific bundle and data access. It must not enter the public formspec-web respondent deployment.',
+    kind: 'missing-machinery',
+    source: 'src/app.tsx',
+    tracker: 'fs-3b30',
+  },
+  {
+    id: 'public-signer-ceremony',
+    what: 'A real public-signer ceremony with an explicit control, signed preimage, consent, action invocation, and receipt evidence.',
+    whyNeeded:
+      'The spike renders a static ceremony frame and a submit transition, but no control raises a declared Response Action and no signing result exists.',
+    naturalHome: 'formspec-web',
+    homeRationale:
+      'The accepted public UI boundary owns the signer ceremony, but it is a separate slice from the respondent runtime. Its actor, preimage, consent, retry, and receipt rules need independent evidence.',
+    kind: 'missing-machinery',
+    source: 'src/app.tsx',
+    tracker: 'fs-5g59',
   },
   {
     id: 'experience-unit-rendering',
@@ -460,6 +568,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The Experience document is a first-class bundle artifact with a stable shape. How a unit and its needs present to a respondent is a rendering decision, so it sits with the shell — but the *default* presentation should ship, or every host will invent a different one.',
     kind: 'missing-machinery',
     source: 'src/slots/ExperienceUnitSlot.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface/src/experience-unit.ts — resolution, with needs separated from the title by audience.',
@@ -488,6 +597,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'Trivial to render and trivial to get subtly wrong (heading levels are an accessibility contract). It should ship once, with the `kind` vocabulary closed, rather than be re-guessed per host.',
     kind: 'missing-machinery',
     source: 'src/slots/StaticContentSlot.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface/src/static-content.ts — all four kinds, and the heading-level contract.',
@@ -516,6 +626,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The map is correct and well-defended where it is. The defect is purely reach: a rule that only a validator can see is a rule that only fires at authoring time. Adding it to the app-graph index is a one-line change — but the deeper question is whether a *rendering* concern should live inside the validator package at all, or in a small vocabulary package both can depend on.',
     kind: 'unreachable-machinery',
     source: 'src/theme-grant.ts',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-app-graph/src/index.ts — `ROUTE_CLASS_THEME_AUTHORITY`, `TENANT_THEMING_REFUSING_ROUTE_CLASSES` and `CLOSED_RESPONSE_ACTION_INTENTS` are on the export surface.',
@@ -543,6 +654,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'It belongs beside `ROUTE_CLASS_THEME_AUTHORITY`, because the reason and the rule are the same fact and they will drift the moment they live apart. The refusal is a trust claim — "this signing page is not branded so what you are agreeing to cannot be dressed up" — and every host inventing its own wording means the same normative rule reaches people as several different promises. The unclassified arm is the sharper half: ADR 0161 §6 says absence of `routeClass` is a distinct state and MUST NOT be read as `operation`, and then says nothing about what a renderer does with it. Reading absence as "refuse" is as much an invention as reading it as "admit"; the shell had to pick one and the spec should.',
     kind: 'missing-machinery',
     source: 'src/theme-grant.ts',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface/src/theme-authority.ts — `ROUTE_CLASS_THEME_REASON` (`as const satisfies Record<RouteClass, string>`) and `UNCLASSIFIED_THEME_REASON`.',
@@ -570,6 +682,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'Either the token registry is the closed vocabulary and authoring should have refused `color.accent`, or it is open and the renderer needs an alias table. Right now it is neither: authoring accepts the token, validation passes it, and rendering silently drops it. This is a fail-quiet, and it is the single most dangerous thing the spike found — a tenant would see their brand ignored with no diagnostic anywhere.',
     kind: 'vocabulary-bridge',
     source: 'src/theme-grant.ts',
+    disposition: 'corrected',
     resolved: {
       landedIn: [
         'formspec/specs/theme/token-registry-spec.md §2.4 — the registry is the closed vocabulary and `color.primary` is the one brand key. The fork this entry named is answered: NOT an alias table.',
@@ -601,6 +714,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The fix is in `formspec-react`: scope the emission to the component\'s own container — which `FormspecForm` already does correctly, with cleanup — and stop writing to the document root. **The exposure is the write, not what a route happens to contain.** Putting a `definition-form` slot on a `proof` route is schema-valid and nothing forbids it, but this app MEASURES that it would not paint the receipt in the tenant\'s brand: the shell hands that slot the refusing route\'s grant, so `FormspecProvider` re-emits the 45 platform tokens over the leaked ones on `<html>` and `FormspecForm` writes the platform values inline on its own container. Reproduced in the running app with the tenant value on `<html>` and the platform value on the container, the form and every field inside it resolve the platform `#27594f` — the leaked token does not reach them (`evidence/r3-document-root-leak.json` → `correction.measurement`). And on the one route where the tenant brand does resolve, `tenant-brand-paints-nothing` measured zero elements painting with it. What is actually wrong is an unscoped global mutation that outlives the component that made it: a host can only clean up after it, never prevent it, and it reaches everything OUTSIDE a `.formspec-container` — host chrome, portalled content, a second embedded renderer, any future skin that does paint the brand token. So THEME-ROUTE-CLASS has no runtime owner: the shell\'s document root reads 0 tenant properties on every refusing route (`evidence/r3-theme-boundary-probe.json`) only because `enforceDocumentRootThemeBoundary` actively scrubs it.',
     kind: 'missing-machinery',
     source: 'src/theme-grant.ts',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-react/src/context.tsx — FormspecProvider renders a `display: contents` `.formspec-theme-scope` element it owns and emits `themeDocument.tokens` onto THAT, with an unmount cleanup. `document.documentElement` is never written.',
@@ -629,6 +743,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The brand token originally painted buttons and filled controls, while this Definition rendered plain inputs and the earlier binding did not connect the bundle’s Response Actions document to the form. Separate gaps therefore compounded into one silent product failure. The token vocabulary needs a defined fan-out, and the default skin must use it on a surface every plain form actually renders.',
     kind: 'vocabulary-bridge',
     source: 'src/theme-grant.ts',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/specs/theme/token-registry-spec.md §2.4 — `color.primary` is THE brand token. `color.accent` / `color.brand` / `color.highlight` are undeclared and processors MUST NOT alias them. The hand-built alias table in `src/theme-grant.ts` is deleted rather than shipped: a silent alias is what let both vocabularies appear to work.',
@@ -662,6 +777,22 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'This is a seam that exists twice. The schema-generated type is the contract a bundle author writes against; the engine type is the contract the renderer reads. A host holding a bundle has the first and needs the second, and nothing converts. One of them should be the renderer\'s prop type, or `@formspec-org/engine` should export a narrowing that accepts the generated shape. A cast at every host is the same defect as an alias table: it makes two vocabularies both appear to work.',
     kind: 'vocabulary-bridge',
     source: 'src/slots/DefinitionFormSlot.tsx',
+    disposition: 'implemented',
+    resolved: {
+      landedIn: [
+        'formspec/packages/formspec-engine/src/response-actions.ts — `ResponseActionsDocumentInput` is derived from the generated Response Actions document while preserving the named actions-only helper.',
+        'formspec/packages/formspec-surface-react/src/SurfaceSlot.tsx — the generated document now assigns directly to the React engine seam with no `as never`.',
+      ],
+      guardedBy: [
+        'packages/formspec-engine tests — compile-time and runtime Response Actions document coverage.',
+        'packages/formspec-surface-react/tests/route-view.test.tsx and surface-app.test.tsx — exact document selection and completed-action behavior.',
+      ],
+      before:
+        'The schema-generated document and the engine input type were not assignable, so every bundle host needed an unsafe cast.',
+      after:
+        'The generated document is the authoritative input shape and reaches the renderer without a cast.',
+      naturalHomeHeld: true,
+    },
   },
   {
     id: 'platform-theme-merge',
@@ -673,20 +804,22 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The cascade belongs in `@formspec-org/layout` next to `buildPlatformTheme` and `emitMergedThemeCssVars`, both of which already exist. Every host that passes a partial tenant theme will hit this, and most will not notice, because the failure looks like a styling bug rather than a missing cascade.',
     kind: 'missing-machinery',
     source: 'src/theme-grant.ts',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
-        'formspec/packages/formspec-surface/src/theme-authority.ts — `createThemeAuthority` layers the platform tokens under the tenant’s on an admitting route.',
+        'formspec/packages/formspec-layout/src/platform-defaults.ts — `mergePlatformAndTenantTheme` performs the immutable platform-first, tenant-second merge.',
+        'formspec/packages/formspec-react/src/context.tsx, formspec/packages/formspec-webcomponent/src/element.ts, and formspec/packages/formspec-surface/src/theme-authority.ts — direct React, web component, and Surface consumers use the same helper.',
       ],
       guardedBy: [
-        'packages/formspec-surface/tests/theme-authority.test.ts — `layers the platform theme UNDER the tenant on an admitting route`.',
+        'packages/formspec-layout/tests/theme-generation.test.ts, packages/formspec-react/tests/theme-token-scope.test.tsx, packages/formspec-webcomponent/tests/styling/token-resolution.test.ts, and packages/formspec-surface/tests/theme-authority.test.ts — partial tenant themes retain platform tokens, tenant values win, and refusing scopes receive no tenant values.',
       ],
       before:
         'Hand-written spread in the spike. Any host passing a partial tenant theme would drop every platform token and read it as a styling bug.',
       after:
-        'Shipped once. A one-token tenant theme still carries the platform spacing, radii and colours.',
-      naturalHomeHeld: false,
+        'One immutable layout helper preserves platform spacing, radii and colours beneath a partial tenant theme in every shipped renderer.',
+      naturalHomeHeld: true,
       naturalHomeNote:
-        'A compromise rather than a correction. The cascade sits in the shell because that is where the tenant/platform layering decision already lives, next to the route-class grant — not in `@formspec-org/layout` beside `buildPlatformTheme`, where the entry put it. **The original defect is unchanged for anyone who does not use the shell:** `FormspecForm`’s `themeDocument` prop still REPLACES rather than layers. The layering helper still belongs beside `buildPlatformTheme`.',
+        'The first Surface-only repair did not cover direct React and web-component consumers. The shared helper now lives beside `buildPlatformTheme`, exactly where this row predicted, and all three bindings call it.',
     },
   },
   {
@@ -699,17 +832,22 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'formspec-web is the trust-load-bearing reference implementation and already owns the verifier surface. The verification caller belongs there and the shell should consume it through a port, so a host that cannot verify renders a refusal rather than an app.',
     kind: 'missing-machinery',
     source: 'src/verify.ts',
-    /**
-     * OPEN, and half-closed by shape rather than by code. The entry asked for
-     * the shell to consume verification "through a port, so a host that cannot
-     * verify renders a refusal rather than an app" — that is exactly what
-     * `loadAdmittedSurfaceApp` does: it returns before loading core or binding
-     * on a failed verdict, then dereferences the exact verified export after
-     * admission. `SurfaceApp` takes that admitted bundle and never verifies
-     * anything. The shell package deliberately grows no verifier. The caller
-     * itself is still `src/verify.ts` in this spike and still belongs in
-     * formspec-web.
-     */
+    disposition: 'implemented',
+    resolved: {
+      landedIn: [
+        'formspec-web/src/ports/surface-bundle-source.ts and surface-bundle-verifier.ts plus their adapters — immutable acquisition and independently configured integrity/trust/release verification.',
+        'formspec-web/src/verifying-surface/admission.ts and VerifyingSurfaceHost.tsx — acquire, verify and preflight release policy, AppGraph/actor/entry validate, typed dereference and prove renderability, atomically commit the release, then admit and render one unchanged snapshot.',
+      ],
+      guardedBy: [
+        'formspec-web/tests/app/verifying-surface-host.test.tsx — no early DOM/title, phase ordering, snapshot substitution refusal, candidate replacement, cancelled-report suppression, and no stale release commit.',
+        'formspec-web/tests/adapter-conformance/surface-bundle-source and surface-bundle-verifier plus tests/adapters/integrity — source/verifier conformance and mandatory configured KeyResolver use.',
+      ],
+      before:
+        'Only the spike called browser cryptography, trusted sibling key material, and owned the admission gate.',
+      after:
+        'The web host admits one independently trusted current snapshot and shows fixed host refusal states for every non-admitted outcome.',
+      naturalHomeHeld: true,
+    },
   },
   {
     id: 'verified-state-chrome',
@@ -720,11 +858,20 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'This is the verifier UI formspec-web already has in scope. The shell should host a slot for it, not own the component.',
     kind: 'missing-machinery',
     source: 'src/chrome/VerificationChrome.tsx',
-    /**
-     * OPEN. The slot the entry asked for exists — `SurfaceApp` takes `header`
-     * and `footer`, and the shell hosts the chrome rather than owning it. The
-     * component is still this spike's.
-     */
+    disposition: 'implemented',
+    resolved: {
+      landedIn: [
+        'formspec-web/src/verifying-surface/SurfaceVerificationStatus.tsx — persistent host-owned status in `SurfaceApp.header` with signed, trust-store, receipt, release, and host-observation provenance separated.',
+      ],
+      guardedBy: [
+        'formspec-web/tests/app/verifying-surface-host.test.tsx — status is absent before admission, present after admission and route changes, and displays only authenticated publisher/release facts.',
+      ],
+      before:
+        'The only visible verdict component was spike-local and mixed signer labels with verification facts.',
+      after:
+        'Every admitted route carries persistent status whose labels distinguish authenticated claims, deployment trust, verifier receipt, and host checked-at evidence.',
+      naturalHomeHeld: true,
+    },
   },
   {
     id: 'cross-surface-navigation',
@@ -736,17 +883,18 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'The App Manifest is the only artifact that sees both Surfaces, so the composition rule belongs to whatever reads the manifest. Today nothing does, at runtime. Note this is adjacent to actor scope (ADR 0152) but is not the same question: that governs who may write, this governs what renders where.',
     kind: 'missing-machinery',
     source: 'src/shell/SurfaceShell.tsx',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-surface/src/composition.ts — `composeSurfaceApp`, `matchRoute`, `routeHref`.',
       ],
       guardedBy: [
-        'packages/formspec-surface/tests/composition.test.ts — including the path-collision case and `labels a group with the Surface id when the document carries no title`.',
+        'packages/formspec-surface/tests/bundle.test.ts and composition.test.ts — exact explicit entry selection, invalid and ambiguous refusal, legacy single-Surface behavior, path collisions, and `labels a group with the Surface id when the document carries no title`.',
       ],
       before:
         'One flat URL space assumed to work because “their paths happen not to collide”, and two invented group labels: “For the person applying”, “For staff”.',
       after:
-        'The rule is stated: one flat URL space in manifest order, first Surface’s `entry` is the app entry, colliding paths both stay in the table with `ROUTE-PATH-COLLISION` raised.',
+        'The rule is stated: routes occupy one flat URL space in manifest order, App Manifest 2.4 selects one exact entry Surface, invalid or ambiguous selection yields no app entry, and colliding paths stay in the table with `ROUTE-PATH-COLLISION` raised.',
       naturalHomeHeld: true,
       naturalHomeNote:
         '**The invented copy is gone.** A group’s label is `surface.title ?? surface.id` and nothing else; a host may supply a label resolver, which makes it a host input rather than a shell invention. “For the person applying” was a shell putting words in the author’s mouth for an artifact that declined to carry them, and the honest rendering of a missing optional title is the id.',
@@ -762,16 +910,25 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'Genuinely spike-only, all of it. A real shell takes its chrome from the host, does not draw a gap drawer, does not label its own stubs, and does not export its token values for a test to find. Recorded as one entry rather than five because splitting scaffolding inflates the ledger and the ledger\'s honesty is the deliverable — but itemised inside it, so the headline count cannot quietly absorb a piece that turned out to have a natural home after all. One deliberate exclusion: the `await initFormspecEngine()` the app makes before mounting the renderer is NOT here and is not a gap. It is documented, exported, and `formspec-web` makes the same call at its own boot. Friction, not absence.',
     kind: 'missing-machinery',
     source: 'src/app.css',
-    /**
-     * STILL SPIKE-ONLY, and smaller than it was — which is checkable only
-     * because the entry itemised itself. Structural layout CSS moved to
-     * `@formspec-org/surface-react/formspec-surface.css`, token-driven with no
-     * hard-coded brand. **`StubFrame` is deleted: there are no stubs left to
-     * mark.** What remains is genuinely spike-only: the boot copy, the gap
-     * drawer, the on-screen document-root probe, the `probe-hooks` window
-     * handle that lets `scripts/probe.mjs` take its numbers from the app's own
-     * verification path, and `TENANT_TOKEN_VALUES`.
-     */
+    disposition: 'corrected',
+    resolved: {
+      landedIn: [
+        'formspec/packages/formspec-surface-react/src/formspec-surface.css — reusable token-driven structural shell layout.',
+        'formspec-web/src/verifying-surface/VerifyingSurfaceHost.tsx and verifying-surface.css — host-owned checking, refusal, unsupported, error, and admitted status UI.',
+        'formspec/spikes/surface-render-v10 — GapDrawer, probes, and token instrumentation remain explicitly evidence-only.',
+      ],
+      guardedBy: [
+        'formspec-web/tests/app/verifying-surface-host.test.tsx — fixed host copy appears for every pre-admission outcome and no bundle copy leaks into it.',
+        'packages/formspec-surface-react/tests/surface-app.test.tsx and the spike browser probe — reusable layout and evidence instrumentation stay separate.',
+      ],
+      before:
+        'One broad row treated product shell states, reusable structural CSS, and measurement-only furniture as the same missing product design.',
+      after:
+        'Reusable layout and trust states are product code; the drawer, probes, StubFrame history, and token instrumentation remain spike evidence and are not promoted.',
+      naturalHomeHeld: true,
+      naturalHomeNote:
+        'The original natural home was correct only for the measurement furniture. The row is corrected rather than implemented because its product and evidence pieces have different owners.',
+    },
   },
   {
     id: 'static-content-image-has-no-alt-channel',
@@ -783,6 +940,22 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'Found by implementing the fourth `static-content` kind, which the spike skipped — the cost of reporting a vocabulary as unwritten instead of reading the schema. `@formspec-org/surface` does the only two honest things available to it: use `slot.title` as the accessible name when the author gave one, and otherwise mark the image decorative and raise `STATIC-IMAGE-NO-ALT`. Decorative is correct for an image that carries no meaning and wrong for one that does, and the binding gives no way to tell them apart. The fix is a field on the static-content binding — `alt`, required when `kind: image`, admitting the empty string as an explicit decorative declaration. That is a schema revision; a renderer picking a default is not a substitute for it.',
     kind: 'missing-machinery',
     source: 'packages/formspec-surface/src/static-content.ts',
+    disposition: 'implemented',
+    resolved: {
+      landedIn: [
+        'formspec/schemas/surface.schema.json and formspec/specs/surface/surface-spec.md — Surface 0.2 requires `binding.alt` exactly for images and admits `""` as an explicit decorative choice.',
+        'formspec/packages/formspec-surface/src/static-content.ts and formspec/packages/formspec-surface-react/src/SurfaceSlot.tsx — runtime planning refuses missing/non-string alt and the DOM receives the authored value exactly.',
+      ],
+      guardedBy: [
+        'tests/conformance/fixtures/surface/surface-v0-2-contract.cases.json — meaningful, empty, missing, and illegal non-image alt cases.',
+        'packages/formspec-surface/tests/static-content.test.ts and packages/formspec-surface-react/tests/surface-app.test.tsx — no resolver call for missing alt, exact meaningful alt, decorative empty alt, and no title/URL/filename synthesis.',
+      ],
+      before:
+        'A schema-valid image had no authored alternative-text channel, so the renderer guessed from slot chrome or treated unknown meaning as decorative.',
+      after:
+        'Every valid Surface 0.2 image carries the author’s exact meaningful or empty alt; malformed missing alt is unavailable and diagnostic.',
+      naturalHomeHeld: true,
+    },
   },
   {
     id: 'transition-edge-traversability-unchecked',
@@ -794,6 +967,7 @@ export const GAP_LEDGER: readonly GapEntry[] = [
       'Surface lint E606 walks the route graph for reachability and never asks whether an edge can be traversed. `validateSurfaceResponseActionTriggers` does ask, but only against a loaded Response Actions document — so it fires on a trigger the document contradicts and stays silent on a route with no way to raise the trigger in the first place. The missing rule is per-route rather than per-document: a transition whose trigger is a closed-core intent needs something ON that route capable of producing it. Belongs in lint or the app-graph validator; it would have caught this bundle before the signing ceremony.',
     kind: 'missing-machinery',
     source: 'packages/formspec-surface/src/transitions.ts',
+    disposition: 'implemented',
     resolved: {
       landedIn: [
         'formspec/packages/formspec-app-graph/src/surface-response-action-triggers.ts — E611 walks direct and embedded definition-form slots and warns when no validator-readable source matches the resolved action.',
@@ -811,17 +985,217 @@ export const GAP_LEDGER: readonly GapEntry[] = [
         'App-graph validation owns the cross-artifact evidence. Warning severity preserves routes whose control arrives only through a host executor or private widget behavior.',
     },
   },
+  {
+    id: 'app-entry-surface-undeclared',
+    what: 'A declared app-level entry Surface instead of selecting the first Surface in manifest order.',
+    whyNeeded:
+      'A bundle can list respondent and staff Surfaces, and each owns its own entry route. Manifest order currently decides which actor-facing Surface opens as the app without an explicit authored choice.',
+    naturalHome: 'spec or schema, upstream of any renderer',
+    homeRationale:
+      'App Manifest owns the ordered Surface references and must name the canonical app entry. Surface should continue to own only the entry route inside the selected Surface.',
+    kind: 'missing-machinery',
+    source: 'packages/formspec-surface/src/composition.ts',
+    disposition: 'implemented',
+    resolved: {
+      landedIn: [
+        'formspec/schemas/bundle-manifest.schema.json and formspec/specs/bundle/app-manifest-spec.md — App Manifest 2.4 adds exact canonical `entrySurface` selection and the zero/one/many rule.',
+        'formspec/packages/formspec-app-graph/src/app-entry.ts — validation resolves the selected Surface and its own entry route without fallback.',
+      ],
+      guardedBy: [
+        'tests/conformance/fixtures/bundle/app-entry-*-v2-4.json and invalid-entry-surface-*-v2-4.json — explicit, sole implicit, ambiguous, and unresolved schema/semantic cases.',
+        'packages/formspec-app-graph/tests/surface-vnext-cross-artifact-conformance.test.ts — `APP-ENTRY-AMBIGUOUS`, `APP-ENTRY-SURFACE-UNRESOLVED`, and selected-Surface entry-route coverage.',
+      ],
+      before:
+        'Manifest order silently selected the actor-facing Surface that opened first.',
+      after:
+        'One Surface may be implicit; multiple Surfaces require one exact URL, and invalid or ambiguous selection fails closed.',
+      naturalHomeHeld: true,
+    },
+  },
+  {
+    id: 'widget-action-output-undeclared',
+    what: 'Registry-declared widget action outputs mapped by Surface to exact Response Actions action IDs.',
+    whyNeeded:
+      'A module widget can render a control, but neither its Registry declaration nor its Surface binding says which output it raises. Validation and the shell therefore cannot prove that a widget can fire an authored transition.',
+    naturalHome: 'spec or schema, upstream of any renderer',
+    homeRationale:
+      'Registry owns the closed output names a widget implementation may raise. Surface owns the per-slot mapping from those names to Response Actions IDs; the renderer must not infer either side.',
+    kind: 'missing-machinery',
+    source: 'packages/formspec-surface/src/transitions.ts',
+    disposition: 'implemented',
+    resolved: {
+      landedIn: [
+        'formspec/schemas/registry.schema.json and formspec/schemas/surface.schema.json — Registry 1.1 declares closed widget outputs and Surface 0.2 maps each use-site output to one exact Response Actions ID.',
+        'formspec/packages/formspec-app-graph/src/surface-widget-actions.ts and formspec/packages/formspec-surface-react/src/widget-action-runtime.ts — validation proves cross-artifact coherence and runtime emits only declared, mapped outputs through the existing executor.',
+      ],
+      guardedBy: [
+        'packages/formspec-app-graph/tests/surface-vnext-cross-artifact-conformance.test.ts — undeclared output, missing action, and transition/action coherence cases.',
+        'packages/formspec-surface-react/tests/widget-action-runtime.test.ts and packages/formspec-surface-react/tests/widget-runtime.test.tsx — exact mapping, undeclared refusal, stable invocation identity, in-flight coalescing, durable replay, stale completion suppression, and single eligible navigation.',
+      ],
+      before:
+        'A widget control had no authored output vocabulary or exact action mapping, so validation and runtime had to guess.',
+      after:
+        'The widget may emit only a Registry-declared output mapped by its Surface slot to one admitted Response Action; retry and navigation behavior preserve one action identity.',
+      naturalHomeHeld: true,
+    },
+  },
+  {
+    id: 'locale-app-integration',
+    what: 'Automatic Locale selection and delivery for the shell’s closed person-facing string set.',
+    whyNeeded:
+      'The shell exposes a host override map, but no Locale document can target a non-form app and no host adapter selects Locale strings for the shell. A deployment remains English unless it wires an unowned convention by hand.',
+    naturalHome: 'spec or schema, upstream of any renderer',
+    homeRationale:
+      'Locale must define app targeting and canonical shell keys, App Manifest must reference the applicable Locale documents, and the host must deliver the selected values to the existing override seam.',
+    kind: 'missing-machinery',
+    source: 'packages/formspec-surface/src/strings.ts',
+    disposition: 'implemented',
+    resolved: {
+      landedIn: [
+        'formspec/specs/locale/locale-spec.md, schemas/locale.schema.json, and schemas/bundle-manifest.schema.json — Locale 2.0 owns app targeting and the closed Surface shell key set; App Manifest 2.4 references those documents.',
+        'formspec/packages/formspec-engine/src/locale.ts and formspec/packages/formspec-surface/src/strings.ts — target-bounded regional/base selection feeds the canonical shell resolver with built-in English fallback.',
+        'formspec-web/src/verifying-surface/respondent/locale.ts and VerifiedRespondentSurface.tsx — the admitted app selects exact app and Definition Locale documents and applies changes without crossing target identity.',
+      ],
+      guardedBy: [
+        'formspec schema, Rust, Python, engine, Surface, and Surface React Locale conformance suites.',
+        'formspec-web/tests/app/respondent-surface-locale.test.tsx and tests/e2e/signed-respondent-root.spec.ts — target isolation plus live app-shell and Definition switching in the verified production root.',
+      ],
+      before:
+        'The shell exposed only a host override map, while Locale could not target an app and the respondent host had no selection adapter.',
+      after:
+        'An admitted app carries target-qualified Locale documents; the host resolves the active app and Definition languages into their separate consumers, and a language change updates both without target leakage.',
+      naturalHomeHeld: true,
+    },
+  },
+  {
+    id: 'bundle-publishing-trust-and-rollback',
+    what: 'Independent bundle-publisher trust, authenticated release metadata, and stale-but-valid release rollback refusal.',
+    whyNeeded:
+      'The spike verifies with a public key shipped beside the bundle, presents sibling signer metadata as trusted, and has no app-scoped rule that rejects an older cryptographically valid release.',
+    naturalHome: 'spec or schema, upstream of any renderer',
+    homeRationale:
+      'An owning signed-bundle profile must reuse the integrity verifier while defining independent trust anchors, authenticated publisher and release facts, app authorization, freshness, and rollback policy before any browser host admits a bundle.',
+    kind: 'missing-machinery',
+    source: 'src/verify.ts',
+    disposition: 'implemented',
+    resolved: {
+      landedIn: [
+        'formspec/specs/bundle/surface-bundle-signing-profile.md and formspec/schemas/surface-bundle-signing-v1.schema.json — canonical signed bytes, publisher/app authority, and pinned or monotonic release policy.',
+        'formspec/packages/formspec-surface-bundle-signing — raw-byte parsing, COSE verification through the existing integrity port, independent `kid` resolution, trust checks, release checks, and atomic post-validation admission.',
+      ],
+      guardedBy: [
+        'packages/formspec-surface-bundle-signing/tests — real COSE/WebCrypto acceptance plus mutation, wrong-domain/method/key/publisher/app, expired/revoked authority, metadata tampering, replacement-key, and stale-release vectors.',
+        'packages/formspec-surface-bundle-signing/tests/adversarial-conformance.test.ts — trust, method registry, release mode, and monotonic store are snapshotted before asynchronous work.',
+      ],
+      before:
+        'The spike trusted a sibling public key and unsigned signer labels and would accept an older correctly signed release.',
+      after:
+        'Admission requires an independently resolved key, authenticated publisher/app authority, and an allowed current release before host validation can commit it.',
+      naturalHomeHeld: true,
+    },
+  },
 ];
 
 export function gapsBySource(source: string): readonly GapEntry[] {
   return GAP_LEDGER.filter((entry) => entry.source === source);
 }
 
-/** Entries a host consuming the shipped packages no longer hand-builds. */
-export const RESOLVED_GAPS: readonly GapEntry[] = GAP_LEDGER.filter((entry) => entry.resolved);
+export type EvidenceBackedGapEntry = ImplementedGapEntry | CorrectedGapEntry;
 
-/** Entries still standing. Each carries its reason in a comment or its rationale. */
-export const OPEN_GAPS: readonly GapEntry[] = GAP_LEDGER.filter((entry) => !entry.resolved);
+function hasEvidence(entry: GapEntry): entry is EvidenceBackedGapEntry {
+  return entry.disposition === 'implemented' || entry.disposition === 'corrected';
+}
+
+function isSplit(entry: GapEntry): entry is SplitGapEntry {
+  return entry.disposition === 'split';
+}
+
+function isOpen(entry: GapEntry): entry is OpenGapEntry {
+  return entry.disposition === undefined;
+}
+
+/** Evidence-backed entries whose missing behavior was implemented. */
+export const IMPLEMENTED_GAPS: readonly ImplementedGapEntry[] = GAP_LEDGER.filter(
+  (entry): entry is ImplementedGapEntry => entry.disposition === 'implemented',
+);
+
+/** Evidence-backed entries whose original claim proved false or too broad. */
+export const CORRECTED_GAPS: readonly CorrectedGapEntry[] = GAP_LEDGER.filter(
+  (entry): entry is CorrectedGapEntry => entry.disposition === 'corrected',
+);
+
+/** Historical parent rows decomposed into separately owned child work. Never shipped. */
+export const SPLIT_GAPS: readonly SplitGapEntry[] = GAP_LEDGER.filter(isSplit);
+
+/** Backward-compatible name for evidence-backed closed rows, in ledger order. */
+export const RESOLVED_GAPS: readonly EvidenceBackedGapEntry[] = GAP_LEDGER.filter(hasEvidence);
+
+/** Entries still standing. Split parents are tracked separately and are not open leaves. */
+export const OPEN_GAPS: readonly OpenGapEntry[] = GAP_LEDGER.filter(isOpen);
+
+const NON_PERMANENT_EVIDENCE =
+  /(?:^|\s)(?:\.tickets\/|thoughts\/(?:archive\/)?plans\/)|screenshots?\//i;
+
+/**
+ * Validates invariants that TypeScript alone cannot prove from generated data:
+ * unique ids, durable evidence text, and split parents whose children exist
+ * as leaf rows. The generator refuses to write evidence when this fails.
+ */
+export function gapLedgerErrors(
+  entries: readonly GapEntry[] = GAP_LEDGER,
+): readonly string[] {
+  const errors: string[] = [];
+  const byId = new Map<string, GapEntry>();
+
+  for (const entry of entries) {
+    if (byId.has(entry.id)) {
+      errors.push(`Duplicate gap id "${entry.id}".`);
+    } else {
+      byId.set(entry.id, entry);
+    }
+
+    if (hasEvidence(entry)) {
+      for (const [field, values] of [
+        ['landedIn', entry.resolved.landedIn],
+        ['guardedBy', entry.resolved.guardedBy],
+      ] as const) {
+        if (values.length === 0) {
+          errors.push(`${entry.id}.${field} must contain permanent evidence.`);
+        }
+        for (const value of values) {
+          if (value.trim().length === 0) {
+            errors.push(`${entry.id}.${field} contains an empty evidence item.`);
+          }
+          if (NON_PERMANENT_EVIDENCE.test(value)) {
+            errors.push(
+              `${entry.id}.${field} cites a plan, tracker, or screenshot instead of permanent source or a guard.`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  for (const entry of entries) {
+    if (!isSplit(entry)) continue;
+    const seenChildren = new Set<string>();
+    for (const childId of entry.childIds) {
+      if (seenChildren.has(childId)) {
+        errors.push(`${entry.id}.childIds repeats "${childId}".`);
+        continue;
+      }
+      seenChildren.add(childId);
+      const child = byId.get(childId);
+      if (!child) {
+        errors.push(`${entry.id}.childIds names missing gap "${childId}".`);
+      } else if (isSplit(child)) {
+        errors.push(`${entry.id}.childIds names "${childId}", which is not a leaf.`);
+      }
+    }
+  }
+
+  return errors;
+}
 
 /**
  * Widget stubs still standing. Zero — all four ship as real widgets in

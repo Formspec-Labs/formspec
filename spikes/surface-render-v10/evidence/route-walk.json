@@ -181,9 +181,9 @@
   "stubsRendered": [],
   "stubNote": "Zero. All four module widgets are real components in @formspec-org/surface-react. Where a widget shows an empty state it is because the bundle supplies it nothing — `widget-data-binding` and `no-runtime-state`, both still open — not because the widget is a stub.",
   "ledgerOnScreen": {
-    "onScreenTotal": 29,
-    "onScreenResolved": 22,
-    "onScreenOpen": 7,
+    "onScreenTotal": 36,
+    "onScreenResolved": 33,
+    "onScreenOpen": 2,
     "diagnosticCount": 0,
     "diagnosticErrors": 0,
     "diagnosticWarnings": 0,

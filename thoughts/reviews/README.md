@@ -9,7 +9,7 @@ Most historical reviews were moved to **`thoughts/archive/reviews/`** after the 
 | [2026-03-23-wasm-split-baseline.md](2026-03-23-wasm-split-baseline.md) | **Reference** — size/timing procedures; linked from `formspec-wasm` / `formspec-engine` READMEs (ADR 0050). |
 | [2026-03-24-planner-spec-divergences.md](2026-03-24-planner-spec-divergences.md) | **Reference** — living divergence register; cited from active design specs. |
 | [2026-07-28-surface-shell-review-findings.md](2026-07-28-surface-shell-review-findings.md) | **Reference** — historical Surface Shell findings, reconciliation record, and closed follow-up evidence. |
-| [2026-04-09-wos-core-companion-review.md](../../work-spec/thoughts/reviews/2026-04-09-wos-core-companion-review.md) | **Planning** — primary implementation plan for `work-spec` (now in `work-spec/thoughts/reviews/`, linked from `work-spec/TODO.md`). |
+| [2026-04-09-wos-core-companion-review.md](../../../work-spec/thoughts/reviews/2026-04-09-wos-core-companion-review.md) | **Planning** — primary implementation plan for `work-spec` (now in `work-spec/thoughts/reviews/`, linked from `work-spec/TODO.md`). |
 
 ## Snapshot discipline
 

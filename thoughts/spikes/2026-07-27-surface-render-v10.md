@@ -17,8 +17,8 @@ sources:
 ## What this spike is for
 
 The lifecycle spike ended at a signed bundle export. A bundle export is a
-description of an app. Nobody has ever opened it in a browser and clicked
-through it.
+description of an app. Before this spike, nobody had opened that export in a
+browser and clicked through it.
 
 This spike does that, and the point of doing it is the measurement. Every piece
 the shell has to hand-build to get from "the platform describes this app" to
@@ -123,14 +123,14 @@ measurement and screenshot here was taken against the export as committed. Raw-f
 hashes for both inputs are pinned in the README's reproducibility table; hash those two
 paths and you know whether the numbers still apply.
 
-**Hypothesis confirmed.** No Surface-shell renderer exists. Every `SurfaceDocument`
-consumer in the stack authors them (`studio-core` kernel, MCP wireframe verbs) or
-validates them (app-graph validator, `formspec-lint`). `formspec-web`'s
-`surface-router.ts` never opens a Surface document — it takes a pre-flattened
-`{routeId, nextRouteId}` from config. `case-portal`, `formspec-cloud` and
-`policy-studio` contain no Surface reference at all. The closed slot taxonomy, the
-route-class vocabulary, the route graph and the transition triggers are authored,
-enforced, and read by nothing at render time.
+**First-run result: hypothesis confirmed.** No Surface-shell renderer existed at
+the measured snapshot. Every `SurfaceDocument` consumer in the stack authored
+them (`studio-core` kernel, MCP wireframe verbs) or validated them (app-graph
+validator, `formspec-lint`). `formspec-web`'s `surface-router.ts` did not open a
+Surface document — it took a pre-flattened `{routeId, nextRouteId}` from config.
+`case-portal`, `formspec-cloud`, and `policy-studio` contained no Surface
+reference. The closed slot taxonomy, route-class vocabulary, route graph, and
+transition triggers were authored and enforced, but no runtime read them.
 
 ### Bars
 
@@ -254,8 +254,9 @@ outcome a confirmed hypothesis is supposed to have.
 `{moduleId, widgetName}` resolving through Registry identity — is what let them be
 delivered, and the naming detail was load-bearing: a Surface binding's `widgetName`
 matches `widgetShape.widgetName`, not `RegistryEntry.name` (ADR 0160 §2.4). None of them
-invents content; the queue renders an honest empty state, which is the visible cost of
-`widget-data-binding` still being open.
+invents content; the queue renders an honest empty state. Surface 0.2, Registry
+1.1, and Data Sources 1.0 later closed `widget-data-binding`; the separately
+authorized operator-state leaf remains open as `fs-3b30`.
 
 **The transition question is answered, against the shell.** The spike asked whether a
 shell should own a default trigger affordance. It should not:
@@ -263,13 +264,17 @@ shell should own a default trigger affordance. It should not:
 button, or a validation summary", and a shell-supplied Continue button is that inference
 wearing a label. The shell plans transitions and refuses to fire them; the bundle
 declares the trigger and the host supplies the executor. The finding underneath —
-nothing checks, before signing, that a transition trigger has anything that could
-produce it — is split out as `transition-edge-traversability-unchecked` and stays open,
-because it belongs in lint or the app-graph validator rather than in any renderer.
+nothing checked, before signing, that a transition trigger had anything that
+could produce it — was split out as
+`transition-edge-traversability-unchecked`. AppGraphValidator `E611` now closes
+that row with a warning because private widget or host behavior remains outside
+static validation.
 
 Two findings were added by doing the work rather than by writing the spike, both
-upstream of any renderer: `static-content-image-has-no-alt-channel` (the `static-content`
-binding has no `alt` field, and `kind: image` is one of its four closed kinds) and the
-transition check above. And one entry's claim was corrected against the schema: the
+upstream of any renderer: `static-content-image-has-no-alt-channel` (the
+`static-content` binding had no `alt` field at the measured snapshot, and
+`kind: image` was one of its four closed kinds) and the transition check above.
+Surface 0.2 and AppGraphValidator `E611` now close both rows. One entry's claim
+was also corrected against the schema: the
 `static-content` `kind` vocabulary **was** already closed, in
 `surface.schema.json` and surface-spec §5, and the spike reported it as unwritten.
