@@ -1,6 +1,6 @@
 /** @filedesc Tests for FormspecForm auto-renderer and default components. */
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
-import React from 'react';
+import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { initFormspecEngine, createFormEngine, createDemoSubmitResponseActions, invokeResponseAction } from '@formspec-org/engine';
@@ -200,6 +200,39 @@ describe('FormspecForm', () => {
         );
         const checkbox = container.querySelector('input[type="checkbox"]');
         expect(checkbox).toBeTruthy();
+    });
+
+    it('keeps a Toggle reactive after replacing the Definition', () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+
+        act(() => {
+            root.render(<FormspecForm definition={testDefinition} />);
+        });
+
+        const replacementDefinition = {
+            ...testDefinition,
+            items: testDefinition.items.map((item) => ({ ...item })),
+            binds: testDefinition.binds.map((binding) => ({ ...binding })),
+        };
+        act(() => {
+            root.render(<FormspecForm definition={replacementDefinition} />);
+        });
+
+        const toggle = container.querySelector<HTMLInputElement>('input[role="switch"]');
+        expect(toggle).toBeTruthy();
+        expect(toggle!.checked).toBe(false);
+
+        act(() => {
+            toggle!.click();
+        });
+        expect(toggle!.checked).toBe(true);
+
+        act(() => {
+            toggle!.click();
+        });
+        expect(toggle!.checked).toBe(false);
     });
 
     it('renders hint text', () => {

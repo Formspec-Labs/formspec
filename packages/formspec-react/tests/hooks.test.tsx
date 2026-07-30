@@ -161,6 +161,36 @@ describe('useSignal reactivity', () => {
         flushSync(() => { base.value = 20; });
         expect(result.current).toBe(40);
     });
+
+    it('resubscribes when the signal instance changes', () => {
+        const first = signal('first');
+        const second = signal('second');
+        const result = { current: '' };
+        const renderCount = { current: 0 };
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+
+        function TestComponent({ source }: { source: typeof first }) {
+            renderCount.current++;
+            result.current = useSignal(source);
+            return null;
+        }
+
+        flushSync(() => { root.render(<TestComponent source={first} />); });
+        expect(result.current).toBe('first');
+
+        flushSync(() => { root.render(<TestComponent source={second} />); });
+        expect(result.current).toBe('second');
+
+        flushSync(() => { second.value = 'second-updated'; });
+        expect(result.current).toBe('second-updated');
+
+        const rendersAfterCurrentSignalUpdate = renderCount.current;
+        flushSync(() => { first.value = 'first-updated'; });
+        expect(result.current).toBe('second-updated');
+        expect(renderCount.current).toBe(rendersAfterCurrentSignalUpdate);
+    });
 });
 
 // ── useField ───────────────────────────────────────────────────────
