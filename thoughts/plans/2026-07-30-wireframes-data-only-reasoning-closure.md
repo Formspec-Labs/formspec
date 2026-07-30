@@ -212,19 +212,25 @@ focused verification are complete, not merely designed.
 
 The corrected v12 and control bundles pass the durable artifact verifier and
 all seven AppGraph phases. The mechanically regenerated SaaS reasoning review
-resolves 256 of 256 rendered and behavior nodes to current adopted Needs and
+resolves 386 of 386 rendered and behavior nodes to current adopted Needs and
 mounted Experience paths; the control resolves 12 of 12.
 
 The generic-host guard, demo typecheck, and production build pass. Playwright
-rendered all 14 SaaS routes, followed all 22 actions, exercised loaded, empty,
-loading, and unavailable source behavior, completed the public form at mobile
-width, and rendered the control bundle without a console warning or error.
+rendered all 15 SaaS routes and all 34 actions, exercised loaded, empty,
+loading, unavailable, error, and long-content behavior, completed the public
+form at mobile width, and rendered an unrelated community room bundle without
+a console warning or error. Native human References render as contextual help;
+agent References and Ontology identifiers remain outside the customer DOM.
+Reference links fail closed to HTTPS and same-app relative destinations unless
+an explicit host policy translates another scheme.
 
-The affected Formspec build and unit gates, the full Formspec unit aggregate,
-the contract-surface gate, StudioCore, and Wireframes MCP pass. The schema-fuzz
-harness now follows external references in sibling keywords beside a local
-`$ref`, closing the last red gate found during final validation.
+The affected Formspec builds and unit suites, Rust lint checks, generated
+schema/spec checks, documentation checks, and the full contract-surface gate
+pass. The final UX/UI audit records every original finding as closed, including
+usable-outcome lint, authoring-model separation, default responsive layout,
+state recovery, responsive tables, contrast lint, and delivered-widget
+Registry compatibility.
 
 The final independent architecture re-review found no remaining blocker. The
 reviewed source, artifacts, current evidence, and screenshots resolve to stable
-digest `0f3ff91772515e1635723741803421b666ac3411a52047e189703d7e20dcf398`.
+digest `307627996ceb2c852a7133c69c106c1eeb1d18c4c3071d28d0ebaee0ea62d62b`.
