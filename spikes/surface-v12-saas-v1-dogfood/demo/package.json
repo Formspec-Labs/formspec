@@ -1,14 +1,16 @@
 {
-  "name": "formspec-surface-v12-saas-v1-demo",
+  "name": "formspec-surface-preview-host",
   "private": true,
   "version": "0.12.0",
-  "description": "Browser demo for the v12 SAAS-V1 Wireframes MCP dogfood bundle",
+  "description": "Fixed browser host for data-only Surface preview bundles",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4184 --strictPort",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:generic-host": "node scripts/check-generic-host.mjs",
+    "test": "node --test ../reasoning-review.test.mjs && npm run check:generic-host && npm run typecheck"
   },
   "dependencies": {
     "@formspec-org/engine": "file:../../../packages/formspec-engine",
@@ -18,6 +20,7 @@
     "@formspec-org/surface-react": "file:../../../packages/formspec-surface-react",
     "@formspec-org/types": "file:../../../packages/formspec-types",
     "@preact/signals-core": "^1.8.0",
+    "ajv": "^8.18.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

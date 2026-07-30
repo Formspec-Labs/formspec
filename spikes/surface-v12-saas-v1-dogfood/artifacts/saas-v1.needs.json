@@ -1,0 +1,232 @@
+{
+  "$formspecNeeds": "1.0",
+  "version": "1.0.0",
+  "url": "https://formspec.cloud/needs/saas-v1",
+  "name": "formspec_cloud_saas_v1",
+  "title": "Formspec Cloud SaaS V1 product needs",
+  "description": "Imported from the approved SAAS-V1 product plan. The source is a product decision document rather than Rulespec or Observation evidence, so every record declares team-consensus instead of pretending the Markdown is normative or empirical grounding.",
+  "journeys": [
+    {
+      "id": "customerAdmin",
+      "title": "Customer administrator",
+      "description": "A person setting up and operating a hosted forms and signature workspace."
+    },
+    {
+      "id": "formAuthor",
+      "title": "Form author",
+      "description": "A person preparing, publishing, and monitoring a hosted form."
+    },
+    {
+      "id": "respondent",
+      "title": "Respondent",
+      "description": "A person completing a public form and relying on proof that it was received."
+    },
+    {
+      "id": "integrator",
+      "title": "Integrator",
+      "description": "A developer connecting another system to forms, events, and response data."
+    }
+  ],
+  "needs": [
+    {
+      "id": "access-workspace-safely",
+      "journey": "customerAdmin",
+      "title": "Get into the right workspace safely",
+      "statement": {
+        "who": "a person responsible for a customer workspace",
+        "want": "to sign up, sign in, recover access, and know which workspace I am using",
+        "why": "if access is confusing or fragile, I cannot safely operate the forms my organization depends on",
+        "done": "I can enter or recover my account and arrive in the intended workspace without staff editing data for me"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "imported",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:saas-v1",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    },
+    {
+      "id": "configure-organization",
+      "journey": "customerAdmin",
+      "title": "Set up the organization",
+      "statement": {
+        "who": "a person starting Formspec Cloud for an organization",
+        "want": "to create the organization, workspace, environments, teammates, and basic roles",
+        "why": "manual setup makes every new customer wait for engineering and makes ownership unclear",
+        "done": "I can finish setup myself and see the organization, workspace, environment, and invited teammates"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "imported",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:saas-v1",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    },
+    {
+      "id": "publish-hosted-form",
+      "journey": "formAuthor",
+      "title": "Publish and share a form",
+      "statement": {
+        "who": "a person responsible for collecting information",
+        "want": "to import or create a form, preview it, publish a version, and share its hosted address",
+        "why": "a form that cannot move from authoring to a stable public address cannot collect real responses",
+        "done": "I can open the published form from its shared address and identify which version people will complete"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "imported",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:saas-v1",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    },
+    {
+      "id": "complete-and-prove-response",
+      "journey": "respondent",
+      "title": "Complete a form and keep proof",
+      "statement": {
+        "who": "a person completing a hosted form",
+        "want": "to enter my information, review it, submit it, and keep a receipt",
+        "why": "without a clear completion path and durable proof, I cannot know whether the organization received what I sent",
+        "done": "after review and submission, I can see and retain a receipt with a verifiable proof status"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "imported",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:saas-v1",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    },
+    {
+      "id": "review-and-export-responses",
+      "journey": "formAuthor",
+      "title": "Review and export responses",
+      "statement": {
+        "who": "a person responsible for the information a form collects",
+        "want": "to see received responses and export them in common formats",
+        "why": "responses that stay trapped in a submission endpoint cannot support the work the form was created for",
+        "done": "I can find recent responses, understand their status, and export CSV or JSON"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "imported",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:saas-v1",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    },
+    {
+      "id": "run-signature-workflow",
+      "journey": "formAuthor",
+      "title": "Run a signature workflow",
+      "statement": {
+        "who": "a person who needs someone else to sign a document",
+        "want": "to send a basic signature request, follow its status, remind the signer, and obtain the certificate",
+        "why": "a signing step without status and proof leaves both sides unsure whether the agreement is complete",
+        "done": "I can see the envelope reach completion and retrieve a certificate whose proof can be checked"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "imported",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:saas-v1",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    },
+    {
+      "id": "connect-existing-systems",
+      "journey": "integrator",
+      "title": "Connect another system",
+      "statement": {
+        "who": "a developer integrating a customer system with Formspec Cloud",
+        "want": "an API key, useful API documentation, a test environment, and one observable webhook",
+        "why": "bespoke setup and invisible deliveries make even a small integration expensive to build and impossible to support",
+        "done": "I can make an authenticated test request and see whether a webhook delivery succeeded"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "imported",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:saas-v1",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    },
+    {
+      "id": "understand-plan-and-usage",
+      "journey": "customerAdmin",
+      "title": "Understand plan limits and usage",
+      "statement": {
+        "who": "a person accountable for a customer's subscription",
+        "want": "to see the current plan, usage, limits, billing status, and available features",
+        "why": "hidden limits and surprise restrictions make it impossible to plan work or explain a blocked capability",
+        "done": "I can compare current usage with the plan limit and tell whether billing and entitlements are current"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "imported",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:saas-v1",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    },
+    {
+      "id": "get-help-and-check-trust",
+      "journey": "customerAdmin",
+      "title": "Get help and check service trust",
+      "statement": {
+        "who": "a person accountable for using Formspec Cloud",
+        "want": "to see service health, contact support, review incidents, and access current trust documents",
+        "why": "when service posture is hidden, I cannot respond to an outage or decide whether the service is acceptable for my organization",
+        "done": "I can distinguish service states, reach support, and open the security and subprocessor information I need"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "imported",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:saas-v1",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    },
+    {
+      "id": "see-honest-feature-state",
+      "journey": "customerAdmin",
+      "title": "Know what is actually usable",
+      "statement": {
+        "who": "anyone deciding whether to rely on a visible capability",
+        "want": "every feature to say whether it is live, assisted, preview, or unavailable",
+        "why": "a dead button or an unstated staff dependency makes the product promise false at the moment I rely on it",
+        "done": "every visible capability has one clear state and no unavailable capability behaves like a working one"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "imported",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:product-owner:saas-v1",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    }
+  ]
+}

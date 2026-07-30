@@ -1,0 +1,671 @@
+{
+  "manifest": {
+    "$formspecBundle": "2.4",
+    "version": "1.0.0",
+    "id": "https://control.formspec.dev/apps/structured-panel",
+    "name": "generic_structured_control",
+    "title": "Generic structured host control",
+    "description": "Independent positive fixture proving that the same host renders another Formspec bundle.",
+    "definitions": [],
+    "experience": {
+      "url": "https://control.formspec.dev/experience/main",
+      "version": "1.0.0"
+    },
+    "registries": [
+      {
+        "url": "https://control.formspec.dev/registries/generic-host",
+        "version": "0.1.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://control.formspec.dev/surfaces/main",
+        "version": "1.0.0"
+      }
+    ],
+    "entrySurface": "https://control.formspec.dev/surfaces/main",
+      "modules": [
+        {
+          "id": "x-formspec-tenant-chrome",
+          "version": "0.1.0"
+        }
+      ],
+      "sessions": [],
+      "x-generation": {
+        "anchors": [
+          "need:inspect-generic-surface@1"
+        ]
+      }
+  },
+  "documents": {
+    "https://control.formspec.dev/experience/main": {
+      "$formspecExperience": "1.0",
+      "version": "1.0.0",
+      "name": "generic_control_experience",
+      "title": "Generic host control experience",
+      "actors": [
+        {
+          "id": "reviewer",
+          "title": "Reviewer"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "inspectSurface",
+          "title": "Inspect a generic document-defined surface",
+          "actorRefs": [
+            "reviewer"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "id": "inspectControl",
+          "kind": "review",
+          "title": "Inspect generic structured output",
+          "actorRef": "reviewer",
+          "taskRefs": [
+            "inspectSurface"
+          ],
+          "needRefs": [
+            {
+              "id": "inspect-generic-surface"
+            }
+          ]
+        }
+      ]
+    },
+    "https://control.formspec.dev/registries/generic-host": {
+      "$formspecRegistry": "1.1",
+      "publisher": {
+        "name": "Formspec control fixture"
+      },
+      "published": "2026-07-30T12:00:00Z",
+      "entries": [
+        {
+          "name": "x-formspec-tenant-chrome",
+          "category": "module",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Generic tenant chrome module used unchanged for every preview bundle.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0 <3.0.0"
+          },
+          "contributes": [
+            "x-structured-panel"
+          ]
+        },
+        {
+          "name": "x-structured-panel",
+          "category": "widget",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Generic data-driven panel used by the positive control.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0 <3.0.0"
+          },
+          "widgetShape": {
+            "widgetName": "StructuredPanel",
+            "deliveryContractId": "@formspec-org/surface-react/StructuredPanel@0.1",
+            "renderedConfigNodes": [
+              {
+                "pointerPattern": "",
+                "kind": "structured-panel"
+              },
+              {
+                "pointerPattern": "/blocks/*",
+                "kind": "structured-panel-block"
+              },
+              {
+                "pointerPattern": "/blocks/*/items/*",
+                "kind": "structured-panel-field"
+              },
+              {
+                "pointerPattern": "/blocks/*/columns/*",
+                "kind": "structured-panel-column"
+              },
+              {
+                "pointerPattern": "/actions/*",
+                "kind": "structured-panel-action"
+              }
+            ],
+            "props": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "title",
+                "blocks",
+                "actions",
+                "x-generation"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "eyebrow": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "emptyMessage": {
+                  "type": "string"
+                },
+                "x-generation": {
+                  "type": "object",
+                  "required": [
+                    "anchors"
+                  ],
+                  "properties": {
+                    "anchors": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                      }
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "blocks": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "path",
+                          "x-generation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "metric"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "prefix": {
+                            "type": "string"
+                          },
+                          "suffix": {
+                            "type": "string"
+                          },
+                          "x-generation": {
+                            "type": "object",
+                            "required": [
+                              "anchors"
+                            ],
+                            "properties": {
+                              "anchors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                }
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "items",
+                          "x-generation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "key-value"
+                          },
+                          "x-generation": {
+                            "type": "object",
+                            "required": [
+                              "anchors"
+                            ],
+                            "properties": {
+                              "anchors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                }
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "label",
+                                "x-generation"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                },
+                                "routeParam": {
+                                  "type": "string"
+                                },
+                                "x-generation": {
+                                  "type": "object",
+                                  "required": [
+                                    "anchors"
+                                  ],
+                                  "properties": {
+                                    "anchors": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "items": {
+                                        "type": "string",
+                                        "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                      }
+                                    }
+                                  },
+                                  "additionalProperties": true
+                                }
+                              },
+                              "oneOf": [
+                                {
+                                  "required": [
+                                    "path"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "routeParam"
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "path",
+                          "x-generation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "list"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "itemPath": {
+                            "type": "string"
+                          },
+                          "ordered": {
+                            "type": "boolean"
+                          },
+                          "x-generation": {
+                            "type": "object",
+                            "required": [
+                              "anchors"
+                            ],
+                            "properties": {
+                              "anchors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                }
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "path",
+                          "columns",
+                          "x-generation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "table"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "caption": {
+                            "type": "string"
+                          },
+                          "x-generation": {
+                            "type": "object",
+                            "required": [
+                              "anchors"
+                            ],
+                            "properties": {
+                              "anchors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                }
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          "columns": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "label",
+                                "path",
+                                "x-generation"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                },
+                                "numeric": {
+                                  "type": "boolean"
+                                },
+                                "x-generation": {
+                                  "type": "object",
+                                  "required": [
+                                    "anchors"
+                                  ],
+                                  "properties": {
+                                    "anchors": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "items": {
+                                        "type": "string",
+                                        "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                      }
+                                    }
+                                  },
+                                  "additionalProperties": true
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "path",
+                          "x-generation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "progress"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "max": {
+                            "type": "number"
+                          },
+                          "suffix": {
+                            "type": "string"
+                          },
+                          "x-generation": {
+                            "type": "object",
+                            "required": [
+                              "anchors"
+                            ],
+                            "properties": {
+                              "anchors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                }
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "actions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "outputName",
+                      "x-generation"
+                    ],
+                    "properties": {
+                      "outputName": {
+                        "type": "string"
+                      },
+                      "order": {
+                        "type": "integer"
+                      },
+                      "emphasis": {
+                        "type": "string"
+                      },
+                      "x-generation": {
+                        "type": "object",
+                        "required": [
+                          "anchors"
+                        ],
+                        "properties": {
+                          "anchors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                              "type": "string",
+                              "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                            }
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "dataInputs": [
+              {
+                "name": "primaryData",
+                "required": false
+              }
+            ],
+            "childrenPolicy": "no-children",
+            "fallback": "Stack",
+            "tokenSlots": [
+              {
+                "name": "accent",
+                "acceptedTokenCategories": [
+                  "color"
+                ],
+                "required": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "https://control.formspec.dev/surfaces/main": {
+      "$formspecSurface": "0.2",
+      "id": "control",
+      "title": "Generic structured control",
+      "x-generation": {
+        "anchors": [
+          "need:inspect-generic-surface@1"
+        ]
+      },
+      "modules": [
+        {
+          "id": "x-formspec-tenant-chrome",
+          "version": "0.1.0"
+        }
+      ],
+      "entry": "control",
+      "routes": [
+        {
+          "id": "control",
+          "path": "/",
+          "routeClass": "operation",
+          "title": "Generic structured control",
+          "navigation": {
+            "visible": true,
+            "scope": "control",
+            "label": "Control",
+            "order": 0,
+            "x-generation": {
+              "anchors": [
+                "need:inspect-generic-surface@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "controlExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://control.formspec.dev/experience/main",
+                "unitRef": "inspectControl"
+              },
+              "position": "main",
+              "title": "Control task",
+              "x-generation": {
+                "anchors": [
+                  "need:inspect-generic-surface@1"
+                ]
+              }
+            },
+            {
+              "id": "controlSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Independent control content supplied by a second Formspec bundle.",
+                "x-generation": {
+                  "anchors": [
+                    "need:inspect-generic-surface@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Control summary",
+              "x-generation": {
+                "anchors": [
+                  "need:inspect-generic-surface@1"
+                ]
+              }
+            },
+            {
+              "id": "controlPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "controlPanel",
+                  "eyebrow": "Renderer control",
+                  "state": "live",
+                  "title": "Generic structured preview",
+                  "body": "This independent bundle confirms that the unchanged host renders a document-defined panel.",
+                  "emptyMessage": "No additional control data is required.",
+                  "blocks": [],
+                  "actions": [],
+                  "x-generation": {
+                    "anchors": [
+                      "need:inspect-generic-surface@1"
+                    ]
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Generic panel",
+              "x-generation": {
+                "anchors": [
+                  "need:inspect-generic-surface@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [],
+          "x-generation": {
+            "anchors": [
+              "need:inspect-generic-surface@1"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

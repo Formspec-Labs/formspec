@@ -1,0 +1,37 @@
+{
+  "$formspecNeeds": "1.0",
+  "version": "1.0.0",
+  "url": "https://control.formspec.dev/needs/generic-host",
+  "name": "generic_host_control_needs",
+  "title": "Generic host control needs",
+  "description": "Independent adopted need for the positive renderer control.",
+  "journeys": [
+    {
+      "id": "reviewer",
+      "title": "Renderer reviewer",
+      "description": "A person checking that the generic host renders document-defined content."
+    }
+  ],
+  "needs": [
+    {
+      "id": "inspect-generic-surface",
+      "journey": "reviewer",
+      "title": "Inspect a generic document-defined surface",
+      "statement": {
+        "who": "a reviewer evaluating the generic Formspec host",
+        "want": "to render an independent structured bundle through the same host",
+        "why": "the control must distinguish generic document rendering from SaaS-specific code",
+        "done": "the control route displays its own anchored content without SaaS identifiers or data"
+      },
+      "ungroundedReason": "team-consensus",
+      "origin": "human-asserted",
+      "status": "adopted",
+      "adoptedBy": {
+        "id": "urn:formspec:actor:human:renderer-reviewer",
+        "kind": "human",
+        "actChannel": "human"
+      },
+      "revision": 1
+    }
+  ]
+}

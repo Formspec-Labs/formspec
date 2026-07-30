@@ -1,0 +1,31 @@
+{
+  "$formspecSurfaceScenario": "0.1",
+  "version": "1.0.0",
+  "initialPath": "/",
+  "defaultProfile": "loaded",
+  "profiles": {
+    "loaded": {
+      "authorization": {
+        "default": "authorized"
+      },
+      "sources": []
+    }
+  },
+  "actions": {
+    "default": {
+      "status": "complete",
+      "x-generation": {
+        "anchors": [
+          "need:inspect-generic-surface@1",
+          "unit:inspectControl"
+        ]
+      }
+    }
+  },
+  "x-generation": {
+    "anchors": [
+      "need:inspect-generic-surface@1",
+      "unit:inspectControl"
+    ]
+  }
+}

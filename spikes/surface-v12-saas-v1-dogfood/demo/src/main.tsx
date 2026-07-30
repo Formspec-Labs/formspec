@@ -1,5 +1,5 @@
 /**
- * @filedesc Browser boot for the v12 SaaS dogfood demo.
+ * @filedesc Browser boot for the generic Surface preview host.
  */
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -7,11 +7,16 @@ import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
 import '@formspec-org/layout/formspec-default.css';
 import '@formspec-org/surface-react/formspec-surface.css';
 import './app.css';
-import { App } from './App.tsx';
+import {
+  App,
+  applyInitialPath,
+  loadPreviewSelection,
+  type PreviewSelection,
+} from './App.tsx';
 
 type BootState =
   | { status: 'starting' }
-  | { status: 'ready' }
+  | { status: 'ready'; selection: PreviewSelection }
   | { status: 'error'; message: string };
 
 function Boot() {
@@ -19,9 +24,14 @@ function Boot() {
 
   useEffect(() => {
     let live = true;
-    initFormspecEngine()
-      .then(() => {
-        if (live) setState({ status: 'ready' });
+    void Promise.all([
+      initFormspecEngine(),
+      loadPreviewSelection(window.location.search),
+    ])
+      .then(([, selection]) => {
+        if (!live) return;
+        applyInitialPath(selection.scenario.initialPath);
+        setState({ status: 'ready', selection });
       })
       .catch((error: unknown) => {
         if (!live) return;
@@ -37,37 +47,27 @@ function Boot() {
 
   if (state.status === 'starting') {
     return (
-      <main className="boot">
-        <span className="boot__mark" aria-hidden="true">F</span>
-        <div>
-          <strong>Preparing Formspec Cloud</strong>
-          <p>Loading the shared form and Surface runtimes…</p>
-        </div>
+      <main className="host-status" role="status">
+        <strong>Preparing the Surface preview</strong>
+        <p>Loading the runtime and selected preview data…</p>
       </main>
     );
   }
 
   if (state.status === 'error') {
     return (
-      <main className="boot boot--error">
-        <span className="boot__mark" aria-hidden="true">!</span>
-        <div>
-          <strong>The demo could not start.</strong>
-          <p>{state.message}</p>
-        </div>
+      <main className="host-status host-status--error" role="alert">
+        <strong>The Surface preview could not start.</strong>
+        <pre>{state.message}</pre>
       </main>
     );
   }
 
-  return <App />;
+  return <App selection={state.selection} />;
 }
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Root element #root not found.');
-
-if (window.location.pathname === '/') {
-  window.history.replaceState({}, '', '/app');
-}
 
 createRoot(root).render(
   <StrictMode>

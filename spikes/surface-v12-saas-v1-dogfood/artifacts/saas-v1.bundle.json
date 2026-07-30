@@ -1,0 +1,4332 @@
+{
+  "manifest": {
+    "$formspecBundle": "2.4",
+    "version": "0.12.0",
+    "id": "https://formspec.cloud/apps/saas-v1",
+    "name": "formspec_cloud_saas_v1",
+    "title": "Formspec Cloud",
+    "description": "Managed hosted forms and signature SaaS expressed as a data-only Formspec app.",
+    "definitions": [
+      {
+        "url": "https://formspec.cloud/definitions/organization-setup",
+        "version": "0.12.0"
+      },
+      {
+        "url": "https://formspec.cloud/definitions/public-response",
+        "version": "0.12.0"
+      }
+    ],
+    "experience": {
+      "url": "https://formspec.cloud/experience/saas-v1",
+      "version": "0.12.0"
+    },
+    "responseActions": {
+      "url": "https://formspec.cloud/actions/saas-v1",
+      "version": "0.12.0"
+    },
+    "registries": [
+      {
+        "url": "https://formspec.cloud/registries/saas-v1",
+        "version": "0.1.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/app",
+        "version": "0.12.0"
+      }
+    ],
+    "entrySurface": "https://formspec.cloud/app",
+    "dataSources": [
+      {
+        "url": "https://formspec.cloud/data-sources/saas-v1",
+        "version": "0.12.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-formspec-tenant-chrome",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": [],
+    "x-generation": {
+      "anchors": [
+        "need:access-workspace-safely@1",
+        "need:see-honest-feature-state@1"
+      ]
+    }
+  },
+  "documents": {
+    "https://formspec.cloud/definitions/organization-setup": {
+      "$formspec": "1.0",
+      "url": "https://formspec.cloud/definitions/organization-setup",
+      "version": "0.12.0",
+      "status": "draft",
+      "name": "organization-setup",
+      "title": "Organization setup",
+      "description": "Core organization, workspace, and environment data required for customer-controlled setup.",
+      "x-generation": {
+        "anchors": [
+          "need:configure-organization@1"
+        ]
+      },
+      "items": [
+        {
+          "key": "organizationName",
+          "type": "field",
+          "label": "Organization name",
+          "dataType": "string",
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        },
+        {
+          "key": "workspaceName",
+          "type": "field",
+          "label": "Workspace name",
+          "dataType": "string",
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        },
+        {
+          "key": "environment",
+          "type": "field",
+          "label": "First environment",
+          "dataType": "choice",
+          "options": [
+            {
+              "value": "production",
+              "label": "Production",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            },
+            {
+              "value": "sandbox",
+              "label": "Sandbox",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        }
+      ],
+      "binds": [
+        {
+          "path": "organizationName",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        },
+        {
+          "path": "workspaceName",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        },
+        {
+          "path": "environment",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        }
+      ]
+    },
+    "https://formspec.cloud/definitions/public-response": {
+      "$formspec": "1.0",
+      "url": "https://formspec.cloud/definitions/public-response",
+      "version": "0.12.0",
+      "status": "draft",
+      "name": "public-response",
+      "title": "Public response",
+      "description": "Information a public respondent supplies before receiving durable submission proof.",
+      "x-generation": {
+        "anchors": [
+          "need:complete-and-prove-response@1"
+        ]
+      },
+      "items": [
+        {
+          "key": "fullName",
+          "type": "field",
+          "label": "Full name",
+          "dataType": "string",
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        },
+        {
+          "key": "email",
+          "type": "field",
+          "label": "Email address",
+          "dataType": "string",
+          "semanticType": "https://schema.org/email",
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        },
+        {
+          "key": "request",
+          "type": "field",
+          "label": "Your response",
+          "dataType": "text",
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        },
+        {
+          "key": "acceptNotices",
+          "type": "field",
+          "label": "I agree to receive submission notices",
+          "dataType": "boolean",
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        }
+      ],
+      "binds": [
+        {
+          "path": "fullName",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        },
+        {
+          "path": "email",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        },
+        {
+          "path": "request",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        },
+        {
+          "path": "acceptNotices",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        }
+      ]
+    },
+    "https://formspec.cloud/experience/saas-v1": {
+      "$formspecExperience": "1.0",
+      "version": "0.12.0",
+      "name": "saas_v1_experience",
+      "title": "Formspec Cloud SaaS V1 experience",
+      "description": "Bundle-scoped task intent for customer administration, form authoring, public response, and integration work across two Definitions.",
+      "actors": [
+        {
+          "id": "customerAdmin",
+          "title": "Customer administrator",
+          "description": "Sets up and operates a customer workspace."
+        },
+        {
+          "id": "formAuthor",
+          "title": "Form author",
+          "description": "Publishes forms and manages responses and signature work."
+        },
+        {
+          "id": "respondent",
+          "title": "Respondent",
+          "description": "Completes a public form and retains proof."
+        },
+        {
+          "id": "integrator",
+          "title": "Integrator",
+          "description": "Connects an existing system through the API and webhooks."
+        }
+      ],
+      "tasks": [
+        {
+          "id": "accessAccount",
+          "title": "Enter or recover the intended workspace",
+          "actorRefs": [
+            "customerAdmin"
+          ]
+        },
+        {
+          "id": "reviewDashboard",
+          "title": "Choose customer workspace work",
+          "actorRefs": [
+            "customerAdmin",
+            "formAuthor"
+          ]
+        },
+        {
+          "id": "configureOrganization",
+          "title": "Configure the organization and first workspace",
+          "actorRefs": [
+            "customerAdmin"
+          ]
+        },
+        {
+          "id": "manageForms",
+          "title": "Find and open a hosted form",
+          "actorRefs": [
+            "formAuthor"
+          ]
+        },
+        {
+          "id": "inspectForm",
+          "title": "Inspect a hosted form and its response access",
+          "actorRefs": [
+            "formAuthor"
+          ]
+        },
+        {
+          "id": "previewHostedForm",
+          "title": "Preview a hosted form",
+          "actorRefs": [
+            "formAuthor"
+          ]
+        },
+        {
+          "id": "reviewResponses",
+          "title": "Review and export responses",
+          "actorRefs": [
+            "formAuthor"
+          ]
+        },
+        {
+          "id": "manageSignatures",
+          "title": "Follow signature work and retrieve proof",
+          "actorRefs": [
+            "formAuthor"
+          ]
+        },
+        {
+          "id": "configureIntegrations",
+          "title": "Connect an existing customer system",
+          "actorRefs": [
+            "integrator"
+          ]
+        },
+        {
+          "id": "administerOrganization",
+          "title": "Review and revise organization setup",
+          "actorRefs": [
+            "customerAdmin"
+          ]
+        },
+        {
+          "id": "reviewPlanUsage",
+          "title": "Compare current usage with plan limits",
+          "actorRefs": [
+            "customerAdmin"
+          ]
+        },
+        {
+          "id": "checkSupportTrust",
+          "title": "Check service health, support, and trust information",
+          "actorRefs": [
+            "customerAdmin"
+          ]
+        },
+        {
+          "id": "completePublicResponse",
+          "title": "Complete and submit a public form",
+          "actorRefs": [
+            "respondent"
+          ]
+        },
+        {
+          "id": "retainReceipt",
+          "title": "Retain and verify submission proof",
+          "actorRefs": [
+            "respondent"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "id": "accountAccessUnit",
+          "kind": "assistance",
+          "title": "Account access",
+          "actorRef": "customerAdmin",
+          "taskRefs": [
+            "accessAccount"
+          ],
+          "needRefs": [
+            {
+              "id": "access-workspace-safely"
+            },
+            {
+              "id": "see-honest-feature-state"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "accessWorkspace",
+              "role": "primary"
+            }
+          ]
+        },
+        {
+          "id": "dashboardUnit",
+          "kind": "review",
+          "title": "Dashboard",
+          "actorRef": "customerAdmin",
+          "taskRefs": [
+            "reviewDashboard"
+          ],
+          "needRefs": [
+            {
+              "id": "publish-hosted-form"
+            },
+            {
+              "id": "review-and-export-responses"
+            },
+            {
+              "id": "run-signature-workflow"
+            },
+            {
+              "id": "understand-plan-and-usage"
+            },
+            {
+              "id": "see-honest-feature-state"
+            },
+            {
+              "id": "configure-organization"
+            },
+            {
+              "id": "connect-existing-systems"
+            },
+            {
+              "id": "complete-and-prove-response"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "dashboardOpenForms",
+              "role": "primary"
+            },
+            {
+              "id": "dashboardStartOnboarding",
+              "role": "secondary"
+            },
+            {
+              "id": "dashboardOpenResponses",
+              "role": "secondary"
+            },
+            {
+              "id": "dashboardOpenIntegrations",
+              "role": "secondary"
+            },
+            {
+              "id": "dashboardOpenAdmin",
+              "role": "secondary"
+            },
+            {
+              "id": "dashboardOpenBilling",
+              "role": "secondary"
+            },
+            {
+              "id": "dashboardOpenPublicForm",
+              "role": "secondary"
+            }
+          ]
+        },
+        {
+          "id": "onboardingUnit",
+          "kind": "data-entry",
+          "title": "Set up organization",
+          "actorRef": "customerAdmin",
+          "taskRefs": [
+            "configureOrganization"
+          ],
+          "itemRefs": [
+            {
+              "path": "organizationName",
+              "purpose": "collect"
+            },
+            {
+              "path": "workspaceName",
+              "purpose": "collect"
+            },
+            {
+              "path": "environment",
+              "purpose": "collect"
+            }
+          ],
+          "needRefs": [
+            {
+              "id": "configure-organization"
+            },
+            {
+              "id": "see-honest-feature-state"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "completeOnboarding",
+              "role": "primary"
+            }
+          ]
+        },
+        {
+          "id": "formsUnit",
+          "kind": "review",
+          "title": "Forms",
+          "actorRef": "formAuthor",
+          "taskRefs": [
+            "manageForms"
+          ],
+          "needRefs": [
+            {
+              "id": "publish-hosted-form"
+            },
+            {
+              "id": "see-honest-feature-state"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "openFormDetail",
+              "role": "primary"
+            }
+          ]
+        },
+        {
+          "id": "formDetailUnit",
+          "kind": "review",
+          "title": "Form detail",
+          "actorRef": "formAuthor",
+          "taskRefs": [
+            "inspectForm"
+          ],
+          "needRefs": [
+            {
+              "id": "publish-hosted-form"
+            },
+            {
+              "id": "review-and-export-responses"
+            },
+            {
+              "id": "see-honest-feature-state"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "previewForm",
+              "role": "primary"
+            },
+            {
+              "id": "openFormResponses",
+              "role": "secondary"
+            }
+          ]
+        },
+        {
+          "id": "formPreviewUnit",
+          "kind": "review",
+          "title": "Hosted form preview",
+          "actorRef": "formAuthor",
+          "taskRefs": [
+            "previewHostedForm"
+          ],
+          "needRefs": [
+            {
+              "id": "publish-hosted-form"
+            },
+            {
+              "id": "see-honest-feature-state"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "returnToForm",
+              "role": "primary"
+            }
+          ]
+        },
+        {
+          "id": "responsesUnit",
+          "kind": "review",
+          "title": "Responses and exports",
+          "actorRef": "formAuthor",
+          "taskRefs": [
+            "reviewResponses"
+          ],
+          "needRefs": [
+            {
+              "id": "review-and-export-responses"
+            },
+            {
+              "id": "see-honest-feature-state"
+            },
+            {
+              "id": "run-signature-workflow"
+            },
+            {
+              "id": "get-help-and-check-trust"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "openSignatures",
+              "role": "primary"
+            },
+            {
+              "id": "openSupportFromResponses",
+              "role": "secondary"
+            }
+          ]
+        },
+        {
+          "id": "signaturesUnit",
+          "kind": "review",
+          "title": "Signature workflows",
+          "actorRef": "formAuthor",
+          "taskRefs": [
+            "manageSignatures"
+          ],
+          "needRefs": [
+            {
+              "id": "run-signature-workflow"
+            },
+            {
+              "id": "see-honest-feature-state"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "returnToResponses",
+              "role": "primary"
+            }
+          ]
+        },
+        {
+          "id": "integrationsUnit",
+          "kind": "data-entry",
+          "title": "API and webhooks",
+          "actorRef": "integrator",
+          "taskRefs": [
+            "configureIntegrations"
+          ],
+          "needRefs": [
+            {
+              "id": "connect-existing-systems"
+            },
+            {
+              "id": "see-honest-feature-state"
+            },
+            {
+              "id": "understand-plan-and-usage"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "openBillingFromIntegrations",
+              "role": "primary"
+            }
+          ]
+        },
+        {
+          "id": "adminUnit",
+          "kind": "review",
+          "title": "Organization administration",
+          "actorRef": "customerAdmin",
+          "taskRefs": [
+            "administerOrganization"
+          ],
+          "needRefs": [
+            {
+              "id": "configure-organization"
+            },
+            {
+              "id": "see-honest-feature-state"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "editOrganizationSetup",
+              "role": "primary"
+            }
+          ]
+        },
+        {
+          "id": "billingUnit",
+          "kind": "review",
+          "title": "Usage and billing",
+          "actorRef": "customerAdmin",
+          "taskRefs": [
+            "reviewPlanUsage"
+          ],
+          "needRefs": [
+            {
+              "id": "understand-plan-and-usage"
+            },
+            {
+              "id": "see-honest-feature-state"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "openAdministration",
+              "role": "primary"
+            }
+          ]
+        },
+        {
+          "id": "supportTrustUnit",
+          "kind": "assistance",
+          "title": "Support, status, and trust",
+          "actorRef": "customerAdmin",
+          "taskRefs": [
+            "checkSupportTrust"
+          ],
+          "needRefs": [
+            {
+              "id": "get-help-and-check-trust"
+            },
+            {
+              "id": "see-honest-feature-state"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "returnToDashboard",
+              "role": "primary"
+            }
+          ]
+        },
+        {
+          "id": "publicRespondUnit",
+          "kind": "data-entry",
+          "title": "Enter and submit the requested information",
+          "actorRef": "respondent",
+          "taskRefs": [
+            "completePublicResponse"
+          ],
+          "itemRefs": [
+            {
+              "path": "fullName",
+              "purpose": "collect"
+            },
+            {
+              "path": "email",
+              "purpose": "collect"
+            },
+            {
+              "path": "request",
+              "purpose": "collect"
+            },
+            {
+              "path": "acceptNotices",
+              "purpose": "collect"
+            }
+          ],
+          "needRefs": [
+            {
+              "id": "complete-and-prove-response"
+            },
+            {
+              "id": "see-honest-feature-state"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "submitPublicResponse",
+              "role": "primary"
+            }
+          ]
+        },
+        {
+          "id": "publicReceiptUnit",
+          "kind": "confirmation",
+          "title": "Submission receipt",
+          "actorRef": "respondent",
+          "taskRefs": [
+            "retainReceipt"
+          ],
+          "needRefs": [
+            {
+              "id": "complete-and-prove-response"
+            },
+            {
+              "id": "see-honest-feature-state"
+            },
+            {
+              "id": "get-help-and-check-trust"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "openSupportFromReceipt",
+              "role": "primary"
+            }
+          ]
+        }
+      ]
+    },
+    "https://formspec.cloud/actions/saas-v1": {
+      "$formspecResponseActions": "1.0",
+      "version": "0.12.0",
+      "targetDefinition": {
+        "url": "https://formspec.cloud/definitions/public-response",
+        "compatibleVersions": "0.12.0"
+      },
+      "actions": [
+        {
+          "id": "accessWorkspace",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Continue to workspace"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.accessWorkspace"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:access-workspace-safely@1"
+            ]
+          }
+        },
+        {
+          "id": "dashboardOpenForms",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open forms"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.dashboardOpenForms"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:publish-hosted-form@1"
+            ]
+          }
+        },
+        {
+          "id": "dashboardStartOnboarding",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Set up organization"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.dashboardStartOnboarding"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        },
+        {
+          "id": "dashboardOpenResponses",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Review responses"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.dashboardOpenResponses"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1"
+            ]
+          }
+        },
+        {
+          "id": "dashboardOpenIntegrations",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open integrations"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.dashboardOpenIntegrations"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:connect-existing-systems@1"
+            ]
+          }
+        },
+        {
+          "id": "dashboardOpenAdmin",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open administration"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.dashboardOpenAdmin"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        },
+        {
+          "id": "dashboardOpenBilling",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Review plan and usage"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.dashboardOpenBilling"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:understand-plan-and-usage@1"
+            ]
+          }
+        },
+        {
+          "id": "dashboardOpenPublicForm",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open public form"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.dashboardOpenPublicForm"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        },
+        {
+          "id": "completeOnboarding",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Finish organization setup"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.completeOnboarding"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        },
+        {
+          "id": "openFormDetail",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open form detail"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openFormDetail"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:publish-hosted-form@1"
+            ]
+          }
+        },
+        {
+          "id": "previewForm",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Preview hosted form"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.previewForm"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:publish-hosted-form@1"
+            ]
+          }
+        },
+        {
+          "id": "openFormResponses",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open form responses"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openFormResponses"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1"
+            ]
+          }
+        },
+        {
+          "id": "returnToForm",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Return to form detail"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.returnToForm"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:publish-hosted-form@1"
+            ]
+          }
+        },
+        {
+          "id": "openSignatures",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open signature workflows"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openSignatures"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:run-signature-workflow@1"
+            ]
+          }
+        },
+        {
+          "id": "openSupportFromResponses",
+          "intent": "request-evidence",
+          "actor": "user",
+          "label": {
+            "literal": "Check support and trust"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openSupportFromResponses"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:get-help-and-check-trust@1"
+            ]
+          }
+        },
+        {
+          "id": "returnToResponses",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Return to responses"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.returnToResponses"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:run-signature-workflow@1"
+            ]
+          }
+        },
+        {
+          "id": "openBillingFromIntegrations",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Review integration usage"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openBillingFromIntegrations"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:connect-existing-systems@1",
+              "need:understand-plan-and-usage@1"
+            ]
+          }
+        },
+        {
+          "id": "editOrganizationSetup",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Edit organization setup"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.editOrganizationSetup"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        },
+        {
+          "id": "openAdministration",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Open plan administration"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openAdministration"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:understand-plan-and-usage@1"
+            ]
+          }
+        },
+        {
+          "id": "returnToDashboard",
+          "intent": "review",
+          "actor": "user",
+          "label": {
+            "literal": "Return to dashboard"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.returnToDashboard"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:get-help-and-check-trust@1"
+            ]
+          }
+        },
+        {
+          "id": "submitPublicResponse",
+          "intent": "submit",
+          "actor": "user",
+          "label": {
+            "literal": "Submit response"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.submitPublicResponse"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        },
+        {
+          "id": "openSupportFromReceipt",
+          "intent": "request-evidence",
+          "actor": "user",
+          "label": {
+            "literal": "Get help with this receipt"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.openSupportFromReceipt"
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1",
+              "need:get-help-and-check-trust@1"
+            ]
+          }
+        }
+      ]
+    },
+    "https://formspec.cloud/registries/saas-v1": {
+      "$formspecRegistry": "1.1",
+      "publisher": {
+        "name": "Formspec Cloud"
+      },
+      "published": "2026-07-30T12:00:00Z",
+      "entries": [
+        {
+          "name": "x-formspec-tenant-chrome",
+          "category": "module",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Generic tenant chrome module used unchanged for every preview bundle.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0 <3.0.0"
+          },
+          "contributes": [
+            "x-structured-panel"
+          ]
+        },
+        {
+          "name": "x-structured-panel",
+          "category": "widget",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Generic data-driven panel for headings, status, structured values, and named action outputs.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0 <3.0.0"
+          },
+          "widgetShape": {
+            "widgetName": "StructuredPanel",
+            "deliveryContractId": "@formspec-org/surface-react/StructuredPanel@0.1",
+            "renderedConfigNodes": [
+              {
+                "pointerPattern": "",
+                "kind": "structured-panel"
+              },
+              {
+                "pointerPattern": "/blocks/*",
+                "kind": "structured-panel-block"
+              },
+              {
+                "pointerPattern": "/blocks/*/items/*",
+                "kind": "structured-panel-field"
+              },
+              {
+                "pointerPattern": "/blocks/*/columns/*",
+                "kind": "structured-panel-column"
+              },
+              {
+                "pointerPattern": "/actions/*",
+                "kind": "structured-panel-action"
+              }
+            ],
+            "props": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "title",
+                "blocks",
+                "actions",
+                "x-generation"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "eyebrow": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "emptyMessage": {
+                  "type": "string"
+                },
+                "x-generation": {
+                  "type": "object",
+                  "required": [
+                    "anchors"
+                  ],
+                  "properties": {
+                    "anchors": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                      }
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "blocks": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "path",
+                          "x-generation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "metric"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "prefix": {
+                            "type": "string"
+                          },
+                          "suffix": {
+                            "type": "string"
+                          },
+                          "x-generation": {
+                            "type": "object",
+                            "required": [
+                              "anchors"
+                            ],
+                            "properties": {
+                              "anchors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                }
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "items",
+                          "x-generation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "key-value"
+                          },
+                          "x-generation": {
+                            "type": "object",
+                            "required": [
+                              "anchors"
+                            ],
+                            "properties": {
+                              "anchors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                }
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "label",
+                                "x-generation"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                },
+                                "routeParam": {
+                                  "type": "string"
+                                },
+                                "x-generation": {
+                                  "type": "object",
+                                  "required": [
+                                    "anchors"
+                                  ],
+                                  "properties": {
+                                    "anchors": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "items": {
+                                        "type": "string",
+                                        "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                      }
+                                    }
+                                  },
+                                  "additionalProperties": true
+                                }
+                              },
+                              "oneOf": [
+                                {
+                                  "required": [
+                                    "path"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "routeParam"
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "path",
+                          "x-generation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "list"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "itemPath": {
+                            "type": "string"
+                          },
+                          "ordered": {
+                            "type": "boolean"
+                          },
+                          "x-generation": {
+                            "type": "object",
+                            "required": [
+                              "anchors"
+                            ],
+                            "properties": {
+                              "anchors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                }
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "path",
+                          "columns",
+                          "x-generation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "table"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "caption": {
+                            "type": "string"
+                          },
+                          "x-generation": {
+                            "type": "object",
+                            "required": [
+                              "anchors"
+                            ],
+                            "properties": {
+                              "anchors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                }
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          "columns": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "label",
+                                "path",
+                                "x-generation"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                },
+                                "numeric": {
+                                  "type": "boolean"
+                                },
+                                "x-generation": {
+                                  "type": "object",
+                                  "required": [
+                                    "anchors"
+                                  ],
+                                  "properties": {
+                                    "anchors": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "items": {
+                                        "type": "string",
+                                        "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                      }
+                                    }
+                                  },
+                                  "additionalProperties": true
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "path",
+                          "x-generation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "progress"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "max": {
+                            "type": "number"
+                          },
+                          "suffix": {
+                            "type": "string"
+                          },
+                          "x-generation": {
+                            "type": "object",
+                            "required": [
+                              "anchors"
+                            ],
+                            "properties": {
+                              "anchors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                                }
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "actions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "outputName",
+                      "x-generation"
+                    ],
+                    "properties": {
+                      "outputName": {
+                        "type": "string"
+                      },
+                      "order": {
+                        "type": "integer"
+                      },
+                      "emphasis": {
+                        "type": "string"
+                      },
+                      "x-generation": {
+                        "type": "object",
+                        "required": [
+                          "anchors"
+                        ],
+                        "properties": {
+                          "anchors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                              "type": "string",
+                              "pattern": "^need:[A-Za-z][A-Za-z0-9_-]*@[0-9]+$"
+                            }
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "dataInputs": [
+              {
+                "name": "primaryData",
+                "required": false,
+                "description": "Optional host-owned data selected by a Surface data binding."
+              }
+            ],
+            "actionOutputs": [
+              {
+                "name": "accessWorkspace",
+                "description": "Emits the Continue to workspace action."
+              },
+              {
+                "name": "dashboardOpenForms",
+                "description": "Emits the Open forms action."
+              },
+              {
+                "name": "dashboardStartOnboarding",
+                "description": "Emits the Set up organization action."
+              },
+              {
+                "name": "dashboardOpenResponses",
+                "description": "Emits the Review responses action."
+              },
+              {
+                "name": "dashboardOpenIntegrations",
+                "description": "Emits the Open integrations action."
+              },
+              {
+                "name": "dashboardOpenAdmin",
+                "description": "Emits the Open administration action."
+              },
+              {
+                "name": "dashboardOpenBilling",
+                "description": "Emits the Review plan and usage action."
+              },
+              {
+                "name": "dashboardOpenPublicForm",
+                "description": "Emits the Open public form action."
+              },
+              {
+                "name": "completeOnboarding",
+                "description": "Emits the Finish organization setup action."
+              },
+              {
+                "name": "openFormDetail",
+                "description": "Emits the Open form detail action."
+              },
+              {
+                "name": "previewForm",
+                "description": "Emits the Preview hosted form action."
+              },
+              {
+                "name": "openFormResponses",
+                "description": "Emits the Open form responses action."
+              },
+              {
+                "name": "returnToForm",
+                "description": "Emits the Return to form detail action."
+              },
+              {
+                "name": "openSignatures",
+                "description": "Emits the Open signature workflows action."
+              },
+              {
+                "name": "openSupportFromResponses",
+                "description": "Emits the Check support and trust action."
+              },
+              {
+                "name": "returnToResponses",
+                "description": "Emits the Return to responses action."
+              },
+              {
+                "name": "openBillingFromIntegrations",
+                "description": "Emits the Review integration usage action."
+              },
+              {
+                "name": "editOrganizationSetup",
+                "description": "Emits the Edit organization setup action."
+              },
+              {
+                "name": "openAdministration",
+                "description": "Emits the Open plan administration action."
+              },
+              {
+                "name": "returnToDashboard",
+                "description": "Emits the Return to dashboard action."
+              },
+              {
+                "name": "submitPublicResponse",
+                "description": "Emits the Submit response action."
+              },
+              {
+                "name": "openSupportFromReceipt",
+                "description": "Emits the Get help with this receipt action."
+              }
+            ],
+            "childrenPolicy": "no-children",
+            "fallback": "Stack",
+            "tokenSlots": [
+              {
+                "name": "accent",
+                "acceptedTokenCategories": [
+                  "color"
+                ],
+                "required": false,
+                "description": "Optional accent color for state and primary actions."
+              },
+              {
+                "name": "spacing",
+                "acceptedTokenCategories": [
+                  "spacing"
+                ],
+                "required": false,
+                "description": "Optional spacing scale for panel layout."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "https://formspec.cloud/app": {
+      "$formspecSurface": "0.2",
+      "id": "saasV1",
+      "title": "Formspec Cloud",
+      "description": "Customer workspace and public response routes rendered entirely from Formspec documents.",
+      "x-generation": {
+        "anchors": [
+          "need:access-workspace-safely@1",
+          "need:see-honest-feature-state@1"
+        ]
+      },
+      "modules": [
+        {
+          "id": "x-formspec-tenant-chrome",
+          "version": "0.1.0"
+        }
+      ],
+      "entry": "accountAccess",
+      "routes": [
+        {
+          "id": "accountAccess",
+          "path": "/account",
+          "routeClass": "authentication",
+          "title": "Account access",
+          "navigation": {
+            "visible": true,
+            "scope": "workspace",
+            "label": "Account",
+            "order": 0,
+            "x-generation": {
+              "anchors": [
+                "need:access-workspace-safely@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "accountAccessExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "accountAccessUnit"
+              },
+              "position": "main",
+              "title": "Account access task",
+              "x-generation": {
+                "anchors": [
+                  "need:access-workspace-safely@1"
+                ]
+              }
+            },
+            {
+              "id": "accountAccessSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Sign in, recover access, and confirm the active customer workspace before opening account data.",
+                "x-generation": {
+                  "anchors": [
+                    "need:access-workspace-safely@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Safe workspace access",
+              "x-generation": {
+                "anchors": [
+                  "need:access-workspace-safely@1"
+                ]
+              }
+            },
+            {
+              "id": "accountAccessPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "accountAccessPanel",
+                  "eyebrow": "Workspace access",
+                  "state": "live",
+                  "title": "Account access",
+                  "body": "Use account access to enter or recover the intended workspace.",
+                  "emptyMessage": "No additional information is available for this view.",
+                  "blocks": [],
+                  "actions": [
+                    {
+                      "outputName": "accessWorkspace",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:access-workspace-safely@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:access-workspace-safely@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "accessWorkspace": {
+                    "actionRef": "accessWorkspace",
+                    "x-generation": {
+                      "anchors": [
+                        "need:access-workspace-safely@1",
+                        "unit:accountAccessUnit",
+                        "action:accessWorkspace"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Account access details",
+              "x-generation": {
+                "anchors": [
+                  "need:access-workspace-safely@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "accessWorkspace",
+              "to": "dashboard",
+              "x-generation": {
+                "anchors": [
+                  "need:access-workspace-safely@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:access-workspace-safely@1"
+            ]
+          }
+        },
+        {
+          "id": "dashboard",
+          "path": "/app",
+          "routeClass": "operation",
+          "title": "Dashboard",
+          "navigation": {
+            "visible": true,
+            "scope": "workspace",
+            "label": "Dashboard",
+            "order": 10,
+            "x-generation": {
+              "anchors": [
+                "need:publish-hosted-form@1",
+                "need:review-and-export-responses@1",
+                "need:run-signature-workflow@1",
+                "need:understand-plan-and-usage@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "dashboardExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "dashboardUnit"
+              },
+              "position": "main",
+              "title": "Dashboard task",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1",
+                  "need:review-and-export-responses@1",
+                  "need:run-signature-workflow@1",
+                  "need:understand-plan-and-usage@1"
+                ]
+              }
+            },
+            {
+              "id": "dashboardSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Open published forms, review responses, check signature work, manage integrations and organization settings, and compare plan usage.",
+                "x-generation": {
+                  "anchors": [
+                    "need:publish-hosted-form@1",
+                    "need:review-and-export-responses@1",
+                    "need:run-signature-workflow@1",
+                    "need:understand-plan-and-usage@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Workspace summary",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1",
+                  "need:review-and-export-responses@1",
+                  "need:run-signature-workflow@1",
+                  "need:understand-plan-and-usage@1"
+                ]
+              }
+            },
+            {
+              "id": "dashboardPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "dashboardPanel",
+                  "eyebrow": "Customer workspace",
+                  "state": "live",
+                  "title": "Dashboard",
+                  "body": "Choose the work you need to continue.",
+                  "emptyMessage": "No additional information is available for this view.",
+                  "blocks": [],
+                  "actions": [
+                    {
+                      "outputName": "dashboardOpenForms",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:publish-hosted-form@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "dashboardStartOnboarding",
+                      "order": 2,
+                      "emphasis": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:configure-organization@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "dashboardOpenResponses",
+                      "order": 3,
+                      "emphasis": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:review-and-export-responses@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "dashboardOpenIntegrations",
+                      "order": 4,
+                      "emphasis": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:connect-existing-systems@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "dashboardOpenAdmin",
+                      "order": 5,
+                      "emphasis": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:configure-organization@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "dashboardOpenBilling",
+                      "order": 6,
+                      "emphasis": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:understand-plan-and-usage@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "dashboardOpenPublicForm",
+                      "order": 7,
+                      "emphasis": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:complete-and-prove-response@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:publish-hosted-form@1",
+                      "need:review-and-export-responses@1",
+                      "need:run-signature-workflow@1",
+                      "need:understand-plan-and-usage@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "dashboardOpenForms": {
+                    "actionRef": "dashboardOpenForms",
+                    "x-generation": {
+                      "anchors": [
+                        "need:publish-hosted-form@1",
+                        "unit:dashboardUnit",
+                        "action:dashboardOpenForms"
+                      ]
+                    }
+                  },
+                  "dashboardStartOnboarding": {
+                    "actionRef": "dashboardStartOnboarding",
+                    "x-generation": {
+                      "anchors": [
+                        "need:configure-organization@1",
+                        "unit:dashboardUnit",
+                        "action:dashboardStartOnboarding"
+                      ]
+                    }
+                  },
+                  "dashboardOpenResponses": {
+                    "actionRef": "dashboardOpenResponses",
+                    "x-generation": {
+                      "anchors": [
+                        "need:review-and-export-responses@1",
+                        "unit:dashboardUnit",
+                        "action:dashboardOpenResponses"
+                      ]
+                    }
+                  },
+                  "dashboardOpenIntegrations": {
+                    "actionRef": "dashboardOpenIntegrations",
+                    "x-generation": {
+                      "anchors": [
+                        "need:connect-existing-systems@1",
+                        "unit:dashboardUnit",
+                        "action:dashboardOpenIntegrations"
+                      ]
+                    }
+                  },
+                  "dashboardOpenAdmin": {
+                    "actionRef": "dashboardOpenAdmin",
+                    "x-generation": {
+                      "anchors": [
+                        "need:configure-organization@1",
+                        "unit:dashboardUnit",
+                        "action:dashboardOpenAdmin"
+                      ]
+                    }
+                  },
+                  "dashboardOpenBilling": {
+                    "actionRef": "dashboardOpenBilling",
+                    "x-generation": {
+                      "anchors": [
+                        "need:understand-plan-and-usage@1",
+                        "unit:dashboardUnit",
+                        "action:dashboardOpenBilling"
+                      ]
+                    }
+                  },
+                  "dashboardOpenPublicForm": {
+                    "actionRef": "dashboardOpenPublicForm",
+                    "x-generation": {
+                      "anchors": [
+                        "need:complete-and-prove-response@1",
+                        "unit:dashboardUnit",
+                        "action:dashboardOpenPublicForm"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Dashboard details",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1",
+                  "need:review-and-export-responses@1",
+                  "need:run-signature-workflow@1",
+                  "need:understand-plan-and-usage@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "dashboardOpenForms",
+              "to": "forms",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1"
+                ]
+              }
+            },
+            {
+              "trigger": "dashboardStartOnboarding",
+              "to": "onboarding",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            },
+            {
+              "trigger": "dashboardOpenResponses",
+              "to": "responses",
+              "x-generation": {
+                "anchors": [
+                  "need:review-and-export-responses@1"
+                ]
+              }
+            },
+            {
+              "trigger": "dashboardOpenIntegrations",
+              "to": "integrations",
+              "x-generation": {
+                "anchors": [
+                  "need:connect-existing-systems@1"
+                ]
+              }
+            },
+            {
+              "trigger": "dashboardOpenAdmin",
+              "to": "admin",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            },
+            {
+              "trigger": "dashboardOpenBilling",
+              "to": "billing",
+              "x-generation": {
+                "anchors": [
+                  "need:understand-plan-and-usage@1"
+                ]
+              }
+            },
+            {
+              "trigger": "dashboardOpenPublicForm",
+              "to": "publicRespond",
+              "x-generation": {
+                "anchors": [
+                  "need:complete-and-prove-response@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:publish-hosted-form@1",
+              "need:review-and-export-responses@1",
+              "need:run-signature-workflow@1",
+              "need:understand-plan-and-usage@1"
+            ]
+          }
+        },
+        {
+          "id": "onboarding",
+          "path": "/app/get-started",
+          "routeClass": "authentication",
+          "title": "Set up organization",
+          "navigation": {
+            "visible": false,
+            "scope": "workspace",
+            "label": "Set up organization",
+            "x-generation": {
+              "anchors": [
+                "need:configure-organization@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "onboardingExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "onboardingUnit"
+              },
+              "position": "main",
+              "title": "Set up organization task",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            },
+            {
+              "id": "onboardingSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Create the organization, name the first workspace, and choose the first environment without staff editing tenant records.",
+                "x-generation": {
+                  "anchors": [
+                    "need:configure-organization@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Organization setup",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            },
+            {
+              "id": "onboardingForm",
+              "slotType": "definition-form",
+              "binding": {
+                "definitionRef": "https://formspec.cloud/definitions/organization-setup"
+              },
+              "position": "main",
+              "title": "Set up organization",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            },
+            {
+              "id": "onboardingPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "onboardingPanel",
+                  "eyebrow": "Get started",
+                  "state": "live",
+                  "title": "Set up organization",
+                  "body": "Complete the organization fields, then finish setup.",
+                  "emptyMessage": "No additional information is available for this view.",
+                  "blocks": [],
+                  "actions": [
+                    {
+                      "outputName": "completeOnboarding",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:configure-organization@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:configure-organization@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "completeOnboarding": {
+                    "actionRef": "completeOnboarding",
+                    "x-generation": {
+                      "anchors": [
+                        "need:configure-organization@1",
+                        "unit:onboardingUnit",
+                        "action:completeOnboarding"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Set up organization details",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "completeOnboarding",
+              "to": "dashboard",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        },
+        {
+          "id": "forms",
+          "path": "/app/forms",
+          "routeClass": "operation",
+          "title": "Forms",
+          "navigation": {
+            "visible": true,
+            "scope": "workspace",
+            "label": "Forms",
+            "order": 20,
+            "x-generation": {
+              "anchors": [
+                "need:publish-hosted-form@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "formsExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "formsUnit"
+              },
+              "position": "main",
+              "title": "Forms task",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1"
+                ]
+              }
+            },
+            {
+              "id": "formsSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Find draft and published forms, identify the version people will complete, and open a form for sharing or preview.",
+                "x-generation": {
+                  "anchors": [
+                    "need:publish-hosted-form@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Form library",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1"
+                ]
+              }
+            },
+            {
+              "id": "formsPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "formsPanel",
+                  "eyebrow": "Authoring",
+                  "state": "live",
+                  "title": "Forms",
+                  "body": "Open a form to inspect its hosted version and sharing path.",
+                  "emptyMessage": "No additional information is available for this view.",
+                  "blocks": [],
+                  "actions": [
+                    {
+                      "outputName": "openFormDetail",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:publish-hosted-form@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:publish-hosted-form@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "openFormDetail": {
+                    "actionRef": "openFormDetail",
+                    "x-generation": {
+                      "anchors": [
+                        "need:publish-hosted-form@1",
+                        "unit:formsUnit",
+                        "action:openFormDetail"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Forms details",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "openFormDetail",
+              "to": "formDetail",
+              "params": {
+                "formId": "formId"
+              },
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:publish-hosted-form@1"
+            ]
+          }
+        },
+        {
+          "id": "formDetail",
+          "path": "/app/forms/{formId}",
+          "params": [
+            {
+              "name": "formId",
+              "type": "string",
+              "description": "Tenant-scoped draft or published form identifier supplied by the host."
+            }
+          ],
+          "routeClass": "operation",
+          "title": "Form detail",
+          "navigation": {
+            "visible": false,
+            "scope": "workspace",
+            "label": "Form detail",
+            "x-generation": {
+              "anchors": [
+                "need:publish-hosted-form@1",
+                "need:review-and-export-responses@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "formDetailExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "formDetailUnit"
+              },
+              "position": "main",
+              "title": "Form detail task",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1",
+                  "need:review-and-export-responses@1"
+                ]
+              }
+            },
+            {
+              "id": "formDetailSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Inspect the selected form identifier, hosted address, current version, sharing state, and response access.",
+                "x-generation": {
+                  "anchors": [
+                    "need:publish-hosted-form@1",
+                    "need:review-and-export-responses@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Published form",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1",
+                  "need:review-and-export-responses@1"
+                ]
+              }
+            },
+            {
+              "id": "formDetailPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "formDetailPanel",
+                  "eyebrow": "Form workspace",
+                  "state": "live",
+                  "title": "Form detail",
+                  "body": "The route parameter identifies the tenant form currently in view.",
+                  "emptyMessage": "No additional information is available for this view.",
+                  "blocks": [
+                    {
+                      "id": "selectedForm",
+                      "type": "key-value",
+                      "items": [
+                        {
+                          "id": "formId",
+                          "label": "Form identifier",
+                          "routeParam": "formId",
+                          "x-generation": {
+                            "anchors": [
+                              "need:publish-hosted-form@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:publish-hosted-form@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "previewForm",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:publish-hosted-form@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "openFormResponses",
+                      "order": 2,
+                      "emphasis": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:review-and-export-responses@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:publish-hosted-form@1",
+                      "need:review-and-export-responses@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "previewForm": {
+                    "actionRef": "previewForm",
+                    "x-generation": {
+                      "anchors": [
+                        "need:publish-hosted-form@1",
+                        "unit:formDetailUnit",
+                        "action:previewForm"
+                      ]
+                    }
+                  },
+                  "openFormResponses": {
+                    "actionRef": "openFormResponses",
+                    "x-generation": {
+                      "anchors": [
+                        "need:review-and-export-responses@1",
+                        "unit:formDetailUnit",
+                        "action:openFormResponses"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Form detail details",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1",
+                  "need:review-and-export-responses@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "previewForm",
+              "to": "formPreview",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1"
+                ]
+              }
+            },
+            {
+              "trigger": "openFormResponses",
+              "to": "responses",
+              "x-generation": {
+                "anchors": [
+                  "need:review-and-export-responses@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:publish-hosted-form@1",
+              "need:review-and-export-responses@1"
+            ]
+          }
+        },
+        {
+          "id": "formPreview",
+          "path": "/app/form-preview",
+          "routeClass": "intake",
+          "title": "Hosted form preview",
+          "navigation": {
+            "visible": false,
+            "scope": "workspace",
+            "label": "Hosted form preview",
+            "x-generation": {
+              "anchors": [
+                "need:publish-hosted-form@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "formPreviewExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "formPreviewUnit"
+              },
+              "position": "main",
+              "title": "Hosted form preview task",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1"
+                ]
+              }
+            },
+            {
+              "id": "formPreviewSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "PREVIEW — Check the hosted form flow before publishing or sharing its stable address.",
+                "x-generation": {
+                  "anchors": [
+                    "need:publish-hosted-form@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Hosted form preview",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1"
+                ]
+              }
+            },
+            {
+              "id": "formPreviewPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "formPreviewPanel",
+                  "eyebrow": "Authoring preview",
+                  "state": "preview",
+                  "title": "Hosted form preview",
+                  "body": "Review the hosted experience, then return to the selected form.",
+                  "emptyMessage": "No additional information is available for this view.",
+                  "blocks": [],
+                  "actions": [
+                    {
+                      "outputName": "returnToForm",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:publish-hosted-form@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:publish-hosted-form@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "returnToForm": {
+                    "actionRef": "returnToForm",
+                    "x-generation": {
+                      "anchors": [
+                        "need:publish-hosted-form@1",
+                        "unit:formPreviewUnit",
+                        "action:returnToForm"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Hosted form preview details",
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "returnToForm",
+              "to": "formDetail",
+              "params": {
+                "formId": "formId"
+              },
+              "x-generation": {
+                "anchors": [
+                  "need:publish-hosted-form@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:publish-hosted-form@1"
+            ]
+          }
+        },
+        {
+          "id": "responses",
+          "path": "/app/responses",
+          "routeClass": "operation",
+          "title": "Responses and exports",
+          "navigation": {
+            "visible": true,
+            "scope": "workspace",
+            "label": "Responses",
+            "order": 30,
+            "x-generation": {
+              "anchors": [
+                "need:review-and-export-responses@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "responsesExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "responsesUnit"
+              },
+              "position": "main",
+              "title": "Responses and exports task",
+              "x-generation": {
+                "anchors": [
+                  "need:review-and-export-responses@1"
+                ]
+              }
+            },
+            {
+              "id": "responsesSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Review recent responses, identify their state, see proof status, and find the available export formats.",
+                "x-generation": {
+                  "anchors": [
+                    "need:review-and-export-responses@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Responses and proof",
+              "x-generation": {
+                "anchors": [
+                  "need:review-and-export-responses@1"
+                ]
+              }
+            },
+            {
+              "id": "responsesPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "responsesPanel",
+                  "eyebrow": "Response operations",
+                  "state": "live",
+                  "title": "Responses and exports",
+                  "body": "Response data comes from the host-owned tenant query.",
+                  "emptyMessage": "No responses are available for this profile.",
+                  "blocks": [
+                    {
+                      "id": "responsesTable",
+                      "type": "table",
+                      "path": "primaryData.responses",
+                      "caption": "Recent responses",
+                      "columns": [
+                        {
+                          "id": "responseId",
+                          "label": "Response",
+                          "path": "id",
+                          "x-generation": {
+                            "anchors": [
+                              "need:review-and-export-responses@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "form",
+                          "label": "Form",
+                          "path": "form",
+                          "x-generation": {
+                            "anchors": [
+                              "need:review-and-export-responses@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "status",
+                          "label": "Status",
+                          "path": "status",
+                          "x-generation": {
+                            "anchors": [
+                              "need:review-and-export-responses@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:review-and-export-responses@1"
+                        ]
+                      }
+                    },
+                    {
+                      "id": "exportFormats",
+                      "type": "list",
+                      "path": "primaryData.exportFormats",
+                      "x-generation": {
+                        "anchors": [
+                          "need:review-and-export-responses@1"
+                        ]
+                      }
+                    },
+                    {
+                      "id": "proofSummary",
+                      "type": "key-value",
+                      "items": [
+                        {
+                          "id": "proofStatus",
+                          "label": "Proof status",
+                          "path": "primaryData.proofStatus",
+                          "x-generation": {
+                            "anchors": [
+                              "need:review-and-export-responses@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:review-and-export-responses@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "openSignatures",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:run-signature-workflow@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "openSupportFromResponses",
+                      "order": 2,
+                      "emphasis": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:get-help-and-check-trust@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:review-and-export-responses@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primaryData": {
+                    "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+                    "sourceRef": "query:responses",
+                    "x-generation": {
+                      "anchors": [
+                        "need:review-and-export-responses@1",
+                        "unit:responsesUnit"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "openSignatures": {
+                    "actionRef": "openSignatures",
+                    "x-generation": {
+                      "anchors": [
+                        "need:run-signature-workflow@1",
+                        "unit:responsesUnit",
+                        "action:openSignatures"
+                      ]
+                    }
+                  },
+                  "openSupportFromResponses": {
+                    "actionRef": "openSupportFromResponses",
+                    "x-generation": {
+                      "anchors": [
+                        "need:get-help-and-check-trust@1",
+                        "unit:responsesUnit",
+                        "action:openSupportFromResponses"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Responses and exports details",
+              "x-generation": {
+                "anchors": [
+                  "need:review-and-export-responses@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "openSignatures",
+              "to": "signatures",
+              "x-generation": {
+                "anchors": [
+                  "need:run-signature-workflow@1"
+                ]
+              }
+            },
+            {
+              "trigger": "openSupportFromResponses",
+              "to": "supportTrust",
+              "x-generation": {
+                "anchors": [
+                  "need:get-help-and-check-trust@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1"
+            ]
+          }
+        },
+        {
+          "id": "signatures",
+          "path": "/app/signatures",
+          "routeClass": "ceremony",
+          "title": "Signature workflows",
+          "navigation": {
+            "visible": true,
+            "scope": "workspace",
+            "label": "Signatures",
+            "order": 40,
+            "x-generation": {
+              "anchors": [
+                "need:run-signature-workflow@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "signaturesExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "signaturesUnit"
+              },
+              "position": "main",
+              "title": "Signature workflows task",
+              "x-generation": {
+                "anchors": [
+                  "need:run-signature-workflow@1"
+                ]
+              }
+            },
+            {
+              "id": "signaturesSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Follow a basic signature request through completion and retrieve its certificate. Enhanced identity proofing remains unavailable.",
+                "x-generation": {
+                  "anchors": [
+                    "need:run-signature-workflow@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Signature status and proof",
+              "x-generation": {
+                "anchors": [
+                  "need:run-signature-workflow@1"
+                ]
+              }
+            },
+            {
+              "id": "signaturesPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "signaturesPanel",
+                  "eyebrow": "Signing",
+                  "state": "live",
+                  "title": "Signature workflows",
+                  "body": "Track the current signature work and return to response operations.",
+                  "emptyMessage": "No additional information is available for this view.",
+                  "blocks": [],
+                  "actions": [
+                    {
+                      "outputName": "returnToResponses",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:run-signature-workflow@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:run-signature-workflow@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "returnToResponses": {
+                    "actionRef": "returnToResponses",
+                    "x-generation": {
+                      "anchors": [
+                        "need:run-signature-workflow@1",
+                        "unit:signaturesUnit",
+                        "action:returnToResponses"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Signature workflows details",
+              "x-generation": {
+                "anchors": [
+                  "need:run-signature-workflow@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "returnToResponses",
+              "to": "responses",
+              "x-generation": {
+                "anchors": [
+                  "need:run-signature-workflow@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:run-signature-workflow@1"
+            ]
+          }
+        },
+        {
+          "id": "integrations",
+          "path": "/app/integrations",
+          "routeClass": "operation",
+          "title": "API and webhooks",
+          "navigation": {
+            "visible": true,
+            "scope": "workspace",
+            "label": "Integrations",
+            "order": 50,
+            "x-generation": {
+              "anchors": [
+                "need:connect-existing-systems@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "integrationsExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "integrationsUnit"
+              },
+              "position": "main",
+              "title": "API and webhooks task",
+              "x-generation": {
+                "anchors": [
+                  "need:connect-existing-systems@1"
+                ]
+              }
+            },
+            {
+              "id": "integrationsSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Create an API key, use generated API documentation, make a sandbox request, and inspect one webhook delivery.",
+                "x-generation": {
+                  "anchors": [
+                    "need:connect-existing-systems@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Developer setup",
+              "x-generation": {
+                "anchors": [
+                  "need:connect-existing-systems@1"
+                ]
+              }
+            },
+            {
+              "id": "integrationsPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "integrationsPanel",
+                  "eyebrow": "Integration",
+                  "state": "live",
+                  "title": "API and webhooks",
+                  "body": "Connect a customer system and review the usage that integration work consumes.",
+                  "emptyMessage": "No additional information is available for this view.",
+                  "blocks": [],
+                  "actions": [
+                    {
+                      "outputName": "openBillingFromIntegrations",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:connect-existing-systems@1",
+                          "need:understand-plan-and-usage@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:connect-existing-systems@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "openBillingFromIntegrations": {
+                    "actionRef": "openBillingFromIntegrations",
+                    "x-generation": {
+                      "anchors": [
+                        "need:connect-existing-systems@1",
+                        "need:understand-plan-and-usage@1",
+                        "unit:integrationsUnit",
+                        "action:openBillingFromIntegrations"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "API and webhooks details",
+              "x-generation": {
+                "anchors": [
+                  "need:connect-existing-systems@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "openBillingFromIntegrations",
+              "to": "billing",
+              "x-generation": {
+                "anchors": [
+                  "need:connect-existing-systems@1",
+                  "need:understand-plan-and-usage@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:connect-existing-systems@1"
+            ]
+          }
+        },
+        {
+          "id": "admin",
+          "path": "/app/admin",
+          "routeClass": "operation",
+          "title": "Organization administration",
+          "navigation": {
+            "visible": true,
+            "scope": "workspace",
+            "label": "Administration",
+            "order": 60,
+            "x-generation": {
+              "anchors": [
+                "need:configure-organization@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "adminExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "adminUnit"
+              },
+              "position": "main",
+              "title": "Organization administration task",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            },
+            {
+              "id": "adminSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Review organization, workspace, environment, teammate, and role setup. Assisted capabilities show their request state.",
+                "x-generation": {
+                  "anchors": [
+                    "need:configure-organization@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Organization administration",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            },
+            {
+              "id": "adminPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "adminPanel",
+                  "eyebrow": "Administration",
+                  "state": "live",
+                  "title": "Organization administration",
+                  "body": "Review the organization setup or return to edit its core fields.",
+                  "emptyMessage": "No additional information is available for this view.",
+                  "blocks": [],
+                  "actions": [
+                    {
+                      "outputName": "editOrganizationSetup",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:configure-organization@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:configure-organization@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "editOrganizationSetup": {
+                    "actionRef": "editOrganizationSetup",
+                    "x-generation": {
+                      "anchors": [
+                        "need:configure-organization@1",
+                        "unit:adminUnit",
+                        "action:editOrganizationSetup"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Organization administration details",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "editOrganizationSetup",
+              "to": "onboarding",
+              "x-generation": {
+                "anchors": [
+                  "need:configure-organization@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:configure-organization@1"
+            ]
+          }
+        },
+        {
+          "id": "billing",
+          "path": "/app/billing",
+          "routeClass": "operation",
+          "title": "Usage and billing",
+          "navigation": {
+            "visible": true,
+            "scope": "workspace",
+            "label": "Plan and usage",
+            "order": 70,
+            "x-generation": {
+              "anchors": [
+                "need:understand-plan-and-usage@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "billingExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "billingUnit"
+              },
+              "position": "main",
+              "title": "Usage and billing task",
+              "x-generation": {
+                "anchors": [
+                  "need:understand-plan-and-usage@1"
+                ]
+              }
+            },
+            {
+              "id": "billingSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Compare response usage with the plan limit and check plan and billing state.",
+                "x-generation": {
+                  "anchors": [
+                    "need:understand-plan-and-usage@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Plan and usage",
+              "x-generation": {
+                "anchors": [
+                  "need:understand-plan-and-usage@1"
+                ]
+              }
+            },
+            {
+              "id": "billingPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "billingPanel",
+                  "eyebrow": "Subscription",
+                  "state": "live",
+                  "title": "Usage and billing",
+                  "body": "Billing data is supplied by the host for the active customer workspace.",
+                  "emptyMessage": "Plan and usage data are unavailable.",
+                  "blocks": [
+                    {
+                      "id": "planSummary",
+                      "type": "key-value",
+                      "items": [
+                        {
+                          "id": "plan",
+                          "label": "Plan",
+                          "path": "primaryData.plan",
+                          "x-generation": {
+                            "anchors": [
+                              "need:understand-plan-and-usage@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "billingStatus",
+                          "label": "Billing status",
+                          "path": "primaryData.billingStatus",
+                          "x-generation": {
+                            "anchors": [
+                              "need:understand-plan-and-usage@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:understand-plan-and-usage@1"
+                        ]
+                      }
+                    },
+                    {
+                      "id": "responseUsage",
+                      "type": "progress",
+                      "label": "Responses used",
+                      "path": "primaryData.usage.responses",
+                      "max": 1000,
+                      "suffix": " responses",
+                      "x-generation": {
+                        "anchors": [
+                          "need:understand-plan-and-usage@1"
+                        ]
+                      }
+                    },
+                    {
+                      "id": "responseLimit",
+                      "type": "metric",
+                      "label": "Response limit",
+                      "path": "primaryData.limits.responses",
+                      "suffix": " responses",
+                      "x-generation": {
+                        "anchors": [
+                          "need:understand-plan-and-usage@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "openAdministration",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:understand-plan-and-usage@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:understand-plan-and-usage@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primaryData": {
+                    "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+                    "sourceRef": "host:billing",
+                    "x-generation": {
+                      "anchors": [
+                        "need:understand-plan-and-usage@1",
+                        "unit:billingUnit"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "openAdministration": {
+                    "actionRef": "openAdministration",
+                    "x-generation": {
+                      "anchors": [
+                        "need:understand-plan-and-usage@1",
+                        "unit:billingUnit",
+                        "action:openAdministration"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Usage and billing details",
+              "x-generation": {
+                "anchors": [
+                  "need:understand-plan-and-usage@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "openAdministration",
+              "to": "admin",
+              "x-generation": {
+                "anchors": [
+                  "need:understand-plan-and-usage@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:understand-plan-and-usage@1"
+            ]
+          }
+        },
+        {
+          "id": "supportTrust",
+          "path": "/app/support",
+          "routeClass": "attestation",
+          "title": "Support, status, and trust",
+          "navigation": {
+            "visible": true,
+            "scope": "workspace",
+            "label": "Support and trust",
+            "order": 80,
+            "x-generation": {
+              "anchors": [
+                "need:get-help-and-check-trust@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "supportTrustExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "supportTrustUnit"
+              },
+              "position": "main",
+              "title": "Support, status, and trust task",
+              "x-generation": {
+                "anchors": [
+                  "need:get-help-and-check-trust@1"
+                ]
+              }
+            },
+            {
+              "id": "supportTrustSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Distinguish service states, review incident availability, reach support, and find current trust documents.",
+                "x-generation": {
+                  "anchors": [
+                    "need:get-help-and-check-trust@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Support, status, and trust",
+              "x-generation": {
+                "anchors": [
+                  "need:get-help-and-check-trust@1"
+                ]
+              }
+            },
+            {
+              "id": "supportTrustPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "supportTrustPanel",
+                  "eyebrow": "Service posture",
+                  "state": "live",
+                  "title": "Support, status, and trust",
+                  "body": "Trust data is a host-provided document resource.",
+                  "emptyMessage": "Support and trust data are unavailable.",
+                  "blocks": [
+                    {
+                      "id": "serviceStatus",
+                      "type": "table",
+                      "path": "primaryData.serviceStatus",
+                      "caption": "Service status",
+                      "columns": [
+                        {
+                          "id": "service",
+                          "label": "Service",
+                          "path": "service",
+                          "x-generation": {
+                            "anchors": [
+                              "need:get-help-and-check-trust@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "status",
+                          "label": "Status",
+                          "path": "status",
+                          "x-generation": {
+                            "anchors": [
+                              "need:get-help-and-check-trust@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:get-help-and-check-trust@1"
+                        ]
+                      }
+                    },
+                    {
+                      "id": "incidents",
+                      "type": "list",
+                      "path": "primaryData.incidents",
+                      "x-generation": {
+                        "anchors": [
+                          "need:get-help-and-check-trust@1"
+                        ]
+                      }
+                    },
+                    {
+                      "id": "supportAccess",
+                      "type": "list",
+                      "path": "primaryData.supportAccess",
+                      "x-generation": {
+                        "anchors": [
+                          "need:get-help-and-check-trust@1"
+                        ]
+                      }
+                    },
+                    {
+                      "id": "trustDocuments",
+                      "type": "list",
+                      "path": "primaryData.trustDocuments",
+                      "x-generation": {
+                        "anchors": [
+                          "need:get-help-and-check-trust@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "returnToDashboard",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:get-help-and-check-trust@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:get-help-and-check-trust@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primaryData": {
+                    "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+                    "sourceRef": "resource:support-trust",
+                    "x-generation": {
+                      "anchors": [
+                        "need:get-help-and-check-trust@1",
+                        "unit:supportTrustUnit"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "returnToDashboard": {
+                    "actionRef": "returnToDashboard",
+                    "x-generation": {
+                      "anchors": [
+                        "need:get-help-and-check-trust@1",
+                        "unit:supportTrustUnit",
+                        "action:returnToDashboard"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Support, status, and trust details",
+              "x-generation": {
+                "anchors": [
+                  "need:get-help-and-check-trust@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "returnToDashboard",
+              "to": "dashboard",
+              "x-generation": {
+                "anchors": [
+                  "need:get-help-and-check-trust@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:get-help-and-check-trust@1"
+            ]
+          }
+        },
+        {
+          "id": "publicRespond",
+          "path": "/respond",
+          "routeClass": "intake",
+          "title": "Complete a form",
+          "navigation": {
+            "visible": false,
+            "scope": "public",
+            "label": "Complete a form",
+            "x-generation": {
+              "anchors": [
+                "need:complete-and-prove-response@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "publicRespondExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "publicRespondUnit"
+              },
+              "position": "main",
+              "title": "Complete a form task",
+              "x-generation": {
+                "anchors": [
+                  "need:complete-and-prove-response@1"
+                ]
+              }
+            },
+            {
+              "id": "publicRespondSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Enter the requested information, review it, and submit it to the organization.",
+                "x-generation": {
+                  "anchors": [
+                    "need:complete-and-prove-response@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Public response",
+              "x-generation": {
+                "anchors": [
+                  "need:complete-and-prove-response@1"
+                ]
+              }
+            },
+            {
+              "id": "publicRespondForm",
+              "slotType": "definition-form",
+              "binding": {
+                "definitionRef": "https://formspec.cloud/definitions/public-response"
+              },
+              "position": "main",
+              "title": "Required information",
+              "x-generation": {
+                "anchors": [
+                  "need:complete-and-prove-response@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "submitPublicResponse",
+              "to": "publicReceipt",
+              "x-generation": {
+                "anchors": [
+                  "need:complete-and-prove-response@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        },
+        {
+          "id": "publicReceipt",
+          "path": "/receipt",
+          "routeClass": "verification",
+          "title": "Submission receipt",
+          "navigation": {
+            "visible": false,
+            "scope": "public",
+            "label": "Submission receipt",
+            "x-generation": {
+              "anchors": [
+                "need:complete-and-prove-response@1"
+              ]
+            }
+          },
+          "slots": [
+            {
+              "id": "publicReceiptExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "experienceRef": "https://formspec.cloud/experience/saas-v1",
+                "unitRef": "publicReceiptUnit"
+              },
+              "position": "main",
+              "title": "Submission receipt task",
+              "x-generation": {
+                "anchors": [
+                  "need:complete-and-prove-response@1"
+                ]
+              }
+            },
+            {
+              "id": "publicReceiptSummary",
+              "slotType": "static-content",
+              "binding": {
+                "kind": "text",
+                "content": "LIVE — Keep the receipt and its proof state as evidence that the organization received the response.",
+                "x-generation": {
+                  "anchors": [
+                    "need:complete-and-prove-response@1",
+                    "need:see-honest-feature-state@1"
+                  ]
+                }
+              },
+              "position": "main",
+              "title": "Submission receipt",
+              "x-generation": {
+                "anchors": [
+                  "need:complete-and-prove-response@1"
+                ]
+              }
+            },
+            {
+              "id": "publicReceiptPanelSlot",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-tenant-chrome",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "publicReceiptPanel",
+                  "eyebrow": "Receipt",
+                  "state": "live",
+                  "title": "Submission receipt",
+                  "body": "Retain this receipt or open support when its proof needs attention.",
+                  "emptyMessage": "No additional information is available for this view.",
+                  "blocks": [],
+                  "actions": [
+                    {
+                      "outputName": "openSupportFromReceipt",
+                      "order": 1,
+                      "emphasis": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:complete-and-prove-response@1",
+                          "need:get-help-and-check-trust@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:complete-and-prove-response@1",
+                      "need:see-honest-feature-state@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "openSupportFromReceipt": {
+                    "actionRef": "openSupportFromReceipt",
+                    "x-generation": {
+                      "anchors": [
+                        "need:complete-and-prove-response@1",
+                        "need:get-help-and-check-trust@1",
+                        "unit:publicReceiptUnit",
+                        "action:openSupportFromReceipt"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Submission receipt details",
+              "x-generation": {
+                "anchors": [
+                  "need:complete-and-prove-response@1"
+                ]
+              }
+            }
+          ],
+          "transitions": [
+            {
+              "trigger": "openSupportFromReceipt",
+              "to": "supportTrust",
+              "x-generation": {
+                "anchors": [
+                  "need:complete-and-prove-response@1",
+                  "need:get-help-and-check-trust@1"
+                ]
+              }
+            }
+          ],
+          "x-generation": {
+            "anchors": [
+              "need:complete-and-prove-response@1"
+            ]
+          }
+        }
+      ]
+    },
+    "https://formspec.cloud/data-sources/saas-v1": {
+      "$formspecDataSources": "1.0",
+      "id": "https://formspec.cloud/data-sources/saas-v1",
+      "version": "0.12.0",
+      "title": "Formspec Cloud SaaS data",
+      "description": "Host-owned response, billing, support, status, and trust data. Preview values live in the separate scenario artifact.",
+      "sources": [
+        {
+          "id": "query:responses",
+          "kind": "query-result",
+          "owner": "host",
+          "scope": "route",
+          "availability": {
+            "level": "route",
+            "surfaceRef": "https://formspec.cloud/app",
+            "routeRef": "responses"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT30S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "stale-ok",
+            "provenance": {
+              "kind": "query-result",
+              "source": "tenant response and proof query"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "required": [
+              "responses",
+              "exportFormats",
+              "proofStatus"
+            ],
+            "properties": {
+              "responses": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "form",
+                    "status"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "form": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "exportFormats": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "proofStatus": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Recent tenant responses, export choices, and proof state.",
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1",
+              "unit:responsesUnit"
+            ]
+          }
+        },
+        {
+          "id": "host:billing",
+          "kind": "host-state",
+          "owner": "host",
+          "scope": "route",
+          "availability": {
+            "level": "route",
+            "surfaceRef": "https://formspec.cloud/app",
+            "routeRef": "billing"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT60S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "stale-ok",
+            "provenance": {
+              "kind": "host-state",
+              "source": "tenant plan, usage, limits, and billing state"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "required": [
+              "plan",
+              "usage",
+              "limits",
+              "billingStatus"
+            ],
+            "properties": {
+              "plan": {
+                "type": "string"
+              },
+              "usage": {
+                "type": "object",
+                "required": [
+                  "responses"
+                ],
+                "properties": {
+                  "responses": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "limits": {
+                "type": "object",
+                "required": [
+                  "responses"
+                ],
+                "properties": {
+                  "responses": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "billingStatus": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Current tenant subscription and response usage.",
+          "x-generation": {
+            "anchors": [
+              "need:understand-plan-and-usage@1",
+              "unit:billingUnit"
+            ]
+          }
+        },
+        {
+          "id": "resource:support-trust",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "route",
+            "surfaceRef": "https://formspec.cloud/app",
+            "routeRef": "supportTrust"
+          },
+          "runtime": {
+            "delivery": "snapshot",
+            "cache": {
+              "mode": "snapshot",
+              "staleAfter": "PT5M"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "stale-ok",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "service status, support access, incidents, and trust documents"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "required": [
+              "serviceStatus",
+              "incidents",
+              "supportAccess",
+              "trustDocuments"
+            ],
+            "properties": {
+              "serviceStatus": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "service",
+                    "status"
+                  ],
+                  "properties": {
+                    "service": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "incidents": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "supportAccess": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "trustDocuments": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Service state, incident, support, and trust-center information.",
+          "x-generation": {
+            "anchors": [
+              "need:get-help-and-check-trust@1",
+              "unit:supportTrustUnit"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

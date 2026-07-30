@@ -1,108 +1,106 @@
 {
-  "artifact": "Surface v12 SaaS V1 structured builder attempt 7",
-  "assessment_type": "blind wireframe proof only",
-  "score": 4,
-  "conclusion": "Pass: this is a valid, coherent structured wireframe for the SaaS V1 minimum-live surface. It is not runtime qualification.",
-  "call_counts": {
-    "total": 92,
-    "start_app": 1,
-    "add_route": 13,
-    "edit_definition": 8,
-    "add_action": 11,
-    "edit_registry": 3,
-    "materialize_data_sources": 1,
-    "add_experience_unit": 1,
-    "bind_slot": 29,
-    "add_transition": 21,
-    "read_summary": 1,
-    "preview": 1,
-    "validate": 1,
-    "export": 1
+  "artifact": "Surface v12 SaaS V1 corrected structured reconstruction",
+  "assessment_type": "data-only artifact and generic-host assessment",
+  "score": null,
+  "status": "passed_local_data_only_wireframe_proof",
+  "conclusion": "The corrected SaaS and control artifacts use one fixed generic host, have complete reasoning traces, pass all seven graph phases, and render their represented journeys without product-specific host code.",
+  "construction": {
+    "method": "structured reconstruction after attempt 7",
+    "fresh_blind_public_builder_replay": false,
+    "note": "The corrected artifacts were reconstructed directly after closing authoring, validation, trace, and host-boundary gaps. Attempt 7 remains historical failed public-builder evidence."
+  },
+  "host": {
+    "fixed_generic_host": true,
+    "preview_bundles": 2,
+    "same_compiled_source_for_all_previews": true,
+    "product_input": "artifacts/preview-set.json"
+  },
+  "current_artifacts": {
+    "saas_v1": {
+      "routes": 14,
+      "authored_navigation_entries": 14,
+      "visible_workspace_navigation_entries": 9,
+      "response_actions": 22,
+      "definitions": 2,
+      "definition_items": 7,
+      "definition_binds": 7,
+      "experience_units": 14,
+      "adopted_needs": 10,
+      "trace_records": 256,
+      "resolved_trace_records": 256,
+      "unresolved_internal_references": 0
+    },
+    "control": {
+      "trace_records": 12,
+      "resolved_trace_records": 12,
+      "unresolved_internal_references": 0
+    }
   },
   "validation": {
-    "validated": true,
-    "report_ok": true,
-    "artifacts": 7,
-    "loaded_artifacts": 7,
-    "schema_failures": 0,
-    "graph_errors": 0,
-    "errors": 0,
-    "warnings": 0,
-    "infos": 0,
-    "artifact_resolution_errors": 0,
-    "module_resolution_errors": 0,
-    "unresolved_references": 0,
-    "not_run_phases": ["surface-local", "authorization-boundary", "unsupported"]
+    "root_artifact_verifier": "passed",
+    "app_graph_phases_per_bundle": 7,
+    "app_graph_bundles_passed": 2,
+    "playwright_routes_passed": 14,
+    "playwright_actions_passed": 22,
+    "playwright_data_profile_checks_passed": 9,
+    "playwright_console_warnings_or_errors": 0,
+    "reviewed_input_digest": "sha256:0f3ff91772515e1635723741803421b666ac3411a52047e189703d7e20dcf398",
+    "formspec_unit_suites": "passed",
+    "formspec_contract_surfaces": "passed",
+    "studio_core": "1597 passed, 1 todo",
+    "wireframes_mcp": "121 passed"
   },
-  "export": {
-    "succeeded": true,
-    "manifest_id": "https://formspec.cloud/apps/saas-v1",
-    "document_count": 6,
-    "surface_entry": "dashboard",
-    "route_count": 13,
-    "data_source_count": 3
+  "historical_attempt_7": {
+    "status": "failed_retained_evidence",
+    "prior_score": "withdrawn",
+    "public_tool_calls": 92,
+    "routes": 13,
+    "slot_bindings": 29,
+    "transitions": 21,
+    "actions": 11,
+    "definitions": 1,
+    "definition_fields": 7,
+    "experience_units": 1,
+    "data_sources": 3,
+    "unresolved_references": 5,
+    "disqualifying_findings": [
+      {
+        "code": "DATA-ONLY-HOST-VIOLATION",
+        "evidence": "The attempt-7 demo contained SaaS-specific action tables, route switches, Definition filtering, sample data, application chrome, and product styling."
+      },
+      {
+        "code": "EXP-REFERENTIAL-INTEGRITY",
+        "evidence": "The attempt-7 Experience declared no actors or tasks while its unit cited publicRespondent and four task ids."
+      },
+      {
+        "code": "NEEDS-TRACE-MISSING",
+        "evidence": "Attempt 7 authored no Needs Document and no direct rendered-Need trace."
+      },
+      {
+        "code": "VALIDATION-PHASES-NOT-RUN",
+        "evidence": "The attempt-7 report omitted surface-local, authorization-boundary, and unsupported phases."
+      },
+      {
+        "code": "DEFINITION-PRESENTATION-SEMANTICS",
+        "evidence": "The attempt-7 host filtered one Definition into setup and public-response forms, changing form membership outside the Definition."
+      }
+    ]
   },
-  "checks": [
-    {
-      "area": "Account, onboarding, environment, and team",
-      "result": "pass",
-      "evidence": "The onboarding route has a definition-backed setup form with organization, workspace, and production/sandbox environment fields; its content names teammate invitations and assisted SSO/SAML/SCIM. The route transitions to Dashboard."
-    },
-    {
-      "area": "Forms, publishing, and public completion",
-      "result": "pass",
-      "evidence": "Forms, parameterized form detail, preview, and public respondent routes represent templates/Studio import, publish/share/version pinning, preview, anonymous completion, validation/review/confirmation, and a definition-backed mobile response form."
-    },
-    {
-      "area": "Responses and export",
-      "result": "pass",
-      "evidence": "Responses route names tenant responses and CSV/JSON export and binds the structured query:responses public resource, whose schema includes responses, export formats, and proof status."
-    },
-    {
-      "area": "Signatures, receipts, and verification",
-      "result": "pass",
-      "evidence": "Signature workflows represent envelopes, status, reminders, completion, and certificates. Public receipt represents a receipt and verifier-backed proof status, while hosted general verification is explicitly disabled."
-    },
-    {
-      "area": "Administration and branding",
-      "result": "pass",
-      "evidence": "Organization administration explicitly covers organization, workspaces, roles, invitations, branding, and feature visibility, with assisted and disabled governance states named."
-    },
-    {
-      "area": "API and webhook",
-      "result": "pass",
-      "evidence": "The integrations route explicitly covers API keys, generated API docs, sandbox/test, one webhook, and delivery history, with connectors preview and large imports assisted."
-    },
-    {
-      "area": "Usage, billing, and entitlements",
-      "result": "pass",
-      "evidence": "Billing names plan limits, usage, billing status, and entitlements and binds host:billing, a structured host-state resource with plan, usage, limits, and billing-status schema."
-    },
-    {
-      "area": "Status, support, and trust",
-      "result": "pass",
-      "evidence": "Support/trust names status, support, incident records, trust center, and subprocessors and binds resource:support-trust, whose schema covers service status, incidents, support access, and trust documents."
-    },
-    {
-      "area": "Feature-state honesty",
-      "result": "pass",
-      "evidence": "Every represented area uses explicit LIVE, ASSISTED, PREVIEW, or DISABLED language, including collaborative authoring, SSO, bulk export, identity proofing, witness/notary, connectors, retention/legal hold, DSAR, dedicated review, active-active, and hosted verification."
-    },
-    {
-      "area": "Connected and parameterized navigation",
-      "result": "pass",
-      "evidence": "The surface has 13 routes and 21 transitions. Dashboard links to seven primary destinations; the form detail route is parameterized by formId and its transitions supply frm_annual-intake. The public completion path connects to receipt and then proof/support."
-    },
-    {
-      "area": "Structured public resources",
-      "result": "pass",
-      "evidence": "The exported bundle contains a definition with seven required fields, an experience unit with four completion steps, 11 response actions, a reusable registered widget mounted on all 13 routes, and three typed data-source resources bound to responses, billing, and support/trust."
-    }
+  "represented_areas": [
+    "Account access, onboarding, environment, and team",
+    "Forms, publishing, preview, and public completion",
+    "Responses and export",
+    "Signatures, receipts, and verification",
+    "Administration and branding",
+    "API and webhook",
+    "Usage, billing, and entitlements",
+    "Status, support, and trust",
+    "Explicit LIVE, ASSISTED, PREVIEW, and DISABLED feature posture",
+    "Connected, scoped, hidden, and parameterized navigation",
+    "Structured Definitions, Experience, Response Actions, Registry, and Data Sources"
   ],
   "remaining_limitations": [
-    "This score does not establish persistence, tenant isolation, authentication/session recovery, billing execution, entitlement enforcement, webhook delivery, signature or receipt generation, email delivery, or browser behavior.",
-    "The validation report did not run surface-local, authorization-boundary, or unsupported-feature phases.",
-    "Most SaaS journey detail is represented as structured route content and action graph rather than executable controls or backend behavior.",
-    "The single shared definition is reused for organization setup and public response, so it demonstrates form structure but not production-specific form schemas or field-level journey separation."
+    "The corrected artifacts are a structured reconstruction, not a fresh blind public-builder replay.",
+    "This assessment does not establish persistence, tenant isolation, authentication or recovery, billing execution, entitlement enforcement, external delivery, production verification behavior, release, or deployment."
   ]
 }

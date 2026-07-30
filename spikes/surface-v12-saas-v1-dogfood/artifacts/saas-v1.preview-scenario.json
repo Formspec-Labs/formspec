@@ -1,0 +1,248 @@
+{
+  "$formspecSurfaceScenario": "0.1",
+  "version": "1.0.0",
+  "initialPath": "/app",
+  "routeParams": {
+    "formId": "frm_annual-intake"
+  },
+  "defaultProfile": "loaded",
+  "profiles": {
+    "loaded": {
+      "authorization": {
+        "default": "authorized"
+      },
+      "sources": [
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "query:responses",
+          "status": "loaded",
+          "freshness": "fresh",
+          "value": {
+            "responses": [
+              {
+                "id": "rsp_1042",
+                "form": "Annual intake",
+                "status": "Verified"
+              },
+              {
+                "id": "rsp_1041",
+                "form": "Vendor setup",
+                "status": "Signed"
+              },
+              {
+                "id": "rsp_1040",
+                "form": "Annual intake",
+                "status": "Received"
+              }
+            ],
+            "exportFormats": [
+              "CSV",
+              "JSON"
+            ],
+            "proofStatus": "Verified"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1",
+              "unit:responsesUnit"
+            ]
+          }
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "host:billing",
+          "status": "loaded",
+          "freshness": "fresh",
+          "value": {
+            "plan": "Team",
+            "usage": {
+              "responses": 420
+            },
+            "limits": {
+              "responses": 1000
+            },
+            "billingStatus": "Current"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:understand-plan-and-usage@1",
+              "unit:billingUnit"
+            ]
+          }
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "resource:support-trust",
+          "status": "loaded",
+          "freshness": "fresh",
+          "value": {
+            "serviceStatus": [
+              {
+                "service": "Form delivery",
+                "status": "Operational"
+              },
+              {
+                "service": "Proof verification",
+                "status": "Operational"
+              },
+              {
+                "service": "Webhooks",
+                "status": "Operational"
+              }
+            ],
+            "incidents": [],
+            "supportAccess": [
+              "Email support",
+              "Status page"
+            ],
+            "trustDocuments": [
+              "Security overview",
+              "Subprocessor list"
+            ]
+          },
+          "x-generation": {
+            "anchors": [
+              "need:get-help-and-check-trust@1",
+              "unit:supportTrustUnit"
+            ]
+          }
+        }
+      ]
+    },
+    "empty": {
+      "authorization": {
+        "default": "authorized"
+      },
+      "sources": [
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "query:responses",
+          "status": "loaded",
+          "freshness": "fresh",
+          "value": {
+            "responses": [],
+            "exportFormats": [
+              "CSV",
+              "JSON"
+            ],
+            "proofStatus": "No responses"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1",
+              "unit:responsesUnit"
+            ]
+          }
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "host:billing",
+          "status": "loaded",
+          "freshness": "fresh",
+          "value": {
+            "plan": "Trial",
+            "usage": {
+              "responses": 0
+            },
+            "limits": {
+              "responses": 100
+            },
+            "billingStatus": "No payment method required"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:understand-plan-and-usage@1",
+              "unit:billingUnit"
+            ]
+          }
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "resource:support-trust",
+          "status": "loaded",
+          "freshness": "fresh",
+          "value": {
+            "serviceStatus": [],
+            "incidents": [],
+            "supportAccess": [
+              "Email support"
+            ],
+            "trustDocuments": []
+          },
+          "x-generation": {
+            "anchors": [
+              "need:get-help-and-check-trust@1",
+              "unit:supportTrustUnit"
+            ]
+          }
+        }
+      ]
+    },
+    "unavailable": {
+      "authorization": {
+        "default": "authorized"
+      },
+      "sources": [
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "query:responses",
+          "status": "unavailable",
+          "reason": "The response index is unavailable in this preview state.",
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1",
+              "unit:responsesUnit"
+            ]
+          }
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "host:billing",
+          "status": "unavailable",
+          "reason": "Billing data is unavailable in this preview state.",
+          "x-generation": {
+            "anchors": [
+              "need:understand-plan-and-usage@1",
+              "unit:billingUnit"
+            ]
+          }
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "resource:support-trust",
+          "status": "unavailable",
+          "reason": "Trust data is unavailable in this preview state.",
+          "x-generation": {
+            "anchors": [
+              "need:get-help-and-check-trust@1",
+              "unit:supportTrustUnit"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "actions": {
+    "default": {
+      "status": "complete",
+      "x-generation": {
+        "anchors": [
+          "need:see-honest-feature-state@1",
+          "unit:dashboardUnit"
+        ]
+      }
+    }
+  },
+  "x-generation": {
+    "anchors": [
+      "need:see-honest-feature-state@1",
+      "unit:dashboardUnit"
+    ]
+  },
+  "routeParamsGeneration": {
+    "anchors": [
+      "need:publish-hosted-form@1",
+      "unit:formDetailUnit"
+    ]
+  }
+}

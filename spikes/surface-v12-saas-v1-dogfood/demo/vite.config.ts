@@ -1,6 +1,4 @@
-/**
- * @filedesc Local Vite host for the v12 SaaS dogfood bundle.
- */
+/** @filedesc Local Vite host for data-only Surface previews. */
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 

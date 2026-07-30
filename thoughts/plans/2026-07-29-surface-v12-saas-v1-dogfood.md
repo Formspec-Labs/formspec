@@ -8,9 +8,34 @@ decision: can the generic Wireframes MCP represent the planned Formspec Cloud Sa
 
 # Surface v12 SAAS-V1 wireframe dogfood
 
-## Result
+## Corrected result
 
-**Pass: blind Level 4 as a structured wireframe proof.**
+**Passed after framework correction and a structured reconstruction.**
+
+The corrected v12 bundle and an unrelated control bundle render through one
+fixed host. The host imports only a structured preview set and contains no
+SaaS-specific route, field, action, sample-data, or layout branches. Replacing
+the selected structured documents produces a different application.
+
+The SaaS artifact has 14 routes, 22 Response Actions, two Definitions, 14
+mounted Experience units, and 10 adopted Needs. Its reasoning review resolves
+all 256 rendered and behavior nodes to current adopted Needs and mounted
+Experience paths; the control resolves 12 of 12.
+The verifier passed both bundles and all seven graph phases for each.
+Playwright rendered all 14 routes, followed all 22 actions, exercised loaded,
+empty, loading, and unavailable data states, completed the public form at
+mobile width, and rendered the control bundle without a console warning or
+error.
+
+The corrected artifacts are a structured reconstruction after the framework
+changes, not a fresh blind public-builder replay. The unchanged attempt-7
+call/results transcript remains useful failure evidence. The closure is
+governed by
+[`2026-07-30-wireframes-data-only-reasoning-closure.md`](./2026-07-30-wireframes-data-only-reasoning-closure.md).
+
+## Original result, retained for comparison
+
+**Original assessment: blind Level 4 as a structured wireframe proof.**
 
 The builder used
 [`formspec-server/SAAS-V1.md`](../../../formspec-server/SAAS-V1.md) as the
@@ -48,8 +73,8 @@ accepting that shortcut.
 
 Dogfooding those resources exposed seven public catalog or boundary defects:
 
-- a second Definition appeared editable even though the session supports only
-  one editable bundle-local Definition;
+- Definition authoring could not reliably address more than one bundle-local
+  Definition;
 - an advertised widget hint was rejected by StudioCore;
 - Data Source ids and availability references were underspecified;
 - module-widget `sourceRef` did not expose its canonical pattern;
@@ -57,22 +82,23 @@ Dogfooding those resources exposed seven public catalog or boundary defects:
 - Experience identifiers and kinds were looser than the canonical schema; and
 - local Experience binding did not explain when to omit `experienceRef`.
 
-Those defects are fixed with focused MCP/catalog regressions. Builder mistakes
+Those defects are fixed with focused MCP/catalog regressions. Public authoring
+now supports multiple bundle-local Definitions. Builder mistakes
 around unreachable routes, ambiguous Action selection, and unused Action
 bindings were recovered through public diagnostics. The detailed separation is
 recorded in
 [`catalog-and-authoring-findings.md`](../../spikes/surface-v12-saas-v1-dogfood/evidence/catalog-and-authoring-findings.md).
 
-## Decision
+## Corrected decision
 
-The generic Wireframes MCP is flexible enough to represent the SaaS V1 product
-surface without making the framework respondent-specific. Public respondent
-completion is one route family inside a broader customer, administrator,
-integration, billing, support, and trust product.
+The corrected local result establishes that the Wireframes framework can render
+the SaaS V1 wireframe and an independent control from structured data alone,
+with direct current-Need reasoning for every inventoried rendered node.
+Attempt 7 remains the failed historical run that exposed the missing authoring,
+validation, rendering, and reasoning support.
 
 This is not runtime qualification. It does not prove persistence, tenant
 isolation, authentication, entitlement enforcement, billing, webhook or email
-delivery, signing, receipt verification, browser behavior, or production
-operations. The single editable Definition also means this proof groups
-onboarding and public-response fields instead of demonstrating independent
-production form schemas.
+delivery, signing, receipt verification, cross-browser compatibility, or
+production operations. It is a local Chromium framework and browser-wireframe
+proof; no release or deployment was performed.
