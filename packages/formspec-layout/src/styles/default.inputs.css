@@ -3,7 +3,7 @@
 .formspec-money,
 .formspec-money-field,
 .formspec-stepper {
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-input) 82%, white);
+  border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
   overflow: hidden;
   background: color-mix(in srgb, var(--formspec-default-surface) 92%, white);
@@ -27,10 +27,11 @@
 
 .formspec-toggle {
   display: flex;
+  min-height: 2.75rem;
   align-items: center;
   gap: 0.5rem;
   /* Scoped track tokens so React/WC match (parent .formspec-input / theme slots won’t skew gray). */
-  --formspec-toggle-track-off: color-mix(in srgb, var(--formspec-default-text) 32%, var(--formspec-default-bg));
+  --formspec-toggle-track-off: var(--formspec-default-border-input);
   --formspec-toggle-track-on: var(--formspec-default-primary);
 }
 
@@ -56,36 +57,45 @@
 .formspec-toggle input[type="checkbox"][role="switch"] {
   position: relative;
   width: 2.75rem;
-  height: 1.5rem;
+  height: 2.75rem;
   flex-shrink: 0;
   appearance: none;
   -webkit-appearance: none;
   border: 1px solid transparent;
   border-radius: 999px;
-  background-color: var(--formspec-toggle-track-off);
+  --formspec-toggle-track-current: var(--formspec-toggle-track-off);
+  background-color: transparent;
+  background-image: linear-gradient(
+    var(--formspec-toggle-track-current),
+    var(--formspec-toggle-track-current)
+  );
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 1.5rem;
   cursor: pointer;
-  transition: background-color 0.2s, box-shadow 0.2s;
+  transition: box-shadow 0.2s;
 }
 
 .formspec-toggle input[type="checkbox"][role="switch"]::after {
   content: '';
   position: absolute;
-  top: 2px;
+  top: 50%;
   left: 2px;
   width: calc(1.5rem - 6px);
   height: calc(1.5rem - 6px);
   border-radius: 50%;
   background: #fff;
+  transform: translateY(-50%);
   transition: transform 0.2s;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
 }
 
 .formspec-toggle input[type="checkbox"][role="switch"]:checked {
-  background-color: var(--formspec-toggle-track-on);
+  --formspec-toggle-track-current: var(--formspec-toggle-track-on);
 }
 
 .formspec-toggle input[type="checkbox"][role="switch"]:checked::after {
-  transform: translateX(1.25rem);
+  transform: translate(1.25rem, -50%);
 }
 
 .formspec-checkbox-group,
@@ -125,7 +135,7 @@
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  min-height: 1.5rem;
+  min-height: 2.75rem;
   padding: 0.35rem 0;
   margin-bottom: 0;
   font-weight: 400;
@@ -149,7 +159,7 @@
   display: flex;
   align-items: stretch;
   max-width: 100%;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-input) 82%, white);
+  border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
   background: color-mix(in srgb, var(--formspec-default-surface) 92%, white);
   transition: var(--formspec-default-transition-fast);
@@ -253,7 +263,7 @@
   gap: 0.35rem;
   max-width: 100%;
   padding: 0.3rem 0.58rem;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-input) 72%, white);
+  border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-pill);
   background: color-mix(in srgb, var(--formspec-default-primary) 6%, white);
   font-size: 0.8rem;
@@ -288,7 +298,7 @@
   display: flex;
   align-items: stretch;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-input) 82%, white);
+  border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
   background: color-mix(in srgb, var(--formspec-default-surface) 96%, var(--formspec-default-surface-muted));
   transition: var(--formspec-default-transition-fast);
@@ -372,7 +382,7 @@
   max-height: 14rem;
   overflow-y: auto;
   list-style: none;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-input) 70%, white);
+  border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
   background: var(--formspec-default-surface);
   box-shadow: 0 20px 40px rgba(68, 56, 37, 0.14);

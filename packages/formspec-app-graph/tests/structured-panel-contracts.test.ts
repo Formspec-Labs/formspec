@@ -208,6 +208,28 @@ describe('validateStructuredPanelContracts', () => {
     }]);
   });
 
+  it('applies action binding checks to table row actions', () => {
+    const report = validateStructuredPanelContracts(fixture({
+      blocks: [{
+        id: 'records',
+        type: 'table',
+        path: 'primary.records',
+        columns: [{ id: 'id', label: 'ID', path: 'id' }],
+        rowAction: {
+          outputName: 'missing',
+          columnLabel: 'Open',
+        },
+      }],
+    }));
+
+    expect(report).toMatchObject([{
+      code: STRUCTURED_PANEL_CONTRACT_CODES.actionUnbound,
+      primarySource: {
+        jsonPointer: '/routes/0/slots/0/binding/config/blocks/0/rowAction/outputName',
+      },
+    }]);
+  });
+
   it('rejects only paths and result shapes proven impossible by exact source schemas', () => {
     const report = validateStructuredPanelContracts(fixture({
       blocks: [{
@@ -285,5 +307,57 @@ describe('validateStructuredPanelContracts', () => {
     }));
 
     expect(report).toEqual([]);
+  });
+
+  it('checks empty selectors, progress maxima, and action payload selectors', () => {
+    const report = validateStructuredPanelContracts(fixture({
+      emptyWhen: {
+        inputName: 'primary',
+        path: 'missing',
+      },
+      blocks: [{
+        id: 'progress',
+        type: 'progress',
+        path: 'primary.stats.total',
+        maxPath: 'primary.stats.percentText',
+      }, {
+        id: 'records',
+        type: 'table',
+        path: 'primary.records',
+        columns: [{ id: 'id', label: 'ID', path: 'id' }],
+        rowAction: {
+          outputName: 'literal',
+          columnLabel: 'Open',
+          payload: {
+            resourceId: { path: 'missing' },
+          },
+        },
+      }],
+      actions: [{
+        outputName: 'literal',
+        payload: {
+          selected: { path: 'primary.stats.missing' },
+        },
+      }],
+    }, {
+      actionBindings: {
+        literal: { actionRef: 'literal-action' },
+      },
+      actions: [{
+        id: 'literal-action',
+        intent: 'submit',
+        label: { literal: 'Continue' },
+      }],
+    }));
+
+    expect(report.map((diagnostic) => diagnostic.primarySource?.jsonPointer)).toEqual([
+      '/routes/0/slots/0/binding/config/emptyWhen/path',
+      '/routes/0/slots/0/binding/config/actions/0/payload/selected/path',
+      '/routes/0/slots/0/binding/config/blocks/0/maxPath',
+      '/routes/0/slots/0/binding/config/blocks/1/rowAction/payload/resourceId/path',
+    ]);
+    expect(report.every((diagnostic) =>
+      diagnostic.code === STRUCTURED_PANEL_CONTRACT_CODES.dataPathImpossible
+    )).toBe(true);
   });
 });

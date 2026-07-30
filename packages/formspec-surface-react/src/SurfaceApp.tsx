@@ -437,51 +437,69 @@ export function SurfaceApp(props: SurfaceAppProps) {
       className="fs-surface-app"
       {...needTraceAttributes(generationNeedAnchors(bundle.manifest))}
     >
-      {props.header}
-      <SurfaceNav
-        app={model.app}
-        location={location}
-        routeParams={props.routeParams}
-        onNavigate={onNavigate}
-        label={props.navigationLabel ?? strings('navigationLabel')}
-      />
-      <main className="fs-surface-main">
-        {routePlan ? (
-          <SurfaceRouteView
-            key={`${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
-            plan={routePlan}
-            strings={strings}
-            dataSourceLoader={props.dataSourceLoader}
-            authorizeDataSource={props.authorizeDataSource}
-            validateDataSourcePayload={props.validateDataSourcePayload}
-            widgetActionExecutor={props.widgetActionExecutor}
-            widgetActionOutcomeStore={props.widgetActionOutcomeStore}
-            widgetActionCoordinator={widgetActionCoordinator.current}
-            runtimeGeneration={runtimeGeneration}
-            onWidgetActionReport={props.onWidgetActionReport}
-            onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
-            renderDefinitionForm={props.renderDefinitionForm}
-            showExperienceNeeds={props.showExperienceNeeds}
-            showThemeNotice={props.showThemeNotice}
-            responseActionsDocuments={bundle.responseActions}
-            onFireTransition={props.onFireTransition}
-            onAdvance={(transition) => {
-              // Reached only after the action reported success. The shell
-              // navigates; it never decides that the action succeeded.
-              // Defensive final boundary. Planning withholds collision-targeted
-              // transition controls, and this check prevents a future or
-              // slot-supplied path from publishing the same refused address.
-              navigateAfterCompletedAction(
-                transition,
-                routePlan.params,
-                onNavigate,
-              );
-            }}
-          />
-        ) : (
-          (props.renderNotFound?.(location) ?? <NotFound strings={strings} />)
-        )}
-      </main>
+      {(props.header !== undefined || bundle.title) && (
+        <header className="fs-surface-header">
+          <div className="fs-surface-header__inner">
+            {props.header ?? (
+              <span
+                className="fs-surface-brand"
+                {...needTraceAttributes(generationNeedAnchors(bundle.manifest))}
+              >
+                {bundle.title}
+              </span>
+            )}
+          </div>
+        </header>
+      )}
+      <div className="fs-surface-shell">
+        <SurfaceNav
+          app={model.app}
+          location={location}
+          routeParams={props.routeParams}
+          onNavigate={onNavigate}
+          label={props.navigationLabel ?? strings('navigationLabel')}
+          menuLabel={props.navigationLabel ?? strings('navigationLabel')}
+        />
+        <main className="fs-surface-main">
+          {routePlan ? (
+            <SurfaceRouteView
+              key={`${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
+              plan={routePlan}
+              strings={strings}
+              dataSourceLoader={props.dataSourceLoader}
+              authorizeDataSource={props.authorizeDataSource}
+              validateDataSourcePayload={props.validateDataSourcePayload}
+              widgetActionExecutor={props.widgetActionExecutor}
+              widgetActionOutcomeStore={props.widgetActionOutcomeStore}
+              widgetActionCoordinator={widgetActionCoordinator.current}
+              runtimeGeneration={runtimeGeneration}
+              onWidgetActionReport={props.onWidgetActionReport}
+              onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+              renderDefinitionForm={props.renderDefinitionForm}
+              showExperienceNeeds={props.showExperienceNeeds}
+              showThemeNotice={props.showThemeNotice}
+              responseActionsDocuments={bundle.responseActions}
+              referencesDocuments={bundle.references ?? []}
+              ontologyDocuments={bundle.ontologies ?? []}
+              onFireTransition={props.onFireTransition}
+              onAdvance={(transition) => {
+                // Reached only after the action reported success. The shell
+                // navigates; it never decides that the action succeeded.
+                // Defensive final boundary. Planning withholds collision-targeted
+                // transition controls, and this check prevents a future or
+                // slot-supplied path from publishing the same refused address.
+                navigateAfterCompletedAction(
+                  transition,
+                  routePlan.params,
+                  onNavigate,
+                );
+              }}
+            />
+          ) : (
+            (props.renderNotFound?.(location) ?? <NotFound strings={strings} />)
+          )}
+        </main>
+      </div>
       {props.footer}
     </div>
   );
@@ -497,9 +515,18 @@ export interface SurfaceNavProps {
    */
   onNavigate: (href: string) => void;
   label?: string | undefined;
+  menuLabel?: string | undefined;
 }
 
-export function SurfaceNav({ app, location, routeParams, onNavigate, label }: SurfaceNavProps) {
+export function SurfaceNav({
+  app,
+  location,
+  routeParams,
+  onNavigate,
+  label,
+  menuLabel,
+}: SurfaceNavProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const activeRoute = matchRoute(app, location).match?.handle;
   const activeNavigationScope = activeRoute
     ? routeNavigationScope(activeRoute)
@@ -528,77 +555,106 @@ export function SurfaceNav({ app, location, routeParams, onNavigate, label }: Su
         .map(({ handle }) => handle),
     }))
     .filter((group) => group.routes.length > 0);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location]);
+
   if (groups.length === 0) return null;
 
   const showGroupLabels = groups.length > 1;
+  const navigationNeedAnchors = mergeNeedAnchors(
+    ...groups.flatMap((group) => [
+      group.needAnchors,
+      ...group.routes.map((handle) =>
+        mergeNeedAnchors(
+          generationNeedAnchors(handle.route.navigation),
+          generationNeedAnchors(handle.route),
+        )),
+    ]),
+  );
   return (
     <nav
       className="fs-surface-nav"
       aria-label={label ?? 'Pages in this app'}
       data-navigation-scope={activeNavigationScope}
+      data-menu-open={menuOpen ? 'true' : 'false'}
     >
-      {groups.map((group) => (
-        <div className="fs-surface-nav__group" key={group.surfaceId}>
-          {showGroupLabels && (
-            <p
-              className="fs-surface-nav__label"
-              {...needTraceAttributes(group.needAnchors)}
-            >
-              {group.label}
-            </p>
-          )}
-          <ul className="fs-surface-nav__list">
-            {group.routes.map((handle, index) => {
-              const { href, refusal } = routeHref(handle, routeParams ?? {});
-              const navigationLabel =
-                handle.route.navigation?.label ?? handle.route.title ?? handle.routeId;
-              const navigationAnchors = generationNeedAnchors(handle.route.navigation);
-              const traceAttributes = needTraceAttributes(
-                handle.route.navigation?.label === undefined
-                  ? mergeNeedAnchors(
-                    navigationAnchors,
-                    generationNeedAnchors(handle.route),
-                  )
-                  : navigationAnchors,
-              );
-              const unavailableReason =
-                refusal === 'collision'
-                  ? 'route-collision'
-                  : refusal === 'parameters'
-                    ? 'route-params'
-                    : undefined;
-              return (
-                <li key={`${handle.surfaceId}/${handle.routeId}/${index}`}>
-                  {unavailableReason ? (
-                    <span
-                      role="link"
-                      data-nav-route={handle.routeId}
-                      data-nav-unavailable={unavailableReason}
-                      aria-disabled="true"
-                      {...traceAttributes}
-                    >
-                      {navigationLabel}
-                    </span>
-                  ) : (
-                    <a
-                      href={href}
-                      data-nav-route={handle.routeId}
-                      aria-current={href === location ? 'page' : undefined}
-                      {...traceAttributes}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        onNavigate(href);
-                      }}
-                    >
-                      {navigationLabel}
-                    </a>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
+      <button
+        className="fs-surface-nav__toggle"
+        type="button"
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen((open) => !open)}
+        {...needTraceAttributes(navigationNeedAnchors)}
+      >
+        <span>{menuLabel ?? label ?? 'Pages in this app'}</span>
+        <span aria-hidden="true">{menuOpen ? '×' : '☰'}</span>
+      </button>
+      <div className="fs-surface-nav__content">
+        {groups.map((group) => (
+          <div className="fs-surface-nav__group" key={group.surfaceId}>
+            {showGroupLabels && (
+              <p
+                className="fs-surface-nav__label"
+                {...needTraceAttributes(group.needAnchors)}
+              >
+                {group.label}
+              </p>
+            )}
+            <ul className="fs-surface-nav__list">
+              {group.routes.map((handle, index) => {
+                const { href, refusal } = routeHref(handle, routeParams ?? {});
+                const navigationLabel =
+                  handle.route.navigation?.label ?? handle.route.title ?? handle.routeId;
+                const navigationAnchors = generationNeedAnchors(handle.route.navigation);
+                const traceAttributes = needTraceAttributes(
+                  handle.route.navigation?.label === undefined
+                    ? mergeNeedAnchors(
+                      navigationAnchors,
+                      generationNeedAnchors(handle.route),
+                    )
+                    : navigationAnchors,
+                );
+                const unavailableReason =
+                  refusal === 'collision'
+                    ? 'route-collision'
+                    : refusal === 'parameters'
+                      ? 'route-params'
+                      : undefined;
+                return (
+                  <li key={`${handle.surfaceId}/${handle.routeId}/${index}`}>
+                    {unavailableReason ? (
+                      <span
+                        role="link"
+                        data-nav-route={handle.routeId}
+                        data-nav-unavailable={unavailableReason}
+                        aria-disabled="true"
+                        {...traceAttributes}
+                      >
+                        {navigationLabel}
+                      </span>
+                    ) : (
+                      <a
+                        href={href}
+                        data-nav-route={handle.routeId}
+                        aria-current={href === location ? 'page' : undefined}
+                        {...traceAttributes}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setMenuOpen(false);
+                          onNavigate(href);
+                        }}
+                      >
+                        {navigationLabel}
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
     </nav>
   );
 }

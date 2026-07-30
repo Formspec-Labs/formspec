@@ -4,6 +4,7 @@
 - Merge/suppression semantics: merges are shallow and property-oriented; higher-level omission inherits lower-level values while explicit sentinels/null-style suppression must be handled consistently.
 - Widget resolution: requested widgets must be validated against dataType compatibility, then fallback chains are applied before renderer-native defaults.
 - Token behavior: token references are resolved at apply/render time; unresolved tokens must degrade to renderer defaults with diagnostics.
+- Contrast behavior: platform registry pairs are checked when a Theme override affects either effective color; Theme `contrastPairs` add custom or stricter checks, use WCAG floors only when opaque sRGB values are determinable, and never alter rendering.
 - Platform hint model: `platform` is advisory and open-ended; unknown platforms should not block application of otherwise valid theme rules.
 - Page/layout model: page declarations and region assignment are presentation structures and must not alter core item ordering or data semantics.
 - Tier interaction: Theme (Tier 2) can override Tier 1 hints, but neither tier may override Definition behavioral logic.

@@ -36,6 +36,53 @@ test('definition: invalid document returns schema errors', () => {
   assert.ok(result.diagnostics.some((e) => e.path === '$' || e.message.includes('required')));
 });
 
+test('response actions: app scope permits browser resources without a target Definition', () => {
+  const result = lintDocument({
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    scope: 'app',
+    actions: [{
+      id: 'download-export',
+      intent: 'x-download-export',
+      validation: {
+        profile: 'off',
+        blocking: 'non-blocking',
+        persistence: 'none',
+      },
+      effects: [{
+        type: 'browserResource',
+        operation: 'download',
+        resourceRef: 'resource',
+      }],
+    }],
+  });
+
+  assert.equal(result.documentType, 'response_actions');
+  assert.equal(result.valid, true);
+});
+
+test('response actions: app scope rejects a target Definition', () => {
+  const result = lintDocument({
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    scope: 'app',
+    targetDefinition: { url: 'https://example.com/form' },
+    actions: [{
+      id: 'open-resource',
+      intent: 'x-open-resource',
+      validation: {
+        profile: 'off',
+        blocking: 'non-blocking',
+        persistence: 'none',
+      },
+      effects: [{ type: 'hostEvent', eventName: 'open-resource' }],
+    }],
+  });
+
+  assert.equal(result.documentType, 'response_actions');
+  assert.equal(result.valid, false);
+});
+
 test('component: valid minimal component document passes', () => {
   const doc = {
     $formspecComponent: '1.0',

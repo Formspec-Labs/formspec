@@ -25,6 +25,23 @@ function confidenceForRelationship(type?: string): number {
   }
 }
 
+function profileRelationship(
+  type?: string,
+): NonNullable<ProfileMatch['relationship']> {
+  switch (type) {
+    case undefined:
+    case 'exact':
+      return 'exact';
+    case 'close':
+    case 'broader':
+    case 'narrower':
+    case 'related':
+      return type;
+    default:
+      return 'related';
+  }
+}
+
 export class ProfileMatcher {
   public constructor(
     private readonly resolveConcept: (path: string) => ConceptBinding | undefined,
@@ -66,7 +83,7 @@ export class ProfileMatcher {
             concept: key,
             value: entry.value,
             confidence,
-            relationship: equivalent.type ?? 'exact',
+            relationship: profileRelationship(equivalent.type),
             source: entry.source,
           };
         }

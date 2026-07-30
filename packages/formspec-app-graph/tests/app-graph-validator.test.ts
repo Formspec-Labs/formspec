@@ -6,6 +6,7 @@ import type {
 import {
   artifactIdentityKey,
   createAppGraphReport,
+  UX_TITLE_DUPLICATE_CODE,
   validateAppGraph,
   type AppGraphDiagnostic,
   type ResolvedArtifactHandle,
@@ -431,6 +432,70 @@ describe('validateAppGraph', () => {
     expect(report.diagnostics).toContainEqual(expect.objectContaining({
       code: 'APP-GRAPH-CROSS-TEST',
       message: 'checked 2 handles',
+    }));
+  });
+
+  it('runs the built-in scoped duplicate-title warning after schema-valid inputs', () => {
+    const surfaceUrl = 'https://example.gov/apps/cases/surface';
+    const report = validateAppGraph({
+      manifest: loadedHandle({
+        document: {
+          $formspecBundle: '2.4',
+          version: '1.0.0',
+          id: 'https://example.gov/apps/cases',
+          definitions: [],
+          surfaces: [{ url: surfaceUrl, version: '1.0.0' }],
+        },
+      }),
+      artifacts: {
+        surfaces: [loadedHandle({
+          slot: 'surfaces[0]',
+          artifactKind: 'surface',
+          ref: { url: surfaceUrl, version: '1.0.0' },
+          document: {
+            $formspecSurface: '0.2',
+            version: '1.0.0',
+            id: 'cases',
+            entry: 'open',
+            routes: [{
+              id: 'open',
+              path: '/open',
+              title: 'Cases',
+              slots: [{
+                id: 'open-copy',
+                slotType: 'static-content',
+                binding: { kind: 'text', content: 'Open cases' },
+              }],
+            }, {
+              id: 'closed',
+              path: '/closed',
+              navigation: { label: ' Cases ' },
+              slots: [{
+                id: 'closed-copy',
+                slotType: 'static-content',
+                binding: { kind: 'text', content: 'Closed cases' },
+              }],
+            }],
+          },
+        })],
+      },
+      schemaValidators: () => ({ ok: true }),
+    });
+
+    expect(report.diagnostics).toContainEqual(expect.objectContaining({
+      code: UX_TITLE_DUPLICATE_CODE,
+      severity: 'warning',
+      phase: 'cross-artifact',
+      primarySource: expect.objectContaining({
+        artifactSlot: 'surfaces[0]',
+        jsonPointer: '/routes/1/navigation/label',
+      }),
+      relatedSources: [
+        expect.objectContaining({
+          artifactSlot: 'surfaces[0]',
+          jsonPointer: '/routes/0/title',
+        }),
+      ],
     }));
   });
 

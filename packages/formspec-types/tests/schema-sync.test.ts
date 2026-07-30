@@ -228,6 +228,35 @@ describe('generated types — tightness against permissive intersections', () =>
     expect(indexSrc).toContain('WidgetDataBinding, WidgetActionBindings, WidgetActionBinding');
   });
 
+  it('Reference and BoundReference expose direct common Generation provenance', () => {
+    const referencesSrc = readFileSync(
+      resolve(__dirname, '../src/generated/references.ts'),
+      'utf-8',
+    );
+
+    expect(referencesSrc).toMatch(
+      /import type \{[^}]*Generation[^}]*\} from '\.\/common\.js';/,
+    );
+    expect(referencesSrc.match(/'x-generation'\?: Generation;/g)).toHaveLength(3);
+  });
+
+  it('Experience Need completion remains a closed generated shape vocabulary', () => {
+    const experienceSrc = readFileSync(
+      resolve(__dirname, '../src/generated/experience.ts'),
+      'utf-8',
+    );
+    const indexSrc = readFileSync(
+      resolve(__dirname, '../src/generated/index.ts'),
+      'utf-8',
+    );
+
+    expect(experienceSrc).toContain('completion?: NeedCompletion;');
+    expect(experienceSrc).toContain(
+      "shape: 'action' | 'submitted-definition' | 'resource' | 'navigation' | 'observable-result';",
+    );
+    expect(indexSrc).toContain('NeedRef, NeedCompletion, ActionRef');
+  });
+
   it('AppGraphValidationReport Origin preserves known origins plus x-* extensions', () => {
     const src = readFileSync(
       resolve(__dirname, '../src/generated/app-graph-validation-report.ts'),

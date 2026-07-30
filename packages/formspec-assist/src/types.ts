@@ -7,6 +7,7 @@ import type {
 } from '@formspec-org/engine';
 import type {
   ComponentDocument,
+  Generation,
   RegistryDocument,
   ThemeDocument,
   ValidationReport,
@@ -23,9 +24,9 @@ export interface ReferenceEntry {
   id?: string;
   type: string;
   audience: 'human' | 'agent' | 'both';
-  title: string;
+  title?: string;
   uri?: string;
-  content?: string | Record<string, unknown>;
+  content?: unknown;
   mediaType?: string;
   language?: string;
   description?: string;
@@ -35,6 +36,7 @@ export interface ReferenceEntry {
   selector?: string;
   excerpt?: string;
   target?: string;
+  'x-generation'?: Generation;
 }
 
 export interface ReferenceRef {
@@ -45,19 +47,25 @@ export interface BoundReference extends ReferenceEntry, Partial<ReferenceRef> {
   target: string;
 }
 
+/** Authored binding before an optional referenceDefs pointer is resolved. */
+export interface BoundReferenceInput
+  extends Partial<ReferenceEntry>, Partial<ReferenceRef> {
+  target: string;
+}
+
 export interface ReferencesDocument {
   $formspecReferences: '1.0';
   version: string;
   targetDefinition: { url: string; compatibleVersions?: string };
   referenceDefs?: Record<string, ReferenceEntry>;
-  references: Array<BoundReference | ({ target: string } & ReferenceRef & Partial<ReferenceEntry>)>;
+  references: BoundReferenceInput[];
 }
 
 export interface ConceptEquivalent {
   system: string;
   code: string;
   display?: string;
-  type?: 'exact' | 'close' | 'broader' | 'narrower' | 'related';
+  type?: string;
   concept?: string;
 }
 

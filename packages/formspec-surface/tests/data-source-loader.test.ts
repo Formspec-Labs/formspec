@@ -263,8 +263,38 @@ describe('loadWidgetDataInputs', () => {
     if (result.status !== 'ready') return;
     expect(result.data).toEqual({});
     expect(result.degradedInputs).toMatchObject([
-      { inputName: 'optional', reason: 'load-failed', failureMode: 'degraded-widget' },
+      { inputName: 'optional', reason: 'unavailable', failureMode: 'degraded-widget' },
     ]);
+  });
+
+  it('distinguishes an unavailable result from a loader exception', async () => {
+    const run = (loader: NonNullable<Parameters<typeof loadWidgetDataInputs>[0]['loader']>) =>
+      loadWidgetDataInputs({
+        inputs: [{
+          name: 'receipt',
+          required: true,
+          status: 'ready',
+          descriptor: descriptor(),
+        }],
+        context,
+        authorize: () => ({ status: 'authorized' }),
+        loader,
+        site: { surfaceId: 'respondent', routeId: 'receipt', slotId: 'panel' },
+      });
+
+    await expect(run(() => ({
+      status: 'unavailable',
+      reason: 'service is offline',
+    }))).resolves.toMatchObject({
+      status: 'unavailable',
+      failures: [{ reason: 'unavailable' }],
+    });
+    await expect(run(() => {
+      throw new Error('request crashed');
+    })).resolves.toMatchObject({
+      status: 'unavailable',
+      failures: [{ reason: 'load-failed' }],
+    });
   });
 });
 

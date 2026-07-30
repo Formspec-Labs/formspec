@@ -30,7 +30,7 @@ const ARRAY_ITEM = Symbol('array-item');
 
 type SchemaStep = string | typeof ARRAY_ITEM;
 type SchemaResult = 'possible' | 'impossible' | 'unknown';
-type ExpectedValue = 'array' | 'number' | 'object' | 'scalar';
+type ExpectedValue = 'array' | 'number' | 'object' | 'scalar' | 'value';
 
 export const STRUCTURED_PANEL_CONTRACT_CODES = {
   duplicateBlockId: 'STRUCTURED-PANEL-BLOCK-ID-DUPLICATE',
@@ -210,14 +210,33 @@ function actionDiagnostics(
   widget: SurfaceWidgetSlot,
   config: JsonRecord,
 ): AppGraphDiagnostic[] {
-  const configuredActions = recordArray(ownProp(config, 'actions'));
+  const configuredActions = [
+    ...recordArray(ownProp(config, 'actions')).map((action, index) => ({
+      action,
+      pointer: panelPointer(widget, `/actions/${index}/outputName`),
+      actionIndex: index,
+    })),
+    ...recordArray(ownProp(config, 'blocks')).flatMap((block, blockIndex) => {
+      if (stringProp(block, 'type') !== 'table') return [];
+      const action = record(ownProp(block, 'rowAction'));
+      return action
+        ? [{
+            action,
+            pointer: panelPointer(
+              widget,
+              `/blocks/${blockIndex}/rowAction/outputName`,
+            ),
+            actionIndex: blockIndex,
+          }]
+        : [];
+    }),
+  ];
   const bindings = record(ownProp(widget.binding, 'actionBindings'));
   const diagnostics: AppGraphDiagnostic[] = [];
 
-  configuredActions.forEach((action, actionIndex) => {
+  configuredActions.forEach(({ action, pointer: outputPointer, actionIndex }) => {
     const outputName = stringProp(action, 'outputName');
     if (!outputName) return;
-    const outputPointer = panelPointer(widget, `/actions/${actionIndex}/outputName`);
     if (!bindings || !Object.prototype.hasOwnProperty.call(bindings, outputName)) {
       diagnostics.push(panelDiagnostic(
         widget,
@@ -300,6 +319,7 @@ function explicitTypes(schema: JsonRecord): string[] | undefined {
 }
 
 function valueMatchesExpected(value: unknown, expected: ExpectedValue): boolean {
+  if (expected === 'value') return true;
   if (expected === 'array') return Array.isArray(value);
   if (expected === 'object') {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -315,6 +335,7 @@ function valueMatchesExpected(value: unknown, expected: ExpectedValue): boolean 
 }
 
 function typeMatchesExpected(type: string, expected: ExpectedValue): boolean {
+  if (expected === 'value') return true;
   if (expected === 'array') return type === 'array';
   if (expected === 'object') return type === 'object';
   if (expected === 'number') return type === 'number' || type === 'integer';
@@ -322,6 +343,7 @@ function typeMatchesExpected(type: string, expected: ExpectedValue): boolean {
 }
 
 function terminalSchemaResult(schema: JsonRecord, expected: ExpectedValue): SchemaResult {
+  if (expected === 'value') return 'possible';
   const types = explicitTypes(schema);
   if (types) {
     return types.some((type) => typeMatchesExpected(type, expected))
@@ -573,6 +595,42 @@ function dataPathDiagnostics(
 ): AppGraphDiagnostic[] {
   const diagnostics: AppGraphDiagnostic[] = [];
   const blocks = recordArray(ownProp(config, 'blocks'));
+  const emptyWhen = record(ownProp(config, 'emptyWhen'));
+  const emptyInput = stringProp(emptyWhen, 'inputName');
+  const emptyPath = stringProp(emptyWhen, 'path');
+  if (emptyInput) {
+    const selectedPath = emptyPath ? `${emptyInput}.${emptyPath}` : emptyInput;
+    diagnostics.push(...impossiblePathDiagnostic(
+      context,
+      widget,
+      panelPointer(widget, `/emptyWhen/${emptyPath ? 'path' : 'inputName'}`),
+      selectedPath,
+      [],
+      'value',
+      'empty selector',
+    ));
+  }
+
+  recordArray(ownProp(config, 'actions')).forEach((action, actionIndex) => {
+    const payload = record(ownProp(action, 'payload'));
+    if (!payload) return;
+    Object.entries(payload).forEach(([name, candidate]) => {
+      const path = stringProp(record(candidate), 'path');
+      if (path === undefined || path === '') return;
+      diagnostics.push(...impossiblePathDiagnostic(
+        context,
+        widget,
+        panelPointer(
+          widget,
+          `/actions/${actionIndex}/payload/${escapeJsonPointerToken(name)}/path`,
+        ),
+        path,
+        [],
+        'value',
+        'action payload',
+      ));
+    });
+  });
 
   blocks.forEach((block, blockIndex) => {
     const type = stringProp(block, 'type');
@@ -600,6 +658,18 @@ function dataPathDiagnostics(
         'number',
         'progress block',
       ));
+      const maxPath = stringProp(block, 'maxPath');
+      if (maxPath) {
+        diagnostics.push(...impossiblePathDiagnostic(
+          context,
+          widget,
+          panelPointer(widget, `/blocks/${blockIndex}/maxPath`),
+          maxPath,
+          [],
+          'number',
+          'progress maximum',
+        ));
+      }
     }
 
     if (type === 'key-value') {
@@ -688,6 +758,40 @@ function dataPathDiagnostics(
           'table column',
         ));
       });
+
+      const rowAction = record(ownProp(block, 'rowAction'));
+      const rowPayload = record(ownProp(rowAction, 'payload'));
+      if (rowPayload) {
+        Object.entries(rowPayload).forEach(([name, candidate]) => {
+          const rowPath = stringProp(record(candidate), 'path');
+          if (rowPath === undefined || rowPath === '') return;
+          const parts = pathParts(rowPath);
+          const pointer = panelPointer(
+            widget,
+            `/blocks/${blockIndex}/rowAction/payload/${escapeJsonPointerToken(name)}/path`,
+          );
+          if (!parts) {
+            diagnostics.push(panelDiagnostic(
+              widget,
+              STRUCTURED_PANEL_CONTRACT_CODES.dataPathImpossible,
+              pointer,
+              `StructuredPanel table row action path '${rowPath}' uses syntax the renderer cannot read.`,
+              'unsafe-or-invalid-path-syntax',
+              { path: rowPath, usage: 'table row action' },
+            ));
+            return;
+          }
+          diagnostics.push(...impossiblePathDiagnostic(
+            context,
+            widget,
+            pointer,
+            path,
+            [ARRAY_ITEM, ...parts],
+            'value',
+            'table row action',
+          ));
+        });
+      }
     }
   });
 

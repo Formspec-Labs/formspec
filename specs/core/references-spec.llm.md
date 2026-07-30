@@ -34,9 +34,11 @@ Source schema: `schemas/references.schema.json`
 - Each Bound Reference targets a specific item path (or '#' for form-level); references do not inherit from parent groups to children.
 - The type and rel properties are open strings for forward compatibility — processors SHOULD warn on unrecognized values but MUST NOT reject the document.
 - Multiple References Documents may target the same Definition; their references are merged additively with document-internal order preserved.
+- Human and both audience references may render as customer help; strict rendered-Need validation inventories each bound entry independently and never inherits a parent or referenceDefs Need anchor.
 
 ## Conformance Essentials
 
 - A conforming references document must include $formspecReferences=1.0, version, targetDefinition, and references.
 - Extended processors must verify targetDefinition.url matches the loaded Definition and resolve all $ref pointers at load time.
 - Extended processors must validate referenceDefs id-key matching and should warn on target paths that don't correspond to definition items.
+- Each manifested human or both audience references[] entry in the strict rendered-Need profile must carry its own direct current adopted Need x-generation anchor; agent-only entries are excluded.

@@ -150,6 +150,17 @@ function scenario(): SurfacePreviewScenario {
           },
         ],
       },
+      error: {
+        authorization: { default: 'authorized' },
+        sources: [
+          {
+            catalogRef: CATALOG_REF,
+            sourceRef: SOURCE_REF,
+            status: 'error',
+            reason: 'preview request crashed',
+          },
+        ],
+      },
     },
     actions: {
       default: { status: 'complete' },
@@ -190,7 +201,7 @@ function loadRequest(
 }
 
 describe('validateSurfacePreviewScenario', () => {
-  it('accepts loaded, empty, and unavailable profiles with exact source identities', async () => {
+  it('accepts loaded, empty, unavailable, and error profiles with exact source identities', async () => {
     const validatedProfiles: string[] = [];
     const result = await validateSurfacePreviewScenario({
       scenario: scenario(),
@@ -388,10 +399,11 @@ describe('validateSurfacePreviewScenario', () => {
 });
 
 describe('createSurfacePreviewRuntime', () => {
-  it('maps loaded, empty, and unavailable outcomes to DataSourceLoader', async () => {
+  it('maps loaded, empty, unavailable, and error outcomes to DataSourceLoader', async () => {
     const loaded = createSurfacePreviewRuntime(scenario(), 'loaded');
     const empty = createSurfacePreviewRuntime(scenario(), 'empty');
     const unavailable = createSurfacePreviewRuntime(scenario(), 'unavailable');
+    const error = createSurfacePreviewRuntime(scenario(), 'error');
 
     expect(await loaded.loader(loadRequest())).toEqual({
       status: 'loaded',
@@ -407,6 +419,9 @@ describe('createSurfacePreviewRuntime', () => {
       status: 'unavailable',
       reason: 'preview service is offline',
     });
+    expect(() => error.loader(loadRequest())).toThrow(
+      'preview request crashed',
+    );
   });
 
   it('fails closed for a missing profile, missing exact source, and duplicate authorization', async () => {

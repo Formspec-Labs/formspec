@@ -784,6 +784,37 @@ function responseActionNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceN
   return out;
 }
 
+function referenceNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
+  const document = record(handle.document);
+  const references = document?.references;
+  const referenceDefs = record(document?.referenceDefs);
+  if (!Array.isArray(references)) return [];
+
+  return references.flatMap((rawReference, referenceIndex): RenderedNeedTraceNode[] => {
+    const reference = record(rawReference);
+    if (!reference) return [];
+    const pointer = `/references/${referenceIndex}`;
+    const ref = stringProp(reference, '$ref');
+    const key = ref?.match(/^#\/referenceDefs\/([a-zA-Z][a-zA-Z0-9_-]*)$/)?.[1];
+    const base = key === undefined ? undefined : record(referenceDefs?.[key]);
+    const resolved = base === undefined ? reference : { ...base, ...reference };
+    const audience = stringProp(resolved, 'audience');
+    if (audience !== 'human' && audience !== 'both') return [];
+
+    const { anchors, invalidAnchors } = classifiedAnchors(
+      directGenerationAnchors(reference, pointer),
+    );
+    return [{
+      source: sourceIdentity(handle),
+      kind: 'reference-entry',
+      pointer,
+      label: nodeLabel(resolved, `references[${referenceIndex}]`),
+      anchors,
+      invalidAnchors,
+    }];
+  });
+}
+
 function dataSourceNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
   const sources = record(handle.document)?.sources;
   if (!Array.isArray(sources)) return [];
@@ -1091,6 +1122,8 @@ export function collectRenderedNeedTraceNodes(
         return themeNodes(handle);
       case 'responseActions':
         return responseActionNodes(handle);
+      case 'references':
+        return referenceNodes(handle);
       case 'dataSources':
         return dataSourceNodes(handle);
       case 'component':

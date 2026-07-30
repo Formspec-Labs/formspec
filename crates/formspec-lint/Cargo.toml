@@ -7,6 +7,7 @@ description = "Formspec Linter — 8-pass static analysis pipeline"
 repository = "https://github.com/Formspec-org/formspec"
 
 [dependencies]
+csscolorparser = "0.8.3"
 fel-core = { version = "0.2.0", path = "../../../fel-core" }
 formspec-core = { version = "0.1.0", path = "../formspec-core" }
 jsonschema = { version = "0.45", default-features = false }

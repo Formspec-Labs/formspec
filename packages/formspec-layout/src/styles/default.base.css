@@ -6,7 +6,7 @@
   display: block;
   width: 100%;
   padding: 0.8rem 0.95rem;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-input) 82%, white);
+  border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
   box-sizing: border-box;
   font-family: inherit;
@@ -171,6 +171,48 @@
   color: var(--formspec-default-text-subtle);
 }
 
+.formspec-field-help {
+  margin: 0.15rem 0 0.35rem;
+  border: 1px solid var(--formspec-default-border-input);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-surface-muted);
+}
+
+.formspec-field-help-summary {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.8rem;
+  cursor: pointer;
+  color: var(--formspec-default-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.formspec-field-help-content {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0 0.8rem 0.8rem;
+}
+
+.formspec-field-help-reference {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.formspec-field-help-title,
+.formspec-field-help-reference p {
+  margin: 0;
+}
+
+.formspec-field-help-title {
+  font-size: 0.9375rem;
+}
+
+.formspec-field-help-reference p {
+  color: var(--formspec-default-text-subtle);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 .formspec-heading {
   color: var(--formspec-default-text);
 }
@@ -238,7 +280,7 @@ h6.formspec-heading {
 .formspec-input-adornment {
   display: flex;
   align-items: stretch;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-input) 82%, white);
+  border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
   overflow: hidden;
   background: color-mix(in srgb, var(--formspec-default-surface) 92%, white);

@@ -1,7 +1,7 @@
 """Tests for Formspec Theme Schema (Tier 2).
 
-~200 tests across 11 categories: schema validation, selectors, cascade,
-widget compatibility, layout, tokens, Tier 1 integration, lifecycle,
+~220 tests across 12 categories: schema validation, selectors, cascade,
+widget compatibility, layout, tokens, contrast pairs, Tier 1 integration, lifecycle,
 extensibility, and edge cases.
 """
 
@@ -855,6 +855,69 @@ class TestTokenResolution:
             tokens={"spacing.lg": "24px"},
             items={"f": {"style": {"padding": "$token.spacing.lg"}}}
         ))
+
+
+class TestContrastPairs:
+    """Structured custom contrast relationships."""
+
+    def test_custom_pair_valid(self):
+        _valid(_minimal_theme(
+            tokens={
+                "x-agency.badge-text": "#111111",
+                "x-agency.badge-fill": "#ffffff",
+            },
+            contrastPairs=[{
+                "id": "agency-badge-label",
+                "foregroundToken": "x-agency.badge-text",
+                "backgroundToken": "x-agency.badge-fill",
+                "usage": "normalText",
+            }],
+        ))
+
+    def test_stricter_minimum_valid(self):
+        _valid(_minimal_theme(contrastPairs=[{
+            "id": "critical-control",
+            "foregroundToken": "color.input",
+            "backgroundToken": "color.card",
+            "usage": "uiComponent",
+            "minimumRatio": 7,
+        }]))
+
+    def test_empty_pairs_invalid(self):
+        _invalid(_minimal_theme(contrastPairs=[]))
+
+    def test_pair_requires_both_tokens_and_usage(self):
+        _invalid(_minimal_theme(contrastPairs=[{
+            "id": "incomplete",
+            "foregroundToken": "color.foreground",
+        }]))
+
+    @pytest.mark.parametrize("usage", ["text", "decorative", "control"])
+    def test_unknown_usage_invalid(self, usage):
+        _invalid(_minimal_theme(contrastPairs=[{
+            "id": "bad-usage",
+            "foregroundToken": "color.foreground",
+            "backgroundToken": "color.background",
+            "usage": usage,
+        }]))
+
+    def test_token_names_do_not_include_reference_prefix(self):
+        _invalid(_minimal_theme(contrastPairs=[{
+            "id": "prefixed",
+            "foregroundToken": "$token.color.foreground",
+            "backgroundToken": "color.background",
+            "usage": "normalText",
+        }]))
+
+    @pytest.mark.parametrize("ratio", [2.99, 21.01])
+    def test_minimum_ratio_bounds(self, ratio):
+        _invalid(_minimal_theme(contrastPairs=[{
+            "id": "bad-ratio",
+            "foregroundToken": "color.foreground",
+            "backgroundToken": "color.background",
+            "usage": "normalText",
+            "minimumRatio": ratio,
+        }]))
 
 
 # ===========================================================================

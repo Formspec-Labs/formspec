@@ -436,6 +436,18 @@
       "state": "tested"
     },
     {
+      "code": "W714",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Effective Theme color pair does not meet its contrast floor",
+      "specRef": "specs/theme/theme-spec.md#38-effective-contrast-pairs",
+      "suggestedFix": "adjust either effective color token so the declared or inferred pair meets its usage contrast floor",
+      "fixtures": [
+        "tests/fixtures/lint/W714-theme-contrast-regression.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E800",
       "pass": 7,
       "severity": "error",

@@ -17,11 +17,19 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import {
   APP_GRAPH_PHASES,
+  NEED_USABLE_OUTCOME_CODES,
+  UX_TITLE_DUPLICATE_CODE,
   artifactResolutionGraphInput,
   collectRenderedNeedTraceNodes,
   produceBundleExportAppGraphValidationReport,
+  validateNeedUsableOutcomes,
   validateRenderedNeedTrace,
 } from '@formspec-org/app-graph';
+import {
+  createWidgetRegistry,
+  flattenRegistryEntries,
+} from '@formspec-org/surface';
+import { starterWidgetModule } from '@formspec-org/surface-react/widgets';
 import { computeReviewedInputDigest } from './demo/scripts/evidence-digest.mjs';
 import {
   buildBundleReasoningReview,
@@ -176,6 +184,64 @@ function validateScenarioSources(ajv, fixture, bundle, scenario) {
   }
 }
 
+function validateDeliveredWidgets(fixture, bundle) {
+  const registries = Object.values(bundle.documents ?? {}).filter(
+    (document) =>
+      document &&
+      typeof document === 'object' &&
+      document.$formspecRegistry === '1.1',
+  );
+  const flattened = flattenRegistryEntries(registries);
+  for (const diagnostic of flattened.diagnostics) {
+    fail(
+      `${fixture.name}.widgetRegistry`,
+      `${diagnostic.code}: ${diagnostic.message}`,
+    );
+  }
+
+  const moduleIds = [
+    ...new Set((bundle.manifest.modules ?? []).map((module) => module.id)),
+  ];
+  const registry = createWidgetRegistry({
+    registryEntries: flattened.entries,
+    modules: moduleIds.map((moduleId) => starterWidgetModule(moduleId)),
+  });
+
+  for (const [documentRef, document] of Object.entries(bundle.documents ?? {})) {
+    if (
+      !document ||
+      typeof document !== 'object' ||
+      document.$formspecSurface !== '0.2'
+    ) {
+      continue;
+    }
+    for (const route of document.routes ?? []) {
+      for (const slot of route.slots ?? []) {
+        if (slot.slotType !== 'module-widget') continue;
+        const key = {
+          moduleId: slot.binding?.moduleId,
+          widgetName: slot.binding?.widgetName,
+        };
+        if (typeof key.moduleId !== 'string' || typeof key.widgetName !== 'string') {
+          continue;
+        }
+        const resolution = registry.resolve(key);
+        if (resolution.status !== 'resolved' || !resolution.declared) {
+          const details =
+            resolution.status === 'incompatible'
+              ? ` (${resolution.reasons.join(', ')})`
+              : '';
+          fail(
+            `${fixture.name}.deliveredWidget`,
+            `${documentRef} route '${route.id}' slot '${slot.id}' cannot render `
+              + `${key.moduleId}/${key.widgetName}: ${resolution.status}${details}`,
+          );
+        }
+      }
+    }
+  }
+}
+
 function reviewDifference(actual, expected) {
   return isDeepStrictEqual(actual, expected)
     ? []
@@ -205,6 +271,7 @@ async function verifyFixture(ajv, fixture, previewSet) {
   }
 
   validateScenarioSources(ajv, fixture, bundle, scenario);
+  validateDeliveredWidgets(fixture, bundle);
   const hostEvidence = {
     needsDocuments: [{ schemaId: NEEDS_SCHEMA_ID, source: `${fixture.name}.needs.json`, document: needs }],
   };
@@ -228,7 +295,10 @@ async function verifyFixture(ajv, fixture, previewSet) {
         })),
       };
     },
-    crossArtifactValidators: [validateRenderedNeedTrace],
+    crossArtifactValidators: [
+      validateRenderedNeedTrace,
+      validateNeedUsableOutcomes,
+    ],
     surfaceLocal: { diagnostics: [] },
     authorizationBoundary: { diagnostics: [] },
     unsupported: { diagnostics: [] },
@@ -243,6 +313,23 @@ async function verifyFixture(ajv, fixture, previewSet) {
   }
   if (result.report.phases.length !== APP_GRAPH_PHASES.length) {
     fail(`${fixture.name}.appGraph`, `expected ${APP_GRAPH_PHASES.length} phases, found ${result.report.phases.length}`);
+  }
+  const usableOutcomeCodes = new Set(Object.values(NEED_USABLE_OUTCOME_CODES));
+  for (const diagnostic of result.report.diagnostics.filter(({ code }) =>
+    usableOutcomeCodes.has(code)
+  )) {
+    fail(
+      `${fixture.name}.usableOutcome`,
+      `${diagnostic.code} ${diagnostic.primarySource?.jsonPointer ?? '/'}: ${diagnostic.message} (${diagnostic.details?.reason ?? 'unclassified'})`,
+    );
+  }
+  for (const diagnostic of result.report.diagnostics.filter(
+    ({ code }) => code === UX_TITLE_DUPLICATE_CODE,
+  )) {
+    fail(
+      `${fixture.name}.duplicateTitle`,
+      `${diagnostic.primarySource?.jsonPointer ?? '/'}: ${diagnostic.message}`,
+    );
   }
 
   const graphInput = artifactResolutionGraphInput(result.artifactResolutionReport);

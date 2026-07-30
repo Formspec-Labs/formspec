@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/bundleManifest/2.4",
   "title": "Formspec App Manifest (v2.4)",
-  "description": "A Formspec App Manifest per the App Manifest specification (formerly Bundle Manifest). The author-facing composition layer above a Formspec app. An app composes zero-or-more Definitions, Surfaces, Registries, Components, Screeners, Data Sources catalogs, and Locales plus optional substrate artifacts. App Manifest v2.4 adds fail-closed entrySurface selection and target-aware Locale association. Older 2.x documents retain their historical member gates; the signed Surface-bundle profile requires migration to v2.4 before admission. `definitions` is REQUIRED but MAY be an empty array for a non-form app. See specs/bundle/app-manifest-spec.md for normative prose.",
+  "description": "A Formspec App Manifest per the App Manifest specification (formerly Bundle Manifest). The author-facing composition layer above a Formspec app. An app composes zero-or-more Definitions, Surfaces, Registries, Components, Screeners, Data Sources catalogs, and Locales plus optional substrate artifacts. App Manifest v2.4 adds fail-closed entrySurface selection and ordered plural association for target- and scope-aware companion documents while retaining the legacy single References, Ontology, and Response Actions members. Older 2.x documents retain their historical member gates; the signed Surface-bundle profile requires migration to v2.4 before admission. `definitions` is REQUIRED but MAY be an empty array for a non-form app. See specs/bundle/app-manifest-spec.md for normative prose.",
   "$comment": "Bundle-graph id-uniqueness invariant per ADR 0150 §5.3: every authored ComponentBase.id reachable from this App Manifest MUST be unique across all referenced Component documents (not merely per-document). JSON Schema cannot enforce cross-document uniqueness; linter rule E605 (COMP-BUNDLE-ID-COLLISION) walks the bundle graph and hard-fails on duplicates. Load-bearing for cross-document Component-tree refactors (ADR 0151).",
   "type": "object",
   "required": ["$formspecBundle", "version", "id", "definitions"],
@@ -53,6 +53,20 @@
       "then": {
         "required": ["entrySurface"]
       }
+    },
+    {
+      "if": {
+        "anyOf": [
+          { "required": ["referenceDocuments"] },
+          { "required": ["ontologies"] },
+          { "required": ["responseActionDocuments"] }
+        ]
+      },
+      "then": {
+        "properties": {
+          "$formspecBundle": { "const": "2.4" }
+        }
+      }
     }
   ],
   "patternProperties": {
@@ -62,7 +76,7 @@
     "$formspecBundle": {
       "type": "string",
       "enum": ["2.0", "2.1", "2.2", "2.3", "2.4"],
-      "description": "App Manifest specification version. v2.1 introduces dataSources[], v2.2 introduces components[], v2.3 introduces screeners[], and v2.4 introduces entrySurface plus target-aware Locale association. Older 2.x documents retain their historical member and entry semantics.",
+      "description": "App Manifest specification version. v2.1 introduces dataSources[], v2.2 introduces components[], v2.3 introduces screeners[], and v2.4 introduces entrySurface plus target-aware Locale and ordered plural References, Ontology, and Response Actions associations. Older 2.x documents retain their historical member and entry semantics.",
       "examples": ["2.0", "2.1", "2.2", "2.3", "2.4"],
       "x-lm": {
         "critical": true,
@@ -118,7 +132,13 @@
     },
     "responseActions": {
       "$ref": "#/$defs/SiblingRef",
-      "description": "Optional Response Actions document reference (form-scoped action orchestration). When absent, the form has no named actions; submit happens via host UI."
+      "description": "Optional legacy single Response Actions document reference. App Manifest 2.4 authors that associate actions at more than one scope use responseActionDocuments[]. When both members are present, processors preserve this legacy reference first, followed by responseActionDocuments[] order."
+    },
+    "responseActionDocuments": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/SiblingRef" },
+      "description": "Optional ordered list of Response Actions documents. This member is valid only when `$formspecBundle` is '2.4'. Each document retains its declared scope and target, allowing one app to compose response-scoped submission actions with app-scoped operations without discovery or host-side action injection."
     },
     "component": {
       "$ref": "#/$defs/SiblingRef",
@@ -130,11 +150,23 @@
     },
     "references": {
       "$ref": "#/$defs/SiblingRef",
-      "description": "Optional References document (external resource attachments: policy, documentation, examples, tools)."
+      "description": "Optional legacy single References document (external resource attachments: policy, documentation, examples, tools). App Manifest 2.4 authors that associate more than one target-aware References document use referenceDocuments[]. When both members are present, processors preserve this legacy reference first, followed by referenceDocuments[] order."
+    },
+    "referenceDocuments": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/SiblingRef" },
+      "description": "Optional ordered list of References documents. This member is valid only when `$formspecBundle` is '2.4'. Each loaded document retains its own required targetDefinition association, allowing one multi-Definition app to compose human or agent resources for each Definition without discovery or host-side document injection."
     },
     "ontology": {
       "$ref": "#/$defs/SiblingRef",
-      "description": "Optional Ontology document (concept metadata for items and choices)."
+      "description": "Optional legacy single Ontology document (concept metadata for items and choices). App Manifest 2.4 authors that associate more than one target-aware Ontology document use ontologies[]. When both members are present, processors preserve this legacy reference first, followed by ontologies[] order."
+    },
+    "ontologies": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/SiblingRef" },
+      "description": "Optional ordered list of Ontology documents. This member is valid only when `$formspecBundle` is '2.4'. Each loaded document retains its own required targetDefinition association. Array order is load order; when more than one loaded Ontology binds the same target path, the Ontology and Assist specifications' last-loaded precedence applies."
     },
     "registries": {
       "type": "array",

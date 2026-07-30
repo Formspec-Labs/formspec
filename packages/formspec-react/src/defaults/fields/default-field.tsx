@@ -22,7 +22,12 @@ export function DefaultField({ field, node }: FieldComponentProps) {
     const themeClass = node.cssClasses?.join(' ') || '';
     const graphAttrs = projectionMetadataAttrs(node);
 
-    const { registryEntries } = useFormspecContext();
+    const {
+        registryEntries,
+        resolveFieldHelp,
+        admitFieldHelpUri,
+        fieldHelpLabel,
+    } = useFormspecContext();
     const extensionAttrs = useMemo((): ExtensionAttrs => {
         const extensions = node.fieldItem?.extensions as Record<string, boolean> | undefined;
         if (!extensions || registryEntries.size === 0) return {};
@@ -75,6 +80,38 @@ export function DefaultField({ field, node }: FieldComponentProps) {
             {field.hint}
         </p>
     ) : null;
+    const humanReferences = resolveFieldHelp?.(field.path) ?? [];
+    const helpNeedAnchors = humanReferences.flatMap((reference) => reference.needAnchors);
+    const helpNode = humanReferences.length > 0 ? (
+        <details
+            className="formspec-field-help"
+            {...needTraceAttrs(helpNeedAnchors)}
+        >
+            <summary className="formspec-field-help-summary">{fieldHelpLabel}</summary>
+            <div className="formspec-field-help-content">
+                {humanReferences.map((reference, index) => {
+                    const href = reference.uri
+                        ? admitFieldHelpUri(reference.uri)
+                        : undefined;
+                    return (
+                        <article
+                            className="formspec-field-help-reference"
+                            key={reference.id ?? `${reference.title}:${index}`}
+                            {...needTraceAttrs(reference.needAnchors)}
+                        >
+                            <h4 className="formspec-field-help-title">
+                                {href ? (
+                                    <a href={href}>{reference.title}</a>
+                                ) : reference.title}
+                            </h4>
+                            {reference.description ? <p>{reference.description}</p> : null}
+                            {reference.content ? <p>{reference.content}</p> : null}
+                        </article>
+                    );
+                })}
+            </div>
+        </details>
+    ) : null;
 
     const supplementaryDescribedBy =
         [field.description ? descId : '', field.hint ? `${field.id}-hint` : ''].filter(Boolean).join(' ') || undefined;
@@ -125,6 +162,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 </label>
                 {descriptionNode}
                 {hintNode}
+                {helpNode}
                 <div
                     className={`formspec-toggle${field.value ? ' formspec-toggle--on' : ''}`.trim()}
                 >
@@ -168,6 +206,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 </legend>
                 {descriptionNode}
                 {hintNode}
+                {helpNode}
                 <GroupControl
                     field={field}
                     node={node}
@@ -206,6 +245,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
 
             {descriptionNode}
             {hintNode}
+            {helpNode}
 
             {renderControl(field, node, supplementaryDescribedBy, isProtected, extensionAttrs, resolvePlaceholder)}
 

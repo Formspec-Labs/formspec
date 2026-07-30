@@ -3,7 +3,8 @@
 - App Manifest is a pure composition document: no inline sidecars, no synthesis on absence, and no shims on existing primary specs. Sibling absence is honored; each sibling spec's existing defaults apply.
 - App Manifest lists sibling artifacts alongside sibling-owned `targetDefinition` and `targetSurfaceRoutes[]` references. Tools can still discover siblings in reverse when they do not start from a manifest.
 - BREAKING vs Bundle Manifest v1.0: singular `definition` reframes as `definitions[]` (REQUIRED, MAY be empty); singular `registry` reframes as `registries[]`; `surfaces[]`, `modules: ModuleRef[]`, `sessions: SessionRef[]` arrive; `$formspecBundle` const bumps `"1.0"` → `"2.0"` so strict consumers fail loud.
-- ADDITIVE vs App Manifest v2.0: 2.1 admits `dataSources[]`, 2.2 admits `components[]`, 2.3 admits `screeners[]`, and 2.4 adds `entrySurface` plus target-aware Locale association.
+- ADDITIVE vs App Manifest v2.0: 2.1 admits `dataSources[]`, 2.2 admits `components[]`, 2.3 admits `screeners[]`, and 2.4 adds `entrySurface`, target-aware Locale association, and ordered `referenceDocuments[]`, `ontologies[]`, and `responseActionDocuments[]`.
 - App Manifest 2.4 selects the sole Surface implicitly, uses exact `entrySurface` URL selection when authored, and refuses ambiguous or unresolved entry Surface selection. Route entry remains the selected Surface's `entry`.
 - Locale references are unique by URL. Each loaded Locale 2.0 document must match its reference locale and target this app or one loaded Definition.
+- When a legacy singleton and its plural companion member both appear, processors load the singleton first and then preserve plural array order. References and Ontology remain Definition-targeted; Response Actions may be response-scoped or app-scoped under their own schema.
 - This BLUF is governed by `schemas/bundle-manifest.schema.json`, the canonical schema-defined structure.

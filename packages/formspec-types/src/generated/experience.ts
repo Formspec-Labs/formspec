@@ -176,7 +176,17 @@ export interface NeedRef {
    */
   id: string;
   description?: string;
+  completion?: NeedCompletion;
   extensions?: Extensions;
+}
+/**
+ * Optional declaration of the kind of usable outcome this Unit is expected to provide for the cited Need. The declaration stays on the satisfying side and names no route, widget, or implementation target. Advisory AppGraph UX lint matches the shape to directly Need-traced, mounted, resolved output without claiming runtime authorization or successful completion.
+ */
+export interface NeedCompletion {
+  /**
+   * Expected usable outcome: an operable action, a submitted Definition flow, a usable resource, navigation to a destination, or a result the person can observe.
+   */
+  shape: 'action' | 'submitted-definition' | 'resource' | 'navigation' | 'observable-result';
 }
 /**
  * This interface was referenced by `ExperienceDocument`'s JSON-Schema

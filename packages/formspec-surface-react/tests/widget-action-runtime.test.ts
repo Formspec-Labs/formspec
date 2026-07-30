@@ -6,6 +6,7 @@ import type {
 } from '@formspec-org/react';
 import type { ResponseActionsDocument } from '@formspec-org/types';
 import {
+  admitSurfaceWidgetActionInput,
   createWidgetActionCoordinator,
   responseActionsDocumentForAction,
 } from '../src/widget-action-runtime.js';
@@ -64,6 +65,33 @@ describe('responseActionsDocumentForAction', () => {
     expect(
       responseActionsDocumentForAction([document, document], 'acceptReceipt'),
     ).toBeUndefined();
+  });
+});
+
+describe('admitSurfaceWidgetActionInput', () => {
+  it('rejects accessors without invoking them', () => {
+    const getter = vi.fn(() => 'secret');
+    const candidate = Object.create(null) as Record<string, unknown>;
+    Object.defineProperty(candidate, 'secret', {
+      enumerable: true,
+      get: getter,
+    });
+    expect(admitSurfaceWidgetActionInput(candidate)).toMatchObject({
+      accepted: false,
+      reason: 'the action input contains an accessor property',
+    });
+    expect(getter).not.toHaveBeenCalled();
+  });
+
+  it('normalizes object keys so durable-store identity is deterministic', () => {
+    const admission = admitSurfaceWidgetActionInput({
+      resource: { status: 'ready', id: 'resource-7' },
+      mode: 'open',
+    });
+    expect(admission.accepted).toBe(true);
+    if (!admission.accepted || !admission.input) return;
+    expect(Object.keys(admission.input)).toEqual(['mode', 'resource']);
+    expect(Object.keys(admission.input.resource as object)).toEqual(['id', 'status']);
   });
 });
 
@@ -144,5 +172,75 @@ describe('createWidgetActionCoordinator', () => {
     expect(executor).toHaveBeenCalledTimes(2);
     expect(first.invocationId).not.toBe(second.invocationId);
     expect(second.replayed).toBe(false);
+  });
+
+  it('passes frozen JSON input through and does not coalesce different rows', async () => {
+    let finishFirst:
+      | ((result: ResponseActionInvocationResult<SubmitResult>) => void)
+      | undefined;
+    let finishSecond:
+      | ((result: ResponseActionInvocationResult<SubmitResult>) => void)
+      | undefined;
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(
+      ({ input }) =>
+        new Promise<ResponseActionInvocationResult<SubmitResult>>((resolve) => {
+          if ((input as { resourceId?: string } | undefined)?.resourceId === 'one') {
+            finishFirst = resolve;
+          } else {
+            finishSecond = resolve;
+          }
+        }),
+    );
+    const coordinator = createWidgetActionCoordinator();
+
+    const first = coordinator.emit({
+      ...baseRequest,
+      input: { resourceId: 'one' },
+      executor,
+    });
+    const second = coordinator.emit({
+      ...baseRequest,
+      input: { resourceId: 'two' },
+      executor,
+    });
+
+    await Promise.resolve();
+    expect(first.started).toBe(true);
+    expect(second.started).toBe(true);
+    expect(executor).toHaveBeenCalledTimes(2);
+    expect(executor.mock.calls[0]?.[0].input).toEqual({ resourceId: 'one' });
+    expect(Object.isFrozen(executor.mock.calls[0]?.[0].input)).toBe(true);
+
+    finishFirst?.(completed());
+    finishSecond?.(completed());
+    await Promise.all([first.completion, second.completion]);
+  });
+
+  it('uses canonical input identity regardless of object key order', async () => {
+    let finish: ((result: ResponseActionInvocationResult<SubmitResult>) => void) | undefined;
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(
+      () =>
+        new Promise<ResponseActionInvocationResult<SubmitResult>>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const coordinator = createWidgetActionCoordinator();
+    const first = coordinator.emit({
+      ...baseRequest,
+      input: { resourceId: 'one', mode: 'open' },
+      executor,
+    });
+    const duplicate = coordinator.emit({
+      ...baseRequest,
+      input: { mode: 'open', resourceId: 'one' },
+      executor,
+    });
+
+    expect(first.started).toBe(true);
+    expect(duplicate.started).toBe(false);
+    await Promise.resolve();
+    finish?.(completed());
+    await Promise.all([first.completion, duplicate.completion]);
+    expect(executor).toHaveBeenCalledTimes(1);
   });
 });

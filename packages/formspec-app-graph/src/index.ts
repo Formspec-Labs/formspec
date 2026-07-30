@@ -88,6 +88,12 @@ export {
   type NeedStatus,
 } from './needs-coverage.js';
 export {
+  NEED_COMPLETION_SHAPES,
+  NEED_USABLE_OUTCOME_CODES,
+  validateNeedUsableOutcomes,
+  type NeedCompletionShape,
+} from './need-usable-outcomes.js';
+export {
   collectRenderedNeedTraceNodes,
   RENDERED_NEED_TRACE_CODES,
   validateRenderedNeedTrace,
@@ -118,6 +124,10 @@ export {
   STRUCTURED_PANEL_CONTRACT_CODES,
   validateStructuredPanelContracts,
 } from './structured-panel-contracts.js';
+export {
+  UX_TITLE_DUPLICATE_CODE,
+  validateUxTitleDuplicates,
+} from './ux-title-duplicates.js';
 export {
   validateThemeTokenRegistry,
 } from './theme-token-registry.js';

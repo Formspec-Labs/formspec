@@ -1,6 +1,10 @@
-//! Pass 6: Theme document semantic checks (W700-W712, E710).
-#![allow(clippy::missing_docs_in_private_items)]
+//! Pass 6: Theme document semantic checks (W700-W714, E710).
+#![expect(
+    clippy::missing_docs_in_private_items,
+    reason = "Private pass helpers are covered by focused rule tests"
+)]
 
+mod contrast;
 mod token_refs;
 mod token_registry;
 mod value_validators;
@@ -40,6 +44,7 @@ pub fn lint_theme(theme: &Value, definition: Option<&Value>) -> Vec<LintDiagnost
         .unwrap_or_default();
 
     token_registry::lint_declared_tokens(theme, &mut diags);
+    contrast::lint_contrast_pairs(theme, token_registry::token_registry(), &mut diags);
     token_refs::lint_token_reference_integrity(theme, &token_names, &mut diags);
     lint_pages(theme, &mut diags);
     lint_selector_widget_compatibility(theme, &mut diags);

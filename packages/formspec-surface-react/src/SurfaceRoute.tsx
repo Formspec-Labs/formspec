@@ -45,7 +45,11 @@ import {
   type SurfaceRoutePlan,
   type SurfaceStrings,
 } from '@formspec-org/surface';
-import type { ResponseActionsDocument } from '@formspec-org/types';
+import type {
+  OntologyDocument,
+  ReferencesDocument,
+  ResponseActionsDocument,
+} from '@formspec-org/types';
 import { Heading } from './heading.js';
 import {
   SurfaceSlotFrame,
@@ -89,6 +93,10 @@ export interface SurfaceRouteViewProps {
   showThemeNotice?: boolean | undefined;
   /** The Response Actions document a `definition-form` slot runs its actions under. */
   responseActionsDocuments?: readonly ResponseActionsDocument[] | undefined;
+  /** Manifested References documents available to matching Definition forms. */
+  referencesDocuments?: readonly ReferencesDocument[] | undefined;
+  /** Manifested Ontology documents available to matching Definition forms. */
+  ontologyDocuments?: readonly OntologyDocument[] | undefined;
   /** Runs a transition's action under Response Actions authority. */
   onFireTransition?:
     | ((
@@ -120,6 +128,8 @@ export function SurfaceRouteView({
   showExperienceNeeds,
   showThemeNotice = false,
   responseActionsDocuments,
+  referencesDocuments,
+  ontologyDocuments,
   onFireTransition,
   onAdvance,
 }: SurfaceRouteViewProps) {
@@ -197,6 +207,8 @@ export function SurfaceRouteView({
             validateDataSourcePayload={validateDataSourcePayload}
             showExperienceNeeds={showExperienceNeeds}
             responseActionsDocuments={responseActionsDocuments}
+            referencesDocuments={referencesDocuments}
+            ontologyDocuments={ontologyDocuments}
             transitions={plan.transitions}
             widgetActionExecutor={widgetActionExecutor}
             widgetActionOutcomeStore={widgetActionOutcomeStore}

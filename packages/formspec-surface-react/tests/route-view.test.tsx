@@ -240,7 +240,7 @@ describe('slot dispatch in the DOM', () => {
     expect(container.querySelector('[data-slot-type="static-content"] .fs-surface-static-text')).not.toBeNull();
     expect(container.querySelector('[data-slot="rule"] hr')).not.toBeNull();
     expect(container.querySelector('[data-widget="intake-banner"]')).not.toBeNull();
-    expect(container.querySelector('.fs-surface-unit')).not.toBeNull();
+    expect(container.querySelector('.fs-surface-unit')).toBeNull();
   });
 
   it('emits the static binding Need identity on the exact content element', () => {
@@ -258,11 +258,15 @@ describe('slot dispatch in the DOM', () => {
   it('withholds Experience needs from a respondent surface by default', () => {
     const container = view('a');
     expect(container.querySelector('[data-probe="experience-needs"]')).toBeNull();
+    expect(container.textContent).not.toContain('Tell us about your household');
+    expect(container.querySelector('[data-slot="why"]')).toBeNull();
   });
 
-  it('shows Experience needs when a host asks for them', () => {
+  it('shows Experience rationale only when an authoring host asks for it', () => {
     const container = view('a', { showExperienceNeeds: true });
+    expect(container.textContent).toContain('Tell us about your household');
     expect(textOf(container.querySelector('[data-probe="experience-needs"]'))).toBe('Internal note.');
+    expect(container.querySelector('.fs-surface-unit')).not.toBeNull();
   });
 
   it('says so when a bound widget does not exist', () => {

@@ -18,17 +18,19 @@
       "control"
     ],
     "saasV1": {
-      "routes": 14,
-      "authoredNavigationEntries": 14,
-      "visibleWorkspaceNavigationEntries": 9,
+      "routes": 15,
+      "authoredNavigationEntries": 15,
+      "visibleWorkspaceNavigationEntries": 8,
       "definitions": 2,
       "definitionItems": 7,
       "definitionBinds": 7,
-      "responseActions": 22,
-      "experienceUnits": 14,
+      "referencesDocuments": 2,
+      "ontologyDocuments": 2,
+      "responseActions": 34,
+      "experienceUnits": 15,
       "adoptedNeeds": 10,
-      "traceRecords": 256,
-      "resolvedTraceRecords": 256,
+      "traceRecords": 386,
+      "resolvedTraceRecords": 386,
       "unresolvedInternalReferences": 0
     },
     "control": {
@@ -40,21 +42,19 @@
       "rootArtifactVerifier": "passed",
       "appGraphPhasesPerBundle": 7,
       "appGraphBundlesPassed": 2,
-      "playwrightRoutesPassed": 14,
-      "playwrightActionsPassed": 22,
-      "playwrightDataProfileChecksPassed": 9,
+      "playwrightRoutesPassed": 15,
+      "playwrightActionsPassed": 34,
+      "playwrightDataProfileChecksPassed": 20,
       "playwrightConsoleWarningsOrErrors": 0,
-      "reviewedInputDigest": "sha256:0f3ff91772515e1635723741803421b666ac3411a52047e189703d7e20dcf398",
+      "reviewedInputDigest": "sha256:307627996ceb2c852a7133c69c106c1eeb1d18c4c3071d28d0ebaee0ea62d62b",
       "screenshots": {
-        "screenshots/control.png": "sha256:e6f3f7f4e4d8f54a7f6ea18e687c097cabf4a3a3ec8a671fe847d96d752938aa",
-        "screenshots/dashboard-loaded.png": "sha256:3d70aa825ef23e67f82e83f3caba7585d990fba5e82a5b73d2649dc21d995371",
-        "screenshots/public-response-mobile.png": "sha256:6d326b391dae8bd4dab629f6e098fb2921700db5c749c02a5f34f355872a1f22",
-        "screenshots/responses-loaded.png": "sha256:71d3417bc484964d018b0cccab173e5c49585089dd388cceef022993dbcf13e5"
+        "screenshots/control.png": "sha256:a292835256f5588b5f2e4dfe0c59a9041f438f4097e5184a28cec06f21a10383",
+        "screenshots/dashboard-loaded.png": "sha256:0bc3fd0214b6bb9a1738a9692793b8e9a91ca8642abda0010f8765dc7c8090d3",
+        "screenshots/public-response-mobile.png": "sha256:9edcfd0df3c7721abbf74dfff3c4c4ff010f959e9c3444f4e15d9865b7b43fbb",
+        "screenshots/responses-loaded.png": "sha256:1f008668c6151c812ce7fa96d4c2010559d81c49a66da390ee0df6880000fe1e"
       },
       "formspecUnitSuites": "passed",
-      "formspecContractSurfaces": "passed",
-      "studioCore": "1597 passed, 1 todo",
-      "wireframesMcp": "121 passed"
+      "formspecContractSurfaces": "passed"
     }
   },
   "currentArtifacts": [

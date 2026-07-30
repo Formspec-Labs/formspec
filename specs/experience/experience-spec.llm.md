@@ -28,6 +28,7 @@ Source schema: `schemas/experience.schema.json`
 
 - Experience Documents are authored metadata sidecars — they MUST NOT affect Core data capture, validation, requiredness, relevance, calculations, Response status, submission, or the Core processing cycle.
 - Units describe abstract task intent with a closed unit.kind registry; they MUST NOT become layout, widget, page, or control taxonomies.
+- A needRefs entry may declare one closed completion shape (action, submitted-definition, resource, navigation, or observable-result) on the satisfying side; it names no route, widget, or implementation target and changes no runtime behavior.
 - ItemRef paths use Core FieldRef syntax, including [*] for repeatable groups, and must resolve against the loaded target Definition.
 - Coverage-aware processors compute the static coverage predicate from top-level Definition binds whose required expression is literal true and whose target is not statically non-relevant.
 - Coverage and referential findings are reportable diagnostics for generation and review; they do not invalidate Responses or block Core operations.
@@ -36,6 +37,7 @@ Source schema: `schemas/experience.schema.json`
 
 - A conforming Experience document must include $formspecExperience=1.0 and version; targetDefinition is optional and sets scope — present means Definition-scoped, absent means bundle-scoped over the App Manifest bundle that lists it.
 - Processors must reject schema-invalid documents and out-of-registry unit.kind values.
+- Processors that run the optional usable-outcome advisor match completion only to current directly Need-traced, mounted, structurally resolved output and must not present a clean result as proof of runtime authorization or completion.
 - Experience Core processors must verify targetDefinition compatibility, actor/task referential integrity, and ItemRef path resolvability whenever targetDefinition is present; target resolution is inapplicable, not failing, on a bundle-scoped Experience.
 - Experience Coverage-Aware processors must emit EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM findings for required visible Definition fields not referenced by any unit.itemRefs; they must not pair a bundle-scoped Experience with an arbitrary loaded Definition to manufacture such findings.
 - Extensions may carry x-prefixed metadata, but they must not extend or override the closed unit.kind registry or alter Core semantics.

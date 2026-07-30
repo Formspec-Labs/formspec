@@ -533,6 +533,27 @@ describe('navigation', () => {
     expect(container.querySelector('nav')?.getAttribute('aria-label')).toBe('Sections');
   });
 
+  it('renders a compact navigation disclosure with direct Need identity', () => {
+    const tracedSurface = {
+      ...surface,
+      routes: surface.routes.map((route) => ({
+        ...route,
+        'x-generation': { anchors: ['need:navigate-app@1'] },
+      })),
+    } as unknown as SurfaceDocument;
+    const { container } = mount({
+      bundle: { ...bundle, surfaces: [tracedSurface] },
+    });
+    const toggle = container.querySelector<HTMLButtonElement>('.fs-surface-nav__toggle');
+
+    expect(toggle?.textContent).toContain('Pages in this app');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle?.hasAttribute('data-need-ids')).toBe(true);
+
+    act(() => toggle?.click());
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('separates workspace and public navigation while preserving Surface groups and route order', () => {
     const casesSurface = {
       $formspecSurface: '0.2',

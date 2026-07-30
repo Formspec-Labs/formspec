@@ -385,11 +385,43 @@ An Experience Unit MAY declare:
 |----------|------|----------|-------------|
 | `id` | string | REQUIRED | A `need.id` in the paired Needs Document (S2.1). |
 | `description` | string | OPTIONAL | Clarifying note. |
+| `completion` | `NeedCompletion` | OPTIONAL | The implementation-independent shape of the usable outcome this Unit is expected to provide for the cited Need. |
 | `extensions` | object | OPTIONAL | `x-`-prefixed extension data. |
 
 Semantics: a `needRef` is the inverse of the OSLC-RM `satisfiedBy` edge, carried on the satisfying side — the Unit declares what it serves; the Need record is never written by the citing side (S9's authored-state refusal). A `needRef` is **deliberately unpinned**: it does not carry a revision. The Unit serves the Need as currently worded; a copy-edit to a Statement does not invalidate authored intent. Pinning is the anchors' job (S8).
 
 Resolution: when a Needs Document is paired, every `needRefs[].id` MUST resolve to a `need.id` in it; unresolved refs produce `NEED-REF-001`. A ref resolving to a `superseded` or `withdrawn` Need resolves successfully — staleness is the reserved codes' territory (S9.5), and one defect gets one code. When no Needs Document is paired, resolution is inapplicable and emits nothing (S2.1).
+
+`NeedCompletion.shape` uses this closed vocabulary:
+
+| Shape | The static graph must identify |
+|-------|-------------------------------|
+| `action` | A mounted control whose action resolves exactly once. |
+| `submitted-definition` | A mounted Definition flow with a resolved submit action. |
+| `resource` | A mounted, usable resource affordance rather than copy naming a resource. |
+| `navigation` | A mounted, usable navigation affordance with a resolved destination. |
+| `observable-result` | Rendered output the person can observe. |
+
+The declaration stays on the satisfying side and names no route, widget, or
+implementation target. Direct `need:<id>@<revision>` anchors identify candidate
+outputs. `completion` does not place a control, make an artifact render, grant
+authorization, or assert that a runtime attempt succeeded.
+
+An AppGraph usable-outcome advisor evaluates only `NeedRef` entries that declare
+`completion`. It MUST keep this advisory result separate from S9 coverage and
+MUST NOT change `NEED-COVERAGE-001` or `NEED-COVERAGE-002`. For an adopted Need
+at its current revision, it reports:
+
+| Code | Severity | Static conclusion |
+|------|----------|-------------------|
+| `APP-GRAPH-NEED-USABLE-OUTCOME-MISSING` | warning | No directly Need-traced candidate output exists. |
+| `APP-GRAPH-NEED-USABLE-OUTCOME-PROSE-ONLY` | warning | The only directly Need-traced output is prose or decorative content, but the declared shape requires an affordance. |
+| `APP-GRAPH-NEED-USABLE-OUTCOME-CANT-TELL` | info | A candidate exists, but the static graph cannot prove its shape, mounting, or resolution; this also covers an unpaired, ambiguous, stale, or non-adopted Need. |
+
+A clean advisory result proves only that the loaded graph contains a mounted,
+resolved candidate of the declared shape. It MUST NOT be presented as proof of
+runtime authorization, applicability, precondition success, effect success, or
+Need satisfaction.
 
 Richer edge roles (`elaboratedBy`, `decomposedBy`) are deferred; if added, they come from the OSLC-RM link-type set as a closed enum, not minted fresh.
 

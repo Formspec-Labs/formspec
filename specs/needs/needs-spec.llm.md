@@ -34,6 +34,7 @@ Source schema: `schemas/needs.schema.json`
 - Load and validate a Needs Document against needs.schema.json, then apply the S6 document-integrity rules; never silently repair a violation.
 - Treat origin, status, ungroundedReason, role, and method as closed enums and reject unrecognized values.
 - Resolve every bundle Experience needRefs[].id against the caller-paired Needs Document; when no document is paired, resolution and coverage are inapplicable and emit nothing.
+- Evaluate needRefs[].completion only in the optional usable-outcome advisor: match the closed shape against current directly Need-traced, mounted, structurally resolved output while leaving ordinary Needs coverage unchanged.
 - Compute the coverage predicate over the paired (Needs Document, bundle) pair: an adopted Need is served by at least one needRefs citation or one need: anchor at any revision; a Unit is justified by at least one needRefs entry.
 - Report coverage findings without blocking validation, submission, generation, or any Core operation, and never write served-ness back into the Needs Document.
 - Compare a need: anchor's pinned revision to the Need's current revision only to decide staleness; v1 processors record the condition and MUST NOT emit the reserved NEED-STALE-001 / NEED-ORPHAN-001 codes.
@@ -43,4 +44,5 @@ Source schema: `schemas/needs.schema.json`
 - A conforming Needs Document requires $formspecNeeds=1.0, version, and needs, carries exactly one of grounding (non-empty) or ungroundedReason per Need, and satisfies id uniqueness, supersession integrity, journey resolution, and origin/status agreement.
 - An ai-proposed Need is filed at status proposed with proposedBy, and only a human actor may carry it to adopted; a processor MUST NOT set adopted on behalf of an ai-agent actor or rewrite origin.
 - Processors MUST NOT use a Needs Document to alter data capture, validation, requiredness, relevance, calculation, or any other Core semantics, and MUST NOT block any Core operation on a NEED-* finding.
+- The usable-outcome advisor reports missing and prose-only as warnings and indeterminate static evidence as info; it never claims runtime authorization, applicability, precondition success, effect success, completion, or Need satisfaction.
 - A Needs Document carries no priority, ordering, or scheduling meaning; processors MUST NOT derive a backlog from it or extend any closed enum outside extensions.

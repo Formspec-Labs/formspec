@@ -16,10 +16,12 @@ import {
 } from '@formspec-org/engine';
 import type { SubmitResult } from '@formspec-org/react';
 import {
+  executeBrowserResourceEffect,
   SurfaceApp,
   starterWidgetModule,
   useBrowserLocation,
   type FireTransition,
+  type SurfaceWidgetActionDetail,
   type SurfaceWidgetActionExecutor,
   type SurfaceWidgetModule,
 } from '@formspec-org/surface-react';
@@ -215,7 +217,7 @@ function simulatedActionResult(
   document: Parameters<SurfaceWidgetActionExecutor>[0]['document'],
   actionRef: string,
   outcome: Exclude<SurfaceScenarioActionOutcome, { status: 'complete' }>,
-): ResponseActionInvocationResult<SubmitResult> {
+): ResponseActionInvocationResult<SurfaceWidgetActionDetail> {
   const resolution = resolveResponseAction(document, actionRef);
   return {
     status: outcome.status === 'defer' ? 'deferred' : 'failed',
@@ -235,31 +237,61 @@ function simulatedActionResult(
 
 function widgetActionExecutorFor(
   runtime: SurfacePreviewRuntime,
+  navigate: (href: string) => void,
 ): SurfaceWidgetActionExecutor {
-  return ({ document, actionRef, invocationId }) => {
+  return ({ document: actionsDocument, actionRef, invocationId, input }) => {
     const outcome = runtime.actionOutcome(actionRef);
     if (outcome.status !== 'complete') {
-      return simulatedActionResult(document, actionRef, outcome);
+      return simulatedActionResult(actionsDocument, actionRef, outcome);
     }
 
-    const ports: ResponseActionInvocationPorts<SubmitResult> = {
+    const ports: ResponseActionInvocationPorts<SurfaceWidgetActionDetail> = {
       submit: () => ({
         response: {} as SubmitResult['response'],
         validationReport: {
           valid: true,
         } as SubmitResult['validationReport'],
       }),
+      prepareAppAction: () => input ?? Object.freeze({}),
       dispatchHostEvent: () => {},
-      dispatchEffect: (effect) => ({
-        type: effect.type,
-        status: 'succeeded',
-      }),
+      dispatchEffect: (effect, detail) =>
+        effect.type === 'browserResource'
+          ? executeBrowserResourceEffect(effect, detail, {
+              open: (href, target) => {
+                if (target === 'self' && href.startsWith('/')) {
+                  navigate(href);
+                  return;
+                }
+                window.open(
+                  href,
+                  target === 'new' ? '_blank' : '_self',
+                  target === 'new' ? 'noopener,noreferrer' : undefined,
+                );
+              },
+              download: ({ content, filename, mediaType }) => {
+                const href = URL.createObjectURL(
+                  new Blob([content], { type: mediaType }),
+                );
+                const link = document.createElement('a');
+                link.href = href;
+                link.download = filename;
+                link.hidden = true;
+                document.body.append(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(href);
+              },
+            })
+          : {
+              type: effect.type,
+              status: 'succeeded',
+            },
       evaluatePrecondition: () => true,
       resolveIdempotencyKey: (_effect, action, context) =>
         `${invocationId}:${action.id}:${context.effectIndex}`,
     };
     return invokeResponseAction(
-      document,
+      actionsDocument,
       actionRef,
       ports,
       undefined,
@@ -284,10 +316,6 @@ export function App({ selection }: { selection: PreviewSelection }) {
     () => widgetModulesFor(selection.bundle),
     [selection.bundle],
   );
-  const widgetActionExecutor = useMemo(
-    () => widgetActionExecutorFor(runtime),
-    [runtime],
-  );
   const fireTransition: FireTransition = useCallback(
     (transition, from) => runtime.executeTransition({ transition, from }),
     [runtime],
@@ -305,6 +333,10 @@ export function App({ selection }: { selection: PreviewSelection }) {
       }
     },
     [navigate],
+  );
+  const widgetActionExecutor = useMemo(
+    () => widgetActionExecutorFor(runtime, navigatePreservingSelection),
+    [navigatePreservingSelection, runtime],
   );
 
   return (

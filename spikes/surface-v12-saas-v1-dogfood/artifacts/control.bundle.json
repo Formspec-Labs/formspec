@@ -4,7 +4,7 @@
     "version": "1.0.0",
     "id": "https://control.formspec.dev/apps/structured-panel",
     "name": "generic_structured_control",
-    "title": "Generic structured host control",
+    "title": "Community room schedule",
     "description": "Independent positive fixture proving that the same host renders another Formspec bundle.",
     "definitions": [],
     "experience": {
@@ -125,8 +125,20 @@
                 "kind": "structured-panel-column"
               },
               {
+                "pointerPattern": "/blocks/*/rowAction",
+                "kind": "structured-panel-row-action"
+              },
+              {
                 "pointerPattern": "/actions/*",
                 "kind": "structured-panel-action"
+              },
+              {
+                "pointerPattern": "/stateViews/*",
+                "kind": "module-widget-state-view"
+              },
+              {
+                "pointerPattern": "/stateViews/*/actions/*",
+                "kind": "module-widget-state-action"
               }
             ],
             "props": {
@@ -561,7 +573,7 @@
     "https://control.formspec.dev/surfaces/main": {
       "$formspecSurface": "0.2",
       "id": "control",
-      "title": "Generic structured control",
+      "title": "Community room schedule",
       "x-generation": {
         "anchors": [
           "need:inspect-generic-surface@1"
@@ -579,11 +591,11 @@
           "id": "control",
           "path": "/",
           "routeClass": "operation",
-          "title": "Generic structured control",
+          "title": "Room availability",
           "navigation": {
             "visible": true,
             "scope": "control",
-            "label": "Control",
+            "label": "Availability",
             "order": 0,
             "x-generation": {
               "anchors": [
@@ -600,7 +612,7 @@
                 "unitRef": "inspectControl"
               },
               "position": "main",
-              "title": "Control task",
+              "title": "Availability task",
               "x-generation": {
                 "anchors": [
                   "need:inspect-generic-surface@1"
@@ -612,7 +624,7 @@
               "slotType": "static-content",
               "binding": {
                 "kind": "text",
-                "content": "LIVE — Independent control content supplied by a second Formspec bundle.",
+                "content": "Check today's availability before planning a visit.",
                 "x-generation": {
                   "anchors": [
                     "need:inspect-generic-surface@1"
@@ -620,7 +632,7 @@
                 }
               },
               "position": "main",
-              "title": "Control summary",
+              "title": "Schedule note",
               "x-generation": {
                 "anchors": [
                   "need:inspect-generic-surface@1"
@@ -635,11 +647,9 @@
                 "widgetName": "StructuredPanel",
                 "config": {
                   "id": "controlPanel",
-                  "eyebrow": "Renderer control",
-                  "state": "live",
-                  "title": "Generic structured preview",
-                  "body": "This independent bundle confirms that the unchanged host renders a document-defined panel.",
-                  "emptyMessage": "No additional control data is required.",
+                  "eyebrow": "Community center",
+                  "title": "Available today",
+                  "body": "The community room is available today from 3:00 PM to 6:00 PM.",
                   "blocks": [],
                   "actions": [],
                   "x-generation": {
@@ -650,7 +660,7 @@
                 }
               },
               "position": "aside",
-              "title": "Generic panel",
+              "title": "Today's schedule",
               "x-generation": {
                 "anchors": [
                   "need:inspect-generic-surface@1"

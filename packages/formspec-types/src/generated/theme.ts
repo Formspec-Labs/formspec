@@ -159,6 +159,12 @@ export interface ThemeDocument {
    */
   platform?: string;
   tokens?: Tokens;
+  /**
+   * Additional color-token pairs whose effective contrast tooling must check. The platform Token Registry already declares the pairs used by the default renderer, so a Theme only needs this property for custom x-* tokens or stricter product-specific checks. A processor evaluates a pair after platform defaults and Theme token overrides are merged. It MUST use the WCAG 2.2 contrast formula when both values can be reduced to opaque sRGB colors, MUST NOT report a ratio when either value is indeterminate, and SHOULD diagnose a declared pair that references a missing token. The usage sets a standards floor: normalText is 4.5:1; largeText and uiComponent are 3:1. minimumRatio may raise but never lower that floor.
+   *
+   * @minItems 1
+   */
+  contrastPairs?: [ContrastPair, ...ContrastPair[]];
   defaults?: PresentationBlock;
   /**
    * Cascade level 2: type/dataType-based presentation overrides. Each selector has a 'match' (criteria) and 'apply' (PresentationBlock). Selectors are evaluated in document order — all matching selectors apply, with later matches overriding earlier ones per-property. Overrides defaults (level 1); overridden by items (level 3).
@@ -270,6 +276,34 @@ export interface ComponentNodeIdentityRef {
 export interface CrossComponentRef {
   route: string;
   nodePath: string;
+}
+/**
+ * A pair of effective color tokens checked together. Token names are stored without the $token. reference prefix. Authors use separate pairs for separate color-scheme token keys, such as color.input and color.dark.input.
+ *
+ * This interface was referenced by `ThemeDocument`'s JSON-Schema
+ * via the `definition` "ContrastPair".
+ */
+export interface ContrastPair {
+  /**
+   * Stable identifier for this contrast check within the Theme.
+   */
+  id: string;
+  /**
+   * Token key for the text, icon, focus indicator, or control boundary color.
+   */
+  foregroundToken: string;
+  /**
+   * Token key for the adjacent background or surface color.
+   */
+  backgroundToken: string;
+  /**
+   * How the foreground is used. normalText requires at least 4.5:1; largeText and uiComponent require at least 3:1.
+   */
+  usage: 'normalText' | 'largeText' | 'uiComponent';
+  /**
+   * Optional stricter contrast ratio. The effective minimum is the greater of this number and the floor implied by usage, so this value cannot weaken the standards floor.
+   */
+  minimumRatio?: number;
 }
 /**
  * A cascade level 2 rule: matches items by type and/or dataType and applies a PresentationBlock. Selectors are evaluated in document order. All matching selectors apply — later matches override earlier ones per-property (shallow merge). This enables layered styling: a broad type selector can set a baseline, and a narrower dataType selector can refine it.

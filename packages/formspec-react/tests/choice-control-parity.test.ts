@@ -36,8 +36,13 @@ describe('Choice control sizing parity', () => {
         expect(extractRuleProp(layoutCSS, '.formspec-radio-group input[type="radio"]', 'height')).toBe('1.125rem');
     });
 
-    it('gives grouped choice labels a 24px-tall target row', () => {
-        expect(extractRuleProp(layoutCSS, '.formspec-checkbox-group label', 'min-height')).toBe('1.5rem');
-        expect(extractRuleProp(layoutCSS, '.formspec-radio-group label', 'min-height')).toBe('1.5rem');
+    it('gives grouped choices and switches a 44px target', () => {
+        expect(extractRuleProp(layoutCSS, '.formspec-checkbox-group label', 'min-height')).toBe('2.75rem');
+        expect(extractRuleProp(layoutCSS, '.formspec-radio-group label', 'min-height')).toBe('2.75rem');
+        expect(extractRuleProp(
+            layoutCSS,
+            '.formspec-toggle input[type="checkbox"][role="switch"]',
+            'height',
+        )).toBe('2.75rem');
     });
 });

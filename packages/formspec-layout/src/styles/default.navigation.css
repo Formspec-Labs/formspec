@@ -3,9 +3,11 @@
 .formspec-modal-trigger,
 .formspec-popover-trigger,
 .formspec-repeat-add,
+.formspec-repeat-remove,
 .formspec-screener-continue,
 .formspec-submit,
 .formspec-datatable-add {
+  min-height: 2.75rem;
   transition: var(--formspec-default-transition-fast);
 }
 

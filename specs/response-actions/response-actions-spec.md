@@ -88,7 +88,7 @@ Out of scope:
 2. **Closed taxonomies.** `EffectRequest.type`, `onFailure`, and `onDeferred` are closed enums. `Action.intent` uses VM standard intents or `x-` publisher extensions.
 3. **Cite, do not invent.** Validation vocabulary comes from VM. Ledger kinds come from Ledger. Mapping handles come from Mapping. Handoff bodies come from Intake Handoff.
 4. **No global rollback.** Effects execute in declared order. Failure halts the chain and never reverses prior durable effects.
-5. **Idempotency at durable boundaries.** Every durable effect MUST carry an idempotency key. `hostEvent` MUST NOT carry one.
+5. **Idempotency at durable boundaries.** Every durable effect MUST carry an idempotency key. `hostEvent` and `browserResource` MUST NOT carry one.
 
 ### 1.4 Schema Reference
 
@@ -99,7 +99,8 @@ Out of scope:
 | `#/properties/$formspecResponseActions` | `$formspecResponseActions` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Response Actions document version. MUST be '1.0'. |
 | `#/properties/actions` | `actions` | <code>array</code> | yes | — | Named actions. Order is documentation-only; resolution is by Action.id. Each id MUST be unique within the document. |
 | `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3. |
-| `#/properties/targetDefinition` | `targetDefinition` | <code>object</code> | yes | — | The Definition this Response Actions document binds to. Identical role to Experience.targetDefinition. |
+| `#/properties/scope` | `scope` | <code>string</code> | no | enum: <code>"response"</code>, <code>"app"</code>; default: <code>"response"</code> | Execution scope. response actions submit and validate the target Definition. app actions execute without a form submission and MUST omit targetDefinition. |
+| `#/properties/targetDefinition` | `targetDefinition` | <code>object</code> | no | — | The Definition this Response Actions document binds to. Identical role to Experience.targetDefinition. |
 | `#/properties/version` | `version` | <code>string</code> | yes | — | Version of this Response Actions document. SemVer RECOMMENDED. |
 <!-- schema-ref:end -->
 
@@ -109,7 +110,13 @@ A Response Actions document is promoted to a peer artifact when an authored form
 
 ## 2. Document Structure
 
-A conforming document MUST include `$formspecResponseActions`, `version`, `targetDefinition`, and at least one Action:
+A conforming document MUST include `$formspecResponseActions`, `version`, and
+at least one Action. It MUST choose exactly one execution scope:
+
+- Definition-scoped response actions include `targetDefinition`; `scope` is
+  omitted or `response`.
+- Application-scoped actions set `scope: app` and MUST omit
+  `targetDefinition`.
 
 ```json
 {
@@ -124,6 +131,11 @@ A conforming document MUST include `$formspecResponseActions`, `version`, `targe
 ```
 
 `targetDefinition` has the same role as Experience `targetDefinition`: it binds the sidecar to a Definition identity and compatibility range. Processors MUST reject a Response Actions document whose target Definition is incompatible with the active Definition.
+
+Application scope is for product operations such as route navigation, retry,
+opening a support resource, or downloading an export. An app action MUST NOT
+submit or manufacture a Response. Its full validation tuple MUST be
+`profile: off`, `blocking: non-blocking`, and `persistence: none`.
 
 Action `id` values MUST be unique within the document. JSON Schema cannot enforce uniqueness by object property; processors MUST reject duplicates.
 
@@ -236,6 +248,7 @@ Persistence policies mean:
 | `handoffAssembly` | durable | required | Assemble an Intake Handoff document and forward to a recipient handle. |
 | `evidenceRequest` | durable | required | Trigger demand-timing evidence collection. |
 | `hostEvent` | transient | forbidden | Dispatch a host-local event. |
+| `browserResource` | transient | forbidden | Open or download a validated structured browser resource. |
 
 <!-- schema-ref:start id=response-actions-effects schema=schemas/response-actions.schema.json pointers=#/$defs/EffectRequest,#/$defs/MappingExecutionEffect,#/$defs/LedgerAppendEffect,#/$defs/HandoffAssemblyEffect,#/$defs/EvidenceRequestEffect,#/$defs/HostEventEffect -->
 <!-- generated:schema-ref id=response-actions-effects -->
@@ -292,6 +305,12 @@ For non-idempotency expressions (`payloadRef`, `detailRef`), the effect-time cat
 
 `@effects[i]` MUST only reference prior effects. Referencing the current or a future effect is an evaluation error.
 
+`browserResource.resourceRef` is not FEL. It is a safe own-property path into
+the validated structured app-action input. Hosts MUST reject prototype-bearing
+paths and resources whose operation, destination scheme, media type, or payload
+is outside host policy. The action declares the operation; the host retains
+navigation, popup, and download authority.
+
 The FEL surface index (`@effects[i]`, 1-based) and the trace artifact index (`effectIndex` in §8 failure outcomes and Ledger records, 0-based per host idiom) refer to the same effect offset by one. Authors who need to correlate a FEL reference with a trace record subtract one: `@effects[1].outcomeRef` corresponds to `effectIndex: 0`. The dual-base convention is intentional — FEL grammar owns the path-subscript base; the trace artifact uses the language-of-host base.
 
 ### 6.5 Effect Outcomes
@@ -313,14 +332,14 @@ Each effect contributes an outcome record:
 
 Invocation follows this order:
 
-1. `created`: receive `actionId`, Response snapshot, Definition, and invocation id.
+1. `created`: receive `actionId`, invocation id, and either the Response/Definition snapshot for response scope or validated structured input for app scope.
 2. `preconditions`: evaluate preconditions in order.
-3. `validation`: resolve tuple and produce a ValidationReport unless profile is `off`.
+3. `validation`: for response scope, resolve the tuple and produce a ValidationReport unless profile is `off`; app scope requires the fixed off/non-blocking/none tuple and performs no Response validation.
 4. `blocking-gate`: if `blocking` is `block-on-error` and `ValidationReport.valid` is false, terminate `blocked` with `cause: "validation"` and invoke zero effects.
 5. `effects-running`: invoke effects in declared order.
 6. Terminal: `completed`, `failed`, `deferred`, or `blocked`.
 
-The UI MUST NOT report success for `failed`, `deferred`, or `blocked`. On blocked validation, Response data remains preserved and status remains `in-progress`.
+The UI MUST NOT report success for `failed`, `deferred`, or `blocked`. On blocked validation, Response data remains preserved and status remains `in-progress`. Application actions never mutate Response state.
 
 ### 7.1 Runtime Invocation State Ownership
 
@@ -364,6 +383,12 @@ Deferred invocations MUST NOT transition Response status to `completed`. Process
 
 `hostEvent` is a transient host-local signal. It MUST NOT have durable external consequences, MUST NOT carry `idempotencyKey`, and MUST NOT be used as the only durable record of a completed submission.
 
+`browserResource` is a transient, host-mediated navigation or download
+request. It MUST resolve its `resourceRef` only against validated structured
+action input. A generic browser host MAY admit same-origin paths, HTTPS
+destinations, intentional `mailto` links, and locally generated downloads; it
+MUST fail closed for unsafe schemes or malformed resources.
+
 `ActionButton.actionRef` resolves against `actions[*].id`. An unresolved ref MUST produce an inert widget and an informative finding. There is no implicit default Action, no free-string fallback, and no legacy SubmitButton behavior.
 
 Renderers MAY provide host adapters for `ActionButton` clicks, but the reusable action resolution, validation-tuple resolution, and invocation sequencing boundary belongs to the runtime engine layer. Layout processors MAY place or synthesize inert `ActionButton` nodes when explicitly configured with an `actionRef`; they MUST NOT execute actions, infer validation behavior, or invent an implicit Response Action.
@@ -393,10 +418,14 @@ The completed terminal is covered by `response.completed` when an Action declare
 A conforming Response Actions document MUST:
 
 - Validate against `schemas/response-actions.schema.json`.
+- Choose exactly one response or app scope. App scope omits
+  `targetDefinition`, performs no form submission, and uses the fixed
+  off/non-blocking/none tuple.
 - Use only VM standard `ActionIntent` values or `x-` extension intents.
 - Provide a full `validation` tuple for every `x-` intent and for every standard-intent override.
 - Use only the closed `EffectRequest.type` taxonomy.
-- Give every durable effect an `idempotencyKey` and give no `hostEvent` an `idempotencyKey`.
+- Give every durable effect an `idempotencyKey` and give no `hostEvent` or
+  `browserResource` an `idempotencyKey`.
 - Avoid authoring `action.*`, `case.created`, or case lifecycle events as effects.
 
 A conforming static lint processor SHOULD validate `targetDefinition` compatibility when paired with a Definition, reject duplicate `actions[*].id`, and report unresolved Component `ActionButton.actionRef` references when paired with Component documents.
@@ -414,3 +443,6 @@ Response Actions MUST NOT:
 5. Author `case.created` or any case lifecycle event.
 6. Treat `hostEvent` as durable submission evidence.
 7. Roll back already-materialized durable effects.
+8. Submit or mutate a Response from an app-scoped action.
+9. Resolve a browser resource from code, an unvalidated object, or a
+   prototype-bearing path.

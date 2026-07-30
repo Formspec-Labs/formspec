@@ -13,6 +13,7 @@
     "test": "node --test ../reasoning-review.test.mjs && npm run check:generic-host && npm run typecheck"
   },
   "dependencies": {
+    "@formspec-org/assist": "file:../../../packages/formspec-assist",
     "@formspec-org/engine": "file:../../../packages/formspec-engine",
     "@formspec-org/layout": "file:../../../packages/formspec-layout",
     "@formspec-org/react": "file:../../../packages/formspec-react",

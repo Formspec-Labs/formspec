@@ -79,13 +79,29 @@ const exportedBundle: BundleExport = {
 };
 
 describe('experience-unit runtime', () => {
-  it('renders the exact manifested Experience and traces its unpinned Need refs', () => {
+  it('keeps the exact manifested Experience out of the customer DOM', () => {
     const container = render(
       <SurfaceApp
         bundle={dereferenceBundleExport(exportedBundle)}
         location="/review"
         onNavigate={() => {}}
         setDocumentTitle={false}
+      />,
+    );
+    expect(container.querySelector('.fs-surface-unit')).toBeNull();
+    expect(container.querySelector('[data-slot="why"]')).toBeNull();
+    expect(container.textContent).not.toContain('Review the household record');
+    expect(container.textContent).not.toContain('Enter household details');
+  });
+
+  it('shows the manifested Experience only in an explicit authoring view', () => {
+    const container = render(
+      <SurfaceApp
+        bundle={dereferenceBundleExport(exportedBundle)}
+        location="/review"
+        onNavigate={() => {}}
+        setDocumentTitle={false}
+        showExperienceNeeds
       />,
     );
     const unit = container.querySelector('.fs-surface-unit');

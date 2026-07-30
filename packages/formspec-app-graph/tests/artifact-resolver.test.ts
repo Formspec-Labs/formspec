@@ -11,6 +11,12 @@ const DATASOURCES_URL = 'https://example.gov/data-sources';
 const LOCALE_URL = 'https://example.gov/locales/en';
 const MAPPING_URL = 'https://example.gov/mappings/default';
 const SCREENER_URL = 'https://example.gov/screeners/eligibility';
+const REFERENCES_URL = 'https://example.gov/references/organization';
+const SECOND_REFERENCES_URL = 'https://example.gov/references/public';
+const ONTOLOGY_URL = 'https://example.gov/ontology/organization';
+const SECOND_ONTOLOGY_URL = 'https://example.gov/ontology/public';
+const RESPONSE_ACTIONS_URL = 'https://example.gov/response-actions/submit';
+const SECOND_RESPONSE_ACTIONS_URL = 'https://example.gov/response-actions/operations';
 
 function manifest(partial: Record<string, unknown> = {}) {
   return {
@@ -214,6 +220,80 @@ describe('resolveArtifacts', () => {
       loadedArtifacts: 3,
       errors: 0,
     });
+  });
+
+  it('loads legacy and plural companion associations in deterministic order', async () => {
+    const calls: string[] = [];
+    const report = await resolveArtifacts({
+      manifest: manifest({
+        $formspecBundle: '2.4',
+        definitions: [],
+        references: { url: REFERENCES_URL, version: '1.0.0' },
+        referenceDocuments: [{ url: SECOND_REFERENCES_URL, version: '1.0.0' }],
+        ontology: { url: ONTOLOGY_URL, version: '1.0.0' },
+        ontologies: [{ url: SECOND_ONTOLOGY_URL, version: '1.0.0' }],
+        responseActions: { url: RESPONSE_ACTIONS_URL, version: '1.0.0' },
+        responseActionDocuments: [{ url: SECOND_RESPONSE_ACTIONS_URL, version: '1.0.0' }],
+      }),
+      loader: memoryLoader({
+        [REFERENCES_URL]: { $formspecReferences: '1.0', version: '1.0.0' },
+        [SECOND_REFERENCES_URL]: { $formspecReferences: '1.0', version: '1.0.0' },
+        [ONTOLOGY_URL]: { $formspecOntology: '1.0', version: '1.0.0' },
+        [SECOND_ONTOLOGY_URL]: { $formspecOntology: '1.0', version: '1.0.0' },
+        [RESPONSE_ACTIONS_URL]: { $formspecResponseActions: '1.0', version: '1.0.0' },
+        [SECOND_RESPONSE_ACTIONS_URL]: { $formspecResponseActions: '1.0', version: '1.0.0' },
+      }, calls),
+    });
+
+    expect(report.ok).toBe(true);
+    expect(report.artifacts.references?.map((handle) => handle.ref?.url)).toEqual([
+      REFERENCES_URL,
+      SECOND_REFERENCES_URL,
+    ]);
+    expect(report.artifacts.ontology?.map((handle) => handle.ref?.url)).toEqual([
+      ONTOLOGY_URL,
+      SECOND_ONTOLOGY_URL,
+    ]);
+    expect(report.artifacts.responseActions?.map((handle) => handle.ref?.url)).toEqual([
+      RESPONSE_ACTIONS_URL,
+      SECOND_RESPONSE_ACTIONS_URL,
+    ]);
+    expect(calls).toEqual([
+      `responseActions:responseActions:${RESPONSE_ACTIONS_URL}`,
+      `responseActionDocuments[0]:responseActions:${SECOND_RESPONSE_ACTIONS_URL}`,
+      `references:references:${REFERENCES_URL}`,
+      `referenceDocuments[0]:references:${SECOND_REFERENCES_URL}`,
+      `ontology:ontology:${ONTOLOGY_URL}`,
+      `ontologies[0]:ontology:${SECOND_ONTOLOGY_URL}`,
+    ]);
+  });
+
+  it('rejects plural companion associations before App Manifest 2.4', async () => {
+    const loader = vi.fn(memoryLoader({
+      [SECOND_REFERENCES_URL]: { $formspecReferences: '1.0' },
+      [SECOND_ONTOLOGY_URL]: { $formspecOntology: '1.0' },
+      [SECOND_RESPONSE_ACTIONS_URL]: { $formspecResponseActions: '1.0' },
+    }));
+    const report = await resolveArtifacts({
+      manifest: manifest({
+        $formspecBundle: '2.3',
+        definitions: [],
+        referenceDocuments: [{ url: SECOND_REFERENCES_URL }],
+        ontologies: [{ url: SECOND_ONTOLOGY_URL }],
+        responseActionDocuments: [{ url: SECOND_RESPONSE_ACTIONS_URL }],
+      }),
+      loader,
+    });
+
+    expect(report.diagnostics.map((entry) => entry.code)).toEqual([
+      'ARTIFACT-COMPANION-DOCUMENTS-VERSION-GATE',
+      'ARTIFACT-COMPANION-DOCUMENTS-VERSION-GATE',
+      'ARTIFACT-COMPANION-DOCUMENTS-VERSION-GATE',
+    ]);
+    expect(report.artifacts.responseActions?.[0]?.status).toBe('unsupported');
+    expect(report.artifacts.references?.[0]?.status).toBe('unsupported');
+    expect(report.artifacts.ontology?.[0]?.status).toBe('unsupported');
+    expect(loader).not.toHaveBeenCalled();
   });
 
   it('honors support profile artifact kinds and URI schemes before loading', async () => {

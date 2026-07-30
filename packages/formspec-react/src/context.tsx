@@ -74,6 +74,65 @@ export interface SubmitResult {
     validationReport: ValidationReport | null;
 }
 
+/** Human-facing help resolved from manifested References sidecars. */
+export interface FormspecHumanReference {
+    id?: string;
+    title: string;
+    description?: string;
+    content?: string;
+    uri?: string;
+    type?: string;
+    /** Direct current Need anchors on this exact rendered reference. */
+    needAnchors: readonly string[];
+}
+
+export type FormspecFieldHelpResolver = (
+    path: string,
+) => readonly FormspecHumanReference[];
+
+/**
+ * Host policy for turning a References URI into a browser destination.
+ *
+ * Returning `undefined` keeps the human-readable reference but renders its
+ * title as text. A host may translate a non-browser scheme into a trusted
+ * internal route; the default admits only HTTPS and same-app relative URIs.
+ */
+export type FormspecFieldHelpUriAdmission = (
+    uri: string,
+) => string | undefined;
+
+const ABSOLUTE_URI_SCHEME = /^[A-Za-z][A-Za-z0-9+.-]*:/;
+const FIELD_HELP_URI_BASE = 'https://formspec.invalid/';
+
+/** Fail-closed browser policy for human Reference links. */
+export function admitDefaultFieldHelpUri(uri: string): string | undefined {
+    if (
+        uri.length === 0
+        || uri.trim() !== uri
+        || uri.includes('\\')
+        || uri.startsWith('//')
+    ) {
+        return undefined;
+    }
+    try {
+        const absolute = ABSOLUTE_URI_SCHEME.test(uri);
+        const destination = absolute
+            ? new URL(uri)
+            : new URL(uri, FIELD_HELP_URI_BASE);
+        if (
+            destination.protocol !== 'https:'
+            || destination.username.length > 0
+            || destination.password.length > 0
+            || (!absolute && destination.origin !== 'https://formspec.invalid')
+        ) {
+            return undefined;
+        }
+        return uri;
+    } catch {
+        return undefined;
+    }
+}
+
 export interface FormspecContextValue {
     engine: IFormEngine;
     layoutPlan: LayoutNode | null;
@@ -130,6 +189,12 @@ export interface FormspecContextValue {
     isTouched: (path: string) => boolean;
     /** Registry entries for extension resolution. */
     registryEntries: Map<string, any>;
+    /** Human References for a field path. Agent-only context never enters this seam. */
+    resolveFieldHelp?: FormspecFieldHelpResolver;
+    /** Admit or translate a human Reference URI before it reaches an anchor. */
+    admitFieldHelpUri: FormspecFieldHelpUriAdmission;
+    /** Localizable disclosure label for resolved field help. */
+    fieldHelpLabel: string;
     /** Effective formPresentation (definition merged with component document). */
     formPresentation?: Record<string, unknown>;
 }
@@ -166,6 +231,12 @@ export interface FormspecProviderProps {
     initialData?: Record<string, any>;
     /** Registry entries for extension field validation. */
     registryEntries?: any[];
+    /** Human References resolver for the active Definition. */
+    resolveFieldHelp?: FormspecFieldHelpResolver;
+    /** Host URI policy. Defaults to HTTPS and same-app relative destinations. */
+    admitFieldHelpUri?: FormspecFieldHelpUriAdmission;
+    /** Localizable disclosure label for resolved field help. */
+    fieldHelpLabel?: string;
     /** Runtime context for FEL today(), locale formatting, etc. */
     runtimeContext?: any;
     /** Optional fetcher for remote Issuer documents. */
@@ -221,6 +292,8 @@ export function FormspecProvider(props: FormspecProviderProps) {
         responseActionsDocument,
         initialData,
         registryEntries,
+        resolveFieldHelp,
+        admitFieldHelpUri = admitDefaultFieldHelpUri,
         runtimeContext,
         issuerFetcher,
         issuerOverride,
@@ -235,6 +308,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         resolveActionIdempotencyKey,
         children,
     } = props;
+    const fieldHelpLabel = props.fieldHelpLabel ?? 'Help and guidance';
     const shouldEmitThemeTokens = props.emitThemeTokens ?? true;
     const hasIssuerOverrideProp = Object.prototype.hasOwnProperty.call(props, 'issuerOverride');
     const effectiveThemeDocument = useMemo(
@@ -475,9 +549,12 @@ export function FormspecProvider(props: FormspecProviderProps) {
             touchedVersion: touchedVersionSignal,
             isTouched,
             registryEntries: registryMap,
+            resolveFieldHelp,
+            admitFieldHelpUri,
+            fieldHelpLabel,
             formPresentation: mergedFormPresentation,
         }),
-        [engine, layoutPlan, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
+        [engine, layoutPlan, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation],
     );
 
     return (

@@ -27,7 +27,7 @@ depends_on:
 
 This document is a **draft specification**. It is a companion to the [Formspec v1.0 core specification](../core/spec.md) and does not modify or extend the core processing model. Implementors are encouraged to experiment with this specification and provide feedback, but MUST NOT treat it as stable for production use until a stable release is published.
 
-This spec was promoted from the concept architecture note [`thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md) (Open Question §11.5 "Bundle Manifest"), shipped as the Bundle Manifest v1.0 spec, then **reframed as the App Manifest v2.0** per ADR 0150 §5.2/§5.3. The reframe widens the artifact from "names ONE form" to "names ONE app composed of zero-or-more Definitions, Surfaces, Registries, plus optional substrate modules and sessions." The `$formspecBundle` constant bumps `"1.0"` → `"2.0"` (§11.2 BREAKING) so strict consumers fail loud rather than silently misread a different shape. App Manifest v2.1 adds `dataSources[]`, v2.2 adds `components[]`, and v2.3 adds `screeners[]`. App Manifest v2.4 adds fail-closed entry Surface selection and target-aware Locale association. It does not add a route override or a Locale compatibility alias.
+This spec was promoted from the concept architecture note [`thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md) (Open Question §11.5 "Bundle Manifest"), shipped as the Bundle Manifest v1.0 spec, then **reframed as the App Manifest v2.0** per ADR 0150 §5.2/§5.3. The reframe widens the artifact from "names ONE form" to "names ONE app composed of zero-or-more Definitions, Surfaces, Registries, plus optional substrate modules and sessions." The `$formspecBundle` constant bumps `"1.0"` → `"2.0"` (§11.2 BREAKING) so strict consumers fail loud rather than silently misread a different shape. App Manifest v2.1 adds `dataSources[]`, v2.2 adds `components[]`, and v2.3 adds `screeners[]`. App Manifest v2.4 adds fail-closed entry Surface selection, target-aware Locale association, and ordered plural References, Ontology, and Response Actions associations while preserving the legacy singleton members. It does not add a route override or a Locale compatibility alias.
 
 ## Conventions and Terminology
 
@@ -60,9 +60,10 @@ Additional terms:
 - App Manifest is a pure composition document: no inline sidecars, no synthesis on absence, and no shims on existing primary specs. Sibling absence is honored; each sibling spec's existing defaults apply.
 - App Manifest lists sibling artifacts alongside sibling-owned `targetDefinition` and `targetSurfaceRoutes[]` references. Tools can still discover siblings in reverse when they do not start from a manifest.
 - BREAKING vs Bundle Manifest v1.0: singular `definition` reframes as `definitions[]` (REQUIRED, MAY be empty); singular `registry` reframes as `registries[]`; `surfaces[]`, `modules: ModuleRef[]`, `sessions: SessionRef[]` arrive; `$formspecBundle` const bumps `"1.0"` → `"2.0"` so strict consumers fail loud.
-- ADDITIVE vs App Manifest v2.0: 2.1 admits `dataSources[]`, 2.2 admits `components[]`, 2.3 admits `screeners[]`, and 2.4 adds `entrySurface` plus target-aware Locale association.
+- ADDITIVE vs App Manifest v2.0: 2.1 admits `dataSources[]`, 2.2 admits `components[]`, 2.3 admits `screeners[]`, and 2.4 adds `entrySurface`, target-aware Locale association, and ordered `referenceDocuments[]`, `ontologies[]`, and `responseActionDocuments[]`.
 - App Manifest 2.4 selects the sole Surface implicitly, uses exact `entrySurface` URL selection when authored, and refuses ambiguous or unresolved entry Surface selection. Route entry remains the selected Surface's `entry`.
 - Locale references are unique by URL. Each loaded Locale 2.0 document must match its reference locale and target this app or one loaded Definition.
+- When a legacy singleton and its plural companion member both appear, processors load the singleton first and then preserve plural array order. References and Ontology remain Definition-targeted; Response Actions may be response-scoped or app-scoped under their own schema.
 - This BLUF is governed by `schemas/bundle-manifest.schema.json`, the canonical schema-defined structure.
 <!-- bluf:end -->
 
@@ -90,7 +91,7 @@ Each sibling carries its own URL and version. Most form-bound siblings carry
 
 This composition graph works when a renderer or generator already knows which siblings to load. It fails for the author opening an app for the first time: an app is implicit in the union of artifacts, but no single artifact names it. There is no stable URL the author can publish, no single file Studio can open, no version a deployer can pin.
 
-This specification defines the **App Manifest**: a single authored JSON artifact that names a Formspec app as one thing. The App Manifest references zero-or-more Definitions, zero-or-more Surfaces, zero-or-more Registries, zero-or-more Components, zero-or-more Screeners, optional substrate Modules and Sessions, and any combination of optional single-cardinality siblings, each by canonical URL and (optional) version. The app's own `id` is the stable identity URL; the app's `version` is the coherent published-app version that pins sibling versions.
+This specification defines the **App Manifest**: a single authored JSON artifact that names a Formspec app as one thing. The App Manifest references zero-or-more Definitions, zero-or-more Surfaces, zero-or-more Registries, zero-or-more Components, zero-or-more Screeners, ordered companion documents, optional substrate Modules and Sessions, and any combination of optional single-cardinality siblings, each by canonical URL and (optional) version. The app's own `id` is the stable identity URL; the app's `version` is the coherent published-app version that pins sibling versions.
 
 The reframe from "Bundle Manifest names one form" (v1.0) to "App Manifest names one app" (v2.0) lands per [ADR 0150](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md) §5.2/§5.3 — Formspec as a layered UI substrate must envelope multi-form apps (an intake suite composing several screening forms) and non-form apps (a workflow viewer composing only surfaces). The v1.0 singular `definition`/`registry` was structurally adequate only for form-only apps; v2.0 plurals open the envelope without breaking the form-only common case (single-element `definitions[]`).
 
@@ -109,7 +110,7 @@ A Definition without an App Manifest remains a valid Formspec form. The App Mani
 
 An App Manifest MUST carry an `id` property whose value is a stable canonical URL identifying the app. Two App Manifests with the same `id` SHOULD be different versions of the same app; an `id` change SHOULD be reserved for apps that have diverged enough to no longer share a continuous evolution.
 
-The `id` MUST be distinct from every sibling URL referenced in the same manifest (every `definitions[].url`, every optional single-cardinality slot's `url`, every entry in `registries[]` / `surfaces[]` / `screeners[]` / `dataSources[]` / `components[]` / `locales[]` / `mappings[]`). An app's `id` is the app's identity; a sibling's URL is an artifact's identity. Collapsing them would mean the app and one of its parts share an identity, which breaks publication and Trace.
+The `id` MUST be distinct from every sibling URL referenced in the same manifest (every `definitions[].url`, every optional single-cardinality slot's `url`, every entry in `registries[]` / `surfaces[]` / `screeners[]` / `dataSources[]` / `components[]` / `locales[]` / `mappings[]` / `referenceDocuments[]` / `ontologies[]` / `responseActionDocuments[]`). An app's `id` is the app's identity; a sibling's URL is an artifact's identity. Collapsing them would mean the app and one of its parts share an identity, which breaks publication and Trace.
 
 ### 2.2 App Version
 
@@ -121,8 +122,9 @@ The App Manifest spec itself is versioned via `$formspecBundle`. This schema acc
 - `"2.1"` is the first additive minor and introduces `dataSources[]` sibling references.
 - `"2.2"` is the second additive minor and introduces `components[]` sibling references while preserving the singular `component` compatibility member.
 - `"2.3"` is the third additive minor and introduces `screeners[]` sibling references as explicit Screener-to-app association evidence.
-- `"2.4"` adds fail-closed `entrySurface` selection and target-aware Locale
-  association.
+- `"2.4"` adds fail-closed `entrySurface` selection, target-aware Locale
+  association, and ordered plural References, Ontology, and Response Actions
+  associations.
 
 The `$formspecBundle` value tracks the major.minor of the canonical schema `$id` (`https://formspec.org/schemas/bundleManifest/2.4`). Future minor versions may introduce new members while remaining backward compatible with older 2.x documents that do not use them, and a major bump (`3.0`) signals another breaking shape change.
 
@@ -138,7 +140,7 @@ the document.
 
 ### 2.3 Sibling Version Pinning
 
-Each sibling reference -- every `definitions[]` entry, every populated optional sibling, every `registries[]`/`surfaces[]`/`screeners[]`/`dataSources[]`/`components[]`/`locales[]`/`mappings[]` entry -- carries an optional `version` field. When present, `version` MUST be either:
+Each sibling reference -- every `definitions[]` entry, every populated optional sibling, every `registries[]`/`surfaces[]`/`screeners[]`/`dataSources[]`/`components[]`/`locales[]`/`mappings[]`/`referenceDocuments[]`/`ontologies[]`/`responseActionDocuments[]` entry -- carries an optional `version` field. When present, `version` MUST be either:
 
 - an **exact** SemVer 2.0.0 string (e.g., `"1.2.0"`), OR
 - a **range expression** in the form Definition's `targetDefinition.compatibleVersions` accepts (e.g., `">=1.0.0 <2.0.0"`, `"^1.0.0"`).
@@ -169,11 +171,11 @@ Each MAY appear at most once.
 | Member | Type | Composes |
 |---|---|---|
 | `experience` | `SiblingRef` | Task intent (Experience companion spec) |
-| `responseActions` | `SiblingRef` | Form-scoped action orchestration |
+| `responseActions` | `SiblingRef` | Legacy single Response Actions association |
 | `component` | `SiblingRef` | Legacy single Component compatibility reference; normalized as `components[]` handle `default` by revised import paths |
 | `theme` | `SiblingRef` | Visual tokens and presentation defaults |
-| `references` | `SiblingRef` | External resource attachments |
-| `ontology` | `SiblingRef` | Concept metadata |
+| `references` | `SiblingRef` | Legacy single References association |
+| `ontology` | `SiblingRef` | Legacy single Ontology association |
 | `entrySurface` | absolute URL string | App Manifest 2.4 entry Surface selector; see §3.4.1 |
 
 ### 3.3 Optional Array-Cardinality Members
@@ -191,6 +193,9 @@ Each MAY appear at most once as a container. Each container holds one or more en
 | `sessions` | `SessionRef` (common.schema) | `id` | Sessions held against the app. Durable session index for `respondent-ledger.sessionRefs[]` URN references (ADR 0150 §5.5). |
 | `locales` | `LocaleRef` | URL in v2.4 | Locale references. In v2.4 the same normalized language tag may appear for distinct loaded targets; each reference URL remains unique. |
 | `mappings` | `MappingRef` | `handle` (slug) | One Mapping document per named handle. Response Actions and other consumers resolve `mappingRef` against this handle. |
+| `referenceDocuments` | `SiblingRef` | (URL) | References documents. v2.4 only; ordered after the legacy `references` member when both appear. |
+| `ontologies` | `SiblingRef` | (URL) | Ontology documents. v2.4 only; ordered after the legacy `ontology` member when both appear. Later loaded bindings retain Ontology precedence. |
+| `responseActionDocuments` | `SiblingRef` | (URL) | Response Actions documents. v2.4 only; ordered after the legacy `responseActions` member when both appear. Supports response-scoped submission actions and app-scoped operations in one app. |
 
 ### 3.4 SiblingRef, LocaleRef, MappingRef, ComponentRef Shapes
 
@@ -208,11 +213,14 @@ All sibling references share a `url` (required, URI) and optional `version` (Sem
 | `definitions[]` | `$formspec` (the Definition root carries the unqualified discriminator) |
 | `experience` | `$formspecExperience` |
 | `responseActions` | `$formspecResponseActions` |
+| `responseActionDocuments[]` | `$formspecResponseActions` |
 | `component` | `$formspecComponent` |
 | `components[]` | `$formspecComponent` |
 | `theme` | `$formspecTheme` |
 | `references` | `$formspecReferences` |
+| `referenceDocuments[]` | `$formspecReferences` |
 | `ontology` | `$formspecOntology` |
+| `ontologies[]` | `$formspecOntology` |
 | `registries[]` | `$formspecRegistry` |
 | `surfaces[]` | `$formspecSurface` (Surface spec; ADR 0150 §14 P2) |
 | `screeners[]` | `$formspecScreener` |
@@ -256,14 +264,33 @@ The selected Surface remains authoritative for the route. Its own `entry`
 selects the route. App Manifest does not add `entryRoute`, and
 `entrySurface` cannot contain or imply a route override.
 
+### 3.4.2 Ordered Companion Documents
+
+`referenceDocuments[]`, `ontologies[]`, and `responseActionDocuments[]` are
+valid only when `$formspecBundle` is `"2.4"`. They extend, rather than replace,
+their legacy singleton members. A processor MUST resolve each family in this
+order:
+
+1. the legacy `references`, `ontology`, or `responseActions` member, when
+   present; then
+2. each corresponding plural member in authored array order.
+
+Processors MUST preserve that order and MUST NOT discover, synthesize,
+reorder, or merge away a companion document. References and Ontology documents
+retain their required `targetDefinition`. A response-scoped Response Actions
+document retains its required `targetDefinition`; an app-scoped Response
+Actions document declares `scope: "app"` and omits `targetDefinition`, as
+defined by the Response Actions schema. App association does not rewrite any
+of those sibling-owned fields.
+
 ### 3.5 Closed Property Surface
 
 The App Manifest schema declares `additionalProperties: false`. New members
 require an App Manifest schema version bump. `dataSources[]` requires 2.1 or
 later, `components[]` requires 2.2 or later, `screeners[]` requires 2.3 or
-later, and `entrySurface` requires exactly 2.4. An older document carrying a
-newer member is invalid. The closed shape keeps manifest resolution
-deterministic.
+later, and `entrySurface`, `referenceDocuments[]`, `ontologies[]`, and
+`responseActionDocuments[]` require exactly 2.4. An older document carrying a
+newer member is invalid. The closed shape keeps manifest resolution deterministic.
 
 Authors MAY use `x-*` extension properties on the top-level object for tooling-specific metadata. Manifest-aware processors MUST ignore unknown `x-*` properties when resolving siblings.
 
@@ -288,7 +315,7 @@ Absence MUST NOT trigger synthesis. Specifically:
   Definition-embedded strings and Surface shell text to fall back to the
   runtime's closed defaults (per [Locale spec §4 Fallback
   Cascade](../locale/locale-spec.md#4-fallback-cascade)).
-- A manifest without `responseActions` MUST cause Component triggers to be unresolvable (per Component §5.19) -- which is an authoring or host-configuration error only if the Component document actually declares `ActionButton` nodes. A manifest with neither `responseActions` nor `component` has no triggers; submit happens via host UI outside Formspec's responsibility.
+- A manifest without `responseActions` or `responseActionDocuments[]` MUST cause Component triggers to be unresolvable (per Component §5.19) -- which is an authoring or host-configuration error only if the Component document actually declares `ActionButton` nodes. A manifest with neither Response Actions association nor `component` has no triggers; submit happens via host UI outside Formspec's responsibility.
 - A manifest without `mappings` MUST cause Response Actions effects of type `mappingExecution` to fail resolution at invocation time (a Response Actions runtime error, not a manifest-shape error).
 - A manifest without `dataSources[]` MUST NOT cause processors to synthesize a Data Sources catalog from Definition `instances`, widget payloads, fixture paths, or URL naming conventions. Definition-local `instances` keep their existing form-local meaning.
 - A manifest without `components[]` MUST NOT cause processors to discover additional Component documents from filenames, URLs, route names, or Surface structure. The singular `component` compatibility member names at most one Component document.
@@ -317,8 +344,9 @@ This is the seam App Manifest adds: discovery without reverse-scanning.
 ### 5.2 Back-Reference Preservation (Sibling → Definition)
 
 Every form-bound sibling except Locale continues to carry its own
-`targetDefinition` (Experience, Component, Response Actions, Theme, Mapping,
-References, Ontology). Component 1.2 route-bound documents carry
+`targetDefinition` (Experience, Component, response-scoped Response Actions,
+Theme, Mapping, References, Ontology). App-scoped Response Actions declare
+`scope: "app"` and omit `targetDefinition`. Component 1.2 route-bound documents carry
 `targetSurfaceRoutes[]` instead. Locale 2.0 uses `target`. App Manifest does NOT
 consume these references, supersede them, or generate them.
 
@@ -340,7 +368,21 @@ When an App Manifest pins a sibling at version V, the loaded sibling document at
 
 A manifest that names a sibling whose back-reference targets a Definition NOT in the manifest's `definitions[]` is a resolution error.
 
-### 5.3.1 Locale 2.0 Association
+### 5.3.1 Ordered Companion Association
+
+For each plural companion member, the loaded document keeps its own target or
+scope. References, Ontology, and response-scoped Response Actions MUST target
+one loaded `definitions[].url`. App-scoped Response Actions MUST declare
+`scope: "app"` and MUST NOT carry `targetDefinition`; their presence in this
+App Manifest is the app association.
+
+Processors expose the full ordered sequence so a consumer can select documents
+for the active Definition and app scope without host-side injection. Ontology
+order remains load order; when multiple loaded Ontology documents bind the
+same target path, the Ontology and Assist specifications' last-loaded
+precedence applies.
+
+### 5.3.2 Locale 2.0 Association
 
 App Manifest 2.4 indexes Locale references by URL, not by language tag. Each
 `locales[].url` MUST be unique. The same normalized BCP 47 tag MAY appear more
@@ -432,10 +474,14 @@ A **Manifest-Aware Processor** MUST:
    implicitly; two or more require `entrySurface`; an explicit value must match
    exactly one `surfaces[].url`. Refuse ambiguity or invalid selection without
    fallback.
-10. Apply §5.3.1 after loading Locale 2.0 documents: reference URL uniqueness,
+10. Apply §5.3.2 after loading Locale 2.0 documents: reference URL uniqueness,
     reference/document locale equality, loaded target membership and version,
     complete-tuple uniqueness, and target-bounded fallback.
 11. Reject a manifest that declares both singular `component` and a `components[]` entry with `handle: "default"`.
+12. Reject `referenceDocuments[]`, `ontologies[]`, or
+    `responseActionDocuments[]` before 2.4. Resolve each accepted family in
+    legacy-singleton-first, plural-array-second order and preserve every
+    sibling-owned target or scope.
 
 A processor MAY perform partial loads (e.g., resolve only the first Definition + a Component for a quick preview).
 
@@ -489,7 +535,7 @@ test-only validator for `AppGraphValidator`.
 The following are explicitly NOT part of this v2 conformance:
 
 - A canonical manifest-loader implementation (Rust crate, TS module, Python loader). App Manifest is a declarative envelope with no business logic; schema validation plus the §6.1 processor rules are sufficient. Loader implementations land when consumers (renderer, Studio, MCP) need them.
-- Cross-sibling consistency beyond §5.3, §5.3.1, §5.4, and §5.5 (for
+- Cross-sibling consistency beyond §5.3, §5.3.1, §5.3.2, §5.4, and §5.5 (for
   example, verifying that a Component `actionRef` resolves against the
   manifested Response Actions document). That verification belongs to each
   sibling's own specification.

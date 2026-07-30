@@ -891,7 +891,10 @@ mod tests {
                     "type": "documentation",
                     "audience": "human",
                     "title": "Help",
-                    "uri": "https://example.com/help"
+                    "uri": "https://example.com/help",
+                    "x-generation": {
+                        "anchors": ["need:customer-help@1"]
+                    }
                 }
             ]
         });

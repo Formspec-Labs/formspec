@@ -275,7 +275,10 @@ function structureProblems(value: unknown): string[] {
             ) {
               problem(path, 'expected one closed loaded source outcome');
             }
-          } else if (entry.status === 'unavailable') {
+          } else if (
+            entry.status === 'unavailable' ||
+            entry.status === 'error'
+          ) {
             if (
               !hasOnly(entry, [
                 'catalogRef',
@@ -290,10 +293,16 @@ function structureProblems(value: unknown): string[] {
                 !validGeneration(entry['x-generation'])
               )
             ) {
-              problem(path, 'expected one closed unavailable source outcome');
+              problem(
+                path,
+                `expected one closed ${entry.status} source outcome`,
+              );
             }
           } else {
-            problem(`${path}.status`, 'expected "loaded" or "unavailable"');
+            problem(
+              `${path}.status`,
+              'expected "loaded", "unavailable", or "error"',
+            );
           }
         });
       }
@@ -658,13 +667,17 @@ export function createSurfacePreviewRuntime(
     if (!outcome) {
       return { status: 'unavailable', reason: 'scenario outcome is unavailable' };
     }
-    return outcome.status === 'loaded'
-      ? {
-          status: 'loaded',
-          freshness: outcome.freshness,
-          value: outcome.value,
-        }
-      : { status: 'unavailable', reason: outcome.reason };
+    if (outcome.status === 'loaded') {
+      return {
+        status: 'loaded',
+        freshness: outcome.freshness,
+        value: outcome.value,
+      };
+    }
+    if (outcome.status === 'error') {
+      throw new Error(outcome.reason);
+    }
+    return { status: 'unavailable', reason: outcome.reason };
   };
 
   const authorize: DataSourceAuthorizer = ({ descriptor }) => {

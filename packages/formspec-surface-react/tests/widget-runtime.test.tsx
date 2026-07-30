@@ -268,6 +268,170 @@ describe('qualified widget data', () => {
     expect(authorize).toHaveBeenCalledBefore(loader);
     expect(loader).toHaveBeenCalledBefore(validate);
   });
+
+  it('renders traced loading and empty views from configuration', async () => {
+    let finish:
+      | ((value: {
+          status: 'loaded';
+          freshness: 'fresh';
+          value: { items: unknown[] };
+        }) => void)
+      | undefined;
+    const loader = vi.fn(
+      () =>
+        new Promise<{
+          status: 'loaded';
+          freshness: 'fresh';
+          value: { items: unknown[] };
+        }>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const config = {
+      emptyWhen: { inputName: 'receipt', path: 'items' },
+      stateViews: {
+        loading: {
+          heading: 'Loading resources',
+          body: 'The current list is on its way.',
+          'x-generation': { anchors: ['need:see-resources@1'] },
+        },
+        empty: {
+          heading: 'No resources',
+          body: 'There are no resources in this workspace.',
+          actions: [{
+            kind: 'output',
+            outputName: 'accepted',
+            'x-generation': { anchors: ['need:create-resource@1'] },
+          }],
+          'x-generation': { anchors: ['need:see-resources@1'] },
+        },
+      },
+    };
+    const container = render(
+      <SurfaceApp
+        bundle={bundle(true, [], config)}
+        location="/receipt"
+        onNavigate={() => {}}
+        widgetModules={runtimeModule(() => <div data-probe="ready" />)}
+        authorizeDataSource={() => ({ status: 'authorized' })}
+        dataSourceLoader={loader}
+        validateDataSourcePayload={() => ({ valid: true })}
+        setDocumentTitle={false}
+      />,
+    );
+
+    expect(container.querySelector('[data-widget-state="loading"]')?.textContent).toContain(
+      'Loading resources',
+    );
+    await act(async () => {
+      await Promise.resolve();
+      finish?.({ status: 'loaded', freshness: 'fresh', value: { items: [] } });
+      await Promise.resolve();
+    });
+    expect(container.querySelector('[data-widget-state="empty"]')?.textContent).toContain(
+      'No resources',
+    );
+    expect(
+      container.querySelector<HTMLButtonElement>('[data-state-action-output="accepted"]')
+        ?.textContent,
+    ).toBe('Accept receipt');
+    expect(container.querySelector('[data-probe="ready"]')).toBeNull();
+  });
+
+  it('renders an authored unavailable state for an explicit unavailable source result', async () => {
+    const config = {
+      stateViews: {
+        unavailable: {
+          heading: 'This resource is temporarily unavailable',
+          body: 'Use the alternate route while service is restored.',
+          'x-generation': { anchors: ['need:see-resource@1'] },
+        },
+      },
+    };
+    const container = render(
+      <SurfaceApp
+        bundle={bundle(true, [], config)}
+        location="/receipt"
+        onNavigate={() => {}}
+        widgetModules={runtimeModule(() => <div data-probe="ready">Ready</div>)}
+        authorizeDataSource={() => ({ status: 'authorized' })}
+        dataSourceLoader={() => ({
+          status: 'unavailable',
+          reason: 'private maintenance window 42',
+        })}
+        validateDataSourcePayload={() => ({ valid: true })}
+        setDocumentTitle={false}
+      />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(
+      container.querySelector('[data-widget-state="unavailable"]')?.textContent,
+    ).toContain('This resource is temporarily unavailable');
+    expect(container.textContent).not.toContain('private maintenance window 42');
+    expect(container.querySelector('[data-probe="ready"]')).toBeNull();
+  });
+
+  it('keeps load details in diagnostics and retries from traced customer copy', async () => {
+    const loader = vi.fn()
+      .mockRejectedValueOnce(new Error('private backend shard 12 timed out'))
+      .mockResolvedValueOnce({
+        status: 'loaded',
+        freshness: 'fresh',
+        value: { caseRef: 'case-7' },
+      });
+    const delivered: SurfaceDiagnostic[][] = [];
+    const config = {
+      stateViews: {
+        error: {
+          heading: 'We could not load this section',
+          body: 'Try again.',
+          actions: [{
+            kind: 'retry',
+            label: 'Try again',
+            'x-generation': { anchors: ['need:recover-resource@1'] },
+          }],
+          'x-generation': { anchors: ['need:see-resource@1'] },
+        },
+      },
+    };
+    const container = render(
+      <SurfaceApp
+        bundle={bundle(true, [], config)}
+        location="/receipt"
+        onNavigate={() => {}}
+        widgetModules={runtimeModule(() => <div data-probe="ready">Ready</div>)}
+        authorizeDataSource={() => ({ status: 'authorized' })}
+        dataSourceLoader={loader}
+        validateDataSourcePayload={() => ({ valid: true })}
+        onDiagnostics={(diagnostics) => delivered.push([...diagnostics])}
+        setDocumentTitle={false}
+      />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.querySelector('[data-widget-state="error"]')?.textContent).toContain(
+      'We could not load this section',
+    );
+    expect(container.textContent).not.toContain('private backend shard 12');
+    expect(delivered.at(-1)?.some((diagnostic) =>
+      diagnostic.message.includes('private backend shard 12 timed out'),
+    )).toBe(true);
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-state-action="retry"]')?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(loader).toHaveBeenCalledTimes(2);
+    expect(container.querySelector('[data-probe="ready"]')?.textContent).toBe('Ready');
+  });
 });
 
 describe('widget action runtime', () => {
@@ -364,6 +528,69 @@ describe('widget action runtime', () => {
     expect(reports.at(-1)?.invocationId).toBe(invocationId);
   });
 
+  it('advances a completed app action with structured input and no fake Response', async () => {
+    const appActions = {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      scope: 'app',
+      actions: [{
+        id: 'acceptReceipt',
+        intent: 'review',
+        label: { literal: 'Accept receipt' },
+        validation: {
+          profile: 'off',
+          blocking: 'non-blocking',
+          persistence: 'none',
+        },
+      }],
+    } as unknown as ResponseActionsDocument;
+    const appBundle = {
+      ...bundle(),
+      responseActions: [appActions],
+    };
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(({ input }) => ({
+      ...completed(),
+      detail: input ?? null,
+    }));
+    const Widget: SurfaceWidget = ({ emitAction }) => (
+      <button
+        data-probe="emit"
+        onClick={() => emitAction('accepted', {
+          resource: {
+            href: '/records/response-1',
+            label: 'Review response',
+          },
+        })}
+      >
+        Open
+      </button>
+    );
+    const onNavigate = vi.fn();
+    const container = render(
+      <SurfaceApp
+        bundle={appBundle}
+        location="/receipt"
+        onNavigate={onNavigate}
+        widgetModules={runtimeModule(Widget)}
+        widgetActionExecutor={executor}
+        setDocumentTitle={false}
+      />,
+    );
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-probe="emit"]')?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(executor.mock.calls[0]?.[0].input).toEqual({
+      resource: {
+        href: '/records/response-1',
+        label: 'Review response',
+      },
+    });
+    expect(onNavigate).toHaveBeenCalledWith('/done');
+  });
+
   it('discards navigation from a terminal after the session generation changes', async () => {
     let finish: ((value: ReturnType<typeof completed>) => void) | undefined;
     const executor = vi.fn<SurfaceWidgetActionExecutor>(
@@ -445,6 +672,40 @@ describe('widget action runtime', () => {
     expect(executor).not.toHaveBeenCalled();
     expect(delivered.at(-1)?.map((diagnostic) => diagnostic.code)).toContain(
       'WIDGET-ACTION-OUTPUT-UNDECLARED',
+    );
+  });
+
+  it('rejects non-JSON action input before calling the executor', async () => {
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => completed());
+    const Widget: SurfaceWidget = ({ emitAction }) => (
+      <button
+        data-probe="emit"
+        onClick={() =>
+          emitAction('accepted', { unsafe: () => 'not data' } as never)}
+      >
+        Accept
+      </button>
+    );
+    const delivered: SurfaceDiagnostic[][] = [];
+    const container = render(
+      <SurfaceApp
+        bundle={bundle()}
+        location="/receipt"
+        onNavigate={() => {}}
+        widgetModules={runtimeModule(Widget)}
+        widgetActionExecutor={executor}
+        onDiagnostics={(diagnostics) => delivered.push([...diagnostics])}
+        setDocumentTitle={false}
+      />,
+    );
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-probe="emit"]')?.click();
+      await Promise.resolve();
+    });
+    expect(executor).not.toHaveBeenCalled();
+    expect(delivered.at(-1)?.map((diagnostic) => diagnostic.code)).toContain(
+      'WIDGET-ACTION-INPUT-INVALID',
     );
   });
 

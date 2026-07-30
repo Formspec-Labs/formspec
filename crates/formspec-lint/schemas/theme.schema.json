@@ -135,6 +135,28 @@
         "intent": "Central design vocabulary referenced via $token.<key> in style and widgetConfig. Enables consistent theming and easy rebrand. RECOMMENDED token-map prefixes include color.*, spacing.*, typography.*, border.*, elevation.*, x-* (custom); graph-visible UI policy token-slot compatibility recognizes platform token-registry prefixes plus custom x-* evidence."
       }
     },
+    "contrastPairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ContrastPair"
+      },
+      "description": "Additional color-token pairs whose effective contrast tooling must check. The platform Token Registry already declares the pairs used by the default renderer, so a Theme only needs this property for custom x-* tokens or stricter product-specific checks. A processor evaluates a pair after platform defaults and Theme token overrides are merged. It MUST use the WCAG 2.2 contrast formula when both values can be reduced to opaque sRGB colors, MUST NOT report a ratio when either value is indeterminate, and SHOULD diagnose a declared pair that references a missing token. The usage sets a standards floor: normalText is 4.5:1; largeText and uiComponent are 3:1. minimumRatio may raise but never lower that floor.",
+      "examples": [
+        [
+          {
+            "id": "agency-badge-label",
+            "foregroundToken": "x-agency.badge-text",
+            "backgroundToken": "x-agency.badge-fill",
+            "usage": "normalText"
+          }
+        ]
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Declares custom or stricter color relationships as data so authoring tools can reject inaccessible effective token combinations before rendering."
+      }
+    },
     "defaults": {
       "$ref": "#/$defs/PresentationBlock",
       "description": "Cascade level 1 (lowest theme specificity): baseline PresentationBlock applied to every item before selectors or per-item overrides. Sets the form-wide visual baseline. Overrides Tier 1 inline presentation hints (level 0) and formPresentation globals (level -1). Overridden by selectors (level 2) and items (level 3). Merge is shallow per-property — nested objects (widgetConfig, style, accessibility) are replaced as a whole, not deep-merged. Exception: cssClass uses union semantics across all levels.",
@@ -319,6 +341,51 @@
     },
     "Tokens": {
       "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Tokens"
+    },
+    "ContrastPair": {
+      "type": "object",
+      "required": [
+        "id",
+        "foregroundToken",
+        "backgroundToken",
+        "usage"
+      ],
+      "additionalProperties": false,
+      "description": "A pair of effective color tokens checked together. Token names are stored without the $token. reference prefix. Authors use separate pairs for separate color-scheme token keys, such as color.input and color.dark.input.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+          "description": "Stable identifier for this contrast check within the Theme."
+        },
+        "foregroundToken": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$",
+          "description": "Token key for the text, icon, focus indicator, or control boundary color."
+        },
+        "backgroundToken": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$",
+          "description": "Token key for the adjacent background or surface color."
+        },
+        "usage": {
+          "type": "string",
+          "enum": [
+            "normalText",
+            "largeText",
+            "uiComponent"
+          ],
+          "description": "How the foreground is used. normalText requires at least 4.5:1; largeText and uiComponent require at least 3:1."
+        },
+        "minimumRatio": {
+          "type": "number",
+          "minimum": 3,
+          "maximum": 21,
+          "description": "Optional stricter contrast ratio. The effective minimum is the greater of this number and the floor implied by usage, so this value cannot weaken the standards floor."
+        }
+      }
     },
     "Category": {
       "type": "object",

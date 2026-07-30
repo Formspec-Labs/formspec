@@ -79,6 +79,8 @@ export const SURFACE_DIAGNOSTIC_CODES = [
   'WIDGET-DATA-REQUIRED-UNAVAILABLE',
   /** A widget emitted a name absent from its Registry actionOutputs declaration. */
   'WIDGET-ACTION-OUTPUT-UNDECLARED',
+  /** A widget emitted action data that is not safe finite JSON object data. */
+  'WIDGET-ACTION-INPUT-INVALID',
   /** A declared widget output has no exact Surface action binding. */
   'WIDGET-ACTION-OUTPUT-UNMAPPED',
   /** A mapped widget output names no unique loaded Response Actions action. */
@@ -142,6 +144,7 @@ export const SURFACE_DIAGNOSTIC_SEVERITY = {
   'WIDGET-DELIVERY-CONTRACT-MISMATCH': 'error',
   'WIDGET-DATA-REQUIRED-UNAVAILABLE': 'error',
   'WIDGET-ACTION-OUTPUT-UNDECLARED': 'error',
+  'WIDGET-ACTION-INPUT-INVALID': 'error',
   'WIDGET-ACTION-OUTPUT-UNMAPPED': 'error',
   'WIDGET-ACTION-REF-UNRESOLVED': 'error',
   'WIDGET-ACTION-TRANSITION-AMBIGUOUS': 'error',

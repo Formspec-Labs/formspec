@@ -14,12 +14,18 @@
  * its own anchor. Parent anchors never authorize untraced child content.
  * Invalid or absent anchors never become DOM claims.
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Heading, nextLevel } from '../heading.js';
 import type {
   SurfaceWidgetAction,
+  SurfaceWidgetActionInput,
   SurfaceWidgetProps,
 } from '../widget-api.js';
+import { admitSurfaceWidgetActionInput } from '../widget-action-runtime.js';
+import type {
+  ModuleWidgetEmptyWhen,
+  ModuleWidgetStateViewsConfig,
+} from '../widget-state.js';
 import { WidgetEmptyState } from './empty-state.js';
 
 interface GeneratedFromNeeds {
@@ -72,7 +78,9 @@ export interface StructuredTableBlockConfig extends StructuredBlockBase {
   type: 'table';
   path: string;
   caption?: string;
+  responsiveMode?: 'stack' | 'scroll';
   columns: readonly StructuredTableColumnConfig[];
+  rowAction?: StructuredTableRowActionConfig;
 }
 
 export interface StructuredProgressBlockConfig extends StructuredBlockBase {
@@ -80,6 +88,7 @@ export interface StructuredProgressBlockConfig extends StructuredBlockBase {
   label?: string;
   path: string;
   max?: number;
+  maxPath?: string;
   suffix?: string;
 }
 
@@ -94,6 +103,30 @@ export interface StructuredPanelActionConfig extends GeneratedFromNeeds {
   outputName: string;
   order?: number;
   emphasis?: 'primary' | 'secondary' | 'danger';
+  payload?: StructuredActionPayloadConfig;
+  pendingLabel?: string;
+  successMessage?: string;
+  failureMessage?: string;
+}
+
+export interface StructuredActionPayloadSelector {
+  /** Dot-separated safe path. An empty path selects the current object. */
+  path: string;
+}
+
+export type StructuredActionPayloadConfig = Readonly<
+  Record<string, StructuredActionPayloadSelector>
+>;
+
+export interface StructuredTableRowActionConfig extends GeneratedFromNeeds {
+  outputName: string;
+  columnLabel: string;
+  emphasis?: 'primary' | 'secondary' | 'danger';
+  /** Paths are relative to the selected row. */
+  payload?: StructuredActionPayloadConfig;
+  pendingLabel?: string;
+  successMessage?: string;
+  failureMessage?: string;
 }
 
 export interface StructuredPanelConfig extends GeneratedFromNeeds {
@@ -103,6 +136,8 @@ export interface StructuredPanelConfig extends GeneratedFromNeeds {
   title?: string;
   body?: string;
   emptyMessage?: string;
+  emptyWhen?: ModuleWidgetEmptyWhen;
+  stateViews?: ModuleWidgetStateViewsConfig;
   blocks?: readonly StructuredPanelBlockConfig[];
   actions?: readonly StructuredPanelActionConfig[];
 }
@@ -201,6 +236,108 @@ function scalarText(value: unknown): string | undefined {
   if (typeof value === 'boolean') return String(value);
   if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   return undefined;
+}
+
+function selectedActionPayload(
+  configured: unknown,
+  root: unknown,
+): SurfaceWidgetActionInput | undefined {
+  if (configured === undefined) return undefined;
+  const mapping = record(configured);
+  if (!mapping) return undefined;
+  const selected: Record<string, unknown> = {};
+  for (const [name, candidate] of Object.entries(mapping)) {
+    if (!safeId(name)) return undefined;
+    const selector = record(candidate);
+    if (!selector || typeof selector.path !== 'string') return undefined;
+    const value = selector.path === ''
+      ? root
+      : readStructuredPanelPath(root, selector.path);
+    if (value === undefined) return undefined;
+    selected[name] = value;
+  }
+  const admission = admitSurfaceWidgetActionInput(selected);
+  return admission.accepted ? admission.input : undefined;
+}
+
+function resolvedAction(
+  outputName: string | undefined,
+  available: readonly SurfaceWidgetAction[],
+): SurfaceWidgetAction | undefined {
+  if (!outputName) return undefined;
+  const matches = available.filter((action) => action.outputName === outputName);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+interface StructuredActionButtonProps {
+  action: SurfaceWidgetAction;
+  label: string;
+  emphasis: 'primary' | 'secondary' | 'danger';
+  anchors: readonly string[];
+  input?: SurfaceWidgetActionInput | undefined;
+  emitAction: SurfaceWidgetProps['emitAction'];
+  rowAction?: boolean | undefined;
+  pendingLabel?: string | undefined;
+  successMessage?: string | undefined;
+  failureMessage?: string | undefined;
+}
+
+function StructuredActionButton({
+  action,
+  label,
+  emphasis,
+  anchors,
+  input,
+  emitAction,
+  rowAction,
+  pendingLabel,
+  successMessage,
+  failureMessage,
+}: StructuredActionButtonProps): ReactNode {
+  const [status, setStatus] = useState<
+    'idle' | 'pending' | 'completed' | 'failed'
+  >('idle');
+  const visibleLabel =
+    status === 'pending'
+      ? pendingLabel ?? label
+      : status === 'completed'
+        ? successMessage ?? label
+        : status === 'failed'
+          ? failureMessage ?? label
+          : label;
+  return (
+    <button
+      className="fs-structured-panel__action"
+      type="button"
+      data-row-action={rowAction ? '' : undefined}
+      data-action-output={action.outputName}
+      data-action-ref={action.actionRef}
+      data-action-intent={action.intent}
+      data-action-status={status}
+      data-emphasis={emphasis}
+      aria-busy={status === 'pending' ? 'true' : undefined}
+      disabled={status === 'pending'}
+      onClick={() => {
+        const emission = input === undefined
+          ? emitAction(action.outputName)
+          : emitAction(action.outputName, input);
+        if (!emission) return;
+        setStatus('pending');
+        void emission.completion.then((feedback) => {
+          setStatus(
+            feedback.status === 'completed'
+              ? 'completed'
+              : feedback.status === 'obsolete'
+                ? 'idle'
+                : 'failed',
+          );
+        }).catch(() => setStatus('failed'));
+      }}
+      {...traceAttributes(anchors)}
+    >
+      {visibleLabel}
+    </button>
+  );
 }
 
 function blockFrame(
@@ -348,6 +485,8 @@ function renderTable(
   block: UnknownRecord,
   data: Readonly<Record<string, unknown>>,
   headingLevel: SurfaceWidgetProps['headingLevel'],
+  availableActions: readonly SurfaceWidgetAction[],
+  emitAction: SurfaceWidgetProps['emitAction'],
 ): ReactNode {
   return blockFrame(block, headingLevel, (anchors) => {
     const rawRows = readStructuredPanelPath(data, block.path);
@@ -375,9 +514,27 @@ function renderTable(
       : [];
     if (rows.length === 0 || columns.length === 0) return blockEmpty(block, anchors);
     const caption = nonEmptyString(block.caption);
+    const responsiveMode = block.responsiveMode === 'scroll' ? 'scroll' : 'stack';
+    const rowActionConfig = record(block.rowAction);
+    const rowActionAnchors = rowActionConfig ? needAnchors(rowActionConfig) : [];
+    const rowAction = rowActionAnchors.length > 0
+      ? resolvedAction(nonEmptyString(rowActionConfig?.outputName), availableActions)
+      : undefined;
+    const rowActionLabel = rowAction ? literalActionLabel(rowAction) : undefined;
+    const rowActionColumnLabel = nonEmptyString(rowActionConfig?.columnLabel);
+    const rowActionEmphasis =
+      rowActionConfig?.emphasis === 'primary' ||
+      rowActionConfig?.emphasis === 'danger'
+        ? rowActionConfig.emphasis
+        : 'secondary';
+    const rendersRowAction =
+      rowAction !== undefined &&
+      rowActionLabel !== undefined &&
+      rowActionColumnLabel !== undefined;
     return (
       <div
         className="fs-structured-panel__table-scroll"
+        data-responsive-mode={responsiveMode}
         role="region"
         tabIndex={0}
         aria-label={caption ?? nonEmptyString(block.title) ?? safeId(block.id)}
@@ -397,6 +554,18 @@ function renderTable(
                   {column.label}
                 </th>
               ))}
+              {rendersRowAction ? (
+                <th
+                  scope="col"
+                  data-column-id="action"
+                  {...traceAttributes(mergeAnchors(
+                    rowActionAnchors,
+                    rowAction.needAnchors ?? [],
+                  ))}
+                >
+                  {rowActionColumnLabel}
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -406,12 +575,44 @@ function renderTable(
                   <td
                     key={column.id}
                     data-column-id={column.id}
+                    data-column-label={column.label}
                     data-numeric={column.numeric ? 'true' : undefined}
                     {...traceAttributes(column.anchors)}
                   >
                     {scalarText(readStructuredPanelPath(row, column.path)) ?? ''}
                   </td>
                 ))}
+                {rendersRowAction ? (
+                  <td
+                    data-column-id="action"
+                    data-column-label={rowActionColumnLabel}
+                    {...traceAttributes(mergeAnchors(
+                      rowActionAnchors,
+                      rowAction.needAnchors ?? [],
+                    ))}
+                  >
+                    {rowActionConfig?.payload !== undefined &&
+                    selectedActionPayload(rowActionConfig.payload, row) === undefined
+                      ? null
+                      : (
+                        <StructuredActionButton
+                          action={rowAction}
+                          label={rowActionLabel}
+                          emphasis={rowActionEmphasis}
+                          anchors={mergeAnchors(
+                            rowActionAnchors,
+                            rowAction.needAnchors ?? [],
+                          )}
+                          input={selectedActionPayload(rowActionConfig?.payload, row)}
+                          emitAction={emitAction}
+                          rowAction
+                          pendingLabel={nonEmptyString(rowActionConfig?.pendingLabel)}
+                          successMessage={nonEmptyString(rowActionConfig?.successMessage)}
+                          failureMessage={nonEmptyString(rowActionConfig?.failureMessage)}
+                        />
+                      )}
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>
@@ -428,9 +629,19 @@ function renderProgress(
 ): ReactNode {
   return blockFrame(block, headingLevel, (anchors) => {
     const value = readStructuredPanelPath(data, block.path);
-    const max = typeof block.max === 'number' && Number.isFinite(block.max) && block.max > 0
-      ? block.max
-      : 100;
+    const dynamicMax = nonEmptyString(block.maxPath)
+      ? readStructuredPanelPath(data, block.maxPath)
+      : undefined;
+    const max =
+      typeof dynamicMax === 'number' &&
+      Number.isFinite(dynamicMax) &&
+      dynamicMax > 0
+        ? dynamicMax
+        : typeof block.max === 'number' &&
+            Number.isFinite(block.max) &&
+            block.max > 0
+          ? block.max
+          : 100;
     if (typeof value !== 'number' || !Number.isFinite(value)) {
       return blockEmpty(block, anchors);
     }
@@ -451,6 +662,8 @@ function renderBlock(
   data: Readonly<Record<string, unknown>>,
   routeParams: Readonly<Record<string, string>>,
   headingLevel: SurfaceWidgetProps['headingLevel'],
+  availableActions: readonly SurfaceWidgetAction[],
+  emitAction: SurfaceWidgetProps['emitAction'],
 ): ReactNode {
   const block = record(candidate);
   if (!block) return null;
@@ -462,7 +675,13 @@ function renderBlock(
     case 'list':
       return renderList(block, data, headingLevel);
     case 'table':
-      return renderTable(block, data, headingLevel);
+      return renderTable(
+        block,
+        data,
+        headingLevel,
+        availableActions,
+        emitAction,
+      );
     case 'progress':
       return renderProgress(block, data, headingLevel);
     default:
@@ -480,6 +699,7 @@ function renderActions(
   configured: unknown,
   available: readonly SurfaceWidgetAction[],
   emitAction: SurfaceWidgetProps['emitAction'],
+  data: Readonly<Record<string, unknown>>,
 ): ReactNode {
   if (!Array.isArray(configured)) return null;
   const presentations = configured.flatMap((candidate, index) => {
@@ -487,15 +707,14 @@ function renderActions(
     const outputName = nonEmptyString(presentation?.outputName);
     const anchors = presentation ? needAnchors(presentation) : [];
     if (!presentation || !outputName || anchors.length === 0) return [];
-    const matches = available.filter((action) => action.outputName === outputName);
-    const action = matches.length === 1 ? matches[0] : undefined;
+    const action = resolvedAction(outputName, available);
     const label = action ? literalActionLabel(action) : undefined;
     if (!action || !label) return [];
     const authoredOrder =
       typeof presentation.order === 'number' && Number.isFinite(presentation.order)
         ? presentation.order
         : index;
-    const emphasis =
+    const emphasis: 'primary' | 'secondary' | 'danger' =
       presentation.emphasis === 'primary' ||
       presentation.emphasis === 'secondary' ||
       presentation.emphasis === 'danger'
@@ -508,6 +727,10 @@ function renderActions(
       authoredOrder,
       index,
       emphasis,
+      payload: presentation.payload,
+      pendingLabel: nonEmptyString(presentation.pendingLabel),
+      successMessage: nonEmptyString(presentation.successMessage),
+      failureMessage: nonEmptyString(presentation.failureMessage),
     }];
   });
   presentations.sort(
@@ -516,21 +739,33 @@ function renderActions(
   if (presentations.length === 0) return null;
   return (
     <div className="fs-structured-panel__actions">
-      {presentations.map(({ action, label, anchors, emphasis }) => (
-        <button
-          className="fs-structured-panel__action"
-          type="button"
-          data-action-output={action.outputName}
-          data-action-ref={action.actionRef}
-          data-action-intent={action.intent}
-          data-emphasis={emphasis}
-          key={action.outputName}
-          onClick={() => emitAction(action.outputName)}
-          {...traceAttributes(anchors)}
-        >
-          {label}
-        </button>
-      ))}
+      {presentations.map(({
+        action,
+        label,
+        anchors,
+        emphasis,
+        payload: configuredPayload,
+        pendingLabel,
+        successMessage,
+        failureMessage,
+      }) => {
+        const input = selectedActionPayload(configuredPayload, data);
+        if (configuredPayload !== undefined && input === undefined) return null;
+        return (
+          <StructuredActionButton
+            key={action.outputName}
+            action={action}
+            label={label}
+            emphasis={emphasis}
+            anchors={anchors}
+            input={input}
+            emitAction={emitAction}
+            pendingLabel={pendingLabel}
+            successMessage={successMessage}
+            failureMessage={failureMessage}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -561,13 +796,21 @@ export function StructuredPanel({
   const blockHeadingLevel = title ? nextLevel(headingLevel) : headingLevel;
   const renderedBlocks = configuredBlocks
     .map((block) =>
-      renderBlock(block, data, route.params, blockHeadingLevel),
+      renderBlock(
+        block,
+        data,
+        route.params,
+        blockHeadingLevel,
+        actions,
+        emitAction,
+      ),
     )
     .filter((block) => block !== null);
   const renderedActions = renderActions(
     configuredActions,
     actions,
     emitAction,
+    data,
   );
 
   if (!header && renderedBlocks.length === 0 && !renderedActions) {
@@ -575,16 +818,17 @@ export function StructuredPanel({
       panelAnchors.length > 0
         ? nonEmptyString(panel.emptyMessage)
         : undefined;
+    if (!emptyMessage) return null;
     return (
       <div
         className="fs-structured-panel"
         data-widget="structured-panel"
         data-panel-id={panelId}
-        data-trace-state={allAnchors.length === 0 ? 'missing' : 'present'}
+        data-trace-state="present"
         {...traceAttributes(allAnchors)}
       >
         <WidgetEmptyState>
-          {emptyMessage ?? 'This panel has no traceable content to show.'}
+          {emptyMessage}
         </WidgetEmptyState>
       </div>
     );

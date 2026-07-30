@@ -22,6 +22,7 @@
  * platform's binds this one. Both go through the same seam.
  */
 import type { SurfaceWidget, SurfaceWidgetModule } from '../widget-api.js';
+import { MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES } from '../widget-state.js';
 import { IntakeBanner } from './intake-banner.js';
 import { CeremonyFrame } from './ceremony-frame.js';
 import { ReceiptPanel } from './receipt-panel.js';
@@ -43,12 +44,15 @@ export type {
   StructuredKeyValueItemConfig,
   StructuredListBlockConfig,
   StructuredMetricBlockConfig,
+  StructuredActionPayloadConfig,
+  StructuredActionPayloadSelector,
   StructuredPanelActionConfig,
   StructuredPanelBlockConfig,
   StructuredPanelConfig,
   StructuredProgressBlockConfig,
   StructuredTableBlockConfig,
   StructuredTableColumnConfig,
+  StructuredTableRowActionConfig,
 } from './structured-panel.js';
 
 /**
@@ -80,7 +84,9 @@ export const STRUCTURED_PANEL_RENDERED_CONFIG_NODES = [
   { pointerPattern: '/blocks/*', kind: 'structured-panel-block' },
   { pointerPattern: '/blocks/*/items/*', kind: 'structured-panel-field' },
   { pointerPattern: '/blocks/*/columns/*', kind: 'structured-panel-column' },
+  { pointerPattern: '/blocks/*/rowAction', kind: 'structured-panel-row-action' },
   { pointerPattern: '/actions/*', kind: 'structured-panel-action' },
+  ...MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES,
 ] as const;
 
 export function starterWidgetModule(moduleId: string): SurfaceWidgetModule {

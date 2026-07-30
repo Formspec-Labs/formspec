@@ -256,7 +256,10 @@ payload channel.
 An action output name describes an event the widget may emit. It is not a
 Response Actions action id, a route id, an intent, or a generic host command.
 Surface 0.2 maps the output name to one exact `actionRef`. A processor MUST NOT
-fall back from an undeclared or unmapped output to a same-named action.
+fall back from an undeclared or unmapped output to a same-named action. A
+renderer MAY emit admitted structured `input` with that output; the input does
+not change the output's identity or authorize a different action. Surface owns
+its finite-JSON admission, frozen delivery, and invocation-key semantics.
 
 #### 3.2.2 Rendered configuration inventory and delivery identity
 
@@ -274,6 +277,11 @@ expands every pattern against each resolved binding and requires a direct
 current adopted Need on every matched object. It MUST reject an invalid,
 overlapping, or incomplete inventory rather than guess which configuration the
 renderer displays.
+
+Generic widget states are not exempt from this rule. If a renderer can display
+`config.stateViews.*`, each state-view object and every object in its
+`actions[]` MUST be separate inventory matches and carry direct current Need
+anchors. A root or parent-state anchor does not authorize a nested action.
 
 At runtime, the delivered widget module MUST publish the same delivery
 contract id, Registry entry version, and rendered-node inventory. A binding

@@ -89,7 +89,7 @@ interface SlotSpec {
   artifactKind: string;
   discriminator: string;
   cardinality: 'array' | 'single';
-  minBundleVersion?: '2.1' | '2.2' | '2.3';
+  minBundleVersion?: '2.1' | '2.2' | '2.3' | '2.4';
 }
 
 interface DeclaredRef {
@@ -128,11 +128,14 @@ const SLOT_SPECS: readonly SlotSpec[] = [
   { group: 'definitions', manifestKey: 'definitions', artifactKind: 'definition', discriminator: '$formspec', cardinality: 'array' },
   { group: 'experience', manifestKey: 'experience', artifactKind: 'experience', discriminator: '$formspecExperience', cardinality: 'single' },
   { group: 'responseActions', manifestKey: 'responseActions', artifactKind: 'responseActions', discriminator: '$formspecResponseActions', cardinality: 'single' },
+  { group: 'responseActions', manifestKey: 'responseActionDocuments', artifactKind: 'responseActions', discriminator: '$formspecResponseActions', cardinality: 'array', minBundleVersion: '2.4' },
   { group: 'component', manifestKey: 'component', artifactKind: 'component', discriminator: '$formspecComponent', cardinality: 'single' },
   { group: 'components', manifestKey: 'components', artifactKind: 'component', discriminator: '$formspecComponent', cardinality: 'array', minBundleVersion: '2.2' },
   { group: 'theme', manifestKey: 'theme', artifactKind: 'theme', discriminator: '$formspecTheme', cardinality: 'single' },
   { group: 'references', manifestKey: 'references', artifactKind: 'references', discriminator: '$formspecReferences', cardinality: 'single' },
+  { group: 'references', manifestKey: 'referenceDocuments', artifactKind: 'references', discriminator: '$formspecReferences', cardinality: 'array', minBundleVersion: '2.4' },
   { group: 'ontology', manifestKey: 'ontology', artifactKind: 'ontology', discriminator: '$formspecOntology', cardinality: 'single' },
+  { group: 'ontology', manifestKey: 'ontologies', artifactKind: 'ontology', discriminator: '$formspecOntology', cardinality: 'array', minBundleVersion: '2.4' },
   { group: 'registries', manifestKey: 'registries', artifactKind: 'registry', discriminator: '$formspecRegistry', cardinality: 'array' },
   { group: 'surfaces', manifestKey: 'surfaces', artifactKind: 'surface', discriminator: '$formspecSurface', cardinality: 'array' },
   { group: 'screeners', manifestKey: 'screeners', artifactKind: 'screener', discriminator: '$formspecScreener', cardinality: 'array', minBundleVersion: '2.3' },
@@ -141,7 +144,7 @@ const SLOT_SPECS: readonly SlotSpec[] = [
   { group: 'mappings', manifestKey: 'mappings', artifactKind: 'mapping', discriminator: '$formspecMapping', cardinality: 'array' },
 ];
 
-const GROUP_ORDER = SLOT_SPECS.map((spec) => spec.group);
+const GROUP_ORDER = [...new Set(SLOT_SPECS.map((spec) => spec.group))];
 const EXACT_SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -184,10 +187,14 @@ function versionAllowed(bundleVersion: string | undefined, minimum: SlotSpec['mi
       || bundleVersion === '2.3'
       || bundleVersion === '2.4';
   }
-  return bundleVersion === '2.3' || bundleVersion === '2.4';
+  if (minimum === '2.3') {
+    return bundleVersion === '2.3' || bundleVersion === '2.4';
+  }
+  return bundleVersion === '2.4';
 }
 
 function versionGateCode(minimum: SlotSpec['minBundleVersion']): string {
+  if (minimum === '2.4') return 'ARTIFACT-COMPANION-DOCUMENTS-VERSION-GATE';
   if (minimum === '2.3') return 'ARTIFACT-SCREENERS-VERSION-GATE';
   if (minimum === '2.2') return 'ARTIFACT-COMPONENTS-VERSION-GATE';
   return 'ARTIFACT-DATASOURCES-VERSION-GATE';

@@ -134,7 +134,17 @@ export interface ResponseActionInvocationContext {
 }
 
 export interface ResponseActionInvocationPorts<TDetail> {
-    submit: (options: ResponseActionSubmitOptions) => TDetail | null;
+    /**
+     * Definition-scoped response submission. Required at runtime when the
+     * document scope is `response` (or omitted); never called for `app`.
+     */
+    submit?: ((options: ResponseActionSubmitOptions) => TDetail | null) | undefined;
+    /**
+     * Application action input. Required at runtime for `scope: app`; this
+     * replaces form submission and gives effect adapters validated structured
+     * input without manufacturing a Response.
+     */
+    prepareAppAction?: ((action: ResponseAction) => TDetail | null) | undefined;
     dispatchHostEvent: (eventName: string, detail: TDetail, action: ResponseAction) => void;
     dispatchEffect?: (
         effect: EffectRequest,
@@ -442,7 +452,8 @@ function errorMessage(error: unknown): string {
 }
 
 function isDurableEffect(effect: EffectRequest): boolean {
-    return effect.type !== 'hostEvent';
+    const type = (effect as { type?: string }).type;
+    return type !== 'hostEvent' && type !== 'browserResource';
 }
 
 function effectErrorPolicy(effect: EffectRequest): 'fail' | 'defer' {
@@ -535,6 +546,8 @@ export function invokeResponseAction<TDetail>(
     const invocationId = invocationContext?.invocationId ?? synthesizeInvocationId();
     const priorInvocationRef = invocationContext?.priorInvocationRef;
     const actionId = resolution.action.id;
+    const appScoped =
+        (document as unknown as { scope?: unknown } | null | undefined)?.scope === 'app';
     const emitLifecycle = (
         kind: ResponseActionLifecycleKind,
         extra: Partial<ResponseActionLifecyclePayload> = {},
@@ -558,6 +571,24 @@ export function invokeResponseAction<TDetail>(
     }
 
     const validationTuple = resolveResponseActionValidationTuple(resolution.action);
+    if (
+        appScoped &&
+        (
+            validationTuple.profile !== 'off' ||
+            validationTuple.blocking !== 'non-blocking' ||
+            validationTuple.persistence !== 'none'
+        )
+    ) {
+        return {
+            status: 'failed',
+            resolution,
+            validationTuple,
+            detail: null,
+            effectTrace: [],
+            failureReason:
+                'app actions require validation=(off, non-blocking, none)',
+        };
+    }
     for (const precondition of resolution.action.preconditions ?? []) {
         // §4.1 catalog gate: unregistered @name references are rejected
         // before host evaluation. Host evaluators MUST honor this catalog
@@ -629,11 +660,13 @@ export function invokeResponseAction<TDetail>(
         };
     }
 
-    const detail = ports.submit({
-        profile: validationTuple.profile,
-        validationTuple,
-        emitEvent: false,
-    });
+    const detail = appScoped
+        ? ports.prepareAppAction?.(resolution.action) ?? null
+        : ports.submit?.({
+            profile: validationTuple.profile,
+            validationTuple,
+            emitEvent: false,
+        }) ?? null;
     if (!detail) {
         return {
             status: 'failed',
@@ -641,30 +674,34 @@ export function invokeResponseAction<TDetail>(
             validationTuple,
             detail: null,
             effectTrace: [],
-            failureReason: 'submit adapter returned no detail',
+            failureReason: appScoped
+                ? 'app action adapter returned no detail'
+                : 'submit adapter returned no detail',
         };
     }
 
-    const validationValid = inferValidationReportValid(detail, ports);
-    if (validationTuple.profile !== 'off' && validationValid === null) {
-        return {
-            status: 'failed',
-            resolution,
-            validationTuple,
-            detail,
-            effectTrace: [],
-            failureReason: 'validation report missing valid flag',
-        };
-    }
-    if (validationTuple.blocking === 'block-on-error' && validationValid === false) {
-        return {
-            status: 'blocked',
-            resolution,
-            validationTuple,
-            detail,
-            effectTrace: [],
-            blockedCause: 'validation',
-        };
+    if (!appScoped) {
+        const validationValid = inferValidationReportValid(detail, ports);
+        if (validationTuple.profile !== 'off' && validationValid === null) {
+            return {
+                status: 'failed',
+                resolution,
+                validationTuple,
+                detail,
+                effectTrace: [],
+                failureReason: 'validation report missing valid flag',
+            };
+        }
+        if (validationTuple.blocking === 'block-on-error' && validationValid === false) {
+            return {
+                status: 'blocked',
+                resolution,
+                validationTuple,
+                detail,
+                effectTrace: [],
+                blockedCause: 'validation',
+            };
+        }
     }
 
     const effectTrace: ResponseActionEffectOutcome[] = [];

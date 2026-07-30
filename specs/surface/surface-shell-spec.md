@@ -584,14 +584,19 @@ The slot renders the bound Definition as a live form.
 
 ### 3.2 `experience-unit`
 
-The slot renders the authored, human-facing content of one Experience unit — the
-*why this screen exists* copy.
+The slot links a composed screen to the Experience reasoning that explains why
+the screen exists. It is review metadata, not customer interface content.
 
 - **Resolution.** `binding.unitRef` resolves to a `units[].id` in the resolved
   Experience document; `binding.experienceRef` disambiguates when the bundle
   carries more than one Experience.
-- **Rendering obligation, and a hard boundary.** A shell MUST render only the
-  unit's authored human-facing strings — `title` and `description`. It **MUST
+- **Customer rendering obligation.** In the normal customer-facing mode, a
+  shell MUST render no element, text, placeholder, or unresolved-state copy for
+  an `experience-unit` slot. This includes the slot wrapper and the slot's own
+  `title`. Resolution diagnostics still reach the host diagnostic channel.
+- **Explicit review mode.** An authoring or debug host MAY opt in to rendering
+  the resolved unit's `title` and Need references or descriptions for review.
+  That mode MUST be explicit and MUST NOT be the customer default. It **MUST
   NOT** derive fields, controls, widgets, ordering, or page structure from
   `itemRefs`, `conceptRefs`, or `actionRefs`.
   [experience-spec](../experience/experience-spec.md) §1.4.1 prohibition
@@ -600,14 +605,13 @@ The slot renders the authored, human-facing content of one Experience unit — t
   become layout containers."* A shell that renders a unit's `itemRefs` as inputs
   has made Experience a layout container at runtime, which is the failure mode
   the closure was written to prevent.
-- **`needRefs` are not respondent-facing.** A Unit MAY carry `needRefs`
+- **`needRefs` are not customer-facing.** A Unit MAY carry `needRefs`
   ([needs-spec](../needs/needs-spec.md) §7). A need's `description` is
-  design rationale *about* the person, not copy *for* them. A shell MUST NOT
-  render need descriptions on a respondent-facing route by default; exposing them
-  is a reviewer-tooling posture the host opts into explicitly.
-- **Absent target.** Unavailable placeholder plus `EXPERIENCE-UNIT-UNRESOLVED`.
-  A shell MUST NOT fall back to another unit, to the document `title`, or to the
-  slot's own `title`.
+  design rationale *about* the person, not copy *for* them.
+- **Absent target.** Report `EXPERIENCE-UNIT-UNRESOLVED`. Customer mode renders
+  nothing for the slot. Review mode MAY render its normal diagnostic interface,
+  but MUST NOT fall back to another unit, the document `title`, or the slot's
+  own `title`.
 
 ### 3.3 `module-widget`
 
@@ -644,6 +648,23 @@ only runtime extension point inside a route.
   module's `widgetShape.props` at authoring time by lint `E604`. A shell MUST NOT
   re-derive that validation and MUST NOT drop keys it does not recognise.
   Configuration is static authored input. It is not runtime data.
+
+  A renderer MAY support generic `config.stateViews` entries named `loading`,
+  `empty`, `unavailable`, and `error`, plus
+  `config.emptyWhen = {inputName, path?}`. `emptyWhen` reads only own
+  properties through safe dot-separated segments and distinguishes an authored
+  empty result from failed delivery. Each rendered state-view object and each
+  rendered state action MUST carry its own `x-generation` Need anchor and MUST
+  appear independently in the Registry contribution's
+  `widgetShape.renderedConfigNodes[]`; a parent config trace does not authorize
+  either child. A state action is either `kind: retry` with an authored label,
+  or `kind: output` with a declared `outputName` whose visible label comes from
+  the resolved Response Actions action.
+
+  Customer state copy MUST come from traced configuration or the shell's
+  localized defaults. Loader, authorization, staleness, and payload-validation
+  details go to diagnostics and MUST NOT be copied into customer-facing state
+  text.
 - **Data.** Registry 1.1 declares each input as
   `{name, required, description?}` in `widgetShape.dataInputs[]`. Surface 0.2
   binds that exact name through
@@ -677,7 +698,20 @@ only runtime extension point inside a route.
   used as trigger sources, unresolved actions, and a widget output that would
   select more than one transition.
 
-  The widget receives one capability: `emitAction(outputName)`. It receives no
+  The widget receives one capability: `emitAction(outputName, input?)`. `input`
+  is optional selected structured data, not an action id, route, intent, or
+  source-discovery channel. The shell MUST accept only an object made of finite
+  JSON values, reject cycles, accessors, unsafe prototype keys, excessive
+  nesting, and excessive size with `WIDGET-ACTION-INPUT-INVALID`, and give the
+  executor a detached frozen copy. Invocation and replay identity MUST include
+  a deterministic representation of `input`, so two rows using the same output
+  cannot alias one in-flight or durable action. The capability MAY return a
+  read-only pending/terminal emission handle so a generic control can render
+  busy, success, or failure feedback. That handle MUST NOT expose the executor,
+  action document, route table, or navigation capability. Any visible feedback
+  copy remains traced configuration or a localized shell default.
+
+  The widget receives no
   route table, navigation function, Response Actions executor, or raw
   `actionRef`. It cannot name an action or destination outside the authored
   output map. The shell maps the output to `actionRef`, starts the Response
@@ -1400,6 +1434,7 @@ app-construction diagnostics delivers the minority of them.
 | `WIDGET-DELIVERY-CONTRACT-MISMATCH` | `error` | A registered widget implementation does not declare the exact delivery contract id, Registry entry version, and rendered-config inventory required by the resolved Registry entry. The shell refuses to render it. |
 | `WIDGET-DATA-REQUIRED-UNAVAILABLE` | `error` | A required Registry 1.1 input is unbound or its exact Data Sources value is unavailable (§3.3). |
 | `WIDGET-ACTION-OUTPUT-UNDECLARED` | `error` | A widget emits an output its Registry 1.1 shape does not declare (§3.3). |
+| `WIDGET-ACTION-INPUT-INVALID` | `error` | A widget emits action input that is not an admitted finite JSON object (§3.3). |
 | `WIDGET-ACTION-OUTPUT-UNMAPPED` | `error` | A declared widget output has no Surface 0.2 `actionBindings` entry (§3.3). |
 | `WIDGET-ACTION-REF-UNRESOLVED` | `error` | A widget output mapping names no loaded Response Actions action (§3.3). |
 | `WIDGET-ACTION-TRANSITION-AMBIGUOUS` | `error` | A completed widget action selects more than one eligible transition (§5.3). |
@@ -1578,13 +1613,15 @@ A conformant **Surface Shell Core** MUST:
 9. Distinguish *empty* from *unavailable*, render a placeholder for unavailable
    rather than omitting the slot, and report the matching diagnostic (§3.0).
 10. Resolve `definitionRef` by exact URL match with no alias fallback (§3.1).
-11. Render only `title` and `description` from an Experience unit, and derive no
-    layout, controls, or ordering from its typed references (§3.2).
+11. Render no Experience slot element or content in customer mode; expose
+    resolved title and Needs only in explicit review/debug mode, and derive no
+    layout, controls, or ordering from typed references (§3.2).
 12. Resolve `module-widget` bindings on `widgetShape.widgetName`, distinguish
     *undeclared* from *unimplemented*, report `WIDGET-UNDECLARED` even when a host
     component exists for it, supply only Registry-declared Surface-bound data
-    inputs, and expose only `emitAction(outputName)` for declared and mapped
-    action outputs (§3.3).
+    inputs, independently inventory every rendered state and state action, and
+    expose only `emitAction(outputName, input?)` for declared and mapped action
+    outputs with admitted frozen structured input (§3.3).
 13. Render known `static-content` payloads as literal text, never as markup, and
     convert a malformed unknown kind to an unavailable plan plus
     `STATIC-CONTENT-KIND-UNKNOWN` (§3.4).
@@ -1628,7 +1665,8 @@ A conformant **Surface Shell Core** MUST:
     on a click, rendered control, failed/deferred/blocked/unresolved result, or
     invalid nonblocking result (§5.3).
 28. Give each widget emission one stable invocation identity, coalesce duplicate
-    in-flight delivery, preserve identity and Response snapshot across
+    in-flight delivery only for the same deterministic structured input,
+    preserve identity and Response snapshot across
     `retry-once`, replay durable outcomes, ignore obsolete-generation completion,
     and navigate at most once after exactly one eligible transition (§5.3).
 29. Emit only codes from the closed set in §7.2, each carrying `code`,
@@ -1811,7 +1849,7 @@ documents; it does not add a colon alias.
 
 | Slot | Type | What a conforming shell does |
 |---|---|---|
-| `applyJourney` | `experience-unit` | Renders the unit's `title` and `description` only. Its `itemRefs` name Definition paths; the shell draws no fields from them (§3.2) — the form below is where fields come from. |
+| `applyJourney` | `experience-unit` | Renders nothing in customer mode. Explicit review mode may show the unit title and Needs; its typed references never produce fields or layout (§3.2). |
 | `applyChrome` | `module-widget` | Resolves `x-formspec-tenant-chrome` / `x-intake-banner` on `widgetShape.widgetName`. Configured with nothing, the widget renders an honest empty state; it does not invent reassurance copy about a draft store the bundle does not describe (§1.3 principle 2). |
 | `applyReassurance` | `static-content` (`text`) | Renders the authored sentence as literal text: *"You can apply even if you have already received help this year."* No markup interpretation. |
 | `applyForm` | `definition-form` | Resolves the Definition by exact URL and renders it through the medium's Formspec renderer, handing it this route's Theme document. |
@@ -1964,7 +2002,7 @@ not claim that any child shipped.
 | `respondent-runtime-state` | `implemented` | §8.5 obligations 1, 5, 6 | `formspec-web` reuses its production identity, draft, action-ledger, submit, and status boundaries; tracker `fs-q1ex` records the verified fill-through-refresh browser evidence. |
 | `operator-runtime-state` | `open` | §8.5 obligations 1, 5, 6 | `case-portal` tracker `fs-3b30` owns authorized staff queue and case state. |
 | `public-signer-ceremony` | `open` | §5, §8.5 obligations 1, 5, 6 | `formspec-web` tracker `fs-5g59` owns the separate consent, signing, and receipt ceremony. |
-| `experience-unit-rendering` | `implemented` | §3.2 | Respondent rendering withholds design-rationale need descriptions unless a host requests them. |
+| `experience-unit-rendering` | `implemented` | §3.2 | Customer rendering emits no Experience slot DOM or copy; explicit review mode may expose the resolved title and Needs. |
 | `static-content-rendering` | `implemented` | §3.4, §3.4.1 | The existing closed kind vocabulary renders with composable heading ranks. |
 | `theme-authority-unexported` | `implemented` | §4.1 | Runtime imports the same closed route-class authority map as validation. |
 | `theme-refusal-copy` | `implemented` | §4.3, §4.3.1 | Refusal posture is exhaustive; person-facing copy remains a keyed product choice. |

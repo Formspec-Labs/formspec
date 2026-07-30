@@ -43,6 +43,8 @@ import type {
   DataSourcesDocument,
   ExperienceDocument,
   FormDefinition,
+  OntologyDocument,
+  ReferencesDocument,
   RegistryDocument,
   ResponseActionsDocument,
   SurfaceDocument,
@@ -67,8 +69,19 @@ export interface BundleManifest {
   experience?: BundleArtifactRef;
   experiences?: readonly BundleArtifactRef[];
   theme?: BundleArtifactRef;
+  /** Legacy single References association. App Manifest 2.4 adds referenceDocuments[]. */
+  references?: BundleArtifactRef;
+  /** Ordered, target-aware References associations. Legacy references loads first when both exist. */
+  referenceDocuments?: readonly BundleArtifactRef[];
+  /** Legacy single Ontology association. App Manifest 2.4 adds ontologies[]. */
+  ontology?: BundleArtifactRef;
+  /** Ordered, target-aware Ontology associations. Legacy ontology loads first when both exist. */
+  ontologies?: readonly BundleArtifactRef[];
   registries?: readonly BundleArtifactRef[];
+  /** Legacy single Response Actions association. App Manifest 2.4 adds responseActionDocuments[]. */
   responseActions?: BundleArtifactRef;
+  /** Ordered Response Actions associations. Legacy responseActions loads first when both exist. */
+  responseActionDocuments?: readonly BundleArtifactRef[];
   dataSources?: readonly BundleArtifactRef[];
   surfaces?: readonly BundleArtifactRef[];
   entrySurface?: string;
@@ -109,7 +122,22 @@ export interface ResolvedBundle {
   experienceHandles?: readonly ExperienceDocumentHandle[] | undefined;
   /** The TENANT theme. Which routes may see it is `theme-authority.ts`'s call. */
   tenantTheme: ThemeDocument | undefined;
+  /**
+   * Loaded References documents in manifest order.
+   *
+   * Each document keeps its own targetDefinition; renderers select only the
+   * documents targeting the active Definition.
+   */
+  references?: readonly ReferencesDocument[] | undefined;
+  /**
+   * Loaded Ontology documents in manifest order.
+   *
+   * Order is significant because Ontology/Assist resolution gives a later
+   * binding precedence for the same target path.
+   */
+  ontologies?: readonly OntologyDocument[] | undefined;
   registries: readonly RegistryDocument[];
+  /** Loaded legacy then plural Response Actions documents in manifest order. */
   responseActions: readonly ResponseActionsDocument[];
   /** Exact manifested catalog handles; source ids are never resolved globally. */
   dataSources?: readonly DataSourceCatalogHandle[] | undefined;
@@ -245,10 +273,30 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
       : [{ experienceRef: ref.url, document }];
   });
   const experiences = experienceHandles.map(({ document }) => document);
+  const referenceRefs = [
+    ...(bundle.manifest.references ? [bundle.manifest.references] : []),
+    ...(bundle.manifest.referenceDocuments ?? []),
+  ];
+  const references = lookupAll<ReferencesDocument>(
+    referenceRefs,
+    'References document',
+  );
+  const ontologyRefs = [
+    ...(bundle.manifest.ontology ? [bundle.manifest.ontology] : []),
+    ...(bundle.manifest.ontologies ?? []),
+  ];
+  const ontologies = lookupAll<OntologyDocument>(
+    ontologyRefs,
+    'Ontology document',
+  );
   const registries = lookupAll<RegistryDocument>(bundle.manifest.registries, 'Registry');
   const tenantTheme = lookup<ThemeDocument>(bundle.manifest.theme, 'Theme');
-  const responseActionsDocument = lookup<ResponseActionsDocument>(
-    bundle.manifest.responseActions,
+  const responseActionRefs = [
+    ...(bundle.manifest.responseActions ? [bundle.manifest.responseActions] : []),
+    ...(bundle.manifest.responseActionDocuments ?? []),
+  ];
+  const responseActions = lookupAll<ResponseActionsDocument>(
+    responseActionRefs,
     'Response Actions document',
   );
   const dataSources = (bundle.manifest.dataSources ?? []).flatMap((ref) => {
@@ -271,8 +319,10 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
     experiences,
     experienceHandles,
     tenantTheme,
+    references,
+    ontologies,
     registries,
-    responseActions: responseActionsDocument ? [responseActionsDocument] : [],
+    responseActions,
     dataSources,
     definitions,
     diagnostics,

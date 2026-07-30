@@ -17,17 +17,19 @@
   },
   "current_artifacts": {
     "saas_v1": {
-      "routes": 14,
-      "authored_navigation_entries": 14,
-      "visible_workspace_navigation_entries": 9,
-      "response_actions": 22,
+      "routes": 15,
+      "authored_navigation_entries": 15,
+      "visible_workspace_navigation_entries": 8,
+      "response_actions": 34,
       "definitions": 2,
       "definition_items": 7,
       "definition_binds": 7,
-      "experience_units": 14,
+      "references_documents": 2,
+      "ontology_documents": 2,
+      "experience_units": 15,
       "adopted_needs": 10,
-      "trace_records": 256,
-      "resolved_trace_records": 256,
+      "trace_records": 386,
+      "resolved_trace_records": 386,
       "unresolved_internal_references": 0
     },
     "control": {
@@ -40,15 +42,13 @@
     "root_artifact_verifier": "passed",
     "app_graph_phases_per_bundle": 7,
     "app_graph_bundles_passed": 2,
-    "playwright_routes_passed": 14,
-    "playwright_actions_passed": 22,
-    "playwright_data_profile_checks_passed": 9,
+    "playwright_routes_passed": 15,
+    "playwright_actions_passed": 34,
+    "playwright_data_profile_checks_passed": 20,
     "playwright_console_warnings_or_errors": 0,
-    "reviewed_input_digest": "sha256:0f3ff91772515e1635723741803421b666ac3411a52047e189703d7e20dcf398",
+    "reviewed_input_digest": "sha256:307627996ceb2c852a7133c69c106c1eeb1d18c4c3071d28d0ebaee0ea62d62b",
     "formspec_unit_suites": "passed",
-    "formspec_contract_surfaces": "passed",
-    "studio_core": "1597 passed, 1 todo",
-    "wireframes_mcp": "121 passed"
+    "formspec_contract_surfaces": "passed"
   },
   "historical_attempt_7": {
     "status": "failed_retained_evidence",

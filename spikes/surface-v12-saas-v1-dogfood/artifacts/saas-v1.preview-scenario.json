@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "initialPath": "/app",
   "routeParams": {
-    "formId": "frm_annual-intake"
+    "formId": "frm_annual-intake",
+    "responseId": "rsp_1042"
   },
   "defaultProfile": "loaded",
   "profiles": {
@@ -14,98 +15,309 @@
       "sources": [
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "host:workspace",
+          "status": "loaded",
+          "value": {
+            "account": {
+              "workspace": "Acme Grants",
+              "signedInAs": "owner@acme.example",
+              "recovery": "Email recovery available"
+            },
+            "dashboard": {
+              "features": [
+                {
+                  "area": "Forms and public responses",
+                  "status": "Live"
+                },
+                {
+                  "area": "Signature requests",
+                  "status": "Live"
+                },
+                {
+                  "area": "API and webhooks",
+                  "status": "Live"
+                },
+                {
+                  "area": "Custom domains",
+                  "status": "Assisted"
+                },
+                {
+                  "area": "Collaborative authoring",
+                  "status": "Preview"
+                }
+              ]
+            },
+            "forms": [
+              {
+                "id": "frm_annual-intake",
+                "name": "Annual intake",
+                "version": "v7",
+                "status": "Published",
+                "responses": 184,
+                "resource": {
+                  "href": "/app/forms/frm_annual-intake"
+                }
+              }
+            ],
+            "formDetail": {
+              "name": "Annual intake",
+              "version": "v7",
+              "status": "Published",
+              "hostedAddress": "formspec.cloud/respond",
+              "responseCount": 184,
+              "resource": {
+                "href": "/respond"
+              }
+            },
+            "preview": {
+              "environment": "Sandbox",
+              "status": "Preview only",
+              "publishedVersion": "v7"
+            },
+            "signatures": {
+              "requests": [
+                {
+                  "document": "Vendor agreement",
+                  "recipient": "Taylor Reed",
+                  "status": "Completed",
+                  "updated": "July 29, 2026",
+                  "resource": {
+                    "href": "https://verify.formspec.cloud/certificates/env_2048"
+                  }
+                },
+                {
+                  "document": "Data use agreement",
+                  "recipient": "Morgan Lee",
+                  "status": "Waiting for signature",
+                  "updated": "July 30, 2026",
+                  "resource": {
+                    "href": "https://verify.formspec.cloud/certificates/env_2047"
+                  }
+                }
+              ]
+            },
+            "integrations": {
+              "environment": "Sandbox",
+              "apiKeyStatus": "Active",
+              "webhookTarget": "https://example.org/formspec-events",
+              "latestDelivery": "Succeeded at 10:42 AM",
+              "documentation": {
+                "href": "https://docs.formspec.org/api"
+              },
+              "deliveries": [
+                {
+                  "event": "response.completed",
+                  "destination": "example.org",
+                  "status": "Succeeded",
+                  "occurredAt": "10:42 AM"
+                },
+                {
+                  "event": "signature.completed",
+                  "destination": "example.org",
+                  "status": "Succeeded",
+                  "occurredAt": "9:18 AM"
+                }
+              ]
+            },
+            "admin": {
+              "organization": "Acme Community Grants",
+              "workspace": "Grant operations",
+              "environment": "Production",
+              "teammates": [
+                {
+                  "name": "Jordan Kim",
+                  "role": "Owner",
+                  "status": "Active"
+                },
+                {
+                  "name": "Taylor Reed",
+                  "role": "Form author",
+                  "status": "Active"
+                },
+                {
+                  "name": "Morgan Lee",
+                  "role": "Analyst",
+                  "status": "Invited"
+                }
+              ]
+            },
+            "receipt": {
+              "receiptNumber": "rcpt_01J5Y9K3",
+              "receivedAt": "July 30, 2026 at 11:04 AM",
+              "proofStatus": "Verified",
+              "download": {
+                "filename": "formspec-receipt-rcpt_01J5Y9K3.json",
+                "mediaType": "application/json",
+                "content": "{\n  \"receipt\": \"rcpt_01J5Y9K3\",\n  \"status\": \"verified\"\n}\n"
+              },
+              "support": {
+                "href": "mailto:support@formspec.cloud?subject=Receipt%20rcpt_01J5Y9K3"
+              }
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:see-honest-feature-state@1"
+            ]
+          },
+          "freshness": "fresh"
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "query:responses",
           "status": "loaded",
-          "freshness": "fresh",
           "value": {
             "responses": [
               {
                 "id": "rsp_1042",
+                "displayReference": "Response 1042",
                 "form": "Annual intake",
-                "status": "Verified"
-              },
-              {
-                "id": "rsp_1041",
-                "form": "Vendor setup",
-                "status": "Signed"
-              },
-              {
-                "id": "rsp_1040",
-                "form": "Annual intake",
-                "status": "Received"
+                "status": "Verified",
+                "submittedAt": "July 30, 2026, 10:58 AM",
+                "submittedBy": "Avery Johnson",
+                "proofStatus": "Verified",
+                "resource": {
+                  "href": "/app/responses/rsp_1042"
+                }
               }
             ],
-            "exportFormats": [
-              "CSV",
-              "JSON"
-            ],
-            "proofStatus": "Verified"
+            "selectedResponse": {
+              "id": "rsp_1042",
+              "displayReference": "Response 1042",
+              "form": "Annual intake",
+              "status": "Verified",
+              "submittedAt": "July 30, 2026, 10:58 AM",
+              "submittedBy": "Avery Johnson",
+              "proofStatus": "Verified"
+            },
+            "exports": {
+              "csv": {
+                "filename": "formspec-responses.csv",
+                "mediaType": "text/csv",
+                "content": "id,form,status,submittedAt\nrsp_1042,Annual intake,Verified,2026-07-30T14:58:00Z\n"
+              },
+              "json": {
+                "filename": "formspec-responses.json",
+                "mediaType": "application/json",
+                "content": "[\n  {\"id\":\"rsp_1042\",\"form\":\"Annual intake\",\"status\":\"Verified\"}\n]\n"
+              }
+            },
+            "selectedExport": {
+              "filename": "formspec-response-rsp_1042.json",
+              "mediaType": "application/json",
+              "content": "{\n  \"id\": \"rsp_1042\",\n  \"form\": \"Annual intake\",\n  \"status\": \"Verified\"\n}\n"
+            }
           },
           "x-generation": {
             "anchors": [
-              "need:review-and-export-responses@1",
-              "unit:responsesUnit"
+              "need:review-and-export-responses@1"
             ]
-          }
+          },
+          "freshness": "fresh"
         },
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:billing",
           "status": "loaded",
-          "freshness": "fresh",
           "value": {
             "plan": "Team",
+            "billingStatus": "Current",
+            "renewalDate": "August 18, 2026",
+            "period": "July 19 – August 18, 2026",
             "usage": {
               "responses": 420
             },
             "limits": {
               "responses": 1000
             },
-            "billingStatus": "Current"
+            "remaining": {
+              "responses": 580
+            }
           },
           "x-generation": {
             "anchors": [
-              "need:understand-plan-and-usage@1",
-              "unit:billingUnit"
+              "need:understand-plan-and-usage@1"
             ]
-          }
+          },
+          "freshness": "fresh"
         },
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "resource:support-trust",
           "status": "loaded",
-          "freshness": "fresh",
           "value": {
             "serviceStatus": [
               {
                 "service": "Form delivery",
-                "status": "Operational"
+                "status": "Operational",
+                "updated": "2 minutes ago",
+                "resource": {
+                  "href": "https://status.formspec.cloud"
+                }
               },
               {
                 "service": "Proof verification",
-                "status": "Operational"
+                "status": "Operational",
+                "updated": "2 minutes ago",
+                "resource": {
+                  "href": "https://status.formspec.cloud"
+                }
               },
               {
                 "service": "Webhooks",
-                "status": "Operational"
+                "status": "Operational",
+                "updated": "4 minutes ago",
+                "resource": {
+                  "href": "https://status.formspec.cloud"
+                }
               }
             ],
-            "incidents": [],
-            "supportAccess": [
-              "Email support",
-              "Status page"
+            "incidents": [
+              {
+                "summary": "No incidents reported in the last 30 days",
+                "status": "Clear",
+                "startedAt": "—"
+              }
+            ],
+            "supportChannels": [
+              {
+                "label": "Email support",
+                "availability": "Weekdays, 9 AM–6 PM Eastern",
+                "resource": {
+                  "href": "mailto:support@formspec.cloud"
+                }
+              },
+              {
+                "label": "Service status",
+                "availability": "Always available",
+                "resource": {
+                  "href": "https://status.formspec.cloud"
+                }
+              }
             ],
             "trustDocuments": [
-              "Security overview",
-              "Subprocessor list"
+              {
+                "label": "Security overview",
+                "updated": "July 2026",
+                "resource": {
+                  "href": "https://formspec.cloud/trust/security"
+                }
+              },
+              {
+                "label": "Subprocessor list",
+                "updated": "July 2026",
+                "resource": {
+                  "href": "https://formspec.cloud/trust/subprocessors"
+                }
+              }
             ]
           },
           "x-generation": {
             "anchors": [
-              "need:get-help-and-check-trust@1",
-              "unit:supportTrustUnit"
+              "need:get-help-and-check-trust@1"
             ]
-          }
+          },
+          "freshness": "fresh"
         }
       ]
     },
@@ -116,65 +328,250 @@
       "sources": [
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
-          "sourceRef": "query:responses",
+          "sourceRef": "host:workspace",
           "status": "loaded",
-          "freshness": "fresh",
           "value": {
-            "responses": [],
-            "exportFormats": [
-              "CSV",
-              "JSON"
+            "account": {
+              "workspace": "Acme Grants",
+              "signedInAs": "owner@acme.example",
+              "recovery": "Email recovery available"
+            },
+            "dashboard": {
+              "features": [
+                {
+                  "area": "Forms and public responses",
+                  "status": "Live"
+                },
+                {
+                  "area": "Signature requests",
+                  "status": "Live"
+                },
+                {
+                  "area": "API and webhooks",
+                  "status": "Live"
+                },
+                {
+                  "area": "Custom domains",
+                  "status": "Assisted"
+                },
+                {
+                  "area": "Collaborative authoring",
+                  "status": "Preview"
+                }
+              ]
+            },
+            "forms": [
+              {
+                "id": "frm_annual-intake",
+                "name": "Annual intake",
+                "version": "v7",
+                "status": "Published",
+                "responses": 184,
+                "resource": {
+                  "href": "/app/forms/frm_annual-intake"
+                }
+              }
             ],
-            "proofStatus": "No responses"
+            "formDetail": {
+              "name": "Annual intake",
+              "version": "v7",
+              "status": "Published",
+              "hostedAddress": "formspec.cloud/respond",
+              "responseCount": 184,
+              "resource": {
+                "href": "/respond"
+              }
+            },
+            "preview": {
+              "environment": "Sandbox",
+              "status": "Preview only",
+              "publishedVersion": "v7"
+            },
+            "signatures": {
+              "requests": [
+                {
+                  "document": "Vendor agreement",
+                  "recipient": "Taylor Reed",
+                  "status": "Completed",
+                  "updated": "July 29, 2026",
+                  "resource": {
+                    "href": "https://verify.formspec.cloud/certificates/env_2048"
+                  }
+                },
+                {
+                  "document": "Data use agreement",
+                  "recipient": "Morgan Lee",
+                  "status": "Waiting for signature",
+                  "updated": "July 30, 2026",
+                  "resource": {
+                    "href": "https://verify.formspec.cloud/certificates/env_2047"
+                  }
+                }
+              ]
+            },
+            "integrations": {
+              "environment": "Sandbox",
+              "apiKeyStatus": "Active",
+              "webhookTarget": "https://example.org/formspec-events",
+              "latestDelivery": "Succeeded at 10:42 AM",
+              "documentation": {
+                "href": "https://docs.formspec.org/api"
+              },
+              "deliveries": [
+                {
+                  "event": "response.completed",
+                  "destination": "example.org",
+                  "status": "Succeeded",
+                  "occurredAt": "10:42 AM"
+                },
+                {
+                  "event": "signature.completed",
+                  "destination": "example.org",
+                  "status": "Succeeded",
+                  "occurredAt": "9:18 AM"
+                }
+              ]
+            },
+            "admin": {
+              "organization": "Acme Community Grants",
+              "workspace": "Grant operations",
+              "environment": "Production",
+              "teammates": [
+                {
+                  "name": "Jordan Kim",
+                  "role": "Owner",
+                  "status": "Active"
+                },
+                {
+                  "name": "Taylor Reed",
+                  "role": "Form author",
+                  "status": "Active"
+                },
+                {
+                  "name": "Morgan Lee",
+                  "role": "Analyst",
+                  "status": "Invited"
+                }
+              ]
+            },
+            "receipt": {
+              "receiptNumber": "rcpt_01J5Y9K3",
+              "receivedAt": "July 30, 2026 at 11:04 AM",
+              "proofStatus": "Verified",
+              "download": {
+                "filename": "formspec-receipt-rcpt_01J5Y9K3.json",
+                "mediaType": "application/json",
+                "content": "{\n  \"receipt\": \"rcpt_01J5Y9K3\",\n  \"status\": \"verified\"\n}\n"
+              },
+              "support": {
+                "href": "mailto:support@formspec.cloud?subject=Receipt%20rcpt_01J5Y9K3"
+              }
+            }
           },
           "x-generation": {
             "anchors": [
-              "need:review-and-export-responses@1",
-              "unit:responsesUnit"
+              "need:see-honest-feature-state@1"
             ]
-          }
+          },
+          "freshness": "fresh"
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "query:responses",
+          "status": "loaded",
+          "value": {
+            "responses": [],
+            "selectedResponse": {
+              "id": "No response selected",
+              "displayReference": "No response selected",
+              "form": "—",
+              "status": "Empty",
+              "submittedAt": "—",
+              "submittedBy": "—",
+              "proofStatus": "—"
+            },
+            "exports": {
+              "csv": {
+                "filename": "formspec-responses.csv",
+                "mediaType": "text/csv",
+                "content": "id,form,status,submittedAt\nrsp_1042,Annual intake,Verified,2026-07-30T14:58:00Z\n"
+              },
+              "json": {
+                "filename": "formspec-responses.json",
+                "mediaType": "application/json",
+                "content": "[\n  {\"id\":\"rsp_1042\",\"form\":\"Annual intake\",\"status\":\"Verified\"}\n]\n"
+              }
+            },
+            "selectedExport": {
+              "filename": "formspec-response-rsp_1042.json",
+              "mediaType": "application/json",
+              "content": "{\n  \"id\": \"rsp_1042\",\n  \"form\": \"Annual intake\",\n  \"status\": \"Verified\"\n}\n"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1"
+            ]
+          },
+          "freshness": "fresh"
         },
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:billing",
           "status": "loaded",
-          "freshness": "fresh",
           "value": {
             "plan": "Trial",
+            "billingStatus": "No payment method required",
+            "renewalDate": "August 18, 2026",
+            "period": "July 19 – August 18, 2026",
             "usage": {
               "responses": 0
             },
             "limits": {
               "responses": 100
             },
-            "billingStatus": "No payment method required"
+            "remaining": {
+              "responses": 100
+            }
           },
           "x-generation": {
             "anchors": [
-              "need:understand-plan-and-usage@1",
-              "unit:billingUnit"
+              "need:understand-plan-and-usage@1"
             ]
-          }
+          },
+          "freshness": "fresh"
         },
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "resource:support-trust",
           "status": "loaded",
-          "freshness": "fresh",
           "value": {
             "serviceStatus": [],
             "incidents": [],
-            "supportAccess": [
-              "Email support"
+            "supportChannels": [
+              {
+                "label": "Email support",
+                "availability": "Weekdays, 9 AM–6 PM Eastern",
+                "resource": {
+                  "href": "mailto:support@formspec.cloud"
+                }
+              },
+              {
+                "label": "Service status",
+                "availability": "Always available",
+                "resource": {
+                  "href": "https://status.formspec.cloud"
+                }
+              }
             ],
             "trustDocuments": []
           },
           "x-generation": {
             "anchors": [
-              "need:get-help-and-check-trust@1",
-              "unit:supportTrustUnit"
+              "need:get-help-and-check-trust@1"
             ]
-          }
+          },
+          "freshness": "fresh"
         }
       ]
     },
@@ -185,41 +582,413 @@
       "sources": [
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
-          "sourceRef": "query:responses",
+          "sourceRef": "host:workspace",
           "status": "unavailable",
-          "reason": "The response index is unavailable in this preview state.",
           "x-generation": {
             "anchors": [
-              "need:review-and-export-responses@1",
-              "unit:responsesUnit"
+              "need:see-honest-feature-state@1"
             ]
-          }
+          },
+          "reason": "host:workspace is unavailable in this preview profile."
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "query:responses",
+          "status": "unavailable",
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1"
+            ]
+          },
+          "reason": "query:responses is unavailable in this preview profile."
         },
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:billing",
           "status": "unavailable",
-          "reason": "Billing data is unavailable in this preview state.",
           "x-generation": {
             "anchors": [
-              "need:understand-plan-and-usage@1",
-              "unit:billingUnit"
+              "need:understand-plan-and-usage@1"
             ]
-          }
+          },
+          "reason": "host:billing is unavailable in this preview profile."
         },
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "resource:support-trust",
           "status": "unavailable",
-          "reason": "Trust data is unavailable in this preview state.",
           "x-generation": {
             "anchors": [
-              "need:get-help-and-check-trust@1",
-              "unit:supportTrustUnit"
+              "need:get-help-and-check-trust@1"
             ]
-          }
+          },
+          "reason": "resource:support-trust is unavailable in this preview profile."
         }
       ]
+    },
+    "error": {
+      "authorization": {
+        "default": "authorized"
+      },
+      "sources": [
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "host:workspace",
+          "status": "error",
+          "x-generation": {
+            "anchors": [
+              "need:see-honest-feature-state@1"
+            ]
+          },
+          "reason": "The preview simulated a workspace loader exception."
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "query:responses",
+          "status": "error",
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1"
+            ]
+          },
+          "reason": "The preview simulated a response loader exception."
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "host:billing",
+          "status": "error",
+          "x-generation": {
+            "anchors": [
+              "need:understand-plan-and-usage@1"
+            ]
+          },
+          "reason": "The preview simulated a billing loader exception."
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "resource:support-trust",
+          "status": "error",
+          "x-generation": {
+            "anchors": [
+              "need:get-help-and-check-trust@1"
+            ]
+          },
+          "reason": "The preview simulated a support resource loader exception."
+        }
+      ]
+    },
+    "longContent": {
+      "sources": [
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "host:workspace",
+          "status": "loaded",
+          "value": {
+            "account": {
+              "workspace": "Acme Grants",
+              "signedInAs": "owner@acme.example",
+              "recovery": "Email recovery available"
+            },
+            "dashboard": {
+              "features": [
+                {
+                  "area": "Forms, public responses, downloadable evidence, and long-running annual intake operations",
+                  "status": "Live"
+                },
+                {
+                  "area": "Signature requests",
+                  "status": "Live"
+                },
+                {
+                  "area": "API and webhooks",
+                  "status": "Live"
+                },
+                {
+                  "area": "Custom domains",
+                  "status": "Assisted"
+                },
+                {
+                  "area": "Collaborative authoring",
+                  "status": "Preview"
+                }
+              ]
+            },
+            "forms": [
+              {
+                "id": "frm_annual-intake",
+                "name": "Annual community services intake and regional partnership reporting form",
+                "version": "v7",
+                "status": "Published",
+                "responses": 184,
+                "resource": {
+                  "href": "/app/forms/frm_annual-intake"
+                }
+              }
+            ],
+            "formDetail": {
+              "name": "Annual intake",
+              "version": "v7",
+              "status": "Published",
+              "hostedAddress": "formspec.cloud/respond",
+              "responseCount": 184,
+              "resource": {
+                "href": "/respond"
+              }
+            },
+            "preview": {
+              "environment": "Sandbox",
+              "status": "Preview only",
+              "publishedVersion": "v7"
+            },
+            "signatures": {
+              "requests": [
+                {
+                  "document": "Vendor agreement",
+                  "recipient": "Taylor Reed",
+                  "status": "Completed",
+                  "updated": "July 29, 2026",
+                  "resource": {
+                    "href": "https://verify.formspec.cloud/certificates/env_2048"
+                  }
+                },
+                {
+                  "document": "Data use agreement",
+                  "recipient": "Morgan Lee",
+                  "status": "Waiting for signature",
+                  "updated": "July 30, 2026",
+                  "resource": {
+                    "href": "https://verify.formspec.cloud/certificates/env_2047"
+                  }
+                }
+              ]
+            },
+            "integrations": {
+              "environment": "Sandbox",
+              "apiKeyStatus": "Active",
+              "webhookTarget": "https://example.org/formspec-events",
+              "latestDelivery": "Succeeded at 10:42 AM",
+              "documentation": {
+                "href": "https://docs.formspec.org/api"
+              },
+              "deliveries": [
+                {
+                  "event": "response.completed",
+                  "destination": "example.org",
+                  "status": "Succeeded",
+                  "occurredAt": "10:42 AM"
+                },
+                {
+                  "event": "signature.completed",
+                  "destination": "example.org",
+                  "status": "Succeeded",
+                  "occurredAt": "9:18 AM"
+                }
+              ]
+            },
+            "admin": {
+              "organization": "Acme Community Grants and Regional Partnership Demonstration Organization",
+              "workspace": "Multi-county grants, vendor onboarding, and annual public reporting operations",
+              "environment": "Production",
+              "teammates": [
+                {
+                  "name": "Jordan Kim",
+                  "role": "Owner",
+                  "status": "Active"
+                },
+                {
+                  "name": "Taylor Reed",
+                  "role": "Form author",
+                  "status": "Active"
+                },
+                {
+                  "name": "Morgan Lee",
+                  "role": "Analyst",
+                  "status": "Invited"
+                }
+              ]
+            },
+            "receipt": {
+              "receiptNumber": "rcpt_01J5Y9K3",
+              "receivedAt": "July 30, 2026 at 11:04 AM",
+              "proofStatus": "Verified",
+              "download": {
+                "filename": "formspec-receipt-rcpt_01J5Y9K3.json",
+                "mediaType": "application/json",
+                "content": "{\n  \"receipt\": \"rcpt_01J5Y9K3\",\n  \"status\": \"verified\"\n}\n"
+              },
+              "support": {
+                "href": "mailto:support@formspec.cloud?subject=Receipt%20rcpt_01J5Y9K3"
+              }
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:see-honest-feature-state@1"
+            ]
+          },
+          "freshness": "fresh"
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "query:responses",
+          "status": "loaded",
+          "value": {
+            "responses": [
+              {
+                "id": "rsp_1042",
+                "displayReference": "Response 1042",
+                "form": "Annual community services intake and regional partnership reporting form",
+                "status": "Verified",
+                "submittedAt": "July 30, 2026, 10:58 AM",
+                "submittedBy": "Avery Alexandra Johnson-Smith, Regional Program Operations Director",
+                "proofStatus": "Verified",
+                "resource": {
+                  "href": "/app/responses/rsp_1042"
+                }
+              }
+            ],
+            "selectedResponse": {
+              "id": "rsp_1042",
+              "displayReference": "Response 1042",
+              "form": "Annual community services intake and regional partnership reporting form",
+              "status": "Verified",
+              "submittedAt": "July 30, 2026, 10:58 AM",
+              "submittedBy": "Avery Alexandra Johnson-Smith, Regional Program Operations Director",
+              "proofStatus": "Verified"
+            },
+            "exports": {
+              "csv": {
+                "filename": "formspec-responses.csv",
+                "mediaType": "text/csv",
+                "content": "id,form,status,submittedAt\nrsp_1042,Annual intake,Verified,2026-07-30T14:58:00Z\n"
+              },
+              "json": {
+                "filename": "formspec-responses.json",
+                "mediaType": "application/json",
+                "content": "[\n  {\"id\":\"rsp_1042\",\"form\":\"Annual intake\",\"status\":\"Verified\"}\n]\n"
+              }
+            },
+            "selectedExport": {
+              "filename": "formspec-response-rsp_1042.json",
+              "mediaType": "application/json",
+              "content": "{\n  \"id\": \"rsp_1042\",\n  \"form\": \"Annual intake\",\n  \"status\": \"Verified\"\n}\n"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:review-and-export-responses@1"
+            ]
+          },
+          "freshness": "fresh"
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "host:billing",
+          "status": "loaded",
+          "value": {
+            "plan": "Team",
+            "billingStatus": "Current",
+            "renewalDate": "August 18, 2026",
+            "period": "July 19 – August 18, 2026",
+            "usage": {
+              "responses": 420
+            },
+            "limits": {
+              "responses": 1000
+            },
+            "remaining": {
+              "responses": 580
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:understand-plan-and-usage@1"
+            ]
+          },
+          "freshness": "fresh"
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "resource:support-trust",
+          "status": "loaded",
+          "value": {
+            "serviceStatus": [
+              {
+                "service": "Form delivery",
+                "status": "Operational",
+                "updated": "2 minutes ago",
+                "resource": {
+                  "href": "https://status.formspec.cloud"
+                }
+              },
+              {
+                "service": "Proof verification",
+                "status": "Operational",
+                "updated": "2 minutes ago",
+                "resource": {
+                  "href": "https://status.formspec.cloud"
+                }
+              },
+              {
+                "service": "Webhooks",
+                "status": "Operational",
+                "updated": "4 minutes ago",
+                "resource": {
+                  "href": "https://status.formspec.cloud"
+                }
+              }
+            ],
+            "incidents": [
+              {
+                "summary": "No incidents reported in the last 30 days",
+                "status": "Clear",
+                "startedAt": "—"
+              }
+            ],
+            "supportChannels": [
+              {
+                "label": "Email support",
+                "availability": "Weekdays, 9 AM–6 PM Eastern",
+                "resource": {
+                  "href": "mailto:support@formspec.cloud"
+                }
+              },
+              {
+                "label": "Service status",
+                "availability": "Always available",
+                "resource": {
+                  "href": "https://status.formspec.cloud"
+                }
+              }
+            ],
+            "trustDocuments": [
+              {
+                "label": "Security overview",
+                "updated": "July 2026",
+                "resource": {
+                  "href": "https://formspec.cloud/trust/security"
+                }
+              },
+              {
+                "label": "Subprocessor list",
+                "updated": "July 2026",
+                "resource": {
+                  "href": "https://formspec.cloud/trust/subprocessors"
+                }
+              }
+            ]
+          },
+          "x-generation": {
+            "anchors": [
+              "need:get-help-and-check-trust@1"
+            ]
+          },
+          "freshness": "fresh"
+        }
+      ],
+      "authorization": {
+        "default": "authorized"
+      }
     }
   },
   "actions": {

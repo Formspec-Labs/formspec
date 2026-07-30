@@ -85,7 +85,7 @@ A Surface binding uses the second. `@formspec-org/surface`'s
 
 ## The starter widget set
 
-Four widgets, plain and functional, themed entirely through `--formspec-*`
+Five widgets, plain and functional, themed entirely through `--formspec-*`
 custom properties emitted from the route's theme grant.
 
 | Widget | For | Data |
@@ -94,12 +94,13 @@ custom properties emitted from the route's theme grant.
 | `CeremonyFrame` | Framing what is being attested to | `binding.config` |
 | `ReceiptPanel` | What a person keeps after submitting | declared named inputs |
 | `QueueTable` | An operator's work list | declared named inputs |
+| `StructuredPanel` | Generic metrics, facts, lists, responsive tables, progress, and mapped actions | traced `binding.config` plus declared named inputs |
 
-**None of them invents content.** Handed nothing, each renders an empty state
-saying so, marked `data-widget-empty` so a probe can find it. That rule is the
-whole point: the `surface-render-v10` spike's queue table drew four applications
-with invented rents and invented waiting times, and it was the most convincing
-thing on the screen.
+**None of them invents product content.** The focused widgets use their
+existing generic empty-state defaults. `StructuredPanel` renders only independently
+traced configuration and bound data; without either, it renders nothing. That
+rule is the whole point: the `surface-render-v10` spike's queue table drew four
+applications with invented rents and waiting times, and it looked convincing.
 
 Runtime data reaches a widget through Surface 0.2 `dataBindings`. Each Registry
 1.1 input name maps to one exact `{catalogRef, sourceRef}` pair. `SurfaceApp`
@@ -109,12 +110,20 @@ payload before the widget receives a frozen named object. Missing required data
 renders an explicit catalog-directed failure posture. No value travels through
 `config`.
 
-A widget receives only `emitAction(outputName)`. The shell checks the Registry
+A traced `config.stateViews` object may define loading, empty, unavailable, and
+error UI. Each state and each state action needs its own Need anchor and
+`renderedConfigNodes` inventory entry. `config.emptyWhen` selects an admitted
+input through safe own-property paths. Loader details remain in diagnostics.
+
+A widget receives only `emitAction(outputName, input?)`. The optional `input`
+is selected finite JSON data. The shell clones and freezes it, checks the Registry
 declaration and exact Surface `actionBindings` map, allocates the stable
-invocation id, coalesces double delivery, replays a durable prior terminal, and
+invocation id, includes the input in replay identity, coalesces double delivery,
+replays a durable prior terminal, and
 delegates the exact action id to the host's Response Actions executor. The
 widget never receives the action id, route table, executor, or navigation
-function.
+function. `StructuredPanel` can use the returned lifecycle handle for traced
+pending, success, and failure feedback.
 
 Hosts that need their existing draft/submit runtime use
 `renderDefinitionForm`. Its single input contains the resolved form slot plan,

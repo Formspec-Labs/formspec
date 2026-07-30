@@ -21,7 +21,10 @@ export type SurfaceScenarioSourceRef = string;
  * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema
  * via the `definition` "SurfaceScenarioSourceOutcome".
  */
-export type SurfaceScenarioSourceOutcome = SurfaceScenarioLoadedSource | SurfaceScenarioUnavailableSource;
+export type SurfaceScenarioSourceOutcome =
+  | SurfaceScenarioLoadedSource
+  | SurfaceScenarioUnavailableSource
+  | SurfaceScenarioErrorSource;
 
 /**
  * Preview-only runtime state for exercising a data-only Surface bundle. This document is not an App Manifest member and MUST NOT be treated as production data. It supplies route parameters, qualified Data Source outcomes, coarse authorization verdicts, and simulated action outcomes to a fixed generic preview host.
@@ -190,6 +193,20 @@ export interface SurfaceScenarioUnavailableSource {
   sourceRef: SurfaceScenarioSourceRef;
   status: 'unavailable';
   'x-generation'?: Generation;
+  reason: string;
+}
+/**
+ * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema
+ * via the `definition` "SurfaceScenarioErrorSource".
+ */
+export interface SurfaceScenarioErrorSource {
+  catalogRef: SurfaceScenarioCatalogRef;
+  sourceRef: SurfaceScenarioSourceRef;
+  status: 'error';
+  'x-generation'?: Generation;
+  /**
+   * Technical preview-only failure detail retained for diagnostics and never rendered as customer copy.
+   */
   reason: string;
 }
 /**

@@ -130,6 +130,7 @@ that omits a REQUIRED property.
 |---|---|---|---|---|---|
 | `#/properties/$formspecTheme` | `$formspecTheme` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Theme specification version. MUST be '1.0'. |
 | `#/properties/breakpoints` | `breakpoints` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Breakpoints</code> | Named responsive breakpoints as min-width pixel values. Referenced by regions' 'responsive' objects to override span, start, or visibility at different viewport sizes. Processors that do not support responsive layouts SHOULD use the base span and start values. |
+| `#/properties/contrastPairs` | `contrastPairs` | <code>array</code> | no | critical | Additional color-token pairs whose effective contrast tooling must check. The platform Token Registry already declares the pairs used by the default renderer, so a Theme only needs this property for custom x-* tokens or stricter product-specific checks. A processor evaluates a pair after platform defaults and Theme token overrides are merged. It MUST use the WCAG 2.2 contrast formula when both values can be reduced to opaque sRGB colors, MUST NOT report a ratio when either value is indeterminate, and SHOULD diagnose a declared pair that references a missing token. The usage sets a standards floor: normalText is 4.5:1; largeText and uiComponent are 3:1. minimumRatio may raise but never lower that floor. |
 | `#/properties/defaults` | `defaults` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/PresentationBlock</code>; critical | Cascade level 1 (lowest theme specificity): baseline PresentationBlock applied to every item before selectors or per-item overrides. Sets the form-wide visual baseline. Overrides Tier 1 inline presentation hints (level 0) and formPresentation globals (level -1). Overridden by selectors (level 2) and items (level 3). Merge is shallow per-property — nested objects (widgetConfig, style, accessibility) are replaced as a whole, not deep-merged. Exception: cssClass uses union semantics across all levels. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of the theme's purpose and target audience. |
 | `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | Extension namespace for platform-specific or vendor-specific metadata. All keys MUST be x- prefixed. Processors MUST ignore unrecognized extensions. Extensions MUST NOT alter core presentation semantics. |
@@ -420,6 +421,59 @@ Runtime rendering MUST NOT depend on the Token Registry being loaded. Registry-
 aware validation owns unknown-token reporting through
 `THEME-TOKEN-UNREGISTERED`; renderers apply the effective Theme without creating
 aliases for undeclared keys.
+
+### 3.8 Effective Contrast Pairs
+
+Contrast is a relationship between two effective colors, not a property of one
+token in isolation. A Theme processor that performs accessibility lint MAY load
+the platform Token Registry's `contrastPairs` metadata. When a Theme overrides
+either side of one of those pairs, the processor SHOULD evaluate the pair after
+merging platform defaults, derived-token resolution, and Theme overrides. This
+lets a normal override such as `color.input` receive the renderer's existing
+input-boundary checks without requiring the Theme author to repeat renderer
+knowledge.
+
+A Theme MAY add `contrastPairs` for custom `x-*` tokens or a stricter
+product-specific relationship:
+
+```json
+{
+  "tokens": {
+    "x-agency.badge-text": "#111111",
+    "x-agency.badge-fill": "#ffffff"
+  },
+  "contrastPairs": [
+    {
+      "id": "agency-badge-label",
+      "foregroundToken": "x-agency.badge-text",
+      "backgroundToken": "x-agency.badge-fill",
+      "usage": "normalText"
+    }
+  ]
+}
+```
+
+Each pair contains:
+
+| Property | Cardinality | Meaning |
+|---|---:|---|
+| `id` | 1..1 | Stable relationship identifier within the Theme or registry. |
+| `foregroundToken` | 1..1 | Token for text, an icon, a focus indicator, or a control boundary. |
+| `backgroundToken` | 1..1 | Token for the adjacent surface. |
+| `usage` | 1..1 | `normalText`, `largeText`, or `uiComponent`. |
+| `minimumRatio` | 0..1 | A stricter floor from 3 through 21. It cannot lower the usage floor. |
+
+The usage floor is 4.5:1 for `normalText` and 3:1 for `largeText` or
+`uiComponent`. A processor MUST use the WCAG 2.2 relative-luminance contrast
+formula when both effective values can be reduced to opaque sRGB colors. It
+MUST NOT invent a ratio for a value that depends on alpha compositing, an
+unresolved color space, or another unknown surface. It SHOULD diagnose an
+authored pair whose token has no effective color value.
+
+`contrastPairs` is static-analysis data. It MUST NOT change token resolution,
+CSS emission, renderer output, or the Theme cascade. `formspec-lint` reports
+W714 when a determinable declared or inferred pair falls below its effective
+floor.
 
 ## 4. Widget Catalog
 
@@ -1082,9 +1136,9 @@ containing URLs, `extends` in future versions). Processors SHOULD:
 Theme authors SHOULD ensure that their themes do not reduce
 accessibility. In particular:
 
-- Color tokens SHOULD provide sufficient contrast ratios per
-  [WCAG 2.2](https://www.w3.org/TR/WCAG22/) Level AA (4.5:1 for
-  normal text, 3:1 for large text).
+- Color relationships SHOULD be expressed and checked through §3.8. The
+  platform registry supplies the default renderer's known relationships;
+  Themes declare additional custom-token or stricter relationships.
 - Font size tokens SHOULD not fall below platform-recommended minimums
   (typically 16px for body text on the web).
 - `labelPosition: "hidden"` MUST still render labels in accessible

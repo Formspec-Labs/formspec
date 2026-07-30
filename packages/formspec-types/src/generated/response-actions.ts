@@ -8,7 +8,52 @@
 /* eslint-disable */
 import type { ModuleRef, Generation } from './common.js';
 /**
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * Sidecar document declaring named response or app actions, FEL preconditions, validation tuple overrides, ordered effect requests, and invocation terminal controls. See specs/response-actions/response-actions-spec.md for normative prose.
+ */
+export type ResponseActionsDocument = {
+  /**
+   * Response Actions document version. MUST be '1.0'.
+   */
+  $formspecResponseActions: '1.0';
+  /**
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.
+   */
+  modules?: ModuleRef[];
+  /**
+   * Version of this Response Actions document. SemVer RECOMMENDED.
+   */
+  version: string;
+  /**
+   * Execution scope. response actions submit and validate the target Definition. app actions execute without a form submission and MUST omit targetDefinition.
+   */
+  scope?: 'response' | 'app';
+  /**
+   * The Definition this Response Actions document binds to. Identical role to Experience.targetDefinition.
+   */
+  targetDefinition?: {
+    /**
+     * Canonical URL of the Definition this Response Actions document binds to.
+     */
+    url: string;
+    /**
+     * Version range or exact version expression accepted for the target Definition.
+     */
+    compatibleVersions?: string;
+  };
+  /**
+   * Named actions. Order is documentation-only; resolution is by Action.id. Each id MUST be unique within the document.
+   *
+   * @minItems 1
+   */
+  actions: [Action, ...Action[]];
+  /**
+   * This interface was referenced by `undefined`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: `x-${string}`]: unknown;
+} & (DefinitionScopedResponseActions | ApplicationScopedActions);
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "Action".
  */
 export type Action = {
@@ -55,14 +100,14 @@ export type Action = {
 /**
  * Closed VM ActionIntent enum OR an x-prefixed publisher extension intent.
  *
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "ActionIntent".
  */
 export type ActionIntent = ('save-draft' | 'autosave' | 'review' | 'submit' | 'request-evidence') | `x-${string}`;
 /**
  * The exact (profile, blocking, persistence) triple defined by VM §3-§5 with the §6.3 validity predicate enforced as schema-level constraints. Response Actions ValidationOverride and other consumers that carry only the tuple MUST $ref this closed $def.
  *
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "ValidationOverride".
  */
 export type ValidationOverride = {
@@ -82,7 +127,7 @@ export type ValidationOverride = {
 /**
  * Closed effect request taxonomy.
  *
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "EffectRequest".
  */
 export type EffectRequest =
@@ -90,56 +135,15 @@ export type EffectRequest =
   | LedgerAppendEffect
   | HandoffAssemblyEffect
   | EvidenceRequestEffect
-  | HostEventEffect;
+  | HostEventEffect
+  | BrowserResourceEffect;
 /**
  * FEL expression evaluated once before a durable effect first executes and frozen across retries/replays.
  *
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "IdempotencyKey".
  */
 export type IdempotencyKey = string;
-
-/**
- * Sidecar document declaring named response actions, FEL preconditions, validation tuple overrides, ordered effect requests, and invocation terminal controls. See specs/response-actions/response-actions-spec.md for normative prose.
- */
-export interface ResponseActionsDocument {
-  /**
-   * Response Actions document version. MUST be '1.0'.
-   */
-  $formspecResponseActions: '1.0';
-  /**
-   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.
-   */
-  modules?: ModuleRef[];
-  /**
-   * Version of this Response Actions document. SemVer RECOMMENDED.
-   */
-  version: string;
-  /**
-   * The Definition this Response Actions document binds to. Identical role to Experience.targetDefinition.
-   */
-  targetDefinition: {
-    /**
-     * Canonical URL of the Definition this Response Actions document binds to.
-     */
-    url: string;
-    /**
-     * Version range or exact version expression accepted for the target Definition.
-     */
-    compatibleVersions?: string;
-  };
-  /**
-   * Named actions. Order is documentation-only; resolution is by Action.id. Each id MUST be unique within the document.
-   *
-   * @minItems 1
-   */
-  actions: [Action, ...Action[]];
-  /**
-   * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: `x-${string}`]: unknown;
-}
 /**
  * Extension object whose keys must be prefixed with x-.
  */
@@ -221,7 +225,7 @@ export interface CrossComponentRef {
 /**
  * A FEL-guarded precondition.
  *
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "Precondition".
  */
 export interface Precondition {
@@ -241,7 +245,7 @@ export interface Precondition {
 /**
  * Durable effect requesting Mapping execution.
  *
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "MappingExecutionEffect".
  */
 export interface MappingExecutionEffect {
@@ -253,7 +257,7 @@ export interface MappingExecutionEffect {
 /**
  * Durable effect requesting a Respondent Ledger append.
  *
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "LedgerAppendEffect".
  */
 export interface LedgerAppendEffect {
@@ -272,7 +276,7 @@ export interface LedgerAppendEffect {
 /**
  * Durable effect requesting Intake Handoff assembly.
  *
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "HandoffAssemblyEffect".
  */
 export interface HandoffAssemblyEffect {
@@ -285,7 +289,7 @@ export interface HandoffAssemblyEffect {
 /**
  * Durable effect requesting demand-timing evidence collection.
  *
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "EvidenceRequestEffect".
  */
 export interface EvidenceRequestEffect {
@@ -297,7 +301,7 @@ export interface EvidenceRequestEffect {
 /**
  * Transient host-local event. MUST NOT carry idempotencyKey.
  *
- * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "HostEventEffect".
  */
 export interface HostEventEffect {
@@ -307,4 +311,32 @@ export interface HostEventEffect {
    * Optional FEL expression producing transient event detail.
    */
   detailRef?: string;
+}
+/**
+ * Transient browser navigation or download request resolved from validated structured action input. MUST NOT carry idempotencyKey.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "BrowserResourceEffect".
+ */
+export interface BrowserResourceEffect {
+  type: 'browserResource';
+  /**
+   * open follows a safe internal, HTTPS, or explicitly authored mailto destination. download saves an authored resource.
+   */
+  operation: 'open' | 'download';
+  /**
+   * Safe own-property path into the structured action input. The resolved value is a browser resource object; it is never evaluated as code.
+   */
+  resourceRef: string;
+  /**
+   * Browsing context for open operations. Downloads ignore this value.
+   */
+  target?: 'self' | 'new';
+  onError?: 'fail' | 'defer';
+}
+export interface DefinitionScopedResponseActions {
+  scope?: 'response';
+}
+export interface ApplicationScopedActions {
+  scope: 'app';
 }

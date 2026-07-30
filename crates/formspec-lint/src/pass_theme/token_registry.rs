@@ -13,16 +13,37 @@ use super::value_validators::{is_css_color, is_css_length, is_font_weight, is_li
 
 const TOKEN_REGISTRY_JSON: &str = include_str!("../../schemas/token-registry.json");
 
-/// Parsed token registry mapping every platform token key to its semantic type.
+/// A renderer-owned color relationship inferred for every Theme override.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct PlatformContrastPair {
+    /// Stable relationship name used in diagnostics.
+    pub(crate) id: String,
+    /// Color token painted in front of the surface.
+    pub(crate) foreground_token: String,
+    /// Color token painted behind the foreground.
+    pub(crate) background_token: String,
+    /// Renderer usage that sets the standards floor.
+    pub(crate) usage: String,
+    /// Optional product floor above the usage minimum.
+    pub(crate) minimum_ratio: Option<f64>,
+}
+
+/// Parsed token registry with values needed for Theme semantic checks.
+#[derive(Debug)]
 pub(crate) struct TokenRegistry {
     token_types: HashMap<String, String>,
     all_keys: HashSet<String>,
+    default_values: HashMap<String, String>,
+    derived_from: HashMap<String, String>,
+    contrast_pairs: Vec<PlatformContrastPair>,
 }
 
 impl TokenRegistry {
     fn from_json(json: &Value) -> Self {
         let mut token_types = HashMap::new();
         let mut all_keys = HashSet::new();
+        let mut default_values = HashMap::new();
+        let mut derived_from = HashMap::new();
 
         if let Some(categories) = json.get("categories").and_then(|v| v.as_object()) {
             for (cat_key, category) in categories {
@@ -39,6 +60,12 @@ impl TokenRegistry {
                             .unwrap_or(cat_type);
                         token_types.insert(token_key.clone(), entry_type.to_string());
                         all_keys.insert(token_key.clone());
+                        if let Some(value) = entry.get("default").and_then(Value::as_str) {
+                            default_values.insert(token_key.clone(), value.to_string());
+                        }
+                        if let Some(source) = entry.get("derivedFrom").and_then(Value::as_str) {
+                            derived_from.insert(token_key.clone(), source.to_string());
+                        }
                     }
                 }
 
@@ -53,16 +80,38 @@ impl TokenRegistry {
                         {
                             let dark_key = format!("{dark_prefix}.{suffix}");
                             token_types.insert(dark_key.clone(), "color".to_string());
-                            all_keys.insert(dark_key);
+                            all_keys.insert(dark_key.clone());
+                            if let Some(value) = entry.get("dark").and_then(Value::as_str) {
+                                default_values.insert(dark_key.clone(), value.to_string());
+                            }
+                            if let Some(source) = entry.get("derivedFrom").and_then(Value::as_str)
+                                && let Some(source_suffix) = source
+                                    .strip_prefix(cat_key.as_str())
+                                    .and_then(|value| value.strip_prefix('.'))
+                            {
+                                derived_from
+                                    .insert(dark_key, format!("{dark_prefix}.{source_suffix}"));
+                            }
                         }
                     }
                 }
             }
         }
 
+        let contrast_pairs = json
+            .get("contrastPairs")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(parse_platform_contrast_pair)
+            .collect();
+
         TokenRegistry {
             token_types,
             all_keys,
+            default_values,
+            derived_from,
+            contrast_pairs,
         }
     }
 
@@ -77,6 +126,69 @@ impl TokenRegistry {
     fn all_keys(&self) -> &HashSet<String> {
         &self.all_keys
     }
+
+    /// Return inferred renderer relationships checked when either side changes.
+    pub(crate) fn contrast_pairs(&self) -> &[PlatformContrastPair] {
+        &self.contrast_pairs
+    }
+
+    /// Resolve an effective string after Theme overrides and token derivation.
+    pub(crate) fn effective_string(
+        &self,
+        authored: &serde_json::Map<String, Value>,
+        key: &str,
+    ) -> Option<String> {
+        self.effective_string_inner(authored, key, &mut HashSet::new())
+    }
+
+    fn effective_string_inner(
+        &self,
+        authored: &serde_json::Map<String, Value>,
+        key: &str,
+        visited: &mut HashSet<String>,
+    ) -> Option<String> {
+        if !visited.insert(key.to_string()) {
+            return None;
+        }
+        if let Some(value) = authored.get(key) {
+            return value.as_str().map(ToString::to_string);
+        }
+        if let Some(source) = self.derived_from.get(key) {
+            return self.effective_string_inner(authored, source, visited);
+        }
+        self.default_values.get(key).cloned()
+    }
+
+    /// Check whether a Theme override changes this token directly or by derivation.
+    pub(crate) fn is_affected(&self, authored: &serde_json::Map<String, Value>, key: &str) -> bool {
+        self.is_affected_inner(authored, key, &mut HashSet::new())
+    }
+
+    fn is_affected_inner(
+        &self,
+        authored: &serde_json::Map<String, Value>,
+        key: &str,
+        visited: &mut HashSet<String>,
+    ) -> bool {
+        if !visited.insert(key.to_string()) {
+            return false;
+        }
+        authored.contains_key(key)
+            || self
+                .derived_from
+                .get(key)
+                .is_some_and(|source| self.is_affected_inner(authored, source, visited))
+    }
+}
+
+fn parse_platform_contrast_pair(value: &Value) -> Option<PlatformContrastPair> {
+    Some(PlatformContrastPair {
+        id: value.get("id")?.as_str()?.to_string(),
+        foreground_token: value.get("foregroundToken")?.as_str()?.to_string(),
+        background_token: value.get("backgroundToken")?.as_str()?.to_string(),
+        usage: value.get("usage")?.as_str()?.to_string(),
+        minimum_ratio: value.get("minimumRatio").and_then(Value::as_f64),
+    })
 }
 
 pub(crate) fn token_registry() -> &'static TokenRegistry {

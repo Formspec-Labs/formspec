@@ -64,7 +64,10 @@ const STRUCTURED_PANEL_INVENTORY = [
   { pointerPattern: '/blocks/*', kind: 'structured-panel-block' },
   { pointerPattern: '/blocks/*/items/*', kind: 'structured-panel-field' },
   { pointerPattern: '/blocks/*/columns/*', kind: 'structured-panel-column' },
+  { pointerPattern: '/blocks/*/rowAction', kind: 'structured-panel-row-action' },
   { pointerPattern: '/actions/*', kind: 'structured-panel-action' },
+  { pointerPattern: '/stateViews/*', kind: 'module-widget-state-view' },
+  { pointerPattern: '/stateViews/*/actions/*', kind: 'module-widget-state-action' },
 ];
 
 function context(
@@ -428,6 +431,71 @@ describe('validateRenderedNeedTrace', () => {
       },
     ]);
     expect(validateRenderedNeedTrace(graph)).toEqual([]);
+  });
+
+  it('inventories only customer-help References and requires each bound entry own direct Need anchor', () => {
+    const current = 'need:current@2';
+    const references = handle('references', 'references', {
+      $formspecReferences: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: `${APP_URL}/definition` },
+      referenceDefs: {
+        reusableHelp: {
+          type: 'documentation',
+          audience: 'human',
+          title: 'Reusable help',
+          uri: 'https://example.gov/help/reusable',
+          ...generation(current),
+        },
+      },
+      references: [{
+        target: '#',
+        $ref: '#/referenceDefs/reusableHelp',
+      }, {
+        target: 'contact.email',
+        type: 'documentation',
+        audience: 'both',
+        title: 'Email help',
+        uri: 'https://example.gov/help/email',
+        ...generation(current),
+      }, {
+        target: '#',
+        type: 'knowledge-base',
+        audience: 'agent',
+        content: 'Agent-only context.',
+      }],
+    });
+    const graph = context([references]);
+
+    expect(collectRenderedNeedTraceNodes(graph)
+      .filter((node) => node.kind === 'reference-entry')).toEqual([
+      expect.objectContaining({
+        pointer: '/references/0',
+        label: 'Reusable help',
+        anchors: [],
+      }),
+      expect.objectContaining({
+        pointer: '/references/1',
+        label: 'Email help',
+        anchors: [expect.objectContaining({
+          pointer: '/references/1/x-generation/anchors/0',
+          raw: current,
+        })],
+      }),
+    ]);
+    expect(validateRenderedNeedTrace(graph)).toEqual([
+      expect.objectContaining({
+        code: RENDERED_NEED_TRACE_CODES.missing,
+        primarySource: expect.objectContaining({
+          artifactSlot: 'references',
+          jsonPointer: '/references/0',
+        }),
+        details: expect.objectContaining({
+          renderedNodeKind: 'reference-entry',
+          reason: 'direct-need-anchor-missing',
+        }),
+      }),
+    ]);
   });
 
   it('validates preview scenario roots, grouped route params, source outcomes, and action outcomes without inheritance', () => {
@@ -1131,6 +1199,47 @@ describe('validateRenderedNeedTrace', () => {
       surface,
       widgetRegistry('x-standard', 'x-structured-panel', STRUCTURED_PANEL_INVENTORY),
     ]))).toEqual([]);
+  });
+
+  it('requires a direct trace on each generic widget state and state action', () => {
+    const current = 'need:current@2';
+    const surface = handle('surface', 'surface', {
+      ...generation(current),
+      routes: [{
+        id: 'home',
+        ...generation(current),
+        navigation: { visible: false, ...generation(current) },
+        slots: [{
+          id: 'panel',
+          slotType: 'module-widget',
+          ...generation(current),
+          binding: {
+            moduleId: 'x-standard',
+            widgetName: 'StructuredPanel',
+            config: {
+              ...generation(current),
+              stateViews: {
+                error: {
+                  heading: 'Could not load',
+                  actions: [{
+                    kind: 'retry',
+                    label: 'Try again',
+                  }],
+                },
+              },
+            },
+          },
+        }],
+      }],
+    });
+
+    expect(validateRenderedNeedTrace(context([
+      surface,
+      widgetRegistry('x-standard', 'StructuredPanel', STRUCTURED_PANEL_INVENTORY),
+    ])).map((diagnostic) => diagnostic.primarySource?.jsonPointer)).toEqual([
+      '/routes/0/slots/0/binding/config/stateViews/error',
+      '/routes/0/slots/0/binding/config/stateViews/error/actions/0',
+    ]);
   });
 
   it('refuses a custom widget when the Registry does not declare its rendered config scope', () => {

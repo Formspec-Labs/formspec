@@ -40,6 +40,41 @@ interface TransitionMatch {
   trigger: string;
 }
 
+interface ConfiguredStateOutput {
+  outputName: string;
+  pointer: string;
+}
+
+const MODULE_WIDGET_STATE_NAMES = new Set([
+  'loading',
+  'empty',
+  'unavailable',
+  'error',
+]);
+
+function configuredStateOutputs(widget: SurfaceWidgetSlot): ConfiguredStateOutput[] {
+  const config = record(ownProp(widget.binding, 'config'));
+  const stateViews = record(ownProp(config, 'stateViews'));
+  return Object.entries(stateViews ?? {}).flatMap(([state, candidate]) => {
+    if (!MODULE_WIDGET_STATE_NAMES.has(state)) return [];
+    return recordArray(ownProp(record(candidate), 'actions')).flatMap(
+      (action, actionIndex) => {
+        if (stringProp(action, 'kind') !== 'output') return [];
+        const outputName = stringProp(action, 'outputName');
+        return outputName
+          ? [{
+              outputName,
+              pointer:
+                `/routes/${widget.routeIndex}/slots/${widget.slotIndex}` +
+                `/binding/config/stateViews/${escapeJsonPointerToken(state)}` +
+                `/actions/${actionIndex}/outputName`,
+            }]
+          : [];
+      },
+    );
+  });
+}
+
 function declaredActionOutputs(contribution: RegistryWidgetEntry): Map<string, number> {
   const counts = new Map<string, number>();
   for (const output of recordArray(ownProp(widgetShape(contribution), 'actionOutputs'))) {
@@ -155,6 +190,89 @@ function widgetActionBindingDiagnostics(
             },
           });
         }
+      }
+
+      for (const use of configuredStateOutputs(widget)) {
+        const outputMatches = outputs.get(use.outputName) ?? 0;
+        if (outputMatches !== 1) {
+          diagnostics.push({
+            code: 'E612',
+            severity: 'error',
+            phase: 'cross-artifact',
+            origin: 'app-graph-validator',
+            message: `Module-widget state action output '${use.outputName}' is not declared exactly once by Registry widget '${widget.widgetName}'.`,
+            primarySource: diagnosticSourceForHandle(widget.surface, use.pointer),
+            relatedSources: [diagnosticSourceForHandle(
+              contribution.registry,
+              `/entries/${contribution.entryIndex}/widgetShape/actionOutputs`,
+            )],
+            details: {
+              reason: 'state-action-output-undeclared',
+              surfaceRef: widget.surfaceRef,
+              routeId: widget.routeId,
+              slotId: widget.slotId,
+              moduleId: widget.moduleId,
+              widgetName: widget.widgetName,
+              outputName: use.outputName,
+              outputMatches,
+            },
+          });
+          continue;
+        }
+        const binding = record(ownProp(bindings, use.outputName));
+        if (!binding) {
+          diagnostics.push({
+            code: 'E612',
+            severity: 'error',
+            phase: 'cross-artifact',
+            origin: 'app-graph-validator',
+            message: `Module-widget state action output '${use.outputName}' has no Surface action binding.`,
+            primarySource: diagnosticSourceForHandle(widget.surface, use.pointer),
+            details: {
+              reason: 'state-action-output-unmapped',
+              surfaceRef: widget.surfaceRef,
+              routeId: widget.routeId,
+              slotId: widget.slotId,
+              moduleId: widget.moduleId,
+              widgetName: widget.widgetName,
+              outputName: use.outputName,
+            },
+          });
+          continue;
+        }
+        const actionRef = stringProp(binding, 'actionRef');
+        const matches = actionRef
+          ? references.actions.filter((action) => action.id === actionRef)
+          : [];
+        if (matches.length !== 1) continue;
+        const match = matches[0]!;
+        const action = recordArray(ownProp(record(match.handle.document), 'actions'))[
+          match.actionIndex
+        ];
+        const literal = stringProp(record(ownProp(action, 'label')), 'literal');
+        if (literal && literal.length > 0) continue;
+        diagnostics.push({
+          code: 'E612',
+          severity: 'error',
+          phase: 'cross-artifact',
+          origin: 'app-graph-validator',
+          message: `Module-widget state action output '${use.outputName}' resolves to action '${actionRef}', but that action has no non-empty literal label.`,
+          primarySource: diagnosticSourceForHandle(widget.surface, use.pointer),
+          relatedSources: [diagnosticSourceForHandle(
+            match.handle,
+            `/actions/${match.actionIndex}/label`,
+          )],
+          details: {
+            reason: 'state-action-label-not-renderable',
+            surfaceRef: widget.surfaceRef,
+            routeId: widget.routeId,
+            slotId: widget.slotId,
+            moduleId: widget.moduleId,
+            widgetName: widget.widgetName,
+            outputName: use.outputName,
+            actionRef,
+          },
+        });
       }
     }
   }

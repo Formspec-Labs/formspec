@@ -137,7 +137,7 @@ when other declared siblings can still be represented as handles.
 
 ## 4. Manifest Slot Coverage
 
-The resolver covers App Manifest v2.0, v2.1, v2.2, and v2.3 sibling references
+The resolver covers App Manifest v2.0 through v2.4 sibling references
 that identify loadable source artifacts.
 
 | Manifest member | Cardinality | Artifact kind | Expected discriminator |
@@ -145,11 +145,14 @@ that identify loadable source artifacts.
 | `definitions[]` | array, required, may be empty | `definition` | `$formspec` |
 | `experience` | optional single | `experience` | `$formspecExperience` |
 | `responseActions` | optional single | `responseActions` | `$formspecResponseActions` |
+| `responseActionDocuments[]` | optional array, App Manifest v2.4 only | `responseActions` | `$formspecResponseActions` |
 | `component` | optional single | `component` | `$formspecComponent` |
 | `components[]` | optional array, App Manifest v2.2 only | `component` | `$formspecComponent` |
 | `theme` | optional single | `theme` | `$formspecTheme` |
 | `references` | optional single | `references` | `$formspecReferences` |
+| `referenceDocuments[]` | optional array, App Manifest v2.4 only | `references` | `$formspecReferences` |
 | `ontology` | optional single | `ontology` | `$formspecOntology` |
+| `ontologies[]` | optional array, App Manifest v2.4 only | `ontology` | `$formspecOntology` |
 | `registries[]` | optional array | `registry` | `$formspecRegistry` |
 | `surfaces[]` | optional array | `surface` | `$formspecSurface` |
 | `screeners[]` | optional array, App Manifest v2.3 only | `screener` | `$formspecScreener` |
@@ -164,10 +167,17 @@ dependencies, contribution ownership, and widget payload authority. Runtime
 session state remains outside artifact resolution.
 
 The resolver MUST reject or diagnose `dataSources[]` on App Manifest v2.0,
-`components[]` on App Manifest v2.0/v2.1, and `screeners[]` on App Manifest
-v2.0/v2.1/v2.2. It MUST fail loud on manifest slots outside the supplied
-support profile unless the member is an allowed `x-*` extension ignored by App
-Manifest rules.
+`components[]` on App Manifest v2.0/v2.1, `screeners[]` on App Manifest
+v2.0/v2.1/v2.2, and `referenceDocuments[]`, `ontologies[]`, or
+`responseActionDocuments[]` before App Manifest v2.4. It MUST fail loud on
+manifest slots outside the supplied support profile unless the member is an
+allowed `x-*` extension ignored by App Manifest rules.
+
+When a legacy `references`, `ontology`, or `responseActions` singleton and its
+plural companion member both appear, the resolver emits the singleton handle
+first and then the plural handles in authored array order. It preserves each
+loaded document's `targetDefinition` or Response Actions `scope`; target-aware
+selection belongs to the consumer and later graph validation.
 
 For `components[]`, `ComponentRef.handle` is App Manifest membership evidence
 carried on the manifest ref. The resolver preserves that ref evidence for
@@ -228,9 +238,9 @@ The resolver runs deterministically:
 7. Emit one deterministic response with handles, diagnostics, and phase status.
 
 The resolver does not synthesize absent siblings. A manifest without
-`dataSources[]`, `components[]`, or `screeners[]`, for example, produces no
-Data Sources, Component-list, or Screener handles and no fabricated catalog,
-Component membership list, or Screener association.
+`dataSources[]`, `components[]`, `screeners[]`, or plural companion members,
+for example, produces no corresponding handles and no fabricated catalog,
+membership list, or association.
 
 ## 7. Resolver Response
 

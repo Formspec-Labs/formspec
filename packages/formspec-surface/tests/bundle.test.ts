@@ -54,7 +54,129 @@ describe('dereferenceBundleExport', () => {
     expect(minimal.tenantTheme).toBeUndefined();
     expect(minimal.registries).toEqual([]);
     expect(minimal.experiences).toEqual([]);
+    expect(minimal.references).toEqual([]);
+    expect(minimal.ontologies).toEqual([]);
+    expect(minimal.responseActions).toEqual([]);
     expect(minimal.diagnostics).toEqual([]);
+  });
+
+  it('loads legacy and plural target-aware companion documents in manifest order', () => {
+    const organizationDefinition = 'https://example.test/organization';
+    const publicDefinition = 'https://example.test/def';
+    const organizationReferences = {
+      $formspecReferences: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: organizationDefinition },
+      references: [],
+    };
+    const publicReferences = {
+      $formspecReferences: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: publicDefinition },
+      references: [],
+    };
+    const organizationOntology = {
+      $formspecOntology: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: organizationDefinition },
+      concepts: {},
+    };
+    const publicOntology = {
+      $formspecOntology: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: publicDefinition },
+      concepts: {},
+    };
+    const bundle = bundleExport({
+      $formspecBundle: '2.4',
+      entrySurface: 'surface:respondent',
+      definitions: [
+        { url: publicDefinition },
+        { url: organizationDefinition },
+      ],
+      references: { url: 'references:organization' },
+      referenceDocuments: [{ url: 'references:public' }],
+      ontology: { url: 'ontology:organization' },
+      ontologies: [{ url: 'ontology:public' }],
+    });
+    const resolved = dereferenceBundleExport({
+      ...bundle,
+      documents: {
+        ...bundle.documents,
+        [organizationDefinition]: {
+          $formspec: '1.0',
+          url: organizationDefinition,
+          items: [],
+        },
+        'references:organization': organizationReferences,
+        'references:public': publicReferences,
+        'ontology:organization': organizationOntology,
+        'ontology:public': publicOntology,
+      },
+    });
+
+    expect(resolved.references).toEqual([
+      organizationReferences,
+      publicReferences,
+    ]);
+    expect(resolved.ontologies).toEqual([
+      organizationOntology,
+      publicOntology,
+    ]);
+    expect(resolved.references?.map((document) => document.targetDefinition.url)).toEqual([
+      organizationDefinition,
+      publicDefinition,
+    ]);
+    expect(resolved.ontologies?.map((document) => document.targetDefinition.url)).toEqual([
+      organizationDefinition,
+      publicDefinition,
+    ]);
+    expect(resolved.diagnostics).toEqual([]);
+  });
+
+  it('loads legacy and plural Response Actions documents in manifest order', () => {
+    const responseSubmit = {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: 'https://example.test/def' },
+      actions: [{
+        id: 'submit',
+        intent: 'submit',
+        effects: [{ type: 'hostEvent', eventName: 'response.submit' }],
+      }],
+    };
+    const appOperations = {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      scope: 'app',
+      actions: [{
+        id: 'open-operations',
+        intent: 'x-open-operations',
+        validation: {
+          profile: 'off',
+          blocking: 'non-blocking',
+          persistence: 'none',
+        },
+        effects: [{ type: 'hostEvent', eventName: 'app.operations.open' }],
+      }],
+    };
+    const bundle = bundleExport({
+      $formspecBundle: '2.4',
+      entrySurface: 'surface:respondent',
+      responseActions: { url: 'response-actions:submit' },
+      responseActionDocuments: [{ url: 'response-actions:operations' }],
+    });
+    const resolved = dereferenceBundleExport({
+      ...bundle,
+      documents: {
+        ...bundle.documents,
+        'response-actions:submit': responseSubmit,
+        'response-actions:operations': appOperations,
+      },
+    });
+
+    expect(resolved.responseActions).toEqual([responseSubmit, appOperations]);
+    expect(resolved.diagnostics).toEqual([]);
   });
 
   it('reads the singular `experience` slot the App Manifest actually ships', () => {

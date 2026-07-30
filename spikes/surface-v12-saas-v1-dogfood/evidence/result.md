@@ -1,84 +1,71 @@
 # Surface v12 SaaS V1 corrected assessment
 
 **Current result: passed as a local data-only wireframe framework proof.** The
-SaaS and control bundles both run through the same fixed generic host. Product
-routes, navigation, fields, actions, content, and source fixtures come from the
-selected structured preview entry. The framework supplies the same generic
-renderer and styling to both products; the host contains no SaaS-specific
-executable code or CSS.
+SaaS and independent community room bundles run through the same fixed generic
+host. Product routes, navigation, fields, actions, content, help, state views,
+resource destinations, and fixtures come from structured data. Generic
+framework code supplies rendering, validation, responsive layout, accessible
+defaults, and browser adapters without product-specific branches.
 
-Reviewed input digest: `sha256:0f3ff91772515e1635723741803421b666ac3411a52047e189703d7e20dcf398`
+Reviewed input digest: `sha256:307627996ceb2c852a7133c69c106c1eeb1d18c4c3071d28d0ebaee0ea62d62b`
 
-The current SaaS bundle contains 14 routes and 14 authored navigation entries.
-Nine entries are visible in the `workspace` scope; hidden workspace and public
-route entries remain authored and checked because their labels and scopes still
-affect shell behavior. The bundle also contains:
+The current SaaS bundle contains 15 routes, 15 authored navigation entries,
+eight visible workspace links, 34 Response Actions, two Definitions with seven
+items and seven Binds, 15 mounted Experience units, two References Documents,
+two Ontology Documents, and 10 adopted Needs.
 
-- 22 Response Actions;
-- two Definitions with seven total items and seven total Binds;
-- 14 mounted Experience units;
-- 10 adopted Needs; and
-- 256 rendered trace records, all 256 resolved to current adopted Needs and
-  valid Experience actor, task, unit, and item references.
+The reasoning review records 386 rendered trace records for the SaaS bundle.
+All 386 resolved to current adopted Needs and valid Experience actor, task,
+unit, item, and action relations. The independent control records 12 of 12
+rendered traces. Both bundles complete all seven AppGraph phases with no
+unresolved rendered pointer.
 
-The independent control bundle records 12 of 12 rendered traces and proves that
-the same compiled host accepts a second product description. All exact internal
-artifact, route, action, Definition, Experience, module, source, scenario, and
-Need references in the checked-in reconstruction resolve. The artifact
-verifier passed both bundles and all seven required AppGraph phases for each.
+Playwright rendered all 15 routes and followed all 34 authored action paths
+through their resolved controls and native action seams. It completed 30
+route-and-width checks and 75 profile-and-route checks across `loaded`, `empty`,
+`unavailable`, `error`, and `longContent`. The browser also verified loading,
+downloads, parameterized detail navigation, external resources, public form
+submission and receipt, References help, responsive tables, compact navigation,
+200% zoom, and the unrelated control bundle. The final passes recorded no
+console warning or error.
 
-This is a **structured reconstruction**, not a fresh blind replay through the
-public builder. It was assembled after attempt 7 exposed gaps in the authoring
-surface, validation, reasoning trace, and generic-host boundary.
+The detailed review and captures are in
+[`playwright-review.md`](./playwright-review.md).
 
-Playwright rendered all 14 routes and followed all 22 authored action
-destinations, including the parameterized form-detail route and a completed
-public response. Responses, billing, and support/trust showed distinct loaded,
-empty, loading, and unavailable behavior. Workspace navigation stayed out of
-the public response and receipt routes, the mobile form remained usable at
-390 x 844, the independent control rendered in the same session, and the final
-passes recorded no console warning or error. The detailed review and captures
-are in [`playwright-review.md`](./playwright-review.md).
+## What changed after the initial audit
+
+- Experience and Need reasoning remain metadata and no longer render in the
+  customer interface by default.
+- Every rendered product claim and control traces directly to a Need, and an
+  opt-in usable-outcome validator rejects actionable Needs represented only by
+  prose.
+- `StructuredPanel` now renders structured row actions, action inputs,
+  lifecycle feedback, and authored loading, empty, unavailable, and error
+  states.
+- Response review, exports, support, trust, receipt, and navigation resources
+  are real structured actions.
+- The zero-Theme renderer supplies responsive shell, navigation, table, form,
+  action, target-size, focus, and contrast defaults.
+- Human References render as contextual help; Ontology remains semantic
+  metadata. Browser links fail closed to HTTPS and same-app relative Reference
+  URIs unless a host explicitly translates another scheme. Bundle and manifest
+  handling supports the plural native sidecars.
+- Duplicate visible titles, unusable outcomes, Theme contrast regressions, and
+  delivered-widget Registry mismatches now fail automated gates.
 
 ## Historical failed evidence: attempt 7
 
-Attempt 7 remains checked in as failure evidence. Its 92-call public replay
-produced 13 routes, 29 slot bindings, 21 transitions, 11 actions, one
-seven-field Definition, one Experience unit, a Registry widget, and three Data
-Sources. The export succeeded, but it did not qualify:
-
-- the old demo contained SaaS-specific TypeScript and CSS;
-- the Experience unit cited an actor and four tasks that did not exist;
-- the replay authored no Needs Document or direct rendered-Need traces;
-- three required graph phases did not run; and
-- the host split one Definition into different forms outside the Definition.
-
-The old zero-finding report and prior 4/4 score are withdrawn. The attempt-7
-calls, results, and notes remain unchanged so the failed path can be inspected
-without confusing it with the current reconstruction.
-
-## What the current artifacts establish
-
-At the artifact level, the reconstruction represents account access,
-onboarding, environment and team setup; forms, publishing, preview, and public
-completion; responses and export; signatures, receipts, and verification;
-administration and branding; API and webhook work; billing and entitlements;
-and status, support, and trust. The parameterized
-`/app/forms/{formId}` route declares a concrete `formId` example and its
-transitions provide that parameter.
-
-Feature posture remains explicit: `LIVE`, `ASSISTED`, `PREVIEW`, and `DISABLED`
-labels distinguish available work from assisted, experimental, and unavailable
-capabilities.
-
-The correction work is tracked in
-[`2026-07-30-wireframes-data-only-reasoning-closure.md`](../../../thoughts/plans/2026-07-30-wireframes-data-only-reasoning-closure.md).
+Attempt 7 remains checked in as failure evidence. Its public replay produced
+artifacts, but it did not qualify: the old demo contained product-specific
+TypeScript and CSS, Experience references were incomplete, no Needs Document
+or direct traces existed, graph phases were missing, and the host changed one
+Definition's field membership. The calls, results, and notes remain unchanged
+so that failed path stays inspectable.
 
 ## Limits
 
-This is an artifact and local preview-host assessment. It does not qualify
+This is an artifact and local preview-host assessment. It does not establish
 runtime persistence, tenant isolation, authentication or recovery, entitlement
 enforcement, billing execution, webhook or email delivery, signature or receipt
 generation, production verification services, release admission, publishing,
-deployment, or support operations. The corrected result proves the framework
-boundary and the represented browser journeys, not those backend capabilities.
+deployment, or support operations.

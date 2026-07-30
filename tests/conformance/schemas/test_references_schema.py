@@ -62,10 +62,33 @@ class TestReferencesSchema:
         with pytest.raises(ValidationError):
             _validate(doc)
 
+    def test_inline_and_reused_bound_references_accept_direct_generation(self) -> None:
+        doc = _minimal_references()
+        doc["referenceDefs"] = {
+            "filingGuide": {
+                "type": "documentation",
+                "audience": "human",
+                "uri": "https://example.gov/help/reusable",
+                "x-generation": {"anchors": ["need:customer-help@2"]},
+            }
+        }
+        doc["references"] = [
+            {
+                **doc["references"][0],
+                "x-generation": {"anchors": ["need:customer-help@2"]},
+            },
+            {
+                "target": "contact.email",
+                "$ref": "#/referenceDefs/filingGuide",
+                "x-generation": {"anchors": ["need:email-help@1"]},
+            },
+        ]
+
+        _validate(doc)
+
     def test_non_namespaced_extensions_are_rejected(self) -> None:
         doc = _minimal_references()
         doc["extensions"] = {"custom": True}
 
         with pytest.raises(ValidationError):
             _validate(doc)
-

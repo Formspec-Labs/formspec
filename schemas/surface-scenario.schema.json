@@ -176,6 +176,36 @@
         }
       }
     },
+    "SurfaceScenarioErrorSource": {
+      "type": "object",
+      "required": [
+        "catalogRef",
+        "sourceRef",
+        "status",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "catalogRef": {
+          "$ref": "#/$defs/SurfaceScenarioCatalogRef"
+        },
+        "sourceRef": {
+          "$ref": "#/$defs/SurfaceScenarioSourceRef"
+        },
+        "status": {
+          "const": "error"
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this qualified simulated loader failure. Strict data-only preview validation requires the outcome's own current adopted Need anchor."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Technical preview-only failure detail retained for diagnostics and never rendered as customer copy."
+        }
+      }
+    },
     "SurfaceScenarioSourceOutcome": {
       "oneOf": [
         {
@@ -183,6 +213,9 @@
         },
         {
           "$ref": "#/$defs/SurfaceScenarioUnavailableSource"
+        },
+        {
+          "$ref": "#/$defs/SurfaceScenarioErrorSource"
         }
       ]
     },

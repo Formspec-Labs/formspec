@@ -258,7 +258,7 @@ A **Unit** is the substantive payload of an Experience Document. Each Unit group
 | `accessibility` | object | OPTIONAL | Accessibility intent (S5.3). |
 | `extensions` | object | OPTIONAL | `x-`-prefixed extension data. |
 
-A Unit MAY also carry `needRefs` — landed in `schemas/experience.schema.json` (S11.3) but specified by the [Needs specification](../needs/needs-spec.md) S7, which owns its shape, its deliberate unpinnedness, and its resolution against a caller-paired Needs Document.
+A Unit MAY also carry `needRefs` — landed in `schemas/experience.schema.json` (S11.3) but specified by the [Needs specification](../needs/needs-spec.md) S7, which owns its shape, its deliberate unpinnedness, its optional usable-outcome `completion` declaration, and its resolution against a caller-paired Needs Document.
 
 A Unit with zero `itemRefs`, zero `conceptRefs`, and zero `actionRefs` is permitted but contributes nothing to coverage (S8). Such units are intended for placeholder or planning purposes.
 
@@ -333,6 +333,19 @@ References a Response Action identifier.
 | `description` | string | OPTIONAL | Optional clarifying note. |
 
 Every `ActionRef.id` resolves against the loaded Response Actions document's `actions[*].id` set. Processors MUST load a Response Actions document when the Experience document contains any `ActionRef`. An unresolved `ActionRef.id` MUST be treated as an Experience document error; processors MUST emit a finding and render any corresponding action trigger inert. There is no free-string fallback.
+
+### 6.4 Need completion declarations
+
+`NeedRef.completion` MAY classify the kind of usable outcome the Unit is
+expected to provide for that cited Need. Its closed `shape` vocabulary is
+`action`, `submitted-definition`, `resource`, `navigation`, and
+`observable-result`.
+
+The declaration records expected product outcome on the satisfying side. It
+does not name a Component, route, widget, or host operation, and it does not
+change Experience's presentation-neutral role. Direct Need anchors on rendered
+artifacts identify candidate outputs. The advisory matching semantics and
+diagnostics belong to the Needs specification S7.
 
 ## 7. Applicability
 
@@ -513,7 +526,7 @@ A conformant **Experience Coverage-Aware** processor MUST:
 
 ### 11.3 `$defs` Reference
 
-<!-- schema-ref:start id=experience-defs schema=schemas/experience.schema.json pointers=#/$defs/Actor,#/$defs/Task,#/$defs/Unit,#/$defs/UnitKind,#/$defs/ItemRef,#/$defs/ConceptRef,#/$defs/ActionRef,#/$defs/Applicability,#/$defs/Accessibility,#/$defs/TargetDefinition -->
+<!-- schema-ref:start id=experience-defs schema=schemas/experience.schema.json pointers=#/$defs/Actor,#/$defs/Task,#/$defs/Unit,#/$defs/UnitKind,#/$defs/ItemRef,#/$defs/ConceptRef,#/$defs/NeedRef,#/$defs/NeedCompletion,#/$defs/ActionRef,#/$defs/Applicability,#/$defs/Accessibility,#/$defs/TargetDefinition -->
 <!-- generated:schema-ref id=experience-defs -->
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
@@ -548,6 +561,11 @@ A conformant **Experience Coverage-Aware** processor MUST:
 | `#/$defs/ConceptRef/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
 | `#/$defs/ConceptRef/properties/id` | `id` | <code>string</code> | yes | — | Registry / Ontology concept identifier. |
 | `#/$defs/ConceptRef/properties/source` | `source` | <code>string</code> | no | enum: <code>"registry"</code>, <code>"ontology"</code>, <code>"external"</code>; default: <code>"registry"</code> | — |
+| `#/$defs/NeedRef/properties/completion` | `completion` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/NeedCompletion</code> | Optional declaration of the kind of usable outcome this Unit is expected to provide for the cited Need. The declaration stays on the satisfying side and names no route, widget, or implementation target. Advisory AppGraph UX lint matches the shape to directly Need-traced, mounted, resolved output without claiming runtime authorization or successful completion. |
+| `#/$defs/NeedRef/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/NeedRef/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/$defs/NeedRef/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_-]*&#36;</code>; critical | A need.id in the paired Needs Document. Deliberately unpinned: no revision — the Unit serves the Need as currently worded (needs-spec S7). |
+| `#/$defs/NeedCompletion/properties/shape` | `shape` | <code>string</code> | yes | enum: <code>"action"</code>, <code>"submitted-definition"</code>, <code>"resource"</code>, <code>"navigation"</code>, <code>"observable-result"</code> | Expected usable outcome: an operable action, a submitted Definition flow, a usable resource, navigation to a destination, or a result the person can observe. |
 | `#/$defs/ActionRef/properties/description` | `description` | <code>string</code> | no | — | — |
 | `#/$defs/ActionRef/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
 | `#/$defs/ActionRef/properties/id` | `id` | <code>string</code> | yes | — | Response Action identifier. MUST resolve against the loaded Response Actions document's actions[*].id set. |

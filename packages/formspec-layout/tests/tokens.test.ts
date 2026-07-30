@@ -190,4 +190,40 @@ describe('default theme contrast', () => {
         expect(contrastRatio(warning, warningSurfaceSoft)).toBeGreaterThanOrEqual(4.5);
         expect(contrastRatio(info, infoSurfaceSoft)).toBeGreaterThanOrEqual(4.5);
     });
+
+    it('keeps primary labels readable on the fills each appearance renders', () => {
+        const primary = readThemeToken('color.primary');
+        const primaryForeground = readThemeToken('color.primaryForeground');
+        const darkPrimaryForeground = readThemeToken('color.dark.primaryForeground');
+        const tokenCss = readFileSync(
+            new URL('../src/styles/default.tokens.css', import.meta.url),
+            'utf8',
+        );
+
+        expect(contrastRatio(primaryForeground, primary)).toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(darkPrimaryForeground, primary)).toBeGreaterThanOrEqual(4.5);
+        expect(tokenCss).toMatch(
+            /\.formspec-container\.formspec-appearance-dark[\s\S]*--formspec-default-primary-fill:\s*var\(--formspec-color-primary,/,
+        );
+    });
+
+    it('keeps unfocused control boundaries and switch-off tracks above 3:1', () => {
+        const lightInput = readThemeToken('color.input');
+        const darkInput = readThemeToken('color.dark.input');
+        const lightCard = readThemeToken('color.card');
+        const darkCard = readThemeToken('color.dark.card');
+        const inputCss = readFileSync(
+            new URL('../src/styles/default.inputs.css', import.meta.url),
+            'utf8',
+        );
+
+        expect(contrastRatio(lightInput, lightCard)).toBeGreaterThanOrEqual(3);
+        expect(contrastRatio(darkInput, darkCard)).toBeGreaterThanOrEqual(3);
+        expect(inputCss).toContain(
+            '--formspec-toggle-track-off: var(--formspec-default-border-input)',
+        );
+        expect(inputCss).not.toMatch(
+            /color-mix\([^;]*--formspec-default-border-input[^;]*white/,
+        );
+    });
 });

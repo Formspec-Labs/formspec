@@ -274,8 +274,31 @@
           }
         },
         "description": { "type": "string" },
+        "completion": {
+          "$ref": "#/$defs/NeedCompletion",
+          "description": "Optional declaration of the kind of usable outcome this Unit is expected to provide for the cited Need. The declaration stays on the satisfying side and names no route, widget, or implementation target. Advisory AppGraph UX lint matches the shape to directly Need-traced, mounted, resolved output without claiming runtime authorization or successful completion."
+        },
         "extensions": {
           "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "NeedCompletion": {
+      "type": "object",
+      "required": ["shape"],
+      "additionalProperties": false,
+      "description": "Closed, implementation-independent classification of the usable outcome expected to satisfy a Need citation. Direct need:<id>@<revision> anchors identify candidate outputs; this declaration does not place controls or alter runtime behavior.",
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": [
+            "action",
+            "submitted-definition",
+            "resource",
+            "navigation",
+            "observable-result"
+          ],
+          "description": "Expected usable outcome: an operable action, a submitted Definition flow, a usable resource, navigation to a destination, or a result the person can observe."
         }
       }
     },

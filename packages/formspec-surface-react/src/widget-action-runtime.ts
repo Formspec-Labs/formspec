@@ -9,18 +9,177 @@
 import type {
   ResponseActionInvocationResult,
   ResponseActionInvokerResult,
-  SubmitResult,
 } from '@formspec-org/react';
 import type { ResponseActionsDocument } from '@formspec-org/types';
 import type {
   SurfaceWidgetActionExecutor,
+  SurfaceWidgetActionDetail,
   SurfaceWidgetActionExecutorInput,
   SurfaceWidgetActionOutcomeKey,
   SurfaceWidgetActionOutcomeStore,
+  SurfaceWidgetActionInput,
+  SurfaceWidgetActionValue,
   SurfaceWidgetStoredActionOutcome,
 } from './widget-api.js';
 
 let invocationSequence = 0;
+
+const UNSAFE_INPUT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const MAX_INPUT_DEPTH = 64;
+const MAX_INPUT_NODES = 10_000;
+
+export type SurfaceWidgetActionInputAdmission =
+  | {
+      accepted: true;
+      input?: SurfaceWidgetActionInput | undefined;
+    }
+  | {
+      accepted: false;
+      reason: string;
+    };
+
+/**
+ * Admit detached JSON data without invoking getters or following prototypes.
+ * This is a data boundary, not a serializer: invalid values fail closed.
+ */
+export function admitSurfaceWidgetActionInput(
+  candidate: unknown,
+): SurfaceWidgetActionInputAdmission {
+  if (candidate === undefined) return { accepted: true };
+  if (
+    typeof candidate !== 'object' ||
+    candidate === null ||
+    Array.isArray(candidate)
+  ) {
+    return { accepted: false, reason: 'the action input must be an object' };
+  }
+
+  const active = new WeakSet<object>();
+  let nodeCount = 0;
+  const copy = (
+    value: unknown,
+    depth: number,
+  ): SurfaceWidgetActionValue | undefined => {
+    nodeCount += 1;
+    if (nodeCount > MAX_INPUT_NODES || depth > MAX_INPUT_DEPTH) {
+      throw new TypeError('the action input exceeds the supported size or nesting limit');
+    }
+    if (
+      value === null ||
+      typeof value === 'string' ||
+      typeof value === 'boolean'
+    ) {
+      return value;
+    }
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) {
+        throw new TypeError('the action input contains a non-finite number');
+      }
+      return value;
+    }
+    if (typeof value !== 'object') {
+      throw new TypeError(`the action input contains a ${typeof value} value`);
+    }
+    if (active.has(value)) {
+      throw new TypeError('the action input contains a cycle');
+    }
+    const prototype = Object.getPrototypeOf(value);
+    if (
+      prototype !== Object.prototype &&
+      prototype !== Array.prototype &&
+      prototype !== null
+    ) {
+      throw new TypeError('the action input contains a non-JSON object');
+    }
+    if (Object.getOwnPropertySymbols(value).length > 0) {
+      throw new TypeError('the action input contains a symbol-keyed property');
+    }
+    active.add(value);
+    try {
+      if (Array.isArray(value)) {
+        const descriptors = Object.getOwnPropertyDescriptors(value);
+        const result: SurfaceWidgetActionValue[] = [];
+        for (const key of Object.keys(descriptors)) {
+          if (key === 'length') continue;
+          if (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= value.length) {
+            throw new TypeError('the action input contains a non-JSON array property');
+          }
+        }
+        for (let index = 0; index < value.length; index += 1) {
+          const descriptor = descriptors[String(index)];
+          if (
+            !descriptor ||
+            !Object.prototype.hasOwnProperty.call(descriptor, 'value')
+          ) {
+            throw new TypeError('the action input contains a sparse or accessor array value');
+          }
+          const child = copy(descriptor.value, depth + 1);
+          if (child === undefined) {
+            throw new TypeError('the action input contains an unsupported array value');
+          }
+          result.push(child);
+        }
+        return Object.freeze(result);
+      }
+      const result: Record<string, SurfaceWidgetActionValue> =
+        Object.create(null) as Record<string, SurfaceWidgetActionValue>;
+      const descriptors = Object.getOwnPropertyDescriptors(value);
+      for (const key of Object.keys(descriptors).sort()) {
+        if (UNSAFE_INPUT_KEYS.has(key)) {
+          throw new TypeError(`the action input contains unsafe key "${key}"`);
+        }
+        const descriptor = descriptors[key];
+        if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+          throw new TypeError('the action input contains an accessor property');
+        }
+        const child = copy(descriptor.value, depth + 1);
+        if (child === undefined) {
+          throw new TypeError('the action input contains an unsupported object value');
+        }
+        result[key] = child;
+      }
+      return Object.freeze(result);
+    } finally {
+      active.delete(value);
+    }
+  };
+
+  try {
+    const input = copy(candidate, 0);
+    if (!input || Array.isArray(input) || typeof input !== 'object') {
+      return { accepted: false, reason: 'the action input must be an object' };
+    }
+    return {
+      accepted: true,
+      input: input as SurfaceWidgetActionInput,
+    };
+  } catch (error) {
+    return {
+      accepted: false,
+      reason: error instanceof Error
+        ? error.message
+        : 'the action input is not valid JSON data',
+    };
+  }
+}
+
+function canonicalInput(input: SurfaceWidgetActionInput | undefined): string {
+  if (input === undefined) return '';
+  const visit = (value: SurfaceWidgetActionValue): string => {
+    if (Array.isArray(value)) {
+      return `[${value.map(visit).join(',')}]`;
+    }
+    if (value !== null && typeof value === 'object') {
+      const objectValue = value as Readonly<Record<string, SurfaceWidgetActionValue>>;
+      return `{${Object.keys(objectValue)
+        .sort()
+        .map((key) => `${JSON.stringify(key)}:${visit(objectValue[key]!)}`)
+        .join(',')}}`;
+    }
+    return JSON.stringify(value);
+  };
+  return visit(input);
+}
 
 /** Shell-owned identity. Widgets and executors cannot choose it. */
 export function allocateWidgetActionInvocationId(): string {
@@ -29,8 +188,8 @@ export function allocateWidgetActionInvocationId(): string {
 }
 
 export function normalizeWidgetActionResult(
-  result: ResponseActionInvokerResult<SubmitResult>,
-): ResponseActionInvocationResult<SubmitResult> {
+  result: ResponseActionInvokerResult<SurfaceWidgetActionDetail>,
+): ResponseActionInvocationResult<SurfaceWidgetActionDetail> {
   return 'invocation' in result ? result.invocation : result;
 }
 
@@ -58,7 +217,7 @@ export interface DeliverWidgetActionRequest extends SurfaceWidgetActionExecutorI
 export interface WidgetActionDelivery {
   deliver(
     request: DeliverWidgetActionRequest,
-  ): Promise<ResponseActionInvocationResult<SubmitResult>>;
+  ): Promise<ResponseActionInvocationResult<SurfaceWidgetActionDetail>>;
 }
 
 function keyFor(request: DeliverWidgetActionRequest): string {
@@ -80,8 +239,14 @@ function keyFor(request: DeliverWidgetActionRequest): string {
  * distinct user emissions.
  */
 export function createWidgetActionDelivery(): WidgetActionDelivery {
-  const inFlight = new Map<string, Promise<ResponseActionInvocationResult<SubmitResult>>>();
-  const terminals = new Map<string, ResponseActionInvocationResult<SubmitResult>>();
+  const inFlight = new Map<
+    string,
+    Promise<ResponseActionInvocationResult<SurfaceWidgetActionDetail>>
+  >();
+  const terminals = new Map<
+    string,
+    ResponseActionInvocationResult<SurfaceWidgetActionDetail>
+  >();
 
   return {
     deliver(request) {
@@ -98,6 +263,7 @@ export function createWidgetActionDelivery(): WidgetActionDelivery {
             actionRef: request.actionRef,
             invocationId: request.invocationId,
             source: request.source,
+            ...(request.input === undefined ? {} : { input: request.input }),
           }),
         );
         terminals.set(key, result);
@@ -118,6 +284,7 @@ export interface EmitWidgetActionRequest {
   document: ResponseActionsDocument;
   actionRef: string;
   source: SurfaceWidgetActionExecutorInput['source'];
+  input?: SurfaceWidgetActionInput | undefined;
   executor: SurfaceWidgetActionExecutor;
   outcomeStore?: SurfaceWidgetActionOutcomeStore | undefined;
 }
@@ -145,6 +312,7 @@ function logicalKey(request: EmitWidgetActionRequest): string {
     request.source.slotId,
     request.source.outputName,
     request.actionRef,
+    canonicalInput(request.input),
   ];
   return parts.map((part) => `${part.length}:${part}`).join('|');
 }
@@ -155,6 +323,7 @@ function logicalOutcomeKey(
   return {
     generation: request.generation,
     source: request.source,
+    ...(request.input === undefined ? {} : { input: request.input }),
   };
 }
 
@@ -176,15 +345,23 @@ export function createWidgetActionCoordinator(): WidgetActionCoordinator {
 
   return {
     emit(request) {
-      const key = logicalKey(request);
+      const admission = admitSurfaceWidgetActionInput(request.input);
+      if (!admission.accepted) {
+        throw new TypeError(admission.reason);
+      }
+      const admittedRequest: EmitWidgetActionRequest = {
+        ...request,
+        ...(admission.input === undefined ? {} : { input: admission.input }),
+      };
+      const key = logicalKey(admittedRequest);
       const pending = inFlight.get(key);
       if (pending) return { started: false, completion: pending };
 
       const completion = (async (): Promise<CoordinatedWidgetActionResult> => {
         const observed = observedDurableIds.get(key) ?? new Set<string>();
         observedDurableIds.set(key, observed);
-        const persisted = await request.outcomeStore?.read(
-          logicalOutcomeKey(request),
+        const persisted = await admittedRequest.outcomeStore?.read(
+          logicalOutcomeKey(admittedRequest),
         );
         if (persisted && !observed.has(persisted.invocationId)) {
           observed.add(persisted.invocationId);
@@ -194,14 +371,17 @@ export function createWidgetActionCoordinator(): WidgetActionCoordinator {
         const invocationId = allocateWidgetActionInvocationId();
         const result = await delivery.deliver({
           generation: request.generation,
-          document: request.document,
-          actionRef: request.actionRef,
+          document: admittedRequest.document,
+          actionRef: admittedRequest.actionRef,
           invocationId,
-          source: request.source,
-          executor: request.executor,
+          source: admittedRequest.source,
+          ...(admittedRequest.input === undefined
+            ? {}
+            : { input: admittedRequest.input }),
+          executor: admittedRequest.executor,
         });
         observed.add(invocationId);
-        await request.outcomeStore?.write(logicalOutcomeKey(request), {
+        await admittedRequest.outcomeStore?.write(logicalOutcomeKey(admittedRequest), {
           invocationId,
           result,
         });

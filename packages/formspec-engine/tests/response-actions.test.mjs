@@ -264,6 +264,98 @@ test('invokes through engine-owned tuple resolution and host effect ports', () =
   assert.deepEqual(result.effectTrace.map(effect => effect.status), ['succeeded']);
 });
 
+test('app-scoped actions execute structured input without submitting a form', () => {
+  const document = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    scope: 'app',
+    actions: [{
+      id: 'open-resource',
+      intent: 'x-open-resource',
+      validation: {
+        profile: 'off',
+        blocking: 'non-blocking',
+        persistence: 'none',
+      },
+      effects: [{
+        type: 'browserResource',
+        operation: 'open',
+        resourceRef: 'resource',
+      }],
+    }],
+  };
+  const input = {
+    resource: {
+      href: '/records/response-1',
+      label: 'Review response',
+    },
+  };
+  const dispatched = [];
+  const result = invokeResponseAction(document, 'open-resource', {
+    prepareAppAction: () => input,
+    dispatchHostEvent: () => {},
+    dispatchEffect: (effect, detail) => {
+      dispatched.push({ effect, detail });
+      return { type: effect.type, status: 'succeeded' };
+    },
+  });
+
+  assert.equal(result.status, 'completed');
+  assert.equal(result.detail, input);
+  assert.deepEqual(dispatched, [{
+    effect: document.actions[0].effects[0],
+    detail: input,
+  }]);
+  assert.equal(result.effectTrace[0].idempotencyKey, undefined);
+});
+
+test('app-scoped actions fail closed without an app-action adapter', () => {
+  const document = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    scope: 'app',
+    actions: [{
+      id: 'open-resource',
+      intent: 'x-open-resource',
+      validation: {
+        profile: 'off',
+        blocking: 'non-blocking',
+        persistence: 'none',
+      },
+      effects: [{ type: 'hostEvent', eventName: 'open-resource' }],
+    }],
+  };
+  const result = invokeResponseAction(document, 'open-resource', {
+    dispatchHostEvent: () => {},
+  });
+
+  assert.equal(result.status, 'failed');
+  assert.equal(result.failureReason, 'app action adapter returned no detail');
+});
+
+test('app-scoped actions reject response validation and persistence tuples', () => {
+  const document = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    scope: 'app',
+    actions: [{
+      id: 'mis-scoped-review',
+      intent: 'review',
+      effects: [{ type: 'hostEvent', eventName: 'review' }],
+    }],
+  };
+  const result = invokeResponseAction(document, 'mis-scoped-review', {
+    prepareAppAction: () => ({ resource: {} }),
+    dispatchHostEvent: () => {},
+  });
+
+  assert.equal(result.status, 'failed');
+  assert.equal(
+    result.failureReason,
+    'app actions require validation=(off, non-blocking, none)',
+  );
+});
+
 test('blocks host effects when block-on-error validation fails', () => {
   const hostEvents = [];
   const result = invokeResponseAction(responseActions, 'send-application', {

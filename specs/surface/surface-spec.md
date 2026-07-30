@@ -410,13 +410,15 @@ executor when the trigger references an action or closed-core intent.
 
 ### Widget action invocation and retry
 
-A widget receives only `emitAction(outputName)` for action delivery. It receives
-neither a route table nor a navigation function and MUST NOT navigate directly.
-For each user emission, the host MUST:
+A widget receives only `emitAction(outputName, input?)` for action delivery.
+`input`, when present, is a detached frozen finite-JSON object and participates
+in invocation and replay identity. The shell rejects unsafe or non-JSON input
+before execution. The widget receives neither a route table nor a navigation
+function and MUST NOT navigate directly. For each user emission, the host MUST:
 
 1. allocate one stable invocation id;
 2. coalesce duplicate in-flight delivery for the same route/session generation,
-   slot, output, and invocation id;
+   slot, output, deterministic structured input, and invocation id;
 3. resolve the output through its exact `actionBindings[outputName].actionRef`;
 4. delegate preconditions, effects, `retry-once`, frozen idempotency keys, and
    durable replay to Response Actions;
@@ -440,7 +442,7 @@ closes the v0.2 slot-type list at five values:
 | slotType | Binding shape | Renders |
 |---|---|---|
 | `definition-form` | `{ definitionRef: string, presentation?: string }` | The bound Definition form. |
-| `experience-unit` | `{ experienceRef?: string, unitRef: string }` | A specific Experience unit. |
+| `experience-unit` | `{ experienceRef?: string, unitRef: string }` | Review-only Experience reasoning. Customer renderers emit no slot DOM or copy; explicit authoring/debug mode may show the resolved title and Needs. |
 | `module-widget`   | `{ moduleId: string, widgetName: string, config?: object, dataBindings?: Record<inputName, {catalogRef, sourceRef}>, actionBindings?: Record<outputName, {actionRef}> }` | A widget supplied by a declared module. |
 | `static-content`  | `{ kind: heading\|text\|image\|divider, content: string, alt?: string, level?: 1..6 }`, with `alt` required exactly for `image` | Inline literal content or an authored image reference. |
 | `embed-route`     | `{ routeRef: string, mode?: string, params?: RouteParamMap }` | Another route from this Surface (modal/panel/dialog). |

@@ -25,10 +25,17 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
+import {
+  ContextResolver,
+  targetDefinitionMatches,
+  type ReferenceEntry,
+} from '@formspec-org/assist';
+import { createFormEngine } from '@formspec-org/engine';
 import { FormspecForm } from '@formspec-org/react';
 import type {
   ResponseAction,
@@ -36,7 +43,11 @@ import type {
   ResponseActionsDocument as ReactResponseActionsDocument,
   SubmitResult,
 } from '@formspec-org/react';
-import type { ResponseActionsDocument as GeneratedResponseActionsDocument } from '@formspec-org/types';
+import type {
+  OntologyDocument,
+  ReferencesDocument,
+  ResponseActionsDocument as GeneratedResponseActionsDocument,
+} from '@formspec-org/types';
 import {
   loadWidgetDataInputs,
   responseActionsDocumentForDefinition,
@@ -55,17 +66,26 @@ import { Heading, nextLevel } from './heading.js';
 import type {
   SurfaceWidget,
   SurfaceWidgetActionExecutor,
+  SurfaceWidgetActionDetail,
+  SurfaceWidgetActionEmission,
   SurfaceWidgetActionOutcomeStore,
+  SurfaceWidgetActionInput,
   SurfaceWidgetActionReport,
   SurfaceWidgetRouteContext,
 } from './widget-api.js';
 import {
   allocateWidgetActionInvocationId,
+  admitSurfaceWidgetActionInput,
   createWidgetActionCoordinator,
   responseActionsDocumentForAction,
   type WidgetActionCoordinator,
 } from './widget-action-runtime.js';
 import { WidgetEmptyState } from './widgets/empty-state.js';
+import {
+  ModuleWidgetStateView,
+  widgetDataMatchesEmptyWhen,
+  type ModuleWidgetStateName,
+} from './widget-state.js';
 import { needIdTraceAttributes, needTraceAttributes } from './need-trace.js';
 
 export type ResolvedDefinitionFormPlan = Extract<
@@ -83,6 +103,8 @@ export interface SurfaceDefinitionFormRenderInput {
   grant: ThemeGrant;
   route: SurfaceWidgetRouteContext;
   responseActionsDocument: ReactResponseActionsDocument | undefined;
+  referencesDocuments: readonly ReferencesDocument[];
+  ontologyDocuments: readonly OntologyDocument[];
   /** Preserve the shell's completed-action navigation boundary. */
   onActionCompleted?: ((action: ResponseAction) => void) | undefined;
 }
@@ -111,6 +133,10 @@ export interface SurfaceSlotProps {
    * makes a form-bearing route able to fire its own transition.
    */
   responseActionsDocuments?: readonly GeneratedResponseActionsDocument[] | undefined;
+  /** Manifested References documents; the default form shows human/both entries only. */
+  referencesDocuments?: readonly ReferencesDocument[] | undefined;
+  /** Manifested Ontology documents used for field semantics without exposing raw ids. */
+  ontologyDocuments?: readonly OntologyDocument[] | undefined;
   transitions?: readonly PlannedTransition[] | undefined;
   widgetActionExecutor?: SurfaceWidgetActionExecutor | undefined;
   widgetActionOutcomeStore?: SurfaceWidgetActionOutcomeStore | undefined;
@@ -134,6 +160,35 @@ export function completedFormAction(
   if (result.status !== 'completed') return undefined;
   if (!result.resolution.resolved || !result.resolution.action) return undefined;
   if (result.detail?.validationReport?.valid !== true) return undefined;
+  return result.resolution.action;
+}
+
+/**
+ * Widget app actions have no Response to validate. Response-scoped widget
+ * actions retain the form completion gate; app scope needs only the successful
+ * resolved action terminal because the engine already enforced app validation.
+ */
+export function completedWidgetAction(
+  result: ResponseActionInvocationResult<SurfaceWidgetActionDetail>,
+  document: GeneratedResponseActionsDocument,
+): ResponseAction | undefined {
+  if (document.scope === 'app') {
+    if (result.status !== 'completed') return undefined;
+    return result.resolution.resolved
+      ? result.resolution.action ?? undefined
+      : undefined;
+  }
+  if (result.status !== 'completed') return undefined;
+  if (!result.resolution.resolved || !result.resolution.action) return undefined;
+  const detail = result.detail;
+  if (
+    detail === null ||
+    !Object.prototype.hasOwnProperty.call(detail, 'validationReport')
+  ) {
+    return undefined;
+  }
+  const validationReport = (detail as SubmitResult).validationReport;
+  if (validationReport?.valid !== true) return undefined;
   return result.resolution.action;
 }
 
@@ -162,16 +217,22 @@ export function rendersOwnHeading(plan: SlotPlan<SurfaceWidget>): boolean {
  * landmark — which is the honest shape for a slot the author did not name.
  */
 export function SurfaceSlotFrame(props: SurfaceSlotProps) {
-  const { plan } = props;
+  const { plan, showExperienceNeeds = false } = props;
+  if (plan.slotType === 'experience-unit' && !showExperienceNeeds) {
+    return null;
+  }
+  const showsAuthoredTitle =
+    plan.title !== undefined &&
+    (plan.slotType !== 'experience-unit' || showExperienceNeeds);
   return (
     <section
       className="fs-surface-slot"
       data-slot={plan.slotId}
       data-slot-type={plan.slotType}
       {...needTraceAttributes(plan.needAnchors)}
-      {...(plan.title ? { 'aria-label': plan.title } : {})}
+      {...(showsAuthoredTitle ? { 'aria-label': plan.title } : {})}
     >
-      {plan.title && !rendersOwnHeading(plan) && (
+      {showsAuthoredTitle && !rendersOwnHeading(plan) && (
         <Heading level={plan.headingBaseLevel} className="fs-surface-slot__title">
           {plan.title}
         </Heading>
@@ -191,6 +252,8 @@ export function SurfaceSlot({
   validateDataSourcePayload,
   showExperienceNeeds = false,
   responseActionsDocuments,
+  referencesDocuments,
+  ontologyDocuments,
   transitions,
   widgetActionExecutor,
   widgetActionOutcomeStore,
@@ -227,6 +290,8 @@ export function SurfaceSlot({
         grant,
         route,
         responseActionsDocument,
+        referencesDocuments: referencesDocuments ?? [],
+        ontologyDocuments: ontologyDocuments ?? [],
         onActionCompleted,
       };
       return renderDefinitionForm
@@ -245,7 +310,7 @@ export function SurfaceSlot({
           data-experience-unit={unit.unitRef}
           {...needIdTraceAttributes(unit.needs.map((need) => need.id))}
         >
-          {unit.title && (
+          {showExperienceNeeds && unit.title && (
             <Heading level={plan.headingBaseLevel} className="fs-surface-unit__title">
               {unit.title}
             </Heading>
@@ -388,6 +453,8 @@ export function SurfaceSlot({
               validateDataSourcePayload={validateDataSourcePayload}
               showExperienceNeeds={showExperienceNeeds}
               responseActionsDocuments={responseActionsDocuments}
+              referencesDocuments={referencesDocuments}
+              ontologyDocuments={ontologyDocuments}
               transitions={transitions}
               widgetActionExecutor={widgetActionExecutor}
               widgetActionOutcomeStore={widgetActionOutcomeStore}
@@ -412,14 +479,102 @@ export function SurfaceSlot({
 export function renderDefaultDefinitionForm({
   plan,
   grant,
+  route,
+  referencesDocuments,
+  ontologyDocuments,
   responseActionsDocument,
   onActionCompleted,
 }: SurfaceDefinitionFormRenderInput): ReactNode {
   return (
+    <DefaultSurfaceDefinitionForm
+      plan={plan}
+      grant={grant}
+      route={route}
+      referencesDocuments={referencesDocuments}
+      ontologyDocuments={ontologyDocuments}
+      responseActionsDocument={responseActionsDocument}
+      onActionCompleted={onActionCompleted}
+    />
+  );
+}
+
+function DefaultSurfaceDefinitionForm({
+  plan,
+  grant,
+  referencesDocuments,
+  ontologyDocuments,
+  responseActionsDocument,
+  onActionCompleted,
+}: SurfaceDefinitionFormRenderInput): ReactNode {
+  const engine = useMemo(
+    () => createFormEngine(plan.definition),
+    [plan.definition],
+  );
+  useEffect(() => () => engine.dispose(), [engine]);
+
+  const contextResolver = useMemo(() => {
+    const references = referencesDocuments.filter((document) =>
+      targetDefinitionMatches(document.targetDefinition, plan.definition));
+    const ontologies = ontologyDocuments.filter((document) =>
+      targetDefinitionMatches(document.targetDefinition, plan.definition));
+    try {
+      return new ContextResolver(
+        engine,
+        [...references],
+        [...ontologies],
+        [...plan.registryEntries],
+      );
+    } catch {
+      return undefined;
+    }
+  }, [
+    engine,
+    ontologyDocuments,
+    plan.definition,
+    plan.registryEntries,
+    referencesDocuments,
+  ]);
+
+  const resolveFieldHelp = useCallback(
+    (path: string) => {
+      if (!contextResolver) return [];
+      try {
+        const help = contextResolver.resolve(path, 'human');
+        return Object.values(help.references).flatMap((entries) =>
+          (entries ?? []).flatMap((reference: ReferenceEntry) =>
+            reference.title
+              ? [{
+                  ...(reference.id ? { id: reference.id } : {}),
+                  title: reference.title,
+                  ...(reference.description
+                    ? { description: reference.description }
+                    : {}),
+                  ...(typeof reference.content === 'string'
+                    ? { content: reference.content }
+                    : {}),
+                  ...(reference.uri ? { uri: reference.uri } : {}),
+                  type: reference.type,
+                  needAnchors: (
+                    reference['x-generation']?.anchors ?? []
+                  ).filter((anchor) =>
+                    /^need:[a-zA-Z][a-zA-Z0-9_-]*@[1-9][0-9]*$/.test(anchor)),
+                }]
+              : [],
+          ),
+        );
+      } catch {
+        return [];
+      }
+    },
+    [contextResolver],
+  );
+
+  return (
     <FormspecForm
-      definition={plan.definition}
+      engine={engine}
       themeDocument={grant.themeDocument}
       registryEntries={[...plan.registryEntries]}
+      resolveFieldHelp={resolveFieldHelp}
       responseActionsDocument={responseActionsDocument ?? null}
       emitThemeTokens={false}
       {...(onActionCompleted
@@ -493,6 +648,7 @@ function SurfaceWidgetSlot({
   const [delivery, setDelivery] = useState<WidgetDataState>(
     plan.dataInputs.length === 0 ? READY_WITH_NO_DATA : { status: 'loading' },
   );
+  const [dataLoadAttempt, setDataLoadAttempt] = useState(0);
   const activeGeneration = useRef(runtimeGeneration);
   activeGeneration.current = runtimeGeneration;
   const localActionCoordinator = useRef(createWidgetActionCoordinator());
@@ -549,6 +705,7 @@ function SurfaceWidgetSlot({
     route.surfaceId,
     route.surfaceRef,
     runtimeGeneration,
+    dataLoadAttempt,
     validateDataSourcePayload,
   ]);
 
@@ -558,6 +715,7 @@ function SurfaceWidgetSlot({
       outputName: string,
       code:
         | 'WIDGET-ACTION-OUTPUT-UNDECLARED'
+        | 'WIDGET-ACTION-INPUT-INVALID'
         | 'WIDGET-ACTION-OUTPUT-UNMAPPED'
         | 'WIDGET-ACTION-REF-UNRESOLVED'
         | 'WIDGET-ACTION-TRANSITION-AMBIGUOUS',
@@ -598,7 +756,14 @@ function SurfaceWidgetSlot({
   );
 
   const emitAction = useCallback(
-    (outputName: string) => {
+    (
+      outputName: string,
+      input?: SurfaceWidgetActionInput,
+    ): SurfaceWidgetActionEmission => {
+      const refused = (): SurfaceWidgetActionEmission => ({
+        started: false,
+        completion: Promise.resolve({ status: 'refused' }),
+      });
       const declared = plan.actionOutputs.filter((output) => output.name === outputName);
       if (declared.length !== 1) {
         const invocationId = allocateWidgetActionInvocationId();
@@ -614,7 +779,24 @@ function SurfaceWidgetSlot({
             declarationCount: declared.length,
           },
         );
-        return;
+        return refused();
+      }
+      const inputAdmission = admitSurfaceWidgetActionInput(input);
+      if (!inputAdmission.accepted) {
+        const invocationId = allocateWidgetActionInvocationId();
+        reportRefusal(
+          invocationId,
+          outputName,
+          'WIDGET-ACTION-INPUT-INVALID',
+          `Widget "${plan.key.widgetName}" emitted invalid structured data for output "${outputName}".`,
+          {
+            moduleId: plan.key.moduleId,
+            widgetName: plan.key.widgetName,
+            outputName,
+            reason: inputAdmission.reason,
+          },
+        );
+        return refused();
       }
       const actionRef = declared[0]?.actionRef;
       if (!actionRef) {
@@ -630,7 +812,7 @@ function SurfaceWidgetSlot({
             outputName,
           },
         );
-        return;
+        return refused();
       }
       const document = responseActionsDocumentForAction(
         responseActionsDocuments,
@@ -650,7 +832,7 @@ function SurfaceWidgetSlot({
             actionRef,
           },
         );
-        return;
+        return refused();
       }
       if (!widgetActionExecutor) {
         const invocationId = allocateWidgetActionInvocationId();
@@ -660,7 +842,7 @@ function SurfaceWidgetSlot({
           outputName,
           navigation: 'not-attempted',
         });
-        return;
+        return refused();
       }
 
       const source = {
@@ -676,11 +858,28 @@ function SurfaceWidgetSlot({
           document,
           actionRef,
           source,
+          ...(inputAdmission.input === undefined
+            ? {}
+            : { input: inputAdmission.input }),
           executor: widgetActionExecutor,
           outcomeStore: widgetActionOutcomeStore,
         });
-      if (!emission.started) return;
-      void emission.completion
+      if (!emission.started) {
+        return {
+          started: false,
+          completion: emission.completion
+            .then(({ result }) => ({
+              status:
+                activeGeneration.current !== emittedGeneration
+                  ? 'obsolete' as const
+                  : completedWidgetAction(result, document)?.id === actionRef
+                    ? 'completed' as const
+                    : 'failed' as const,
+            }))
+            .catch(() => ({ status: 'failed' as const })),
+        };
+      }
+      const completion = emission.completion
         .then(({ invocationId, result }) => {
           if (activeGeneration.current !== emittedGeneration) {
             onWidgetActionReport?.({
@@ -690,10 +889,10 @@ function SurfaceWidgetSlot({
               result,
               navigation: 'obsolete-generation',
             });
-            return;
+            return { status: 'obsolete' as const };
           }
 
-          const action = completedFormAction(result);
+          const action = completedWidgetAction(result, document);
           if (!action || action.id !== actionRef) {
             onWidgetActionReport?.({
               invocationId,
@@ -702,7 +901,7 @@ function SurfaceWidgetSlot({
               result,
               navigation: 'none',
             });
-            return;
+            return { status: 'failed' as const };
           }
 
           const eligible = transitions.filter(
@@ -722,7 +921,7 @@ function SurfaceWidgetSlot({
                 targets: eligible.map((transition) => transition.to),
               },
             );
-            return;
+            return { status: 'failed' as const };
           }
           const transition = eligible[0];
           if (!transition) {
@@ -733,9 +932,11 @@ function SurfaceWidgetSlot({
               result,
               navigation: 'none',
             });
-            return;
+            return { status: 'completed' as const };
           }
-          if (navigatedInvocations.current.has(invocationId)) return;
+          if (navigatedInvocations.current.has(invocationId)) {
+            return { status: 'completed' as const };
+          }
           navigatedInvocations.current.add(invocationId);
           onWidgetActionReport?.({
             invocationId,
@@ -745,8 +946,10 @@ function SurfaceWidgetSlot({
             navigation: 'advanced',
           });
           onAdvance?.(transition);
+          return { status: 'completed' as const };
         })
-        .catch(() => undefined);
+        .catch(() => ({ status: 'failed' as const }));
+      return { started: true, completion };
     },
     [
       onAdvance,
@@ -766,30 +969,70 @@ function SurfaceWidgetSlot({
     ],
   );
 
+  const retryDataLoad = useCallback(() => {
+    setDataLoadAttempt((attempt) => attempt + 1);
+  }, []);
+  const resolvedActions = plan.actionOutputs.flatMap((output) =>
+    output.action === undefined
+      ? []
+      : [{ outputName: output.name, ...output.action }],
+  );
+  const stateView = (
+    state: ModuleWidgetStateName,
+    fallback: ReactNode,
+  ): ReactNode => (
+    <ModuleWidgetStateView
+      state={state}
+      config={plan.config ?? {}}
+      headingLevel={plan.headingBaseLevel}
+      actions={resolvedActions}
+      emitAction={emitAction}
+      onRetry={retryDataLoad}
+      fallback={fallback}
+    />
+  );
+
   if (delivery.status === 'loading') {
-    return (
+    return stateView('loading', (
       <div
         className="fs-surface-widget-loading"
         data-widget-data="loading"
         aria-busy="true"
       />
-    );
+    ));
   }
   if (delivery.status === 'unavailable') {
     const modes = delivery.failures
       .map((failure) => failure.failureMode)
       .filter((mode): mode is NonNullable<typeof mode> => mode !== undefined);
-    const emptyState = modes.length > 0 && modes.every((mode) => mode === 'empty-state');
+    const emptyState =
+      delivery.failures.length > 0 &&
+      delivery.failures.every((failure) => failure.failureMode === 'empty-state');
     if (emptyState) {
-      return <WidgetEmptyState>{strings('widgetEmpty')}</WidgetEmptyState>;
+      return stateView(
+        'empty',
+        <WidgetEmptyState>{strings('widgetEmpty')}</WidgetEmptyState>,
+      );
     }
-    return (
+    const technicalFailure = delivery.failures.some((failure) =>
+      failure.reason === 'load-failed' ||
+      failure.reason === 'stale-disallowed' ||
+      failure.reason === 'payload-invalid'
+    );
+    return stateView(technicalFailure ? 'error' : 'unavailable', (
       <div
         data-widget-data="unavailable"
         data-widget-failure-mode={modes.join(' ')}
       >
         <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>
       </div>
+    ));
+  }
+
+  if (widgetDataMatchesEmptyWhen(plan.config ?? {}, delivery.data)) {
+    return stateView(
+      'empty',
+      <WidgetEmptyState>{strings('widgetEmpty')}</WidgetEmptyState>,
     );
   }
 
@@ -808,11 +1051,7 @@ function SurfaceWidgetSlot({
       headingLevel={plan.headingBaseLevel}
       config={plan.config ?? {}}
       data={delivery.data}
-      actions={plan.actionOutputs.flatMap((output) =>
-        output.action === undefined
-          ? []
-          : [{ outputName: output.name, ...output.action }],
-      )}
+      actions={resolvedActions}
       emitAction={emitAction}
       admitsTenantTheme={grant.admitsTenantTheme}
     />

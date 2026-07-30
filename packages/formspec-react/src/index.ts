@@ -1,12 +1,20 @@
 /** @filedesc formspec-react — React hooks, auto-renderer, and default components for Formspec. */
 
 // ── Hooks (re-exported from hooks barrel) ──
-export { FormspecProvider, useFormspecContext, emitThemeTokens } from './context';
+export {
+    FormspecProvider,
+    admitDefaultFieldHelpUri,
+    useFormspecContext,
+    emitThemeTokens,
+} from './context';
 export type {
     ActionRefFinding,
     ActionResolution,
     FormspecProviderProps,
     FormspecContextValue,
+    FormspecFieldHelpResolver,
+    FormspecFieldHelpUriAdmission,
+    FormspecHumanReference,
     ResponseAction,
     ResponseActionInvocationResult,
     ResponseActionInvoker,

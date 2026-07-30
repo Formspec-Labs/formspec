@@ -1,6 +1,212 @@
 {
   "$formspecTokenRegistry": "1.0",
   "description": "Formspec platform token catalog — tokens consumed by the default CSS skin.",
+  "contrastPairs": [
+    {
+      "id": "body-text-on-page",
+      "foregroundToken": "color.foreground",
+      "backgroundToken": "color.background",
+      "usage": "normalText"
+    },
+    {
+      "id": "body-text-on-card",
+      "foregroundToken": "color.foreground",
+      "backgroundToken": "color.card",
+      "usage": "normalText"
+    },
+    {
+      "id": "muted-text-on-page",
+      "foregroundToken": "color.muted",
+      "backgroundToken": "color.background",
+      "usage": "normalText"
+    },
+    {
+      "id": "muted-text-on-card",
+      "foregroundToken": "color.muted",
+      "backgroundToken": "color.card",
+      "usage": "normalText"
+    },
+    {
+      "id": "subtle-text-on-page",
+      "foregroundToken": "color.mutedForeground",
+      "backgroundToken": "color.background",
+      "usage": "normalText"
+    },
+    {
+      "id": "subtle-text-on-card",
+      "foregroundToken": "color.mutedForeground",
+      "backgroundToken": "color.card",
+      "usage": "normalText"
+    },
+    {
+      "id": "primary-text-on-page",
+      "foregroundToken": "color.primary",
+      "backgroundToken": "color.background",
+      "usage": "normalText"
+    },
+    {
+      "id": "primary-text-on-card",
+      "foregroundToken": "color.primary",
+      "backgroundToken": "color.card",
+      "usage": "normalText"
+    },
+    {
+      "id": "primary-label-on-primary",
+      "foregroundToken": "color.primaryForeground",
+      "backgroundToken": "color.primary",
+      "usage": "normalText"
+    },
+    {
+      "id": "success-label-on-success",
+      "foregroundToken": "color.primaryForeground",
+      "backgroundToken": "color.success",
+      "usage": "normalText"
+    },
+    {
+      "id": "danger-label-on-danger",
+      "foregroundToken": "color.primaryForeground",
+      "backgroundToken": "color.error",
+      "usage": "normalText"
+    },
+    {
+      "id": "error-text-on-page",
+      "foregroundToken": "color.error",
+      "backgroundToken": "color.background",
+      "usage": "normalText"
+    },
+    {
+      "id": "error-text-on-card",
+      "foregroundToken": "color.error",
+      "backgroundToken": "color.card",
+      "usage": "normalText"
+    },
+    {
+      "id": "input-boundary-on-page",
+      "foregroundToken": "color.input",
+      "backgroundToken": "color.background",
+      "usage": "uiComponent"
+    },
+    {
+      "id": "input-boundary-on-card",
+      "foregroundToken": "color.input",
+      "backgroundToken": "color.card",
+      "usage": "uiComponent"
+    },
+    {
+      "id": "focus-indicator-on-page",
+      "foregroundToken": "color.ring",
+      "backgroundToken": "color.background",
+      "usage": "uiComponent"
+    },
+    {
+      "id": "focus-indicator-on-card",
+      "foregroundToken": "color.ring",
+      "backgroundToken": "color.card",
+      "usage": "uiComponent"
+    },
+    {
+      "id": "dark-body-text-on-page",
+      "foregroundToken": "color.dark.foreground",
+      "backgroundToken": "color.dark.background",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-body-text-on-card",
+      "foregroundToken": "color.dark.foreground",
+      "backgroundToken": "color.dark.card",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-muted-text-on-page",
+      "foregroundToken": "color.dark.muted",
+      "backgroundToken": "color.dark.background",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-muted-text-on-card",
+      "foregroundToken": "color.dark.muted",
+      "backgroundToken": "color.dark.card",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-subtle-text-on-page",
+      "foregroundToken": "color.dark.mutedForeground",
+      "backgroundToken": "color.dark.background",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-subtle-text-on-card",
+      "foregroundToken": "color.dark.mutedForeground",
+      "backgroundToken": "color.dark.card",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-primary-text-on-page",
+      "foregroundToken": "color.dark.primary",
+      "backgroundToken": "color.dark.background",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-primary-text-on-card",
+      "foregroundToken": "color.dark.primary",
+      "backgroundToken": "color.dark.card",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-primary-label-on-saturated-primary",
+      "foregroundToken": "color.dark.primaryForeground",
+      "backgroundToken": "color.primary",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-success-label-on-saturated-success",
+      "foregroundToken": "color.dark.primaryForeground",
+      "backgroundToken": "color.success",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-danger-label-on-saturated-danger",
+      "foregroundToken": "color.dark.primaryForeground",
+      "backgroundToken": "color.error",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-error-text-on-page",
+      "foregroundToken": "color.dark.error",
+      "backgroundToken": "color.dark.background",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-error-text-on-card",
+      "foregroundToken": "color.dark.error",
+      "backgroundToken": "color.dark.card",
+      "usage": "normalText"
+    },
+    {
+      "id": "dark-input-boundary-on-page",
+      "foregroundToken": "color.dark.input",
+      "backgroundToken": "color.dark.background",
+      "usage": "uiComponent"
+    },
+    {
+      "id": "dark-input-boundary-on-card",
+      "foregroundToken": "color.dark.input",
+      "backgroundToken": "color.dark.card",
+      "usage": "uiComponent"
+    },
+    {
+      "id": "dark-focus-indicator-on-page",
+      "foregroundToken": "color.dark.ring",
+      "backgroundToken": "color.dark.background",
+      "usage": "uiComponent"
+    },
+    {
+      "id": "dark-focus-indicator-on-card",
+      "foregroundToken": "color.dark.ring",
+      "backgroundToken": "color.dark.card",
+      "usage": "uiComponent"
+    }
+  ],
   "categories": {
     "color": {
       "description": "Color palette tokens for light and dark modes",
@@ -74,9 +280,9 @@
           "dark": "#8fc6b7"
         },
         "color.input": {
-          "description": "Input border color",
-          "default": "#c0b6a8",
-          "dark": "#5c5247"
+          "description": "Input border color. Defaults maintain at least 3:1 contrast against the matching card surface.",
+          "default": "#8b8175",
+          "dark": "#7b6f61"
         },
         "color.surface": {
           "description": "Muted surface/panel background",

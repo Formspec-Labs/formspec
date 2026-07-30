@@ -398,6 +398,99 @@ describe('FormspecForm', () => {
         expect(container.textContent).toContain('Enter your name.');
     });
 
+    it('renders only host-resolved human References with direct Need identity', () => {
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                resolveFieldHelp={(path) =>
+                    path === 'name'
+                        ? [{
+                            id: 'legal-name-help',
+                            title: 'Which name should I use?',
+                            content: 'Use the name shown on your account.',
+                            uri: 'https://example.com/name-help',
+                            needAnchors: ['need:identify-person@2'],
+                        }]
+                        : []
+                }
+            />
+        );
+        const help = container.querySelector('[data-name="name"] .formspec-field-help');
+        const reference = help?.querySelector('.formspec-field-help-reference');
+
+        expect(help?.textContent).toContain('Help and guidance');
+        expect(help?.textContent).toContain('Use the name shown on your account.');
+        expect(help?.getAttribute('data-need-ids')).toBe('identify-person');
+        expect(reference?.getAttribute('data-need-anchors')).toBe(
+            'need:identify-person@2',
+        );
+        expect(help?.querySelector('a')?.getAttribute('href')).toBe(
+            'https://example.com/name-help',
+        );
+        expect(container.querySelector('[data-name="color"] .formspec-field-help')).toBeNull();
+    });
+
+    it('fails closed for non-browser Reference schemes and admits host translations', () => {
+        const references = [
+            {
+                id: 'agent-resource',
+                title: 'Internal knowledge source',
+                uri: 'vectorstore:customer-help',
+                needAnchors: ['need:identify-person@2'],
+            },
+            {
+                id: 'unsafe-script',
+                title: 'Unsafe script',
+                uri: 'javascript:alert(1)',
+                needAnchors: ['need:identify-person@2'],
+            },
+            {
+                id: 'protocol-relative',
+                title: 'Protocol-relative destination',
+                uri: '//untrusted.example/help',
+                needAnchors: ['need:identify-person@2'],
+            },
+            {
+                id: 'same-app',
+                title: 'Same-app help',
+                uri: '/help/name',
+                needAnchors: ['need:identify-person@2'],
+            },
+        ];
+        const defaultContainer = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                resolveFieldHelp={(path) => path === 'name' ? references : []}
+            />
+        );
+
+        expect(
+            [...defaultContainer.querySelectorAll<HTMLAnchorElement>(
+                '[data-name="name"] .formspec-field-help a',
+            )].map((anchor) => anchor.getAttribute('href')),
+        ).toEqual(['/help/name']);
+        expect(defaultContainer.textContent).toContain('Internal knowledge source');
+        expect(defaultContainer.textContent).toContain('Unsafe script');
+
+        const translatedContainer = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                resolveFieldHelp={(path) => path === 'name' ? references : []}
+                admitFieldHelpUri={(uri) =>
+                    uri === 'vectorstore:customer-help'
+                        ? '/trusted/context/customer-help'
+                        : undefined
+                }
+            />
+        );
+
+        expect(
+            translatedContainer.querySelector<HTMLAnchorElement>(
+                '[data-name="name"] .formspec-field-help a',
+            )?.getAttribute('href'),
+        ).toBe('/trusted/context/customer-help');
+    });
+
     it('shows required indicator', () => {
         const container = renderInto(
             <FormspecForm definition={testDefinition} />

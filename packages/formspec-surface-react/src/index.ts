@@ -23,6 +23,7 @@ export { SurfaceRouteView, type SurfaceRouteViewProps } from './SurfaceRoute.js'
 export {
   SurfaceSlot,
   SurfaceSlotFrame,
+  completedWidgetAction,
   renderDefaultDefinitionForm,
   rendersOwnHeading,
   type ResolvedDefinitionFormPlan,
@@ -32,16 +33,34 @@ export {
 } from './SurfaceSlot.js';
 export { SurfaceTransitions, type SurfaceTransitionsProps } from './SurfaceTransitions.js';
 export { Heading, nextLevel, type HeadingProps } from './heading.js';
+export {
+  MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES,
+  ModuleWidgetStateView,
+  widgetDataMatchesEmptyWhen,
+  type ModuleWidgetEmptyWhen,
+  type ModuleWidgetOutputStateAction,
+  type ModuleWidgetRetryStateAction,
+  type ModuleWidgetStateAction,
+  type ModuleWidgetStateName,
+  type ModuleWidgetStateViewConfig,
+  type ModuleWidgetStateViewProps,
+  type ModuleWidgetStateViewsConfig,
+} from './widget-state.js';
 
 export type {
   SurfaceWidget,
   SurfaceWidgetAction,
   SurfaceWidgetActionExecutor,
+  SurfaceWidgetActionDetail,
+  SurfaceWidgetActionEmission,
+  SurfaceWidgetActionFeedbackStatus,
   SurfaceWidgetActionExecutorInput,
   SurfaceWidgetActionOutcomeKey,
   SurfaceWidgetActionOutcomeStore,
+  SurfaceWidgetActionInput,
   SurfaceWidgetActionReport,
   SurfaceWidgetActionSource,
+  SurfaceWidgetActionValue,
   SurfaceWidgetActionLabel,
   SurfaceWidgetStoredActionOutcome,
   SurfaceWidgetModule,
@@ -51,6 +70,7 @@ export type {
 
 export {
   allocateWidgetActionInvocationId,
+  admitSurfaceWidgetActionInput,
   createWidgetActionCoordinator,
   createWidgetActionDelivery,
   normalizeWidgetActionResult,
@@ -59,6 +79,7 @@ export {
   type CoordinatedWidgetActionResult,
   type DeliverWidgetActionRequest,
   type EmitWidgetActionRequest,
+  type SurfaceWidgetActionInputAdmission,
   type WidgetActionCoordinator,
   type WidgetActionDelivery,
 } from './widget-action-runtime.js';
@@ -69,6 +90,8 @@ export {
   QueueTable,
   ReceiptPanel,
   StructuredPanel,
+  STRUCTURED_PANEL_DELIVERY_CONTRACT_ID,
+  STRUCTURED_PANEL_RENDERED_CONFIG_NODES,
   STARTER_WIDGETS,
   WidgetEmptyState,
   readStructuredPanelPath,
@@ -85,10 +108,24 @@ export {
   type StructuredKeyValueItemConfig,
   type StructuredListBlockConfig,
   type StructuredMetricBlockConfig,
+  type StructuredActionPayloadConfig,
+  type StructuredActionPayloadSelector,
   type StructuredPanelActionConfig,
   type StructuredPanelBlockConfig,
   type StructuredPanelConfig,
   type StructuredProgressBlockConfig,
   type StructuredTableBlockConfig,
   type StructuredTableColumnConfig,
+  type StructuredTableRowActionConfig,
 } from './widgets/index.js';
+
+export {
+  executeBrowserResourceEffect,
+  resolveBrowserResourceCommand,
+  type BrowserDownloadResource,
+  type BrowserOpenResource,
+  type BrowserResourceCommand,
+  type BrowserResourceEffectInput,
+  type BrowserResourcePorts,
+  type BrowserResourceResolution,
+} from './browser-resource.js';

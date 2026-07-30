@@ -1,4 +1,7 @@
-#![allow(clippy::missing_docs_in_private_items)]
+#![expect(
+    clippy::missing_docs_in_private_items,
+    reason = "Focused rule tests are intentionally named instead of documented individually"
+)]
 
 use super::lint_theme;
 use super::token_refs::extract_token_refs;
@@ -938,17 +941,20 @@ fn w705_deep_dotted_path_matches() {
     );
 }
 
-// ── Finding 56: rgb() content not validated ────────────────
+// ── Finding 56: rgb() content validation ────────────────────
 
-/// Spec: theme-spec.md §3.2 (line 251) — is_css_color intentionally only
-/// checks the wrapper format (rgb(...), hsl(...), etc), not the validity
-/// of the content inside the parentheses.
+/// Spec: theme-spec.md §3.2 — malformed functional colors are not valid
+/// token values and must not bypass contrast evaluation.
 #[test]
-fn functional_color_content_not_validated() {
-    assert!(
-        is_css_color("rgb(not, valid, at all)"),
-        "is_css_color only checks the wrapper, not content validity"
-    );
+fn invalid_functional_color_content_emits_w700() {
+    assert!(!is_css_color("rgb(not, valid, at all)"));
+    let theme = json!({
+        "tokens": {
+            "color.primary": "rgb(not, valid, at all)"
+        }
+    });
+    let diags = lint_theme(&theme, None);
+    assert_eq!(with_code(&diags, "W700").len(), 1);
 }
 
 // ── Finding 57: Named CSS colors ─────────────────────────────
@@ -1141,5 +1147,168 @@ fn token_ref_in_numeric_value_not_checked() {
     assert!(
         with_code(&diags, "W704").is_empty(),
         "Non-string values should not be checked for token refs"
+    );
+}
+
+// ── W714: Effective Theme contrast ──────────────────────────
+
+#[test]
+fn inferred_input_boundary_regression_emits_w714() {
+    let theme = json!({
+        "tokens": {
+            "color.input": "#fdfaf4"
+        }
+    });
+    let diags = lint_theme(&theme, None);
+    let w714 = with_code(&diags, "W714");
+    assert_eq!(w714.len(), 2);
+    assert!(
+        w714.iter()
+            .all(|diagnostic| diagnostic.path == "$.tokens.color.input")
+    );
+    assert!(
+        w714.iter()
+            .any(|diagnostic| diagnostic.message.contains("input-boundary-on-page"))
+    );
+    assert!(
+        w714.iter()
+            .any(|diagnostic| diagnostic.message.contains("input-boundary-on-card"))
+    );
+}
+
+#[test]
+fn accessible_input_boundary_override_has_no_w714() {
+    let theme = json!({
+        "tokens": {
+            "color.input": "#5f574e"
+        }
+    });
+    let diags = lint_theme(&theme, None);
+    assert!(with_code(&diags, "W714").is_empty());
+}
+
+#[test]
+fn primary_override_also_checks_derived_focus_indicator() {
+    let theme = json!({
+        "tokens": {
+            "color.primary": "#fdfaf4"
+        }
+    });
+    let diags = lint_theme(&theme, None);
+    let w714 = with_code(&diags, "W714");
+    assert!(
+        w714.iter()
+            .any(|diagnostic| diagnostic.message.contains("primary-label-on-primary"))
+    );
+    assert!(
+        w714.iter()
+            .any(|diagnostic| diagnostic.message.contains("focus-indicator-on-card"))
+    );
+}
+
+#[test]
+fn explicit_custom_contrast_pair_is_evaluated() {
+    let theme = json!({
+        "tokens": {
+            "x-agency.badge-text": "#777777",
+            "x-agency.badge-fill": "#ffffff"
+        },
+        "contrastPairs": [{
+            "id": "agency-badge-label",
+            "foregroundToken": "x-agency.badge-text",
+            "backgroundToken": "x-agency.badge-fill",
+            "usage": "normalText"
+        }]
+    });
+    let diags = lint_theme(&theme, None);
+    let w714 = with_code(&diags, "W714");
+    assert_eq!(w714.len(), 1);
+    assert_eq!(w714[0].path, "$.contrastPairs[0]");
+    assert!(w714[0].message.contains("4.48:1"));
+}
+
+#[test]
+fn explicit_pair_cannot_lower_usage_floor() {
+    let theme = json!({
+        "tokens": {
+            "x-agency.text": "#777777",
+            "x-agency.surface": "#ffffff"
+        },
+        "contrastPairs": [{
+            "id": "agency-copy",
+            "foregroundToken": "x-agency.text",
+            "backgroundToken": "x-agency.surface",
+            "usage": "normalText",
+            "minimumRatio": 3
+        }]
+    });
+    let diags = lint_theme(&theme, None);
+    let w714 = with_code(&diags, "W714");
+    assert_eq!(w714.len(), 1);
+    assert!(w714[0].message.contains("requires at least 4.50:1"));
+}
+
+#[test]
+fn explicit_pair_with_missing_token_emits_w714() {
+    let theme = json!({
+        "tokens": {
+            "x-agency.text": "#000000"
+        },
+        "contrastPairs": [{
+            "id": "agency-copy",
+            "foregroundToken": "x-agency.text",
+            "backgroundToken": "x-agency.surface",
+            "usage": "normalText"
+        }]
+    });
+    let diags = lint_theme(&theme, None);
+    let w714 = with_code(&diags, "W714");
+    assert_eq!(w714.len(), 1);
+    assert!(
+        w714[0]
+            .message
+            .contains("has no effective string color value")
+    );
+}
+
+#[test]
+fn valid_hsl_color_is_evaluated_without_a_false_positive() {
+    let theme = json!({
+        "tokens": {
+            "x-agency.text": "hsl(0, 0%, 20%)",
+            "x-agency.surface": "#ffffff"
+        },
+        "contrastPairs": [{
+            "id": "agency-copy",
+            "foregroundToken": "x-agency.text",
+            "backgroundToken": "x-agency.surface",
+            "usage": "normalText"
+        }]
+    });
+    let diags = lint_theme(&theme, None);
+    assert!(with_code(&diags, "W714").is_empty());
+}
+
+#[test]
+fn dark_primary_label_pair_matches_the_rendered_saturated_fill() {
+    let pair = token_registry()
+        .contrast_pairs()
+        .iter()
+        .find(|pair| pair.id == "dark-primary-label-on-saturated-primary")
+        .expect("dark primary label relationship must be declared");
+    assert_eq!(pair.foreground_token, "color.dark.primaryForeground");
+    assert_eq!(pair.background_token, "color.primary");
+}
+
+#[test]
+fn generated_platform_theme_meets_all_inferred_contrast_floors() {
+    let theme: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../packages/formspec-layout/src/default-theme.json"
+    ))
+    .expect("generated platform theme must be valid JSON");
+    let diags = lint_theme(&theme, None);
+    assert!(
+        with_code(&diags, "W714").is_empty(),
+        "platform defaults must not violate their inferred renderer pairs: {diags:?}"
     );
 }

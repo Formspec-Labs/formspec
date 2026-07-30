@@ -1,0 +1,8 @@
+{
+  "$formspecTheme": "1.0",
+  "url": "https://example.com/themes/w714",
+  "version": "1.0.0",
+  "tokens": {
+    "color.input": "#fdfaf4"
+  }
+}

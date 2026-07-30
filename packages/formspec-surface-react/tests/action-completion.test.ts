@@ -5,7 +5,10 @@
  * shell advances only after a completed terminal with a valid report.
  */
 import { describe, expect, it } from 'vitest';
-import { completedFormAction } from '../src/SurfaceSlot.js';
+import {
+  completedFormAction,
+  completedWidgetAction,
+} from '../src/SurfaceSlot.js';
 
 const action = { id: 'submitApplication', intent: 'submit' };
 
@@ -49,5 +52,37 @@ describe('completedFormAction', () => {
         }),
       ),
     ).toBeUndefined();
+  });
+});
+
+describe('completedWidgetAction', () => {
+  it('accepts a completed app action without manufacturing a Response', () => {
+    const appResult = result({
+      detail: {
+        resource: {
+          href: '/records/response-1',
+          label: 'Review response',
+        },
+      },
+    });
+    expect(completedWidgetAction(appResult, {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      scope: 'app',
+      actions: [action],
+    } as never)).toEqual(action);
+  });
+
+  it('keeps the validation-report gate for response-scoped widget actions', () => {
+    const responseDocument = {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: 'urn:def' },
+      actions: [action],
+    } as never;
+    expect(completedWidgetAction(result(), responseDocument)).toEqual(action);
+    expect(completedWidgetAction(result({
+      detail: { response: {}, validationReport: { valid: false } },
+    }), responseDocument)).toBeUndefined();
   });
 });

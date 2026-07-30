@@ -197,6 +197,10 @@
         "selector": {
           "type": "string"
         },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct authoring provenance for this bound reference entry. Strict rendered-Need validation requires a human or both audience entry that can render as customer help to carry its own current adopted Need anchor; document-level or referenceDefs provenance does not substitute."
+        },
         "extensions": {
           "type": "object",
           "propertyNames": {
@@ -353,6 +357,10 @@
           "description": "Fragment-targeting hint for resources without native fragment semantics.",
           "examples": ["Section 414(f)", "Table 3, Row 'Indirect Costs'"]
         },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct authoring provenance for this Reference object. When the object is bound into references[] for human or both audiences, the rendered binding must carry its own current adopted Need anchor."
+        },
         "extensions": {
           "type": "object",
           "propertyNames": { "pattern": "^x-" },
@@ -400,6 +408,10 @@
               "enum": ["human", "agent", "both"]
             },
             "type": { "type": "string" },
+            "x-generation": {
+              "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+              "description": "Direct authoring provenance override for this bound reference entry."
+            },
             "extensions": {
               "type": "object",
               "propertyNames": { "pattern": "^x-" }

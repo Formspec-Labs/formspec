@@ -1,5 +1,9 @@
 //! Pass 9: Response Actions semantic checks.
-#![allow(clippy::missing_docs_in_private_items)]
+#![expect(
+    clippy::missing_docs_in_private_items,
+    reason = "This private lint pass is documented through its diagnostics and tests."
+)]
+// Rust guideline compliant 2026-02-21
 
 use std::collections::{HashMap, HashSet};
 
@@ -84,6 +88,9 @@ struct Analyzer<'a> {
 
 impl Analyzer<'_> {
     fn check_target_definition(&mut self) {
+        if is_app_scope(self.doc) {
+            return;
+        }
         let Some(definition) = self.definition else {
             return;
         };
@@ -146,6 +153,37 @@ impl Analyzer<'_> {
             return;
         };
         for (index, action) in actions.iter().enumerate() {
+            if is_app_scope(self.doc) {
+                let validation = action.get("validation").and_then(Value::as_object);
+                let profile = validation
+                    .and_then(|value| value.get("profile"))
+                    .and_then(Value::as_str);
+                let blocking = validation
+                    .and_then(|value| value.get("blocking"))
+                    .and_then(Value::as_str);
+                let persistence = validation
+                    .and_then(|value| value.get("persistence"))
+                    .and_then(Value::as_str);
+                if (profile, blocking, persistence)
+                    != (Some("off"), Some("non-blocking"), Some("none"))
+                {
+                    let id = action
+                        .get("id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("<unknown>");
+                    self.diagnostics.push(error(
+                        crate::LintCode::E1803,
+                        PASS,
+                        format!("$.actions[{index}].validation"),
+                        format!(
+                            "VMAP-INVALID-OVERRIDE: App Action {id:?} must use \
+                             profile=off, blocking=non-blocking, persistence=none \
+                             because app scope has no Response to validate or persist"
+                        ),
+                    ));
+                }
+                continue;
+            }
             let Some(validation) = action.get("validation").and_then(Value::as_object) else {
                 continue;
             };
@@ -299,6 +337,10 @@ fn is_durable_effect(effect: &Value) -> bool {
     )
 }
 
+fn is_app_scope(doc: &Value) -> bool {
+    doc.get("scope").and_then(Value::as_str) == Some("app")
+}
+
 fn collect_action_ids(doc: &Value) -> HashSet<String> {
     doc.get("actions")
         .and_then(Value::as_array)
@@ -392,6 +434,58 @@ mod tests {
         let diags = lint_response_actions(&response_actions(), Some(&def), &[]);
 
         assert!(diags.iter().any(|diag| diag.code == crate::LintCode::W1800));
+    }
+
+    #[test]
+    fn app_scope_skips_definition_pairing_and_accepts_the_no_response_tuple() {
+        let app_actions = json!({
+            "$formspecResponseActions": "1.0",
+            "version": "1.0.0",
+            "scope": "app",
+            "actions": [{
+                "id": "open-resource",
+                "intent": "x-open-resource",
+                "validation": {
+                    "profile": "off",
+                    "blocking": "non-blocking",
+                    "persistence": "none"
+                },
+                "effects": [{
+                    "type": "browserResource",
+                    "operation": "open",
+                    "resourceRef": "resource"
+                }]
+            }]
+        });
+        let other_definition = json!({
+            "$formspec": "1.0",
+            "url": "https://example.gov/forms/unrelated",
+            "version": "9.0.0",
+            "title": "Unrelated",
+            "items": []
+        });
+
+        let diags = lint_response_actions(&app_actions, Some(&other_definition), &[]);
+
+        assert!(diags.is_empty(), "{diags:#?}");
+    }
+
+    #[test]
+    fn app_scope_rejects_response_validation_or_persistence() {
+        let app_actions = json!({
+            "$formspecResponseActions": "1.0",
+            "version": "1.0.0",
+            "scope": "app",
+            "actions": [{
+                "id": "mis-scoped-review",
+                "intent": "review",
+                "effects": [{ "type": "hostEvent", "eventName": "review" }]
+            }]
+        });
+
+        let diags = lint_response_actions(&app_actions, None, &[]);
+
+        assert!(diags.iter().any(|diag| diag.code == crate::LintCode::E1803));
     }
 
     #[test]

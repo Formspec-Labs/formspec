@@ -380,10 +380,16 @@ export async function loadWidgetDataInputs(
         context: request.context,
       });
     } catch (error) {
-      loaded = { status: 'unavailable', reason: errorText(error) };
+      const failure = runtimeFailure(input, 'load-failed', errorText(error));
+      if (!input.required && failure.failureMode === 'degraded-widget') {
+        degradedInputs.push(failure);
+      } else {
+        failures.push(failure);
+      }
+      continue;
     }
     if (loaded.status !== 'loaded') {
-      const failure = runtimeFailure(input, 'load-failed', loaded.reason);
+      const failure = runtimeFailure(input, 'unavailable', loaded.reason);
       if (!input.required && failure.failureMode === 'degraded-widget') {
         degradedInputs.push(failure);
       } else {

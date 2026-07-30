@@ -68,6 +68,39 @@ export interface SurfaceWidgetAction {
   needAnchors?: readonly string[] | undefined;
 }
 
+export type SurfaceWidgetActionValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly SurfaceWidgetActionValue[]
+  | Readonly<{ [key: string]: SurfaceWidgetActionValue }>;
+
+/**
+ * Selected structured data emitted with an output. The shell admits only
+ * finite, own-property JSON data and supplies a detached frozen copy.
+ */
+export type SurfaceWidgetActionInput = Readonly<{
+  [key: string]: SurfaceWidgetActionValue;
+}>;
+
+/** Response submission detail or structured input returned by an app action. */
+export type SurfaceWidgetActionDetail =
+  | SubmitResult
+  | SurfaceWidgetActionInput;
+
+export type SurfaceWidgetActionFeedbackStatus =
+  | 'completed'
+  | 'failed'
+  | 'refused'
+  | 'obsolete';
+
+export interface SurfaceWidgetActionEmission {
+  /** False when this call joins an already-running logical action or is refused. */
+  started: boolean;
+  completion: Promise<Readonly<{ status: SurfaceWidgetActionFeedbackStatus }>>;
+}
+
 export interface SurfaceWidgetProps {
   moduleId: string;
   /** Matches `widgetShape.widgetName` — not the contribution id. */
@@ -84,8 +117,15 @@ export interface SurfaceWidgetProps {
    * modules compiled against Surface React 0.1; the shell always supplies it.
    */
   actions?: readonly SurfaceWidgetAction[] | undefined;
-  /** The widget's sole action capability; the shell owns mapping and execution. */
-  emitAction: (outputName: string) => void;
+  /**
+   * The widget's sole action capability; the shell owns mapping and execution.
+   * The optional emission lets a generic control render pending and terminal
+   * feedback without gaining access to the executor.
+   */
+  emitAction: (
+    outputName: string,
+    input?: SurfaceWidgetActionInput | undefined,
+  ) => SurfaceWidgetActionEmission | void;
   admitsTenantTheme: boolean;
 }
 
@@ -108,6 +148,8 @@ export interface SurfaceWidgetActionExecutorInput {
   /** Shell-generated and stable for this logical emission and its retries. */
   invocationId: string;
   source: SurfaceWidgetActionSource;
+  /** Frozen structured data selected by the widget configuration, when any. */
+  input?: SurfaceWidgetActionInput | undefined;
 }
 
 /**
@@ -118,17 +160,18 @@ export interface SurfaceWidgetActionExecutorInput {
 export type SurfaceWidgetActionExecutor = (
   input: SurfaceWidgetActionExecutorInput,
 ) =>
-  | ResponseActionInvokerResult<SubmitResult>
-  | Promise<ResponseActionInvokerResult<SubmitResult>>;
+  | ResponseActionInvokerResult<SurfaceWidgetActionDetail>
+  | Promise<ResponseActionInvokerResult<SurfaceWidgetActionDetail>>;
 
 export interface SurfaceWidgetActionOutcomeKey {
   generation: string;
   source: SurfaceWidgetActionSource;
+  input?: SurfaceWidgetActionInput | undefined;
 }
 
 export interface SurfaceWidgetStoredActionOutcome {
   invocationId: string;
-  result: ResponseActionInvocationResult<SubmitResult>;
+  result: ResponseActionInvocationResult<SurfaceWidgetActionDetail>;
 }
 
 /**
@@ -157,7 +200,7 @@ export interface SurfaceWidgetActionReport {
   invocationId: string;
   actionRef?: string | undefined;
   outputName: string;
-  result?: ResponseActionInvocationResult<SubmitResult> | undefined;
+  result?: ResponseActionInvocationResult<SurfaceWidgetActionDetail> | undefined;
   navigation:
     | 'not-attempted'
     | 'none'

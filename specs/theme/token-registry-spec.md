@@ -35,6 +35,7 @@ insufficient for tooling that needs to answer:
 - What type is each token (color, dimension, font)?
 - What is the default value for each token?
 - What is the dark-mode counterpart of a color token?
+- Which rendered color relationships must remain distinguishable?
 - What custom tokens has this theme introduced?
 
 This specification defines a **Token Registry** — a JSON document that
@@ -75,6 +76,7 @@ top-level properties:
 |----------|------|----------|-------------|
 | `$formspecTokenRegistry` | string | REQUIRED | Version identifier. MUST be `"1.0"` for this specification. |
 | `description` | string | OPTIONAL | Human-readable description of this registry. |
+| `contrastPairs` | array | OPTIONAL | Renderer-owned color-token relationships checked after Theme overrides. See §2.6. |
 | `categories` | object | REQUIRED | Token categories keyed by category prefix. |
 
 Processors MUST reject token registry documents with an unrecognized
@@ -86,6 +88,7 @@ Example:
 {
   "$formspecTokenRegistry": "1.0",
   "description": "Formspec platform token catalog.",
+  "contrastPairs": [ ... ],
   "categories": { ... }
 }
 ```
@@ -223,6 +226,39 @@ derivation chains MUST NOT be cyclic. A derived token is still a declared
 token: a Theme MAY set it, validators MUST NOT report it under §5.3, and
 Studio SHOULD present it with its derivation shown rather than as a
 free-standing default.
+
+### 2.6 Contrast Pairs
+
+The optional top-level `contrastPairs` array records color relationships the
+renderer creates from platform tokens. Each entry uses the Theme
+`contrastPairs` shape from Theme Specification §3.8: `id`,
+`foregroundToken`, `backgroundToken`, `usage`, and optional `minimumRatio`.
+Registry pairs are tooling metadata; renderers MUST NOT require them at
+runtime.
+
+Validators SHOULD evaluate a registry pair only when a Theme override changes
+one of its token values, directly or through `derivedFrom`. They resolve the
+unchanged side from the registry default. This rule keeps the signal tied to
+authored changes while still checking a partial Theme against the complete
+effective palette.
+
+The platform registry MUST declare pairs for each token relationship that the
+default renderer relies on and can determine statically. Light and dark keys
+are separate relationships because they are separate effective token keys.
+For example:
+
+```json
+{
+  "id": "input-boundary-on-card",
+  "foregroundToken": "color.input",
+  "backgroundToken": "color.card",
+  "usage": "uiComponent"
+}
+```
+
+The registry's `contrastPairs` array does not stop a Theme from adding its own
+pair for custom tokens or a stricter threshold. A Theme declaration adds a
+check; it does not replace the platform relationships.
 
 ## 3. Token Types
 
@@ -395,6 +431,8 @@ Validators MAY additionally use the platform registry to:
 - Warn on token values that do not match their declared type.
 - Report tokens present in the registry but missing from the theme
   (potential incomplete themes).
+- Check effective `contrastPairs` after Theme overrides and emit W714 when a
+  determinable pair falls below its usage floor.
 
 Validators MUST NOT reject a theme document based on registry
 validation. Registry-based checks are advisory diagnostics only: the
@@ -413,6 +451,8 @@ A conformant Token Registry document MUST:
 
 - Include `$formspecTokenRegistry` with value `"1.0"`.
 - Include a `categories` object with at least one category.
+- When `contrastPairs` is present, use the Theme Specification §3.8 pair shape
+  and reference declared light or derived dark token keys.
 - Each category MUST include `type` and `tokens`.
 - Each category's `tokens` object MUST contain at least one entry.
 - Each token entry key MUST start with its category key followed by a
@@ -448,6 +488,14 @@ MUST:
 {
   "$formspecTokenRegistry": "1.0",
   "description": "Formspec platform token catalog — tokens consumed by the default CSS skin.",
+  "contrastPairs": [
+    {
+      "id": "input-boundary-on-card",
+      "foregroundToken": "color.input",
+      "backgroundToken": "color.card",
+      "usage": "uiComponent"
+    }
+  ],
   "categories": {
     "color": {
       "description": "Color palette tokens for light and dark modes",

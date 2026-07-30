@@ -6,6 +6,7 @@
  * surface-render-v10 spike's queue table drew four applications with invented
  * rents and invented waiting times, and that was its most convincing lie.
  */
+import { act } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import {
   CeremonyFrame,
@@ -48,6 +49,22 @@ describe('starter widget module', () => {
     const module = starterWidgetModule('x-formspec-tenant-chrome');
     expect(module.moduleId).toBe('x-formspec-tenant-chrome');
     expect(module.widgets['x-receipt-panel']).toBe(ReceiptPanel);
+    expect(module.contracts?.StructuredPanel?.renderedConfigNodes).toEqual(
+      expect.arrayContaining([
+        {
+          pointerPattern: '/blocks/*/rowAction',
+          kind: 'structured-panel-row-action',
+        },
+        {
+          pointerPattern: '/stateViews/*',
+          kind: 'module-widget-state-view',
+        },
+        {
+          pointerPattern: '/stateViews/*/actions/*',
+          kind: 'module-widget-state-action',
+        },
+      ]),
+    );
   });
 });
 
@@ -199,6 +216,196 @@ describe('StructuredPanel', () => {
     expect(emitAction).toHaveBeenCalledWith('save');
   });
 
+  it('uses structured data for responsive tables, progress maxima, and action payloads', () => {
+    const emitAction = vi.fn();
+    const container = render(
+      <StructuredPanel
+        {...props({
+          config: {
+            ...trace,
+            blocks: [
+              {
+                id: 'resources',
+                type: 'table',
+                path: 'resources',
+                responsiveMode: 'stack',
+                columns: [
+                  { id: 'name', label: 'Resource', path: 'name', ...trace },
+                  { id: 'status', label: 'Status', path: 'status', ...trace },
+                ],
+                rowAction: {
+                  outputName: 'open',
+                  columnLabel: 'Open resource',
+                  payload: {
+                    resourceId: { path: 'id' },
+                    resource: { path: '' },
+                  },
+                  ...trace,
+                },
+                ...trace,
+              },
+              {
+                id: 'usage',
+                type: 'progress',
+                path: 'usage.current',
+                maxPath: 'usage.limit',
+                ...trace,
+              },
+            ],
+            actions: [
+              {
+                outputName: 'export',
+                payload: {
+                  resourceIds: { path: 'resourceIds' },
+                },
+                ...trace,
+              },
+            ],
+          },
+          data: {
+            resources: [{ id: 'resource-7', name: 'Guide', status: 'Ready' }],
+            resourceIds: ['resource-7'],
+            usage: { current: 7, limit: 10 },
+          },
+          actions: [
+            {
+              outputName: 'open',
+              actionRef: 'openResource',
+              intent: 'review',
+              label: { literal: 'Open' },
+            },
+            {
+              outputName: 'export',
+              actionRef: 'exportResources',
+              intent: 'x-export',
+              label: { literal: 'Export' },
+            },
+          ],
+          emitAction,
+        })}
+      />,
+    );
+
+    const tableRegion = container.querySelector('[data-responsive-mode="stack"]');
+    expect(tableRegion).not.toBeNull();
+    expect(
+      [...container.querySelectorAll<HTMLTableCellElement>('tbody td')]
+        .map((cell) => cell.dataset.columnLabel),
+    ).toEqual(['Resource', 'Status', 'Open resource']);
+    expect(container.querySelector('progress')?.getAttribute('max')).toBe('10');
+
+    container.querySelector<HTMLButtonElement>('[data-row-action]')?.click();
+    expect(emitAction).toHaveBeenCalledWith('open', {
+      resourceId: 'resource-7',
+      resource: { id: 'resource-7', name: 'Guide', status: 'Ready' },
+    });
+    container.querySelector<HTMLButtonElement>('[data-action-output="export"]')?.click();
+    expect(emitAction).toHaveBeenCalledWith('export', {
+      resourceIds: ['resource-7'],
+    });
+  });
+
+  it('renders authored pending, failure, and success action feedback', async () => {
+    let finish:
+      | ((feedback: { status: 'completed' | 'failed' }) => void)
+      | undefined;
+    const emitAction = vi.fn(() => ({
+      started: true,
+      completion: new Promise<{ status: 'completed' | 'failed' }>((resolve) => {
+        finish = resolve;
+      }),
+    }));
+    const container = render(
+      <StructuredPanel
+        {...props({
+          config: {
+            ...trace,
+            actions: [{
+              outputName: 'save',
+              pendingLabel: 'Saving…',
+              successMessage: 'Saved',
+              failureMessage: 'Try again',
+              ...trace,
+            }],
+          },
+          actions: [{
+            outputName: 'save',
+            actionRef: 'save',
+            intent: 'save-draft',
+            label: { literal: 'Save' },
+          }],
+          emitAction,
+        })}
+      />,
+    );
+    const button = container.querySelector<HTMLButtonElement>(
+      '[data-action-output="save"]',
+    );
+
+    act(() => {
+      button?.click();
+    });
+    expect(button?.textContent).toBe('Saving…');
+    expect(button?.disabled).toBe(true);
+    await act(async () => {
+      finish?.({ status: 'failed' });
+      await Promise.resolve();
+    });
+    expect(button?.textContent).toBe('Try again');
+    expect(button?.disabled).toBe(false);
+
+    act(() => {
+      button?.click();
+    });
+    await act(async () => {
+      finish?.({ status: 'completed' });
+      await Promise.resolve();
+    });
+    expect(button?.textContent).toBe('Saved');
+    expect(button?.getAttribute('data-action-status')).toBe('completed');
+  });
+
+  it('turns a rejected action completion into authored failure feedback', async () => {
+    const emitAction = vi.fn(() => ({
+      started: true,
+      completion: Promise.reject(new Error('executor unavailable')),
+    }));
+    const container = render(
+      <StructuredPanel
+        {...props({
+          config: {
+            ...trace,
+            actions: [{
+              outputName: 'save',
+              pendingLabel: 'Saving…',
+              failureMessage: 'Try again',
+              ...trace,
+            }],
+          },
+          actions: [{
+            outputName: 'save',
+            actionRef: 'save',
+            intent: 'save-draft',
+            label: { literal: 'Save' },
+          }],
+          emitAction,
+        })}
+      />,
+    );
+    const button = container.querySelector<HTMLButtonElement>(
+      '[data-action-output="save"]',
+    );
+
+    await act(async () => {
+      button?.click();
+      await Promise.resolve();
+    });
+
+    expect(button?.textContent).toBe('Try again');
+    expect(button?.getAttribute('data-action-status')).toBe('failed');
+    expect(button?.disabled).toBe(false);
+  });
+
   it('uses block and action need anchors when the panel has no product-level copy', () => {
     const container = render(
       <StructuredPanel
@@ -298,7 +505,7 @@ describe('StructuredPanel', () => {
       />,
     );
     expect(textOf(withoutTrace)).not.toContain('Must not render');
-    expect(withoutTrace.querySelector('[data-trace-state="missing"]')).not.toBeNull();
+    expect(withoutTrace.querySelector('[data-widget="structured-panel"]')).toBeNull();
 
     const missingData = render(
       <StructuredPanel

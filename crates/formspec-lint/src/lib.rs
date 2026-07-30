@@ -9,7 +9,7 @@
 //! Pass 3e (E608/E609): Posture admission — module field-equality + actor URN scan (ADR 0150 §4.4/§5.4)
 //! Pass 4 (E400): FEL expression compilation
 //! Pass 5 (E500): Dependency cycle detection
-//! Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
+//! Pass 6 (W700-W714/E710): Theme — token validation, contrast, reference integrity, page semantics
 //! Pass 7 (E800-E807/W800-W807): Components — tree validation, type compatibility, bind resolution
 //! Pass 8 (E606-E607/E610, E900-E902): Surface route graph and Response
 //! cross-field invariants (ADR 0150 §6)

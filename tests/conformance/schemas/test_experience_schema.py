@@ -63,6 +63,36 @@ class TestExperienceSchemaValid:
     def test_target_definition_absent_from_required(self, schema):
         assert schema["required"] == ["$formspecExperience", "version"]
 
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            "action",
+            "submitted-definition",
+            "resource",
+            "navigation",
+            "observable-result",
+        ],
+    )
+    def test_need_ref_accepts_closed_completion_shapes(self, validator, shape):
+        doc = {
+            "$formspecExperience": "1.0",
+            "version": "1.0.0",
+            "units": [
+                {
+                    "id": "completeNeed",
+                    "kind": "review",
+                    "needRefs": [
+                        {
+                            "id": "usable-outcome",
+                            "completion": {"shape": shape},
+                        }
+                    ],
+                }
+            ],
+        }
+        errors = list(validator.iter_errors(doc))
+        assert errors == [], f"Expected no errors, got: {[e.message for e in errors]}"
+
 
 class TestExperienceSchemaInvalid:
     def test_declared_target_definition_still_requires_url(self, validator):
@@ -75,3 +105,30 @@ class TestExperienceSchemaInvalid:
         doc = _load("invalid-bad-unit-kind.json")
         errors = list(validator.iter_errors(doc))
         assert any(e.validator == "enum" or list(e.path)[-1:] == ["kind"] for e in errors), errors
+
+    @pytest.mark.parametrize(
+        "completion",
+        [
+            {},
+            {"shape": "button"},
+            {"shape": "action", "route": "home"},
+        ],
+    )
+    def test_need_ref_rejects_open_or_malformed_completion(self, validator, completion):
+        doc = {
+            "$formspecExperience": "1.0",
+            "version": "1.0.0",
+            "units": [
+                {
+                    "id": "completeNeed",
+                    "kind": "review",
+                    "needRefs": [
+                        {
+                            "id": "usable-outcome",
+                            "completion": completion,
+                        }
+                    ],
+                }
+            ],
+        }
+        assert list(validator.iter_errors(doc))

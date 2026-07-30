@@ -21,6 +21,7 @@
 /** Filled primary CTA — matches wizard Next/Submit, repeat add, etc. */
 .formspec-button-primary {
   display: inline-flex;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   padding: 0.74rem 1.15rem;
@@ -53,6 +54,7 @@
 /** Outlined neutral — matches file browse, modal cancel-style actions. */
 .formspec-button-secondary {
   display: inline-flex;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   padding: 0.72rem 1.05rem;
@@ -82,6 +84,7 @@
 
 .formspec-button-danger {
   display: inline-flex;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   padding: 0.5rem 0.8rem;

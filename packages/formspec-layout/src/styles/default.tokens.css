@@ -19,7 +19,7 @@
   --formspec-default-surface-soft: #f4ede3;
   --formspec-default-surface-quiet: #fcf8f1;
   --formspec-default-primary-soft: var(--formspec-color-primary-light, #e3ece8);
-  --formspec-default-border-input: var(--formspec-color-input, #c0b6a8);
+  --formspec-default-border-input: var(--formspec-color-input, #8b8175);
   --formspec-default-border: var(--formspec-color-border, #d1c8ba);
   --formspec-default-border-strong: color-mix(in srgb, var(--formspec-default-border) 82%, #5b5448);
   --formspec-default-border-subtle: color-mix(in srgb, var(--formspec-default-border) 52%, white);
@@ -108,7 +108,7 @@
   --formspec-default-primary-soft: color-mix(in srgb, var(--formspec-default-primary) 20%, var(--formspec-default-bg));
 
   /* Borders — base tokens via color.dark.* Layer A, derivatives computed */
-  --formspec-default-border-input: var(--formspec-color-dark-input, #5c5247);
+  --formspec-default-border-input: var(--formspec-color-dark-input, #7b6f61);
   --formspec-default-border: var(--formspec-color-dark-border, #4f463d);
   --formspec-default-border-strong: color-mix(in srgb, var(--formspec-default-border) 55%, #c0b4a5);
   --formspec-default-border-subtle: color-mix(in srgb, var(--formspec-default-border) 70%, var(--formspec-default-bg));

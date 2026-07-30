@@ -2,13 +2,32 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/responseActions/1.0",
   "title": "Formspec Response Actions",
-  "description": "Sidecar document declaring named response actions, FEL preconditions, validation tuple overrides, ordered effect requests, and invocation terminal controls. See specs/response-actions/response-actions-spec.md for normative prose.",
+  "description": "Sidecar document declaring named response or app actions, FEL preconditions, validation tuple overrides, ordered effect requests, and invocation terminal controls. See specs/response-actions/response-actions-spec.md for normative prose.",
   "type": "object",
-  "required": ["$formspecResponseActions", "version", "targetDefinition", "actions"],
+  "required": ["$formspecResponseActions", "version", "actions"],
   "additionalProperties": false,
   "patternProperties": {
     "^x-": {}
   },
+  "oneOf": [
+    {
+      "title": "Definition-scoped response actions",
+      "required": ["targetDefinition"],
+      "properties": {
+        "scope": { "const": "response" }
+      }
+    },
+    {
+      "title": "Application-scoped actions",
+      "required": ["scope"],
+      "properties": {
+        "scope": { "const": "app" }
+      },
+      "not": {
+        "required": ["targetDefinition"]
+      }
+    }
+  ],
   "properties": {
     "$formspecResponseActions": {
       "type": "string",
@@ -35,6 +54,12 @@
       "minLength": 1,
       "description": "Version of this Response Actions document. SemVer RECOMMENDED.",
       "examples": ["1.0.0"]
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["response", "app"],
+      "default": "response",
+      "description": "Execution scope. response actions submit and validate the target Definition. app actions execute without a form submission and MUST omit targetDefinition."
     },
     "targetDefinition": {
       "type": "object",
@@ -187,7 +212,8 @@
         { "$ref": "#/$defs/LedgerAppendEffect" },
         { "$ref": "#/$defs/HandoffAssemblyEffect" },
         { "$ref": "#/$defs/EvidenceRequestEffect" },
-        { "$ref": "#/$defs/HostEventEffect" }
+        { "$ref": "#/$defs/HostEventEffect" },
+        { "$ref": "#/$defs/BrowserResourceEffect" }
       ],
       "description": "Closed effect request taxonomy."
     },
@@ -273,6 +299,37 @@
         }
       },
       "description": "Transient host-local event. MUST NOT carry idempotencyKey."
+    },
+    "BrowserResourceEffect": {
+      "type": "object",
+      "required": ["type", "operation", "resourceRef"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "browserResource" },
+        "operation": {
+          "type": "string",
+          "enum": ["open", "download"],
+          "description": "open follows a safe internal, HTTPS, or explicitly authored mailto destination. download saves an authored resource."
+        },
+        "resourceRef": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$",
+          "description": "Safe own-property path into the structured action input. The resolved value is a browser resource object; it is never evaluated as code."
+        },
+        "target": {
+          "type": "string",
+          "enum": ["self", "new"],
+          "default": "self",
+          "description": "Browsing context for open operations. Downloads ignore this value."
+        },
+        "onError": {
+          "type": "string",
+          "enum": ["fail", "defer"],
+          "default": "fail"
+        }
+      },
+      "description": "Transient browser navigation or download request resolved from validated structured action input. MUST NOT carry idempotencyKey."
     }
   }
 }
