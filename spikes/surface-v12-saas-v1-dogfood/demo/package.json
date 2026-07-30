@@ -1,0 +1,32 @@
+{
+  "name": "formspec-surface-v12-saas-v1-demo",
+  "private": true,
+  "version": "0.12.0",
+  "description": "Browser demo for the v12 SAAS-V1 Wireframes MCP dogfood bundle",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4184 --strictPort",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@formspec-org/engine": "file:../../../packages/formspec-engine",
+    "@formspec-org/layout": "file:../../../packages/formspec-layout",
+    "@formspec-org/react": "file:../../../packages/formspec-react",
+    "@formspec-org/surface": "file:../../../packages/formspec-surface",
+    "@formspec-org/surface-react": "file:../../../packages/formspec-surface-react",
+    "@formspec-org/types": "file:../../../packages/formspec-types",
+    "@preact/signals-core": "^1.8.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^5.6.0",
+    "vite": "^7.0.0"
+  }
+}
