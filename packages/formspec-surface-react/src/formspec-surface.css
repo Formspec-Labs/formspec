@@ -311,7 +311,8 @@
 .fs-surface-banner,
 .fs-surface-ceremony,
 .fs-surface-receipt,
-.fs-surface-queue {
+.fs-surface-queue,
+.fs-structured-panel {
   padding: var(--formspec-spacing-md, 0.75rem);
   border: 1px solid var(--fs-surface-line-strong);
   border-radius: var(--formspec-radius-md, 6px);
@@ -426,6 +427,168 @@
 .fs-surface-queue__table [data-numeric="true"] {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Structured, data-only panel ──────────────────────────────────── */
+
+.fs-structured-panel,
+.fs-structured-panel__header,
+.fs-structured-panel__blocks,
+.fs-structured-panel__block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
+.fs-structured-panel__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+  color: var(--fs-surface-accent);
+  font-size: 0.8125rem;
+  font-weight: var(--formspec-font-weight-medium, 500);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fs-structured-panel__title,
+.fs-structured-panel__block-title,
+.fs-structured-panel__body {
+  margin: 0;
+}
+
+.fs-structured-panel__body {
+  line-height: var(--formspec-font-lineHeight-normal, 1.5);
+}
+
+.fs-structured-panel__block {
+  padding-top: var(--formspec-spacing-sm, 0.5rem);
+  border-top: 1px solid var(--fs-surface-line);
+}
+
+.fs-structured-panel__metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--formspec-spacing-xs, 0.25rem);
+}
+
+.fs-structured-panel__metric-label {
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-structured-panel__metric-value {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-structured-panel__facts {
+  display: grid;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+  margin: 0;
+}
+
+.fs-structured-panel__fact {
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 1fr;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
+.fs-structured-panel__fact dt {
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-structured-panel__fact dd {
+  margin: 0;
+  font-weight: var(--formspec-font-weight-medium, 500);
+}
+
+.fs-structured-panel__list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.fs-structured-panel__table-scroll {
+  overflow-x: auto;
+}
+
+.fs-structured-panel__table-scroll:focus-visible {
+  outline: 2px solid var(--fs-surface-focus);
+  outline-offset: 2px;
+}
+
+.fs-structured-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.fs-structured-panel__table caption {
+  padding-bottom: var(--formspec-spacing-sm, 0.5rem);
+  color: var(--fs-surface-ink-quiet);
+  text-align: left;
+}
+
+.fs-structured-panel__table th,
+.fs-structured-panel__table td {
+  padding: var(--formspec-spacing-sm, 0.5rem);
+  border-bottom: 1px solid var(--fs-surface-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.fs-structured-panel__table th {
+  border-bottom-color: var(--fs-surface-line-strong);
+  border-bottom-width: 2px;
+}
+
+.fs-structured-panel__table [data-numeric="true"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-structured-panel__progress {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) minmax(8rem, 1fr) auto;
+  align-items: center;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
+.fs-structured-panel__progress progress {
+  width: 100%;
+  accent-color: var(--fs-surface-accent-fill);
+}
+
+.fs-structured-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
+.fs-structured-panel__action {
+  padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-lg, 1.25rem);
+  border: 1px solid var(--fs-surface-line-strong);
+  border-radius: var(--formspec-radius-md, 6px);
+  background: transparent;
+  color: var(--fs-surface-ink);
+  cursor: pointer;
+  font: inherit;
+}
+
+.fs-structured-panel__action[data-emphasis="primary"] {
+  border-color: transparent;
+  background: var(--fs-surface-accent-fill);
+  color: var(--fs-surface-accent-ink);
+}
+
+.fs-structured-panel__action[data-emphasis="danger"] {
+  border-color: var(--fs-surface-danger);
+  color: var(--fs-surface-danger);
+}
+
+.fs-structured-panel__action:focus-visible {
+  outline: 2px solid var(--fs-surface-focus);
+  outline-offset: 2px;
 }
 
 /* ── Not found ──────────────────────────────────────────────────────── */

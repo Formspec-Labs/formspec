@@ -3,6 +3,7 @@
 import { optionMatchesComboboxQuery } from '@formspec-org/engine';
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import type { CommonInputProps } from '../field-control-types';
+import { needTraceAttrs } from '../../../projection-metadata.js';
 
 function comboboxValuePresent(v: unknown): boolean {
     return v != null && v !== '';
@@ -29,6 +30,10 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
     }, [field.value, multiple]);
 
     const selectedSingle = multiple ? undefined : field.value;
+    const selectedSingleOption = useMemo(
+        () => field.options.find((option) => option.value === String(selectedSingle ?? '')),
+        [field.options, selectedSingle],
+    );
 
     const selectedLabel = useMemo(() => {
         if (multiple || selectedSingle == null || selectedSingle === '') return '';
@@ -179,9 +184,14 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
             {multiple && selectedValues.length > 0 && (
                 <div className="formspec-combobox-chips" aria-label="Selected values">
                     {selectedValues.map((v) => {
-                        const label = field.options.find((o) => o.value === v)?.label ?? v;
+                        const selectedOption = field.options.find((o) => o.value === v);
+                        const label = selectedOption?.label ?? v;
                         return (
-                            <span key={v} className="formspec-combobox-chip">
+                            <span
+                                key={v}
+                                className="formspec-combobox-chip"
+                                {...needTraceAttrs(selectedOption?.needAnchors)}
+                            >
                                 {label}
                                 <button
                                     type="button"
@@ -228,6 +238,7 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
                         }}
                         onChange={onInputChange}
                         onKeyDown={handleKeyDown}
+                        {...needTraceAttrs(selectedSingleOption?.needAnchors)}
                     />
                     {showClear && (
                         <button
@@ -274,6 +285,7 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
                                 ]
                                     .filter(Boolean)
                                     .join(' ') || undefined}
+                                {...needTraceAttrs(opt.needAnchors)}
                                 onMouseDown={
                                     isReadonly
                                         ? undefined

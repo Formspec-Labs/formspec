@@ -59,11 +59,17 @@ describe('dereferenceBundleExport', () => {
 
   it('reads the singular `experience` slot the App Manifest actually ships', () => {
     const withExperience = bundleExport({ experience: { url: 'exp:1' } });
+    const experience = { $formspecExperience: '1.0', version: '1.0.0', units: [] };
     const resolved = dereferenceBundleExport({
       ...withExperience,
-      documents: { ...withExperience.documents, 'exp:1': { $formspecExperience: '1.0', units: [] } },
+      documents: { ...withExperience.documents, 'exp:1': experience },
     });
     expect(resolved.experiences).toHaveLength(1);
+    expect(resolved.experienceHandles).toEqual([
+      { experienceRef: 'exp:1', document: experience },
+    ]);
+    expect(Object.prototype.hasOwnProperty.call(experience, 'url')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(experience, 'id')).toBe(false);
   });
 
   it('selects the exact second Surface URL without changing route-table order in 2.4', () => {

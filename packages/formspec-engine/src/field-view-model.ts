@@ -17,8 +17,11 @@ export interface FieldViewModel {
 
     // ── Presentation (locale-resolved, FEL-interpolated, reactive) ──
     readonly label: ReadonlyEngineSignal<string>;
+    readonly labelNeedAnchors: ReadonlyEngineSignal<string[]>;
     readonly hint: ReadonlyEngineSignal<string | null>;
+    readonly hintNeedAnchors: ReadonlyEngineSignal<string[]>;
     readonly description: ReadonlyEngineSignal<string | null>;
+    readonly descriptionNeedAnchors: ReadonlyEngineSignal<string[]>;
 
     // ── State ──
     readonly value: ReadonlyEngineSignal<any>;
@@ -52,6 +55,8 @@ export interface ResolvedOption {
     label: string;
     /** Abbreviations / alternate names for combobox type-ahead (from definition option.keywords). */
     keywords?: string[];
+    /** Canonical Need anchors copied from the exact authored option label. */
+    needAnchors?: string[];
 }
 
 // ── Factory dependencies ────────────────────────────────────────────
@@ -92,24 +97,37 @@ const CODE_SYNTHESIS: Record<string, string> = {
     external: 'EXTERNAL_FAILED',
 };
 
+interface ResolvedPresentationString<T extends string | null> {
+    value: T;
+    needAnchors: string[];
+}
+
 // ── Factory ─────────────────────────────────────────────────────────
 
 export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
     const { rx, localeStore, templatePath, evalFEL } = deps;
 
-    function resolveLocaleString(key: string, fallback: string | null | undefined): string | null {
+    function resolveLocaleString(
+        key: string,
+        fallback: string | null | undefined,
+    ): ResolvedPresentationString<string | null> {
         // Read locale version to trigger re-computation on locale changes
         localeStore.version.value;
-        const localized = localeStore.lookupKey(key);
-        const raw = localized ?? fallback ?? null;
-        if (raw === null) return null;
+        const localized = localeStore.lookupKeyWithMeta(key);
+        const raw = localized.value ?? fallback ?? null;
+        if (raw === null) return { value: null, needAnchors: [] };
         const { text } = interpolateMessage(raw, evalFEL);
-        return text;
+        return {
+            value: text,
+            needAnchors: localized.value !== null
+                ? [...(localized.needAnchors ?? [])]
+                : [],
+        };
     }
 
     // ── Label: 6-step cascade with context ──
 
-    const label = rx.computed((): string => {
+    const labelResolution = rx.computed((): ResolvedPresentationString<string> => {
         localeStore.version.value;
         const context = deps.getLabelContext();
         const labels = deps.getItemLabels();
@@ -118,47 +136,69 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         if (context) {
             // Steps 1-2: Locale lookup for key.label@context (cascade walks fr-CA → fr)
             const contextKey = `${templatePath}.label@${context}`;
-            const fromLocale = localeStore.lookupKey(contextKey);
-            if (fromLocale !== null) {
-                return interpolateMessage(fromLocale, evalFEL).text;
+            const fromLocale = localeStore.lookupKeyWithMeta(contextKey);
+            if (fromLocale.value !== null) {
+                return {
+                    value: interpolateMessage(fromLocale.value, evalFEL).text,
+                    needAnchors: [...(fromLocale.needAnchors ?? [])],
+                };
             }
 
             // Steps 3-4: Locale lookup for key.label (no context)
             const plainKey = `${templatePath}.label`;
-            const plainFromLocale = localeStore.lookupKey(plainKey);
-            if (plainFromLocale !== null) {
-                return interpolateMessage(plainFromLocale, evalFEL).text;
+            const plainFromLocale = localeStore.lookupKeyWithMeta(plainKey);
+            if (plainFromLocale.value !== null) {
+                return {
+                    value: interpolateMessage(plainFromLocale.value, evalFEL).text,
+                    needAnchors: [...(plainFromLocale.needAnchors ?? [])],
+                };
             }
 
             // Step 5: Definition labels[context]
             if (labels?.[context]) {
-                return interpolateMessage(labels[context], evalFEL).text;
+                return {
+                    value: interpolateMessage(labels[context], evalFEL).text,
+                    needAnchors: [],
+                };
             }
 
             // Step 6: Definition label
-            return interpolateMessage(inlineLabel, evalFEL).text;
+            return {
+                value: interpolateMessage(inlineLabel, evalFEL).text,
+                needAnchors: [],
+            };
         }
 
         // No context: 2-step (locale → inline)
         const plainKey = `${templatePath}.label`;
-        const fromLocale = localeStore.lookupKey(plainKey);
-        if (fromLocale !== null) {
-            return interpolateMessage(fromLocale, evalFEL).text;
+        const fromLocale = localeStore.lookupKeyWithMeta(plainKey);
+        if (fromLocale.value !== null) {
+            return {
+                value: interpolateMessage(fromLocale.value, evalFEL).text,
+                needAnchors: [...(fromLocale.needAnchors ?? [])],
+            };
         }
-        return interpolateMessage(inlineLabel, evalFEL).text;
+        return {
+            value: interpolateMessage(inlineLabel, evalFEL).text,
+            needAnchors: [],
+        };
     });
+    const label = rx.computed(() => labelResolution.value.value);
+    const labelNeedAnchors = rx.computed(() => labelResolution.value.needAnchors);
 
     // ── Hint: 2-step cascade ──
 
-    const hint = rx.computed((): string | null => {
-        return resolveLocaleString(`${templatePath}.hint`, deps.getItemHint());
-    });
+    const hintResolution = rx.computed(() =>
+        resolveLocaleString(`${templatePath}.hint`, deps.getItemHint()));
+    const hint = rx.computed(() => hintResolution.value.value);
+    const hintNeedAnchors = rx.computed(() => hintResolution.value.needAnchors);
 
     // ── Description: 2-step cascade ──
 
-    const description = rx.computed((): string | null => {
-        return resolveLocaleString(`${templatePath}.description`, deps.getItemDescription());
-    });
+    const descriptionResolution = rx.computed(() =>
+        resolveLocaleString(`${templatePath}.description`, deps.getItemDescription()));
+    const description = rx.computed(() => descriptionResolution.value.value);
+    const descriptionNeedAnchors = rx.computed(() => descriptionResolution.value.needAnchors);
 
     // ── State signals: wrap existing engine signals ──
 
@@ -201,10 +241,24 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         const optionSetName = deps.getOptionSetName();
 
         return rawOptions.map((opt) => {
+            const labelResolution = resolveOptionLabel(opt, optionSetName);
             const resolved: ResolvedOption = {
                 value: opt.value,
-                label: resolveOptionLabel(opt, optionSetName),
+                label: labelResolution.label,
             };
+            const generation = (opt as unknown as Record<string, unknown>)['x-generation'];
+            const anchors = generation && typeof generation === 'object' && !Array.isArray(generation)
+                ? (generation as Record<string, unknown>).anchors
+                : undefined;
+            const canonical = [
+                ...(Array.isArray(anchors) ? anchors : []),
+                ...(labelResolution.needAnchors ?? []),
+            ].filter(
+                    (anchor): anchor is string =>
+                        typeof anchor === 'string'
+                        && /^need:[a-zA-Z][a-zA-Z0-9_-]*@[1-9][0-9]*$/.test(anchor),
+                );
+            if (canonical.length > 0) resolved.needAnchors = [...new Set(canonical)];
             if (opt.keywords && opt.keywords.length > 0) {
                 resolved.keywords = [...opt.keywords];
             }
@@ -242,23 +296,36 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         return err.message ?? 'Validation error';
     }
 
-    function resolveOptionLabel(opt: { value: string; label: string }, optionSetName?: string): string {
+    function resolveOptionLabel(
+        opt: { value: string; label: string },
+        optionSetName?: string,
+    ): { label: string; needAnchors?: string[] } {
         const escapedValue = escapeOptionValue(opt.value);
 
         // Step 1: Field-level locale key
         const fieldKey = `${templatePath}.options.${escapedValue}.label`;
-        const fromField = localeStore.lookupKey(fieldKey);
-        if (fromField !== null) return interpolateMessage(fromField, evalFEL).text;
+        const fromField = localeStore.lookupKeyWithMeta(fieldKey);
+        if (fromField.value !== null) {
+            return {
+                label: interpolateMessage(fromField.value, evalFEL).text,
+                ...(fromField.needAnchors ? { needAnchors: fromField.needAnchors } : {}),
+            };
+        }
 
         // Step 2: OptionSet-level locale key
         if (optionSetName) {
             const setKey = `$optionSet.${optionSetName}.${escapedValue}.label`;
-            const fromSet = localeStore.lookupKey(setKey);
-            if (fromSet !== null) return interpolateMessage(fromSet, evalFEL).text;
+            const fromSet = localeStore.lookupKeyWithMeta(setKey);
+            if (fromSet.value !== null) {
+                return {
+                    label: interpolateMessage(fromSet.value, evalFEL).text,
+                    ...(fromSet.needAnchors ? { needAnchors: fromSet.needAnchors } : {}),
+                };
+            }
         }
 
         // Step 3: Inline option label
-        return opt.label;
+        return { label: opt.label };
     }
 
     return {
@@ -269,8 +336,11 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         dataType: deps.dataType,
         disabledDisplay: deps.getDisabledDisplay(),
         label,
+        labelNeedAnchors,
         hint,
+        hintNeedAnchors,
         description,
+        descriptionNeedAnchors,
         value,
         required,
         visible,

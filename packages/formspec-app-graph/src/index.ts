@@ -70,6 +70,12 @@ export {
   validateExperienceActionRefs,
 } from './experience-action-refs.js';
 export {
+  validateExperienceReferentialIntegrity,
+} from './experience-referential-integrity.js';
+export {
+  validateExecutableSchemaContracts,
+} from './executable-schema-contracts.js';
+export {
   validateDataSources,
 } from './data-sources.js';
 export {
@@ -81,6 +87,16 @@ export {
   type NeedsEarlFrame,
   type NeedStatus,
 } from './needs-coverage.js';
+export {
+  collectRenderedNeedTraceNodes,
+  RENDERED_NEED_TRACE_CODES,
+  validateRenderedNeedTrace,
+  type RenderedNeedTraceAnchor,
+  type RenderedNeedTraceCollectionFailure,
+  type RenderedNeedTraceInvalidAnchor,
+  type RenderedNeedTraceNode,
+  type RenderedNeedTraceTypedNeedRef,
+} from './rendered-need-trace.js';
 export {
   validateScreenerSurfaceTargets,
 } from './screener-surface-targets.js';
@@ -98,6 +114,10 @@ export {
   routeHasWidgetActionSource,
   validateSurfaceWidgetActions,
 } from './surface-widget-actions.js';
+export {
+  STRUCTURED_PANEL_CONTRACT_CODES,
+  validateStructuredPanelContracts,
+} from './structured-panel-contracts.js';
 export {
   validateThemeTokenRegistry,
 } from './theme-token-registry.js';

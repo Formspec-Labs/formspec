@@ -57,6 +57,9 @@ export function normalizeRemoteOptions(payload: unknown): OptionEntry[] {
             const base: OptionEntry = {
                 value: String(option.value),
                 label: String(option.label),
+                ...(option['x-generation'] && typeof option['x-generation'] === 'object'
+                    ? { 'x-generation': option['x-generation'] as OptionEntry['x-generation'] }
+                    : {}),
             };
             if (Array.isArray(option.keywords) && option.keywords.length > 0) {
                 const keywords = option.keywords.map((k: unknown) => String(k)).filter((s: string) => s.length > 0);

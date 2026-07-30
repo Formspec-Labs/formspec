@@ -155,6 +155,10 @@
         "Collects annual financial reporting data for federal grant recipients."
       ]
     },
+    "x-generation": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+      "description": "Generation provenance for the rendered Definition title and form-level copy. Strict data-only authoring profiles require a direct current adopted Need anchor."
+    },
     "date": {
       "type": "string",
       "format": "date",
@@ -903,6 +907,10 @@
         "partyPolicy": {
           "$ref": "#/$defs/ItemPartyPolicy",
           "description": "EXT-28 / ADR-0155 §5: per-item party-scoped visibility, editability, and signature obligation policy. Absence means the item is visible-to, editable-by, and signed-by all declared parties (legacy single-party semantics extended to N parties). See core spec §4.8.3."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered Item. Strict data-only authoring profiles require every group, field, and display Item to carry a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
         }
       },
       "allOf": [
@@ -929,6 +937,7 @@
               "purpose": true,
               "extensions": true,
               "partyPolicy": true,
+              "x-generation": true,
               "children": {
                 "type": "array",
                 "items": {
@@ -1017,6 +1026,7 @@
               "purpose": true,
               "extensions": true,
               "partyPolicy": true,
+              "x-generation": true,
               "dataType": {
                 "type": "string",
                 "description": "The value type of this Field. Determines JSON representation, FEL type, valid operations, and default widget. 'string': single-line text. 'text': multi-line text. 'integer': whole number (no fraction). 'decimal': number with optional fractional part (use 'precision' to control decimal places). 'boolean': true/false. 'date': ISO 8601 YYYY-MM-DD. 'dateTime': ISO 8601 date-time. 'time': ISO 8601 HH:MM:SS. 'uri': valid URI per RFC 3986. 'attachment': file reference object {contentType, url/data}. 'choice': single selection (stored as string value key). 'multiChoice': multiple selections (stored as array of string value keys). 'money': monetary value {amount: string, currency: string} — use money() FEL function to produce values.",
@@ -1228,6 +1238,7 @@
               "purpose": true,
               "extensions": true,
               "partyPolicy": true,
+              "x-generation": true,
               "presentation": {
                 "$ref": "#/$defs/Presentation"
               }
@@ -1358,6 +1369,10 @@
           ],
           "default": "hidden",
           "description": "Presentation hint for non-relevant items. 'hidden' (DEFAULT): removed from visual layout. 'protected': remains visible but rendered as disabled/greyed-out. Borrowed from FHIR R5 Questionnaire."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this authored Bind. Strict data-only authoring profiles require a direct current adopted Need anchor."
         },
         "extensions": {
           "type": "object",
@@ -1515,6 +1530,10 @@
             "type": "string"
           },
           "description": "Exclusive-OR composition. EXACTLY ONE element must pass for this Shape to pass. Elements can be shape IDs or inline FEL boolean expressions."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this authored Shape. Strict data-only authoring profiles require a direct current adopted Need anchor."
         },
         "extensions": {
           "type": "object",
@@ -1776,6 +1795,10 @@
           "propertyNames": {
             "pattern": "^x-"
           }
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered option label. Strict data-only authoring profiles require each option to carry its own direct current adopted Need anchor."
         }
       },
       "additionalProperties": false

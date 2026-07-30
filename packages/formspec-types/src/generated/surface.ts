@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { ModuleRef, Extensions } from './common.js';
+import type { ModuleRef, Generation, Extensions } from './common.js';
 /**
  * This interface was referenced by `SurfaceDocument`'s JSON-Schema
  * via the `definition` "Slot".
@@ -27,6 +27,7 @@ export type Slot = {
    */
   position?: string;
   title?: string;
+  'x-generation'?: Generation;
   /**
    * Typed binding payload. Shape determined by slotType per the allOf gates.
    */
@@ -68,6 +69,7 @@ export interface SurfaceDocument {
    * Human-readable title for this Surface.
    */
   title?: string;
+  'x-generation'?: Generation;
   description?: string;
   extensions?: Extensions;
   /**
@@ -101,6 +103,8 @@ export interface Route {
    * Human-readable route title (for navigation chrome, breadcrumbs, etc.).
    */
   title?: string;
+  'x-generation'?: Generation;
+  navigation?: RouteNavigation;
   /**
    * Slots bound on this route. Each slot has a typed binding per §6.2 closed taxonomy. v0.2 does NOT pin slot positions in the schema — `position` is an optional renderer hint. Each slot has exactly one slotType discriminator.
    *
@@ -139,6 +143,110 @@ export interface RouteParam {
   [k: `x-${string}`]: unknown;
 }
 /**
+ * Authoring identity per ADR 0150 §5.4. Distinct from `respondent-ledger-event.Actor` (respondent-identity) and `experience.Actor` (workflow-role) — three Actor $defs by design. `kind` and `actChannel` are terminal-closed enums; product nuance (e.g. discriminating Wireframes-MCP from Forms-MCP, both `actChannel: 'mcp'`) rides URN-encoded into `id`, not via new enum values.
+ */
+export interface AuthorActor {
+  /**
+   * Stable actor URN (urn:formspec:actor:... scheme). Product nuance rides URN-encoded (e.g. urn:formspec:actor:mcp:wireframes:agent-7).
+   */
+  id: string;
+  /**
+   * Terminal-closed per §5.4 (NOT §4.5-extensible). Answers 'what kind of authoring entity'.
+   */
+  kind: 'human' | 'ai-agent' | 'service';
+  /**
+   * Terminal-closed per §5.4. Orthogonal to kind. Answers 'through what channel'. An ai-agent MAY have actChannel:'mcp' (mediated via MCP) OR 'agent' (autonomous). A human MAY have actChannel:'human' (direct editor) OR 'mcp' (CLI-driven MCP).
+   */
+  actChannel: 'human' | 'mcp' | 'agent' | 'service';
+  /**
+   * Optional human-readable label for timeline/support views.
+   */
+  display?: string;
+  extensions?: Extensions;
+}
+/**
+ * Graph-wide Component node identity for x-generation movedFrom/copiedFrom provenance. Mirrors the app-graph Component node identity tuple: Component membership, Surface sibling identity, route, absolute route-scoped nodePath, and optional public/structural node ids. This is provenance metadata only; it does not authorize, execute, or resolve runtime behavior.
+ */
+export interface ComponentNodeIdentityRef {
+  component: {
+    /**
+     * App Manifest components[] membership handle.
+     */
+    handle: string;
+    /**
+     * Canonical URL of the Component document when available.
+     */
+    url?: string;
+    /**
+     * Component document version evidence when available.
+     */
+    version?: string;
+  };
+  surface: {
+    /**
+     * Canonical URL of the Surface document.
+     */
+    url: string;
+    /**
+     * Surface document version evidence when available.
+     */
+    version?: string;
+  };
+  /**
+   * Surface routes[].id for the route-scoped node.
+   */
+  route: string;
+  /**
+   * Absolute route-scoped Component node path built from stable node segments.
+   */
+  nodePath: string;
+  /**
+   * Optional ComponentBase.id evidence for the node.
+   */
+  id?: string;
+  /**
+   * Optional structural authoring identity for the node.
+   */
+  nodeId?: string;
+}
+/**
+ * Legacy same-runtime route + intra-document node path. Retained for Studio/kernel compatibility; it is not sufficient graph-wide Component provenance once multiple Surfaces or Component documents are loaded.
+ */
+export interface CrossComponentRef {
+  route: string;
+  nodePath: string;
+}
+/**
+ * OPTIONAL person-facing navigation membership and presentation. Omission preserves the v0.2 default: the route appears in navigation using its route title. This field changes only navigation chrome; it does not change route reachability, matching, transitions, or authorization.
+ */
+export interface RouteNavigation {
+  'x-generation'?: Generation;
+  /**
+   * Whether this route appears in the shell's route navigation. Default true. Hidden routes remain addressable and may remain transition targets.
+   */
+  visible?: boolean;
+  /**
+   * Navigation context this route belongs to. The shell renders only visible entries whose scope matches the active route's scope. Omission is semantically the "default" scope.
+   */
+  scope?: string;
+  /**
+   * Person-facing navigation label. When omitted, the renderer uses the route title, then the route id.
+   */
+  label?: string;
+  /**
+   * Relative order within this Surface's navigation group. Lower values appear first; equal or absent values preserve route declaration order.
+   */
+  order?: number;
+  /**
+   * This interface was referenced by `RouteNavigation`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   *
+   * This interface was referenced by `RouteNavigation`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: `x-${string}`]: unknown;
+}
+/**
  * This interface was referenced by `SurfaceDocument`'s JSON-Schema
  * via the `definition` "Transition".
  */
@@ -156,6 +264,7 @@ export interface Transition {
    */
   when?: string;
   params?: RouteParamMap;
+  'x-generation'?: Generation;
   /**
    * This interface was referenced by `Transition`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
@@ -182,34 +291,44 @@ export interface RouteParamMap {
  * via the `definition` "WidgetDataBindings".
  */
 export interface WidgetDataBindings {
+  [k: string]: WidgetDataBinding;
+}
+/**
+ * This interface was referenced by `WidgetDataBindings`'s JSON-Schema definition
+ * via the `patternProperty` "^[A-Za-z][A-Za-z0-9_-]*$".
+ *
+ * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * via the `definition` "WidgetDataBinding".
+ */
+export interface WidgetDataBinding {
   /**
-   * This interface was referenced by `WidgetDataBindings`'s JSON-Schema definition
-   * via the `patternProperty` "^[A-Za-z][A-Za-z0-9_-]*$".
+   * Canonical Data Sources URL. App-graph validation requires an exact match to one App Manifest dataSources[].url.
    */
-  [k: string]: {
-    /**
-     * Canonical Data Sources URL. App-graph validation requires an exact match to one App Manifest dataSources[].url.
-     */
-    catalogRef: string;
-    /**
-     * Data Sources 1.0 source id. App-graph validation resolves it only within catalogRef; unqualified source lookup is forbidden.
-     */
-    sourceRef: string;
-  };
+  catalogRef: string;
+  /**
+   * Data Sources 1.0 source id. App-graph validation resolves it only within catalogRef; unqualified source lookup is forbidden.
+   */
+  sourceRef: string;
+  'x-generation'?: Generation;
 }
 /**
  * This interface was referenced by `SurfaceDocument`'s JSON-Schema
  * via the `definition` "WidgetActionBindings".
  */
 export interface WidgetActionBindings {
+  [k: string]: WidgetActionBinding;
+}
+/**
+ * This interface was referenced by `WidgetActionBindings`'s JSON-Schema definition
+ * via the `patternProperty` "^[A-Za-z][A-Za-z0-9_-]*$".
+ *
+ * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * via the `definition` "WidgetActionBinding".
+ */
+export interface WidgetActionBinding {
   /**
-   * This interface was referenced by `WidgetActionBindings`'s JSON-Schema definition
-   * via the `patternProperty` "^[A-Za-z][A-Za-z0-9_-]*$".
+   * Exact actions[].id from one loaded Response Actions document. This value is not a route id, intent, or widget output name.
    */
-  [k: string]: {
-    /**
-     * Exact actions[].id from one loaded Response Actions document. This value is not a route id, intent, or widget output name.
-     */
-    actionRef: string;
-  };
+  actionRef: string;
+  'x-generation'?: Generation;
 }

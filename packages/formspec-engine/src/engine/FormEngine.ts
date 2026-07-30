@@ -994,6 +994,9 @@ export class FormEngine implements IFormEngine {
                               const base: OptionEntry = {
                                   value: String(option.value),
                                   label: String(option.label),
+                                  ...(option['x-generation']
+                                      ? { 'x-generation': option['x-generation'] }
+                                      : {}),
                               };
                               if (Array.isArray(option.keywords) && option.keywords.length > 0) {
                                   const keywords = option.keywords

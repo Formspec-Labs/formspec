@@ -1011,6 +1011,13 @@
           "items": { "type": "string" },
           "description": "Explicit tab labels. When absent, reads title from each child Section."
         },
+        "tabLabelGeneration": {
+          "type": "array",
+          "items": {
+            "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation"
+          },
+          "description": "Generation provenance aligned by index with tabLabels. Strict data-only authoring profiles require one direct current adopted Need anchor for every explicit tab label."
+        },
         "defaultTab": {
           "type": "integer",
           "minimum": 0,
@@ -1401,6 +1408,10 @@
               "optionSet": {
                 "type": "string",
                 "description": "Named option set from the Definition. When set, the raw bound value is resolved to its display label."
+              },
+              "x-generation": {
+                "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+                "description": "Generation provenance for this rendered summary row. Strict data-only authoring profiles require a direct current adopted Need anchor."
               }
             }
           }
@@ -1492,7 +1503,11 @@
               "bind": { "type": "string", "description": "Item key within the repeat group." },
               "min": { "type": "number", "description": "Optional minimum value for numeric inputs." },
               "max": { "type": "number", "description": "Optional maximum value for numeric inputs." },
-              "step": { "type": "number", "description": "Optional step for numeric inputs." }
+              "step": { "type": "number", "description": "Optional step for numeric inputs." },
+              "x-generation": {
+                "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+                "description": "Generation provenance for this rendered table column. Strict data-only authoring profiles require a direct current adopted Need anchor."
+              }
             }
           }
         },

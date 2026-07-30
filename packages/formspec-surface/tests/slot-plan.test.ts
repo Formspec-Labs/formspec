@@ -94,6 +94,92 @@ describe('planRoute — dispatch over the closed taxonomy', () => {
     expect(why.unit.needs).toHaveLength(1);
   });
 
+  it('uses the exact manifested Experience source for a qualified unit binding', () => {
+    const otherExperience = {
+      $formspecExperience: '1.0',
+      version: '1.0.0',
+      units: [
+        {
+          id: 'applyForHelp',
+          kind: 'review',
+          title: 'Review the submitted household',
+          needRefs: [{ id: 'review-record' }],
+        },
+      ],
+    } as unknown as ExperienceDocument;
+    const withQualifiedUnit = surface('s', 'r', [
+      route({
+        id: 'r',
+        path: '/r',
+        title: 'R',
+        slots: [
+          slot({
+            id: 'why',
+            slotType: 'experience-unit',
+            binding: {
+              experienceRef: 'experience:review',
+              unitRef: 'applyForHelp',
+            },
+          }),
+        ] as never,
+      }),
+    ]);
+    const plan = planRoute({
+      ...contextFor(withQualifiedUnit, 'r'),
+      experiences: [experience, otherExperience],
+      experienceHandles: [
+        { experienceRef: 'experience:respondent', document: experience },
+        { experienceRef: 'experience:review', document: otherExperience },
+      ],
+    });
+    const why = plan.slots[0];
+
+    expect(why?.slotType).toBe('experience-unit');
+    if (why?.slotType !== 'experience-unit') return;
+    expect(why.unit.status).toBe('resolved');
+    expect(why.unit.title).toBe('Review the submitted household');
+    expect(why.unit.needs).toEqual([{ id: 'review-record' }]);
+  });
+
+  it('fails closed when a qualified Experience source is missing or ambiguous', () => {
+    const withQualifiedUnit = surface('s', 'r', [
+      route({
+        id: 'r',
+        path: '/r',
+        slots: [
+          slot({
+            id: 'why',
+            slotType: 'experience-unit',
+            binding: {
+              experienceRef: 'experience:review',
+              unitRef: 'applyForHelp',
+            },
+          }),
+        ] as never,
+      }),
+    ]);
+    const context = contextFor(withQualifiedUnit, 'r');
+    const missing = planRoute(context);
+    const ambiguous = planRoute({
+      ...context,
+      experienceHandles: [
+        { experienceRef: 'experience:review', document: experience },
+        { experienceRef: 'experience:review', document: experience },
+      ],
+    });
+
+    expect(missing.slots[0]?.slotType === 'experience-unit' && missing.slots[0].unit.status)
+      .toBe('unresolved');
+    expect(ambiguous.slots[0]?.slotType === 'experience-unit' && ambiguous.slots[0].unit.status)
+      .toBe('unresolved');
+    expect(missing.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'EXPERIENCE-UNIT-UNRESOLVED',
+    );
+    expect(ambiguous.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'EXPERIENCE-UNIT-UNRESOLVED',
+    );
+  });
+
   it('reports an experience-unit the bundle does not carry', () => {
     const missing = surface('s', 'r', [
       route({
@@ -309,6 +395,20 @@ describe('planRoute — dispatch over the closed taxonomy', () => {
       }),
       surfaceRef,
       dataSources: [{ catalogRef, document: data }],
+      responseActions: [
+        {
+          actions: [
+            {
+              id: 'acceptReceipt',
+              intent: 'review',
+              label: { literal: 'Accept receipt' },
+              'x-generation': {
+                anchors: ['need:accept-receipt@3'],
+              },
+            },
+          ],
+        },
+      ],
     });
     const widget = plan.slots[0];
     expect(widget?.slotType).toBe('module-widget');
@@ -322,7 +422,16 @@ describe('planRoute — dispatch over the closed taxonomy', () => {
       },
     ]);
     expect(widget.actionOutputs).toEqual([
-      { name: 'accepted', actionRef: 'acceptReceipt' },
+      {
+        name: 'accepted',
+        actionRef: 'acceptReceipt',
+        action: {
+          actionRef: 'acceptReceipt',
+          intent: 'review',
+          label: { literal: 'Accept receipt' },
+          needAnchors: ['need:accept-receipt@3'],
+        },
+      },
     ]);
     expect(plan.diagnostics).toEqual([]);
   });

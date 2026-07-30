@@ -5074,6 +5074,17 @@ YYYY.MM.DD chronological comparison. ‘integer’: numeric comparison of
 non-negative integers. ‘natural’: equality-only comparison, no ordering
 defined.</td>
 </tr>
+<tr>
+<td><code>#/properties/x-generation</code></td>
+<td><code>x-generation</code></td>
+<td><code>$ref</code></td>
+<td>no</td>
+<td><code>$ref</code>:
+<code>https://formspec.org/schemas/common/1.0#/$defs/Generation</code></td>
+<td>Generation provenance for the rendered Definition title and
+form-level copy. Strict data-only authoring profiles require a direct
+current adopted Need anchor.</td>
+</tr>
 </tbody>
 </table>
 <!-- schema-ref:end -->
@@ -6349,6 +6360,14 @@ layout. When <code>"protected"</code>, non-relevant items remain visible
 but are rendered as disabled/greyed-out. Default: <code>"hidden"</code>.
 (Borrowed from FHIR R5 Questionnaire.)</td>
 </tr>
+<tr>
+<td><code>x-generation</code></td>
+<td><a href="../../schemas/common.schema.json">Generation</a></td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Authoring provenance for this Bind. A strict data-only authoring
+profile requires a direct current adopted Need anchor. It does not
+change Bind evaluation.</td>
+</tr>
 </tbody>
 </table>
 <h4 id="inheritance-rules">4.3.2 Inheritance Rules</h4>
@@ -7112,6 +7131,14 @@ validation mode (§5.5) acts as an override: when
 <code>"disabled"</code>, no shapes fire; when <code>"deferred"</code>,
 all shapes are deferred; when <code>"continuous"</code>, shapes fire per
 their individual <code>timing</code>.</td>
+</tr>
+<tr>
+<td><code>x-generation</code></td>
+<td><a href="../../schemas/common.schema.json">Generation</a></td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Authoring provenance for this Shape. A strict data-only authoring
+profile requires a direct current adopted Need anchor. It does not
+change Shape evaluation.</td>
 </tr>
 </tbody>
 </table>

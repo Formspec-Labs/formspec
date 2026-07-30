@@ -73,6 +73,8 @@ export const SURFACE_DIAGNOSTIC_CODES = [
   'WIDGET-UNDECLARED',
   /** The Registry declares the widget; nothing the host registered implements it. */
   'WIDGET-UNIMPLEMENTED',
+  /** Delivered widget code disagrees with the Registry version, id, or rendered-node inventory. */
+  'WIDGET-DELIVERY-CONTRACT-MISMATCH',
   /** A required Registry input is unbound or its exact Data Sources value cannot be delivered. */
   'WIDGET-DATA-REQUIRED-UNAVAILABLE',
   /** A widget emitted a name absent from its Registry actionOutputs declaration. */
@@ -137,6 +139,7 @@ export const SURFACE_DIAGNOSTIC_SEVERITY = {
   'EXPERIENCE-UNIT-UNRESOLVED': 'error',
   'WIDGET-UNDECLARED': 'error',
   'WIDGET-UNIMPLEMENTED': 'error',
+  'WIDGET-DELIVERY-CONTRACT-MISMATCH': 'error',
   'WIDGET-DATA-REQUIRED-UNAVAILABLE': 'error',
   'WIDGET-ACTION-OUTPUT-UNDECLARED': 'error',
   'WIDGET-ACTION-OUTPUT-UNMAPPED': 'error',

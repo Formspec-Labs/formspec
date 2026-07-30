@@ -1,7 +1,7 @@
 ---
 title: Formspec Surface Specification
 version: 0.2.0-draft.1
-date: 2026-07-28
+date: 2026-07-30
 depends_on:
   - specs/core/spec.md
   - specs/experience/experience-spec.md
@@ -14,7 +14,7 @@ depends_on:
 # Formspec Surface Specification v0.2
 
 **Version:** 0.2.0-draft.1
-**Date:** 2026-07-28
+**Date:** 2026-07-30
 **Editors:** Formspec Working Group
 **Companion to:** Formspec v1.0 -- A JSON-Native Declarative Form Standard
 
@@ -218,6 +218,73 @@ NOT land on a widget bound to a route whose class is anything other than
 §5.7, `THEME-ROUTE-CLASS`). `routeClass` sits on Surface, which the platform
 ships, rather than on UI Graph Policy, which in a white-label deployment the
 tenant authors: a constraint the constrained party can edit is not a constraint.
+
+### Route Navigation
+
+A route MAY declare `navigation` to state whether and how it appears in shell
+navigation. Navigation does not change addressability, route matching,
+reachability, transitions, authorization, or entry selection.
+
+- `visible: false` omits the route from navigation. The route remains
+  addressable and may remain a transition target.
+- `scope` names the route's navigation context. A binding shows only visible
+  entries whose scope equals the matched active route's scope. Omitting
+  `scope` assigns the semantic scope `default`; processors do not need to
+  materialize that value in the document.
+- `label` supplies the person-facing navigation label. When absent, a binding
+  uses `route.title`, then `route.id`.
+- `order` sorts visible routes within one Surface. Lower values appear first.
+  Equal or absent values preserve route declaration order; routes with an
+  explicit order precede routes without one.
+- Omitting `navigation` preserves the v0.2 default: the route appears using its
+  title or id in the `default` scope.
+
+A binding MUST preserve Surface grouping and per-Surface route order after it
+filters entries by the active scope. If that scope has no visible entries, the
+binding MUST render no route-navigation landmark. When route resolution yields
+no active route, the binding retains the legacy `default` navigation scope.
+
+A binding MUST evaluate parameter completeness and collision refusal only for
+routes it will expose in navigation. A hidden parameterized route with no
+current parameter values is not a broken navigation item because no navigation
+item exists.
+
+### Strict rendered-Need trace profile
+
+Surface's baseline schema permits generation metadata without requiring a
+Needs document. A processor that activates the strict rendered-Need trace
+profile MUST pair one or more Needs 1.0 documents and MUST reject every normal
+product-rendering node without its own canonical
+`x-generation.anchors[]` value in the form `need:<id>@<revision>`.
+
+For Surface, the checked nodes are each route, authored `navigation` object,
+slot, `static-content` binding, transition, named `dataBindings` entry, and
+named `actionBindings` entry. The binding trace explains the literal heading,
+text, image, alternative text, divider, runtime-data choice, or action mapping
+independently of the slot container and title. A standard structured widget
+additionally checks its panel root, every block, every authored field or table
+column, and every action presentation. Every loaded Data Sources `sources[]`
+entry is also one checked node. Parent, slot, catalog, source, widget-config,
+and Response Action metadata do not authorize a related untraced node.
+
+Preview scenarios remain outside `AppGraphContext` because they are not App
+Manifest members. When a caller pairs one with this strict profile, the
+scenario root `x-generation` directly explains `initialPath` and
+`defaultProfile`. If `routeParams` exists, the sibling
+`routeParamsGeneration` directly explains the parameter map as one structured
+node, not one node per key. Every profile source outcome and every default or
+action-specific outcome is one separately checked node with its own
+`x-generation` Need anchor. A source outcome is the semantic unit; validators
+MUST NOT create additional trace nodes for rows, cells, or nested members of
+its `value`.
+
+Each anchor MUST resolve unambiguously to a Need whose status is `adopted`, and
+MUST pin that Need's current revision. Missing, unresolved, non-adopted, and
+stale links are separate blocking findings.
+
+Bindings SHOULD expose the validated anchors as inert DOM review metadata on
+the element that renders the node. DOM metadata is evidence for inspection; it
+does not replace graph validation and MUST NOT grant authorization.
 
 ## 4. Slot Bindings
 

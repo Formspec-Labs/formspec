@@ -45,7 +45,16 @@ const surface = surfaceWith([
     routeClass: 'intake',
     slots: [
       { id: 'lead', slotType: 'static-content', binding: { kind: 'heading', content: 'Start here', level: 1 } },
-      { id: 'note', slotType: 'static-content', title: 'Before you start', binding: { kind: 'text', content: 'A sentence.' } },
+      {
+        id: 'note',
+        slotType: 'static-content',
+        title: 'Before you start',
+        binding: {
+          kind: 'text',
+          content: 'A sentence.',
+          'x-generation': { anchors: ['need:read-before-starting@2'] },
+        },
+      },
       { id: 'rule', slotType: 'static-content', binding: { kind: 'divider', content: '' } },
       {
         id: 'chrome',
@@ -232,6 +241,13 @@ describe('slot dispatch in the DOM', () => {
     expect(container.querySelector('[data-slot="rule"] hr')).not.toBeNull();
     expect(container.querySelector('[data-widget="intake-banner"]')).not.toBeNull();
     expect(container.querySelector('.fs-surface-unit')).not.toBeNull();
+  });
+
+  it('emits the static binding Need identity on the exact content element', () => {
+    const container = view('a');
+    const content = container.querySelector('[data-slot="note"] .fs-surface-static-text');
+    expect(content?.getAttribute('data-need-anchors')).toBe('need:read-before-starting@2');
+    expect(content?.getAttribute('data-need-ids')).toBe('read-before-starting');
   });
 
   it('passes binding.config to the widget', () => {

@@ -175,6 +175,138 @@ describe('FormspecForm', () => {
         expect(labelTexts).toContain('I agree');
     });
 
+    it('exposes a rendered Definition Item Need trace on its field root', () => {
+        const tracedDefinition = {
+            ...testDefinition,
+            items: testDefinition.items.map((item) =>
+                item.key === 'name'
+                    ? {
+                        ...item,
+                        'x-generation': { anchors: ['need:identify-person@2'] },
+                    }
+                    : item
+            ),
+        };
+        const container = renderInto(
+            <FormspecForm definition={tracedDefinition} />
+        );
+        const field = container.querySelector('[data-name="name"]');
+
+        expect(field?.getAttribute('data-need-anchors')).toBe('need:identify-person@2');
+        expect(field?.getAttribute('data-need-ids')).toBe('identify-person');
+    });
+
+    it('emits selected Locale string Need traces on the exact field text nodes', () => {
+        const tracedDefinition = {
+            ...testDefinition,
+            items: testDefinition.items.map((item) =>
+                item.key === 'name'
+                    ? {
+                        ...item,
+                        description: 'Your legal name.',
+                        'x-generation': { anchors: ['need:identify-person@2'] },
+                    }
+                    : item
+            ),
+        };
+        const engine = createFormEngine(tracedDefinition);
+        engine.loadLocale({
+            $formspecLocale: '2.0',
+            locale: 'fr',
+            version: '1.0.0',
+            target: { kind: 'definition', url: tracedDefinition.url },
+            strings: {
+                'name.label': 'Nom complet',
+                'name.hint': 'Entrez votre nom.',
+                'name.description': 'Votre nom légal.',
+            },
+            stringGeneration: {
+                'name.label': { anchors: ['need:localized-name-label@1'] },
+                'name.hint': { anchors: ['need:localized-name-hint@1'] },
+                'name.description': { anchors: ['need:localized-name-description@1'] },
+            },
+        });
+        engine.setLocale('fr');
+
+        const container = renderInto(<FormspecForm engine={engine} />);
+        const field = container.querySelector('[data-name="name"]');
+        const label = field?.querySelector('.formspec-label');
+        const hint = field?.querySelector('.formspec-hint');
+        const description = field?.querySelector('.formspec-description');
+
+        expect(label?.textContent).toContain('Nom complet');
+        expect(label?.getAttribute('data-need-anchors')).toBe(
+            'need:identify-person@2 need:localized-name-label@1',
+        );
+        expect(hint?.textContent).toBe('Entrez votre nom.');
+        expect(hint?.getAttribute('data-need-anchors')).toBe(
+            'need:identify-person@2 need:localized-name-hint@1',
+        );
+        expect(description?.textContent).toBe('Votre nom légal.');
+        expect(description?.getAttribute('data-need-anchors')).toBe(
+            'need:identify-person@2 need:localized-name-description@1',
+        );
+        expect(field?.querySelector('input')?.getAttribute('data-need-anchors')).toBeNull();
+    });
+
+    it('emits selected Locale label Need traces on toggle labels and group legends', () => {
+        const tracedDefinition = {
+            ...testDefinition,
+            items: testDefinition.items.map((item) => ({
+                ...item,
+                ...(item.key === 'color'
+                    ? { 'x-generation': { anchors: ['need:choose-color@2'] } }
+                    : {}),
+                ...(item.key === 'agree'
+                    ? { 'x-generation': { anchors: ['need:confirm-agreement@3'] } }
+                    : {}),
+            })),
+        };
+        const engine = createFormEngine(tracedDefinition);
+        engine.loadLocale({
+            $formspecLocale: '2.0',
+            locale: 'fr',
+            version: '1.0.0',
+            target: { kind: 'definition', url: tracedDefinition.url },
+            strings: {
+                'color.label': 'Couleur préférée',
+                'agree.label': 'Je suis d’accord',
+            },
+            stringGeneration: {
+                'color.label': { anchors: ['need:localized-color-label@1'] },
+                'agree.label': { anchors: ['need:localized-agreement-label@1'] },
+            },
+        });
+        engine.setLocale('fr');
+        const componentDocument = {
+            $formspecComponent: '1.2',
+            url: 'https://components.example.test/locale-labels',
+            version: '1.0.0',
+            tree: {
+                component: 'Stack',
+                children: [
+                    { component: 'RadioGroup', bind: 'color' },
+                    { component: 'Toggle', bind: 'agree' },
+                ],
+            },
+        };
+
+        const container = renderInto(
+            <FormspecForm engine={engine} componentDocument={componentDocument} />,
+        );
+        const legend = container.querySelector('[data-name="color"] .formspec-legend');
+        const toggleLabel = container.querySelector('[data-name="agree"] .formspec-label');
+
+        expect(legend?.textContent).toContain('Couleur préférée');
+        expect(legend?.getAttribute('data-need-anchors')).toBe(
+            'need:choose-color@2 need:localized-color-label@1',
+        );
+        expect(toggleLabel?.textContent).toContain('Je suis d’accord');
+        expect(toggleLabel?.getAttribute('data-need-anchors')).toBe(
+            'need:confirm-agreement@3 need:localized-agreement-label@1',
+        );
+    });
+
     it('renders text input for string field', () => {
         const container = renderInto(
             <FormspecForm definition={testDefinition} />
@@ -192,6 +324,30 @@ describe('FormspecForm', () => {
         const options = select!.querySelectorAll('option');
         // placeholder + 2 options = 3
         expect(options.length).toBe(3);
+    });
+
+    it('emits each rendered Definition option Need identity on the option node', () => {
+        const tracedDefinition = {
+            ...testDefinition,
+            items: testDefinition.items.map((item) =>
+                item.key === 'color'
+                    ? {
+                        ...item,
+                        options: item.options?.map((option) => ({
+                            ...option,
+                            'x-generation': {
+                                anchors: [`need:choose-${option.value}@1`],
+                            },
+                        })),
+                    }
+                    : item
+            ),
+        };
+        const container = renderInto(<FormspecForm definition={tracedDefinition} />);
+        const options = container.querySelectorAll('select option');
+
+        expect(options[1]?.getAttribute('data-need-ids')).toBe('choose-red');
+        expect(options[2]?.getAttribute('data-need-ids')).toBe('choose-blue');
     });
 
     it('renders checkbox for boolean field', () => {
@@ -718,7 +874,11 @@ describe('extended display node rendering', () => {
             id: 'sum-1', component: 'Summary', category: 'display',
             props: {
                 items: [
-                    { label: 'Name', bind: 'name' },
+                    {
+                        label: 'Name',
+                        bind: 'name',
+                        'x-generation': { anchors: ['need:review-name@1'] },
+                    },
                     { label: 'Color', bind: 'color' },
                 ],
             },
@@ -729,6 +889,8 @@ describe('extended display node rendering', () => {
         const dts = dl!.querySelectorAll('dt');
         expect(dts.length).toBe(2);
         expect(dts[0].textContent).toBe('Name');
+        expect(dts[0].getAttribute('data-need-ids')).toBe('review-name');
+        expect(dl!.querySelectorAll('dd')[0].getAttribute('data-need-ids')).toBe('review-name');
         expect(dts[1].textContent).toBe('Color');
         const dds = dl!.querySelectorAll('dd');
         expect(dds.length).toBe(2);
@@ -740,7 +902,11 @@ describe('extended display node rendering', () => {
             props: {
                 bind: 'members',
                 columns: [
-                    { header: 'Name', bind: 'memberName' },
+                    {
+                        header: 'Name',
+                        bind: 'memberName',
+                        'x-generation': { anchors: ['need:review-member@2'] },
+                    },
                 ],
             },
             cssClasses: [], children: [],
@@ -749,6 +915,7 @@ describe('extended display node rendering', () => {
         expect(table).toBeTruthy();
         const headers = table!.querySelectorAll('th');
         expect(headers[0].textContent).toBe('Name');
+        expect(headers[0].getAttribute('data-need-ids')).toBe('review-member');
     });
 
     it('renders ValidationSummary node as formspec-validation-summary', () => {

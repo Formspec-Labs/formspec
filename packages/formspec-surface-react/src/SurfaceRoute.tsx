@@ -34,6 +34,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import { emitMergedThemeCssVars } from '@formspec-org/layout';
 import {
+  generationNeedAnchors,
   resolveRouteTitleLevel,
   resolveSurfaceStrings,
   type DataSourceAuthorizer,
@@ -58,6 +59,7 @@ import type {
   SurfaceWidgetActionReport,
 } from './widget-api.js';
 import type { WidgetActionCoordinator } from './widget-action-runtime.js';
+import { needTraceAttributes } from './need-trace.js';
 
 export interface SurfaceRouteViewProps {
   /** Everything the core decided for this route. Nothing here re-decides it. */
@@ -159,6 +161,7 @@ export function SurfaceRouteView({
       data-route-class={handle.route.routeClass ?? 'unclassified'}
       data-tenant-theme={grant.admitsTenantTheme ? 'admitted' : 'refused'}
       data-tenant-token-count={grant.tenantTokenKeys.length}
+      {...needTraceAttributes(generationNeedAnchors(handle.route))}
       // When the host owns the page heading the shell renders no title element,
       // so the region is named directly rather than pointing at a node that is
       // not there.

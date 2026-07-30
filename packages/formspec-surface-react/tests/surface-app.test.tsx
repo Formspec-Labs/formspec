@@ -533,6 +533,248 @@ describe('navigation', () => {
     expect(container.querySelector('nav')?.getAttribute('aria-label')).toBe('Sections');
   });
 
+  it('separates workspace and public navigation while preserving Surface groups and route order', () => {
+    const casesSurface = {
+      $formspecSurface: '0.2',
+      id: 'cases',
+      title: 'Cases',
+      entry: 'workspace-home',
+      routes: [
+        {
+          id: 'workspace-home',
+          path: '/workspace',
+          navigation: { scope: 'workspace', label: 'Workspace home', order: 20 },
+          slots: [],
+        },
+        {
+          id: 'workspace-queue',
+          path: '/workspace/queue',
+          navigation: { scope: 'workspace', label: 'Queue', order: 10 },
+          slots: [],
+        },
+        {
+          id: 'public-about',
+          path: '/about',
+          navigation: { scope: 'public', label: 'About' },
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const accountSurface = {
+      $formspecSurface: '0.2',
+      id: 'account',
+      title: 'Account',
+      entry: 'workspace-settings',
+      routes: [
+        {
+          id: 'workspace-settings',
+          path: '/workspace/settings',
+          navigation: { scope: 'workspace', label: 'Settings' },
+          slots: [],
+        },
+        {
+          id: 'public-help',
+          path: '/help',
+          navigation: { scope: 'public', label: 'Help' },
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const scopedBundle = {
+      ...bundle,
+      surfaces: [casesSurface, accountSurface],
+    };
+
+    const workspace = mount({ bundle: scopedBundle, location: '/workspace' }).container;
+    const workspaceGroups = [
+      ...workspace.querySelectorAll<HTMLElement>('.fs-surface-nav__group'),
+    ];
+    expect(workspace.querySelector('nav')?.getAttribute('data-navigation-scope')).toBe(
+      'workspace',
+    );
+    expect(
+      workspaceGroups.map((group) =>
+        textOf(group.querySelector('.fs-surface-nav__label')),
+      ),
+    ).toEqual(['Cases', 'Account']);
+    expect(
+      [...workspace.querySelectorAll<HTMLElement>('[data-nav-route]')].map(
+        (link) => link.textContent,
+      ),
+    ).toEqual(['Queue', 'Workspace home', 'Settings']);
+    expect(workspace.querySelector('[data-nav-route="public-about"]')).toBeNull();
+    expect(workspace.querySelector('[data-nav-route="public-help"]')).toBeNull();
+
+    const publicPage = mount({ bundle: scopedBundle, location: '/about' }).container;
+    expect(publicPage.querySelector('nav')?.getAttribute('data-navigation-scope')).toBe(
+      'public',
+    );
+    expect(
+      [...publicPage.querySelectorAll<HTMLElement>('[data-nav-route]')].map(
+        (link) => link.textContent,
+      ),
+    ).toEqual(['About', 'Help']);
+    expect(publicPage.querySelector('[data-nav-route="workspace-home"]')).toBeNull();
+    expect(publicPage.querySelector('[data-nav-route="workspace-queue"]')).toBeNull();
+    expect(publicPage.querySelector('[data-nav-route="workspace-settings"]')).toBeNull();
+  });
+
+  it('keeps routes without navigation.scope in the legacy default scope', () => {
+    const legacySurface = {
+      $formspecSurface: '0.2',
+      id: 'legacy',
+      entry: 'home',
+      routes: [
+        { id: 'home', path: '/home', title: 'Home', slots: [] },
+        {
+          id: 'reports',
+          path: '/reports',
+          navigation: { label: 'Reports' },
+          slots: [],
+        },
+        {
+          id: 'workspace',
+          path: '/workspace',
+          navigation: { scope: 'workspace', label: 'Workspace' },
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const { container } = mount({
+      bundle: { ...bundle, surfaces: [legacySurface] },
+      location: '/home',
+    });
+
+    expect(container.querySelector('nav')?.getAttribute('data-navigation-scope')).toBe(
+      'default',
+    );
+    expect(
+      [...container.querySelectorAll<HTMLElement>('[data-nav-route]')].map(
+        (link) => link.dataset.navRoute,
+      ),
+    ).toEqual(['home', 'reports']);
+    expect(container.querySelector('[data-nav-route="workspace"]')).toBeNull();
+  });
+
+  it('renders no navigation landmark when the active scope has no visible entries', () => {
+    const isolatedSurface = {
+      $formspecSurface: '0.2',
+      id: 'isolated',
+      entry: 'public-landing',
+      routes: [
+        {
+          id: 'public-landing',
+          path: '/welcome',
+          navigation: { scope: 'public', visible: false },
+          slots: [],
+        },
+        {
+          id: 'workspace-case',
+          path: '/case/{caseId}',
+          params: [{ name: 'caseId', type: 'string' }],
+          navigation: { scope: 'workspace', label: 'Case' },
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const { container, codes } = mount({
+      bundle: { ...bundle, surfaces: [isolatedSurface] },
+      location: '/welcome',
+    });
+
+    expect(container.querySelector('nav')).toBeNull();
+    expect(codes()).not.toContain('ROUTE-PARAM-UNSUPPLIED');
+  });
+
+  it('renders only authored navigation members in authored order with Need trace identity', () => {
+    const navigationSurface = {
+      $formspecSurface: '0.2',
+      id: 'navigation',
+      entry: 'home',
+      routes: [
+        {
+          id: 'home',
+          path: '/home',
+          title: 'Home title',
+          'x-generation': { anchors: ['need:overview@1'] },
+          navigation: {
+            label: 'Overview',
+            order: 20,
+            'x-generation': { anchors: ['need:overview@1'] },
+          },
+          slots: [{
+            id: 'summary',
+            slotType: 'static-content',
+            binding: { kind: 'text', content: 'Summary' },
+            'x-generation': { anchors: ['need:overview@1'] },
+          }],
+          transitions: [{
+            trigger: 'openSettings',
+            to: 'settings',
+            'x-generation': { anchors: ['need:configure@2'] },
+          }],
+        },
+        {
+          id: 'settings',
+          path: '/settings',
+          title: 'Settings',
+          'x-generation': { anchors: ['need:settings-title@1'] },
+          navigation: {
+            order: 10,
+            'x-generation': { anchors: ['need:configure@2'] },
+          },
+          slots: [],
+        },
+        {
+          id: 'private',
+          path: '/private/{accountId}',
+          title: 'Private',
+          params: [{ name: 'accountId', type: 'string' }],
+          navigation: { visible: false },
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const { container, codes } = mount({
+      bundle: {
+        ...bundle,
+        manifest: {
+          ...bundle.manifest,
+          'x-generation': { anchors: ['need:overview@1'] },
+        },
+        surfaces: [navigationSurface],
+      },
+      location: '/home',
+    });
+    const links = [...container.querySelectorAll<HTMLAnchorElement>('[data-nav-route]')];
+
+    expect(links.map((link) => link.textContent)).toEqual(['Settings', 'Overview']);
+    expect(links.map((link) => link.dataset.navRoute)).toEqual(['settings', 'home']);
+    expect(container.querySelector('nav')?.getAttribute('data-navigation-scope')).toBe(
+      'default',
+    );
+    expect(container.querySelector('[data-nav-route="private"]')).toBeNull();
+    expect(codes()).not.toContain('ROUTE-PARAM-UNSUPPLIED');
+    expect(links[0]?.getAttribute('data-need-anchors')).toBe(
+      'need:configure@2 need:settings-title@1',
+    );
+    expect(links[0]?.getAttribute('data-need-ids')).toBe('configure settings-title');
+    expect(links[1]?.getAttribute('data-need-anchors')).toBe('need:overview@1');
+    expect(container.querySelector('.fs-surface-app')?.getAttribute('data-need-ids')).toBe(
+      'overview',
+    );
+    expect(container.querySelector('[data-route="home"]')?.getAttribute('data-need-ids')).toBe(
+      'overview',
+    );
+    expect(container.querySelector('[data-slot="summary"]')?.getAttribute('data-need-ids')).toBe(
+      'overview',
+    );
+    expect(
+      container.querySelector('[data-transition-status="unfireable"]')
+        ?.getAttribute('data-need-ids'),
+    ).toBe('configure');
+  });
+
   it('does not synthesize a transition control without a host executor', () => {
     // §5.1: no synthesized Continue, Next, or Submit control, under any label,
     // on any route.

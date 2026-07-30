@@ -22,6 +22,17 @@ import type { ExperienceDocument } from '@formspec-org/types';
 
 export type ExperienceUnit = NonNullable<ExperienceDocument['units']>[number];
 
+/**
+ * One loaded Experience paired with the exact App Manifest URL that named it.
+ *
+ * Source identity stays beside the document. It is not injected into the
+ * Experience payload, whose schema has no document-level `url` or `id`.
+ */
+export interface ExperienceDocumentHandle {
+  experienceRef: string;
+  document: ExperienceDocument;
+}
+
 export interface ExperienceNeedSummary {
   id: string;
   description?: string;
@@ -46,16 +57,24 @@ export interface ExperienceUnitPlanInput {
   /** `binding.experienceRef` — disambiguates when a bundle carries several. */
   experienceRef?: string | undefined;
   experiences: readonly ExperienceDocument[];
+  /** Exact manifested source identity for qualified `experienceRef` matching. */
+  experienceHandles?: readonly ExperienceDocumentHandle[] | undefined;
 }
 
 export function planExperienceUnit(input: ExperienceUnitPlanInput): ExperienceUnitPlan {
-  const candidates = input.experienceRef
-    ? input.experiences.filter(
-        (experience) =>
-          (experience as { url?: string }).url === input.experienceRef ||
-          (experience as { id?: string }).id === input.experienceRef,
-      )
-    : input.experiences;
+  let candidates: readonly ExperienceDocument[];
+  if (input.experienceRef === undefined) {
+    candidates = input.experiences;
+  } else {
+    const sourceMatches = (input.experienceHandles ?? []).filter(
+      (handle) => handle.experienceRef === input.experienceRef,
+    );
+    if (sourceMatches.length !== 1) {
+      return { unitRef: input.unitRef, status: 'unresolved', needs: [] };
+    }
+    const matched = sourceMatches[0];
+    candidates = matched === undefined ? [] : [matched.document];
+  }
 
   for (const experience of candidates) {
     const unit = experience.units?.find((candidate) => candidate.id === input.unitRef);

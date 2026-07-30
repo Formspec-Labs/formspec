@@ -67,6 +67,7 @@ import {
 } from './composition.js';
 import type { SlotPlan } from './slot-plan.js';
 import { resolveSurfaceStrings, type SurfaceStringOverrides, type SurfaceStrings } from './strings.js';
+import { generationNeedAnchors } from './need-trace.js';
 
 /**
  * The five runtime states pinned by Surface Shell §5.3.
@@ -99,6 +100,8 @@ export type TransitionUnfireableReason =
 interface PlannedTransitionFields {
   trigger: string;
   to: string;
+  /** Direct authored Need anchors for this rendered transition feature. */
+  needAnchors?: readonly string[];
   when?: string;
   /** One sentence a person can read, naming what is missing. */
   reason: string;
@@ -154,7 +157,12 @@ export type TransitionConditionEvaluator = (request: {
 export interface ResponseActionsDocumentLike {
   /** The Definition this document binds to. `E611`'s "targeting the Definition that slot binds". */
   targetDefinition?: { url?: unknown } | undefined;
-  actions?: readonly { id?: unknown; intent?: unknown }[];
+  actions?: readonly {
+    id?: unknown;
+    intent?: unknown;
+    label?: unknown;
+    'x-generation'?: unknown;
+  }[];
 }
 
 export interface TransitionPlanInput {
@@ -328,7 +336,12 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
     const trigger = String(authored.trigger);
     const to = String(authored.to);
     const target = routeInSurface(app, handle.surfaceId, to);
-    const base: PlannedTransitionFields = { trigger, to, reason: '' };
+    const base: PlannedTransitionFields = {
+      trigger,
+      to,
+      needAnchors: generationNeedAnchors(authored),
+      reason: '',
+    };
     if (typeof authored.when === 'string') base.when = authored.when;
     if (target) base.target = target;
 

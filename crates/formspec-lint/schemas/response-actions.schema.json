@@ -124,6 +124,10 @@
           ],
           "description": "Optional locale reference or literal label. Presentational only."
         },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered or user-invokable Action. Strict data-only authoring profiles require a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
+        },
         "preconditions": {
           "type": "array",
           "items": { "$ref": "#/$defs/Precondition" },

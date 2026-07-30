@@ -138,6 +138,13 @@
                 "binding": {
                   "unitRef": "missingUnit"
                 }
+              },
+              {
+                "id": "mounted-work",
+                "slotType": "experience-unit",
+                "binding": {
+                  "unitRef": "collectApplicant"
+                }
               }
             ]
           }
@@ -188,7 +195,14 @@
         "version": "1.0.0",
         "status": "draft",
         "title": "Intake",
-        "items": []
+        "items": [
+          {
+            "key": "applicantName",
+            "type": "field",
+            "dataType": "string",
+            "label": "Applicant name"
+          }
+        ]
       },
       "identity": {
         "url": "https://example.gov/forms/intake",

@@ -11,6 +11,12 @@
  */
 
 export {
+  generationNeedAnchors,
+  isCanonicalNeedAnchor,
+  mergeNeedAnchors,
+} from './need-trace.js';
+
+export {
   SURFACE_DIAGNOSTIC_CODES,
   SURFACE_DIAGNOSTIC_SEVERITY,
   documentRootContaminationDiagnostic,
@@ -90,9 +96,11 @@ export {
   type FlattenedRegistryEntries,
   type WidgetKey,
   type WidgetModule,
+  type WidgetRenderedConfigNodeContract,
   type WidgetRegistry,
   type WidgetRegistryInput,
   type WidgetResolution,
+  type WidgetRuntimeContract,
 } from './registry.js';
 
 export {
@@ -113,6 +121,7 @@ export {
 
 export {
   planExperienceUnit,
+  type ExperienceDocumentHandle,
   type ExperienceNeedSummary,
   type ExperienceUnit,
   type ExperienceUnitPlan,
@@ -126,6 +135,8 @@ export {
   type SlotPlanBase,
   type SlotPlanContext,
   type SurfaceSlot,
+  type WidgetActionLabelPlan,
+  type WidgetActionMetadataPlan,
   type WidgetActionOutputPlan,
 } from './slot-plan.js';
 
@@ -182,3 +193,18 @@ export {
   type BundleManifest,
   type ResolvedBundle,
 } from './bundle.js';
+
+export {
+  SURFACE_SCENARIO_DIAGNOSTIC_CODES,
+  createSurfacePreviewRuntime,
+  validateSurfacePreviewScenario,
+  type SurfacePreviewRuntime,
+  type SurfaceScenarioDiagnostic,
+  type SurfaceScenarioDiagnosticCode,
+  type SurfaceScenarioPayloadValidationRequest,
+  type SurfaceScenarioPayloadValidator,
+  type SurfaceScenarioSchemaValidationResult,
+  type SurfaceScenarioSchemaValidator,
+  type SurfaceScenarioValidationResult,
+  type ValidateSurfacePreviewScenarioInput,
+} from './preview-scenario.js';

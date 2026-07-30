@@ -192,20 +192,27 @@
         {
           "id": "review",
           "slots": [
-            {
-              "id": "summary",
-              "slotType": "module-widget",
+          {
+            "id": "summary",
+            "slotType": "module-widget",
               "binding": {
                 "moduleId": "x-acme-surface",
                 "widgetName": "CaseStatus",
                 "config": {
                   "density": "compact",
-                  "showOwner": true
-                }
+                "showOwner": true
               }
             }
-          ]
-        }
+          },
+          {
+            "id": "review-flow",
+            "slotType": "experience-unit",
+            "binding": {
+              "unitRef": "special-review"
+            }
+          }
+        ]
+      }
       ]
     }
   },

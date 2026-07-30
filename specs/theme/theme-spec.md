@@ -146,9 +146,17 @@ that omits a REQUIRED property.
 | `#/properties/tokens` | `tokens` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Tokens</code>; critical | Design tokens — named values (colors, spacing, typography, borders) that promote visual consistency. Defined once here, referenced throughout the theme via '$token.<key>' syntax in style and widgetConfig string values. Token keys use dot-delimited category prefixes (e.g., 'color.primary', 'spacing.md'). Values MUST be strings or numbers. Token references MUST NOT be recursive. UI Graph Policy graph-visible widget token slots accept platform prefixes from token-registry.json plus custom x-* prefixes; broader Theme token-map prefixes such as typography, border, and elevation are metadata vocabulary unless a later graph policy gate promotes them. |
 | `#/properties/url` | `url` | <code>string</code> | no | — | Canonical identifier for this theme. Stable across theme versions — the pair (url, version) SHOULD be globally unique. |
 | `#/properties/version` | `version` | <code>string</code> | yes | critical | Version of this theme document. SemVer is RECOMMENDED. The pair (url, version) SHOULD be unique across all published theme versions. |
+| `#/properties/x-generation` | `x-generation` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Generation</code> | Generation provenance for this authored Theme. Strict data-only authoring profiles require a direct current adopted Need anchor. |
 <!-- schema-ref:end -->
 
 The generated table above is the canonical structural contract for top-level properties.
+
+The OPTIONAL root `x-generation` property uses the common `Generation` shape.
+It records authoring provenance and does not change the cascade or rendering
+behavior. A strict data-only authoring profile MUST require the Theme to carry
+its own direct `need:<id>@<revision>` anchor. The anchor MUST resolve
+unambiguously to a Need whose status is `adopted`, and it MUST pin that Need's
+current revision.
 
 ### 2.2 Target Definition Binding
 

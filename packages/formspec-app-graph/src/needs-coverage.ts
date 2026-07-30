@@ -218,6 +218,90 @@ function experienceUnits(experience: ResolvedArtifactHandle): UnitRecord[] {
   });
 }
 
+function handleUrl(handle: ResolvedArtifactHandle): string | undefined {
+  return stringProp(record(handle.ref), 'url')
+    ?? stringProp(record(handle.identity), 'url')
+    ?? stringProp(record(handle.document), 'url');
+}
+
+function definitionItemPaths(items: unknown, prefix = ''): Set<string> {
+  const paths = new Set<string>();
+  if (!Array.isArray(items)) return paths;
+  for (const rawItem of items) {
+    const item = record(rawItem);
+    const key = stringProp(item, 'key');
+    if (!item || !key) continue;
+    const path = prefix ? `${prefix}.${key}` : key;
+    paths.add(path);
+    for (const child of definitionItemPaths(item.children, path)) paths.add(child);
+  }
+  return paths;
+}
+
+function mountedUnitIds(
+  context: AppGraphContext,
+  experience: ResolvedArtifactHandle,
+): Set<string> | undefined {
+  const surfaces = handlesByKind(context.handles, 'surface');
+  if (surfaces.length === 0) return undefined;
+  const experiences = handlesByKind(context.handles, 'experience');
+  const experienceUrl = handleUrl(experience);
+  const experienceId = stringProp(record(experience.identity), 'id')
+    ?? stringProp(record(experience.document), 'id');
+  const mounted = new Set<string>();
+  for (const surface of surfaces) {
+    const routes = record(surface.document)?.routes;
+    if (!Array.isArray(routes)) continue;
+    for (const rawRoute of routes) {
+      const slots = record(rawRoute)?.slots;
+      if (!Array.isArray(slots)) continue;
+      for (const rawSlot of slots) {
+        const slot = record(rawSlot);
+        if (stringProp(slot, 'slotType') !== 'experience-unit') continue;
+        const binding = record(slot?.binding);
+        const unitRef = stringProp(binding, 'unitRef');
+        const experienceRef = stringProp(binding, 'experienceRef');
+        if (!unitRef) continue;
+        if (
+          experienceRef === undefined
+            ? experiences.length === 1
+            : experienceRef === experienceUrl || experienceRef === experienceId
+        ) {
+          mounted.add(unitRef);
+        }
+      }
+    }
+  }
+  return mounted;
+}
+
+function unitItemRefsResolve(
+  context: AppGraphContext,
+  experience: ResolvedArtifactHandle,
+  unitIndex: number,
+): boolean {
+  const document = record(experience.document);
+  const unit = Array.isArray(document?.units)
+    ? record(document.units[unitIndex])
+    : undefined;
+  const itemRefs = unit?.itemRefs;
+  if (!Array.isArray(itemRefs) || itemRefs.length === 0) return true;
+  const targetUrl = stringProp(record(document?.targetDefinition), 'url');
+  // Experience 1.0 permits itemRefs without an explicit targetDefinition.
+  // Preserve that legacy coverage meaning when no target is declared; the
+  // stricter resolution check applies once an author names a Definition.
+  if (!targetUrl) return true;
+  const definitions = handlesByKind(context.handles, 'definition').filter(
+    (handle) => handleUrl(handle) === targetUrl,
+  );
+  if (definitions.length !== 1) return false;
+  const paths = definitionItemPaths(record(definitions[0]?.document)?.items);
+  return itemRefs.every((rawRef) => {
+    const path = stringProp(record(rawRef), 'path');
+    return path !== undefined && paths.has(path);
+  });
+}
+
 /**
  * Every `need:` anchor reachable from a loaded artifact, with the JSON pointer
  * that carries it. Walks `x-generation.anchors[]` wherever it appears — the
@@ -505,12 +589,17 @@ export function validateNeedsCoverage(context: AppGraphContext): AppGraphDiagnos
   // Step 3 — resolve needRefs; and the citation half of the coverage predicate.
   const citedIds = new Set<string>();
   for (const experience of experiences) {
+    const mounted = mountedUnitIds(context, experience);
     for (const unit of experienceUnits(experience)) {
+      const eligible =
+        (mounted === undefined || (unit.id !== undefined && mounted.has(unit.id)))
+        && unitItemRefsResolve(context, experience, unit.index);
       for (const ref of unit.refs) {
-        if (knownIds.has(ref.id)) {
+        if (knownIds.has(ref.id) && eligible) {
           citedIds.add(ref.id);
           continue;
         }
+        if (knownIds.has(ref.id)) continue;
         diagnostics.push(diagnostic(
           CODE_REF,
           'error',

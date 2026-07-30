@@ -223,6 +223,7 @@ class TestDefinitionTopLevel:
             "metadata", "fees", "extensions", "formPresentation",
             "modules",
             "parties", "multiParty",
+            "x-generation",
         }
         assert _prop_keys(DEF_S) == expected
 
@@ -365,7 +366,7 @@ class TestDefinitionBind:
             "path", "required", "relevant", "readonly", "calculate",
             "constraint", "constraintMessage", "default", "whitespace",
             "excludedValue", "nonRelevantBehavior", "disabledDisplay",
-            "extensions",
+            "extensions", "x-generation",
         }
         assert _prop_keys(self.BIND) == expected
 
@@ -412,7 +413,7 @@ class TestDefinitionShape:
             "id", "target", "severity", "constraint", "message", "code",
             "context", "activeWhen", "timing",
             "and", "or", "not", "xone",
-            "extensions",
+            "extensions", "x-generation",
         }
         assert _prop_keys(self.SHAPE) == expected
 

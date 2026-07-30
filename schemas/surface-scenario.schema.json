@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/surface-scenario/0.1",
+  "title": "Formspec Surface Preview Scenario",
+  "description": "Preview-only runtime state for exercising a data-only Surface bundle. This document is not an App Manifest member and MUST NOT be treated as production data. It supplies route parameters, qualified Data Source outcomes, coarse authorization verdicts, and simulated action outcomes to a fixed generic preview host.",
+  "type": "object",
+  "required": [
+    "$formspecSurfaceScenario",
+    "version",
+    "initialPath",
+    "defaultProfile",
+    "profiles",
+    "actions"
+  ],
+  "additionalProperties": false,
+  "dependentRequired": {
+    "routeParamsGeneration": ["routeParams"]
+  },
+  "properties": {
+    "$formspecSurfaceScenario": {
+      "const": "0.1"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "initialPath": {
+      "type": "string",
+      "pattern": "^/"
+    },
+    "routeParams": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "defaultProfile": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+    },
+    "x-generation": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+      "description": "Direct generation provenance for the scenario's initialPath and defaultProfile choices. Strict data-only preview validation treats the scenario root as one semantic node and requires its own current adopted Need anchor."
+    },
+    "routeParamsGeneration": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+      "description": "Direct generation provenance for routeParams as one structured semantic node. The anchor applies to the route-parameter setup as a whole, not to individual keys or values, and never inherits from the scenario root."
+    },
+    "profiles": {
+      "type": "object",
+      "minProperties": 1,
+      "patternProperties": {
+        "^[A-Za-z][A-Za-z0-9_-]*$": {
+          "$ref": "#/$defs/SurfaceScenarioProfile"
+        }
+      },
+      "additionalProperties": false
+    },
+    "actions": {
+      "$ref": "#/$defs/SurfaceScenarioActionOutcomes"
+    }
+  },
+  "$defs": {
+    "SurfaceScenarioCatalogRef": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+"
+    },
+    "SurfaceScenarioSourceRef": {
+      "type": "string",
+      "pattern": "^(host|response|resource|query|conversation|route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$"
+    },
+    "SurfaceScenarioAuthorizationOverride": {
+      "type": "object",
+      "required": [
+        "catalogRef",
+        "sourceRef",
+        "decision"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "catalogRef": {
+          "$ref": "#/$defs/SurfaceScenarioCatalogRef"
+        },
+        "sourceRef": {
+          "$ref": "#/$defs/SurfaceScenarioSourceRef"
+        },
+        "decision": {
+          "enum": [
+            "authorized",
+            "refused"
+          ]
+        }
+      }
+    },
+    "SurfaceScenarioAuthorization": {
+      "type": "object",
+      "required": [
+        "default"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "enum": [
+            "authorized",
+            "refused"
+          ]
+        },
+        "overrides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SurfaceScenarioAuthorizationOverride"
+          }
+        }
+      }
+    },
+    "SurfaceScenarioLoadedSource": {
+      "type": "object",
+      "required": [
+        "catalogRef",
+        "sourceRef",
+        "status",
+        "freshness",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "catalogRef": {
+          "$ref": "#/$defs/SurfaceScenarioCatalogRef"
+        },
+        "sourceRef": {
+          "$ref": "#/$defs/SurfaceScenarioSourceRef"
+        },
+        "status": {
+          "const": "loaded"
+        },
+        "freshness": {
+          "enum": [
+            "fresh",
+            "stale"
+          ]
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this qualified source outcome as one semantic unit. Strict data-only preview validation requires the outcome's own current adopted Need anchor and does not inspect rows, cells, or nested value members as separate nodes."
+        },
+        "value": true
+      }
+    },
+    "SurfaceScenarioUnavailableSource": {
+      "type": "object",
+      "required": [
+        "catalogRef",
+        "sourceRef",
+        "status",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "catalogRef": {
+          "$ref": "#/$defs/SurfaceScenarioCatalogRef"
+        },
+        "sourceRef": {
+          "$ref": "#/$defs/SurfaceScenarioSourceRef"
+        },
+        "status": {
+          "const": "unavailable"
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this qualified source outcome as one semantic unit. Strict data-only preview validation requires the outcome's own current adopted Need anchor and does not inherit one from the profile or scenario root."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "SurfaceScenarioSourceOutcome": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SurfaceScenarioLoadedSource"
+        },
+        {
+          "$ref": "#/$defs/SurfaceScenarioUnavailableSource"
+        }
+      ]
+    },
+    "SurfaceScenarioProfile": {
+      "type": "object",
+      "required": [
+        "authorization",
+        "sources"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "authorization": {
+          "$ref": "#/$defs/SurfaceScenarioAuthorization"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SurfaceScenarioSourceOutcome"
+          }
+        }
+      }
+    },
+    "SurfaceScenarioActionOutcome": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "fail",
+            "defer"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this simulated action outcome. Strict data-only preview validation requires each default or action-specific outcome to carry its own current adopted Need anchor."
+        }
+      }
+    },
+    "SurfaceScenarioActionOutcomes": {
+      "type": "object",
+      "required": [
+        "default"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "$ref": "#/$defs/SurfaceScenarioActionOutcome"
+        },
+        "byAction": {
+          "type": "object",
+          "patternProperties": {
+            "^[A-Za-z][A-Za-z0-9-]*$": {
+              "$ref": "#/$defs/SurfaceScenarioActionOutcome"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

@@ -207,6 +207,16 @@
         "intent": "The core payload of a Locale Document. Each entry overrides one localizable string for the exact target. Values support FEL interpolation for dynamic content."
       }
     },
+    "stringGeneration": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation"
+      },
+      "propertyNames": {
+        "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$"
+      },
+      "description": "Generation provenance keyed exactly like strings. Strict data-only authoring profiles require every authored localized string to have a same-key direct current adopted Need anchor."
+    },
     "extensions": {
       "type": "object",
       "propertyNames": {

@@ -45,6 +45,8 @@ export const SURFACE_STRING_KEYS = [
   'slotUnavailableExperienceUnit',
   /** A `module-widget` the bundle declares and nothing implements. */
   'slotUnavailableWidgetUnimplemented',
+  /** A delivered widget whose runtime declaration differs from the Registry. */
+  'slotUnavailableWidgetIncompatible',
   /** A `module-widget` nothing in the bundle declares. */
   'slotUnavailableWidgetUndeclared',
   /** A `module-widget` whose required authorized data could not be delivered. */
@@ -135,6 +137,8 @@ export const DEFAULT_SURFACE_STRINGS = {
   slotUnavailableExperienceUnit: () => 'This page refers to a step that is not in this release.',
   slotUnavailableWidgetUnimplemented: (vars) =>
     `This page asks for a component called “${vars.widgetName ?? ''}” that this release describes but nothing supplies.`,
+  slotUnavailableWidgetIncompatible: (vars) =>
+    `This page asks for a component called “${vars.widgetName ?? ''}”, but the supplied component does not match this release's declared interface.`,
   slotUnavailableWidgetUndeclared: (vars) =>
     `This page asks for a component called “${vars.widgetName ?? ''}” that nothing in this release describes.`,
   slotUnavailableWidgetData: () =>

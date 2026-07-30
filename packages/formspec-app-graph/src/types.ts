@@ -172,6 +172,17 @@ export interface AppGraphValidationRequest {
   artifactResolution?: AppGraphDiagnosticReport;
   moduleResolution?: ModuleResolutionReport;
   surfaceLocal?: AppGraphDiagnosticReport;
+  /**
+   * Present only when the caller actually ran its authorization-boundary
+   * checks. An empty diagnostics array is affirmative evidence that the phase
+   * ran and found nothing.
+   */
+  authorizationBoundary?: AppGraphDiagnosticReport;
+  /**
+   * Present only when the caller actually checked for unsupported features.
+   * This keeps "no findings" distinct from "the check never ran".
+   */
+  unsupported?: AppGraphDiagnosticReport;
   schemaValidators?: AppGraphSchemaValidators;
   evidenceSchemaValidators?: AppGraphEvidenceSchemaValidators;
   crossArtifactValidators?: AppGraphCrossArtifactValidator[];

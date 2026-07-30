@@ -3,6 +3,30 @@
 import type { LayoutNode, NodeIdGenerator, PlanContext } from './types.js';
 import { resolveToken } from './tokens.js';
 
+const NEED_ANCHOR = /^need:[a-zA-Z][a-zA-Z0-9_-]*@[1-9][0-9]*$/;
+
+/** Copy only canonical Need anchors from authored generation metadata. */
+export function needGenerationAnchors(...values: readonly unknown[]): string[] {
+    const anchors: string[] = [];
+    for (const value of values) {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+        const generation = (value as Record<string, unknown>)['x-generation'];
+        if (!generation || typeof generation !== 'object' || Array.isArray(generation)) continue;
+        const candidates = (generation as Record<string, unknown>).anchors;
+        if (!Array.isArray(candidates)) continue;
+        for (const candidate of candidates) {
+            if (
+                typeof candidate === 'string'
+                && NEED_ANCHOR.test(candidate)
+                && !anchors.includes(candidate)
+            ) {
+                anchors.push(candidate);
+            }
+        }
+    }
+    return anchors;
+}
+
 // ── Component category classification ────────────────────────────────
 
 const LAYOUT_COMPONENTS = new Set([

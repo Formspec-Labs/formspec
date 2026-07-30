@@ -22,7 +22,11 @@ import { Wizard } from './defaults/layout/wizard';
 import { Tabs } from './defaults/layout/tabs';
 import { DisplayNode } from './node-renderer-display.js';
 import { RepeatGroup, RepeatAccordion } from './node-renderer-repeat.js';
-import { projectionMetadataAttrs } from './projection-metadata.js';
+import {
+    generationNeedAnchors,
+    needTraceAttrs,
+    projectionMetadataAttrs,
+} from './projection-metadata.js';
 
 const BUILTIN_LAYOUT: Record<string, React.ComponentType<LayoutComponentProps>> = {
     Wizard,
@@ -128,7 +132,14 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     const findingKey = finding
         ? `${finding.code}:${finding.kind}:${finding.nodeId ?? ''}:${finding.target}:${finding.reason ?? ''}`
         : '';
-    const label = resolveActionButtonLabel(node.props?.label, 'Submit');
+    // An explicitly authored Component label wins. Auto-injected controls have
+    // no Component label, so use the resolved Response Action label before the
+    // renderer's generic fallback. This keeps product copy in structured data.
+    const label = resolveActionButtonLabel(
+        node.props?.label ?? resolution.action?.label,
+        'Submit',
+    );
+    const actionNeedAnchors = generationNeedAnchors(resolution.action);
 
     useEffect(() => {
         if (finding) {
@@ -210,6 +221,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             disabled={!resolution.resolved}
             onClick={handleClick}
             {...projectionMetadataAttrs(node)}
+            {...needTraceAttrs([...(node.needAnchors ?? []), ...actionNeedAnchors])}
         >
             {label}
         </button>

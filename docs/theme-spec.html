@@ -593,11 +593,28 @@ the pair (url, version) SHOULD be globally unique.</td>
 (url, version) SHOULD be unique across all published theme
 versions.</td>
 </tr>
+<tr>
+<td><code>#/properties/x-generation</code></td>
+<td><code>x-generation</code></td>
+<td><code>$ref</code></td>
+<td>no</td>
+<td><code>$ref</code>:
+<code>https://formspec.org/schemas/common/1.0#/$defs/Generation</code></td>
+<td>Generation provenance for this authored Theme. Strict data-only
+authoring profiles require a direct current adopted Need anchor.</td>
+</tr>
 </tbody>
 </table>
 <!-- schema-ref:end -->
 <p>The generated table above is the canonical structural contract for
 top-level properties.</p>
+<p>The OPTIONAL root <code>x-generation</code> property uses the common
+<code>Generation</code> shape. It records authoring provenance and does
+not change the cascade or rendering behavior. A strict data-only
+authoring profile MUST require the Theme to carry its own direct
+<code>need:&lt;id&gt;@&lt;revision&gt;</code> anchor. The anchor MUST
+resolve unambiguously to a Need whose status is <code>adopted</code>,
+and it MUST pin that Need’s current revision.</p>
 <h3 id="target-definition-binding">2.2 Target Definition Binding</h3>
 <p>The <code>targetDefinition</code> object is OPTIONAL and sets the
 theme’s <strong>scope</strong>.</p>

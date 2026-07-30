@@ -95,6 +95,10 @@
       "description": "Optional human-friendly slug identifier."
     },
     "title": { "type": "string" },
+    "x-generation": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+      "description": "Generation provenance for rendered app-level chrome, including the browser document title. Strict data-only authoring profiles require a current adopted Need anchor when title is rendered."
+    },
     "description": { "type": "string" },
     "definitions": {
       "type": "array",

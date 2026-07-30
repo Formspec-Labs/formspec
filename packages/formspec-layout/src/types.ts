@@ -100,6 +100,14 @@ export interface LayoutNode {
     /** Ordered child nodes. */
     children: LayoutNode[];
 
+    /**
+     * Canonical `need:<id>@<revision>` anchors copied from the authored
+     * Definition Item and/or Component node that produced this render node.
+     * Renderers expose these as inert review metadata; graph validation remains
+     * responsible for proving that each target is current and adopted.
+     */
+    needAnchors?: string[];
+
     /** Page mode for a planner-authoritative root whose direct Section children are page units. */
     pageMode?: 'wizard' | 'tabs';
 

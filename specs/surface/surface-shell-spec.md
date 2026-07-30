@@ -451,6 +451,28 @@ unresolved `{name}` marker. It renders the navigation item as unavailable and
 delivers `ROUTE-PARAM-UNSUPPLIED` to the host diagnostic channel. A marker-
 bearing URL is not a disabled link; it is an address no host supplied.
 
+### 2.8 Authored Route Navigation
+
+The shell derives its route list from `routes[].navigation` and the matched
+active route. It first reads the active route's navigation scope, treating an
+absent `navigation.scope` as the semantic value `default`. It then keeps only
+routes in that same scope and omits a route when `navigation.visible` is
+`false`. The shell preserves Surface groups, orders the remaining routes within
+each Surface by `navigation.order` with declaration order as the stable
+tie-break, and renders `navigation.label`, then `route.title`, then `route.id`.
+An omitted `navigation` object retains the visible v0.2 default in the
+`default` scope.
+
+If the active scope has no visible entries, the binding MUST render no
+route-navigation landmark. When route resolution yields no active route, the
+binding retains the legacy `default` navigation scope.
+
+The shell MUST NOT emit parameter or collision navigation diagnostics for a
+hidden route or a route outside the active scope merely because that route
+cannot currently produce a link. Those checks run when the shell is about to
+expose an item. Filtering an item does not resolve its address, authorize it,
+make it unreachable, or prevent a transition from targeting it.
+
 ---
 
 ## 3. Slot Dispatch
@@ -1375,6 +1397,7 @@ app-construction diagnostics delivers the minority of them.
 | `EXPERIENCE-UNIT-UNRESOLVED` | `error` | An `experience-unit` binding names no unit in the resolved Experience. |
 | `WIDGET-UNDECLARED` | `error` | A `module-widget` binding names a widget no Registry in the bundle declares. |
 | `WIDGET-UNIMPLEMENTED` | `error` | The Registry declares the widget; nothing the host registered implements it. |
+| `WIDGET-DELIVERY-CONTRACT-MISMATCH` | `error` | A registered widget implementation does not declare the exact delivery contract id, Registry entry version, and rendered-config inventory required by the resolved Registry entry. The shell refuses to render it. |
 | `WIDGET-DATA-REQUIRED-UNAVAILABLE` | `error` | A required Registry 1.1 input is unbound or its exact Data Sources value is unavailable (§3.3). |
 | `WIDGET-ACTION-OUTPUT-UNDECLARED` | `error` | A widget emits an output its Registry 1.1 shape does not declare (§3.3). |
 | `WIDGET-ACTION-OUTPUT-UNMAPPED` | `error` | A declared widget output has no Surface 0.2 `actionBindings` entry (§3.3). |
@@ -1666,6 +1689,9 @@ A conformant **Surface Shell Binding** MUST:
     link semantics without an `href`, activation handler, or tab stop. Recheck
     the refusal before emitting navigation; a completed slot action never
     advances to the refused address (§2.4).
+13. Apply authored route-navigation visibility, label, and order without
+    changing route matching, reachability, entry selection, or transition
+    targets (§2.8).
 
 A conformant Surface Shell Binding MUST NOT:
 

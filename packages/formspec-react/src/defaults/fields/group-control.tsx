@@ -1,6 +1,7 @@
 /** @filedesc RadioGroup and CheckboxGroup option lists (fieldset children). */
 import React from 'react';
 import type { FieldComponentProps } from '../../component-map';
+import { needTraceAttrs } from '../../projection-metadata.js';
 
 /** Renders radio/checkbox group options (ARIA matches default web component adapter). */
 export function GroupControl({
@@ -27,7 +28,7 @@ export function GroupControl({
                 {...(orientation === 'horizontal' ? { 'data-orientation': 'horizontal' as const } : {})}
             >
                 {field.options.map((opt) => (
-                    <label key={opt.value}>
+                    <label key={opt.value} {...needTraceAttrs(opt.needAnchors)}>
                         <input
                             type="radio"
                             name={field.path}
@@ -80,7 +81,7 @@ export function GroupControl({
                 </label>
             )}
             {field.options.map((opt) => (
-                <label key={opt.value}>
+                <label key={opt.value} {...needTraceAttrs(opt.needAnchors)}>
                     <input
                         type="checkbox"
                         name={field.path}

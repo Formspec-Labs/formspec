@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { Extensions } from './common.js';
+import type { Extensions, Generation } from './common.js';
 /**
  * This interface was referenced by `DataSourcesDocument`'s JSON-Schema
  * via the `definition` "DataSource".
@@ -31,6 +31,7 @@ export type DataSource = {
   scope: 'session' | 'route' | 'definition' | 'resource';
   availability: Availability;
   runtime: RuntimeBehavior;
+  'x-generation'?: Generation;
   /**
    * Optional JSON Schema fragment describing payload shape. This is a contract for hosts and validators, not inline source data.
    */
@@ -165,4 +166,100 @@ export interface ProvenanceRule {
    * Host, resource, query, conversation, route, or response provenance pointer. The Data Source spec defines the expected family; concrete resolver syntax is host-specific.
    */
   source: string;
+}
+/**
+ * Authoring identity per ADR 0150 §5.4. Distinct from `respondent-ledger-event.Actor` (respondent-identity) and `experience.Actor` (workflow-role) — three Actor $defs by design. `kind` and `actChannel` are terminal-closed enums; product nuance (e.g. discriminating Wireframes-MCP from Forms-MCP, both `actChannel: 'mcp'`) rides URN-encoded into `id`, not via new enum values.
+ */
+export interface AuthorActor {
+  /**
+   * Stable actor URN (urn:formspec:actor:... scheme). Product nuance rides URN-encoded (e.g. urn:formspec:actor:mcp:wireframes:agent-7).
+   */
+  id: string;
+  /**
+   * Terminal-closed per §5.4 (NOT §4.5-extensible). Answers 'what kind of authoring entity'.
+   */
+  kind: 'human' | 'ai-agent' | 'service';
+  /**
+   * Terminal-closed per §5.4. Orthogonal to kind. Answers 'through what channel'. An ai-agent MAY have actChannel:'mcp' (mediated via MCP) OR 'agent' (autonomous). A human MAY have actChannel:'human' (direct editor) OR 'mcp' (CLI-driven MCP).
+   */
+  actChannel: 'human' | 'mcp' | 'agent' | 'service';
+  /**
+   * Optional human-readable label for timeline/support views.
+   */
+  display?: string;
+  extensions?: Extensions;
+}
+/**
+ * Module/template provenance per §5.3. Orthogonal to generatedBy — answers 'which module supplied this template' not 'who authored this op'.
+ */
+export interface ModuleRef {
+  /**
+   * Module ID following the Registry naming pattern per ADR 0150 §4.8. Despite §4.4 prose calling this a 'URN', §4.3 examples and §4.8 regex are bare `^x-` prefix (e.g. 'x-formspec-core-task'). This pattern matches the canonical regex.
+   */
+  id: string;
+  /**
+   * Strict SemVer string or range expression (e.g. '1.0.0', '^1.0.0', '>=1.0.0 <2.0.0').
+   */
+  version: string;
+  /**
+   * OPTIONAL provenance assertion (the document asserts; posture admission checks).
+   */
+  publisher?: string;
+  /**
+   * OPTIONAL digest pin (e.g. 'sha256:...'). Pins hostile-substitution risk when paired with posture.allowedModules[].
+   */
+  lockHash?: string;
+  extensions?: Extensions;
+}
+/**
+ * Graph-wide Component node identity for x-generation movedFrom/copiedFrom provenance. Mirrors the app-graph Component node identity tuple: Component membership, Surface sibling identity, route, absolute route-scoped nodePath, and optional public/structural node ids. This is provenance metadata only; it does not authorize, execute, or resolve runtime behavior.
+ */
+export interface ComponentNodeIdentityRef {
+  component: {
+    /**
+     * App Manifest components[] membership handle.
+     */
+    handle: string;
+    /**
+     * Canonical URL of the Component document when available.
+     */
+    url?: string;
+    /**
+     * Component document version evidence when available.
+     */
+    version?: string;
+  };
+  surface: {
+    /**
+     * Canonical URL of the Surface document.
+     */
+    url: string;
+    /**
+     * Surface document version evidence when available.
+     */
+    version?: string;
+  };
+  /**
+   * Surface routes[].id for the route-scoped node.
+   */
+  route: string;
+  /**
+   * Absolute route-scoped Component node path built from stable node segments.
+   */
+  nodePath: string;
+  /**
+   * Optional ComponentBase.id evidence for the node.
+   */
+  id?: string;
+  /**
+   * Optional structural authoring identity for the node.
+   */
+  nodeId?: string;
+}
+/**
+ * Legacy same-runtime route + intra-document node path. Retained for Studio/kernel compatibility; it is not sufficient graph-wide Component provenance once multiple Surfaces or Component documents are loaded.
+ */
+export interface CrossComponentRef {
+  route: string;
+  nodePath: string;
 }

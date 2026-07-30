@@ -183,6 +183,141 @@ export interface ItemPartyPolicy {
   signedBy?: [string, ...string[]];
 }
 /**
+ * Generation provenance for this rendered Item. Strict data-only authoring profiles require every group, field, and display Item to carry a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision.
+ */
+export interface Generation {
+  /**
+   * Existing field (component.schema.json:256-259): generator source label, such as an Experience Unit, prompt, template, or generator input bundle. Preserved as-is.
+   */
+  source?: string;
+  /**
+   * Existing field (component.schema.json:260-263): generator strategy identifier, such as unit-to-section or a host-defined strategy name. Preserved as-is.
+   */
+  strategy?: string;
+  /**
+   * Existing field (component.schema.json:268-271): generation timestamp. Authors SHOULD use an RFC 3339 date-time string. Preserved as-is.
+   */
+  generatedAt?: string;
+  /**
+   * Existing field (component.schema.json:272-279): source anchors with a standard prefix and source-layer-owned suffix. The prefix set is closed; `need` joined it per needs-spec S8, whose `need:<id>@<revision>` grammar is normative in spec prose (this shared regex stays broad by existing convention — per-prefix grammar is not encoded here).
+   */
+  anchors?: string[];
+  /**
+   * Actor attribution per §5.4. Migration-friendly: pre-existing free-form string values (e.g. 'component-generator/1.0.0') continue to validate; new authoring stamps the full AuthorActor inline.
+   */
+  generatedBy?: string | AuthorActor;
+  sourceModule?: ModuleRef;
+  /**
+   * Set by tooling on cross-Component move per §5.3. Graph-wide provenance uses ComponentNodeIdentityRef; CrossComponentRef is retained only as same-runtime compatibility evidence.
+   */
+  movedFrom?: ComponentNodeIdentityRef | CrossComponentRef;
+  /**
+   * Set by tooling on cross-Component copy per §5.3. Graph-wide provenance uses ComponentNodeIdentityRef; CrossComponentRef is retained only as same-runtime compatibility evidence.
+   */
+  copiedFrom?: ComponentNodeIdentityRef | CrossComponentRef;
+  extensions?: Extensions;
+}
+/**
+ * Authoring identity per ADR 0150 §5.4. Distinct from `respondent-ledger-event.Actor` (respondent-identity) and `experience.Actor` (workflow-role) — three Actor $defs by design. `kind` and `actChannel` are terminal-closed enums; product nuance (e.g. discriminating Wireframes-MCP from Forms-MCP, both `actChannel: 'mcp'`) rides URN-encoded into `id`, not via new enum values.
+ */
+export interface AuthorActor {
+  /**
+   * Stable actor URN (urn:formspec:actor:... scheme). Product nuance rides URN-encoded (e.g. urn:formspec:actor:mcp:wireframes:agent-7).
+   */
+  id: string;
+  /**
+   * Terminal-closed per §5.4 (NOT §4.5-extensible). Answers 'what kind of authoring entity'.
+   */
+  kind: 'human' | 'ai-agent' | 'service';
+  /**
+   * Terminal-closed per §5.4. Orthogonal to kind. Answers 'through what channel'. An ai-agent MAY have actChannel:'mcp' (mediated via MCP) OR 'agent' (autonomous). A human MAY have actChannel:'human' (direct editor) OR 'mcp' (CLI-driven MCP).
+   */
+  actChannel: 'human' | 'mcp' | 'agent' | 'service';
+  /**
+   * Optional human-readable label for timeline/support views.
+   */
+  display?: string;
+  extensions?: Extensions;
+}
+/**
+ * Extension object whose keys must be prefixed with x-.
+ */
+export interface Extensions {}
+/**
+ * Module/template provenance per §5.3. Orthogonal to generatedBy — answers 'which module supplied this template' not 'who authored this op'.
+ */
+export interface ModuleRef {
+  /**
+   * Module ID following the Registry naming pattern per ADR 0150 §4.8. Despite §4.4 prose calling this a 'URN', §4.3 examples and §4.8 regex are bare `^x-` prefix (e.g. 'x-formspec-core-task'). This pattern matches the canonical regex.
+   */
+  id: string;
+  /**
+   * Strict SemVer string or range expression (e.g. '1.0.0', '^1.0.0', '>=1.0.0 <2.0.0').
+   */
+  version: string;
+  /**
+   * OPTIONAL provenance assertion (the document asserts; posture admission checks).
+   */
+  publisher?: string;
+  /**
+   * OPTIONAL digest pin (e.g. 'sha256:...'). Pins hostile-substitution risk when paired with posture.allowedModules[].
+   */
+  lockHash?: string;
+  extensions?: Extensions;
+}
+/**
+ * Graph-wide Component node identity for x-generation movedFrom/copiedFrom provenance. Mirrors the app-graph Component node identity tuple: Component membership, Surface sibling identity, route, absolute route-scoped nodePath, and optional public/structural node ids. This is provenance metadata only; it does not authorize, execute, or resolve runtime behavior.
+ */
+export interface ComponentNodeIdentityRef {
+  component: {
+    /**
+     * App Manifest components[] membership handle.
+     */
+    handle: string;
+    /**
+     * Canonical URL of the Component document when available.
+     */
+    url?: string;
+    /**
+     * Component document version evidence when available.
+     */
+    version?: string;
+  };
+  surface: {
+    /**
+     * Canonical URL of the Surface document.
+     */
+    url: string;
+    /**
+     * Surface document version evidence when available.
+     */
+    version?: string;
+  };
+  /**
+   * Surface routes[].id for the route-scoped node.
+   */
+  route: string;
+  /**
+   * Absolute route-scoped Component node path built from stable node segments.
+   */
+  nodePath: string;
+  /**
+   * Optional ComponentBase.id evidence for the node.
+   */
+  id?: string;
+  /**
+   * Optional structural authoring identity for the node.
+   */
+  nodeId?: string;
+}
+/**
+ * Legacy same-runtime route + intra-document node path. Retained for Studio/kernel compatibility; it is not sufficient graph-wide Component provenance once multiple Surfaces or Component documents are loaded.
+ */
+export interface CrossComponentRef {
+  route: string;
+  nodePath: string;
+}
+/**
  * A single stage in the evaluation pipeline. Each phase declares a strategy that determines how its routes are evaluated. Phases execute in declaration order and produce independent results aggregated into the Determination Record.
  *
  * This interface was referenced by `ScreenerDocument`'s JSON-Schema

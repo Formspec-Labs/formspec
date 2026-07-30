@@ -120,6 +120,36 @@ describe('planComponentTree', () => {
         });
     });
 
+    it('preserves canonical Need anchors from Component nodes and bound Definition Items', () => {
+        const tree = {
+            component: 'Stack',
+            'x-generation': { anchors: ['need:layout@1'] },
+            children: [{
+                component: 'TextInput',
+                bind: 'name',
+                'x-generation': { anchors: ['need:control@1'] },
+            }],
+        };
+        const items = [{
+            key: 'name',
+            type: 'field',
+            dataType: 'string',
+            label: 'Name',
+            'x-generation': { anchors: ['need:identity@2'] },
+        }];
+
+        const node = planComponentTree(
+            tree,
+            makeCtx({ items, findItem: (key) => findItems(items, key) }),
+        );
+
+        expect(node.needAnchors).toEqual(['need:layout@1']);
+        expect(node.children[0].needAnchors).toEqual([
+            'need:control@1',
+            'need:identity@2',
+        ]);
+    });
+
     it('generates unique IDs for each node', () => {
         const tree = {
             component: 'Stack',
@@ -1749,6 +1779,31 @@ describe('planDefinitionFallback', () => {
             hint: 'Enter your name',
             dataType: 'string',
         });
+    });
+
+    it('preserves canonical Need anchors for fallback fields and displays', () => {
+        const items = [{
+            key: 'name',
+            type: 'field',
+            dataType: 'string',
+            label: 'Full Name',
+            'x-generation': { anchors: ['need:identity@1'] },
+        }, {
+            key: 'help',
+            type: 'display',
+            label: 'Use your public name.',
+            'x-generation': { anchors: ['need:identity@1'] },
+        }];
+
+        const nodes = planDefinitionFallback(
+            items,
+            makeCtx({ items, findItem: (key) => findItems(items, key) }),
+        );
+
+        expect(nodes.map((node) => node.needAnchors)).toEqual([
+            ['need:identity@1'],
+            ['need:identity@1'],
+        ]);
     });
 
     it('maps dataTypes to correct default components', () => {

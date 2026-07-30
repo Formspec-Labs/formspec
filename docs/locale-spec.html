@@ -32,9 +32,9 @@
 <nav id="TOC">
 <h2>Table of Contents</h2>
 <ul>
-<li><a href="#formspec-locale-specification-v1.0"
-id="toc-formspec-locale-specification-v1.0">Formspec Locale
-Specification v1.0</a>
+<li><a href="#formspec-locale-specification-v2.0"
+id="toc-formspec-locale-specification-v2.0">Formspec Locale
+Specification v2.0</a>
 <ul>
 <li><a href="#status-of-this-document"
 id="toc-status-of-this-document">Status of This Document</a></li>
@@ -59,8 +59,7 @@ id="toc-locale-document-structure">2. Locale Document Structure</a>
 <ul>
 <li><a href="#top-level-properties" id="toc-top-level-properties">2.1
 Top-Level Properties</a></li>
-<li><a href="#target-definition-binding"
-id="toc-target-definition-binding">2.2 Target Definition
+<li><a href="#target-binding" id="toc-target-binding">2.2 Target
 Binding</a></li>
 <li><a href="#locale-code" id="toc-locale-code">2.3 Locale Code</a></li>
 </ul></li>
@@ -170,10 +169,10 @@ Complete Locale Document Example</a></li>
 </ul></li>
 </ul>
 </nav>
-<h1 id="formspec-locale-specification-v1.0">Formspec Locale
-Specification v1.0</h1>
-<p><strong>Version:</strong> 1.0.0-draft.1 <strong>Date:</strong>
-2026-03-20 <strong>Editors:</strong> Formspec Working Group
+<h1 id="formspec-locale-specification-v2.0">Formspec Locale
+Specification v2.0</h1>
+<p><strong>Version:</strong> 2.0.0-draft.1 <strong>Date:</strong>
+2026-07-28 <strong>Editors:</strong> Formspec Working Group
 <strong>Companion to:</strong> Formspec v1.0 — A JSON-Native Declarative
 Form Standard</p>
 <hr />
@@ -181,7 +180,8 @@ Form Standard</p>
 <p>This document is a <strong>Draft</strong> companion specification to
 the <a href="../core/spec.md">Formspec v1.0 Core Specification</a>. It
 defines the Formspec Locale Document format — a sidecar JSON document
-that provides internationalized strings for a Formspec Definition.</p>
+that provides internationalized strings for one exact Formspec
+Definition or App Manifest.</p>
 <h2 id="conventions-and-terminology">Conventions and Terminology</h2>
 <p>The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”,
 “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “NOT RECOMMENDED”, “MAY”, and
@@ -200,18 +200,23 @@ redefined.</p>
 <h2 id="bottom-line-up-front">Bottom Line Up Front</h2>
 <!-- bluf:start file=locale-spec.bluf.md -->
 <ul>
-<li>This document defines the Locale Document — a sidecar JSON artifact
-for internationalizing Formspec Definitions.</li>
-<li>A valid locale requires <code>$formspecLocale</code>,
-<code>version</code>, <code>locale</code>,
-<code>targetDefinition</code>, and a <code>strings</code> object.</li>
-<li>String resolution uses a fallback cascade (regional → base → inline
-defaults) with FEL interpolation via <code>{{expression}}</code> syntax;
-<code>null</code> without <code>$</code>/<code>@</code> and without a
-static-literal expression preserves the <code>{{…}}</code> text (§3.3.1
-rule 3a).</li>
+<li>This document defines Locale 2.0, a sidecar JSON artifact for
+internationalizing one exact Formspec Definition or App Manifest
+target.</li>
+<li>A valid Locale 2.0 document requires
+<code>$formspecLocale: "2.0"</code>, <code>version</code>,
+<code>locale</code>, <code>target</code>, and a <code>strings</code>
+object. <code>target</code> names a <code>definition</code> or
+<code>app</code> by canonical URL.</li>
+<li>Loaded Locale identity is
+<code>(target kind, target URL, normalized locale)</code>.
+Regional-to-base fallback stays within that exact target.</li>
+<li>App-targeted Locale documents may use the closed
+<code>$module.x-formspec-surface.shell.*</code> key family. Every
+dynamic string uses FEL <code>{{expression}}</code> interpolation;
+processors do not apply a separate <code>{name}</code> parser.</li>
 <li>This BLUF is governed by <code>schemas/locale.schema.json</code>;
-generated schema references are the canonical structural contract.
+generated references expose the canonical schema-defined structure.
 <!-- bluf:end --></li>
 </ul>
 <h2 id="introduction">1. Introduction</h2>
@@ -229,15 +234,16 @@ either embed all translations inside the Definition (bloating it and
 coupling translation to structural authoring) or build bespoke
 translation infrastructure outside the spec.</p>
 <p>This specification defines a <strong>Locale Document</strong> — a
-standalone JSON artifact that provides localized strings for a Formspec
-Definition. A Locale Document:</p>
+standalone JSON artifact that provides localized strings for one exact
+Definition or App Manifest target. A Locale Document:</p>
 <ul>
-<li>References a Definition by URL and declares compatible
+<li>References its target by kind and URL and may declare compatible
 versions.</li>
 <li>Maps item paths to localized strings via a flat key-value
 structure.</li>
 <li>Supports FEL interpolation for dynamic string content.</li>
-<li>Composes via a fallback cascade (regional → base → inline).</li>
+<li>Composes via a fallback cascade that never crosses target
+identity.</li>
 <li>Supports contextual variants (short, accessibility, pdf).</li>
 </ul>
 <p>Authors who do not need internationalization change nothing. The
@@ -331,10 +337,11 @@ artifacts:</p>
 </tr>
 </tbody>
 </table>
-<p>The Locale Document follows the same sidecar pattern: the Definition
-provides sensible defaults inline; the Locale Document overrides them
-for a specific language. Multiple Locale Documents MAY target the same
-Definition.</p>
+<p>The Locale Document follows the same sidecar pattern: a Definition
+provides inline defaults, while a Surface shell provides a closed
+runtime default set. A Locale Document overrides those strings for one
+target and language. Multiple Locale Documents MAY target the same
+artifact.</p>
 <h3 id="terminology">1.4 Terminology</h3>
 <table>
 <colgroup>
@@ -388,7 +395,7 @@ implementations MUST recognize the following top-level properties and
 MUST reject any Locale Document that omits a REQUIRED property.</p>
 <div class="sourceCode" id="cb1"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$formspecLocale&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0&quot;</span><span class="fu">,</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$formspecLocale&quot;</span><span class="fu">:</span> <span class="st">&quot;2.0&quot;</span><span class="fu">,</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/budget/locales/fr-CA&quot;</span><span class="fu">,</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;budget-fr-CA&quot;</span><span class="fu">,</span></span>
@@ -396,17 +403,18 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;French-Canadian localization for the annual budget form.&quot;</span><span class="fu">,</span></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr-CA&quot;</span><span class="fu">,</span></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetDefinition&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/budget&quot;</span><span class="fu">,</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;compatibleVersions&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;=1.0.0 &lt;2.0.0&quot;</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom du projet&quot;</span><span class="fu">,</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez le nom officiel du projet&quot;</span><span class="fu">,</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budget.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget&quot;</span><span class="fu">,</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budget.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Section des informations budgétaires&quot;</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;target&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;definition&quot;</span><span class="fu">,</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/budget&quot;</span><span class="fu">,</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;compatibleVersions&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;=1.0.0 &lt;2.0.0&quot;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom du projet&quot;</span><span class="fu">,</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez le nom officiel du projet&quot;</span><span class="fu">,</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budget.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget&quot;</span><span class="fu">,</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budget.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Section des informations budgétaires&quot;</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h3 id="top-level-properties">2.1 Top-Level Properties</h3>
 <!-- schema-ref:start id=locale-top-level schema=schemas/locale.schema.json pointers=# -->
 <!-- generated:schema-ref id=locale-top-level -->
@@ -435,8 +443,8 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="
 <td><code>$formspecLocale</code></td>
 <td><code>string</code></td>
 <td>yes</td>
-<td>const: <code>“1.0”</code>; critical</td>
-<td>Locale specification version. MUST be ‘1.0’.</td>
+<td>const: <code>“2.0”</code>; critical</td>
+<td>Locale specification version. MUST be ‘2.0’.</td>
 </tr>
 <tr>
 <td><code>#/properties/description</code></td>
@@ -492,43 +500,51 @@ SHOULD normalize to lowercase language with title-case region (e.g.,
 <td>no</td>
 <td>—</td>
 <td>OPTIONAL declaration of substrate modules this document depends on.
-Each entry is a canonical ModuleRef (id + version, with optional
-publisher + lockHash for posture admission). Default-module-set behavior
-per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is
-identical to declaring the core module set. Module-contributed Locale
-string keys use the <span
-class="math inline">$module.&lt;modId&gt;.&lt;nodeId&gt;.&lt;prop&gt;
-prefix per ADR §4.10 (Task 6). Per ADR 0150 §4.3. |
-| `#/properties/name` | `name` | &lt;code&gt;string&lt;/code&gt; | no |
-— | Machine-friendly short identifier for programmatic use. |
-| `#/properties/strings` | `strings` | &lt;code&gt;object&lt;/code&gt; |
-yes | critical | Map of string keys to localized values. Keys follow the
-dot-delimited path format defined in the Locale Specification §3.1.
-Values are strings, optionally containing FEL interpolation via
-{{expression}} syntax. Keys address item properties (key.label,
-key.description, key.hint), context labels (key.label@context,
-key.hint@context), choice options (key.options.value.label), shared
-option sets ($</span>optionSet.setName.value.label), validation messages
-(key.errors.CODE, key.constraintMessage, key.requiredMessage),
-form-level strings ($form.title, <span
-class="math inline"><em>f</em><em>o</em><em>r</em><em>m</em>.<em>d</em><em>e</em><em>s</em><em>c</em><em>r</em><em>i</em><em>p</em><em>t</em><em>i</em><em>o</em><em>n</em>), <em>s</em><em>h</em><em>a</em><em>p</em><em>e</em><em>m</em><em>e</em><em>s</em><em>s</em><em>a</em><em>g</em><em>e</em><em>s</em>(</span>shape.id.message),
-theme page strings ($page.pageId.title, <span
-class="math inline"><em>p</em><em>a</em><em>g</em><em>e</em>.<em>p</em><em>a</em><em>g</em><em>e</em><em>I</em><em>d</em>.<em>d</em><em>e</em><em>s</em><em>c</em><em>r</em><em>i</em><em>p</em><em>t</em><em>i</em><em>o</em><em>n</em>), <em>a</em><em>n</em><em>d</em><em>c</em><em>o</em><em>m</em><em>p</em><em>o</em><em>n</em><em>e</em><em>n</em><em>t</em><em>n</em><em>o</em><em>d</em><em>e</em><em>s</em><em>t</em><em>r</em><em>i</em><em>n</em><em>g</em><em>s</em>(</span>component.nodeId.property).</td>
+Each entry is a canonical ModuleRef. Module-contributed Locale string
+keys use $module.<modId>.<nodeId>.<prop>. The x-formspec-surface module
+reserves the closed $module.x-formspec-surface.shell.<SurfaceStringKey>
+family for app-targeted shell text.</td>
 </tr>
 <tr>
-<td><code>#/properties/targetDefinition</code></td>
-<td><code>targetDefinition</code></td>
+<td><code>#/properties/name</code></td>
+<td><code>name</code></td>
+<td><code>string</code></td>
+<td>no</td>
+<td>—</td>
+<td>Machine-friendly short identifier for programmatic use.</td>
+</tr>
+<tr>
+<td><code>#/properties/stringGeneration</code></td>
+<td><code>stringGeneration</code></td>
+<td><code>object</code></td>
+<td>no</td>
+<td>—</td>
+<td>Generation provenance keyed exactly like strings. Strict data-only
+authoring profiles require every authored localized string to have a
+same-key direct current adopted Need anchor.</td>
+</tr>
+<tr>
+<td><code>#/properties/strings</code></td>
+<td><code>strings</code></td>
+<td><code>object</code></td>
+<td>yes</td>
+<td>critical</td>
+<td>Map of string keys to localized values. Values are strings and MAY
+contain FEL interpolation only through {{expression}} syntax.
+Surface-only {name} placeholders are not a second template language.
+Shell keys use the read-only shell variable context defined by the
+Locale specification.</td>
+</tr>
+<tr>
+<td><code>#/properties/target</code></td>
+<td><code>target</code></td>
 <td><code>$ref</code></td>
 <td>yes</td>
-<td><code>$ref</code>:
-<code>https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition</code>;
-critical</td>
-<td>Binding to the target Formspec Definition and compatible version
-range. The locale will only be applied to Definitions matching this
-target. If compatibleVersions is present and the Definition version
-falls outside the range, the processor SHOULD warn and MAY fall back to
-inline strings only. The processor MUST NOT fail on a version
-mismatch.</td>
+<td><code>$ref</code>: <code>#/$defs/LocaleTarget</code>; critical</td>
+<td>Exact Definition or App Manifest target. Loaded Locale identity is
+(target.kind, target.url, normalized locale). A processor MUST NOT apply
+this document to another target or cross target identity during
+fallback.</td>
 </tr>
 <tr>
 <td><code>#/properties/title</code></td>
@@ -560,9 +576,9 @@ versions.</td>
 </tbody>
 </table>
 <!-- schema-ref:end -->
-<h3 id="target-definition-binding">2.2 Target Definition Binding</h3>
-<p>The <code>targetDefinition</code> object binds this Locale Document
-to a specific Definition.</p>
+<h3 id="target-binding">2.2 Target Binding</h3>
+<p>The <code>target</code> object binds this Locale Document to one
+exact artifact.</p>
 <table>
 <colgroup>
 <col style="width: 25%" />
@@ -580,27 +596,31 @@ to a specific Definition.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>url</code></td>
-<td>string (URI)</td>
+<td><code>kind</code></td>
+<td><code>"definition"</code> or <code>"app"</code></td>
 <td><strong>1..1</strong> (REQUIRED)</td>
-<td>Canonical URL of the target Definition (<code>url</code> property
-from the Definition).</td>
+<td>Target artifact kind. No additional value or alias is admitted.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td>absolute URL string</td>
+<td><strong>1..1</strong> (REQUIRED)</td>
+<td>Exact Definition URL or App Manifest <code>id</code>, according to
+<code>kind</code>.</td>
 </tr>
 <tr>
 <td><code>compatibleVersions</code></td>
 <td>string</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
-<td>Semver range expression (e.g., <code>"&gt;=1.0.0 &lt;2.0.0"</code>)
-describing which Definition versions this locale supports. When absent,
-the locale is assumed compatible with any version.</td>
+<td>SemVer range for the exact target version.</td>
 </tr>
 </tbody>
 </table>
 <p>When <code>compatibleVersions</code> is present, a processor SHOULD
-verify that the Definition’s <code>version</code> satisfies the range
-before applying the Locale Document. A processor MUST NOT fail if the
-range is unsatisfied; it SHOULD warn and MAY fall back to inline
-strings.</p>
+verify that the loaded target’s <code>version</code> satisfies the range
+before applying the Locale Document. In App Manifest 2.4 association, an
+unsatisfied range is a resolution error. The processor MUST NOT retarget
+the Locale or fall through to another artifact.</p>
 <h3 id="locale-code">2.3 Locale Code</h3>
 <p>The <code>locale</code> property MUST be a syntactically valid BCP 47
 language tag. Processors SHOULD validate subtags against the IANA
@@ -1094,6 +1114,123 @@ the associated Component Document. Validators SHOULD warn when a
 <code>$component.</code> key references a node ID not present in any
 loaded Component Document (§7.2).</p>
 </blockquote>
+<h4 id="surface-shell-strings">3.1.9 Surface Shell Strings</h4>
+<p>Locale 2.0 app targets may localize the Surface shell through the
+canonical family:</p>
+<pre><code>$module.x-formspec-surface.shell.&lt;SurfaceStringKey&gt;</code></pre>
+<p><code>&lt;SurfaceStringKey&gt;</code> is closed. The Locale schema
+and Surface runtime inventory MUST contain these exact suffixes
+one-for-one:</p>
+<table>
+<thead>
+<tr>
+<th>Key suffix</th>
+<th>Shell-specific FEL references</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slotUnavailableDefinitionForm</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>slotUnavailableExperienceUnit</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>slotUnavailableWidgetUnimplemented</code></td>
+<td><code>$widgetName</code></td>
+</tr>
+<tr>
+<td><code>slotUnavailableWidgetUndeclared</code></td>
+<td><code>$widgetName</code></td>
+</tr>
+<tr>
+<td><code>slotUnavailableWidgetData</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>slotUnavailableStaticContent</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>slotUnavailableEmbedUnresolved</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>slotUnavailableEmbedCycle</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>widgetEmpty</code></td>
+<td><code>$widgetName</code></td>
+</tr>
+<tr>
+<td><code>notFoundTitle</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>notFoundBody</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>navigationLabel</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>transitionContinue</code></td>
+<td><code>$target</code></td>
+</tr>
+<tr>
+<td><code>transitionPending</code></td>
+<td><code>$trigger</code></td>
+</tr>
+<tr>
+<td><code>transitionFailed</code></td>
+<td><code>$trigger</code></td>
+</tr>
+<tr>
+<td><code>transitionTargetUnresolved</code></td>
+<td><code>$to</code></td>
+</tr>
+<tr>
+<td><code>transitionTargetCollision</code></td>
+<td><code>$to</code></td>
+</tr>
+<tr>
+<td><code>transitionNoResponseActions</code></td>
+<td><code>$trigger</code></td>
+</tr>
+<tr>
+<td><code>transitionTriggerUnresolved</code></td>
+<td><code>$trigger</code></td>
+</tr>
+<tr>
+<td><code>transitionTriggerAmbiguous</code></td>
+<td><code>$trigger</code></td>
+</tr>
+<tr>
+<td><code>transitionNoExecutor</code></td>
+<td><code>$trigger</code></td>
+</tr>
+<tr>
+<td><code>transitionSuppliedBySlot</code></td>
+<td><code>$trigger</code></td>
+</tr>
+<tr>
+<td><code>transitionFireable</code></td>
+<td><code>$trigger</code></td>
+</tr>
+</tbody>
+</table>
+<p>The shell-specific references form a read-only object supplied by the
+Surface processor. They carry strings only and expose no route table,
+navigation function, action executor, Response, or mutable host state.
+All ordinary FEL rules still apply.</p>
+<p>These keys are valid only for <code>target.kind: "app"</code> and the
+<code>x-formspec-surface</code> module. A processor MUST reject an
+unknown shell suffix and MUST NOT translate a shorter host key or legacy
+Surface string name into this family.</p>
 <h3 id="key-resolution-rules">3.2 Key Resolution Rules</h3>
 <p>Processors MUST apply the following rules when resolving string
 keys:</p>
@@ -1101,11 +1238,9 @@ keys:</p>
 <li>Keys are <strong>case-sensitive</strong>.
 <code>projectName.label</code> and <code>ProjectName.label</code> are
 different keys.</li>
-<li>A key that does not correspond to any Item, option, or shape in the
-target Definition SHOULD produce a <strong>warning</strong> but MUST NOT
-cause failure. This allows forward-compatible Locale Documents that
-include keys for items not yet present in older Definition
-versions.</li>
+<li>A key that does not correspond to a localizable member in the exact
+target SHOULD produce a warning. Unknown Surface shell suffixes are the
+exception: the closed schema rejects them.</li>
 <li>A Locale Document MAY contain keys for a subset of localizable
 strings. Missing keys fall through the cascade (§4).</li>
 <li>Duplicate keys within a single <code>strings</code> object are
@@ -1116,6 +1251,10 @@ Authoring tools SHOULD warn on duplicates.</li>
 <p>String values MAY contain FEL expressions delimited by double curly
 braces:</p>
 <pre><code>{{&lt;FEL expression&gt;}}</code></pre>
+<p>This is the only authored template syntax. A single-brace sequence
+such as <code>{name}</code> is literal text. Processors MUST NOT run the
+former Surface-only replacement parser before or after FEL
+interpolation.</p>
 <p>The expression is evaluated in the binding context of the Item
 identified by the string key’s <code>&lt;itemKey&gt;</code> prefix. This
 gives the expression access to:</p>
@@ -1127,12 +1266,12 @@ gives the expression access to:</p>
 <li>The <code>pluralCategory()</code> function (core spec §3.5)</li>
 </ul>
 <p>Examples:</p>
-<div class="sourceCode" id="cb23"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;itemCount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nombre d&#39;articles : {{$itemCount}}&quot;</span><span class="fu">,</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budget.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Maximum autorisé : {{formatNumber($maxBudget)}} $&quot;</span><span class="fu">,</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;poste&#39;, &#39;postes&#39;)}}&quot;</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;itemCount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nombre d&#39;articles : {{$itemCount}}&quot;</span><span class="fu">,</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budget.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Maximum autorisé : {{formatNumber($maxBudget)}} $&quot;</span><span class="fu">,</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;poste&#39;, &#39;postes&#39;)}}&quot;</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h4 id="interpolation-processing">3.3.1 Interpolation Processing</h4>
 <p>Processors MUST apply the following rules:</p>
 <ol type="1">
@@ -1240,6 +1379,12 @@ depends on the string key’s prefix:</p>
 <td>Yes</td>
 <td><code>$fieldRef</code> within repeat scope + parent scopes</td>
 </tr>
+<tr>
+<td><code>$module.x-formspec-surface.shell.*</code></td>
+<td>Read-only shell string context</td>
+<td>No</td>
+<td>Only the key-specific references in §3.1.9</td>
+</tr>
 </tbody>
 </table>
 <p>For item-level keys inside repeat groups, the locale key uses the
@@ -1247,13 +1392,19 @@ depends on the string key’s prefix:</p>
 <code>{{expression}}</code> is evaluated in the <strong>instance
 context</strong> — <code>@index</code> resolves to the actual instance
 index. This enables per-instance labels:</p>
-<div class="sourceCode" id="cb24"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Poste budgétaire {{@index + 1}}&quot;</span></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Poste budgétaire {{@index + 1}}&quot;</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h2 id="fallback-cascade">4. Fallback Cascade</h2>
 <p>When the engine resolves a localized string, it walks a fallback
-chain from most-specific to least-specific:</p>
+chain from most-specific to least-specific. Every lookup is indexed by
+the complete target identity:</p>
+<pre><code>(target.kind, target.url, normalized locale)</code></pre>
+<p>A fallback step MUST preserve <code>target.kind</code> and
+<code>target.url</code>. It MUST NOT move from an app to a Definition,
+between two Definitions, or between two apps because their language tags
+match.</p>
 <h3 id="cascade-order">4.1 Cascade Order</h3>
 <p>For a requested locale code (e.g., <code>fr-CA</code>) and string key
 (e.g., <code>projectName.label</code>):</p>
@@ -1263,24 +1414,26 @@ Locale Document whose <code>locale</code> matches
 <code>fr-CA</code>.</li>
 <li><strong>Explicit fallback</strong> — If not found and the Locale
 Document declares a <code>fallback</code> (e.g., <code>"fr"</code>),
-look up the key in the Locale Document whose <code>locale</code> matches
-the fallback code. If the fallback Locale Document itself declares a
-<code>fallback</code>, continue walking the explicit chain (subject to
-circular detection, §4.3).</li>
+look up the key in the Locale Document whose target is identical and
+whose <code>locale</code> matches the fallback code. If the fallback
+Locale Document itself declares a <code>fallback</code>, continue
+walking the explicit chain (subject to circular detection, §4.3).</li>
 <li><strong>Implicit language fallback</strong> — If not found after
 exhausting the explicit fallback chain, and the <em>original</em>
 requested locale code contains a region subtag, strip the region and
 look up the base language (e.g., <code>fr</code> from
-<code>fr-CA</code>). This step is skipped if any step in the explicit
-fallback chain already consulted a Locale Document with that base
-language code.</li>
-<li><strong>Inline default</strong> — Use the Definition’s inline string
-property (<code>label</code>, <code>description</code>,
-<code>hint</code>, etc.).</li>
+<code>fr-CA</code>) for the same exact target. This step is skipped if
+any step in the explicit fallback chain already consulted a Locale
+Document with that base language code.</li>
+<li><strong>Target default</strong> — For a Definition target, use the
+Definition’s inline property. For an App Manifest Surface-shell key, use
+the runtime’s default value for that same closed key.</li>
 </ol>
 <p>A processor MUST walk the cascade in this order and MUST return the
-first non-null result. If all steps produce no result, the processor
-MUST return the empty string <code>""</code>.</p>
+first non-null result. It MUST NOT consult a Locale document for another
+target as an extra fallback. If all target-local steps produce no result
+and the target has no default for the key, the processor MUST return the
+empty string <code>""</code>.</p>
 <blockquote>
 <p><strong>Example of explicit fallback to a different
 language:</strong> If <code>fr-CA</code> declares
@@ -1293,30 +1446,30 @@ different language from the base <code>fr</code>.</p>
 <h3 id="cascade-examples">4.2 Cascade Examples</h3>
 <p>Given these documents:</p>
 <p><strong>Definition</strong> (inline defaults):</p>
-<div class="sourceCode" id="cb25"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;field&quot;</span><span class="fu">,</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Name&quot;</span><span class="fu">,</span> <span class="dt">&quot;hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Enter your full name&quot;</span> <span class="fu">}</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p><strong>Locale Document (<code>fr</code>)</strong>:</p>
-<div class="sourceCode" id="cb26"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom&quot;</span><span class="fu">,</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez votre nom complet&quot;</span></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p><strong>Locale Document (<code>fr-CA</code>)</strong>:</p>
 <div class="sourceCode" id="cb27"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr-CA&quot;</span><span class="fu">,</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez votre nom au complet&quot;</span></span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;field&quot;</span><span class="fu">,</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Name&quot;</span><span class="fu">,</span> <span class="dt">&quot;hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Enter your full name&quot;</span> <span class="fu">}</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Locale Document (<code>fr</code>)</strong>:</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom&quot;</span><span class="fu">,</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez votre nom complet&quot;</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Locale Document (<code>fr-CA</code>)</strong>:</p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr-CA&quot;</span><span class="fu">,</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez votre nom au complet&quot;</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Resolution for locale <code>fr-CA</code>:</p>
 <table>
 <colgroup>
@@ -1354,16 +1507,17 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb27-1"><a href=
 </table>
 <h3 id="circular-fallback-detection">4.3 Circular Fallback
 Detection</h3>
-<p>A processor MUST detect circular fallback chains (e.g.,
-<code>fr-CA</code> → <code>fr</code> → <code>fr-CA</code>) and MUST
-terminate the cascade, falling through to inline defaults. Processors
-SHOULD emit a warning when a circular fallback is detected.</p>
+<p>A processor MUST detect circular fallback chains for one target
+(e.g., <code>fr-CA</code> → <code>fr</code> → <code>fr-CA</code>) and
+MUST terminate the cascade, falling through to that target’s default.
+Processors SHOULD emit a warning.</p>
 <h3 id="multiple-locale-documents">4.4 Multiple Locale Documents</h3>
 <p>An engine MAY have multiple Locale Documents loaded simultaneously.
-The engine maintains a locale cascade — an ordered list of Locale
-Documents consulted during string resolution. The
-<code>setLocale()</code> call (§6.2) determines which cascade is
-active.</p>
+It indexes them by the complete target-and-locale tuple. The same
+normalized locale may therefore exist for an app and any number of
+Definitions. Duplicate complete tuples are invalid; processors MUST NOT
+choose by load order. <code>setLocale()</code> selects a language within
+a requested target, not one global cross-target list.</p>
 <h2 id="fel-functions">5. FEL Functions</h2>
 <p>This specification introduces three FEL functions.
 <code>locale()</code> is part of the <strong>Locale Core</strong>
@@ -1396,15 +1550,15 @@ spec’s treatment of <code>now()</code>.</p>
 <code>calculate</code>, <code>relevant</code>, <code>constraint</code>,
 and <code>readonly</code> expressions. This enables locale-aware logic
 in the Definition itself:</p>
-<div class="sourceCode" id="cb28"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;instructions&quot;</span><span class="fu">,</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;display&quot;</span><span class="fu">,</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Instructions&quot;</span><span class="fu">,</span></span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;relevant&quot;</span><span class="fu">:</span> <span class="st">&quot;locale() = &#39;en&#39; or locale() = &#39;&#39;&quot;</span></span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;instructions&quot;</span><span class="fu">,</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;display&quot;</span><span class="fu">,</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Instructions&quot;</span><span class="fu">,</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;relevant&quot;</span><span class="fu">:</span> <span class="st">&quot;locale() = &#39;en&#39; or locale() = &#39;&#39;&quot;</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h3 id="pluralization-via-pluralcategory">5.2 Pluralization via
 <code>pluralCategory()</code></h3>
 <p>Pluralization in locale strings uses the core FEL function
@@ -1414,16 +1568,16 @@ values are: <code>zero</code>, <code>one</code>, <code>two</code>,
 <code>few</code>, <code>many</code>, <code>other</code>.</p>
 <p>Authors combine <code>pluralCategory()</code> with <code>if()</code>
 to select the appropriate word form:</p>
-<div class="sourceCode" id="cb29"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;ligne&#39;, &#39;lignes&#39;)}}&quot;</span></span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;ligne&#39;, &#39;lignes&#39;)}}&quot;</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>For languages with more than two plural forms (e.g., Arabic with six
 forms, or Polish with three), authors chain conditions:</p>
-<div class="sourceCode" id="cb30"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;element&#39;, if(pluralCategory($count) = &#39;few&#39;, &#39;elementy&#39;, &#39;elementów&#39;))}}&quot;</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;element&#39;, if(pluralCategory($count) = &#39;few&#39;, &#39;elementy&#39;, &#39;elementów&#39;))}}&quot;</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Because <code>pluralCategory()</code> uses CLDR data, it correctly
 handles all languages — including those where the <code>one</code>
 category does not correspond to the number 1 (e.g., French treats 0 as
@@ -1470,19 +1624,23 @@ MAY use different API shapes provided the semantics are equivalent.</p>
 <li>The input is a parsed Locale Document object conforming to this
 specification.</li>
 <li>Processors MUST validate the <code>$formspecLocale</code> version
-and <code>targetDefinition</code> binding before accepting the
+and exact <code>target</code> binding before accepting the
 document.</li>
-<li>If a Locale Document with the same <code>locale</code> code is
-already loaded, the new document MUST replace it.</li>
+<li>The store key is
+<code>(target.kind, target.url, normalized locale)</code>. A second
+document with the same complete tuple is a duplicate and MUST be
+rejected; it does not replace the first by load order.</li>
+<li>The same normalized locale MAY be loaded for distinct targets.</li>
 <li>Loading a Locale Document MUST NOT trigger reactive updates until
 the active locale is set.</li>
 </ul>
 <h3 id="set-the-active-locale">6.2 Set the Active Locale</h3>
 <p>Activate a locale, triggering reactive string resolution.</p>
 <ul>
-<li>The input is a BCP 47 language tag.</li>
+<li>The input identifies an exact target plus a BCP 47 language
+tag.</li>
 <li>The engine MUST build the fallback cascade (§4.1) and resolve all
-localized strings.</li>
+localized strings for that target.</li>
 <li>If the requested locale code does not match any loaded Locale
 Document, the engine MUST fall back to inline defaults and SHOULD emit a
 warning.</li>
@@ -1502,6 +1660,8 @@ optional context.</p>
 <code>"description"</code>).</li>
 <li><code>context</code> — optional context name for alternative labels
 (e.g., <code>"short"</code>, <code>"pdf"</code>).</li>
+<li><code>target</code> — exact <code>{kind, url}</code> identity whose
+Locale cascade is consulted.</li>
 <li>Returns the resolved string after cascade lookup and FEL
 interpolation.</li>
 <li>Returns the empty string <code>""</code> if no string is found at
@@ -1516,16 +1676,20 @@ any cascade level.</li>
 <code>schemas/locale.schema.json</code>. The schema enforces:</p>
 <ul>
 <li>Required properties: <code>$formspecLocale</code>,
-<code>version</code>, <code>locale</code>,
-<code>targetDefinition</code>, <code>strings</code>.</li>
+<code>version</code>, <code>locale</code>, <code>target</code>,
+<code>strings</code>.</li>
 <li><code>strings</code> MUST be an object with string values.</li>
 <li><code>locale</code> MUST be a syntactically valid BCP 47 language
 tag.</li>
-<li><code>targetDefinition.url</code> MUST be a URI.</li>
+<li><code>target</code> is closed, <code>target.kind</code> is
+<code>definition</code> or <code>app</code>, and <code>target.url</code>
+is an absolute URI.</li>
+<li>Surface shell keys are limited to the exact §3.1.9 set.</li>
 </ul>
 <h3 id="cross-reference-validation">7.2 Cross-Reference Validation</h3>
-<p>A validator that has access to both a Locale Document and its target
-Definition SHOULD perform the following cross-reference checks:</p>
+<p>A validator that has access to a Locale Document, its exact target,
+and the App Manifest association SHOULD perform the following
+cross-reference checks:</p>
 <table>
 <colgroup>
 <col style="width: 23%" />
@@ -1576,10 +1740,40 @@ property.</td>
 <td>A <code>{{...}}</code> expression fails to parse as valid FEL.</td>
 </tr>
 <tr>
+<td>Target mismatch</td>
+<td>Error</td>
+<td><code>target.kind</code> or <code>target.url</code> does not
+identify the selected loaded Definition or App Manifest.</td>
+</tr>
+<tr>
 <td>Version mismatch</td>
-<td>Warning</td>
-<td>The Definition’s version does not satisfy
+<td>Error for App Manifest 2.4 association</td>
+<td>The target version does not satisfy
 <code>compatibleVersions</code>.</td>
+</tr>
+<tr>
+<td>Reference locale mismatch</td>
+<td>Error</td>
+<td>App Manifest <code>locales[].locale</code> does not equal the loaded
+document’s normalized <code>locale</code>.</td>
+</tr>
+<tr>
+<td>Duplicate target-locale tuple</td>
+<td>Error</td>
+<td>Two loaded documents share
+<code>(target.kind, target.url, normalized locale)</code>.</td>
+</tr>
+<tr>
+<td>Cross-target fallback</td>
+<td>Error</td>
+<td>An explicit or implicit fallback attempts to consult another
+target.</td>
+</tr>
+<tr>
+<td>Invalid shell target</td>
+<td>Error</td>
+<td>A Surface shell key appears in a Locale whose target kind is not
+<code>app</code> or whose app did not load the Surface module.</td>
 </tr>
 <tr>
 <td>Orphaned <code>$page</code> key</td>
@@ -1623,8 +1817,8 @@ bracket notation. Item-level keys MUST use template paths.</td>
 <tbody>
 <tr>
 <td>E1400 / W1400</td>
-<td><code>targetDefinition.url</code> mismatch or compatible-version
-mismatch against a paired Definition.</td>
+<td><code>target.kind</code> / <code>target.url</code> mismatch or
+compatible-version mismatch against the paired target.</td>
 </tr>
 <tr>
 <td>E1401</td>
@@ -1685,7 +1879,9 @@ checks run only when <code>theme_document</code> is supplied.
 Component-aware <code>$component.*</code> checks run only when
 <code>component_documents</code> are supplied. Fallback-cycle checks
 inspect the current Locale plus <code>locale_documents</code> supplied
-in lint context.</p>
+in lint context. App-target and complete-tuple checks run only when the
+App Manifest and referenced Locale documents are supplied; schema-only
+lint does not pretend to perform that graph validation.</p>
 <h2 id="processing-model">8. Processing Model</h2>
 <h3 id="integration-with-the-four-phase-cycle">8.1 Integration with the
 Four-Phase Cycle</h3>
@@ -1750,19 +1946,19 @@ field value signals referenced by interpolation expressions.</p>
 <h3 id="repeat-group-paths">8.4 Repeat Group Paths</h3>
 <p>For items inside repeat groups, the string key uses the
 <strong>template path</strong> (without instance indices):</p>
-<div class="sourceCode" id="cb31"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span><span class="fu">,</span></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span><span class="fu">,</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The same localized string applies to all instances of the repeated
 item. Per-instance string customization is not supported — use FEL
 interpolation with the <code>@index</code> repeat context variable (core
 spec §3.2.2) if instance-specific text is needed:</p>
-<div class="sourceCode" id="cb32"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Poste {{@index}}&quot;</span></span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Poste {{@index}}&quot;</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The <code>@index</code> variable is 1-based, so the above produces
 “Poste 1”, “Poste 2”, etc.</p>
 <h2 id="security-considerations">9. Security Considerations</h2>
@@ -1817,11 +2013,16 @@ resolution.</td>
 <p>A <strong>Locale Core</strong> conformant processor MUST:</p>
 <ol type="1">
 <li>Parse and validate Locale Documents against the schema.</li>
-<li>Implement the fallback cascade as defined in §4.</li>
-<li>Evaluate FEL interpolation expressions as defined in §3.3.</li>
+<li>Index loaded documents by complete target-and-locale tuple and
+reject duplicates.</li>
+<li>Implement the target-bounded fallback cascade as defined in §4.</li>
+<li>Evaluate FEL interpolation expressions as defined in §3.3 without a
+single-brace compatibility parser.</li>
 <li>Implement the <code>locale()</code> FEL function (§5.1).</li>
 <li>Provide the capabilities defined in §6 (load, set active locale,
 resolve string, query active locale).</li>
+<li>Keep the Surface shell key set one-for-one with §3.1.9 and expose
+only its read-only key-specific FEL references.</li>
 </ol>
 <h3 id="locale-extended-conformance">10.3 Locale Extended
 Conformance</h3>
@@ -1840,77 +2041,82 @@ all Locale Core requirements and additionally MUST:</p>
 <li>Use syntactically valid BCP 47 locale codes.</li>
 <li>Use valid string key formats (§3.1).</li>
 <li>Use valid FEL syntax in interpolation expressions.</li>
+<li>Use an exact <code>target</code>; do not author
+<code>targetDefinition</code> in Locale 2.0.</li>
+<li>Use Surface shell keys only for an app target and only from the
+closed set.</li>
 </ol>
 <h2 id="appendix-a-complete-locale-document-example">Appendix A:
 Complete Locale Document Example</h2>
 <p>The following is a complete Locale Document for a grant report form,
 demonstrating all key patterns defined in this specification.</p>
-<div class="sourceCode" id="cb33"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$formspecLocale&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0&quot;</span><span class="fu">,</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/grant-report/locales/fr-CA&quot;</span><span class="fu">,</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;grant-report-fr-CA&quot;</span><span class="fu">,</span></span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Rapport de subvention — Français canadien&quot;</span><span class="fu">,</span></span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Localisation française canadienne du formulaire de rapport de subvention.&quot;</span><span class="fu">,</span></span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr-CA&quot;</span><span class="fu">,</span></span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetDefinition&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/grant-report&quot;</span><span class="fu">,</span></span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;compatibleVersions&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;=1.0.0 &lt;2.0.0&quot;</span></span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Form-level</span> <span class="er">strings</span> <span class="er">(§3.1.5)</span></span>
-<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$form.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Rapport annuel sur les subventions&quot;</span><span class="fu">,</span></span>
-<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$form.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Formulaire de rapport pour les organismes bénéficiaires&quot;</span><span class="fu">,</span></span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Item</span> <span class="er">labels,</span> <span class="er">descriptions,</span> <span class="er">hints</span> <span class="er">(§3.1.1)</span></span>
-<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom du projet&quot;</span><span class="fu">,</span></span>
-<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez le nom officiel tel qu&#39;il apparaît dans l&#39;entente&quot;</span><span class="fu">,</span></span>
-<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Le nom complet du projet subventionné&quot;</span><span class="fu">,</span></span>
-<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Context</span> <span class="er">labels</span> <span class="er">(§3.1.2)</span></span>
-<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Section budgétaire&quot;</span><span class="fu">,</span></span>
-<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label@short&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget&quot;</span><span class="fu">,</span></span>
-<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label@pdf&quot;</span><span class="fu">:</span> <span class="st">&quot;Section III : Informations budgétaires détaillées&quot;</span><span class="fu">,</span></span>
-<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Choice</span> <span class="er">option</span> <span class="er">labels</span> <span class="er">(§3.1.3)</span></span>
-<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
-<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
-<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.na.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Sans objet&quot;</span><span class="fu">,</span></span>
-<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Validation</span> <span class="er">messages</span> <span class="er">—</span> <span class="er">per</span> <span class="er">constraint</span> <span class="er">code</span> <span class="er">(§3.1.4)</span></span>
-<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;email.errors.REQUIRED&quot;</span><span class="fu">:</span> <span class="st">&quot;L&#39;adresse courriel est obligatoire&quot;</span><span class="fu">,</span></span>
-<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;email.errors.CONSTRAINT_FAILED&quot;</span><span class="fu">:</span> <span class="st">&quot;Veuillez entrer une adresse courriel valide&quot;</span><span class="fu">,</span></span>
-<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Validation</span> <span class="er">messages</span> <span class="er">—</span> <span class="er">per</span> <span class="er">Bind</span> <span class="er">(§3.1.4)</span></span>
-<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;ssn.constraintMessage&quot;</span><span class="fu">:</span> <span class="st">&quot;Le NAS doit être au format 000-000-000&quot;</span><span class="fu">,</span></span>
-<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Shape</span> <span class="er">rule</span> <span class="er">messages</span> <span class="er">(§3.1.6)</span></span>
-<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$shape.budget-balance.message&quot;</span><span class="fu">:</span> <span class="st">&quot;Le total du budget doit correspondre au financement demandé&quot;</span><span class="fu">,</span></span>
-<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">FEL</span> <span class="er">interpolation</span> <span class="er">(§3.3)</span></span>
-<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;totalItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Total : {{$itemCount}} {{if(pluralCategory($itemCount) = &#39;one&#39;, &#39;article&#39;, &#39;articles&#39;)}}&quot;</span><span class="fu">,</span></span>
-<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetRemaining.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Il vous reste {{formatNumber($remaining)}} $&quot;</span><span class="fu">,</span></span>
-<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Repeat</span> <span class="er">group</span> <span class="er">with</span> <span class="er">@index</span> <span class="er">(§8.4)</span></span>
-<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Poste budgétaire {{@index}}&quot;</span><span class="fu">,</span></span>
-<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span><span class="fu">,</span></span>
-<span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span><span class="fu">,</span></span>
-<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Page</span> <span class="er">titles</span> <span class="er">(§3.1.7)</span></span>
-<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$page.info.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Informations du projet&quot;</span><span class="fu">,</span></span>
-<span id="cb33-55"><a href="#cb33-55" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$page.review.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Révision et soumission&quot;</span><span class="fu">,</span></span>
-<span id="cb33-56"><a href="#cb33-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-57"><a href="#cb33-57" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">OptionSet</span> <span class="er">labels</span> <span class="er">(§3.1.3)</span></span>
-<span id="cb33-58"><a href="#cb33-58" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$optionSet.yesNoNA.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
-<span id="cb33-59"><a href="#cb33-59" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$optionSet.yesNoNA.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
-<span id="cb33-60"><a href="#cb33-60" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-61"><a href="#cb33-61" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Component</span> <span class="er">node</span> <span class="er">strings</span> <span class="er">(§3.1.8)</span></span>
-<span id="cb33-62"><a href="#cb33-62" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$component.submitBtn.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Soumettre la demande&quot;</span><span class="fu">,</span></span>
-<span id="cb33-63"><a href="#cb33-63" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$component.mainTabs.tabLabels[0]&quot;</span><span class="fu">:</span> <span class="st">&quot;Personnel&quot;</span></span>
-<span id="cb33-64"><a href="#cb33-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb33-65"><a href="#cb33-65" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$formspecLocale&quot;</span><span class="fu">:</span> <span class="st">&quot;2.0&quot;</span><span class="fu">,</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/grant-report/locales/fr-CA&quot;</span><span class="fu">,</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;grant-report-fr-CA&quot;</span><span class="fu">,</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Rapport de subvention — Français canadien&quot;</span><span class="fu">,</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Localisation française canadienne du formulaire de rapport de subvention.&quot;</span><span class="fu">,</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr-CA&quot;</span><span class="fu">,</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;target&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;definition&quot;</span><span class="fu">,</span></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/grant-report&quot;</span><span class="fu">,</span></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;compatibleVersions&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;=1.0.0 &lt;2.0.0&quot;</span></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Form-level</span> <span class="er">strings</span> <span class="er">(§3.1.5)</span></span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$form.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Rapport annuel sur les subventions&quot;</span><span class="fu">,</span></span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$form.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Formulaire de rapport pour les organismes bénéficiaires&quot;</span><span class="fu">,</span></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Item</span> <span class="er">labels,</span> <span class="er">descriptions,</span> <span class="er">hints</span> <span class="er">(§3.1.1)</span></span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom du projet&quot;</span><span class="fu">,</span></span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez le nom officiel tel qu&#39;il apparaît dans l&#39;entente&quot;</span><span class="fu">,</span></span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Le nom complet du projet subventionné&quot;</span><span class="fu">,</span></span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Context</span> <span class="er">labels</span> <span class="er">(§3.1.2)</span></span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Section budgétaire&quot;</span><span class="fu">,</span></span>
+<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label@short&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget&quot;</span><span class="fu">,</span></span>
+<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label@pdf&quot;</span><span class="fu">:</span> <span class="st">&quot;Section III : Informations budgétaires détaillées&quot;</span><span class="fu">,</span></span>
+<span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-30"><a href="#cb35-30" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Choice</span> <span class="er">option</span> <span class="er">labels</span> <span class="er">(§3.1.3)</span></span>
+<span id="cb35-31"><a href="#cb35-31" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
+<span id="cb35-32"><a href="#cb35-32" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
+<span id="cb35-33"><a href="#cb35-33" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.na.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Sans objet&quot;</span><span class="fu">,</span></span>
+<span id="cb35-34"><a href="#cb35-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-35"><a href="#cb35-35" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Validation</span> <span class="er">messages</span> <span class="er">—</span> <span class="er">per</span> <span class="er">constraint</span> <span class="er">code</span> <span class="er">(§3.1.4)</span></span>
+<span id="cb35-36"><a href="#cb35-36" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;email.errors.REQUIRED&quot;</span><span class="fu">:</span> <span class="st">&quot;L&#39;adresse courriel est obligatoire&quot;</span><span class="fu">,</span></span>
+<span id="cb35-37"><a href="#cb35-37" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;email.errors.CONSTRAINT_FAILED&quot;</span><span class="fu">:</span> <span class="st">&quot;Veuillez entrer une adresse courriel valide&quot;</span><span class="fu">,</span></span>
+<span id="cb35-38"><a href="#cb35-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-39"><a href="#cb35-39" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Validation</span> <span class="er">messages</span> <span class="er">—</span> <span class="er">per</span> <span class="er">Bind</span> <span class="er">(§3.1.4)</span></span>
+<span id="cb35-40"><a href="#cb35-40" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;ssn.constraintMessage&quot;</span><span class="fu">:</span> <span class="st">&quot;Le NAS doit être au format 000-000-000&quot;</span><span class="fu">,</span></span>
+<span id="cb35-41"><a href="#cb35-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-42"><a href="#cb35-42" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Shape</span> <span class="er">rule</span> <span class="er">messages</span> <span class="er">(§3.1.6)</span></span>
+<span id="cb35-43"><a href="#cb35-43" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$shape.budget-balance.message&quot;</span><span class="fu">:</span> <span class="st">&quot;Le total du budget doit correspondre au financement demandé&quot;</span><span class="fu">,</span></span>
+<span id="cb35-44"><a href="#cb35-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-45"><a href="#cb35-45" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">FEL</span> <span class="er">interpolation</span> <span class="er">(§3.3)</span></span>
+<span id="cb35-46"><a href="#cb35-46" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;totalItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Total : {{$itemCount}} {{if(pluralCategory($itemCount) = &#39;one&#39;, &#39;article&#39;, &#39;articles&#39;)}}&quot;</span><span class="fu">,</span></span>
+<span id="cb35-47"><a href="#cb35-47" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetRemaining.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Il vous reste {{formatNumber($remaining)}} $&quot;</span><span class="fu">,</span></span>
+<span id="cb35-48"><a href="#cb35-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-49"><a href="#cb35-49" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Repeat</span> <span class="er">group</span> <span class="er">with</span> <span class="er">@index</span> <span class="er">(§8.4)</span></span>
+<span id="cb35-50"><a href="#cb35-50" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Poste budgétaire {{@index}}&quot;</span><span class="fu">,</span></span>
+<span id="cb35-51"><a href="#cb35-51" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span><span class="fu">,</span></span>
+<span id="cb35-52"><a href="#cb35-52" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span><span class="fu">,</span></span>
+<span id="cb35-53"><a href="#cb35-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-54"><a href="#cb35-54" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Page</span> <span class="er">titles</span> <span class="er">(§3.1.7)</span></span>
+<span id="cb35-55"><a href="#cb35-55" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$page.info.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Informations du projet&quot;</span><span class="fu">,</span></span>
+<span id="cb35-56"><a href="#cb35-56" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$page.review.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Révision et soumission&quot;</span><span class="fu">,</span></span>
+<span id="cb35-57"><a href="#cb35-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-58"><a href="#cb35-58" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">OptionSet</span> <span class="er">labels</span> <span class="er">(§3.1.3)</span></span>
+<span id="cb35-59"><a href="#cb35-59" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$optionSet.yesNoNA.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
+<span id="cb35-60"><a href="#cb35-60" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$optionSet.yesNoNA.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
+<span id="cb35-61"><a href="#cb35-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-62"><a href="#cb35-62" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Component</span> <span class="er">node</span> <span class="er">strings</span> <span class="er">(§3.1.8)</span></span>
+<span id="cb35-63"><a href="#cb35-63" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$component.submitBtn.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Soumettre la demande&quot;</span><span class="fu">,</span></span>
+<span id="cb35-64"><a href="#cb35-64" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$component.mainTabs.tabLabels[0]&quot;</span><span class="fu">:</span> <span class="st">&quot;Personnel&quot;</span></span>
+<span id="cb35-65"><a href="#cb35-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb35-66"><a href="#cb35-66" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <section id="footnotes" class="footnotes footnotes-end-of-document"
 role="doc-endnotes">
 <hr />

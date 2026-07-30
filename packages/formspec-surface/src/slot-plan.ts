@@ -36,7 +36,11 @@ import type { ExperienceDocument } from '@formspec-org/types';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 import type { SurfaceRoute } from './route-path.js';
 import type { SurfaceRouteHandle } from './composition.js';
-import { planExperienceUnit, type ExperienceUnitPlan } from './experience-unit.js';
+import {
+  planExperienceUnit,
+  type ExperienceDocumentHandle,
+  type ExperienceUnitPlan,
+} from './experience-unit.js';
 import {
   planStaticContent,
   type HeadingLevel,
@@ -44,17 +48,21 @@ import {
   type SurfaceStaticAssetResolver,
 } from './static-content.js';
 import type { WidgetKey, WidgetRegistry, WidgetResolution } from './registry.js';
+import type { ResponseActionsDocumentLike } from './transitions.js';
 import {
   dataSourceAvailableToWidget,
   resolveDataSourceDescriptor,
   type DataSourceCatalogHandle,
   type WidgetDataInputPlan,
 } from './data-source-loader.js';
+import { generationNeedAnchors } from './need-trace.js';
 
 export type SurfaceSlot = SurfaceRoute['slots'][number];
 
 export interface SlotPlanBase {
   slotId: string;
+  /** Direct authored Need anchors for the visible slot container and title. */
+  needAnchors?: readonly string[];
   title?: string;
   /** `slot.position` — an author hint with no normative vocabulary at v0.1. */
   position?: string;
@@ -83,7 +91,12 @@ export type SlotPlan<TComponent> = SlotPlanBase &
         actionOutputs: readonly WidgetActionOutputPlan[];
         resolution: WidgetResolution<TComponent>;
       }
-    | { slotType: 'static-content'; content: StaticContentPlan | undefined }
+    | {
+        slotType: 'static-content';
+        content: StaticContentPlan | undefined;
+        /** Direct authored Need anchors for the visible binding content. */
+        contentNeedAnchors?: readonly string[];
+      }
     | {
         slotType: 'unknown';
         /** The value received after validation was bypassed or input was corrupted. */
@@ -110,6 +123,8 @@ const KNOWN_SLOT_TYPES = {
 export interface SlotPlanContext<TComponent> {
   handle: SurfaceRouteHandle;
   experiences: readonly ExperienceDocument[];
+  /** Exact manifested source identity for qualified Experience bindings. */
+  experienceHandles?: readonly ExperienceDocumentHandle[] | undefined;
   definitions: ReadonlyMap<string, FormDefinition>;
   registryEntries: readonly RegistryEntry[];
   widgets: WidgetRegistry<TComponent>;
@@ -117,15 +132,34 @@ export interface SlotPlanContext<TComponent> {
   dataSources?: readonly DataSourceCatalogHandle[] | undefined;
   /** Manifest URL of `handle.surface`, required by Surface/route/slot availability. */
   surfaceRef?: string | undefined;
+  /** Loaded Response Actions documents used to resolve bound widget action metadata. */
+  responseActions?: readonly ResponseActionsDocumentLike[] | undefined;
   /** Level route content starts at. Default 2 — the route title is the `h1`. */
   headingBaseLevel?: HeadingLevel;
   /** Host admission boundary for authored static image sources. */
   staticAssetResolver?: SurfaceStaticAssetResolver | undefined;
 }
 
+export type WidgetActionLabelPlan =
+  | Readonly<{ literal: string }>
+  | Readonly<{ ref: string }>;
+
+export interface WidgetActionMetadataPlan {
+  /** Exact action id selected by the Surface output binding. */
+  actionRef: string;
+  /** Authored Response Actions intent. Metadata only; execution stays in the host port. */
+  intent: string;
+  /** Authored label form, retained without inventing display text. */
+  label?: WidgetActionLabelPlan | undefined;
+  /** Direct authored Need anchors on the resolved Response Actions Action. */
+  needAnchors?: readonly string[] | undefined;
+}
+
 export interface WidgetActionOutputPlan {
   name: string;
   actionRef?: string | undefined;
+  /** Present only when `actionRef` resolves to exactly one loaded Action. */
+  action?: WidgetActionMetadataPlan | undefined;
 }
 
 export interface RoutePlan<TComponent> {
@@ -155,7 +189,11 @@ function planSlot<TComponent>(
     routeId: context.handle.routeId,
     slotId: slot.id,
   };
-  const shared: SlotPlanBase = { slotId: slot.id, headingBaseLevel };
+  const shared: SlotPlanBase = {
+    slotId: slot.id,
+    needAnchors: generationNeedAnchors(slot),
+    headingBaseLevel,
+  };
   if (typeof slot.title === 'string') shared.title = slot.title;
   if (typeof slot.position === 'string') shared.position = slot.position;
   const binding = (slot.binding ?? {}) as Record<string, unknown>;
@@ -216,6 +254,7 @@ function planSlot<TComponent>(
         unitRef,
         experienceRef: typeof binding.experienceRef === 'string' ? binding.experienceRef : undefined,
         experiences: context.experiences,
+        experienceHandles: context.experienceHandles,
       });
       if (unitRef === '') {
         diagnostics.push(
@@ -338,11 +377,14 @@ function planSlot<TComponent>(
       }
       const actionOutputs: WidgetActionOutputPlan[] = declaredOutputs.map((declared) => {
         const authored = ownRecord(actionBindings, declared.name);
+        const actionRef = authored ? ownString(authored, 'actionRef') : undefined;
+        const action = actionRef === undefined
+          ? undefined
+          : resolveWidgetAction(context.responseActions ?? [], actionRef);
         return {
           name: declared.name,
-          ...(authored && ownString(authored, 'actionRef') !== undefined
-            ? { actionRef: ownString(authored, 'actionRef') }
-            : {}),
+          ...(actionRef !== undefined ? { actionRef } : {}),
+          ...(action !== undefined ? { action } : {}),
         };
       });
       const plan: SlotPlan<TComponent> = {
@@ -370,7 +412,13 @@ function planSlot<TComponent>(
         site,
       });
       diagnostics.push(...result.diagnostics);
-      return { ...shared, slotType: 'static-content', content: result.plan };
+      const contentNeedAnchors = generationNeedAnchors(binding);
+      return {
+        ...shared,
+        slotType: 'static-content',
+        content: result.plan,
+        ...(contentNeedAnchors.length > 0 ? { contentNeedAnchors } : {}),
+      };
     }
 
     case 'embed-route': {
@@ -441,6 +489,39 @@ function planSlot<TComponent>(
 
 function exhaustive(value: never): never {
   throw new Error(`Unhandled slot type: ${String(value)}`);
+}
+
+function resolveWidgetAction(
+  documents: readonly ResponseActionsDocumentLike[],
+  actionRef: string,
+): WidgetActionMetadataPlan | undefined {
+  const matches = documents.flatMap((document) =>
+    (document.actions ?? []).filter((action) => action.id === actionRef),
+  );
+  if (matches.length !== 1) return undefined;
+  const action = matches[0];
+  if (!action || typeof action.intent !== 'string') return undefined;
+
+  const labelRecord =
+    typeof action.label === 'object' && action.label !== null && !Array.isArray(action.label)
+      ? (action.label as Readonly<Record<string, unknown>>)
+      : undefined;
+  const literal = labelRecord ? ownString(labelRecord, 'literal') : undefined;
+  const ref = labelRecord ? ownString(labelRecord, 'ref') : undefined;
+  const label: WidgetActionLabelPlan | undefined =
+    literal !== undefined && ref === undefined
+      ? { literal }
+      : ref !== undefined && literal === undefined
+        ? { ref }
+        : undefined;
+  const needAnchors = generationNeedAnchors(action);
+
+  return {
+    actionRef,
+    intent: action.intent,
+    ...(label !== undefined ? { label } : {}),
+    ...(needAnchors.length > 0 ? { needAnchors } : {}),
+  };
 }
 
 function ownRecord(

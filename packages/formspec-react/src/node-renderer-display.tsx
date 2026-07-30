@@ -9,7 +9,11 @@ import { useFormspecContext, findItemByKey } from './context.js';
 import { useSignal } from './use-signal';
 import { useRepeatCount } from './use-repeat-count';
 import { ValidationSummary } from './validation-summary';
-import { projectionMetadataAttrs } from './projection-metadata.js';
+import {
+    generationNeedAnchors,
+    needTraceAttrs,
+    projectionMetadataAttrs,
+} from './projection-metadata.js';
 
 /**
  * Minimal markdown-to-HTML converter. Handles the subset required by the Text
@@ -169,7 +173,7 @@ function SummaryDisplay({
     metadataAttrs,
 }: {
     node: LayoutNode;
-    items: Array<{ label: string; bind?: string }>;
+    items: Array<{ label: string; bind?: string; 'x-generation'?: unknown }>;
     cssClass: string | undefined;
     style: React.CSSProperties | undefined;
     metadataAttrs: Record<string, string>;
@@ -177,7 +181,12 @@ function SummaryDisplay({
     return (
         <dl className={`formspec-summary${cssClass ? ' ' + cssClass : ''}`} style={style} {...metadataAttrs}>
             {items.map((item, i) => (
-                <SummaryItem key={item.bind || i} label={item.label} bind={item.bind} />
+                <SummaryItem
+                    key={item.bind || i}
+                    label={item.label}
+                    bind={item.bind}
+                    metadataAttrs={needTraceAttrs(generationNeedAnchors(item))}
+                />
             ))}
         </dl>
     );
@@ -263,7 +272,15 @@ function formatMoney(value: unknown, locale = 'en-US'): string {
     return String(value);
 }
 
-function SummaryItem({ label, bind }: { label: string; bind?: string }) {
+function SummaryItem({
+    label,
+    bind,
+    metadataAttrs,
+}: {
+    label: string;
+    bind?: string;
+    metadataAttrs: Record<string, string>;
+}) {
     const { engine } = useFormspecContext();
     const rawValue = useSignal(bind ? (engine.signals[bind] ?? NO_VALUE) : NO_VALUE);
     const displayValue = rawValue != null
@@ -274,8 +291,8 @@ function SummaryItem({ label, bind }: { label: string; bind?: string }) {
 
     return (
         <>
-            <dt>{label}</dt>
-            <dd>{displayValue}</dd>
+            <dt {...metadataAttrs}>{label}</dt>
+            <dd {...metadataAttrs}>{displayValue}</dd>
         </>
     );
 }
@@ -290,6 +307,7 @@ type DataTableColumn = {
     min?: number;
     max?: number;
     step?: number;
+    'x-generation'?: unknown;
 };
 
 function DataTableCell({
@@ -297,11 +315,13 @@ function DataTableCell({
     column,
     fieldDef,
     defaultCurrency,
+    metadataAttrs,
 }: {
     signalPath: string;
     column: DataTableColumn;
     fieldDef?: FormItem;
     defaultCurrency: string;
+    metadataAttrs: Record<string, string>;
 }) {
     const { engine } = useFormspecContext();
     const rawValue = useSignal(engine.signals[signalPath] ?? NO_VALUE);
@@ -346,12 +366,12 @@ function DataTableCell({
             const match = choices.find((c) => c.value === rawValue);
             if (match) displayValue = match.label;
         }
-        return <td>{displayValue}</td>;
+        return <td {...metadataAttrs}>{displayValue}</td>;
     }
 
     if (dataType === 'boolean') {
         return (
-            <td>
+            <td {...metadataAttrs}>
                 <input
                     className="formspec-datatable-input"
                     type="checkbox"
@@ -366,7 +386,7 @@ function DataTableCell({
 
     if ((dataType === 'choice' || dataType === 'select') && choices.length > 0) {
         return (
-            <td>{wrapControl(
+            <td {...metadataAttrs}>{wrapControl(
                 <select
                     className="formspec-datatable-input"
                     name={signalPath}
@@ -390,7 +410,7 @@ function DataTableCell({
             : undefined;
         const numericDisplay = moneyValue ?? (typeof rawValue === 'number' || typeof rawValue === 'string' ? rawValue : '');
         return (
-            <td>{wrapControl(
+            <td {...metadataAttrs}>{wrapControl(
                 <input
                     className="formspec-datatable-input"
                     name={signalPath}
@@ -429,7 +449,7 @@ function DataTableCell({
 
     if (dataType === 'date') {
         return (
-            <td>{wrapControl(
+            <td {...metadataAttrs}>{wrapControl(
                 <input
                     className="formspec-datatable-input"
                     name={signalPath}
@@ -444,7 +464,7 @@ function DataTableCell({
     }
 
     return (
-        <td>{wrapControl(
+        <td {...metadataAttrs}>{wrapControl(
             <input
                 className="formspec-datatable-input"
                 name={signalPath}
@@ -513,7 +533,13 @@ function DataTableDisplay({
                     <tr>
                         {showRowNumbers && <th scope="col">#</th>}
                         {columns.map((col, ci) => (
-                            <th key={ci} scope="col">{col.header}</th>
+                            <th
+                                key={ci}
+                                scope="col"
+                                {...needTraceAttrs(generationNeedAnchors(col))}
+                            >
+                                {col.header}
+                            </th>
                         ))}
                         {allowRemove && (
                             <th scope="col"><span className="formspec-sr-only">Actions</span></th>
@@ -531,6 +557,7 @@ function DataTableDisplay({
                                     column={col}
                                     fieldDef={fieldByKey.get(col.bind)}
                                     defaultCurrency={defaultCurrency}
+                                    metadataAttrs={needTraceAttrs(generationNeedAnchors(col))}
                                 />
                             ))}
                             {allowRemove && (

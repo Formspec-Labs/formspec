@@ -147,6 +147,38 @@ test('FieldViewModel description resolves from locale', () => {
     assert.equal(vm.description.value, 'Courriel professionnel ou personnel');
 });
 
+test('FieldViewModel exposes Need anchors for the exact localized presentation strings', () => {
+    const deps = makeMinimalDeps();
+    const vm = createFieldViewModel(deps);
+
+    deps.localeStore.loadLocale({
+        $formspecLocale: '2.0',
+        locale: 'fr',
+        version: '1.0.0',
+        target: { kind: 'definition', url: '' },
+        strings: {
+            'email.label': 'Courriel',
+            'email.hint': 'Entrez votre courriel',
+            'email.description': 'Courriel professionnel ou personnel',
+        },
+        stringGeneration: {
+            'email.label': { anchors: ['need:localized-email-label@1'] },
+            'email.hint': { anchors: ['need:localized-email-hint@2'] },
+            'email.description': { anchors: ['need:localized-email-description@3'] },
+        },
+    });
+    deps.localeStore.setLocale('fr');
+
+    assert.deepEqual(vm.labelNeedAnchors.value, ['need:localized-email-label@1']);
+    assert.deepEqual(vm.hintNeedAnchors.value, ['need:localized-email-hint@2']);
+    assert.deepEqual(vm.descriptionNeedAnchors.value, ['need:localized-email-description@3']);
+
+    deps.localeStore.setLocale('en');
+    assert.deepEqual(vm.labelNeedAnchors.value, []);
+    assert.deepEqual(vm.hintNeedAnchors.value, []);
+    assert.deepEqual(vm.descriptionNeedAnchors.value, []);
+});
+
 test('FieldViewModel value signal wraps engine signal', () => {
     const valueSignal = rt.signal('hello@test.com');
     const deps = makeMinimalDeps({ getFieldValue: () => valueSignal });

@@ -12,6 +12,7 @@ import type {
   SurfaceDiagnostic,
 } from '@formspec-org/surface';
 import { SurfaceApp } from '../src/SurfaceApp.js';
+import { StructuredPanel } from '../src/widgets/structured-panel.js';
 import type {
   SurfaceWidget,
   SurfaceWidgetActionExecutor,
@@ -27,7 +28,19 @@ const responseActions = {
   $formspecResponseActions: '1.0',
   version: '1.0.0',
   targetDefinition: { url: 'urn:def' },
-  actions: [{ id: 'acceptReceipt', intent: 'review' }],
+  actions: [
+    {
+      id: 'acceptReceipt',
+      intent: 'review',
+      label: { literal: 'Accept receipt' },
+      'x-generation': {
+        anchors: [
+          'need:accept-receipt@3',
+          'need:shared-action-control@1',
+        ],
+      },
+    },
+  ],
 } as unknown as ResponseActionsDocument;
 
 function registry(withData: boolean): RegistryDocument {
@@ -98,6 +111,7 @@ function bundle(
   transitions: readonly { trigger: string; to: string }[] = [
     { trigger: 'acceptReceipt', to: 'done' },
   ],
+  config?: Readonly<Record<string, unknown>>,
 ): ResolvedBundle {
   const binding = {
     moduleId: 'x-runtime',
@@ -112,6 +126,7 @@ function bundle(
           },
         }
       : {}),
+    ...(config === undefined ? {} : { config }),
     actionBindings: { accepted: { actionRef: 'acceptReceipt' } },
   };
   const surface = {
@@ -224,6 +239,18 @@ describe('qualified widget data', () => {
       '{"receipt":{"caseRef":"case-7"}}',
     );
     expect(Object.isFrozen(seen.at(-1)?.data)).toBe(true);
+    expect(seen.at(-1)?.actions).toEqual([
+      {
+        outputName: 'accepted',
+        actionRef: 'acceptReceipt',
+        intent: 'review',
+        label: { literal: 'Accept receipt' },
+        needAnchors: [
+          'need:accept-receipt@3',
+          'need:shared-action-control@1',
+        ],
+      },
+    ]);
     expect(loader).toHaveBeenCalledWith(
       expect.objectContaining({
         descriptor: expect.objectContaining({
@@ -244,6 +271,48 @@ describe('qualified widget data', () => {
 });
 
 describe('widget action runtime', () => {
+  it('puts the action presentation and resolved Response Action Needs on the DOM control once', async () => {
+    const container = render(
+      <SurfaceApp
+        bundle={bundle(false, [], {
+          actions: [
+            {
+              outputName: 'accepted',
+              'x-generation': {
+                anchors: [
+                  'need:show-accept-control@2',
+                  'need:shared-action-control@1',
+                ],
+              },
+            },
+          ],
+        })}
+        location="/receipt"
+        onNavigate={() => {}}
+        widgetModules={runtimeModule(
+          (props) => (
+            <StructuredPanel {...props} />
+          ),
+        )}
+        setDocumentTitle={false}
+      />,
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const button = container.querySelector<HTMLButtonElement>(
+      '[data-action-ref="acceptReceipt"]',
+    );
+    expect(button?.textContent).toBe('Accept receipt');
+    expect(button?.getAttribute('data-need-anchors')).toBe(
+      'need:show-accept-control@2 need:shared-action-control@1 need:accept-receipt@3',
+    );
+    expect(button?.getAttribute('data-need-ids')).toBe(
+      'show-accept-control shared-action-control accept-receipt',
+    );
+  });
+
   it('coalesces a double emission and navigates exactly once with one shell id', async () => {
     let finish: ((value: ReturnType<typeof completed>) => void) | undefined;
     const executor = vi.fn<SurfaceWidgetActionExecutor>(

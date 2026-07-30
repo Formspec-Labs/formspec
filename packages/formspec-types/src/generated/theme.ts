@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { ModuleRef, Extensions, TargetDefinition, Tokens, AccessibilityBlock, Breakpoints, ThemeWidgetName } from './common.js';
+import type { ModuleRef, Generation, Extensions, TargetDefinition, Tokens, AccessibilityBlock, Breakpoints, ThemeWidgetName } from './common.js';
 /**
  * Cascade level 1 (lowest theme specificity): baseline PresentationBlock applied to every item before selectors or per-item overrides. Sets the form-wide visual baseline. Overrides Tier 1 inline presentation hints (level 0) and formPresentation globals (level -1). Overridden by selectors (level 2) and items (level 3). Merge is shallow per-property — nested objects (widgetConfig, style, accessibility) are replaced as a whole, not deep-merged. Exception: cssClass uses union semantics across all levels.
  */
@@ -152,6 +152,7 @@ export interface ThemeDocument {
    * Human-readable description of the theme's purpose and target audience.
    */
   description?: string;
+  'x-generation'?: Generation;
   targetDefinition?: TargetDefinition;
   /**
    * Target rendering platform. Informational — processors that do not recognize a platform value SHOULD apply the theme regardless. Well-known values: 'web' (desktop/mobile browsers), 'mobile' (native apps), 'pdf' (PDF rendering), 'print' (print-optimized), 'kiosk' (public terminals), 'universal' (no platform assumptions, implicit default).
@@ -195,6 +196,80 @@ export interface ThemeDocument {
    * via the `patternProperty` "^x-".
    */
   [k: `x-${string}`]: unknown;
+}
+/**
+ * Authoring identity per ADR 0150 §5.4. Distinct from `respondent-ledger-event.Actor` (respondent-identity) and `experience.Actor` (workflow-role) — three Actor $defs by design. `kind` and `actChannel` are terminal-closed enums; product nuance (e.g. discriminating Wireframes-MCP from Forms-MCP, both `actChannel: 'mcp'`) rides URN-encoded into `id`, not via new enum values.
+ */
+export interface AuthorActor {
+  /**
+   * Stable actor URN (urn:formspec:actor:... scheme). Product nuance rides URN-encoded (e.g. urn:formspec:actor:mcp:wireframes:agent-7).
+   */
+  id: string;
+  /**
+   * Terminal-closed per §5.4 (NOT §4.5-extensible). Answers 'what kind of authoring entity'.
+   */
+  kind: 'human' | 'ai-agent' | 'service';
+  /**
+   * Terminal-closed per §5.4. Orthogonal to kind. Answers 'through what channel'. An ai-agent MAY have actChannel:'mcp' (mediated via MCP) OR 'agent' (autonomous). A human MAY have actChannel:'human' (direct editor) OR 'mcp' (CLI-driven MCP).
+   */
+  actChannel: 'human' | 'mcp' | 'agent' | 'service';
+  /**
+   * Optional human-readable label for timeline/support views.
+   */
+  display?: string;
+  extensions?: Extensions;
+}
+/**
+ * Graph-wide Component node identity for x-generation movedFrom/copiedFrom provenance. Mirrors the app-graph Component node identity tuple: Component membership, Surface sibling identity, route, absolute route-scoped nodePath, and optional public/structural node ids. This is provenance metadata only; it does not authorize, execute, or resolve runtime behavior.
+ */
+export interface ComponentNodeIdentityRef {
+  component: {
+    /**
+     * App Manifest components[] membership handle.
+     */
+    handle: string;
+    /**
+     * Canonical URL of the Component document when available.
+     */
+    url?: string;
+    /**
+     * Component document version evidence when available.
+     */
+    version?: string;
+  };
+  surface: {
+    /**
+     * Canonical URL of the Surface document.
+     */
+    url: string;
+    /**
+     * Surface document version evidence when available.
+     */
+    version?: string;
+  };
+  /**
+   * Surface routes[].id for the route-scoped node.
+   */
+  route: string;
+  /**
+   * Absolute route-scoped Component node path built from stable node segments.
+   */
+  nodePath: string;
+  /**
+   * Optional ComponentBase.id evidence for the node.
+   */
+  id?: string;
+  /**
+   * Optional structural authoring identity for the node.
+   */
+  nodeId?: string;
+}
+/**
+ * Legacy same-runtime route + intra-document node path. Retained for Studio/kernel compatibility; it is not sufficient graph-wide Component provenance once multiple Surfaces or Component documents are loaded.
+ */
+export interface CrossComponentRef {
+  route: string;
+  nodePath: string;
 }
 /**
  * A cascade level 2 rule: matches items by type and/or dataType and applies a PresentationBlock. Selectors are evaluated in document order. All matching selectors apply — later matches override earlier ones per-property (shallow merge). This enables layered styling: a broad type selector can set a baseline, and a narrower dataType selector can refine it.

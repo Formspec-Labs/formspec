@@ -53,6 +53,10 @@
       "type": "string",
       "description": "Human-readable title for this Surface."
     },
+    "x-generation": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+      "description": "Generation provenance for rendered Surface-level chrome such as a navigation group label. Strict data-only authoring profiles require a current adopted Need anchor."
+    },
     "description": {
       "type": "string"
     },
@@ -108,6 +112,14 @@
           "type": "string",
           "description": "Human-readable route title (for navigation chrome, breadcrumbs, etc.)."
         },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered route. Strict data-only authoring profiles require a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
+        },
+        "navigation": {
+          "$ref": "#/$defs/RouteNavigation",
+          "description": "OPTIONAL person-facing navigation membership and presentation. Omission preserves the v0.2 default: the route appears in navigation using its route title. This field changes only navigation chrome; it does not change route reachability, matching, transitions, or authorization."
+        },
         "slots": {
           "type": "array",
           "minItems": 1,
@@ -118,6 +130,38 @@
           "type": "array",
           "items": { "$ref": "#/$defs/Transition" },
           "description": "OPTIONAL outgoing transitions from this route. Each transition names a trigger, target route, and optional when-condition. Used by the lint route-graph walker to compute reachability."
+        }
+      }
+    },
+    "RouteNavigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered navigation entry. Strict data-only authoring profiles require a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "Whether this route appears in the shell's route navigation. Default true. Hidden routes remain addressable and may remain transition targets."
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "default": "default",
+          "description": "Navigation context this route belongs to. The shell renders only visible entries whose scope matches the active route's scope. Omission is semantically the \"default\" scope."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Person-facing navigation label. When omitted, the renderer uses the route title, then the route id."
+        },
+        "order": {
+          "type": "integer",
+          "description": "Relative order within this Surface's navigation group. Lower values appear first; equal or absent values preserve route declaration order."
         }
       }
     },
@@ -156,6 +200,10 @@
         },
         "title": {
           "type": "string"
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered slot. Strict data-only authoring profiles require a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
         },
         "binding": {
           "type": "object",
@@ -363,6 +411,10 @@
         "params": {
           "$ref": "#/$defs/RouteParamMap",
           "description": "OPTIONAL transition parameter map. Keys name params declared by the target route; values name host/runtime bindings supplied after the transition trigger completes under Response Actions authority."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered transition control. Strict data-only authoring profiles require a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
         }
       }
     },
@@ -407,22 +459,29 @@
       "additionalProperties": false,
       "patternProperties": {
         "^[A-Za-z][A-Za-z0-9_-]*$": {
-          "type": "object",
-          "required": ["catalogRef", "sourceRef"],
-          "additionalProperties": false,
-          "properties": {
-            "catalogRef": {
-              "type": "string",
-              "format": "uri",
-              "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
-              "description": "Canonical Data Sources URL. App-graph validation requires an exact match to one App Manifest dataSources[].url."
-            },
-            "sourceRef": {
-              "type": "string",
-              "pattern": "^(host|response|resource|query|conversation|route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$",
-              "description": "Data Sources 1.0 source id. App-graph validation resolves it only within catalogRef; unqualified source lookup is forbidden."
-            }
-          }
+          "$ref": "#/$defs/WidgetDataBinding"
+        }
+      }
+    },
+    "WidgetDataBinding": {
+      "type": "object",
+      "required": ["catalogRef", "sourceRef"],
+      "additionalProperties": false,
+      "properties": {
+        "catalogRef": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
+          "description": "Canonical Data Sources URL. App-graph validation requires an exact match to one App Manifest dataSources[].url."
+        },
+        "sourceRef": {
+          "type": "string",
+          "pattern": "^(host|response|resource|query|conversation|route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$",
+          "description": "Data Sources 1.0 source id. App-graph validation resolves it only within catalogRef; unqualified source lookup is forbidden."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this named widget data binding. Strict data-only authoring profiles require this binding's own current adopted Need anchor; a slot, widget config, or Data Source anchor does not cover it."
         }
       }
     },
@@ -432,17 +491,24 @@
       "additionalProperties": false,
       "patternProperties": {
         "^[A-Za-z][A-Za-z0-9_-]*$": {
-          "type": "object",
-          "required": ["actionRef"],
-          "additionalProperties": false,
-          "properties": {
-            "actionRef": {
-              "type": "string",
-              "minLength": 1,
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
-              "description": "Exact actions[].id from one loaded Response Actions document. This value is not a route id, intent, or widget output name."
-            }
-          }
+          "$ref": "#/$defs/WidgetActionBinding"
+        }
+      }
+    },
+    "WidgetActionBinding": {
+      "type": "object",
+      "required": ["actionRef"],
+      "additionalProperties": false,
+      "properties": {
+        "actionRef": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+          "description": "Exact actions[].id from one loaded Response Actions document. This value is not a route id, intent, or widget output name."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this named widget action binding. Strict data-only authoring profiles require this binding's own current adopted Need anchor; a slot, widget config, or Response Action anchor does not cover it."
         }
       }
     }

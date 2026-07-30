@@ -50,6 +50,13 @@
                       "showOwner": true
                     }
                   }
+                },
+                {
+                  "id": "review-flow",
+                  "slotType": "experience-unit",
+                  "binding": {
+                    "unitRef": "special-review"
+                  }
                 }
               ]
             }

@@ -209,6 +209,10 @@
         },
         "availability": { "$ref": "#/$defs/Availability" },
         "runtime": { "$ref": "#/$defs/RuntimeBehavior" },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this Data Source declaration. Strict data-only authoring profiles require this source's own current adopted Need anchor; catalog or consuming widget-binding anchors do not cover it."
+        },
         "schema": {
           "type": "object",
           "description": "Optional JSON Schema fragment describing payload shape. This is a contract for hosts and validators, not inline source data."

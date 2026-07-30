@@ -1,7 +1,42 @@
 /** @filedesc Inert projection metadata helpers shared by default React renderers. */
 import type { LayoutNode } from '@formspec-org/layout';
 
-export type ProjectionMetadataAttrs = Record<`data-formspec-${string}`, string>;
+export type ProjectionMetadataAttrs = Record<
+    `data-formspec-${string}` | `data-need-${string}`,
+    string
+>;
+
+const NEED_ANCHOR = /^need:([a-zA-Z][a-zA-Z0-9_-]*)@[1-9][0-9]*$/;
+
+export function needTraceAttrs(
+    candidates: readonly unknown[] | undefined,
+): ProjectionMetadataAttrs {
+    const anchors = (candidates ?? []).filter(
+        (candidate): candidate is string =>
+            typeof candidate === 'string' && NEED_ANCHOR.test(candidate),
+    );
+    if (anchors.length === 0) return {};
+    const ids = anchors.flatMap((anchor) => {
+        const match = NEED_ANCHOR.exec(anchor);
+        return match?.[1] ? [match[1]] : [];
+    });
+    return {
+        'data-need-anchors': [...new Set(anchors)].join(' '),
+        'data-need-ids': [...new Set(ids)].join(' '),
+    };
+}
+
+export function generationNeedAnchors(value: unknown): string[] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+    const generation = (value as Record<string, unknown>)['x-generation'];
+    if (!generation || typeof generation !== 'object' || Array.isArray(generation)) {
+        return [];
+    }
+    const anchors = (generation as Record<string, unknown>).anchors;
+    return Array.isArray(anchors)
+        ? anchors.filter((anchor): anchor is string => typeof anchor === 'string')
+        : [];
+}
 
 export function componentGraphIdentityAttrs(
     node: Pick<LayoutNode, 'componentGraphIdentity'>,
@@ -58,10 +93,11 @@ export function uiGraphRoutePolicyAttrs(
 }
 
 export function projectionMetadataAttrs(
-    node: Pick<LayoutNode, 'componentGraphIdentity' | 'uiGraphRoutePolicy'>,
+    node: Pick<LayoutNode, 'componentGraphIdentity' | 'uiGraphRoutePolicy' | 'needAnchors'>,
 ): ProjectionMetadataAttrs {
     return {
         ...componentGraphIdentityAttrs(node),
         ...uiGraphRoutePolicyAttrs(node),
+        ...needTraceAttrs(node.needAnchors),
     };
 }

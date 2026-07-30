@@ -138,6 +138,36 @@ describe('validateAppGraph', () => {
     });
   });
 
+  it('distinguishes completed empty boundary checks from checks that never ran', () => {
+    const completed = validateAppGraph({
+      manifest: loadedHandle(),
+      schemaValidators: () => ({ ok: true }),
+      authorizationBoundary: { diagnostics: [] },
+      unsupported: { diagnostics: [] },
+    });
+    expect(completed.phases).toContainEqual({
+      phase: 'authorization-boundary',
+      status: 'completed',
+    });
+    expect(completed.phases).toContainEqual({
+      phase: 'unsupported',
+      status: 'completed',
+    });
+
+    const absent = validateAppGraph({
+      manifest: loadedHandle(),
+      schemaValidators: () => ({ ok: true }),
+    });
+    expect(absent.phases).toContainEqual({
+      phase: 'authorization-boundary',
+      status: 'not-run',
+    });
+    expect(absent.phases).toContainEqual({
+      phase: 'unsupported',
+      status: 'not-run',
+    });
+  });
+
   it('sanitizes imported ModuleResolver source pointers without mutating the resolver report', () => {
     const moduleDiagnostic: ModuleResolutionDiagnostic = {
       code: 'MODULE-ADMISSION-DENIED',

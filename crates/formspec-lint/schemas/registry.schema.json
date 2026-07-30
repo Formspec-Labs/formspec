@@ -514,6 +514,20 @@
               },
               "description": "Named events the widget may emit. Names MUST be unique within this widget shape. An output name is not an App action id, route id, Response Actions intent, or generic host command."
             },
+            "renderedConfigNodes": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/RenderedConfigNode"
+              },
+              "description": "Renderer-owned inventory of authored config objects that can produce visible product output. Each pointer pattern is relative to binding.config. Strict data-only validation expands this inventory and requires a direct current adopted Need trace on every matched object; it refuses widgets that omit the inventory because it cannot prove the rendered-node scope."
+            },
+            "deliveryContractId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier published by the renderer implementation. A runtime module that supplies this widget MUST publish the same id and Registry entry version before the component is admitted. This ties the declared widget shape and rendered-node inventory to the delivered code."
+            },
             "childrenPolicy": {
               "type": "string",
               "description": "Renderer-facing child composition policy for the widget."
@@ -930,6 +944,26 @@
         "number"
       ],
       "description": "Semantic token type used by tooling to select editors and validate values."
+    },
+    "RenderedConfigNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pointerPattern",
+        "kind"
+      ],
+      "properties": {
+        "pointerPattern": {
+          "type": "string",
+          "pattern": "^(?:|/(?:\\*|(?:[^~/]|~[01])+)(?:/(?:\\*|(?:[^~/]|~[01])+))*)$",
+          "description": "JSON Pointer pattern relative to binding.config. The empty string names the config root. A `*` segment expands one array or object level; wildcard segments may repeat in nested patterns."
+        },
+        "kind": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "description": "Stable renderer-owned kind used in lint findings and DOM review identities."
+        }
+      }
     },
     "WidgetTokenSlot": {
       "type": "object",

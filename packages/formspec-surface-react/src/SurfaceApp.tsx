@@ -55,7 +55,9 @@ import {
   createWidgetRegistry,
   documentRootContaminationDiagnostic,
   flattenRegistryEntries,
+  generationNeedAnchors,
   matchRoute,
+  mergeNeedAnchors,
   planMatchedRoute,
   resolveSurfaceStrings,
   routeHref,
@@ -92,6 +94,7 @@ import {
   diagnosticListsEqual,
   useDiagnosticDelivery,
 } from './diagnostic-delivery.js';
+import { needTraceAttributes } from './need-trace.js';
 
 export type FireTransition = (
   transition: PlannedTransition,
@@ -264,6 +267,12 @@ function documentRootFormspecProperties(): string[] {
   return properties;
 }
 
+const DEFAULT_NAVIGATION_SCOPE = 'default';
+
+function routeNavigationScope(handle: SurfaceRouteHandle): string {
+  return handle.route.navigation?.scope ?? DEFAULT_NAVIGATION_SCOPE;
+}
+
 export function SurfaceApp(props: SurfaceAppProps) {
   const model = useSurfaceApp(props);
   const { bundle, location, onNavigate, onDiagnostics } = props;
@@ -276,6 +285,9 @@ export function SurfaceApp(props: SurfaceAppProps) {
   );
 
   const resolution = useMemo(() => matchRoute(model.app, location), [model.app, location]);
+  const activeNavigationScope = resolution.match
+    ? routeNavigationScope(resolution.match.handle)
+    : DEFAULT_NAVIGATION_SCOPE;
 
   const runtimeGeneration = useMemo(() => {
     const params = Object.entries(props.routeParams ?? {})
@@ -299,6 +311,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
       app: model.app,
       params: { ...(props.routeParams ?? {}), ...resolution.match.params },
       experiences: bundle.experiences,
+      experienceHandles: bundle.experienceHandles,
       definitions: bundle.definitions,
       registryEntries: model.registryEntries,
       widgets: model.widgets,
@@ -365,10 +378,16 @@ export function SurfaceApp(props: SurfaceAppProps) {
 
   const navigationDiagnostics = useMemo(
     () =>
-      model.app.routes.flatMap(
-        (handle) => routeHref(handle, props.routeParams ?? {}).diagnostics,
-      ),
-    [model.app, props.routeParams],
+      model.app.routes
+        .filter(
+          (handle) =>
+            handle.route.navigation?.visible !== false &&
+            routeNavigationScope(handle) === activeNavigationScope,
+        )
+        .flatMap(
+          (handle) => routeHref(handle, props.routeParams ?? {}).diagnostics,
+        ),
+    [activeNavigationScope, model.app, props.routeParams],
   );
 
   // Read after the route's `useLayoutEffect` has emitted its own tokens, so a
@@ -414,7 +433,10 @@ export function SurfaceApp(props: SurfaceAppProps) {
   }, [bundle.title, setDocumentTitle]);
 
   return (
-    <div className="fs-surface-app">
+    <div
+      className="fs-surface-app"
+      {...needTraceAttributes(generationNeedAnchors(bundle.manifest))}
+    >
       {props.header}
       <SurfaceNav
         app={model.app}
@@ -478,15 +500,67 @@ export interface SurfaceNavProps {
 }
 
 export function SurfaceNav({ app, location, routeParams, onNavigate, label }: SurfaceNavProps) {
-  const showGroupLabels = app.groups.length > 1;
+  const activeRoute = matchRoute(app, location).match?.handle;
+  const activeNavigationScope = activeRoute
+    ? routeNavigationScope(activeRoute)
+    : DEFAULT_NAVIGATION_SCOPE;
+  const groups = app.groups
+    .map((group) => ({
+      ...group,
+      needAnchors: generationNeedAnchors(group.routes[0]?.surface),
+      routes: group.routes
+        .map((handle, declarationOrder) => ({ handle, declarationOrder }))
+        .filter(
+          ({ handle }) =>
+            handle.route.navigation?.visible !== false &&
+            routeNavigationScope(handle) === activeNavigationScope,
+        )
+        .sort((left, right) => {
+          const leftOrder = left.handle.route.navigation?.order;
+          const rightOrder = right.handle.route.navigation?.order;
+          if (leftOrder === undefined && rightOrder === undefined) {
+            return left.declarationOrder - right.declarationOrder;
+          }
+          if (leftOrder === undefined) return 1;
+          if (rightOrder === undefined) return -1;
+          return leftOrder - rightOrder || left.declarationOrder - right.declarationOrder;
+        })
+        .map(({ handle }) => handle),
+    }))
+    .filter((group) => group.routes.length > 0);
+  if (groups.length === 0) return null;
+
+  const showGroupLabels = groups.length > 1;
   return (
-    <nav className="fs-surface-nav" aria-label={label ?? 'Pages in this app'}>
-      {app.groups.map((group) => (
+    <nav
+      className="fs-surface-nav"
+      aria-label={label ?? 'Pages in this app'}
+      data-navigation-scope={activeNavigationScope}
+    >
+      {groups.map((group) => (
         <div className="fs-surface-nav__group" key={group.surfaceId}>
-          {showGroupLabels && <p className="fs-surface-nav__label">{group.label}</p>}
+          {showGroupLabels && (
+            <p
+              className="fs-surface-nav__label"
+              {...needTraceAttributes(group.needAnchors)}
+            >
+              {group.label}
+            </p>
+          )}
           <ul className="fs-surface-nav__list">
             {group.routes.map((handle, index) => {
               const { href, refusal } = routeHref(handle, routeParams ?? {});
+              const navigationLabel =
+                handle.route.navigation?.label ?? handle.route.title ?? handle.routeId;
+              const navigationAnchors = generationNeedAnchors(handle.route.navigation);
+              const traceAttributes = needTraceAttributes(
+                handle.route.navigation?.label === undefined
+                  ? mergeNeedAnchors(
+                    navigationAnchors,
+                    generationNeedAnchors(handle.route),
+                  )
+                  : navigationAnchors,
+              );
               const unavailableReason =
                 refusal === 'collision'
                   ? 'route-collision'
@@ -501,20 +575,22 @@ export function SurfaceNav({ app, location, routeParams, onNavigate, label }: Su
                       data-nav-route={handle.routeId}
                       data-nav-unavailable={unavailableReason}
                       aria-disabled="true"
+                      {...traceAttributes}
                     >
-                      {handle.route.title ?? handle.routeId}
+                      {navigationLabel}
                     </span>
                   ) : (
                     <a
                       href={href}
                       data-nav-route={handle.routeId}
                       aria-current={href === location ? 'page' : undefined}
+                      {...traceAttributes}
                       onClick={(event) => {
                         event.preventDefault();
                         onNavigate(href);
                       }}
                     >
-                      {handle.route.title ?? handle.routeId}
+                      {navigationLabel}
                     </a>
                   )}
                 </li>

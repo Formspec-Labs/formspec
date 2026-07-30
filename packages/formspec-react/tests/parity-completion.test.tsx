@@ -322,7 +322,14 @@ describe('Tabs keyboard navigation', () => {
         id: 'tabs-kb',
         component: 'Tabs',
         category: 'interactive',
-        props: {},
+        props: {
+            tabLabels: ['Alpha', 'Beta', 'Gamma'],
+            tabLabelGeneration: [
+                { anchors: ['need:alpha-tab@1'] },
+                { anchors: ['need:beta-tab@1'] },
+                { anchors: ['need:gamma-tab@1'] },
+            ],
+        },
         cssClasses: [],
         children: [
             { id: 'tab-a', component: 'Stack', category: 'layout', props: { title: 'Alpha' }, cssClasses: [], children: [] },
@@ -330,6 +337,14 @@ describe('Tabs keyboard navigation', () => {
             { id: 'tab-c', component: 'Stack', category: 'layout', props: { title: 'Gamma' }, cssClasses: [], children: [] },
         ],
     };
+
+    it('emits each explicit tab label Need identity on its control', () => {
+        const container = renderNode(tabsNode);
+        const tabs = container.querySelectorAll('[role="tab"]');
+        expect(tabs[0].getAttribute('data-need-ids')).toBe('alpha-tab');
+        expect(tabs[1].getAttribute('data-need-ids')).toBe('beta-tab');
+        expect(tabs[2].getAttribute('data-need-ids')).toBe('gamma-tab');
+    });
 
     it('ArrowRight moves to next tab', () => {
         const container = renderNode(tabsNode);

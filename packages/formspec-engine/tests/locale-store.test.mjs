@@ -177,6 +177,26 @@ test('lookupKeyWithMeta returns regional source for direct hit', () => {
   assert.equal(result.localeCode, 'fr-CA');
 });
 
+test('lookupKeyWithMeta returns only canonical Need anchors for the selected string', () => {
+  const store = new LocaleStore(rx);
+  store.loadLocale({
+    ...makeLocale('fr', { 'name.label': 'Nom' }),
+    stringGeneration: {
+      'name.label': {
+        anchors: [
+          'need:localized-name@2',
+          'not-a-need-anchor',
+          'need:localized-name@2',
+        ],
+      },
+    },
+  });
+  store.setLocale('fr');
+
+  const result = store.lookupKeyWithMeta('name.label');
+  assert.deepEqual(result.needAnchors, ['need:localized-name@2']);
+});
+
 test('lookupKeyWithMeta returns fallback source for explicit fallback hit', () => {
   const store = new LocaleStore(rx);
   store.loadLocale(makeLocale('fr-CA', { 'name.label': 'Nom (CA)' }, { fallback: 'fr' }));

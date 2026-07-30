@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { ModuleRef, Extensions, WidgetName } from './common.js';
+import type { ModuleRef, Generation, Extensions, WidgetName } from './common.js';
 import type { IssuerDocument as FormspecIssuerDocument } from './issuer.js';
 export type { FormspecIssuerDocument };
 /**
@@ -51,6 +51,7 @@ export type Item = {
    */
   extensions?: Extensions;
   partyPolicy?: ItemPartyPolicy;
+  'x-generation'?: Generation;
 };
 /**
  * Reference to a `parties[*].roleId` declared in the same Definition. Cross-reference resolution is a static-lint pass; the schema enforces the lexical pattern only.
@@ -140,6 +141,7 @@ export type Shape = Shape1 & {
    * Exclusive-OR composition. EXACTLY ONE element must pass for this Shape to pass. Elements can be shape IDs or inline FEL boolean expressions.
    */
   xone?: string[];
+  'x-generation'?: Generation;
   /**
    * Shape-level extension data. All keys MUST be prefixed with 'x-'.
    */
@@ -324,6 +326,7 @@ export interface FormDefinition {
    * Human-readable description of the form's purpose and scope.
    */
   description?: string;
+  'x-generation'?: Generation;
   /**
    * Publication or last-modified date of this Definition version, in ISO 8601 date format (YYYY-MM-DD).
    */
@@ -429,6 +432,80 @@ export interface FormDefinition {
    * via the `patternProperty` "^x-".
    */
   [k: `x-${string}`]: unknown;
+}
+/**
+ * Authoring identity per ADR 0150 §5.4. Distinct from `respondent-ledger-event.Actor` (respondent-identity) and `experience.Actor` (workflow-role) — three Actor $defs by design. `kind` and `actChannel` are terminal-closed enums; product nuance (e.g. discriminating Wireframes-MCP from Forms-MCP, both `actChannel: 'mcp'`) rides URN-encoded into `id`, not via new enum values.
+ */
+export interface AuthorActor {
+  /**
+   * Stable actor URN (urn:formspec:actor:... scheme). Product nuance rides URN-encoded (e.g. urn:formspec:actor:mcp:wireframes:agent-7).
+   */
+  id: string;
+  /**
+   * Terminal-closed per §5.4 (NOT §4.5-extensible). Answers 'what kind of authoring entity'.
+   */
+  kind: 'human' | 'ai-agent' | 'service';
+  /**
+   * Terminal-closed per §5.4. Orthogonal to kind. Answers 'through what channel'. An ai-agent MAY have actChannel:'mcp' (mediated via MCP) OR 'agent' (autonomous). A human MAY have actChannel:'human' (direct editor) OR 'mcp' (CLI-driven MCP).
+   */
+  actChannel: 'human' | 'mcp' | 'agent' | 'service';
+  /**
+   * Optional human-readable label for timeline/support views.
+   */
+  display?: string;
+  extensions?: Extensions;
+}
+/**
+ * Graph-wide Component node identity for x-generation movedFrom/copiedFrom provenance. Mirrors the app-graph Component node identity tuple: Component membership, Surface sibling identity, route, absolute route-scoped nodePath, and optional public/structural node ids. This is provenance metadata only; it does not authorize, execute, or resolve runtime behavior.
+ */
+export interface ComponentNodeIdentityRef {
+  component: {
+    /**
+     * App Manifest components[] membership handle.
+     */
+    handle: string;
+    /**
+     * Canonical URL of the Component document when available.
+     */
+    url?: string;
+    /**
+     * Component document version evidence when available.
+     */
+    version?: string;
+  };
+  surface: {
+    /**
+     * Canonical URL of the Surface document.
+     */
+    url: string;
+    /**
+     * Surface document version evidence when available.
+     */
+    version?: string;
+  };
+  /**
+   * Surface routes[].id for the route-scoped node.
+   */
+  route: string;
+  /**
+   * Absolute route-scoped Component node path built from stable node segments.
+   */
+  nodePath: string;
+  /**
+   * Optional ComponentBase.id evidence for the node.
+   */
+  id?: string;
+  /**
+   * Optional structural authoring identity for the node.
+   */
+  nodeId?: string;
+}
+/**
+ * Legacy same-runtime route + intra-document node path. Retained for Studio/kernel compatibility; it is not sufficient graph-wide Component provenance once multiple Surfaces or Component documents are loaded.
+ */
+export interface CrossComponentRef {
+  route: string;
+  nodePath: string;
 }
 /**
  * Form-level metadata that affects respondent-facing explanation and policy resolution without changing the item tree. Current core entries cover preparation guidance and form-level assurance requirements.
@@ -706,6 +783,7 @@ export interface Bind {
    * Presentation hint for non-relevant items. 'hidden' (DEFAULT): removed from visual layout. 'protected': remains visible but rendered as disabled/greyed-out. Borrowed from FHIR R5 Questionnaire.
    */
   disabledDisplay?: 'hidden' | 'protected';
+  'x-generation'?: Generation;
   /**
    * Bind-level extension data. All keys MUST be prefixed with 'x-'. MUST NOT alter core semantics.
    */
@@ -775,6 +853,7 @@ export interface OptionEntry {
    */
   keywords?: string[];
   extensions?: Extensions;
+  'x-generation'?: Generation;
 }
 /**
  * Declares how to transform Responses from prior versions into this version's structure. Migration produces a new Response pinned to the target version; the original is preserved. Fields not in fieldMap are carried forward by path matching or dropped.

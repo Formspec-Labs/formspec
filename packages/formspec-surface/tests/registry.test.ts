@@ -8,7 +8,7 @@
  * schema explicitly permits (ADR 0160 §2.4).
  */
 import { describe, expect, it } from 'vitest';
-import type { RegistryDocument } from '@formspec-org/types';
+import type { RegistryDocument, RegistryEntry } from '@formspec-org/types';
 import {
   createWidgetRegistry,
   flattenRegistryEntries,
@@ -108,6 +108,100 @@ describe('createWidgetRegistry', () => {
     const b = two.resolve({ moduleId: 'x-b', widgetName: 'Thing' });
     expect(a.status === 'resolved' && a.component).toBe(Banner);
     expect(b.status === 'resolved' && b.component).toBe(Panel);
+  });
+});
+
+describe('renderer delivery contracts', () => {
+  const renderedConfigNodes = [
+    { pointerPattern: '', kind: 'panel' },
+    { pointerPattern: '/rows/*', kind: 'panel-row' },
+  ] as const;
+  const contractEntries = [{
+    name: 'x-contract-module',
+    category: 'module',
+    version: '1.0.0',
+    status: 'stable',
+    contributes: ['x-contract-panel'],
+  }, {
+    name: 'x-contract-panel',
+    category: 'widget',
+    version: '2.0.0',
+    status: 'stable',
+    widgetShape: {
+      widgetName: 'Panel',
+      deliveryContractId: 'example/Panel@2',
+      renderedConfigNodes,
+    },
+  }] as unknown as RegistryEntry[];
+
+  it('admits code only when version, delivery id, and rendered-node inventory agree', () => {
+    const registry = createWidgetRegistry({
+      registryEntries: contractEntries,
+      modules: [{
+        moduleId: 'x-contract-module',
+        widgets: { Panel },
+        contracts: {
+          Panel: {
+            deliveryContractId: 'example/Panel@2',
+            registryEntryVersion: '2.0.0',
+            renderedConfigNodes,
+          },
+        },
+      }],
+    });
+
+    expect(registry.resolve({
+      moduleId: 'x-contract-module',
+      widgetName: 'Panel',
+    })).toMatchObject({
+      status: 'resolved',
+      declared: true,
+    });
+  });
+
+  it('refuses delivered code when the Registry and runtime inventories differ', () => {
+    const registry = createWidgetRegistry({
+      registryEntries: contractEntries,
+      modules: [{
+        moduleId: 'x-contract-module',
+        widgets: { Panel },
+        contracts: {
+          Panel: {
+            deliveryContractId: 'example/Panel@2',
+            registryEntryVersion: '2.0.0',
+            renderedConfigNodes: [{ pointerPattern: '', kind: 'different-root' }],
+          },
+        },
+      }],
+    });
+    const key = { moduleId: 'x-contract-module', widgetName: 'Panel' };
+    const resolution = registry.resolve(key);
+
+    expect(resolution).toMatchObject({
+      status: 'incompatible',
+      reasons: ['rendered-config-inventory-mismatch'],
+    });
+    expect(registry.diagnose(key, resolution, {})).toMatchObject({
+      code: 'WIDGET-DELIVERY-CONTRACT-MISMATCH',
+    });
+  });
+
+  it('refuses a component that omits a Registry-declared runtime contract', () => {
+    const registry = createWidgetRegistry({
+      registryEntries: contractEntries,
+      modules: [{
+        moduleId: 'x-contract-module',
+        widgets: { Panel },
+      }],
+    });
+
+    expect(registry.resolve({
+      moduleId: 'x-contract-module',
+      widgetName: 'Panel',
+    })).toMatchObject({
+      status: 'incompatible',
+      reasons: ['runtime-contract-missing'],
+    });
   });
 });
 

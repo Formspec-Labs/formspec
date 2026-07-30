@@ -50,6 +50,7 @@ import type {
 } from '@formspec-org/types';
 import type { DataSourceCatalogHandle } from './data-source-loader.js';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
+import type { ExperienceDocumentHandle } from './experience-unit.js';
 
 export interface BundleArtifactRef {
   url: string;
@@ -61,6 +62,7 @@ export interface BundleManifest {
   version?: string;
   id?: string;
   title?: string;
+  'x-generation'?: { anchors?: readonly string[] };
   definitions?: readonly BundleArtifactRef[];
   experience?: BundleArtifactRef;
   experiences?: readonly BundleArtifactRef[];
@@ -97,6 +99,14 @@ export interface ResolvedBundle {
    */
   surfaceRefs?: ReadonlyMap<SurfaceDocument, string> | undefined;
   experiences: readonly ExperienceDocument[];
+  /**
+   * Loaded Experiences paired with their exact App Manifest URLs.
+   *
+   * Optional so callers that construct legacy `ResolvedBundle` values by hand
+   * keep unqualified unit resolution. Qualified bindings fail closed without
+   * these handles.
+   */
+  experienceHandles?: readonly ExperienceDocumentHandle[] | undefined;
   /** The TENANT theme. Which routes may see it is `theme-authority.ts`'s call. */
   tenantTheme: ThemeDocument | undefined;
   registries: readonly RegistryDocument[];
@@ -228,7 +238,13 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
   }
   const experienceRefs = bundle.manifest.experiences ??
     (bundle.manifest.experience ? [bundle.manifest.experience] : []);
-  const experiences = lookupAll<ExperienceDocument>(experienceRefs, 'Experience');
+  const experienceHandles = experienceRefs.flatMap((ref): ExperienceDocumentHandle[] => {
+    const document = lookup<ExperienceDocument>(ref, 'Experience');
+    return document === undefined
+      ? []
+      : [{ experienceRef: ref.url, document }];
+  });
+  const experiences = experienceHandles.map(({ document }) => document);
   const registries = lookupAll<RegistryDocument>(bundle.manifest.registries, 'Registry');
   const tenantTheme = lookup<ThemeDocument>(bundle.manifest.theme, 'Theme');
   const responseActionsDocument = lookup<ResponseActionsDocument>(
@@ -253,6 +269,7 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
     ...(entrySurface === undefined ? {} : { entrySurface }),
     surfaceRefs,
     experiences,
+    experienceHandles,
     tenantTheme,
     registries,
     responseActions: responseActionsDocument ? [responseActionsDocument] : [],

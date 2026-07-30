@@ -2542,6 +2542,7 @@ generated from `schemas/definition.schema.json`:
 | `#/properties/variables` | `variables` | <code>array</code> | no | — | Named computed values with lexical scoping, continuously recalculated when dependencies change. Variables provide intermediate calculations reusable across Binds, Shapes, and other expressions without repetition. Referenced in FEL expressions as @variableName. MUST NOT form circular dependencies. |
 | `#/properties/version` | `version` | <code>string</code> | yes | critical | Version identifier of this specific Definition document. Interpretation governed by versionAlgorithm (default: semver). Once a Definition reaches 'active' status, its content MUST NOT be modified — any change requires a new version. |
 | `#/properties/versionAlgorithm` | `versionAlgorithm` | <code>string</code> | no | enum: <code>"semver"</code>, <code>"date"</code>, <code>"integer"</code>, <code>"natural"</code>; default: <code>"semver"</code> | Controls how version strings are interpreted and compared. 'semver': MAJOR.MINOR.PATCH per semver.org (pre-release labels supported). 'date': YYYY.MM.DD chronological comparison. 'integer': numeric comparison of non-negative integers. 'natural': equality-only comparison, no ordering defined. |
+| `#/properties/x-generation` | `x-generation` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Generation</code> | Generation provenance for the rendered Definition title and form-level copy. Strict data-only authoring profiles require a direct current adopted Need anchor. |
 <!-- schema-ref:end -->
 
 The generated table above defines required and optional properties. In this
@@ -3032,6 +3033,7 @@ and requiredness — without embedding logic in the item tree.
 | `excludedValue` | string | **0..1** (OPTIONAL) | Controls what downstream expressions see when this field is non-relevant. MUST be one of: `"preserve"` (expressions see the field's last value — **DEFAULT**) or `"null"` (expressions see `null` when the field is non-relevant). This controls the *in-memory evaluation model*; `nonRelevantBehavior` controls the *serialized output*. |
 | `nonRelevantBehavior` | string | **0..1** (OPTIONAL) | Per-path override of the Definition-level `nonRelevantBehavior`. Takes precedence over the Definition default. See §5.6. |
 | `disabledDisplay` | string | **0..1** (OPTIONAL) | Presentation hint for non-relevant items. MUST be one of `"hidden"` or `"protected"`. When `"hidden"`, non-relevant items are removed from the visual layout. When `"protected"`, non-relevant items remain visible but are rendered as disabled/greyed-out. Default: `"hidden"`. (Borrowed from FHIR R5 Questionnaire.) |
+| `x-generation` | [Generation](../../schemas/common.schema.json) | **0..1** (OPTIONAL) | Authoring provenance for this Bind. A strict data-only authoring profile requires a direct current adopted Need anchor. It does not change Bind evaluation. |
 
 #### 4.3.2 Inheritance Rules
 
@@ -3481,6 +3483,7 @@ JSON data.
 | `context` | object | **0..1** (OPTIONAL) | Additional context data included in the ValidationResult when the Shape fails. Keys are context field names; values are FEL expressions evaluated in the Shape's target context at the time of failure. |
 | `activeWhen` | string (FEL → boolean) | **0..1** (OPTIONAL) | When present, the shape is evaluated only when this expression evaluates to `true`. When absent or `true`, the shape is always evaluated (subject to non-relevant suppression). When `false`, the shape is skipped entirely — it produces no results of any severity. `activeWhen` is evaluated during the Revalidate phase, before the shape's `constraint`. `activeWhen` is independent of the target's relevance; non-relevant suppression (§5.6 rule 1) takes precedence. |
 | `timing` | string | **0..1** (OPTIONAL) | Controls when this shape is evaluated. MUST be one of: `"continuous"` (evaluated whenever any dependency changes — **DEFAULT**), `"submit"` (evaluated only when submission is requested), `"demand"` (evaluated only when explicitly requested by the consuming application). The global validation mode (§5.5) acts as an override: when `"disabled"`, no shapes fire; when `"deferred"`, all shapes are deferred; when `"continuous"`, shapes fire per their individual `timing`. |
+| `x-generation` | [Generation](../../schemas/common.schema.json) | **0..1** (OPTIONAL) | Authoring provenance for this Shape. A strict data-only authoring profile requires a direct current adopted Need anchor. It does not change Shape evaluation. |
 
 #### 5.2.2 Composition Operators
 

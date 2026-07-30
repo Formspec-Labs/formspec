@@ -27,6 +27,7 @@ import type { SurfaceApp, SurfaceRouteHandle } from './composition.js';
 import type { SurfaceDiagnostic } from './diagnostics.js';
 import type { WidgetRegistry } from './registry.js';
 import type { DataSourceCatalogHandle } from './data-source-loader.js';
+import type { ExperienceDocumentHandle } from './experience-unit.js';
 import { planRoute, type SlotPlan } from './slot-plan.js';
 import type { HeadingLevel, SurfaceStaticAssetResolver } from './static-content.js';
 import type { SurfaceStringOverrides, SurfaceStrings } from './strings.js';
@@ -45,6 +46,8 @@ export interface SurfaceRoutePlanInput<TComponent> {
   /** Route-parameter values, from the matched path and the host. */
   params?: Readonly<Record<string, string>> | undefined;
   experiences: readonly ExperienceDocument[];
+  /** Exact manifested source identity for qualified Experience bindings. */
+  experienceHandles?: readonly ExperienceDocumentHandle[] | undefined;
   definitions: ReadonlyMap<string, FormDefinition>;
   registryEntries: readonly RegistryEntry[];
   widgets: WidgetRegistry<TComponent>;
@@ -96,11 +99,13 @@ export function planMatchedRoute<TComponent>(
   const route = planRoute<TComponent>({
     handle: input.handle,
     experiences: input.experiences,
+    experienceHandles: input.experienceHandles,
     definitions: input.definitions,
     registryEntries: input.registryEntries,
     widgets: input.widgets,
     dataSources: input.dataSources,
     surfaceRef: input.surfaceRef,
+    responseActions: input.responseActions,
     headingBaseLevel,
     staticAssetResolver: input.staticAssetResolver,
   });

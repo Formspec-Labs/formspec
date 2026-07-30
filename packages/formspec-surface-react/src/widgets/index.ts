@@ -1,11 +1,10 @@
 /**
  * @filedesc The starter widget set, and the module that publishes it.
  *
- * Four widgets: a lead-in banner for an intake route, a frame for a signing act,
- * a receipt panel, and an operator queue. They are the four the
- * surface-render-v10 bundle binds, and they are also the four shapes that recur
- * across every app of this kind — which is why they ship rather than being left
- * for each tenant to rebuild.
+ * The focused v10 widgets remain: a lead-in banner, signing frame, receipt
+ * panel, and operator queue. `StructuredPanel` adds the generic data-only
+ * primitive: authored JSON selects common information blocks and mapped
+ * actions without adding product-specific React.
  *
  * ## The names, and which vocabulary they are in
  *
@@ -27,16 +26,30 @@ import { IntakeBanner } from './intake-banner.js';
 import { CeremonyFrame } from './ceremony-frame.js';
 import { ReceiptPanel } from './receipt-panel.js';
 import { QueueTable } from './queue-table.js';
+import { StructuredPanel } from './structured-panel.js';
 
 export { IntakeBanner } from './intake-banner.js';
 export { CeremonyFrame } from './ceremony-frame.js';
 export { ReceiptPanel } from './receipt-panel.js';
 export { QueueTable } from './queue-table.js';
+export { StructuredPanel, readStructuredPanelPath } from './structured-panel.js';
 export { WidgetEmptyState } from './empty-state.js';
 export type { IntakeBannerConfig } from './intake-banner.js';
 export type { CeremonyFrameConfig } from './ceremony-frame.js';
 export type { ReceiptFact, ReceiptPanelData } from './receipt-panel.js';
 export type { QueueColumn, QueueRow, QueueTableConfig, QueueTableData } from './queue-table.js';
+export type {
+  StructuredKeyValueBlockConfig,
+  StructuredKeyValueItemConfig,
+  StructuredListBlockConfig,
+  StructuredMetricBlockConfig,
+  StructuredPanelActionConfig,
+  StructuredPanelBlockConfig,
+  StructuredPanelConfig,
+  StructuredProgressBlockConfig,
+  StructuredTableBlockConfig,
+  StructuredTableColumnConfig,
+} from './structured-panel.js';
 
 /**
  * `widgetShape.widgetName` → component, for the starter set.
@@ -51,12 +64,37 @@ export const STARTER_WIDGETS: Readonly<Record<string, SurfaceWidget>> = {
   'x-ceremony-frame': CeremonyFrame,
   'x-receipt-panel': ReceiptPanel,
   'x-queue-panel': QueueTable,
+  'x-structured-panel': StructuredPanel,
   IntakeBanner,
   CeremonyFrame,
   ReceiptPanel,
   QueueTable,
+  StructuredPanel,
 };
 
+export const STRUCTURED_PANEL_DELIVERY_CONTRACT_ID =
+  '@formspec-org/surface-react/StructuredPanel@0.1';
+
+export const STRUCTURED_PANEL_RENDERED_CONFIG_NODES = [
+  { pointerPattern: '', kind: 'structured-panel' },
+  { pointerPattern: '/blocks/*', kind: 'structured-panel-block' },
+  { pointerPattern: '/blocks/*/items/*', kind: 'structured-panel-field' },
+  { pointerPattern: '/blocks/*/columns/*', kind: 'structured-panel-column' },
+  { pointerPattern: '/actions/*', kind: 'structured-panel-action' },
+] as const;
+
 export function starterWidgetModule(moduleId: string): SurfaceWidgetModule {
-  return { moduleId, widgets: STARTER_WIDGETS };
+  const structuredPanelContract = {
+    deliveryContractId: STRUCTURED_PANEL_DELIVERY_CONTRACT_ID,
+    registryEntryVersion: '0.1.0',
+    renderedConfigNodes: STRUCTURED_PANEL_RENDERED_CONFIG_NODES,
+  };
+  return {
+    moduleId,
+    widgets: STARTER_WIDGETS,
+    contracts: {
+      StructuredPanel: structuredPanelContract,
+      'x-structured-panel': structuredPanelContract,
+    },
+  };
 }

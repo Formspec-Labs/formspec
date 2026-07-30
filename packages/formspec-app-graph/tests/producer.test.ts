@@ -100,6 +100,8 @@ describe('produceAppGraphValidationReport', () => {
             'widgetShape.props': widgetShapePropsValidator,
           },
         },
+        authorizationBoundary: { diagnostics: [] },
+        unsupported: { diagnostics: [] },
         schemaValidators: () => ({ ok: true }),
         evidenceSchemaValidators: () => ({ ok: true }),
       });
@@ -116,6 +118,14 @@ describe('produceAppGraphValidationReport', () => {
       });
       expect(result.report.phases).toContainEqual({
         phase: 'module-resolution',
+        status: 'completed',
+      });
+      expect(result.report.phases).toContainEqual({
+        phase: 'authorization-boundary',
+        status: 'completed',
+      });
+      expect(result.report.phases).toContainEqual({
+        phase: 'unsupported',
         status: 'completed',
       });
       if (testCase.expected.ok) {

@@ -32,6 +32,7 @@ Source schema: `schemas/theme.schema.json`
 - Apply token references in style and widget configuration at theme-application time; unresolved tokens should fall back to renderer defaults with diagnostics.
 - Treat platform as an open string hint; unknown platform values should not block theme application.
 - When preferred widgets are unavailable, apply declared fallback chains before reverting to renderer-native defaults.
+- Treat root x-generation as authoring provenance only; a strict data-only authoring profile requires its direct Need anchor to resolve to the current adopted Need revision.
 
 ## Semantic Capsule
 
@@ -53,3 +54,4 @@ Source schema: `schemas/theme.schema.json`
 - A conforming theme document must include $formspecTheme=1.0 and version; targetDefinition is optional and sets scope — present means Definition-scoped, absent means bundle-scoped over the App Manifest bundle whose theme slot names it.
 - Renderers must not let theme content alter core data semantics, validation semantics, or response payload shape.
 - Implementations should validate targetDefinition compatibility ranges and warn on mismatch rather than hard-failing rendering; a theme with no targetDefinition must not be treated as bound to whatever definition happens to be loaded.
+- Strict data-only authoring must require the Theme's own x-generation anchor to resolve unambiguously to an adopted Need at its current revision.

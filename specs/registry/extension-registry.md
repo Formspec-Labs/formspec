@@ -258,6 +258,29 @@ Response Actions action id, a route id, an intent, or a generic host command.
 Surface 0.2 maps the output name to one exact `actionRef`. A processor MUST NOT
 fall back from an undeclared or unmapped output to a same-named action.
 
+#### 3.2.2 Rendered configuration inventory and delivery identity
+
+A widget that participates in strict rendered-Need validation declares both:
+
+- `widgetShape.renderedConfigNodes[]`, the complete renderer-owned inventory of
+  configuration objects that can produce normal visible product output; and
+- `widgetShape.deliveryContractId`, the stable identity of the renderer
+  behavior that owns that inventory.
+
+Each inventory entry contains a `pointerPattern`, relative to
+`binding.config`, and a stable `kind`. The empty pattern names the configuration
+root. A `*` segment expands one object or array level. A strict validator
+expands every pattern against each resolved binding and requires a direct
+current adopted Need on every matched object. It MUST reject an invalid,
+overlapping, or incomplete inventory rather than guess which configuration the
+renderer displays.
+
+At runtime, the delivered widget module MUST publish the same delivery
+contract id, Registry entry version, and rendered-node inventory. A binding
+refuses the widget when any of the three differs. This equality check prevents a
+new renderer from showing fields that the Registry declaration and authoring
+lint never reviewed.
+
 **`concept`** — Concept identity (Ontology specification):
 
 | Property | Type | Req | Description |
@@ -548,6 +571,12 @@ in Formspec v1.0 §1) that additionally implements the following behaviors:
     against the matching Registry declaration. Do not alias an undeclared input
     or output to a same-named prop, source, action, route, or intent.
 
+12. **Renderer inventory equality.** When strict rendered-Need validation is
+    active, reject a widget contribution without a valid
+    `renderedConfigNodes[]` inventory and `deliveryContractId`. At runtime,
+    refuse a delivered implementation whose contract id, Registry entry
+    version, or inventory differs from the resolved Registry entry.
+
 ---
 
 ## 8. Examples
@@ -645,6 +674,13 @@ in Formspec v1.0 §1) that additionally implements the following behaviors:
   },
   "widgetShape": {
     "widgetName": "caseSummary",
+    "deliveryContractId": "@example/widgets/case-summary@1",
+    "renderedConfigNodes": [
+      {
+        "pointerPattern": "",
+        "kind": "case-summary"
+      }
+    ],
     "props": {
       "type": "object",
       "properties": {

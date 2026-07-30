@@ -15,8 +15,11 @@ export interface UseFieldResult {
 
     // Presentation (reactive)
     label: string;
+    labelNeedAnchors: string[];
     hint: string | null;
+    hintNeedAnchors: string[];
     description: string | null;
+    descriptionNeedAnchors: string[];
 
     // State (reactive)
     value: any;
@@ -70,8 +73,11 @@ export function useField(path: string): UseFieldResult {
     }, [engine, path]);
 
     const label = useSignal(vm.label);
+    const labelNeedAnchors = useSignal(vm.labelNeedAnchors);
     const hint = useSignal(vm.hint);
+    const hintNeedAnchors = useSignal(vm.hintNeedAnchors);
     const description = useSignal(vm.description);
+    const descriptionNeedAnchors = useSignal(vm.descriptionNeedAnchors);
     const value = useSignal(vm.value);
     const required = useSignal(vm.required);
     const visible = useSignal(vm.visible);
@@ -105,8 +111,11 @@ export function useField(path: string): UseFieldResult {
         itemKey: vm.itemKey,
         dataType: vm.dataType,
         label,
+        labelNeedAnchors,
         hint,
+        hintNeedAnchors,
         description,
+        descriptionNeedAnchors,
         value,
         required,
         visible,

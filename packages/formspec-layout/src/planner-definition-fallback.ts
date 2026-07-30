@@ -5,7 +5,12 @@ import type { ItemDescriptor, Tier1Hints } from './theme-resolver.js';
 import { resolvePresentation, resolveWidget } from './theme-resolver.js';
 import { getDefaultComponent } from './defaults.js';
 import type { FormItem, LayoutNode, PlanContext } from './types.js';
-import { gridPlacementStyleFromLayout, normalizeCssClass, preparePlanContext } from './node-utils.js';
+import {
+    gridPlacementStyleFromLayout,
+    needGenerationAnchors,
+    normalizeCssClass,
+    preparePlanContext,
+} from './node-utils.js';
 import {
     findItemAtPath,
     findItemPathByKey,
@@ -69,6 +74,7 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
             style: gridPlacementStyleFromLayout((item.presentation as { layout?: unknown } | undefined)?.layout),
             cssClasses: normalizeCssClass(presentation.cssClass),
             children: [],
+            needAnchors: needGenerationAnchors(item),
             bindPath: fullPath,
             scopeChange: true,
         };
@@ -122,6 +128,7 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
             style: gridPlacementStyleFromLayout((fieldItem.presentation as { layout?: unknown } | undefined)?.layout),
             cssClasses: normalizeCssClass(presentation.cssClass),
             children: [],
+            needAnchors: needGenerationAnchors(item),
             bindPath: fullPath,
             fieldItem: {
                 key: key!,
@@ -150,6 +157,7 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
         style: gridPlacementStyleFromLayout((displayItem.presentation as { layout?: unknown } | undefined)?.layout),
         cssClasses: normalizeCssClass(presentation.cssClass),
         children: [],
+        needAnchors: needGenerationAnchors(item),
     };
 
     if (displayItem.relevant) {

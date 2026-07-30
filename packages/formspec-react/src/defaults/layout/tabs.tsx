@@ -3,7 +3,10 @@
 /** @filedesc Tabs layout component — WAI-ARIA tabbed panel navigation with keyboard support. */
 import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutComponentProps } from '../../component-map';
-import { projectionMetadataAttrs } from '../../projection-metadata.js';
+import {
+    needTraceAttrs,
+    projectionMetadataAttrs,
+} from '../../projection-metadata.js';
 import { routeLandmarkAttrs } from '../../route-landmark.js';
 
 /**
@@ -62,6 +65,9 @@ export function Tabs({ node, children }: LayoutComponentProps) {
 
     // Spec: tabLabels prop takes precedence, then derive from child metadata
     const explicitLabels = node.props?.tabLabels as string[] | undefined;
+    const explicitLabelGeneration = node.props?.tabLabelGeneration as
+        | Array<{ anchors?: unknown[] }>
+        | undefined;
     const tabLabels: string[] = node.children.map((child, idx) =>
         explicitLabels?.[idx]
         || (child.fieldItem?.label as string)
@@ -94,6 +100,11 @@ export function Tabs({ node, children }: LayoutComponentProps) {
                         aria-controls={`panel-${id}-${idx}`}
                         tabIndex={isActive ? 0 : -1}
                         onClick={() => setActiveTab(idx)}
+                        {...needTraceAttrs(
+                            explicitLabels?.[idx]
+                                ? explicitLabelGeneration?.[idx]?.anchors
+                                : node.children[idx]?.needAnchors,
+                        )}
                     >
                         {label}
                     </button>

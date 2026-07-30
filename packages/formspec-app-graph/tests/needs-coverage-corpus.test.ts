@@ -190,7 +190,16 @@ describe('needs coverage checker — shared fixture corpus', () => {
 
 describe('needs coverage rides the app-graph validation report', () => {
   const fixture = CASES.find((c) => c.id === 'appendix-a-worked-example')!;
-  const context = contextFor(fixture);
+  const context = contextFor({
+    ...fixture,
+    bundle: {
+      ...fixture.bundle,
+      experience: {
+        actors: [{ id: 'applicant' }],
+        ...fixture.bundle?.experience,
+      },
+    },
+  });
   const report = validateAppGraph({
     manifest: context.manifest,
     artifacts: { siblings: context.handles.filter((h) => h.slot !== 'manifest') },
@@ -299,6 +308,36 @@ describe('needs coverage checker — evidence that is not a Needs Document', () 
     const evidenceCodes = report.evidenceResults.flatMap((r) => r.diagnostics.map((d) => d.code));
     expect(evidenceCodes).toContain('APP-GRAPH-EVIDENCE-SCHEMA-ID');
     expect(report.diagnostics.filter((d) => d.code.startsWith('NEED-'))).toEqual([]);
+  });
+});
+
+describe('needs coverage cannot be laundered through unusable Experience units', () => {
+  it('does not count a Need citation on a unit whose itemRefs miss its target Definition', () => {
+    const paired = CASES.find((fixture) => fixture.id === 'warning-adopted-need-unserved')!;
+    const definitionUrl = `${BUNDLE_ID}/definition`;
+    const context = contextFor({
+      ...paired,
+      bundle: {
+        experience: {
+          targetDefinition: { url: definitionUrl },
+          units: [{
+            id: 'brokenUnit',
+            kind: 'review',
+            needRefs: [{ id: 'works-without-good-internet' }],
+            itemRefs: [{ path: 'missingField' }],
+          }],
+        },
+      },
+    });
+    context.handles.push(handle('definitions[0]', 'definition', {
+      $formspec: '1.0',
+      url: definitionUrl,
+      version: '1.0.0',
+      items: [{ key: 'knownField', type: 'field', label: 'Known field' }],
+    }));
+
+    expect(validateNeedsCoverage(context).map((diagnostic) => diagnostic.code))
+      .toContain('NEED-COVERAGE-001');
   });
 });
 

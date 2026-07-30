@@ -7,7 +7,7 @@ import { useFormspecContext } from '../../context';
 import type { ExtensionAttrs } from './field-control-types';
 import { GroupControl } from './group-control';
 import { renderControl } from './render-control';
-import { projectionMetadataAttrs } from '../../projection-metadata.js';
+import { needTraceAttrs, projectionMetadataAttrs } from '../../projection-metadata.js';
 
 /**
  * Default field renderer — works for any field type.
@@ -43,11 +43,38 @@ export function DefaultField({ field, node }: FieldComponentProps) {
     const resolvePlaceholder = (componentPlaceholder?: string) =>
         extensionAttrs.placeholder || componentPlaceholder;
 
+    const authoredNeedAnchors = node.needAnchors ?? [];
+    const labelNeedAttrs = needTraceAttrs([
+        ...authoredNeedAnchors,
+        ...field.labelNeedAnchors,
+    ]);
+    const hintNeedAttrs = needTraceAttrs([
+        ...authoredNeedAnchors,
+        ...field.hintNeedAnchors,
+    ]);
+    const descriptionNeedAttrs = needTraceAttrs([
+        ...authoredNeedAnchors,
+        ...field.descriptionNeedAnchors,
+    ]);
     const descId = `${field.id}-desc`;
     const descriptionNode = field.description ? (
-        <div id={descId} className="formspec-description">{field.description}</div>
+        <div
+            id={descId}
+            className="formspec-description"
+            {...descriptionNeedAttrs}
+        >
+            {field.description}
+        </div>
     ) : null;
-    const hintNode = field.hint ? <p id={`${field.id}-hint`} className="formspec-hint">{field.hint}</p> : null;
+    const hintNode = field.hint ? (
+        <p
+            id={`${field.id}-hint`}
+            className="formspec-hint"
+            {...hintNeedAttrs}
+        >
+            {field.hint}
+        </p>
+    ) : null;
 
     const supplementaryDescribedBy =
         [field.description ? descId : '', field.hint ? `${field.id}-hint` : ''].filter(Boolean).join(' ') || undefined;
@@ -88,7 +115,11 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 data-name={field.path}
                 {...graphAttrs}
             >
-                <label htmlFor={field.id} className="formspec-label">
+                <label
+                    htmlFor={field.id}
+                    className="formspec-label"
+                    {...labelNeedAttrs}
+                >
                     {field.label}
                     {requiredNode}
                 </label>
@@ -130,6 +161,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 <legend
                     id={labelId}
                     className={labelHidden ? 'formspec-legend formspec-sr-only' : 'formspec-legend'}
+                    {...labelNeedAttrs}
                 >
                     {field.label}
                     {requiredNode}
@@ -166,6 +198,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
             <label
                 htmlFor={field.id}
                 className={node.labelPosition === 'hidden' ? 'formspec-label formspec-sr-only' : 'formspec-label'}
+                {...labelNeedAttrs}
             >
                 {field.label}
                 {requiredNode}

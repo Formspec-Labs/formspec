@@ -176,6 +176,16 @@ export type RegistryEntry = {
      */
     actionOutputs?: [WidgetActionOutput, ...WidgetActionOutput[]];
     /**
+     * Renderer-owned inventory of authored config objects that can produce visible product output. Each pointer pattern is relative to binding.config. Strict data-only validation expands this inventory and requires a direct current adopted Need trace on every matched object; it refuses widgets that omit the inventory because it cannot prove the rendered-node scope.
+     *
+     * @minItems 1
+     */
+    renderedConfigNodes?: [RenderedConfigNode, ...RenderedConfigNode[]];
+    /**
+     * Stable identifier published by the renderer implementation. A runtime module that supplies this widget MUST publish the same id and Registry entry version before the component is admitted. This ties the declared widget shape and rendered-node inventory to the delivered code.
+     */
+    deliveryContractId?: string;
+    /**
      * Renderer-facing child composition policy for the widget.
      */
     childrenPolicy?: string;
@@ -304,6 +314,20 @@ export interface WidgetActionOutput {
    * Human-readable description of the event the widget may emit.
    */
   description?: string;
+}
+/**
+ * This interface was referenced by `RegistryDocument`'s JSON-Schema
+ * via the `definition` "RenderedConfigNode".
+ */
+export interface RenderedConfigNode {
+  /**
+   * JSON Pointer pattern relative to binding.config. The empty string names the config root. A `*` segment expands one array or object level; wildcard segments may repeat in nested patterns.
+   */
+  pointerPattern: string;
+  /**
+   * Stable renderer-owned kind used in lint findings and DOM review identities.
+   */
+  kind: string;
 }
 /**
  * A Theme token slot declared by a module widget. Slot declarations are Registry evidence for UI Graph Policy checks only; they do not define token values, Theme cascade, renderer fallback, runtime state, or authorization.

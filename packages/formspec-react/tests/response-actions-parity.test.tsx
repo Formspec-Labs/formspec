@@ -29,7 +29,9 @@ const responseActionsDocument = {
         {
             id: 'send-application',
             intent: 'submit',
+            label: { literal: 'Send application' },
             effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+            'x-generation': { anchors: ['need:submit-proof@3'] },
         },
     ],
 };
@@ -58,6 +60,9 @@ describe('React Response Actions parity', () => {
         const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
         expect(button).toBeTruthy();
         expect(button.disabled).toBe(false);
+        expect(button.textContent).toBe('Send application');
+        expect(button.getAttribute('data-need-anchors')).toBe('need:submit-proof@3');
+        expect(button.getAttribute('data-need-ids')).toBe('submit-proof');
 
         flushSync(() => { button.click(); });
 

@@ -200,6 +200,14 @@ These are declarations to downstream processors. This spec does not define a cac
 
 This document does not define a global provenance URI syntax. Hosts and modules MAY use implementation-specific pointers, but the `kind` match lets app-graph validators reject obvious category drift.
 
+Each `sources[]` entry MAY also carry common `x-generation` authoring
+provenance. This field is separate from `runtime.provenance`: it explains why
+the source declaration was authored and has no effect on loading, admission,
+delivery, cache, or payload lineage. A processor that activates the strict
+rendered-Need trace profile MUST inventory each source declaration as one node
+and require that source's own direct `need:<id>@<revision>` anchor. A catalog,
+widget binding, or related source anchor does not cover it.
+
 ## 8. Authorization Boundary
 
 `runtime.authorizationBoundary` is a coarse boundary enum:

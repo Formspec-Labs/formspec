@@ -66,6 +66,7 @@ import {
   type WidgetActionCoordinator,
 } from './widget-action-runtime.js';
 import { WidgetEmptyState } from './widgets/empty-state.js';
+import { needIdTraceAttributes, needTraceAttributes } from './need-trace.js';
 
 export type ResolvedDefinitionFormPlan = Extract<
   SlotPlan<SurfaceWidget>,
@@ -167,6 +168,7 @@ export function SurfaceSlotFrame(props: SurfaceSlotProps) {
       className="fs-surface-slot"
       data-slot={plan.slotId}
       data-slot-type={plan.slotType}
+      {...needTraceAttributes(plan.needAnchors)}
       {...(plan.title ? { 'aria-label': plan.title } : {})}
     >
       {plan.title && !rendersOwnHeading(plan) && (
@@ -238,7 +240,11 @@ export function SurfaceSlot({
         return <UnavailableSlot>{strings('slotUnavailableExperienceUnit')}</UnavailableSlot>;
       }
       return (
-        <div className="fs-surface-unit" data-experience-unit={unit.unitRef}>
+        <div
+          className="fs-surface-unit"
+          data-experience-unit={unit.unitRef}
+          {...needIdTraceAttributes(unit.needs.map((need) => need.id))}
+        >
           {unit.title && (
             <Heading level={plan.headingBaseLevel} className="fs-surface-unit__title">
               {unit.title}
@@ -269,6 +275,8 @@ export function SurfaceSlot({
             {strings(
               resolution.status === 'unimplemented'
                 ? 'slotUnavailableWidgetUnimplemented'
+                : resolution.status === 'incompatible'
+                  ? 'slotUnavailableWidgetIncompatible'
                 : 'slotUnavailableWidgetUndeclared',
               { widgetName: key.widgetName, moduleId: key.moduleId },
             )}
@@ -308,18 +316,30 @@ export function SurfaceSlot({
       switch (content.kind) {
         case 'heading':
           return (
-            <Heading level={content.level} className="fs-surface-static-heading">
+            <Heading
+              level={content.level}
+              className="fs-surface-static-heading"
+              {...needTraceAttributes(plan.contentNeedAnchors)}
+            >
               {content.content}
             </Heading>
           );
         case 'text':
-          return <p className="fs-surface-static-text">{content.content}</p>;
+          return (
+            <p
+              className="fs-surface-static-text"
+              {...needTraceAttributes(plan.contentNeedAnchors)}
+            >
+              {content.content}
+            </p>
+          );
         case 'image':
           return (
             <img
               className="fs-surface-static-image"
               src={content.src}
               alt={content.alt}
+              {...needTraceAttributes(plan.contentNeedAnchors)}
               // Empty alt is an explicit authored decorative choice in Surface
               // 0.2. Missing alt never reaches this renderer.
               {...(content.decorative ? { role: 'presentation' } : {})}
@@ -328,7 +348,12 @@ export function SurfaceSlot({
         case 'divider':
           // Presentational only: no accessible name, not focusable, and
           // `content` is not rendered as text even when non-empty (§3.4.2).
-          return <hr className="fs-surface-static-divider" />;
+          return (
+            <hr
+              className="fs-surface-static-divider"
+              {...needTraceAttributes(plan.contentNeedAnchors)}
+            />
+          );
       }
       return null;
     }
@@ -783,6 +808,11 @@ function SurfaceWidgetSlot({
       headingLevel={plan.headingBaseLevel}
       config={plan.config ?? {}}
       data={delivery.data}
+      actions={plan.actionOutputs.flatMap((output) =>
+        output.action === undefined
+          ? []
+          : [{ outputName: output.name, ...output.action }],
+      )}
       emitAction={emitAction}
       admitsTenantTheme={grant.admitsTenantTheme}
     />

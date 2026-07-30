@@ -22,8 +22,11 @@
  *   A widget does not decide this and cannot change it; it is told, so a widget
  *   that would otherwise paint a tenant accent can render its unbranded form.
  *
- * - `emitAction` — the only action capability. The widget names a declared
- *   output. It never sees the mapped Response Actions id or a route.
+ * - `actions` — resolved, read-only presentation metadata for mapped Response
+ *   Actions. This lets a generic widget use the Action's authored label and
+ *   intent without duplicating them in widget configuration.
+ * - `emitAction` — the only action capability. The widget still names a
+ *   declared output; action ids are metadata and cannot be executed directly.
  *
  * A widget is NOT given navigation, an executor, or the route table. A
  * module-supplied widget navigating the app is a module deciding the app's
@@ -48,6 +51,23 @@ export interface SurfaceWidgetRouteContext {
   params: Readonly<Record<string, string>>;
 }
 
+export type SurfaceWidgetActionLabel =
+  | Readonly<{ literal: string }>
+  | Readonly<{ ref: string }>;
+
+/**
+ * Read-only presentation metadata for one output whose Surface binding
+ * resolves to exactly one loaded Response Actions Action.
+ */
+export interface SurfaceWidgetAction {
+  outputName: string;
+  actionRef: string;
+  intent: string;
+  label?: SurfaceWidgetActionLabel | undefined;
+  /** Direct authored Need anchors on the resolved Response Actions Action. */
+  needAnchors?: readonly string[] | undefined;
+}
+
 export interface SurfaceWidgetProps {
   moduleId: string;
   /** Matches `widgetShape.widgetName` — not the contribution id. */
@@ -59,6 +79,11 @@ export interface SurfaceWidgetProps {
   config: Readonly<Record<string, unknown>>;
   /** Frozen object containing only successfully delivered declared inputs. */
   data: Readonly<Record<string, unknown>>;
+  /**
+   * Exact resolved action metadata. Optional for source compatibility with
+   * modules compiled against Surface React 0.1; the shell always supplies it.
+   */
+  actions?: readonly SurfaceWidgetAction[] | undefined;
   /** The widget's sole action capability; the shell owns mapping and execution. */
   emitAction: (outputName: string) => void;
   admitsTenantTheme: boolean;

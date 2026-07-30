@@ -10,6 +10,7 @@ import {
     classifyComponent,
     extractProps,
     gridPlacementStyleFromLayout,
+    needGenerationAnchors,
     normalizeCssClass,
     preparePlanContext,
     resolveCssClasses,
@@ -82,6 +83,12 @@ export function planComponentTree(
         customComponentStack.add(componentType);
         const result = planComponentTree(template, planCtx, prefix, customComponentStack, false, null);
         customComponentStack.delete(componentType);
+        result.needAnchors = [
+            ...(result.needAnchors ?? []),
+            ...needGenerationAnchors(comp).filter(
+                (anchor) => !result.needAnchors?.includes(anchor),
+            ),
+        ];
         return finalizeRouteProjectionRoot(result, planCtx, prefix, graphPathSegments);
     }
 
@@ -120,6 +127,7 @@ export function planComponentTree(
             : undefined,
         cssClasses: resolveCssClasses(comp as { cssClass?: string | string[] }, planCtx),
         children: [],
+        needAnchors: needGenerationAnchors(comp, item),
     };
     const nextGraphPathSegments = componentGraphPathSegments(comp, graphPathSegments);
     if (planCtx.componentGraph && nextGraphPathSegments) {

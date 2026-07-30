@@ -20,6 +20,7 @@ import type {
   MappingDocument,
   ResponseActionsDocument,
   DataSourcesDocument,
+  SurfacePreviewScenario,
   ArtifactResolutionReport,
   AppGraphValidationReport,
   UiGraphPolicyDocument,
@@ -63,6 +64,9 @@ describe('generated types smoke test', () => {
 
     const dataSources = {} as DataSourcesDocument;
     expect(dataSources).toBeDefined();
+
+    const surfaceScenario = {} as SurfacePreviewScenario;
+    expect(surfaceScenario).toBeDefined();
 
     const artifactResolutionReport = {} as ArtifactResolutionReport;
     expect(artifactResolutionReport).toBeDefined();
@@ -183,6 +187,45 @@ describe('generated types — tightness against permissive intersections', () =>
       );
     }
     expect(src).toContain('[k: `x-${string}`]: unknown;');
+  });
+
+  it('direct trace-bearing bindings, sources, and scenarios use common Generation', () => {
+    const surfaceSrc = readFileSync(
+      resolve(__dirname, '../src/generated/surface.ts'),
+      'utf-8',
+    );
+    const dataSourcesSrc = readFileSync(
+      resolve(__dirname, '../src/generated/data-sources.ts'),
+      'utf-8',
+    );
+    const scenarioSrc = readFileSync(
+      resolve(__dirname, '../src/generated/surface-scenario.ts'),
+      'utf-8',
+    );
+    const indexSrc = readFileSync(
+      resolve(__dirname, '../src/generated/index.ts'),
+      'utf-8',
+    );
+
+    expect(surfaceSrc).toMatch(
+      /export interface WidgetDataBinding \{[\s\S]*?'x-generation'\?: Generation;[\s\S]*?\n\}/m,
+    );
+    expect(surfaceSrc).toMatch(
+      /export interface WidgetActionBinding \{[\s\S]*?'x-generation'\?: Generation;[\s\S]*?\n\}/m,
+    );
+    expect(dataSourcesSrc).toMatch(
+      /export type DataSource = \{[\s\S]*?'x-generation'\?: Generation;[\s\S]*?\n\};/m,
+    );
+    expect(scenarioSrc).toMatch(
+      /export interface SurfacePreviewScenario \{[\s\S]*?'x-generation'\?: Generation;[\s\S]*?routeParamsGeneration\?: Generation;/m,
+    );
+    expect(scenarioSrc).toMatch(
+      /export interface SurfaceScenarioLoadedSource \{[\s\S]*?'x-generation'\?: Generation;/m,
+    );
+    expect(scenarioSrc).toMatch(
+      /export interface SurfaceScenarioActionOutcome \{[\s\S]*?'x-generation'\?: Generation;/m,
+    );
+    expect(indexSrc).toContain('WidgetDataBinding, WidgetActionBindings, WidgetActionBinding');
   });
 
   it('AppGraphValidationReport Origin preserves known origins plus x-* extensions', () => {

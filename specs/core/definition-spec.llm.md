@@ -38,6 +38,7 @@ Source schema: `schemas/definition.schema.json`
 - Top-level lifecycle fields (status, version, versionAlgorithm) determine publication and compatibility semantics across versions.
 - Definition-level defaults and options (for example formPresentation and nonRelevantBehavior) establish baseline processing and rendering behavior.
 - Behavioral logic remains declarative through binds and shapes and is evaluated by conformant processors at runtime.
+- Treat x-generation on each Bind and Shape as authoring provenance only; strict data-only authoring requires each object to carry its own direct current adopted Need anchor.
 
 ## Semantic Capsule
 
@@ -58,3 +59,4 @@ Source schema: `schemas/definition.schema.json`
 - A conforming definition must include $formspec, url, version, status, title, and items.
 - Processors must reject definitions that violate structural constraints or unsupported $formspec versions.
 - The (url, version) pair must be treated as immutable identity for definition pinning and response validation.
+- Strict data-only authoring must require every Bind and Shape to carry a direct x-generation anchor that resolves unambiguously to an adopted Need at its current revision.

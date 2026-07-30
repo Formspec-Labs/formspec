@@ -6,13 +6,15 @@
  * surface-render-v10 spike's queue table drew four applications with invented
  * rents and invented waiting times, and that was its most convincing lie.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   CeremonyFrame,
   IntakeBanner,
   QueueTable,
   ReceiptPanel,
   STARTER_WIDGETS,
+  StructuredPanel,
+  readStructuredPanelPath,
   starterWidgetModule,
 } from '../src/widgets/index.js';
 import type { SurfaceWidgetProps } from '../src/widget-api.js';
@@ -38,12 +40,308 @@ describe('starter widget module', () => {
     expect(STARTER_WIDGETS['x-intake-banner']).toBe(IntakeBanner);
     expect(STARTER_WIDGETS.IntakeBanner).toBe(IntakeBanner);
     expect(STARTER_WIDGETS['x-queue-panel']).toBe(QueueTable);
+    expect(STARTER_WIDGETS.StructuredPanel).toBe(StructuredPanel);
+    expect(STARTER_WIDGETS['x-structured-panel']).toBe(StructuredPanel);
   });
 
   it('binds to whichever module id a bundle declares', () => {
     const module = starterWidgetModule('x-formspec-tenant-chrome');
     expect(module.moduleId).toBe('x-formspec-tenant-chrome');
     expect(module.widgets['x-receipt-panel']).toBe(ReceiptPanel);
+  });
+});
+
+describe('StructuredPanel', () => {
+  const trace = {
+    'x-generation': {
+      anchors: ['need:understand-account@2'],
+    },
+  };
+
+  it('renders generic blocks from safe data paths, route facts, and traced JSON configuration', () => {
+    const container = render(
+      <StructuredPanel
+        {...props({
+          route: {
+            surfaceId: 's',
+            routeId: 'account',
+            routeClass: 'operation',
+            params: { accountId: 'acct-7' },
+          },
+          config: {
+            id: 'accountSummary',
+            ...trace,
+            eyebrow: 'Workspace',
+            state: 'Active',
+            title: 'Account summary',
+            body: 'Current usage and access.',
+            blocks: [
+              {
+                id: 'memberMetric',
+                type: 'metric',
+                label: 'Members',
+                path: 'summary.members',
+                ...trace,
+              },
+              {
+                id: 'facts',
+                type: 'key-value',
+                items: [
+                  { id: 'plan', label: 'Plan', path: 'summary.plan', ...trace },
+                  { id: 'account', label: 'Account', routeParam: 'accountId', ...trace },
+                ],
+                ...trace,
+              },
+              {
+                id: 'features',
+                type: 'list',
+                path: 'summary.features',
+                ...trace,
+              },
+              {
+                id: 'invoices',
+                type: 'table',
+                path: 'billing.invoices',
+                caption: 'Recent invoices',
+                columns: [
+                  { id: 'period', label: 'Period', path: 'period', ...trace },
+                  { id: 'amount', label: 'Amount', path: 'amount', numeric: true, ...trace },
+                ],
+                ...trace,
+              },
+              {
+                id: 'usage',
+                type: 'progress',
+                label: 'Usage',
+                path: 'summary.usage',
+                max: 100,
+                suffix: '%',
+                ...trace,
+              },
+            ],
+          },
+          data: {
+            summary: {
+              members: 12,
+              plan: 'Team',
+              features: ['Forms', 'Exports'],
+              usage: 64,
+            },
+            billing: {
+              invoices: [{ period: 'July', amount: 24 }],
+            },
+          },
+        })}
+      />,
+    );
+
+    expect(textOf(container.querySelector('.fs-structured-panel__title'))).toBe(
+      'Account summary',
+    );
+    expect(textOf(container.querySelector('[data-block-id="memberMetric"]'))).toContain(
+      'Members12',
+    );
+    expect(textOf(container.querySelector('[data-field-id="account"]'))).toBe(
+      'Accountacct-7',
+    );
+    expect(container.querySelectorAll('.fs-structured-panel__list li')).toHaveLength(2);
+    expect(textOf(container.querySelector('.fs-structured-panel__table tbody td'))).toBe(
+      'July',
+    );
+    expect(container.querySelector('progress')?.getAttribute('value')).toBe('64');
+    expect(
+      container
+        .querySelector('[data-block-id="invoices"]')
+        ?.getAttribute('data-need-anchors'),
+    ).toBe('need:understand-account@2');
+    expect(container.querySelector('[data-panel-id="accountSummary"]')?.getAttribute('data-trace-state')).toBe(
+      'present',
+    );
+  });
+
+  it('takes action ordering and emphasis from panel data, but button text from Response Actions', () => {
+    const emitAction = vi.fn();
+    const container = render(
+      <StructuredPanel
+        {...props({
+          config: {
+            ...trace,
+            actions: [
+              { outputName: 'delete', order: 2, emphasis: 'danger', ...trace },
+              { outputName: 'save', order: 1, emphasis: 'primary', ...trace },
+            ],
+          },
+          actions: [
+            {
+              outputName: 'delete',
+              actionRef: 'deleteAccount',
+              intent: 'x-delete',
+              label: { literal: 'Delete account' },
+            },
+            {
+              outputName: 'save',
+              actionRef: 'saveAccount',
+              intent: 'save-draft',
+              label: { literal: 'Save changes' },
+            },
+          ],
+          emitAction,
+        })}
+      />,
+    );
+    const buttons = [...container.querySelectorAll<HTMLButtonElement>('button')];
+    expect(buttons.map(textOf)).toEqual(['Save changes', 'Delete account']);
+    expect(buttons[0]?.getAttribute('data-emphasis')).toBe('primary');
+    expect(buttons[0]?.getAttribute('data-action-ref')).toBe('saveAccount');
+    expect(buttons[0]?.getAttribute('data-action-intent')).toBe('save-draft');
+    expect(buttons[0]?.getAttribute('data-need-ids')).toBe('understand-account');
+    buttons[0]?.click();
+    expect(emitAction).toHaveBeenCalledWith('save');
+  });
+
+  it('uses block and action need anchors when the panel has no product-level copy', () => {
+    const container = render(
+      <StructuredPanel
+        {...props({
+          config: {
+            blocks: [
+              {
+                id: 'status',
+                type: 'metric',
+                label: 'Open',
+                path: 'summary.open',
+                'x-generation': { anchors: ['need:see-status@1'] },
+              },
+            ],
+            actions: [
+              {
+                outputName: 'open',
+                'x-generation': { anchors: ['need:manage-record@3'] },
+              },
+            ],
+          },
+          data: { summary: { open: 4 } },
+          actions: [
+            {
+              outputName: 'open',
+              actionRef: 'openRecord',
+              intent: 'review',
+              label: { literal: 'Open record' },
+            },
+          ],
+        })}
+      />,
+    );
+    expect(container.querySelector('[data-block-id="status"]')?.getAttribute('data-need-ids')).toBe(
+      'see-status',
+    );
+    expect(container.querySelector('button')?.getAttribute('data-need-ids')).toBe(
+      'manage-record',
+    );
+    expect(container.querySelector('[data-widget="structured-panel"]')?.getAttribute('data-need-ids')).toBe(
+      'see-status manage-record',
+    );
+  });
+
+  it('does not let a parent Need trace authorize an untraced field or action', () => {
+    const container = render(
+      <StructuredPanel
+        {...props({
+          config: {
+            ...trace,
+            blocks: [{
+              id: 'facts',
+              type: 'key-value',
+              ...trace,
+              items: [
+                { id: 'hidden', label: 'Hidden', path: 'hidden' },
+                { id: 'shown', label: 'Shown', path: 'shown', ...trace },
+              ],
+            }],
+            actions: [
+              { outputName: 'hiddenAction' },
+              { outputName: 'shownAction', ...trace },
+            ],
+          },
+          data: { hidden: 'Must not render', shown: 'Visible' },
+          actions: [{
+            outputName: 'hiddenAction',
+            actionRef: 'hidden',
+            intent: 'review',
+            label: { literal: 'Hidden action' },
+          }, {
+            outputName: 'shownAction',
+            actionRef: 'shown',
+            intent: 'review',
+            label: { literal: 'Shown action' },
+          }],
+        })}
+      />,
+    );
+
+    expect(textOf(container)).not.toContain('Must not render');
+    expect(textOf(container)).not.toContain('Hidden action');
+    expect(textOf(container)).toContain('ShownVisible');
+    expect(textOf(container)).toContain('Shown action');
+  });
+
+  it('fails closed for missing trace, missing data, and unresolved label references', () => {
+    const withoutTrace = render(
+      <StructuredPanel
+        {...props({
+          config: {
+            title: 'Must not render',
+            blocks: [{ id: 'secret', type: 'metric', path: 'secret' }],
+          },
+          data: { secret: 'Must not render' },
+        })}
+      />,
+    );
+    expect(textOf(withoutTrace)).not.toContain('Must not render');
+    expect(withoutTrace.querySelector('[data-trace-state="missing"]')).not.toBeNull();
+
+    const missingData = render(
+      <StructuredPanel
+        {...props({
+          config: {
+            ...trace,
+            blocks: [
+              {
+                id: 'missing',
+                type: 'metric',
+                path: 'summary.missing',
+                emptyMessage: 'No current value.',
+                ...trace,
+              },
+            ],
+            actions: [{ outputName: 'save', label: 'Config label is ignored' }],
+          },
+          data: { summary: {} },
+          actions: [
+            {
+              outputName: 'save',
+              actionRef: 'save',
+              intent: 'save-draft',
+              label: { ref: '$actions.save' },
+            },
+          ],
+        })}
+      />,
+    );
+    expect(textOf(missingData.querySelector('[data-widget-empty]'))).toBe('No current value.');
+    expect(textOf(missingData)).not.toContain('undefined');
+    expect(missingData.querySelector('button')).toBeNull();
+    expect(textOf(missingData)).not.toContain('Config label is ignored');
+  });
+
+  it('rejects unsafe and inherited paths', () => {
+    const inherited = Object.create({ leaked: 'no' }) as Record<string, unknown>;
+    inherited.own = { value: 'yes' };
+    expect(readStructuredPanelPath(inherited, 'own.value')).toBe('yes');
+    expect(readStructuredPanelPath(inherited, 'leaked')).toBeUndefined();
+    expect(readStructuredPanelPath({}, '__proto__.polluted')).toBeUndefined();
+    expect(readStructuredPanelPath({}, 'constructor.name')).toBeUndefined();
+    expect(readStructuredPanelPath({}, 'bad[0]')).toBeUndefined();
   });
 });
 

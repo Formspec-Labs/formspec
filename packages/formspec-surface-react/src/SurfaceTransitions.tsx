@@ -20,11 +20,14 @@
  */
 import { useState } from 'react';
 import {
+  generationNeedAnchors,
+  mergeNeedAnchors,
   resolveSurfaceStrings,
   type PlannedTransition,
   type SurfaceRouteHandle,
   type SurfaceStrings,
 } from '@formspec-org/surface';
+import { needTraceAttributes } from './need-trace.js';
 
 export interface SurfaceTransitionsProps {
   from: SurfaceRouteHandle;
@@ -102,6 +105,7 @@ function SurfaceTransition({
           : {})}
         data-probe="transition-blocked"
         role="status"
+        {...needTraceAttributes(transition.needAnchors)}
       >
         {transition.reason}
       </p>
@@ -109,12 +113,19 @@ function SurfaceTransition({
   }
 
   const label = transition.target?.route.title ?? transition.to;
+  const renderedAnchors = mergeNeedAnchors(
+    transition.needAnchors,
+    transition.target
+      ? generationNeedAnchors(transition.target.route)
+      : [],
+  );
 
   return (
     <div
       className="fs-surface-transition"
       data-transition-status={transition.status}
       data-probe="transition-fireable"
+      {...needTraceAttributes(renderedAnchors)}
     >
       <button
         type="button"

@@ -9,6 +9,7 @@ import { SliderControl } from './controls/slider';
 import { RatingControl } from './controls/rating';
 import { SignatureControl } from './controls/signature';
 import { FileUploadControl } from './controls/file-upload';
+import { needTraceAttrs } from '../../projection-metadata.js';
 
 export function renderControl(
     field: FieldComponentProps['field'],
@@ -65,7 +66,13 @@ export function renderControl(
                         {/* Item 5: hidden prevents placeholder appearing in iOS picker dropdown */}
                         <option value="" disabled hidden>{placeholderOpt}</option>
                         {field.options.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            <option
+                                key={opt.value}
+                                value={opt.value}
+                                {...needTraceAttrs(opt.needAnchors)}
+                            >
+                                {opt.label}
+                            </option>
                         ))}
                     </select>
                     {clearable && value && !isReadonly && (
