@@ -69,7 +69,6 @@ function resolveExternalRefs(obj: any): any {
 
   if (typeof obj.$ref === 'string') {
     const ref: string = obj.$ref;
-    if (ref.startsWith('#')) return obj;
 
     if (ref.includes('#/$defs/')) {
       const [filePart, fragment] = ref.split('#');
@@ -138,6 +137,24 @@ const HARD_SCHEMAS = new Set(['mapping', 'theme']);
 // not reliably synthesize from pattern alone. Their committed examples remain
 // subject to the normal validity threshold.
 const EXAMPLE_BACKED_SCHEMAS = new Set(['verification-receipt']);
+
+test('external refs beside a local $ref are still resolved', () => {
+  const resolved = resolveExternalRefs({
+    $defs: {
+      ComponentBase: { type: 'object' },
+    },
+    $ref: '#/$defs/ComponentBase',
+    properties: {
+      generation: {
+        $ref: 'https://formspec.org/schemas/common/1.0#/$defs/Generation',
+      },
+    },
+  });
+
+  expect(resolved.$ref).toBe('#/$defs/ComponentBase');
+  expect(resolved.properties.generation.$ref).toBeUndefined();
+  expect(() => new Ajv2020({ strict: false }).compile(resolved)).not.toThrow();
+});
 
 const CUSTOM_VALID_INSTANCES: Record<string, any[]> = {
   definition: [
