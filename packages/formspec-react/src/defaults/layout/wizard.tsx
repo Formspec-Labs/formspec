@@ -5,6 +5,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';
 import type { LayoutComponentProps } from '../../component-map';
 import { useFormspecContext } from '../../context';
+import type { FormspecContextValue } from '../../context';
 import { projectionMetadataAttrs } from '../../projection-metadata.js';
 import { routeLandmarkAttrs } from '../../route-landmark.js';
 
@@ -29,6 +30,23 @@ function focusFirstIn(container: HTMLElement | null): void {
     el?.focus();
 }
 
+function hasResolvedSubmitAction(
+    node: LayoutNode | undefined,
+    resolveActionRef: FormspecContextValue['resolveActionRef'],
+): boolean {
+    if (!node) return false;
+    if (node.component === 'ActionButton') {
+        const actionRef = node.props?.actionRef;
+        if (typeof actionRef === 'string') {
+            const resolution = resolveActionRef(actionRef, node.id);
+            if (resolution.resolved && resolution.action?.intent === 'submit') {
+                return true;
+            }
+        }
+    }
+    return node.children.some(child => hasResolvedSubmitAction(child, resolveActionRef));
+}
+
 function cx(...parts: Array<string | false | undefined>): string {
     return parts.filter(Boolean).join(' ');
 }
@@ -44,7 +62,7 @@ function cx(...parts: Array<string | false | undefined>): string {
  * (same as the web component).
  */
 export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Element {
-    const { touchField, engine, onSubmit } = useFormspecContext();
+    const { touchField, engine, onSubmit, resolveActionRef } = useFormspecContext();
 
     const stepNodes = node.children; // LayoutNode[] — one per step
     const stepChildren = React.Children.toArray(children); // ReactNode[] — rendered steps
@@ -116,6 +134,10 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
     const title = stepTitle(currentStep);
     const isFirst = currentStep === 0;
     const isLast = currentStep === totalSteps - 1;
+    const finalStepHasSubmitAction = hasResolvedSubmitAction(
+        stepNodes[totalSteps - 1],
+        resolveActionRef,
+    );
 
     const progressRow =
         showProgress && totalSteps > 1 ? (
@@ -194,7 +216,7 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
                     >
                         Next
                     </button>
-                ) : (
+                ) : finalStepHasSubmitAction ? null : (
                     <button
                         type="button"
                         className="formspec-wizard-submit formspec-button-primary formspec-focus-ring"

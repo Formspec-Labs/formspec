@@ -245,6 +245,72 @@ describe('React Response Actions parity', () => {
         container.remove();
     });
 
+    it('places declared actions on the final Wizard step and suppresses its duplicate native submit', () => {
+        const componentDocument = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: definition.url },
+            tree: {
+                component: 'Wizard',
+                children: [
+                    {
+                        component: 'Section',
+                        id: 'details-step',
+                        title: 'Details',
+                        children: [],
+                    },
+                    {
+                        component: 'Section',
+                        id: 'review-step',
+                        title: 'Review',
+                        children: [],
+                    },
+                ],
+            },
+        };
+        const { container, root } = renderInto(
+            <FormspecForm
+                definition={definition}
+                componentDocument={componentDocument}
+                responseActionsDocument={multiActionDocument}
+                onSubmit={() => {}}
+            />,
+        );
+
+        expect(container.querySelector('button.formspec-submit')).toBeNull();
+        const next = container.querySelector<HTMLButtonElement>('.formspec-wizard-next');
+        expect(next).toBeTruthy();
+        flushSync(() => { next?.click(); });
+
+        const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>('button.formspec-submit'));
+        expect(buttons.map(button => button.textContent)).toEqual([
+            'Save draft',
+            'Review form',
+            'Publish form',
+        ]);
+        expect(container.querySelector('.formspec-wizard-submit')).toBeNull();
+
+        const reviewOnlyDocument = {
+            ...multiActionDocument,
+            actions: [multiActionDocument.actions[1]],
+        };
+        flushSync(() => {
+            root.render(
+                <FormspecForm
+                    definition={definition}
+                    componentDocument={componentDocument}
+                    responseActionsDocument={reviewOnlyDocument}
+                    onSubmit={() => {}}
+                />,
+            );
+        });
+        expect(container.querySelector('button.formspec-submit')?.textContent).toBe('Review form');
+        expect(container.querySelector('.formspec-wizard-submit')).toBeTruthy();
+
+        root.unmount();
+        container.remove();
+    });
+
     it('does not auto-place controls without opt-in or from missing, mismatched, app-scoped, or invalid documents', () => {
         const documents = [
             undefined,

@@ -102,18 +102,29 @@ function planContainsActionRef(node: LayoutNode, actionRef: string): boolean {
     return node.children.some(child => planContainsActionRef(child, actionRef));
 }
 
+function finalWizardStep(node: LayoutNode): LayoutNode | undefined {
+    if (node.component === 'Wizard') {
+        return [...node.children].reverse().find(child => child.component === 'Section');
+    }
+    for (const child of node.children) {
+        const step = finalWizardStep(child);
+        if (step) return step;
+    }
+    return undefined;
+}
+
+function finalPageModeStep(root: LayoutNode, pageMode: string | undefined): LayoutNode | undefined {
+    if (pageMode !== 'wizard') return undefined;
+    return [...root.children].reverse().find(child => child.component === 'Section');
+}
+
 export function ensureActionButton(
     root: LayoutNode,
     nextId: NodeIdGenerator = createNodeIdGenerator(),
     options: EnsureActionButtonOptions = {},
 ): void {
     if (!options.actionRef) return;
-    if (
-        planContains(root, 'Wizard')
-        || planContainsActionRef(root, options.actionRef)
-    ) {
-        return;
-    }
+    if (planContainsActionRef(root, options.actionRef)) return;
 
     const actionNode: LayoutNode = {
         id: nextId('submit'),
@@ -123,6 +134,14 @@ export function ensureActionButton(
         cssClasses: [],
         children: [],
     };
+
+    const wizardStep = finalWizardStep(root)
+        ?? finalPageModeStep(root, options.pageMode);
+    if (wizardStep) {
+        wizardStep.children.push(actionNode);
+        return;
+    }
+    if (planContains(root, 'Wizard') || options.pageMode === 'wizard') return;
 
     if (ACTION_MUST_BE_SIBLING_ROOTS.has(root.component)) {
         const inner: LayoutNode = { ...root };
@@ -145,10 +164,6 @@ export function ensureActionButton(
         delete root.repeatPath;
         delete root.isRepeatTemplate;
         delete root.scopeChange;
-        return;
-    }
-
-    if (options.pageMode === 'wizard' && root.children.some(c => c.component === 'Section')) {
         return;
     }
 

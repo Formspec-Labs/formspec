@@ -2497,9 +2497,23 @@ describe('ensureActionButton', () => {
         expect(authored.props?.label).toEqual({ literal: 'Keep my draft' });
     });
 
-    it('does not add an ActionButton when the tree contains a Wizard', () => {
-        const root = makeNode('Stack', [makeNode('Wizard', [makeNode('Section')])]);
-        ensureActionButton(root);
+    it('adds configured actions to the final step when the tree contains a Wizard', () => {
+        const first = makeNode('Section', [makeNode('TextInput')]);
+        const final = makeNode('Section', [makeNode('Select')]);
+        const root = makeNode('Stack', [makeNode('Wizard', [first, final])]);
+        const nextId = createNodeIdGenerator();
+
+        ensureActionButton(root, nextId, { actionRef: 'save-draft' });
+        ensureActionButton(root, nextId, { actionRef: 'review' });
+        ensureActionButton(root, nextId, { actionRef: 'publish' });
+
+        expect(first.children.map(c => c.component)).toEqual(['TextInput']);
+        expect(final.children.map(c => c.props?.actionRef)).toEqual([
+            undefined,
+            'save-draft',
+            'review',
+            'publish',
+        ]);
         expect(root.children.some(c => c.component === 'ActionButton')).toBe(false);
     });
 
@@ -2512,13 +2526,18 @@ describe('ensureActionButton', () => {
         expect(root.children.at(-1)?.component).toBe('ActionButton');
     });
 
-    it('does not add an ActionButton when the root Stack has Section page units in wizard mode', () => {
+    it('adds configured actions to the final Section in wizard page mode', () => {
         const root = makeNode('Stack', [
             makeNode('Section', [makeNode('TextInput')]),
             makeNode('Section', [makeNode('Select')]),
         ]);
-        ensureActionButton(root, createNodeIdGenerator(), { pageMode: 'wizard' });
+        ensureActionButton(root, createNodeIdGenerator(), {
+            pageMode: 'wizard',
+            actionRef: 'send-application',
+        });
         expect(root.children.some(c => c.component === 'ActionButton')).toBe(false);
+        expect(root.children[0].children.some(c => c.component === 'ActionButton')).toBe(false);
+        expect(root.children[1].children.at(-1)?.props?.actionRef).toBe('send-application');
     });
 
     it('adds an ActionButton after Section page units in tabs mode', () => {
