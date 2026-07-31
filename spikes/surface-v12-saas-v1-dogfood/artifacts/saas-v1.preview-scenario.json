@@ -15,6 +15,20 @@
       "sources": [
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "response:organization-setup",
+          "status": "loaded",
+          "value": {
+            "organizationName": "Acme Community Grants",
+            "workspaceName": "Grant operations",
+            "environment": "production"
+          },
+          "x-generation": {
+            "anchors": ["need:configure-organization@1"]
+          },
+          "freshness": "fresh"
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:workspace",
           "status": "loaded",
           "value": {
@@ -328,6 +342,20 @@
       "sources": [
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "response:organization-setup",
+          "status": "loaded",
+          "value": {
+            "organizationName": "Acme Community Grants",
+            "workspaceName": "Grant operations",
+            "environment": "production"
+          },
+          "x-generation": {
+            "anchors": ["need:configure-organization@1"]
+          },
+          "freshness": "fresh"
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:workspace",
           "status": "loaded",
           "value": {
@@ -582,6 +610,15 @@
       "sources": [
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "response:organization-setup",
+          "status": "unavailable",
+          "x-generation": {
+            "anchors": ["need:configure-organization@1"]
+          },
+          "reason": "The organization setup Response is unavailable in this preview profile."
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:workspace",
           "status": "unavailable",
           "x-generation": {
@@ -633,6 +670,15 @@
       "sources": [
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "response:organization-setup",
+          "status": "error",
+          "x-generation": {
+            "anchors": ["need:configure-organization@1"]
+          },
+          "reason": "The preview simulated an organization Response loader exception."
+        },
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:workspace",
           "status": "error",
           "x-generation": {
@@ -679,6 +725,20 @@
     },
     "longContent": {
       "sources": [
+        {
+          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+          "sourceRef": "response:organization-setup",
+          "status": "loaded",
+          "value": {
+            "organizationName": "Acme Community Grants and Regional Partnership Demonstration Organization",
+            "workspaceName": "Multi-county grants, vendor onboarding, and annual public reporting operations",
+            "environment": "production"
+          },
+          "x-generation": {
+            "anchors": ["need:configure-organization@1"]
+          },
+          "freshness": "fresh"
+        },
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:workspace",

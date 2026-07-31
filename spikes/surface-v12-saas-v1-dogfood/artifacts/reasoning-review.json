@@ -14,11 +14,11 @@
       "scenarioFile": "saas-v1.preview-scenario.json",
       "status": "complete",
       "summary": {
-        "renderedPointerCount": 386,
-        "tracedPointerCount": 386,
+        "renderedPointerCount": 391,
+        "tracedPointerCount": 391,
         "kinds": {
           "app-manifest-title": 1,
-          "data-source": 4,
+          "data-source": 5,
           "definition-bind": 7,
           "definition-document": 2,
           "definition-item": 7,
@@ -32,7 +32,7 @@
           "route": 15,
           "slot": 31,
           "structured-panel": 14,
-          "structured-panel-action": 26,
+          "structured-panel-action": 25,
           "structured-panel-block": 20,
           "structured-panel-column": 31,
           "structured-panel-field": 31,
@@ -41,9 +41,9 @@
           "surface-preview-action-outcome": 1,
           "surface-preview-route-params": 1,
           "surface-preview-scenario": 1,
-          "surface-preview-source-outcome": 20,
-          "surface-widget-action-binding": 33,
-          "surface-widget-data-binding": 13,
+          "surface-preview-source-outcome": 25,
+          "surface-widget-action-binding": 32,
+          "surface-widget-data-binding": 14,
           "transition": 21
         },
         "unresolvedPointerCount": 0
@@ -3894,57 +3894,6 @@
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
           "pointer": "/actions/8",
           "kind": "response-action",
-          "label": "completeOnboarding",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
-          "traces": [
-            {
-              "direct": {
-                "kind": "anchor",
-                "needId": "configure-organization",
-                "revision": 1,
-                "raw": "need:configure-organization@1",
-                "pointer": "/actions/8/x-generation/anchors/0"
-              },
-              "need": {
-                "matchCount": 1,
-                "id": "configure-organization",
-                "status": "adopted",
-                "currentRevision": 1
-              },
-              "experiencePaths": [
-                {
-                  "documentRef": "https://formspec.cloud/experience/saas-v1",
-                  "unitRef": "onboardingUnit",
-                  "actorRef": "customerAdmin",
-                  "taskRefs": [
-                    "configureOrganization"
-                  ],
-                  "relationReasons": [
-                    "needRef",
-                    "actionRef"
-                  ]
-                }
-              ],
-              "checks": {
-                "direct": true,
-                "uniqueNeed": true,
-                "adoptedNeed": true,
-                "currentRevision": true,
-                "experiencePath": true,
-                "actorsResolved": true,
-                "tasksResolved": true
-              },
-              "status": "traced"
-            }
-          ],
-          "status": "traced"
-        },
-        {
-          "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/9",
-          "kind": "response-action",
           "label": "openFormDetail",
           "anchors": [
             "need:publish-hosted-form@1"
@@ -3956,7 +3905,7 @@
                 "needId": "publish-hosted-form",
                 "revision": 1,
                 "raw": "need:publish-hosted-form@1",
-                "pointer": "/actions/9/x-generation/anchors/0"
+                "pointer": "/actions/8/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -3994,7 +3943,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/10",
+          "pointer": "/actions/9",
           "kind": "response-action",
           "label": "previewForm",
           "anchors": [
@@ -4007,7 +3956,7 @@
                 "needId": "publish-hosted-form",
                 "revision": 1,
                 "raw": "need:publish-hosted-form@1",
-                "pointer": "/actions/10/x-generation/anchors/0"
+                "pointer": "/actions/9/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4045,7 +3994,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/11",
+          "pointer": "/actions/10",
           "kind": "response-action",
           "label": "openFormResponses",
           "anchors": [
@@ -4058,7 +4007,7 @@
                 "needId": "review-and-export-responses",
                 "revision": 1,
                 "raw": "need:review-and-export-responses@1",
-                "pointer": "/actions/11/x-generation/anchors/0"
+                "pointer": "/actions/10/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4096,7 +4045,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/12",
+          "pointer": "/actions/11",
           "kind": "response-action",
           "label": "returnToForm",
           "anchors": [
@@ -4109,7 +4058,7 @@
                 "needId": "publish-hosted-form",
                 "revision": 1,
                 "raw": "need:publish-hosted-form@1",
-                "pointer": "/actions/12/x-generation/anchors/0"
+                "pointer": "/actions/11/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4147,7 +4096,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/13",
+          "pointer": "/actions/12",
           "kind": "response-action",
           "label": "openSignatures",
           "anchors": [
@@ -4160,7 +4109,7 @@
                 "needId": "run-signature-workflow",
                 "revision": 1,
                 "raw": "need:run-signature-workflow@1",
-                "pointer": "/actions/13/x-generation/anchors/0"
+                "pointer": "/actions/12/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4198,7 +4147,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/14",
+          "pointer": "/actions/13",
           "kind": "response-action",
           "label": "returnToResponses",
           "anchors": [
@@ -4211,7 +4160,7 @@
                 "needId": "run-signature-workflow",
                 "revision": 1,
                 "raw": "need:run-signature-workflow@1",
-                "pointer": "/actions/14/x-generation/anchors/0"
+                "pointer": "/actions/13/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4249,7 +4198,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/15",
+          "pointer": "/actions/14",
           "kind": "response-action",
           "label": "openBillingFromIntegrations",
           "anchors": [
@@ -4263,7 +4212,7 @@
                 "needId": "connect-existing-systems",
                 "revision": 1,
                 "raw": "need:connect-existing-systems@1",
-                "pointer": "/actions/15/x-generation/anchors/0"
+                "pointer": "/actions/14/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4302,7 +4251,7 @@
                 "needId": "understand-plan-and-usage",
                 "revision": 1,
                 "raw": "need:understand-plan-and-usage@1",
-                "pointer": "/actions/15/x-generation/anchors/1"
+                "pointer": "/actions/14/x-generation/anchors/1"
               },
               "need": {
                 "matchCount": 1,
@@ -4340,7 +4289,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/16",
+          "pointer": "/actions/15",
           "kind": "response-action",
           "label": "editOrganizationSetup",
           "anchors": [
@@ -4353,7 +4302,7 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/actions/16/x-generation/anchors/0"
+                "pointer": "/actions/15/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4391,7 +4340,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/17",
+          "pointer": "/actions/16",
           "kind": "response-action",
           "label": "openAdministration",
           "anchors": [
@@ -4404,7 +4353,7 @@
                 "needId": "understand-plan-and-usage",
                 "revision": 1,
                 "raw": "need:understand-plan-and-usage@1",
-                "pointer": "/actions/17/x-generation/anchors/0"
+                "pointer": "/actions/16/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4442,7 +4391,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/18",
+          "pointer": "/actions/17",
           "kind": "response-action",
           "label": "returnToDashboard",
           "anchors": [
@@ -4455,7 +4404,7 @@
                 "needId": "get-help-and-check-trust",
                 "revision": 1,
                 "raw": "need:get-help-and-check-trust@1",
-                "pointer": "/actions/18/x-generation/anchors/0"
+                "pointer": "/actions/17/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4493,7 +4442,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/19",
+          "pointer": "/actions/18",
           "kind": "response-action",
           "label": "openPublicFormFromResponses",
           "anchors": [
@@ -4507,7 +4456,7 @@
                 "needId": "review-and-export-responses",
                 "revision": 1,
                 "raw": "need:review-and-export-responses@1",
-                "pointer": "/actions/19/x-generation/anchors/0"
+                "pointer": "/actions/18/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4546,7 +4495,7 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/actions/19/x-generation/anchors/1"
+                "pointer": "/actions/18/x-generation/anchors/1"
               },
               "need": {
                 "matchCount": 1,
@@ -4584,7 +4533,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/20",
+          "pointer": "/actions/19",
           "kind": "response-action",
           "label": "backToResponses",
           "anchors": [
@@ -4597,7 +4546,7 @@
                 "needId": "review-and-export-responses",
                 "revision": 1,
                 "raw": "need:review-and-export-responses@1",
-                "pointer": "/actions/20/x-generation/anchors/0"
+                "pointer": "/actions/19/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4635,7 +4584,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/21",
+          "pointer": "/actions/20",
           "kind": "response-action",
           "label": "openHostedForm",
           "anchors": [
@@ -4648,7 +4597,7 @@
                 "needId": "publish-hosted-form",
                 "revision": 1,
                 "raw": "need:publish-hosted-form@1",
-                "pointer": "/actions/21/x-generation/anchors/0"
+                "pointer": "/actions/20/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4686,9 +4635,60 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/22",
+          "pointer": "/actions/21",
           "kind": "response-action",
           "label": "reviewResponse",
+          "anchors": [
+            "need:review-and-export-responses@1"
+          ],
+          "traces": [
+            {
+              "direct": {
+                "kind": "anchor",
+                "needId": "review-and-export-responses",
+                "revision": 1,
+                "raw": "need:review-and-export-responses@1",
+                "pointer": "/actions/21/x-generation/anchors/0"
+              },
+              "need": {
+                "matchCount": 1,
+                "id": "review-and-export-responses",
+                "status": "adopted",
+                "currentRevision": 1
+              },
+              "experiencePaths": [
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "responsesUnit",
+                  "actorRef": "formAuthor",
+                  "taskRefs": [
+                    "reviewResponses"
+                  ],
+                  "relationReasons": [
+                    "needRef",
+                    "actionRef"
+                  ]
+                }
+              ],
+              "checks": {
+                "direct": true,
+                "uniqueNeed": true,
+                "adoptedNeed": true,
+                "currentRevision": true,
+                "experiencePath": true,
+                "actorsResolved": true,
+                "tasksResolved": true
+              },
+              "status": "traced"
+            }
+          ],
+          "status": "traced"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
+          "pointer": "/actions/22",
+          "kind": "response-action",
+          "label": "exportResponsesCsv",
           "anchors": [
             "need:review-and-export-responses@1"
           ],
@@ -4739,7 +4739,7 @@
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
           "pointer": "/actions/23",
           "kind": "response-action",
-          "label": "exportResponsesCsv",
+          "label": "exportResponsesJson",
           "anchors": [
             "need:review-and-export-responses@1"
           ],
@@ -4790,57 +4790,6 @@
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
           "pointer": "/actions/24",
           "kind": "response-action",
-          "label": "exportResponsesJson",
-          "anchors": [
-            "need:review-and-export-responses@1"
-          ],
-          "traces": [
-            {
-              "direct": {
-                "kind": "anchor",
-                "needId": "review-and-export-responses",
-                "revision": 1,
-                "raw": "need:review-and-export-responses@1",
-                "pointer": "/actions/24/x-generation/anchors/0"
-              },
-              "need": {
-                "matchCount": 1,
-                "id": "review-and-export-responses",
-                "status": "adopted",
-                "currentRevision": 1
-              },
-              "experiencePaths": [
-                {
-                  "documentRef": "https://formspec.cloud/experience/saas-v1",
-                  "unitRef": "responsesUnit",
-                  "actorRef": "formAuthor",
-                  "taskRefs": [
-                    "reviewResponses"
-                  ],
-                  "relationReasons": [
-                    "needRef",
-                    "actionRef"
-                  ]
-                }
-              ],
-              "checks": {
-                "direct": true,
-                "uniqueNeed": true,
-                "adoptedNeed": true,
-                "currentRevision": true,
-                "experiencePath": true,
-                "actorsResolved": true,
-                "tasksResolved": true
-              },
-              "status": "traced"
-            }
-          ],
-          "status": "traced"
-        },
-        {
-          "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/25",
-          "kind": "response-action",
           "label": "downloadResponseJson",
           "anchors": [
             "need:review-and-export-responses@1"
@@ -4852,7 +4801,7 @@
                 "needId": "review-and-export-responses",
                 "revision": 1,
                 "raw": "need:review-and-export-responses@1",
-                "pointer": "/actions/25/x-generation/anchors/0"
+                "pointer": "/actions/24/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4890,7 +4839,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/26",
+          "pointer": "/actions/25",
           "kind": "response-action",
           "label": "openSignatureCertificate",
           "anchors": [
@@ -4903,7 +4852,7 @@
                 "needId": "run-signature-workflow",
                 "revision": 1,
                 "raw": "need:run-signature-workflow@1",
-                "pointer": "/actions/26/x-generation/anchors/0"
+                "pointer": "/actions/25/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4941,7 +4890,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/27",
+          "pointer": "/actions/26",
           "kind": "response-action",
           "label": "openApiDocumentation",
           "anchors": [
@@ -4954,7 +4903,7 @@
                 "needId": "connect-existing-systems",
                 "revision": 1,
                 "raw": "need:connect-existing-systems@1",
-                "pointer": "/actions/27/x-generation/anchors/0"
+                "pointer": "/actions/26/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -4992,9 +4941,60 @@
         },
         {
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/28",
+          "pointer": "/actions/27",
           "kind": "response-action",
           "label": "openServiceStatus",
+          "anchors": [
+            "need:get-help-and-check-trust@1"
+          ],
+          "traces": [
+            {
+              "direct": {
+                "kind": "anchor",
+                "needId": "get-help-and-check-trust",
+                "revision": 1,
+                "raw": "need:get-help-and-check-trust@1",
+                "pointer": "/actions/27/x-generation/anchors/0"
+              },
+              "need": {
+                "matchCount": 1,
+                "id": "get-help-and-check-trust",
+                "status": "adopted",
+                "currentRevision": 1
+              },
+              "experiencePaths": [
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "supportTrustUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "checkSupportTrust"
+                  ],
+                  "relationReasons": [
+                    "needRef",
+                    "actionRef"
+                  ]
+                }
+              ],
+              "checks": {
+                "direct": true,
+                "uniqueNeed": true,
+                "adoptedNeed": true,
+                "currentRevision": true,
+                "experiencePath": true,
+                "actorsResolved": true,
+                "tasksResolved": true
+              },
+              "status": "traced"
+            }
+          ],
+          "status": "traced"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
+          "pointer": "/actions/28",
+          "kind": "response-action",
+          "label": "openSupportChannel",
           "anchors": [
             "need:get-help-and-check-trust@1"
           ],
@@ -5045,7 +5045,7 @@
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
           "pointer": "/actions/29",
           "kind": "response-action",
-          "label": "openSupportChannel",
+          "label": "openTrustDocument",
           "anchors": [
             "need:get-help-and-check-trust@1"
           ],
@@ -5096,32 +5096,32 @@
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
           "pointer": "/actions/30",
           "kind": "response-action",
-          "label": "openTrustDocument",
+          "label": "downloadReceipt",
           "anchors": [
-            "need:get-help-and-check-trust@1"
+            "need:complete-and-prove-response@1"
           ],
           "traces": [
             {
               "direct": {
                 "kind": "anchor",
-                "needId": "get-help-and-check-trust",
+                "needId": "complete-and-prove-response",
                 "revision": 1,
-                "raw": "need:get-help-and-check-trust@1",
+                "raw": "need:complete-and-prove-response@1",
                 "pointer": "/actions/30/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
-                "id": "get-help-and-check-trust",
+                "id": "complete-and-prove-response",
                 "status": "adopted",
                 "currentRevision": 1
               },
               "experiencePaths": [
                 {
                   "documentRef": "https://formspec.cloud/experience/saas-v1",
-                  "unitRef": "supportTrustUnit",
-                  "actorRef": "customerAdmin",
+                  "unitRef": "publicReceiptUnit",
+                  "actorRef": "respondent",
                   "taskRefs": [
-                    "checkSupportTrust"
+                    "retainReceipt"
                   ],
                   "relationReasons": [
                     "needRef",
@@ -5147,9 +5147,10 @@
           "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
           "pointer": "/actions/31",
           "kind": "response-action",
-          "label": "downloadReceipt",
+          "label": "openReceiptSupport",
           "anchors": [
-            "need:complete-and-prove-response@1"
+            "need:complete-and-prove-response@1",
+            "need:get-help-and-check-trust@1"
           ],
           "traces": [
             {
@@ -5190,31 +5191,18 @@
                 "tasksResolved": true
               },
               "status": "traced"
-            }
-          ],
-          "status": "traced"
-        },
-        {
-          "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
-          "pointer": "/actions/32",
-          "kind": "response-action",
-          "label": "openReceiptSupport",
-          "anchors": [
-            "need:complete-and-prove-response@1",
-            "need:get-help-and-check-trust@1"
-          ],
-          "traces": [
+            },
             {
               "direct": {
                 "kind": "anchor",
-                "needId": "complete-and-prove-response",
+                "needId": "get-help-and-check-trust",
                 "revision": 1,
-                "raw": "need:complete-and-prove-response@1",
-                "pointer": "/actions/32/x-generation/anchors/0"
+                "raw": "need:get-help-and-check-trust@1",
+                "pointer": "/actions/31/x-generation/anchors/1"
               },
               "need": {
                 "matchCount": 1,
-                "id": "complete-and-prove-response",
+                "id": "get-help-and-check-trust",
                 "status": "adopted",
                 "currentRevision": 1
               },
@@ -5242,28 +5230,40 @@
                 "tasksResolved": true
               },
               "status": "traced"
-            },
+            }
+          ],
+          "status": "traced"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/actions/organization-setup",
+          "pointer": "/actions/0",
+          "kind": "response-action",
+          "label": "completeOnboarding",
+          "anchors": [
+            "need:configure-organization@1"
+          ],
+          "traces": [
             {
               "direct": {
                 "kind": "anchor",
-                "needId": "get-help-and-check-trust",
+                "needId": "configure-organization",
                 "revision": 1,
-                "raw": "need:get-help-and-check-trust@1",
-                "pointer": "/actions/32/x-generation/anchors/1"
+                "raw": "need:configure-organization@1",
+                "pointer": "/actions/0/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
-                "id": "get-help-and-check-trust",
+                "id": "configure-organization",
                 "status": "adopted",
                 "currentRevision": 1
               },
               "experiencePaths": [
                 {
                   "documentRef": "https://formspec.cloud/experience/saas-v1",
-                  "unitRef": "publicReceiptUnit",
-                  "actorRef": "respondent",
+                  "unitRef": "onboardingUnit",
+                  "actorRef": "customerAdmin",
                   "taskRefs": [
-                    "retainReceipt"
+                    "configureOrganization"
                   ],
                   "relationReasons": [
                     "needRef",
@@ -11331,57 +11331,6 @@
         },
         {
           "artifactRef": "https://formspec.cloud/app",
-          "pointer": "/routes/2/slots/2/binding/actionBindings/completeOnboarding",
-          "kind": "surface-widget-action-binding",
-          "label": "completeOnboarding",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
-          "traces": [
-            {
-              "direct": {
-                "kind": "anchor",
-                "needId": "configure-organization",
-                "revision": 1,
-                "raw": "need:configure-organization@1",
-                "pointer": "/routes/2/slots/2/binding/actionBindings/completeOnboarding/x-generation/anchors/0"
-              },
-              "need": {
-                "matchCount": 1,
-                "id": "configure-organization",
-                "status": "adopted",
-                "currentRevision": 1
-              },
-              "experiencePaths": [
-                {
-                  "documentRef": "https://formspec.cloud/experience/saas-v1",
-                  "unitRef": "onboardingUnit",
-                  "actorRef": "customerAdmin",
-                  "taskRefs": [
-                    "configureOrganization"
-                  ],
-                  "relationReasons": [
-                    "needRef",
-                    "actionRef"
-                  ]
-                }
-              ],
-              "checks": {
-                "direct": true,
-                "uniqueNeed": true,
-                "adoptedNeed": true,
-                "currentRevision": true,
-                "experiencePath": true,
-                "actorsResolved": true,
-                "tasksResolved": true
-              },
-              "status": "traced"
-            }
-          ],
-          "status": "traced"
-        },
-        {
-          "artifactRef": "https://formspec.cloud/app",
           "pointer": "/routes/2/slots/2/binding/config",
           "kind": "structured-panel",
           "label": "onboardingPanel",
@@ -11396,78 +11345,6 @@
                 "revision": 1,
                 "raw": "need:configure-organization@1",
                 "pointer": "/routes/2/slots/2/binding/config/x-generation/anchors/0"
-              },
-              "need": {
-                "matchCount": 1,
-                "id": "configure-organization",
-                "status": "adopted",
-                "currentRevision": 1
-              },
-              "experiencePaths": [
-                {
-                  "documentRef": "https://formspec.cloud/experience/saas-v1",
-                  "unitRef": "adminUnit",
-                  "actorRef": "customerAdmin",
-                  "taskRefs": [
-                    "administerOrganization"
-                  ],
-                  "relationReasons": [
-                    "needRef"
-                  ]
-                },
-                {
-                  "documentRef": "https://formspec.cloud/experience/saas-v1",
-                  "unitRef": "dashboardUnit",
-                  "actorRef": "customerAdmin",
-                  "taskRefs": [
-                    "reviewDashboard"
-                  ],
-                  "relationReasons": [
-                    "needRef"
-                  ]
-                },
-                {
-                  "documentRef": "https://formspec.cloud/experience/saas-v1",
-                  "unitRef": "onboardingUnit",
-                  "actorRef": "customerAdmin",
-                  "taskRefs": [
-                    "configureOrganization"
-                  ],
-                  "relationReasons": [
-                    "needRef"
-                  ]
-                }
-              ],
-              "checks": {
-                "direct": true,
-                "uniqueNeed": true,
-                "adoptedNeed": true,
-                "currentRevision": true,
-                "experiencePath": true,
-                "actorsResolved": true,
-                "tasksResolved": true
-              },
-              "status": "traced"
-            }
-          ],
-          "status": "traced"
-        },
-        {
-          "artifactRef": "https://formspec.cloud/app",
-          "pointer": "/routes/2/slots/2/binding/config/actions/0",
-          "kind": "structured-panel-action",
-          "label": "completeOnboarding",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
-          "traces": [
-            {
-              "direct": {
-                "kind": "anchor",
-                "needId": "configure-organization",
-                "revision": 1,
-                "raw": "need:configure-organization@1",
-                "pointer": "/routes/2/slots/2/binding/config/actions/0/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -24099,6 +23976,78 @@
         },
         {
           "artifactRef": "https://formspec.cloud/app",
+          "pointer": "/routes/10/slots/1/binding/dataBindings/secondaryData",
+          "kind": "surface-widget-data-binding",
+          "label": "secondaryData",
+          "anchors": [
+            "need:configure-organization@1"
+          ],
+          "traces": [
+            {
+              "direct": {
+                "kind": "anchor",
+                "needId": "configure-organization",
+                "revision": 1,
+                "raw": "need:configure-organization@1",
+                "pointer": "/routes/10/slots/1/binding/dataBindings/secondaryData/x-generation/anchors/0"
+              },
+              "need": {
+                "matchCount": 1,
+                "id": "configure-organization",
+                "status": "adopted",
+                "currentRevision": 1
+              },
+              "experiencePaths": [
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "adminUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "administerOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "dashboardUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "reviewDashboard"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "onboardingUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "configureOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                }
+              ],
+              "checks": {
+                "direct": true,
+                "uniqueNeed": true,
+                "adoptedNeed": true,
+                "currentRevision": true,
+                "experiencePath": true,
+                "actorsResolved": true,
+                "tasksResolved": true
+              },
+              "status": "traced"
+            }
+          ],
+          "status": "traced"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/app",
           "pointer": "/routes/10/slots/1/binding/actionBindings/editOrganizationSetup",
           "kind": "surface-widget-action-binding",
           "label": "editOrganizationSetup",
@@ -30802,6 +30751,78 @@
           "artifactRef": "https://formspec.cloud/data-sources/saas-v1",
           "pointer": "/sources/1",
           "kind": "data-source",
+          "label": "response:organization-setup",
+          "anchors": [
+            "need:configure-organization@1"
+          ],
+          "traces": [
+            {
+              "direct": {
+                "kind": "anchor",
+                "needId": "configure-organization",
+                "revision": 1,
+                "raw": "need:configure-organization@1",
+                "pointer": "/sources/1/x-generation/anchors/0"
+              },
+              "need": {
+                "matchCount": 1,
+                "id": "configure-organization",
+                "status": "adopted",
+                "currentRevision": 1
+              },
+              "experiencePaths": [
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "adminUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "administerOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "dashboardUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "reviewDashboard"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "onboardingUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "configureOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                }
+              ],
+              "checks": {
+                "direct": true,
+                "uniqueNeed": true,
+                "adoptedNeed": true,
+                "currentRevision": true,
+                "experiencePath": true,
+                "actorsResolved": true,
+                "tasksResolved": true
+              },
+              "status": "traced"
+            }
+          ],
+          "status": "traced"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/data-sources/saas-v1",
+          "pointer": "/sources/2",
+          "kind": "data-source",
           "label": "query:responses",
           "anchors": [
             "need:review-and-export-responses@1"
@@ -30813,7 +30834,7 @@
                 "needId": "review-and-export-responses",
                 "revision": 1,
                 "raw": "need:review-and-export-responses@1",
-                "pointer": "/sources/1/x-generation/anchors/0"
+                "pointer": "/sources/2/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -30883,7 +30904,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/data-sources/saas-v1",
-          "pointer": "/sources/2",
+          "pointer": "/sources/3",
           "kind": "data-source",
           "label": "host:billing",
           "anchors": [
@@ -30896,7 +30917,7 @@
                 "needId": "understand-plan-and-usage",
                 "revision": 1,
                 "raw": "need:understand-plan-and-usage@1",
-                "pointer": "/sources/2/x-generation/anchors/0"
+                "pointer": "/sources/3/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -30955,7 +30976,7 @@
         },
         {
           "artifactRef": "https://formspec.cloud/data-sources/saas-v1",
-          "pointer": "/sources/3",
+          "pointer": "/sources/4",
           "kind": "data-source",
           "label": "resource:support-trust",
           "anchors": [
@@ -30968,7 +30989,7 @@
                 "needId": "get-help-and-check-trust",
                 "revision": 1,
                 "raw": "need:get-help-and-check-trust@1",
-                "pointer": "/sources/3/x-generation/anchors/0"
+                "pointer": "/sources/4/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -31316,6 +31337,78 @@
           "artifactRef": "saas-v1.preview-scenario.json",
           "pointer": "/profiles/empty/sources/0",
           "kind": "surface-preview-source-outcome",
+          "label": "https://formspec.cloud/data-sources/saas-v1#response:organization-setup",
+          "anchors": [
+            "need:configure-organization@1"
+          ],
+          "traces": [
+            {
+              "direct": {
+                "kind": "anchor",
+                "needId": "configure-organization",
+                "revision": 1,
+                "raw": "need:configure-organization@1",
+                "pointer": "/profiles/empty/sources/0/x-generation/anchors/0"
+              },
+              "need": {
+                "matchCount": 1,
+                "id": "configure-organization",
+                "status": "adopted",
+                "currentRevision": 1
+              },
+              "experiencePaths": [
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "adminUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "administerOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "dashboardUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "reviewDashboard"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "onboardingUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "configureOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                }
+              ],
+              "checks": {
+                "direct": true,
+                "uniqueNeed": true,
+                "adoptedNeed": true,
+                "currentRevision": true,
+                "experiencePath": true,
+                "actorsResolved": true,
+                "tasksResolved": true
+              },
+              "status": "traced"
+            }
+          ],
+          "status": "traced"
+        },
+        {
+          "artifactRef": "saas-v1.preview-scenario.json",
+          "pointer": "/profiles/empty/sources/1",
+          "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#host:workspace",
           "anchors": [
             "need:see-honest-feature-state@1"
@@ -31327,7 +31420,7 @@
                 "needId": "see-honest-feature-state",
                 "revision": 1,
                 "raw": "need:see-honest-feature-state@1",
-                "pointer": "/profiles/empty/sources/0/x-generation/anchors/0"
+                "pointer": "/profiles/empty/sources/1/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -31518,7 +31611,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/empty/sources/1",
+          "pointer": "/profiles/empty/sources/2",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#query:responses",
           "anchors": [
@@ -31531,7 +31624,7 @@
                 "needId": "review-and-export-responses",
                 "revision": 1,
                 "raw": "need:review-and-export-responses@1",
-                "pointer": "/profiles/empty/sources/1/x-generation/anchors/0"
+                "pointer": "/profiles/empty/sources/2/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -31601,7 +31694,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/empty/sources/2",
+          "pointer": "/profiles/empty/sources/3",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#host:billing",
           "anchors": [
@@ -31614,7 +31707,7 @@
                 "needId": "understand-plan-and-usage",
                 "revision": 1,
                 "raw": "need:understand-plan-and-usage@1",
-                "pointer": "/profiles/empty/sources/2/x-generation/anchors/0"
+                "pointer": "/profiles/empty/sources/3/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -31673,7 +31766,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/empty/sources/3",
+          "pointer": "/profiles/empty/sources/4",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#resource:support-trust",
           "anchors": [
@@ -31686,7 +31779,7 @@
                 "needId": "get-help-and-check-trust",
                 "revision": 1,
                 "raw": "need:get-help-and-check-trust@1",
-                "pointer": "/profiles/empty/sources/3/x-generation/anchors/0"
+                "pointer": "/profiles/empty/sources/4/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -31747,6 +31840,78 @@
           "artifactRef": "saas-v1.preview-scenario.json",
           "pointer": "/profiles/error/sources/0",
           "kind": "surface-preview-source-outcome",
+          "label": "https://formspec.cloud/data-sources/saas-v1#response:organization-setup",
+          "anchors": [
+            "need:configure-organization@1"
+          ],
+          "traces": [
+            {
+              "direct": {
+                "kind": "anchor",
+                "needId": "configure-organization",
+                "revision": 1,
+                "raw": "need:configure-organization@1",
+                "pointer": "/profiles/error/sources/0/x-generation/anchors/0"
+              },
+              "need": {
+                "matchCount": 1,
+                "id": "configure-organization",
+                "status": "adopted",
+                "currentRevision": 1
+              },
+              "experiencePaths": [
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "adminUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "administerOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "dashboardUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "reviewDashboard"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "onboardingUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "configureOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                }
+              ],
+              "checks": {
+                "direct": true,
+                "uniqueNeed": true,
+                "adoptedNeed": true,
+                "currentRevision": true,
+                "experiencePath": true,
+                "actorsResolved": true,
+                "tasksResolved": true
+              },
+              "status": "traced"
+            }
+          ],
+          "status": "traced"
+        },
+        {
+          "artifactRef": "saas-v1.preview-scenario.json",
+          "pointer": "/profiles/error/sources/1",
+          "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#host:workspace",
           "anchors": [
             "need:see-honest-feature-state@1"
@@ -31758,7 +31923,7 @@
                 "needId": "see-honest-feature-state",
                 "revision": 1,
                 "raw": "need:see-honest-feature-state@1",
-                "pointer": "/profiles/error/sources/0/x-generation/anchors/0"
+                "pointer": "/profiles/error/sources/1/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -31949,7 +32114,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/error/sources/1",
+          "pointer": "/profiles/error/sources/2",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#query:responses",
           "anchors": [
@@ -31962,7 +32127,7 @@
                 "needId": "review-and-export-responses",
                 "revision": 1,
                 "raw": "need:review-and-export-responses@1",
-                "pointer": "/profiles/error/sources/1/x-generation/anchors/0"
+                "pointer": "/profiles/error/sources/2/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -32032,7 +32197,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/error/sources/2",
+          "pointer": "/profiles/error/sources/3",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#host:billing",
           "anchors": [
@@ -32045,7 +32210,7 @@
                 "needId": "understand-plan-and-usage",
                 "revision": 1,
                 "raw": "need:understand-plan-and-usage@1",
-                "pointer": "/profiles/error/sources/2/x-generation/anchors/0"
+                "pointer": "/profiles/error/sources/3/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -32104,7 +32269,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/error/sources/3",
+          "pointer": "/profiles/error/sources/4",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#resource:support-trust",
           "anchors": [
@@ -32117,7 +32282,7 @@
                 "needId": "get-help-and-check-trust",
                 "revision": 1,
                 "raw": "need:get-help-and-check-trust@1",
-                "pointer": "/profiles/error/sources/3/x-generation/anchors/0"
+                "pointer": "/profiles/error/sources/4/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -32178,6 +32343,78 @@
           "artifactRef": "saas-v1.preview-scenario.json",
           "pointer": "/profiles/loaded/sources/0",
           "kind": "surface-preview-source-outcome",
+          "label": "https://formspec.cloud/data-sources/saas-v1#response:organization-setup",
+          "anchors": [
+            "need:configure-organization@1"
+          ],
+          "traces": [
+            {
+              "direct": {
+                "kind": "anchor",
+                "needId": "configure-organization",
+                "revision": 1,
+                "raw": "need:configure-organization@1",
+                "pointer": "/profiles/loaded/sources/0/x-generation/anchors/0"
+              },
+              "need": {
+                "matchCount": 1,
+                "id": "configure-organization",
+                "status": "adopted",
+                "currentRevision": 1
+              },
+              "experiencePaths": [
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "adminUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "administerOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "dashboardUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "reviewDashboard"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "onboardingUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "configureOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                }
+              ],
+              "checks": {
+                "direct": true,
+                "uniqueNeed": true,
+                "adoptedNeed": true,
+                "currentRevision": true,
+                "experiencePath": true,
+                "actorsResolved": true,
+                "tasksResolved": true
+              },
+              "status": "traced"
+            }
+          ],
+          "status": "traced"
+        },
+        {
+          "artifactRef": "saas-v1.preview-scenario.json",
+          "pointer": "/profiles/loaded/sources/1",
+          "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#host:workspace",
           "anchors": [
             "need:see-honest-feature-state@1"
@@ -32189,7 +32426,7 @@
                 "needId": "see-honest-feature-state",
                 "revision": 1,
                 "raw": "need:see-honest-feature-state@1",
-                "pointer": "/profiles/loaded/sources/0/x-generation/anchors/0"
+                "pointer": "/profiles/loaded/sources/1/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -32380,7 +32617,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/loaded/sources/1",
+          "pointer": "/profiles/loaded/sources/2",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#query:responses",
           "anchors": [
@@ -32393,7 +32630,7 @@
                 "needId": "review-and-export-responses",
                 "revision": 1,
                 "raw": "need:review-and-export-responses@1",
-                "pointer": "/profiles/loaded/sources/1/x-generation/anchors/0"
+                "pointer": "/profiles/loaded/sources/2/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -32463,7 +32700,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/loaded/sources/2",
+          "pointer": "/profiles/loaded/sources/3",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#host:billing",
           "anchors": [
@@ -32476,7 +32713,7 @@
                 "needId": "understand-plan-and-usage",
                 "revision": 1,
                 "raw": "need:understand-plan-and-usage@1",
-                "pointer": "/profiles/loaded/sources/2/x-generation/anchors/0"
+                "pointer": "/profiles/loaded/sources/3/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -32535,7 +32772,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/loaded/sources/3",
+          "pointer": "/profiles/loaded/sources/4",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#resource:support-trust",
           "anchors": [
@@ -32548,7 +32785,7 @@
                 "needId": "get-help-and-check-trust",
                 "revision": 1,
                 "raw": "need:get-help-and-check-trust@1",
-                "pointer": "/profiles/loaded/sources/3/x-generation/anchors/0"
+                "pointer": "/profiles/loaded/sources/4/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -32609,6 +32846,78 @@
           "artifactRef": "saas-v1.preview-scenario.json",
           "pointer": "/profiles/longContent/sources/0",
           "kind": "surface-preview-source-outcome",
+          "label": "https://formspec.cloud/data-sources/saas-v1#response:organization-setup",
+          "anchors": [
+            "need:configure-organization@1"
+          ],
+          "traces": [
+            {
+              "direct": {
+                "kind": "anchor",
+                "needId": "configure-organization",
+                "revision": 1,
+                "raw": "need:configure-organization@1",
+                "pointer": "/profiles/longContent/sources/0/x-generation/anchors/0"
+              },
+              "need": {
+                "matchCount": 1,
+                "id": "configure-organization",
+                "status": "adopted",
+                "currentRevision": 1
+              },
+              "experiencePaths": [
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "adminUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "administerOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "dashboardUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "reviewDashboard"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "onboardingUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "configureOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                }
+              ],
+              "checks": {
+                "direct": true,
+                "uniqueNeed": true,
+                "adoptedNeed": true,
+                "currentRevision": true,
+                "experiencePath": true,
+                "actorsResolved": true,
+                "tasksResolved": true
+              },
+              "status": "traced"
+            }
+          ],
+          "status": "traced"
+        },
+        {
+          "artifactRef": "saas-v1.preview-scenario.json",
+          "pointer": "/profiles/longContent/sources/1",
+          "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#host:workspace",
           "anchors": [
             "need:see-honest-feature-state@1"
@@ -32620,7 +32929,7 @@
                 "needId": "see-honest-feature-state",
                 "revision": 1,
                 "raw": "need:see-honest-feature-state@1",
-                "pointer": "/profiles/longContent/sources/0/x-generation/anchors/0"
+                "pointer": "/profiles/longContent/sources/1/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -32811,7 +33120,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/longContent/sources/1",
+          "pointer": "/profiles/longContent/sources/2",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#query:responses",
           "anchors": [
@@ -32824,7 +33133,7 @@
                 "needId": "review-and-export-responses",
                 "revision": 1,
                 "raw": "need:review-and-export-responses@1",
-                "pointer": "/profiles/longContent/sources/1/x-generation/anchors/0"
+                "pointer": "/profiles/longContent/sources/2/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -32894,7 +33203,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/longContent/sources/2",
+          "pointer": "/profiles/longContent/sources/3",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#host:billing",
           "anchors": [
@@ -32907,7 +33216,7 @@
                 "needId": "understand-plan-and-usage",
                 "revision": 1,
                 "raw": "need:understand-plan-and-usage@1",
-                "pointer": "/profiles/longContent/sources/2/x-generation/anchors/0"
+                "pointer": "/profiles/longContent/sources/3/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -32966,7 +33275,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/longContent/sources/3",
+          "pointer": "/profiles/longContent/sources/4",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#resource:support-trust",
           "anchors": [
@@ -32979,7 +33288,7 @@
                 "needId": "get-help-and-check-trust",
                 "revision": 1,
                 "raw": "need:get-help-and-check-trust@1",
-                "pointer": "/profiles/longContent/sources/3/x-generation/anchors/0"
+                "pointer": "/profiles/longContent/sources/4/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -33040,6 +33349,78 @@
           "artifactRef": "saas-v1.preview-scenario.json",
           "pointer": "/profiles/unavailable/sources/0",
           "kind": "surface-preview-source-outcome",
+          "label": "https://formspec.cloud/data-sources/saas-v1#response:organization-setup",
+          "anchors": [
+            "need:configure-organization@1"
+          ],
+          "traces": [
+            {
+              "direct": {
+                "kind": "anchor",
+                "needId": "configure-organization",
+                "revision": 1,
+                "raw": "need:configure-organization@1",
+                "pointer": "/profiles/unavailable/sources/0/x-generation/anchors/0"
+              },
+              "need": {
+                "matchCount": 1,
+                "id": "configure-organization",
+                "status": "adopted",
+                "currentRevision": 1
+              },
+              "experiencePaths": [
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "adminUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "administerOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "dashboardUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "reviewDashboard"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                },
+                {
+                  "documentRef": "https://formspec.cloud/experience/saas-v1",
+                  "unitRef": "onboardingUnit",
+                  "actorRef": "customerAdmin",
+                  "taskRefs": [
+                    "configureOrganization"
+                  ],
+                  "relationReasons": [
+                    "needRef"
+                  ]
+                }
+              ],
+              "checks": {
+                "direct": true,
+                "uniqueNeed": true,
+                "adoptedNeed": true,
+                "currentRevision": true,
+                "experiencePath": true,
+                "actorsResolved": true,
+                "tasksResolved": true
+              },
+              "status": "traced"
+            }
+          ],
+          "status": "traced"
+        },
+        {
+          "artifactRef": "saas-v1.preview-scenario.json",
+          "pointer": "/profiles/unavailable/sources/1",
+          "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#host:workspace",
           "anchors": [
             "need:see-honest-feature-state@1"
@@ -33051,7 +33432,7 @@
                 "needId": "see-honest-feature-state",
                 "revision": 1,
                 "raw": "need:see-honest-feature-state@1",
-                "pointer": "/profiles/unavailable/sources/0/x-generation/anchors/0"
+                "pointer": "/profiles/unavailable/sources/1/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -33242,7 +33623,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/unavailable/sources/1",
+          "pointer": "/profiles/unavailable/sources/2",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#query:responses",
           "anchors": [
@@ -33255,7 +33636,7 @@
                 "needId": "review-and-export-responses",
                 "revision": 1,
                 "raw": "need:review-and-export-responses@1",
-                "pointer": "/profiles/unavailable/sources/1/x-generation/anchors/0"
+                "pointer": "/profiles/unavailable/sources/2/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -33325,7 +33706,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/unavailable/sources/2",
+          "pointer": "/profiles/unavailable/sources/3",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#host:billing",
           "anchors": [
@@ -33338,7 +33719,7 @@
                 "needId": "understand-plan-and-usage",
                 "revision": 1,
                 "raw": "need:understand-plan-and-usage@1",
-                "pointer": "/profiles/unavailable/sources/2/x-generation/anchors/0"
+                "pointer": "/profiles/unavailable/sources/3/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -33397,7 +33778,7 @@
         },
         {
           "artifactRef": "saas-v1.preview-scenario.json",
-          "pointer": "/profiles/unavailable/sources/3",
+          "pointer": "/profiles/unavailable/sources/4",
           "kind": "surface-preview-source-outcome",
           "label": "https://formspec.cloud/data-sources/saas-v1#resource:support-trust",
           "anchors": [
@@ -33410,7 +33791,7 @@
                 "needId": "get-help-and-check-trust",
                 "revision": 1,
                 "raw": "need:get-help-and-check-trust@1",
-                "pointer": "/profiles/unavailable/sources/3/x-generation/anchors/0"
+                "pointer": "/profiles/unavailable/sources/4/x-generation/anchors/0"
               },
               "need": {
                 "matchCount": 1,
@@ -33715,7 +34096,7 @@
               "https://formspec.cloud/experience/saas-v1#dashboardUnit",
               "https://formspec.cloud/experience/saas-v1#onboardingUnit"
             ],
-            "renderedPointerCount": 53
+            "renderedPointerCount": 58
           },
           {
             "id": "connect-existing-systems",

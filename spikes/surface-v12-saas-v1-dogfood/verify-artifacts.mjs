@@ -9,7 +9,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
@@ -401,6 +401,33 @@ async function verifyEvidence(expectedReview) {
   ]);
   if (!runManifest || !scorecard) return;
 
+  if (!Array.isArray(runManifest.currentArtifacts)) {
+    fail('evidence.runManifest.currentArtifacts', 'must be an array of repository-relative file paths');
+  } else {
+    for (const artifactRef of runManifest.currentArtifacts) {
+      if (
+        typeof artifactRef !== 'string' ||
+        artifactRef.length === 0 ||
+        artifactRef.startsWith('/') ||
+        artifactRef.split('/').includes('..')
+      ) {
+        fail('evidence.runManifest.currentArtifacts', `invalid path ${JSON.stringify(artifactRef)}`);
+        continue;
+      }
+      const artifactPath = join(ROOT, artifactRef);
+      try {
+        if (!(await stat(artifactPath)).isFile()) {
+          fail('evidence.runManifest.currentArtifacts', `${artifactRef} is not a file`);
+        }
+      } catch (error) {
+        fail(
+          'evidence.runManifest.currentArtifacts',
+          `${artifactRef} cannot be read (${error instanceof Error ? error.message : String(error)})`,
+        );
+      }
+    }
+  }
+
   checkClaim(
     'evidence.runManifest.reviewedInputDigest',
     runManifest.currentResult?.verification?.reviewedInputDigest,
@@ -467,6 +494,8 @@ async function verifyEvidence(expectedReview) {
   const actionCount = saasReview?.summary.kinds['response-action'] ?? 0;
   const dataProfileCheckCount =
     saasReview?.summary.kinds['surface-preview-source-outcome'] ?? 0;
+  const routeWidthCheckCount = routeCount * 2;
+  const profileRouteCheckCount = routeCount * 5;
   const verificationClaims = [
     [
       'evidence.runManifest.fixedGenericHost',
@@ -529,6 +558,26 @@ async function verifyEvidence(expectedReview) {
       dataProfileCheckCount,
     ],
     [
+      'evidence.runManifest.playwrightRouteWidthChecksPassed',
+      runManifest.currentResult?.verification?.playwrightRouteWidthChecksPassed,
+      routeWidthCheckCount,
+    ],
+    [
+      'evidence.scorecard.playwrightRouteWidthChecksPassed',
+      scorecard.validation?.playwright_route_width_checks_passed,
+      routeWidthCheckCount,
+    ],
+    [
+      'evidence.runManifest.playwrightProfileRouteChecksPassed',
+      runManifest.currentResult?.verification?.playwrightProfileRouteChecksPassed,
+      profileRouteCheckCount,
+    ],
+    [
+      'evidence.scorecard.playwrightProfileRouteChecksPassed',
+      scorecard.validation?.playwright_profile_route_checks_passed,
+      profileRouteCheckCount,
+    ],
+    [
       'evidence.runManifest.playwrightConsoleWarningsOrErrors',
       runManifest.currentResult?.verification?.playwrightConsoleWarningsOrErrors,
       0,
@@ -571,6 +620,11 @@ async function verifyEvidence(expectedReview) {
   const screenshotFiles = [
     'screenshots/control.png',
     'screenshots/dashboard-loaded.png',
+    'screenshots/outcome-onboarding-empty-blocked.png',
+    'screenshots/outcome-onboarding-values-persisted.png',
+    'screenshots/outcome-public-invalid-blocked.png',
+    'screenshots/outcome-public-valid-receipt.png',
+    'screenshots/outcome-unrelated-control.png',
     'screenshots/public-response-mobile.png',
     'screenshots/responses-loaded.png',
   ];

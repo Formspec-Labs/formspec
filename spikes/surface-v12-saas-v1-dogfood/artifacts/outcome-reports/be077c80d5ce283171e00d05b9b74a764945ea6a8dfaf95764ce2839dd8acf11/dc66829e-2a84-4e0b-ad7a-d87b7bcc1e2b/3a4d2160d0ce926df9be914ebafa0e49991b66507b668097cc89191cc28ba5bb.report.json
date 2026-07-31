@@ -1,0 +1,548 @@
+{
+  "$formspecOutcomeVerificationReport": "0.1",
+  "id": "urn:formspec:outcome-report:3a4d2160d0ce926df9be914ebafa0e49991b66507b668097cc89191cc28ba5bb",
+  "generatedAt": "2026-07-31T09:29:05.173Z",
+  "caseRef": "public-response-invalid-input-is-blocked",
+  "caseDigest": "sha256:38f5e2473982dd660f5b34502a36b65539994a86a44fb257d6c77904a900b576",
+  "lintClearanceDigest": "sha256:7a2e713c435e98dd9ab06837ee374b85b8c37f6112f0c465ece43e9ae85ec2b9",
+  "actionPlanSetDigest": "sha256:ea2c043a4391ae381950965a3225893236e2baf45423f7188ff933d6c4c40eda",
+  "executionReceipt": {
+    "ref": "urn:formspec:outcome-receipt:2907c8aaaa7ac9ac38b0bb0f357ded0468ed0885af9af7ea71f164432bdd4ea8",
+    "evidenceDigest": "sha256:1f8eb257222dd3cf7a078ec9b5cdbe97c2f65998ba7b77ad1fee16d76a7ab6f6"
+  },
+  "run": {
+    "runId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b",
+    "admissionContextDigest": "sha256:d4ec201ec3bb2421d9f68792ff7e37a10571153e74dea014f50a7f39fa1fea13",
+    "target": {
+      "class": "test",
+      "ref": "urn:formspec:test:surface-v12-committed-reactdom",
+      "buildRef": "urn:formspec:test-build:22b0ff8c8f32fd27c42b840973eb91b1e9a23e54737752f89f92a12d4f24fa19",
+      "buildDigest": "sha256:22b0ff8c8f32fd27c42b840973eb91b1e9a23e54737752f89f92a12d4f24fa19",
+      "implementations": {
+        "host": {
+          "id": "formspec-committed-reactdom-test-host",
+          "version": "0.1.0",
+          "digest": "sha256:06106e5e549e573471f23b77c801843676bb5a23c4c9b4bfeddd10a537413866"
+        },
+        "renderer": {
+          "id": "@formspec-org/surface-react",
+          "version": "0.1.0",
+          "digest": "sha256:38e5457c3a66773faf6fd3b56dbbfe655948eed8360f57d66a238ea7cfa95e7f"
+        },
+        "runner": {
+          "id": "@formspec-org/outcome-verification",
+          "version": "0.1.0",
+          "digest": "sha256:303e58b2baa2b202867531d2b86cb7105d1890bc1dd2ebd33ee79a67c7301cd2"
+        },
+        "runtime": {
+          "id": "@formspec-org/engine",
+          "version": "1.0.0",
+          "digest": "sha256:5e1c66bf08ea2916699776fad2da58aac58b2eb3546c6427a6f5d3ed7f844d42"
+        },
+        "verifier": {
+          "id": "@formspec-org/outcome-verification",
+          "version": "0.1.0",
+          "digest": "sha256:303e58b2baa2b202867531d2b86cb7105d1890bc1dd2ebd33ee79a67c7301cd2"
+        },
+        "adapter": {
+          "id": "formspec-surface-react-outcome-adapter",
+          "version": "0.1.0",
+          "digest": "sha256:4418d3b0833c79708487369999c447c6de518d0cc73989768dcbc91e9412473b"
+        }
+      },
+      "implementationSetDigest": "sha256:074fb6922ab3b4488d99e931f291f6c9f7485dfcaa8391dbf38ff78ac4fe1bf8",
+      "targetIdentityDigest": "sha256:be077c80d5ce283171e00d05b9b74a764945ea6a8dfaf95764ce2839dd8acf11"
+    }
+  },
+  "inspectedSources": [
+    {
+      "artifactRef": "https://formspec.cloud/apps/saas-v1",
+      "artifactDigest": "sha256:3dbcbc010c6cbe8bed648436a9d37ffd5839de4ff801fa34dd54ff4a5c1c4527"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+      "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/definitions/public-response",
+      "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/experience/saas-v1",
+      "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/registries/saas-v1",
+      "artifactDigest": "sha256:362fd1708d6fa5c9040d18b057df89734a898645abbc167194236641f1fe9316"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/app",
+      "artifactDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/data-sources/saas-v1",
+      "artifactDigest": "sha256:a8c9ab06229b6f7f8ced8f4f435ff84e5f71c07eb7f3dc301a4ecd4886d9502d"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/actions/saas-v1-app",
+      "artifactDigest": "sha256:63d2c244657095b43a3e8aeb1d007d944bbb74d36cc3a1411c2abfec8565a8fe"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/actions/organization-setup",
+      "artifactDigest": "sha256:e72d3a1d166d43ae2cb223bc5848403b4e102fc809f1018359c3982e3a20778e"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/actions/public-response",
+      "artifactDigest": "sha256:771a9c7687381accd73acc65d868f9eb0d9b7736341dd7c43fa083a37848b29c"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/references/organization-setup",
+      "artifactDigest": "sha256:52acce3eef9fa6074fe16d14a7b0b724a8552965dd2c21008014e7ed8ae1e184"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/references/public-response",
+      "artifactDigest": "sha256:cf7e5facb1f0314feb9743b456688154987c9bfab9208aa9fbd5f9dfa52ef749"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/ontology/organization-setup",
+      "artifactDigest": "sha256:ab41ea5b7a633f96930df154149fa39c591cbf4de1e37ac4eb330d03b5c53059"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/ontology/public-response",
+      "artifactDigest": "sha256:af8bb4ccef987f6a75224c14523babb6a7f323ea2ec376f54ebfd65c28331b93"
+    },
+    {
+      "artifactRef": "https://formspec.cloud/needs/saas-v1",
+      "artifactDigest": "sha256:ac31871e3b982e6c97285a324c14e87b872fc6c6e382561b507edef7516d2dc7"
+    }
+  ],
+  "boundary": {
+    "startedAt": "2026-07-31T09:29:05.170Z",
+    "endedAt": "2026-07-31T09:29:05.170Z"
+  },
+  "bindings": [
+    {
+      "id": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:open-public-response",
+      "stepId": "open-public-response",
+      "kind": "open-route",
+      "surfaceRef": "https://formspec.cloud/app",
+      "surfaceDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0",
+      "routeId": "publicRespond",
+      "routeInstanceId": "formspec-route-instance:5",
+      "renderInstanceId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:render:open-public-response"
+    },
+    {
+      "id": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:set-name",
+      "stepId": "set-name",
+      "kind": "set-item",
+      "routeInstanceId": "formspec-route-instance:5",
+      "renderInstanceId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:render:open-public-response",
+      "control": {
+        "artifactRef": "https://formspec.cloud/definitions/public-response",
+        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "subjectKind": "definition-item",
+        "subjectRef": "fullName"
+      },
+      "definitionRef": "https://formspec.cloud/definitions/public-response",
+      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "path": "fullName",
+      "responseId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response",
+      "responseRevision": 1
+    },
+    {
+      "id": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:set-invalid-email",
+      "stepId": "set-invalid-email",
+      "kind": "set-item",
+      "routeInstanceId": "formspec-route-instance:5",
+      "renderInstanceId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:render:open-public-response",
+      "control": {
+        "artifactRef": "https://formspec.cloud/definitions/public-response",
+        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "subjectKind": "definition-item",
+        "subjectRef": "email"
+      },
+      "definitionRef": "https://formspec.cloud/definitions/public-response",
+      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "path": "email",
+      "responseId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response",
+      "responseRevision": 2
+    },
+    {
+      "id": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:set-request",
+      "stepId": "set-request",
+      "kind": "set-item",
+      "routeInstanceId": "formspec-route-instance:5",
+      "renderInstanceId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:render:open-public-response",
+      "control": {
+        "artifactRef": "https://formspec.cloud/definitions/public-response",
+        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "subjectKind": "definition-item",
+        "subjectRef": "request"
+      },
+      "definitionRef": "https://formspec.cloud/definitions/public-response",
+      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "path": "request",
+      "responseId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response",
+      "responseRevision": 3
+    },
+    {
+      "id": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:decline-consent",
+      "stepId": "decline-consent",
+      "kind": "set-item",
+      "routeInstanceId": "formspec-route-instance:5",
+      "renderInstanceId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:render:open-public-response",
+      "control": {
+        "artifactRef": "https://formspec.cloud/definitions/public-response",
+        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "subjectKind": "definition-item",
+        "subjectRef": "acceptNotices"
+      },
+      "definitionRef": "https://formspec.cloud/definitions/public-response",
+      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "path": "acceptNotices",
+      "responseId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response",
+      "responseRevision": 4
+    },
+    {
+      "id": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:submit-invalid-response",
+      "stepId": "submit-invalid-response",
+      "kind": "activate-control",
+      "routeInstanceId": "formspec-route-instance:5",
+      "renderInstanceId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:render:open-public-response",
+      "control": {
+        "artifactRef": "https://formspec.cloud/actions/public-response",
+        "artifactDigest": "sha256:771a9c7687381accd73acc65d868f9eb0d9b7736341dd7c43fa083a37848b29c",
+        "subjectKind": "response-action",
+        "subjectRef": "submitPublicResponse"
+      },
+      "actionsRef": "https://formspec.cloud/actions/public-response",
+      "actionsDigest": "sha256:771a9c7687381accd73acc65d868f9eb0d9b7736341dd7c43fa083a37848b29c",
+      "actionId": "submitPublicResponse",
+      "invocationId": "urn:formspec:outcome-invocation:51cf1041aafc18bf3ba66d74efe4cf835b45fd16385f5e1c4e6ffb7a65421d39",
+      "responseId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response",
+      "responseRevision": 4,
+      "effects": [
+        {
+          "index": 0,
+          "type": "hostEvent",
+          "status": "not-invoked"
+        }
+      ]
+    },
+    {
+      "id": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:after-invalid-submit",
+      "stepId": "after-invalid-submit",
+      "kind": "checkpoint",
+      "boundary": {
+        "startedAt": "2026-07-31T09:29:05.170Z",
+        "endedAt": "2026-07-31T09:29:05.170Z"
+      },
+      "includedBindingRefs": [
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:open-public-response",
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:set-name",
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:set-invalid-email",
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:set-request",
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:decline-consent",
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:submit-invalid-response"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "expectationId": "invalid-values-produce-errors",
+      "conclusion": "passed",
+      "reasonCode": "MATCH",
+      "requiredEvidence": "runtime",
+      "observedEvidence": "runtime",
+      "observedSummary": {
+        "definitionRef": "https://formspec.cloud/definitions/public-response",
+        "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "responseId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response",
+        "responseRevision": 4,
+        "valid": false,
+        "issues": [
+          {
+            "path": "acceptNotices",
+            "code": "CONSTRAINT_FAILED"
+          },
+          {
+            "path": "email",
+            "code": "CONSTRAINT_FAILED"
+          }
+        ]
+      },
+      "observationBoundary": {
+        "startedAt": "2026-07-31T09:29:05.170Z",
+        "endedAt": "2026-07-31T09:29:05.170Z"
+      },
+      "stepBindingRef": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:submit-invalid-response",
+      "correlationRefs": [
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response"
+      ],
+      "sourceRefs": [
+        {
+          "artifactRef": "https://formspec.cloud/needs/saas-v1",
+          "artifactDigest": "sha256:ac31871e3b982e6c97285a324c14e87b872fc6c6e382561b507edef7516d2dc7"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/apps/saas-v1",
+          "artifactDigest": "sha256:3dbcbc010c6cbe8bed648436a9d37ffd5839de4ff801fa34dd54ff4a5c1c4527"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/definitions/public-response",
+          "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/experience/saas-v1",
+          "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374"
+        }
+      ],
+      "evidenceRefs": []
+    },
+    {
+      "expectationId": "invalid-email-produces-error",
+      "conclusion": "passed",
+      "reasonCode": "MATCH",
+      "requiredEvidence": "runtime",
+      "observedEvidence": "runtime",
+      "observedSummary": {
+        "definitionRef": "https://formspec.cloud/definitions/public-response",
+        "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "responseId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response",
+        "responseRevision": 4,
+        "valid": false,
+        "issues": [
+          {
+            "path": "acceptNotices",
+            "code": "CONSTRAINT_FAILED"
+          },
+          {
+            "path": "email",
+            "code": "CONSTRAINT_FAILED"
+          }
+        ]
+      },
+      "observationBoundary": {
+        "startedAt": "2026-07-31T09:29:05.170Z",
+        "endedAt": "2026-07-31T09:29:05.170Z"
+      },
+      "stepBindingRef": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:submit-invalid-response",
+      "correlationRefs": [
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response"
+      ],
+      "sourceRefs": [
+        {
+          "artifactRef": "https://formspec.cloud/needs/saas-v1",
+          "artifactDigest": "sha256:ac31871e3b982e6c97285a324c14e87b872fc6c6e382561b507edef7516d2dc7"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/apps/saas-v1",
+          "artifactDigest": "sha256:3dbcbc010c6cbe8bed648436a9d37ffd5839de4ff801fa34dd54ff4a5c1c4527"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/definitions/public-response",
+          "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/experience/saas-v1",
+          "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374"
+        }
+      ],
+      "evidenceRefs": []
+    },
+    {
+      "expectationId": "invalid-response-remains-in-progress",
+      "conclusion": "passed",
+      "reasonCode": "MATCH",
+      "requiredEvidence": "runtime",
+      "observedEvidence": "runtime",
+      "observedSummary": {
+        "definitionRef": "https://formspec.cloud/definitions/public-response",
+        "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "responseId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response",
+        "responseRevision": 4,
+        "responseDigest": "sha256:8f43d8105d63c7836f9d0b49b77b51b3d88b18fcf729c50e916c33fb734264e6",
+        "status": "in-progress",
+        "item": {
+          "path": "acceptNotices",
+          "presence": "present",
+          "value": false
+        }
+      },
+      "observationBoundary": {
+        "startedAt": "2026-07-31T09:29:05.170Z",
+        "endedAt": "2026-07-31T09:29:05.170Z"
+      },
+      "stepBindingRef": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:submit-invalid-response",
+      "correlationRefs": [
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response"
+      ],
+      "sourceRefs": [
+        {
+          "artifactRef": "https://formspec.cloud/needs/saas-v1",
+          "artifactDigest": "sha256:ac31871e3b982e6c97285a324c14e87b872fc6c6e382561b507edef7516d2dc7"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/apps/saas-v1",
+          "artifactDigest": "sha256:3dbcbc010c6cbe8bed648436a9d37ffd5839de4ff801fa34dd54ff4a5c1c4527"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/definitions/public-response",
+          "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/experience/saas-v1",
+          "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374"
+        }
+      ],
+      "evidenceRefs": []
+    },
+    {
+      "expectationId": "invalid-response-action-is-blocked",
+      "conclusion": "passed",
+      "reasonCode": "MATCH",
+      "requiredEvidence": "runtime",
+      "observedEvidence": "runtime",
+      "observedSummary": {
+        "actionsRef": "https://formspec.cloud/actions/public-response",
+        "actionsDigest": "sha256:771a9c7687381accd73acc65d868f9eb0d9b7736341dd7c43fa083a37848b29c",
+        "actionId": "submitPublicResponse",
+        "terminal": "blocked",
+        "effects": [
+          {
+            "index": 0,
+            "type": "hostEvent",
+            "status": "not-invoked"
+          }
+        ],
+        "invocationId": "urn:formspec:outcome-invocation:51cf1041aafc18bf3ba66d74efe4cf835b45fd16385f5e1c4e6ffb7a65421d39",
+        "responseId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response"
+      },
+      "observationBoundary": {
+        "startedAt": "2026-07-31T09:29:05.170Z",
+        "endedAt": "2026-07-31T09:29:05.170Z"
+      },
+      "stepBindingRef": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:submit-invalid-response",
+      "correlationRefs": [
+        "urn:formspec:outcome-invocation:51cf1041aafc18bf3ba66d74efe4cf835b45fd16385f5e1c4e6ffb7a65421d39",
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:response:https%3A%2F%2Fformspec.cloud%2Fdefinitions%2Fpublic-response"
+      ],
+      "sourceRefs": [
+        {
+          "artifactRef": "https://formspec.cloud/needs/saas-v1",
+          "artifactDigest": "sha256:ac31871e3b982e6c97285a324c14e87b872fc6c6e382561b507edef7516d2dc7"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/apps/saas-v1",
+          "artifactDigest": "sha256:3dbcbc010c6cbe8bed648436a9d37ffd5839de4ff801fa34dd54ff4a5c1c4527"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/actions/public-response",
+          "artifactDigest": "sha256:771a9c7687381accd73acc65d868f9eb0d9b7736341dd7c43fa083a37848b29c"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/experience/saas-v1",
+          "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374"
+        }
+      ],
+      "evidenceRefs": []
+    },
+    {
+      "expectationId": "invalid-submit-stays-on-public-response-route",
+      "conclusion": "passed",
+      "reasonCode": "MATCH",
+      "requiredEvidence": "runtime",
+      "observedEvidence": "runtime",
+      "observedSummary": {
+        "surfaceRef": "https://formspec.cloud/app",
+        "surfaceDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0",
+        "routeId": "publicRespond",
+        "routeInstanceId": "formspec-route-instance:5"
+      },
+      "observationBoundary": {
+        "startedAt": "2026-07-31T09:29:05.170Z",
+        "endedAt": "2026-07-31T09:29:05.170Z"
+      },
+      "stepBindingRef": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:submit-invalid-response",
+      "correlationRefs": [
+        "formspec-route-instance:5"
+      ],
+      "sourceRefs": [
+        {
+          "artifactRef": "https://formspec.cloud/needs/saas-v1",
+          "artifactDigest": "sha256:ac31871e3b982e6c97285a324c14e87b872fc6c6e382561b507edef7516d2dc7"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/apps/saas-v1",
+          "artifactDigest": "sha256:3dbcbc010c6cbe8bed648436a9d37ffd5839de4ff801fa34dd54ff4a5c1c4527"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/app",
+          "artifactDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/experience/saas-v1",
+          "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374"
+        }
+      ],
+      "evidenceRefs": []
+    },
+    {
+      "expectationId": "invalid-submit-keeps-form-route-rendered",
+      "conclusion": "passed",
+      "reasonCode": "MATCH",
+      "requiredEvidence": "runtime",
+      "observedEvidence": "runtime",
+      "observedSummary": {
+        "node": {
+          "artifactRef": "https://formspec.cloud/app",
+          "artifactDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0",
+          "subjectKind": "surface-node",
+          "subjectRef": "publicRespond/publicRespondForm"
+        },
+        "rendered": true,
+        "renderInstanceId": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:render:open-public-response"
+      },
+      "observationBoundary": {
+        "startedAt": "2026-07-31T09:29:05.170Z",
+        "endedAt": "2026-07-31T09:29:05.170Z"
+      },
+      "stepBindingRef": "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:binding:submit-invalid-response",
+      "correlationRefs": [
+        "urn:formspec:outcome-run:dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b:render:open-public-response"
+      ],
+      "sourceRefs": [
+        {
+          "artifactRef": "https://formspec.cloud/needs/saas-v1",
+          "artifactDigest": "sha256:ac31871e3b982e6c97285a324c14e87b872fc6c6e382561b507edef7516d2dc7"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/apps/saas-v1",
+          "artifactDigest": "sha256:3dbcbc010c6cbe8bed648436a9d37ffd5839de4ff801fa34dd54ff4a5c1c4527"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/app",
+          "artifactDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0"
+        },
+        {
+          "artifactRef": "https://formspec.cloud/experience/saas-v1",
+          "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374"
+        }
+      ],
+      "evidenceRefs": []
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "indeterminate": 0,
+    "stale": 0
+  },
+  "conclusion": "passed",
+  "claimScope": {
+    "claim": "declared-observations",
+    "needSatisfaction": "not-asserted"
+  },
+  "diagnostics": []
+}

@@ -1,0 +1,117 @@
+{
+  "$formspecOutcomeVerificationCase": "0.1",
+  "id": "unrelated-control-renders-through-generic-host",
+  "version": "0.1.0",
+  "need": {
+    "documentRef": "https://control.formspec.dev/needs/generic-host",
+    "documentDigest": "sha256:70ecd580018c54daa33cc88149139028b7219319d37c64f704541e7daa2c5363",
+    "id": "inspect-generic-surface",
+    "revision": 1
+  },
+  "app": {
+    "id": "https://control.formspec.dev/apps/structured-panel",
+    "version": "1.0.0",
+    "digest": "sha256:0a59e630773fa54ab00e8569c207bc1c5434dc4bd7d13fce0ed454574fa36aae"
+  },
+  "experience": {
+    "documentRef": "https://control.formspec.dev/experience/main",
+    "documentDigest": "sha256:d9d00125dd9bf7eb0122209bce2224c280b44faecf6aba88257c26497e18a73b",
+    "unitId": "inspectControl"
+  },
+  "procedure": [
+    {
+      "id": "open-control",
+      "kind": "open-route",
+      "surfaceRef": "https://control.formspec.dev/surfaces/main",
+      "surfaceDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388",
+      "routeId": "control"
+    },
+    {
+      "id": "after-control-render",
+      "kind": "checkpoint"
+    }
+  ],
+  "expectedObservations": [
+    {
+      "id": "control-route-has-direct-need-trace",
+      "kind": "app-graph",
+      "ruleRefs": [
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://control.formspec.dev/surfaces/main",
+            "artifactDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388",
+            "subjectKind": "surface-route",
+            "subjectRef": "control"
+          }
+        },
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://control.formspec.dev/experience/main",
+            "artifactDigest": "sha256:d9d00125dd9bf7eb0122209bce2224c280b44faecf6aba88257c26497e18a73b",
+            "subjectKind": "experience-unit",
+            "subjectRef": "inspectControl"
+          }
+        },
+        {
+          "kind": "specification-rule",
+          "specRef": "https://formspec.org/specs/app-graph-validator",
+          "specVersion": "1.0.0-draft.1",
+          "ruleId": "rendered-node.direct-need-trace"
+        }
+      ],
+      "checkpointRef": "after-control-render",
+      "requiredEvidence": "structural",
+      "subject": {
+        "artifactRef": "https://control.formspec.dev/surfaces/main",
+        "artifactDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388",
+        "subjectKind": "surface-route",
+        "subjectRef": "control"
+      },
+      "relation": "direct-need-trace",
+      "state": "present"
+    },
+    {
+      "id": "control-content-is-rendered",
+      "kind": "rendered-output",
+      "ruleRefs": [
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://control.formspec.dev/surfaces/main",
+            "artifactDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388",
+            "subjectKind": "surface-node",
+            "subjectRef": "control/controlSummary"
+          }
+        },
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://control.formspec.dev/experience/main",
+            "artifactDigest": "sha256:d9d00125dd9bf7eb0122209bce2224c280b44faecf6aba88257c26497e18a73b",
+            "subjectKind": "experience-unit",
+            "subjectRef": "inspectControl"
+          }
+        },
+        {
+          "kind": "specification-rule",
+          "specRef": "https://formspec.org/specs/surface",
+          "specVersion": "0.2.0-draft.1",
+          "ruleId": "rendering.semantic-output"
+        }
+      ],
+      "checkpointRef": "after-control-render",
+      "requiredEvidence": "runtime",
+      "stepRef": "open-control",
+      "node": {
+        "artifactRef": "https://control.formspec.dev/surfaces/main",
+        "artifactDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388",
+        "subjectKind": "surface-node",
+        "subjectRef": "control/controlSummary"
+      },
+      "rendered": true,
+      "semanticValue": "Check today's availability before planning a visit."
+    }
+  ]
+}

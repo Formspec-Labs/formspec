@@ -5,7 +5,7 @@
  * only from the preview set. This file supplies generic browser and runtime
  * adapters without interpreting any product identifier.
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020.js';
 import {
   invokeResponseAction,
@@ -14,8 +14,14 @@ import {
   type ResponseActionInvocationPorts,
   type ResponseActionInvocationResult,
 } from '@formspec-org/engine';
-import type { SubmitResult } from '@formspec-org/react';
 import {
+  createSemanticControlRegistry,
+  type SemanticArtifactIdentity,
+  type SubmitResult,
+} from '@formspec-org/react';
+import { sha256Digest } from '@formspec-org/outcome-verification';
+import {
+  createSurfaceSemanticControlScopeResolver,
   executeBrowserResourceEffect,
   SurfaceApp,
   starterWidgetModule,
@@ -24,19 +30,28 @@ import {
   type SurfaceWidgetActionDetail,
   type SurfaceWidgetActionExecutor,
   type SurfaceWidgetModule,
+  type SurfaceSemanticControlScopeRequest,
 } from '@formspec-org/surface-react';
 import {
+  createPreviewDefinitionResponseStore,
   createSurfacePreviewRuntime,
   dereferenceBundleExport,
+  resolveDataSourceDescriptor,
   validateSurfacePreviewScenario,
   type BundleExport,
+  type DataSourceCatalogHandle,
+  type DataSourceLoader,
   type DataSourcePayloadValidationResult,
   type DataSourcePayloadValidator,
+  type DefinitionResponseSourceBinding,
   type ResolvedBundle,
   type SurfacePreviewRuntime,
   type SurfaceScenarioPayloadValidator,
 } from '@formspec-org/surface';
 import type {
+  FormDefinition,
+  FormResponse,
+  ResponseActionsDocument,
   SurfacePreviewScenario,
   SurfaceScenarioActionOutcome,
 } from '@formspec-org/types';
@@ -58,6 +73,11 @@ export interface PreviewSelection {
   profileId: string;
   bundle: ResolvedBundle;
   scenario: SurfacePreviewScenario;
+  definitionArtifacts: ReadonlyMap<FormDefinition, SemanticArtifactIdentity>;
+  responseActionsArtifacts: ReadonlyMap<
+    ResponseActionsDocument,
+    SemanticArtifactIdentity
+  >;
 }
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -157,6 +177,69 @@ const validateScenarioPayload: SurfaceScenarioPayloadValidator = ({
   value,
 }) => validateJsonPayload(schema, value);
 
+interface ArtifactEntry<T extends object> {
+  artifactRef: string;
+  document: T;
+}
+
+async function exactArtifactIdentities<T extends object>(
+  entries: readonly ArtifactEntry<T>[],
+): Promise<ReadonlyMap<T, SemanticArtifactIdentity>> {
+  const entriesByObject = new Map<T, ArtifactEntry<T>[]>();
+  for (const entry of entries) {
+    const matches = entriesByObject.get(entry.document) ?? [];
+    matches.push(entry);
+    entriesByObject.set(entry.document, matches);
+  }
+  const exactEntries = [...entriesByObject.values()].flatMap((matches) =>
+    matches.length === 1 && matches[0] ? [matches[0]] : [],
+  );
+  const identities = await Promise.all(
+    exactEntries.map(async ({ artifactRef, document }) => [
+      document,
+      {
+        artifactRef,
+        artifactDigest: await sha256Digest(document),
+      },
+    ] as const),
+  );
+  return new Map(identities);
+}
+
+async function semanticArtifactIdentities(
+  source: BundleExport,
+  bundle: ResolvedBundle,
+): Promise<Pick<
+  PreviewSelection,
+  'definitionArtifacts' | 'responseActionsArtifacts'
+>> {
+  const definitionEntries = [...bundle.definitions.entries()].map(
+    ([artifactRef, document]) => ({ artifactRef, document }),
+  );
+  const responseActions = new Set(bundle.responseActions);
+  const responseActionRefs = [
+    ...(bundle.manifest.responseActions ? [bundle.manifest.responseActions] : []),
+    ...(bundle.manifest.responseActionDocuments ?? []),
+  ];
+  const responseActionEntries = responseActionRefs.flatMap((ref) => {
+    const document = source.documents[ref.url];
+    return (
+      isRecord(document) &&
+      responseActions.has(document as unknown as ResponseActionsDocument)
+    )
+      ? [{
+          artifactRef: ref.url,
+          document: document as unknown as ResponseActionsDocument,
+        }]
+      : [];
+  });
+  const [definitionArtifacts, responseActionsArtifacts] = await Promise.all([
+    exactArtifactIdentities(definitionEntries),
+    exactArtifactIdentities(responseActionEntries),
+  ]);
+  return { definitionArtifacts, responseActionsArtifacts };
+}
+
 export async function loadPreviewSelection(
   search: string,
 ): Promise<PreviewSelection> {
@@ -171,11 +254,14 @@ export async function loadPreviewSelection(
   if (!entry) throw new Error('The selected preview is unavailable.');
 
   const bundle = dereferenceBundleExport(entry.bundle);
-  const scenarioResult = await validateSurfacePreviewScenario({
-    scenario: entry.scenario,
-    bundle,
-    validatePayload: validateScenarioPayload,
-  });
+  const [scenarioResult, artifactIdentities] = await Promise.all([
+    validateSurfacePreviewScenario({
+      scenario: entry.scenario,
+      bundle,
+      validatePayload: validateScenarioPayload,
+    }),
+    semanticArtifactIdentities(entry.bundle, bundle),
+  ]);
   if (!scenarioResult.valid) {
     const details = scenarioResult.diagnostics
       .map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`)
@@ -189,12 +275,15 @@ export async function loadPreviewSelection(
     scenarioResult.scenario.defaultProfile,
     'profile',
   );
+  const { definitionArtifacts, responseActionsArtifacts } = artifactIdentities;
 
   return {
     previewId,
     profileId,
     bundle,
     scenario: scenarioResult.scenario,
+    definitionArtifacts,
+    responseActionsArtifacts,
   };
 }
 
@@ -300,10 +389,65 @@ function widgetActionExecutorFor(
   };
 }
 
+function definitionResponseBindingsFor(
+  catalogs: readonly DataSourceCatalogHandle[],
+  response: FormResponse,
+): readonly DefinitionResponseSourceBinding[] {
+  const bindings: DefinitionResponseSourceBinding[] = [];
+  for (const handle of catalogs) {
+    for (const source of handle.document.sources) {
+      const binding = {
+        catalogRef: handle.catalogRef,
+        sourceRef: source.id,
+      };
+      const descriptor = resolveDataSourceDescriptor(catalogs, binding);
+      if (
+        descriptor?.source !== source ||
+        source.kind !== 'definition-response' ||
+        source.runtime.delivery === 'draft' ||
+        source.definitionRef !== response.definitionUrl ||
+        source.definitionVersion !== response.definitionVersion ||
+        source.responseSelection?.status !== response.status
+      ) {
+        continue;
+      }
+      bindings.push(binding);
+    }
+  }
+  return bindings;
+}
+
+function previewRenderInstanceId(
+  selection: PreviewSelection,
+  request: SurfaceSemanticControlScopeRequest,
+): string {
+  return [
+    'preview-render',
+    selection.previewId,
+    selection.profileId,
+    request.route.surfaceId,
+    request.route.routeId,
+    request.plan.slotId,
+  ].join(':');
+}
+
+function previewResponseId(
+  selection: PreviewSelection,
+  request: SurfaceSemanticControlScopeRequest,
+): string {
+  return [
+    'preview-response',
+    selection.previewId,
+    selection.profileId,
+    request.plan.definitionRef,
+  ].join(':');
+}
+
 export function App({ selection }: { selection: PreviewSelection }) {
   const [location, navigate] = useBrowserLocation(
     selection.scenario.initialPath,
   );
+  const [responseGeneration, setResponseGeneration] = useState(0);
   const runtime = useMemo(
     () =>
       createSurfacePreviewRuntime(
@@ -311,6 +455,65 @@ export function App({ selection }: { selection: PreviewSelection }) {
         selection.profileId,
       ),
     [selection.profileId, selection.scenario],
+  );
+  const responseStore = useMemo(
+    () =>
+      createPreviewDefinitionResponseStore(
+        selection.bundle.dataSources ?? [],
+      ),
+    [selection.bundle.dataSources],
+  );
+  const semanticControlRegistry = useMemo(
+    () => createSemanticControlRegistry(),
+    [selection.bundle, selection.previewId, selection.profileId],
+  );
+  const resolveSemanticControlScope = useMemo(
+    () =>
+      createSurfaceSemanticControlScopeResolver({
+        registry: semanticControlRegistry,
+        definitionArtifacts: selection.definitionArtifacts,
+        responseActionsArtifacts: selection.responseActionsArtifacts,
+        renderInstanceIdFor: (request) =>
+          previewRenderInstanceId(selection, request),
+        responseBindingFor: (request) => ({
+          responseId: previewResponseId(selection, request),
+          responseRevision: 0,
+        }),
+      }),
+    [selection, semanticControlRegistry],
+  );
+  const rememberCompletedResponse = useCallback(
+    (result: ResponseActionInvocationResult<SubmitResult>) => {
+      const response = result.detail?.response;
+      if (
+        result.status !== 'completed' ||
+        response?.status !== 'completed' ||
+        typeof response.id !== 'string' ||
+        response.id.length === 0 ||
+        typeof result.invocationId !== 'string' ||
+        result.invocationId.length === 0
+      ) {
+        return;
+      }
+      let recorded = false;
+      for (const binding of definitionResponseBindingsFor(
+        selection.bundle.dataSources ?? [],
+        response,
+      )) {
+        const outcome = responseStore.record({
+          binding,
+          invocationId: result.invocationId,
+          response,
+        });
+        if (outcome.status === 'recorded') recorded = true;
+      }
+      if (recorded) setResponseGeneration((current) => current + 1);
+    },
+    [responseStore, selection.bundle.dataSources],
+  );
+  const dataSourceLoader = useMemo<DataSourceLoader>(
+    () => responseStore.wrapLoader(runtime.loader),
+    [responseStore, runtime],
   );
   const widgetModules = useMemo(
     () => widgetModulesFor(selection.bundle),
@@ -346,12 +549,14 @@ export function App({ selection }: { selection: PreviewSelection }) {
       onNavigate={navigatePreservingSelection}
       routeParams={selection.scenario.routeParams}
       widgetModules={widgetModules}
-      dataSourceLoader={runtime.loader}
+      dataSourceLoader={dataSourceLoader}
       authorizeDataSource={runtime.authorize}
       validateDataSourcePayload={validateDataSourcePayload}
       widgetActionExecutor={widgetActionExecutor}
       onFireTransition={fireTransition}
-      sessionGeneration={`${selection.previewId}:${selection.profileId}`}
+      onDefinitionActionResult={rememberCompletedResponse}
+      resolveSemanticControlScope={resolveSemanticControlScope}
+      sessionGeneration={`${selection.previewId}:${selection.profileId}:${responseGeneration}`}
     />
   );
 }

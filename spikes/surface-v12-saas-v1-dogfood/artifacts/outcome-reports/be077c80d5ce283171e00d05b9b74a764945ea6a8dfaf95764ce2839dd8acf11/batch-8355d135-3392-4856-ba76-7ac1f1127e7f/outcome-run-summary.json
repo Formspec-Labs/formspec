@@ -1,0 +1,167 @@
+{
+  "$formspecOutcomeVerificationRunSummary": "0.1",
+  "generatedAt": "2026-07-31T09:29:05.243Z",
+  "runSetRef": "artifacts/outcome-run-set.json",
+  "runSetDigest": "sha256:b478119c954595da1f4cba025e499cd84620e40d4ec8f031f7ef41e2f5ec45c2",
+  "claimContext": {
+    "evidenceProfile": "runtime-demo",
+    "app": {
+      "id": "https://formspec.cloud/apps/saas-v1",
+      "version": "0.12.0",
+      "digest": "sha256:3dbcbc010c6cbe8bed648436a9d37ffd5839de4ff801fa34dd54ff4a5c1c4527"
+    },
+    "target": {
+      "class": "test",
+      "ref": "urn:formspec:test:surface-v12-committed-reactdom",
+      "buildRef": "urn:formspec:test-build:22b0ff8c8f32fd27c42b840973eb91b1e9a23e54737752f89f92a12d4f24fa19",
+      "buildDigest": "sha256:22b0ff8c8f32fd27c42b840973eb91b1e9a23e54737752f89f92a12d4f24fa19",
+      "implementations": {
+        "host": {
+          "id": "formspec-committed-reactdom-test-host",
+          "version": "0.1.0",
+          "digest": "sha256:06106e5e549e573471f23b77c801843676bb5a23c4c9b4bfeddd10a537413866"
+        },
+        "renderer": {
+          "id": "@formspec-org/surface-react",
+          "version": "0.1.0",
+          "digest": "sha256:38e5457c3a66773faf6fd3b56dbbfe655948eed8360f57d66a238ea7cfa95e7f"
+        },
+        "runner": {
+          "id": "@formspec-org/outcome-verification",
+          "version": "0.1.0",
+          "digest": "sha256:303e58b2baa2b202867531d2b86cb7105d1890bc1dd2ebd33ee79a67c7301cd2"
+        },
+        "runtime": {
+          "id": "@formspec-org/engine",
+          "version": "1.0.0",
+          "digest": "sha256:5e1c66bf08ea2916699776fad2da58aac58b2eb3546c6427a6f5d3ed7f844d42"
+        },
+        "verifier": {
+          "id": "@formspec-org/outcome-verification",
+          "version": "0.1.0",
+          "digest": "sha256:303e58b2baa2b202867531d2b86cb7105d1890bc1dd2ebd33ee79a67c7301cd2"
+        },
+        "adapter": {
+          "id": "formspec-surface-react-outcome-adapter",
+          "version": "0.1.0",
+          "digest": "sha256:4418d3b0833c79708487369999c447c6de518d0cc73989768dcbc91e9412473b"
+        }
+      },
+      "implementationSetDigest": "sha256:074fb6922ab3b4488d99e931f291f6c9f7485dfcaa8391dbf38ff78ac4fe1bf8",
+      "targetIdentityDigest": "sha256:be077c80d5ce283171e00d05b9b74a764945ea6a8dfaf95764ce2839dd8acf11"
+    },
+    "verificationDependencies": {
+      "schemaValidator": {
+        "id": "formspec-repository-ajv-schema-validator",
+        "version": "0.1.0",
+        "digest": "sha256:caaa96fb3417f59151f1839df0bf1a4109a3670aaaae4fd4ac0dfdf87d10f48f"
+      },
+      "ownerFacts": {
+        "id": "formspec-appgraph-owner-facts-adapter",
+        "version": "0.1.0",
+        "digest": "sha256:71bae6d20096326833d580192e479611244cb52d71e837db73824873d6761ceb"
+      },
+      "specificationRuleIndexDigest": "sha256:4abc143f4c01fee438c79d2b8849b4d5e6c6f81414297770cfdc5a0b8115aced"
+    },
+    "requiredCaseDigests": [
+      "sha256:31360d058412b7ad9319e2852afb4c6754aed50fa519b714468fb5a8c8a7dd93",
+      "sha256:f98bbb4aacf3ef0adf9ed882c37a60b2709bb6543a636932758c42fc05e9087d",
+      "sha256:38f5e2473982dd660f5b34502a36b65539994a86a44fb257d6c77904a900b576"
+    ]
+  },
+  "claimContextDigest": "sha256:6dd9166ca00493cf5ddf151dbac59a6e48fc748ff68fb309952d4f6a71c0ff3d",
+  "reports": [
+    {
+      "caseRef": "organization-empty-required-fields-are-blocked",
+      "caseDigest": "sha256:31360d058412b7ad9319e2852afb4c6754aed50fa519b714468fb5a8c8a7dd93",
+      "required": true,
+      "claimRequired": true,
+      "reportRef": "outcome-reports/be077c80d5ce283171e00d05b9b74a764945ea6a8dfaf95764ce2839dd8acf11/09a6f552-f058-4dc1-8b6d-62dd0f4f16dd/d30e4d1e4d62b3bcc1695ed9bc2e180799c13ee543d009e33fe8f00b194c5d63.report.json",
+      "reportDigest": "sha256:a308df39eb106f0f05e063c67a4446ec8dcbc962c39edb467c3c300c10040c4a",
+      "conclusion": "passed",
+      "summary": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "indeterminate": 0,
+        "stale": 0
+      }
+    },
+    {
+      "caseRef": "organization-values-remain-visible-after-completion",
+      "caseDigest": "sha256:f98bbb4aacf3ef0adf9ed882c37a60b2709bb6543a636932758c42fc05e9087d",
+      "required": true,
+      "claimRequired": true,
+      "reportRef": "outcome-reports/be077c80d5ce283171e00d05b9b74a764945ea6a8dfaf95764ce2839dd8acf11/923c4d30-8234-42c2-a9af-5d154424b39e/4d79064b90292d0a43bad2dff4c5cba61012453eb85697354b47df4d10ae0537.report.json",
+      "reportDigest": "sha256:f86cf9f24d0337608e8a5e8ff674cad869a531cd503644f1cf6fe397c8e415f4",
+      "conclusion": "passed",
+      "summary": {
+        "total": 8,
+        "passed": 8,
+        "failed": 0,
+        "indeterminate": 0,
+        "stale": 0
+      }
+    },
+    {
+      "caseRef": "public-response-invalid-input-is-blocked",
+      "caseDigest": "sha256:38f5e2473982dd660f5b34502a36b65539994a86a44fb257d6c77904a900b576",
+      "required": true,
+      "claimRequired": true,
+      "reportRef": "outcome-reports/be077c80d5ce283171e00d05b9b74a764945ea6a8dfaf95764ce2839dd8acf11/dc66829e-2a84-4e0b-ad7a-d87b7bcc1e2b/3a4d2160d0ce926df9be914ebafa0e49991b66507b668097cc89191cc28ba5bb.report.json",
+      "reportDigest": "sha256:6f30c15816a4694140898bd35f3da193ff464a7c23ecc2021f4783bee4d8085f",
+      "conclusion": "passed",
+      "summary": {
+        "total": 6,
+        "passed": 6,
+        "failed": 0,
+        "indeterminate": 0,
+        "stale": 0
+      }
+    },
+    {
+      "caseRef": "unrelated-control-renders-through-generic-host",
+      "caseDigest": "sha256:ac9d96cd0919afa025c62e0e1383c8c39bc5264e0bef51784c0902fed0f175d2",
+      "required": true,
+      "claimRequired": false,
+      "reportRef": "outcome-reports/be077c80d5ce283171e00d05b9b74a764945ea6a8dfaf95764ce2839dd8acf11/63d797d8-9bb5-4cc5-a9c2-ae8c2f795205/b21b4927ec7a9f0b493c7556fc8887955eb17fe563324986400725dc97df4096.report.json",
+      "reportDigest": "sha256:5bbd5b611298f3878bbc65acaad98b6240bc7deac554bbfadf474ece9fc7e256",
+      "conclusion": "passed",
+      "summary": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "indeterminate": 0,
+        "stale": 0
+      }
+    }
+  ],
+  "claimGate": {
+    "supported": false,
+    "claim": "demo",
+    "humanAdequacyApproved": false,
+    "reasons": [
+      "HUMAN_ADEQUACY_NOT_APPROVED"
+    ],
+    "cases": [
+      {
+        "caseDigest": "sha256:31360d058412b7ad9319e2852afb4c6754aed50fa519b714468fb5a8c8a7dd93",
+        "supported": true,
+        "reasons": [],
+        "reportId": "urn:formspec:outcome-report:d30e4d1e4d62b3bcc1695ed9bc2e180799c13ee543d009e33fe8f00b194c5d63"
+      },
+      {
+        "caseDigest": "sha256:f98bbb4aacf3ef0adf9ed882c37a60b2709bb6543a636932758c42fc05e9087d",
+        "supported": true,
+        "reasons": [],
+        "reportId": "urn:formspec:outcome-report:4d79064b90292d0a43bad2dff4c5cba61012453eb85697354b47df4d10ae0537"
+      },
+      {
+        "caseDigest": "sha256:38f5e2473982dd660f5b34502a36b65539994a86a44fb257d6c77904a900b576",
+        "supported": true,
+        "reasons": [],
+        "reportId": "urn:formspec:outcome-report:3a4d2160d0ce926df9be914ebafa0e49991b66507b668097cc89191cc28ba5bb"
+      }
+    ]
+  }
+}

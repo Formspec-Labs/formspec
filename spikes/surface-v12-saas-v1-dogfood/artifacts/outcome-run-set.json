@@ -1,0 +1,52 @@
+{
+  "$formspecOutcomeVerificationRunSet": "0.1",
+  "version": "0.1.0",
+  "previewSet": "preview-set.json",
+  "needsDocuments": ["saas-v1.needs.json", "control.needs.json"],
+  "cases": [
+    {
+      "path": "outcome-cases/organization-empty-is-blocked.case.json",
+      "digest": "sha256:31360d058412b7ad9319e2852afb4c6754aed50fa519b714468fb5a8c8a7dd93",
+      "required": true,
+      "claimRequired": true
+    },
+    {
+      "path": "outcome-cases/organization-values-visible.case.json",
+      "digest": "sha256:f98bbb4aacf3ef0adf9ed882c37a60b2709bb6543a636932758c42fc05e9087d",
+      "required": true,
+      "claimRequired": true
+    },
+    {
+      "path": "outcome-cases/public-response-invalid-input.case.json",
+      "digest": "sha256:38f5e2473982dd660f5b34502a36b65539994a86a44fb257d6c77904a900b576",
+      "required": true,
+      "claimRequired": true
+    },
+    {
+      "path": "outcome-cases/unrelated-control-renders.case.json",
+      "digest": "sha256:ac9d96cd0919afa025c62e0e1383c8c39bc5264e0bef51784c0902fed0f175d2",
+      "required": true,
+      "claimRequired": false
+    }
+  ],
+  "outputDirectory": "outcome-reports",
+  "target": {
+    "class": "test",
+    "ref": "urn:formspec:test:surface-v12-committed-reactdom"
+  },
+  "principal": {
+    "kind": "actor",
+    "ref": "urn:formspec:actor:local-verifier"
+  },
+  "profile": "loaded",
+  "admittedStepKinds": [
+    "open-route",
+    "set-item",
+    "activate-control",
+    "checkpoint"
+  ],
+  "humanAdequacyReview": {
+    "status": "pending",
+    "reason": "A human product owner has not yet approved this exact SaaS claim case set."
+  }
+}

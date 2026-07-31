@@ -2,8 +2,8 @@
   "artifact": "Surface v12 SaaS V1 corrected structured reconstruction",
   "assessment_type": "data-only artifact and generic-host assessment",
   "score": null,
-  "status": "passed_local_data_only_wireframe_proof",
-  "conclusion": "The corrected SaaS and control artifacts use one fixed generic host, have complete reasoning traces, pass all seven graph phases, and render their represented journeys without product-specific host code.",
+  "status": "technical_cases_passed_human_demo_approval_held",
+  "conclusion": "The corrected SaaS and control artifacts use one fixed generic host, have complete reasoning traces, pass all seven graph phases, and pass the four required technical outcome cases without product-specific host code. The aggregate demo claim remains held for human adequacy approval.",
   "construction": {
     "method": "structured reconstruction after attempt 7",
     "fresh_blind_public_builder_replay": false,
@@ -28,8 +28,8 @@
       "ontology_documents": 2,
       "experience_units": 15,
       "adopted_needs": 10,
-      "trace_records": 386,
-      "resolved_trace_records": 386,
+      "trace_records": 391,
+      "resolved_trace_records": 391,
       "unresolved_internal_references": 0
     },
     "control": {
@@ -44,11 +44,23 @@
     "app_graph_bundles_passed": 2,
     "playwright_routes_passed": 15,
     "playwright_actions_passed": 34,
-    "playwright_data_profile_checks_passed": 20,
+    "playwright_data_profile_checks_passed": 25,
+    "playwright_route_width_checks_passed": 30,
+    "playwright_profile_route_checks_passed": 75,
     "playwright_console_warnings_or_errors": 0,
-    "reviewed_input_digest": "sha256:307627996ceb2c852a7133c69c106c1eeb1d18c4c3071d28d0ebaee0ea62d62b",
+    "reviewed_input_digest": "sha256:fb30fb637a26ed7153289b0c539991234f0feef560e527c0d746f3bb73fc317a",
     "formspec_unit_suites": "passed",
     "formspec_contract_surfaces": "passed"
+  },
+  "outcome_verification": {
+    "required_cases_passed": 4,
+    "required_cases_total": 4,
+    "expectations_passed": 20,
+    "expectations_total": 20,
+    "claim_required_cases_supported": 3,
+    "claim_required_cases_total": 3,
+    "demo_claim": "held",
+    "demo_claim_reasons": ["HUMAN_ADEQUACY_NOT_APPROVED"]
   },
   "historical_attempt_7": {
     "status": "failed_retained_evidence",
@@ -101,6 +113,7 @@
   ],
   "remaining_limitations": [
     "The corrected artifacts are a structured reconstruction, not a fresh blind public-builder replay.",
+    "The technical evidence does not become human product approval; the aggregate demo claim remains held until approval is explicit.",
     "This assessment does not establish persistence, tenant isolation, authentication or recovery, billing execution, entitlement enforcement, external delivery, production verification behavior, release, or deployment."
   ]
 }

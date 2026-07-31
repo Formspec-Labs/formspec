@@ -16,6 +16,7 @@
     "@formspec-org/assist": "file:../../../packages/formspec-assist",
     "@formspec-org/engine": "file:../../../packages/formspec-engine",
     "@formspec-org/layout": "file:../../../packages/formspec-layout",
+    "@formspec-org/outcome-verification": "file:../../../packages/formspec-outcome-verification",
     "@formspec-org/react": "file:../../../packages/formspec-react",
     "@formspec-org/surface": "file:../../../packages/formspec-surface",
     "@formspec-org/surface-react": "file:../../../packages/formspec-surface-react",

@@ -1,0 +1,208 @@
+{
+  "$formspecOutcomeVerificationReport": "0.1",
+  "id": "urn:formspec:outcome-report:b21b4927ec7a9f0b493c7556fc8887955eb17fe563324986400725dc97df4096",
+  "generatedAt": "2026-07-31T09:29:05.185Z",
+  "caseRef": "unrelated-control-renders-through-generic-host",
+  "caseDigest": "sha256:ac9d96cd0919afa025c62e0e1383c8c39bc5264e0bef51784c0902fed0f175d2",
+  "lintClearanceDigest": "sha256:0f8b3b02ac867e424e138ecd29aaf5d2c5ec5270a6d489fe59e992fcb873ff79",
+  "actionPlanSetDigest": "sha256:840b2e92d076fd3e492ce94f3877e3b0fc98fcf0510b7ddde51a24419de628c3",
+  "executionReceipt": {
+    "ref": "urn:formspec:outcome-receipt:f07d20299c226e87a8cfea527463c3931333a4b683c5e066ed36ffa55418ebe4",
+    "evidenceDigest": "sha256:f21783b0beb7e72e3b991ddf955b2562bbd6c022252aa6a69b2500a01d8503e2"
+  },
+  "run": {
+    "runId": "urn:formspec:outcome-run:63d797d8-9bb5-4cc5-a9c2-ae8c2f795205",
+    "admissionContextDigest": "sha256:f4e4043763307d05f98a78051e43330492fe2048882436fb6bdf72689f7d5aa8",
+    "target": {
+      "class": "test",
+      "ref": "urn:formspec:test:surface-v12-committed-reactdom",
+      "buildRef": "urn:formspec:test-build:22b0ff8c8f32fd27c42b840973eb91b1e9a23e54737752f89f92a12d4f24fa19",
+      "buildDigest": "sha256:22b0ff8c8f32fd27c42b840973eb91b1e9a23e54737752f89f92a12d4f24fa19",
+      "implementations": {
+        "host": {
+          "id": "formspec-committed-reactdom-test-host",
+          "version": "0.1.0",
+          "digest": "sha256:06106e5e549e573471f23b77c801843676bb5a23c4c9b4bfeddd10a537413866"
+        },
+        "renderer": {
+          "id": "@formspec-org/surface-react",
+          "version": "0.1.0",
+          "digest": "sha256:38e5457c3a66773faf6fd3b56dbbfe655948eed8360f57d66a238ea7cfa95e7f"
+        },
+        "runner": {
+          "id": "@formspec-org/outcome-verification",
+          "version": "0.1.0",
+          "digest": "sha256:303e58b2baa2b202867531d2b86cb7105d1890bc1dd2ebd33ee79a67c7301cd2"
+        },
+        "runtime": {
+          "id": "@formspec-org/engine",
+          "version": "1.0.0",
+          "digest": "sha256:5e1c66bf08ea2916699776fad2da58aac58b2eb3546c6427a6f5d3ed7f844d42"
+        },
+        "verifier": {
+          "id": "@formspec-org/outcome-verification",
+          "version": "0.1.0",
+          "digest": "sha256:303e58b2baa2b202867531d2b86cb7105d1890bc1dd2ebd33ee79a67c7301cd2"
+        },
+        "adapter": {
+          "id": "formspec-surface-react-outcome-adapter",
+          "version": "0.1.0",
+          "digest": "sha256:4418d3b0833c79708487369999c447c6de518d0cc73989768dcbc91e9412473b"
+        }
+      },
+      "implementationSetDigest": "sha256:074fb6922ab3b4488d99e931f291f6c9f7485dfcaa8391dbf38ff78ac4fe1bf8",
+      "targetIdentityDigest": "sha256:be077c80d5ce283171e00d05b9b74a764945ea6a8dfaf95764ce2839dd8acf11"
+    }
+  },
+  "inspectedSources": [
+    {
+      "artifactRef": "https://control.formspec.dev/apps/structured-panel",
+      "artifactDigest": "sha256:0a59e630773fa54ab00e8569c207bc1c5434dc4bd7d13fce0ed454574fa36aae"
+    },
+    {
+      "artifactRef": "https://control.formspec.dev/experience/main",
+      "artifactDigest": "sha256:d9d00125dd9bf7eb0122209bce2224c280b44faecf6aba88257c26497e18a73b"
+    },
+    {
+      "artifactRef": "https://control.formspec.dev/registries/generic-host",
+      "artifactDigest": "sha256:8084ae4f02a6f966b7acee44f1b31c6bac672c1523c6feab924952ecc9c217ce"
+    },
+    {
+      "artifactRef": "https://control.formspec.dev/surfaces/main",
+      "artifactDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388"
+    },
+    {
+      "artifactRef": "https://control.formspec.dev/needs/generic-host",
+      "artifactDigest": "sha256:70ecd580018c54daa33cc88149139028b7219319d37c64f704541e7daa2c5363"
+    }
+  ],
+  "boundary": {
+    "startedAt": "2026-07-31T09:29:05.183Z",
+    "endedAt": "2026-07-31T09:29:05.183Z"
+  },
+  "bindings": [
+    {
+      "id": "urn:formspec:outcome-run:63d797d8-9bb5-4cc5-a9c2-ae8c2f795205:binding:open-control",
+      "stepId": "open-control",
+      "kind": "open-route",
+      "surfaceRef": "https://control.formspec.dev/surfaces/main",
+      "surfaceDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388",
+      "routeId": "control",
+      "routeInstanceId": "formspec-route-instance:6",
+      "renderInstanceId": "urn:formspec:outcome-run:63d797d8-9bb5-4cc5-a9c2-ae8c2f795205:render:open-control"
+    },
+    {
+      "id": "urn:formspec:outcome-run:63d797d8-9bb5-4cc5-a9c2-ae8c2f795205:binding:after-control-render",
+      "stepId": "after-control-render",
+      "kind": "checkpoint",
+      "boundary": {
+        "startedAt": "2026-07-31T09:29:05.183Z",
+        "endedAt": "2026-07-31T09:29:05.183Z"
+      },
+      "includedBindingRefs": [
+        "urn:formspec:outcome-run:63d797d8-9bb5-4cc5-a9c2-ae8c2f795205:binding:open-control"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "expectationId": "control-route-has-direct-need-trace",
+      "conclusion": "passed",
+      "reasonCode": "MATCH",
+      "requiredEvidence": "structural",
+      "observedEvidence": "structural",
+      "observedSummary": {
+        "subject": {
+          "artifactRef": "https://control.formspec.dev/surfaces/main",
+          "artifactDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388",
+          "subjectKind": "surface-route",
+          "subjectRef": "control"
+        },
+        "relation": "direct-need-trace",
+        "state": "present"
+      },
+      "observationBoundary": {
+        "startedAt": "2026-07-31T09:29:05.183Z",
+        "endedAt": "2026-07-31T09:29:05.183Z"
+      },
+      "correlationRefs": [],
+      "sourceRefs": [
+        {
+          "artifactRef": "https://control.formspec.dev/needs/generic-host",
+          "artifactDigest": "sha256:70ecd580018c54daa33cc88149139028b7219319d37c64f704541e7daa2c5363"
+        },
+        {
+          "artifactRef": "https://control.formspec.dev/apps/structured-panel",
+          "artifactDigest": "sha256:0a59e630773fa54ab00e8569c207bc1c5434dc4bd7d13fce0ed454574fa36aae"
+        },
+        {
+          "artifactRef": "https://control.formspec.dev/surfaces/main",
+          "artifactDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388"
+        },
+        {
+          "artifactRef": "https://control.formspec.dev/experience/main",
+          "artifactDigest": "sha256:d9d00125dd9bf7eb0122209bce2224c280b44faecf6aba88257c26497e18a73b"
+        }
+      ],
+      "evidenceRefs": []
+    },
+    {
+      "expectationId": "control-content-is-rendered",
+      "conclusion": "passed",
+      "reasonCode": "MATCH",
+      "requiredEvidence": "runtime",
+      "observedEvidence": "runtime",
+      "observedSummary": {
+        "node": {
+          "artifactRef": "https://control.formspec.dev/surfaces/main",
+          "artifactDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388",
+          "subjectKind": "surface-node",
+          "subjectRef": "control/controlSummary"
+        },
+        "rendered": true,
+        "semanticValue": "Check today's availability before planning a visit.",
+        "renderInstanceId": "urn:formspec:outcome-run:63d797d8-9bb5-4cc5-a9c2-ae8c2f795205:render:open-control"
+      },
+      "observationBoundary": {
+        "startedAt": "2026-07-31T09:29:05.183Z",
+        "endedAt": "2026-07-31T09:29:05.183Z"
+      },
+      "stepBindingRef": "urn:formspec:outcome-run:63d797d8-9bb5-4cc5-a9c2-ae8c2f795205:binding:open-control",
+      "correlationRefs": [
+        "urn:formspec:outcome-run:63d797d8-9bb5-4cc5-a9c2-ae8c2f795205:render:open-control"
+      ],
+      "sourceRefs": [
+        {
+          "artifactRef": "https://control.formspec.dev/needs/generic-host",
+          "artifactDigest": "sha256:70ecd580018c54daa33cc88149139028b7219319d37c64f704541e7daa2c5363"
+        },
+        {
+          "artifactRef": "https://control.formspec.dev/apps/structured-panel",
+          "artifactDigest": "sha256:0a59e630773fa54ab00e8569c207bc1c5434dc4bd7d13fce0ed454574fa36aae"
+        },
+        {
+          "artifactRef": "https://control.formspec.dev/surfaces/main",
+          "artifactDigest": "sha256:60a6a43b33e096faa1d07f0aeefc3c225805721758411ec0e85359762ff92388"
+        },
+        {
+          "artifactRef": "https://control.formspec.dev/experience/main",
+          "artifactDigest": "sha256:d9d00125dd9bf7eb0122209bce2224c280b44faecf6aba88257c26497e18a73b"
+        }
+      ],
+      "evidenceRefs": []
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "indeterminate": 0,
+    "stale": 0
+  },
+  "conclusion": "passed",
+  "claimScope": {
+    "claim": "declared-observations",
+    "needSatisfaction": "not-asserted"
+  },
+  "diagnostics": []
+}

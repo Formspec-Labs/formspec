@@ -63,6 +63,10 @@
               "version": "0.12.0"
             },
             {
+              "url": "https://formspec.cloud/actions/organization-setup",
+              "version": "0.12.0"
+            },
+            {
               "url": "https://formspec.cloud/actions/public-response",
               "version": "0.12.0"
             }
@@ -266,6 +270,8 @@
               {
                 "path": "email",
                 "required": "true",
+                "constraint": "matches($, '^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$')",
+                "constraintMessage": "Enter a valid email address.",
                 "x-generation": {
                   "anchors": [
                     "need:complete-and-prove-response@1"
@@ -284,6 +290,8 @@
               {
                 "path": "acceptNotices",
                 "required": "true",
+                "constraint": "$ = true",
+                "constraintMessage": "Agree to receive submission notices before continuing.",
                 "x-generation": {
                   "anchors": [
                     "need:complete-and-prove-response@1"
@@ -2207,6 +2215,11 @@
                       "name": "primaryData",
                       "required": false,
                       "description": "Optional host-owned data selected by a Surface data binding."
+                    },
+                    {
+                      "name": "secondaryData",
+                      "required": false,
+                      "description": "Optional second declared data source for a structured panel."
                     }
                   ],
                   "actionOutputs": [
@@ -3532,39 +3545,13 @@
                       "config": {
                         "id": "onboardingPanel",
                         "title": "Finish workspace setup",
-                        "body": "Review the organization, workspace, and environment fields before opening the workspace.",
+                        "body": "Complete the required organization, workspace, and environment fields. The form action validates and saves the Response before opening the workspace.",
                         "blocks": [],
-                        "actions": [
-                          {
-                            "outputName": "completeOnboarding",
-                            "emphasis": "primary",
-                            "order": 1,
-                            "pendingLabel": "Finishing setup…",
-                            "successMessage": "Setup complete",
-                            "failureMessage": "Try again",
-                            "x-generation": {
-                              "anchors": [
-                                "need:configure-organization@1"
-                              ]
-                            }
-                          }
-                        ],
+                        "actions": [],
                         "x-generation": {
                           "anchors": [
                             "need:configure-organization@1"
                           ]
-                        }
-                      },
-                      "actionBindings": {
-                        "completeOnboarding": {
-                          "actionRef": "completeOnboarding",
-                          "x-generation": {
-                            "anchors": [
-                              "need:configure-organization@1",
-                              "unit:onboardingUnit",
-                              "action:completeOnboarding"
-                            ]
-                          }
                         }
                       }
                     },
@@ -5320,7 +5307,7 @@
                               {
                                 "id": "organization",
                                 "label": "Organization",
-                                "path": "primaryData.admin.organization",
+                                "path": "primaryData.organizationName",
                                 "x-generation": {
                                   "anchors": [
                                     "need:configure-organization@1"
@@ -5330,7 +5317,7 @@
                               {
                                 "id": "workspace",
                                 "label": "Workspace",
-                                "path": "primaryData.admin.workspace",
+                                "path": "primaryData.workspaceName",
                                 "x-generation": {
                                   "anchors": [
                                     "need:configure-organization@1"
@@ -5340,7 +5327,7 @@
                               {
                                 "id": "environment",
                                 "label": "Environment",
-                                "path": "primaryData.admin.environment",
+                                "path": "primaryData.environment",
                                 "x-generation": {
                                   "anchors": [
                                     "need:configure-organization@1"
@@ -5358,7 +5345,7 @@
                             "id": "teammates",
                             "type": "table",
                             "title": "Teammates",
-                            "path": "primaryData.admin.teammates",
+                            "path": "secondaryData.admin.teammates",
                             "responsiveMode": "stack",
                             "columns": [
                               {
@@ -5432,6 +5419,16 @@
                       },
                       "dataBindings": {
                         "primaryData": {
+                          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+                          "sourceRef": "response:organization-setup",
+                          "x-generation": {
+                            "anchors": [
+                              "need:configure-organization@1",
+                              "unit:adminUnit"
+                            ]
+                          }
+                        },
+                        "secondaryData": {
                           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
                           "sourceRef": "host:workspace",
                           "x-generation": {
@@ -6780,6 +6777,69 @@
                 }
               },
               {
+                "id": "response:organization-setup",
+                "kind": "definition-response",
+                "definitionRef": "https://formspec.cloud/definitions/organization-setup",
+                "definitionVersion": "0.12.0",
+                "responseSelection": {
+                  "status": "completed",
+                  "cardinality": "latest",
+                  "orderBy": "authored-desc",
+                  "tieBreak": "response-id-asc",
+                  "partitionBy": "definition"
+                },
+                "description": "Latest completed organization setup Response.",
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "organizationName",
+                    "workspaceName",
+                    "environment"
+                  ],
+                  "properties": {
+                    "organizationName": {
+                      "type": "string"
+                    },
+                    "workspaceName": {
+                      "type": "string"
+                    },
+                    "environment": {
+                      "type": "string",
+                      "enum": [
+                        "production",
+                        "sandbox"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "owner": "host",
+                "scope": "session",
+                "availability": {
+                  "level": "route",
+                  "surfaceRef": "https://formspec.cloud/app",
+                  "routeRef": "admin"
+                },
+                "runtime": {
+                  "delivery": "live",
+                  "cache": {
+                    "mode": "subscribe",
+                    "staleAfter": "PT30S"
+                  },
+                  "authorizationBoundary": "host",
+                  "failureMode": "block-render",
+                  "provenance": {
+                    "kind": "definition-response",
+                    "source": "latest completed organization setup Response"
+                  }
+                },
+                "x-generation": {
+                  "anchors": [
+                    "need:configure-organization@1"
+                  ]
+                }
+              },
+              {
                 "id": "query:responses",
                 "kind": "query-result",
                 "description": "Response collection and export resources.",
@@ -7439,30 +7499,6 @@
                 }
               },
               {
-                "id": "completeOnboarding",
-                "intent": "x-complete-onboarding",
-                "actor": "user",
-                "label": {
-                  "literal": "Finish setup"
-                },
-                "validation": {
-                  "profile": "off",
-                  "blocking": "non-blocking",
-                  "persistence": "none"
-                },
-                "effects": [
-                  {
-                    "type": "hostEvent",
-                    "eventName": "formspec.app.complete-onboarding"
-                  }
-                ],
-                "x-generation": {
-                  "anchors": [
-                    "need:configure-organization@1"
-                  ]
-                }
-              },
-              {
                 "id": "openFormDetail",
                 "intent": "x-open-form-detail",
                 "actor": "user",
@@ -8078,6 +8114,35 @@
               }
             ]
           },
+          "https://formspec.cloud/actions/organization-setup": {
+            "$formspecResponseActions": "1.0",
+            "version": "0.12.0",
+            "targetDefinition": {
+              "url": "https://formspec.cloud/definitions/organization-setup",
+              "compatibleVersions": "0.12.0"
+            },
+            "actions": [
+              {
+                "id": "completeOnboarding",
+                "intent": "submit",
+                "actor": "user",
+                "label": {
+                  "literal": "Finish setup"
+                },
+                "effects": [
+                  {
+                    "type": "hostEvent",
+                    "eventName": "formspec.navigation.completeOnboarding"
+                  }
+                ],
+                "x-generation": {
+                  "anchors": [
+                    "need:configure-organization@1"
+                  ]
+                }
+              }
+            ]
+          },
           "https://formspec.cloud/actions/public-response": {
             "$formspecResponseActions": "1.0",
             "version": "0.12.0",
@@ -8331,6 +8396,22 @@
               "default": "authorized"
             },
             "sources": [
+              {
+                "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+                "sourceRef": "response:organization-setup",
+                "status": "loaded",
+                "value": {
+                  "organizationName": "Acme Community Grants",
+                  "workspaceName": "Grant operations",
+                  "environment": "production"
+                },
+                "x-generation": {
+                  "anchors": [
+                    "need:configure-organization@1"
+                  ]
+                },
+                "freshness": "fresh"
+              },
               {
                 "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
                 "sourceRef": "host:workspace",
@@ -8646,6 +8727,22 @@
             "sources": [
               {
                 "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+                "sourceRef": "response:organization-setup",
+                "status": "loaded",
+                "value": {
+                  "organizationName": "Acme Community Grants",
+                  "workspaceName": "Grant operations",
+                  "environment": "production"
+                },
+                "x-generation": {
+                  "anchors": [
+                    "need:configure-organization@1"
+                  ]
+                },
+                "freshness": "fresh"
+              },
+              {
+                "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
                 "sourceRef": "host:workspace",
                 "status": "loaded",
                 "value": {
@@ -8900,6 +8997,17 @@
             "sources": [
               {
                 "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+                "sourceRef": "response:organization-setup",
+                "status": "unavailable",
+                "x-generation": {
+                  "anchors": [
+                    "need:configure-organization@1"
+                  ]
+                },
+                "reason": "The organization setup Response is unavailable in this preview profile."
+              },
+              {
+                "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
                 "sourceRef": "host:workspace",
                 "status": "unavailable",
                 "x-generation": {
@@ -8951,6 +9059,17 @@
             "sources": [
               {
                 "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+                "sourceRef": "response:organization-setup",
+                "status": "error",
+                "x-generation": {
+                  "anchors": [
+                    "need:configure-organization@1"
+                  ]
+                },
+                "reason": "The preview simulated an organization Response loader exception."
+              },
+              {
+                "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
                 "sourceRef": "host:workspace",
                 "status": "error",
                 "x-generation": {
@@ -8997,6 +9116,22 @@
           },
           "longContent": {
             "sources": [
+              {
+                "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+                "sourceRef": "response:organization-setup",
+                "status": "loaded",
+                "value": {
+                  "organizationName": "Acme Community Grants and Regional Partnership Demonstration Organization",
+                  "workspaceName": "Multi-county grants, vendor onboarding, and annual public reporting operations",
+                  "environment": "production"
+                },
+                "x-generation": {
+                  "anchors": [
+                    "need:configure-organization@1"
+                  ]
+                },
+                "freshness": "fresh"
+              },
               {
                 "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
                 "sourceRef": "host:workspace",

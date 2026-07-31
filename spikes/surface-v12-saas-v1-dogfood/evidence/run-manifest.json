@@ -1,6 +1,6 @@
 {
   "experiment": "surface-v12-saas-v1-dogfood",
-  "date": "2026-07-30",
+  "date": "2026-07-31",
   "input": "formspec-server/SAAS-V1.md",
   "candidate": {
     "formspecStudioBaseCommit": "b0d82505ce4725372c030cef99b5f38d0e4e6503",
@@ -10,13 +10,10 @@
     "sourceState": "local reviewed state identified by the verification digest"
   },
   "currentResult": {
-    "kind": "corrected-structured-reconstruction",
+    "kind": "outcome-verified-structured-reconstruction",
     "freshBlindPublicBuilderReplay": false,
     "fixedGenericHost": true,
-    "previewBundles": [
-      "saas-v1",
-      "control"
-    ],
+    "previewBundles": ["saas-v1", "control"],
     "saasV1": {
       "routes": 15,
       "authoredNavigationEntries": 15,
@@ -29,8 +26,8 @@
       "responseActions": 34,
       "experienceUnits": 15,
       "adoptedNeeds": 10,
-      "traceRecords": 386,
-      "resolvedTraceRecords": 386,
+      "traceRecords": 391,
+      "resolvedTraceRecords": 391,
       "unresolvedInternalReferences": 0
     },
     "control": {
@@ -44,17 +41,34 @@
       "appGraphBundlesPassed": 2,
       "playwrightRoutesPassed": 15,
       "playwrightActionsPassed": 34,
-      "playwrightDataProfileChecksPassed": 20,
+      "playwrightDataProfileChecksPassed": 25,
+      "playwrightRouteWidthChecksPassed": 30,
+      "playwrightProfileRouteChecksPassed": 75,
       "playwrightConsoleWarningsOrErrors": 0,
-      "reviewedInputDigest": "sha256:307627996ceb2c852a7133c69c106c1eeb1d18c4c3071d28d0ebaee0ea62d62b",
+      "reviewedInputDigest": "sha256:fb30fb637a26ed7153289b0c539991234f0feef560e527c0d746f3bb73fc317a",
       "screenshots": {
         "screenshots/control.png": "sha256:a292835256f5588b5f2e4dfe0c59a9041f438f4097e5184a28cec06f21a10383",
         "screenshots/dashboard-loaded.png": "sha256:0bc3fd0214b6bb9a1738a9692793b8e9a91ca8642abda0010f8765dc7c8090d3",
-        "screenshots/public-response-mobile.png": "sha256:9edcfd0df3c7721abbf74dfff3c4c4ff010f959e9c3444f4e15d9865b7b43fbb",
-        "screenshots/responses-loaded.png": "sha256:1f008668c6151c812ce7fa96d4c2010559d81c49a66da390ee0df6880000fe1e"
+        "screenshots/public-response-mobile.png": "sha256:c8d10f6cc6dbaeaa7b39e7e6a98b36ae0ea90e9fa0be39eb9772035a1438b6f5",
+        "screenshots/responses-loaded.png": "sha256:1f008668c6151c812ce7fa96d4c2010559d81c49a66da390ee0df6880000fe1e",
+        "screenshots/outcome-onboarding-empty-blocked.png": "sha256:ee648b23e80c1eb5463ef4555e8049fbb209a12bb33e0f14f80116d7c4faadd3",
+        "screenshots/outcome-onboarding-values-persisted.png": "sha256:ae7d2ad11cb1ad1711914a1bd72b5aba24110593f8cbd252b503fbaeac73cc19",
+        "screenshots/outcome-public-invalid-blocked.png": "sha256:9a3b505c8ed3ed8093206dc45230d66f3bee99fb16a20b46d5823c5778e96f69",
+        "screenshots/outcome-public-valid-receipt.png": "sha256:e1abe3c890013592aaabc4f7a79b8b89bc26cd5e0453e075fb7ab4959a83ea20",
+        "screenshots/outcome-unrelated-control.png": "sha256:92c6acf18d376a23d141814409db26b75c55786ebc5ed67bb94fb7aed1112540"
       },
       "formspecUnitSuites": "passed",
-      "formspecContractSurfaces": "passed"
+      "formspecContractSurfaces": "passed",
+      "outcomeVerification": {
+        "requiredCasesPassed": 4,
+        "requiredCasesTotal": 4,
+        "expectationsPassed": 20,
+        "expectationsTotal": 20,
+        "claimRequiredCasesSupported": 3,
+        "claimRequiredCasesTotal": 3,
+        "demoClaim": "held",
+        "demoClaimReasons": ["HUMAN_ADEQUACY_NOT_APPROVED"]
+      }
     }
   },
   "currentArtifacts": [
@@ -65,7 +79,12 @@
     "artifacts/control.needs.json",
     "artifacts/control.preview-scenario.json",
     "artifacts/preview-set.json",
-    "artifacts/reasoning-review.json"
+    "artifacts/reasoning-review.json",
+    "artifacts/outcome-run-set.json",
+    "artifacts/outcome-cases/organization-empty-is-blocked.case.json",
+    "artifacts/outcome-cases/organization-values-visible.case.json",
+    "artifacts/outcome-cases/public-response-invalid-input.case.json",
+    "artifacts/outcome-cases/unrelated-control-renders.case.json"
   ],
   "historicalAttempt7": {
     "status": "failed-retained-evidence",
@@ -90,6 +109,7 @@
   "limits": [
     "The corrected artifacts were reconstructed as structured documents after attempt 7; they are not a fresh blind public-builder replay.",
     "Attempt-7 hashes detect drift in the retained historical files; they do not qualify the current reconstruction.",
+    "The required technical outcome cases pass, but the aggregate demo claim remains held until a human explicitly approves adequacy.",
     "Structured feature posture, forms, data bindings, actions, layouts, and navigation are artifact declarations, not proof of backend or production behavior.",
     "The public authoring session supports multiple bundle-local Definitions; the corrected SaaS bundle uses separate organization-setup and public-response Definitions.",
     "The result is local only; no release or deployment was performed."

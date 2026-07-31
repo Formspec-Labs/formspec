@@ -58,6 +58,10 @@
         "version": "0.12.0"
       },
       {
+        "url": "https://formspec.cloud/actions/organization-setup",
+        "version": "0.12.0"
+      },
+      {
         "url": "https://formspec.cloud/actions/public-response",
         "version": "0.12.0"
       }
@@ -93,9 +97,7 @@
       "title": "Organization setup",
       "description": "Core organization, workspace, and environment data required for customer-controlled setup.",
       "x-generation": {
-        "anchors": [
-          "need:configure-organization@1"
-        ]
+        "anchors": ["need:configure-organization@1"]
       },
       "items": [
         {
@@ -104,9 +106,7 @@
           "label": "Organization name",
           "dataType": "string",
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           },
           "semanticType": "x-formspec-organization-name"
         },
@@ -116,9 +116,7 @@
           "label": "Workspace name",
           "dataType": "string",
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           },
           "semanticType": "x-formspec-workspace-name"
         },
@@ -132,25 +130,19 @@
               "value": "production",
               "label": "Production",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             },
             {
               "value": "sandbox",
               "label": "Sandbox",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           },
           "semanticType": "x-formspec-deployment-environment"
         }
@@ -160,27 +152,21 @@
           "path": "organizationName",
           "required": "true",
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         },
         {
           "path": "workspaceName",
           "required": "true",
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         },
         {
           "path": "environment",
           "required": "true",
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         }
       ]
@@ -194,9 +180,7 @@
       "title": "Public response",
       "description": "Information a public respondent supplies before receiving durable submission proof.",
       "x-generation": {
-        "anchors": [
-          "need:complete-and-prove-response@1"
-        ]
+        "anchors": ["need:complete-and-prove-response@1"]
       },
       "items": [
         {
@@ -205,9 +189,7 @@
           "label": "Full name",
           "dataType": "string",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           },
           "semanticType": "x-formspec-person-name"
         },
@@ -218,9 +200,7 @@
           "dataType": "string",
           "semanticType": "x-formspec-contact-email",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
@@ -229,9 +209,7 @@
           "label": "Your response",
           "dataType": "text",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           },
           "semanticType": "x-formspec-submitted-response"
         },
@@ -241,9 +219,7 @@
           "label": "I agree to receive submission notices",
           "dataType": "boolean",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           },
           "semanticType": "x-formspec-submission-notice-consent"
         }
@@ -253,36 +229,32 @@
           "path": "fullName",
           "required": "true",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
           "path": "email",
           "required": "true",
+          "constraint": "matches($, '^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$')",
+          "constraintMessage": "Enter a valid email address.",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
           "path": "request",
           "required": "true",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
           "path": "acceptNotices",
           "required": "true",
+          "constraint": "$ = true",
+          "constraintMessage": "Agree to receive submission notices before continuing.",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         }
       ]
@@ -319,108 +291,77 @@
         {
           "id": "accessAccount",
           "title": "Enter or recover the intended workspace",
-          "actorRefs": [
-            "customerAdmin"
-          ]
+          "actorRefs": ["customerAdmin"]
         },
         {
           "id": "reviewDashboard",
           "title": "Choose customer workspace work",
-          "actorRefs": [
-            "customerAdmin",
-            "formAuthor"
-          ]
+          "actorRefs": ["customerAdmin", "formAuthor"]
         },
         {
           "id": "configureOrganization",
           "title": "Configure the organization and first workspace",
-          "actorRefs": [
-            "customerAdmin"
-          ]
+          "actorRefs": ["customerAdmin"]
         },
         {
           "id": "manageForms",
           "title": "Find and open a hosted form",
-          "actorRefs": [
-            "formAuthor"
-          ]
+          "actorRefs": ["formAuthor"]
         },
         {
           "id": "inspectForm",
           "title": "Inspect a hosted form and its response access",
-          "actorRefs": [
-            "formAuthor"
-          ]
+          "actorRefs": ["formAuthor"]
         },
         {
           "id": "previewHostedForm",
           "title": "Preview a hosted form",
-          "actorRefs": [
-            "formAuthor"
-          ]
+          "actorRefs": ["formAuthor"]
         },
         {
           "id": "reviewResponses",
           "title": "Review and export responses",
-          "actorRefs": [
-            "formAuthor"
-          ]
+          "actorRefs": ["formAuthor"]
         },
         {
           "id": "manageSignatures",
           "title": "Follow signature work and retrieve proof",
-          "actorRefs": [
-            "formAuthor"
-          ]
+          "actorRefs": ["formAuthor"]
         },
         {
           "id": "configureIntegrations",
           "title": "Connect an existing customer system",
-          "actorRefs": [
-            "integrator"
-          ]
+          "actorRefs": ["integrator"]
         },
         {
           "id": "administerOrganization",
           "title": "Review and revise organization setup",
-          "actorRefs": [
-            "customerAdmin"
-          ]
+          "actorRefs": ["customerAdmin"]
         },
         {
           "id": "reviewPlanUsage",
           "title": "Compare current usage with plan limits",
-          "actorRefs": [
-            "customerAdmin"
-          ]
+          "actorRefs": ["customerAdmin"]
         },
         {
           "id": "checkSupportTrust",
           "title": "Check service health, support, and trust information",
-          "actorRefs": [
-            "customerAdmin"
-          ]
+          "actorRefs": ["customerAdmin"]
         },
         {
           "id": "completePublicResponse",
           "title": "Complete and submit a public form",
-          "actorRefs": [
-            "respondent"
-          ]
+          "actorRefs": ["respondent"]
         },
         {
           "id": "retainReceipt",
           "title": "Retain and verify submission proof",
-          "actorRefs": [
-            "respondent"
-          ]
+          "actorRefs": ["respondent"]
         },
         {
           "id": "reviewResponseDetail",
           "title": "Review one response and retain its export",
-          "actorRefs": [
-            "formAuthor"
-          ]
+          "actorRefs": ["formAuthor"]
         }
       ],
       "units": [
@@ -429,9 +370,7 @@
           "kind": "assistance",
           "title": "Account access",
           "actorRef": "customerAdmin",
-          "taskRefs": [
-            "accessAccount"
-          ],
+          "taskRefs": ["accessAccount"],
           "needRefs": [
             {
               "id": "access-workspace-safely",
@@ -458,9 +397,7 @@
           "kind": "review",
           "title": "Dashboard",
           "actorRef": "customerAdmin",
-          "taskRefs": [
-            "reviewDashboard"
-          ],
+          "taskRefs": ["reviewDashboard"],
           "needRefs": [
             {
               "id": "publish-hosted-form",
@@ -547,9 +484,7 @@
           "kind": "data-entry",
           "title": "Set up organization",
           "actorRef": "customerAdmin",
-          "taskRefs": [
-            "configureOrganization"
-          ],
+          "taskRefs": ["configureOrganization"],
           "itemRefs": [
             {
               "path": "organizationName",
@@ -590,9 +525,7 @@
           "kind": "review",
           "title": "Forms",
           "actorRef": "formAuthor",
-          "taskRefs": [
-            "manageForms"
-          ],
+          "taskRefs": ["manageForms"],
           "needRefs": [
             {
               "id": "publish-hosted-form",
@@ -619,9 +552,7 @@
           "kind": "review",
           "title": "Form detail",
           "actorRef": "formAuthor",
-          "taskRefs": [
-            "inspectForm"
-          ],
+          "taskRefs": ["inspectForm"],
           "needRefs": [
             {
               "id": "publish-hosted-form",
@@ -662,9 +593,7 @@
           "kind": "review",
           "title": "Hosted form preview",
           "actorRef": "formAuthor",
-          "taskRefs": [
-            "previewHostedForm"
-          ],
+          "taskRefs": ["previewHostedForm"],
           "needRefs": [
             {
               "id": "publish-hosted-form",
@@ -691,9 +620,7 @@
           "kind": "review",
           "title": "Responses and exports",
           "actorRef": "formAuthor",
-          "taskRefs": [
-            "reviewResponses"
-          ],
+          "taskRefs": ["reviewResponses"],
           "needRefs": [
             {
               "id": "review-and-export-responses",
@@ -754,9 +681,7 @@
           "kind": "review",
           "title": "Signature workflows",
           "actorRef": "formAuthor",
-          "taskRefs": [
-            "manageSignatures"
-          ],
+          "taskRefs": ["manageSignatures"],
           "needRefs": [
             {
               "id": "run-signature-workflow",
@@ -787,9 +712,7 @@
           "kind": "data-entry",
           "title": "API and webhooks",
           "actorRef": "integrator",
-          "taskRefs": [
-            "configureIntegrations"
-          ],
+          "taskRefs": ["configureIntegrations"],
           "needRefs": [
             {
               "id": "connect-existing-systems",
@@ -826,9 +749,7 @@
           "kind": "review",
           "title": "Organization administration",
           "actorRef": "customerAdmin",
-          "taskRefs": [
-            "administerOrganization"
-          ],
+          "taskRefs": ["administerOrganization"],
           "needRefs": [
             {
               "id": "configure-organization",
@@ -855,9 +776,7 @@
           "kind": "review",
           "title": "Usage and billing",
           "actorRef": "customerAdmin",
-          "taskRefs": [
-            "reviewPlanUsage"
-          ],
+          "taskRefs": ["reviewPlanUsage"],
           "needRefs": [
             {
               "id": "understand-plan-and-usage",
@@ -884,9 +803,7 @@
           "kind": "assistance",
           "title": "Support, status, and trust",
           "actorRef": "customerAdmin",
-          "taskRefs": [
-            "checkSupportTrust"
-          ],
+          "taskRefs": ["checkSupportTrust"],
           "needRefs": [
             {
               "id": "get-help-and-check-trust",
@@ -925,9 +842,7 @@
           "kind": "data-entry",
           "title": "Enter and submit the requested information",
           "actorRef": "respondent",
-          "taskRefs": [
-            "completePublicResponse"
-          ],
+          "taskRefs": ["completePublicResponse"],
           "itemRefs": [
             {
               "path": "fullName",
@@ -972,9 +887,7 @@
           "kind": "confirmation",
           "title": "Submission receipt",
           "actorRef": "respondent",
-          "taskRefs": [
-            "retainReceipt"
-          ],
+          "taskRefs": ["retainReceipt"],
           "needRefs": [
             {
               "id": "complete-and-prove-response",
@@ -1011,9 +924,7 @@
           "kind": "review",
           "title": "Response details",
           "actorRef": "formAuthor",
-          "taskRefs": [
-            "reviewResponseDetail"
-          ],
+          "taskRefs": ["reviewResponseDetail"],
           "needRefs": [
             {
               "id": "review-and-export-responses",
@@ -1143,13 +1054,7 @@
             "props": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "id",
-                "title",
-                "blocks",
-                "actions",
-                "x-generation"
-              ],
+              "required": ["id", "title", "blocks", "actions", "x-generation"],
               "properties": {
                 "id": {
                   "type": "string"
@@ -1171,9 +1076,7 @@
                 },
                 "x-generation": {
                   "type": "object",
-                  "required": [
-                    "anchors"
-                  ],
+                  "required": ["anchors"],
                   "properties": {
                     "anchors": {
                       "type": "array",
@@ -1193,12 +1096,7 @@
                       {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "type",
-                          "path",
-                          "x-generation"
-                        ],
+                        "required": ["id", "type", "path", "x-generation"],
                         "properties": {
                           "id": {
                             "type": "string"
@@ -1220,9 +1118,7 @@
                           },
                           "x-generation": {
                             "type": "object",
-                            "required": [
-                              "anchors"
-                            ],
+                            "required": ["anchors"],
                             "properties": {
                               "anchors": {
                                 "type": "array",
@@ -1246,12 +1142,7 @@
                       {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "type",
-                          "items",
-                          "x-generation"
-                        ],
+                        "required": ["id", "type", "items", "x-generation"],
                         "properties": {
                           "id": {
                             "type": "string"
@@ -1261,9 +1152,7 @@
                           },
                           "x-generation": {
                             "type": "object",
-                            "required": [
-                              "anchors"
-                            ],
+                            "required": ["anchors"],
                             "properties": {
                               "anchors": {
                                 "type": "array",
@@ -1281,11 +1170,7 @@
                             "items": {
                               "type": "object",
                               "additionalProperties": false,
-                              "required": [
-                                "id",
-                                "label",
-                                "x-generation"
-                              ],
+                              "required": ["id", "label", "x-generation"],
                               "properties": {
                                 "id": {
                                   "type": "string"
@@ -1301,9 +1186,7 @@
                                 },
                                 "x-generation": {
                                   "type": "object",
-                                  "required": [
-                                    "anchors"
-                                  ],
+                                  "required": ["anchors"],
                                   "properties": {
                                     "anchors": {
                                       "type": "array",
@@ -1319,14 +1202,10 @@
                               },
                               "oneOf": [
                                 {
-                                  "required": [
-                                    "path"
-                                  ]
+                                  "required": ["path"]
                                 },
                                 {
-                                  "required": [
-                                    "routeParam"
-                                  ]
+                                  "required": ["routeParam"]
                                 }
                               ]
                             }
@@ -1342,12 +1221,7 @@
                       {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "type",
-                          "path",
-                          "x-generation"
-                        ],
+                        "required": ["id", "type", "path", "x-generation"],
                         "properties": {
                           "id": {
                             "type": "string"
@@ -1366,9 +1240,7 @@
                           },
                           "x-generation": {
                             "type": "object",
-                            "required": [
-                              "anchors"
-                            ],
+                            "required": ["anchors"],
                             "properties": {
                               "anchors": {
                                 "type": "array",
@@ -1414,9 +1286,7 @@
                           },
                           "x-generation": {
                             "type": "object",
-                            "required": [
-                              "anchors"
-                            ],
+                            "required": ["anchors"],
                             "properties": {
                               "anchors": {
                                 "type": "array",
@@ -1455,9 +1325,7 @@
                                 },
                                 "x-generation": {
                                   "type": "object",
-                                  "required": [
-                                    "anchors"
-                                  ],
+                                  "required": ["anchors"],
                                   "properties": {
                                     "anchors": {
                                       "type": "array",
@@ -1480,10 +1348,7 @@
                             "type": "string"
                           },
                           "responsiveMode": {
-                            "enum": [
-                              "stack",
-                              "scroll"
-                            ]
+                            "enum": ["stack", "scroll"]
                           },
                           "rowAction": {
                             "type": "object",
@@ -1501,19 +1366,13 @@
                                 "type": "string"
                               },
                               "emphasis": {
-                                "enum": [
-                                  "primary",
-                                  "secondary",
-                                  "danger"
-                                ]
+                                "enum": ["primary", "secondary", "danger"]
                               },
                               "payload": {
                                 "type": "object",
                                 "additionalProperties": {
                                   "type": "object",
-                                  "required": [
-                                    "path"
-                                  ],
+                                  "required": ["path"],
                                   "additionalProperties": false,
                                   "properties": {
                                     "path": {
@@ -1533,9 +1392,7 @@
                               },
                               "x-generation": {
                                 "type": "object",
-                                "required": [
-                                  "anchors"
-                                ],
+                                "required": ["anchors"],
                                 "properties": {
                                   "anchors": {
                                     "type": "array",
@@ -1555,12 +1412,7 @@
                       {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "type",
-                          "path",
-                          "x-generation"
-                        ],
+                        "required": ["id", "type", "path", "x-generation"],
                         "properties": {
                           "id": {
                             "type": "string"
@@ -1582,9 +1434,7 @@
                           },
                           "x-generation": {
                             "type": "object",
-                            "required": [
-                              "anchors"
-                            ],
+                            "required": ["anchors"],
                             "properties": {
                               "anchors": {
                                 "type": "array",
@@ -1616,10 +1466,7 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": [
-                      "outputName",
-                      "x-generation"
-                    ],
+                    "required": ["outputName", "x-generation"],
                     "properties": {
                       "outputName": {
                         "type": "string"
@@ -1628,17 +1475,11 @@
                         "type": "integer"
                       },
                       "emphasis": {
-                        "enum": [
-                          "primary",
-                          "secondary",
-                          "danger"
-                        ]
+                        "enum": ["primary", "secondary", "danger"]
                       },
                       "x-generation": {
                         "type": "object",
-                        "required": [
-                          "anchors"
-                        ],
+                        "required": ["anchors"],
                         "properties": {
                           "anchors": {
                             "type": "array",
@@ -1655,9 +1496,7 @@
                         "type": "object",
                         "additionalProperties": {
                           "type": "object",
-                          "required": [
-                            "path"
-                          ],
+                          "required": ["path"],
                           "additionalProperties": false,
                           "properties": {
                             "path": {
@@ -1680,9 +1519,7 @@
                 },
                 "emptyWhen": {
                   "type": "object",
-                  "required": [
-                    "inputName"
-                  ],
+                  "required": ["inputName"],
                   "additionalProperties": false,
                   "properties": {
                     "inputName": {
@@ -1719,11 +1556,7 @@
                             "oneOf": [
                               {
                                 "type": "object",
-                                "required": [
-                                  "kind",
-                                  "label",
-                                  "x-generation"
-                                ],
+                                "required": ["kind", "label", "x-generation"],
                                 "additionalProperties": false,
                                 "properties": {
                                   "kind": {
@@ -1733,17 +1566,11 @@
                                     "type": "string"
                                   },
                                   "emphasis": {
-                                    "enum": [
-                                      "primary",
-                                      "secondary",
-                                      "danger"
-                                    ]
+                                    "enum": ["primary", "secondary", "danger"]
                                   },
                                   "x-generation": {
                                     "type": "object",
-                                    "required": [
-                                      "anchors"
-                                    ],
+                                    "required": ["anchors"],
                                     "properties": {
                                       "anchors": {
                                         "type": "array",
@@ -1774,17 +1601,11 @@
                                     "type": "string"
                                   },
                                   "emphasis": {
-                                    "enum": [
-                                      "primary",
-                                      "secondary",
-                                      "danger"
-                                    ]
+                                    "enum": ["primary", "secondary", "danger"]
                                   },
                                   "x-generation": {
                                     "type": "object",
-                                    "required": [
-                                      "anchors"
-                                    ],
+                                    "required": ["anchors"],
                                     "properties": {
                                       "anchors": {
                                         "type": "array",
@@ -1804,9 +1625,7 @@
                         },
                         "x-generation": {
                           "type": "object",
-                          "required": [
-                            "anchors"
-                          ],
+                          "required": ["anchors"],
                           "properties": {
                             "anchors": {
                               "type": "array",
@@ -1843,11 +1662,7 @@
                             "oneOf": [
                               {
                                 "type": "object",
-                                "required": [
-                                  "kind",
-                                  "label",
-                                  "x-generation"
-                                ],
+                                "required": ["kind", "label", "x-generation"],
                                 "additionalProperties": false,
                                 "properties": {
                                   "kind": {
@@ -1857,17 +1672,11 @@
                                     "type": "string"
                                   },
                                   "emphasis": {
-                                    "enum": [
-                                      "primary",
-                                      "secondary",
-                                      "danger"
-                                    ]
+                                    "enum": ["primary", "secondary", "danger"]
                                   },
                                   "x-generation": {
                                     "type": "object",
-                                    "required": [
-                                      "anchors"
-                                    ],
+                                    "required": ["anchors"],
                                     "properties": {
                                       "anchors": {
                                         "type": "array",
@@ -1898,17 +1707,11 @@
                                     "type": "string"
                                   },
                                   "emphasis": {
-                                    "enum": [
-                                      "primary",
-                                      "secondary",
-                                      "danger"
-                                    ]
+                                    "enum": ["primary", "secondary", "danger"]
                                   },
                                   "x-generation": {
                                     "type": "object",
-                                    "required": [
-                                      "anchors"
-                                    ],
+                                    "required": ["anchors"],
                                     "properties": {
                                       "anchors": {
                                         "type": "array",
@@ -1928,9 +1731,7 @@
                         },
                         "x-generation": {
                           "type": "object",
-                          "required": [
-                            "anchors"
-                          ],
+                          "required": ["anchors"],
                           "properties": {
                             "anchors": {
                               "type": "array",
@@ -1967,11 +1768,7 @@
                             "oneOf": [
                               {
                                 "type": "object",
-                                "required": [
-                                  "kind",
-                                  "label",
-                                  "x-generation"
-                                ],
+                                "required": ["kind", "label", "x-generation"],
                                 "additionalProperties": false,
                                 "properties": {
                                   "kind": {
@@ -1981,17 +1778,11 @@
                                     "type": "string"
                                   },
                                   "emphasis": {
-                                    "enum": [
-                                      "primary",
-                                      "secondary",
-                                      "danger"
-                                    ]
+                                    "enum": ["primary", "secondary", "danger"]
                                   },
                                   "x-generation": {
                                     "type": "object",
-                                    "required": [
-                                      "anchors"
-                                    ],
+                                    "required": ["anchors"],
                                     "properties": {
                                       "anchors": {
                                         "type": "array",
@@ -2022,17 +1813,11 @@
                                     "type": "string"
                                   },
                                   "emphasis": {
-                                    "enum": [
-                                      "primary",
-                                      "secondary",
-                                      "danger"
-                                    ]
+                                    "enum": ["primary", "secondary", "danger"]
                                   },
                                   "x-generation": {
                                     "type": "object",
-                                    "required": [
-                                      "anchors"
-                                    ],
+                                    "required": ["anchors"],
                                     "properties": {
                                       "anchors": {
                                         "type": "array",
@@ -2052,9 +1837,7 @@
                         },
                         "x-generation": {
                           "type": "object",
-                          "required": [
-                            "anchors"
-                          ],
+                          "required": ["anchors"],
                           "properties": {
                             "anchors": {
                               "type": "array",
@@ -2091,11 +1874,7 @@
                             "oneOf": [
                               {
                                 "type": "object",
-                                "required": [
-                                  "kind",
-                                  "label",
-                                  "x-generation"
-                                ],
+                                "required": ["kind", "label", "x-generation"],
                                 "additionalProperties": false,
                                 "properties": {
                                   "kind": {
@@ -2105,17 +1884,11 @@
                                     "type": "string"
                                   },
                                   "emphasis": {
-                                    "enum": [
-                                      "primary",
-                                      "secondary",
-                                      "danger"
-                                    ]
+                                    "enum": ["primary", "secondary", "danger"]
                                   },
                                   "x-generation": {
                                     "type": "object",
-                                    "required": [
-                                      "anchors"
-                                    ],
+                                    "required": ["anchors"],
                                     "properties": {
                                       "anchors": {
                                         "type": "array",
@@ -2146,17 +1919,11 @@
                                     "type": "string"
                                   },
                                   "emphasis": {
-                                    "enum": [
-                                      "primary",
-                                      "secondary",
-                                      "danger"
-                                    ]
+                                    "enum": ["primary", "secondary", "danger"]
                                   },
                                   "x-generation": {
                                     "type": "object",
-                                    "required": [
-                                      "anchors"
-                                    ],
+                                    "required": ["anchors"],
                                     "properties": {
                                       "anchors": {
                                         "type": "array",
@@ -2176,9 +1943,7 @@
                         },
                         "x-generation": {
                           "type": "object",
-                          "required": [
-                            "anchors"
-                          ],
+                          "required": ["anchors"],
                           "properties": {
                             "anchors": {
                               "type": "array",
@@ -2202,6 +1967,11 @@
                 "name": "primaryData",
                 "required": false,
                 "description": "Optional host-owned data selected by a Surface data binding."
+              },
+              {
+                "name": "secondaryData",
+                "required": false,
+                "description": "Optional second declared data source for a structured panel."
               }
             ],
             "actionOutputs": [
@@ -2343,17 +2113,13 @@
             "tokenSlots": [
               {
                 "name": "accent",
-                "acceptedTokenCategories": [
-                  "color"
-                ],
+                "acceptedTokenCategories": ["color"],
                 "required": false,
                 "description": "Optional accent color for state and primary actions."
               },
               {
                 "name": "spacing",
-                "acceptedTokenCategories": [
-                  "spacing"
-                ],
+                "acceptedTokenCategories": ["spacing"],
                 "required": false,
                 "description": "Optional spacing scale for panel layout."
               }
@@ -2985,9 +2751,7 @@
             "label": "Account",
             "order": 0,
             "x-generation": {
-              "anchors": [
-                "need:access-workspace-safely@1"
-              ]
+              "anchors": ["need:access-workspace-safely@1"]
             }
           },
           "slots": [
@@ -3000,9 +2764,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:access-workspace-safely@1"
-                ]
+                "anchors": ["need:access-workspace-safely@1"]
               }
             },
             {
@@ -3026,9 +2788,7 @@
                           "label": "Workspace",
                           "path": "primaryData.account.workspace",
                           "x-generation": {
-                            "anchors": [
-                              "need:access-workspace-safely@1"
-                            ]
+                            "anchors": ["need:access-workspace-safely@1"]
                           }
                         },
                         {
@@ -3036,9 +2796,7 @@
                           "label": "Account",
                           "path": "primaryData.account.signedInAs",
                           "x-generation": {
-                            "anchors": [
-                              "need:access-workspace-safely@1"
-                            ]
+                            "anchors": ["need:access-workspace-safely@1"]
                           }
                         },
                         {
@@ -3046,16 +2804,12 @@
                           "label": "Recovery",
                           "path": "primaryData.account.recovery",
                           "x-generation": {
-                            "anchors": [
-                              "need:access-workspace-safely@1"
-                            ]
+                            "anchors": ["need:access-workspace-safely@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:access-workspace-safely@1"
-                        ]
+                        "anchors": ["need:access-workspace-safely@1"]
                       }
                     }
                   ],
@@ -3068,16 +2822,12 @@
                       "successMessage": "Workspace opened",
                       "failureMessage": "Try again",
                       "x-generation": {
-                        "anchors": [
-                          "need:access-workspace-safely@1"
-                        ]
+                        "anchors": ["need:access-workspace-safely@1"]
                       }
                     }
                   ],
                   "x-generation": {
-                    "anchors": [
-                      "need:access-workspace-safely@1"
-                    ]
+                    "anchors": ["need:access-workspace-safely@1"]
                   }
                 },
                 "actionBindings": {
@@ -3107,9 +2857,7 @@
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:access-workspace-safely@1"
-                ]
+                "anchors": ["need:access-workspace-safely@1"]
               }
             }
           ],
@@ -3118,16 +2866,12 @@
               "trigger": "accessWorkspace",
               "to": "dashboard",
               "x-generation": {
-                "anchors": [
-                  "need:access-workspace-safely@1"
-                ]
+                "anchors": ["need:access-workspace-safely@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:access-workspace-safely@1"
-            ]
+            "anchors": ["need:access-workspace-safely@1"]
           }
         },
         {
@@ -3190,9 +2934,7 @@
                           "label": "Area",
                           "path": "area",
                           "x-generation": {
-                            "anchors": [
-                              "need:see-honest-feature-state@1"
-                            ]
+                            "anchors": ["need:see-honest-feature-state@1"]
                           }
                         },
                         {
@@ -3200,16 +2942,12 @@
                           "label": "State",
                           "path": "status",
                           "x-generation": {
-                            "anchors": [
-                              "need:see-honest-feature-state@1"
-                            ]
+                            "anchors": ["need:see-honest-feature-state@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:see-honest-feature-state@1"
-                        ]
+                        "anchors": ["need:see-honest-feature-state@1"]
                       }
                     }
                   ],
@@ -3219,9 +2957,7 @@
                       "emphasis": "primary",
                       "order": 1,
                       "x-generation": {
-                        "anchors": [
-                          "need:publish-hosted-form@1"
-                        ]
+                        "anchors": ["need:publish-hosted-form@1"]
                       }
                     },
                     {
@@ -3229,9 +2965,7 @@
                       "emphasis": "secondary",
                       "order": 2,
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     },
                     {
@@ -3239,9 +2973,7 @@
                       "emphasis": "secondary",
                       "order": 3,
                       "x-generation": {
-                        "anchors": [
-                          "need:connect-existing-systems@1"
-                        ]
+                        "anchors": ["need:connect-existing-systems@1"]
                       }
                     },
                     {
@@ -3249,9 +2981,7 @@
                       "emphasis": "secondary",
                       "order": 4,
                       "x-generation": {
-                        "anchors": [
-                          "need:configure-organization@1"
-                        ]
+                        "anchors": ["need:configure-organization@1"]
                       }
                     },
                     {
@@ -3259,9 +2989,7 @@
                       "emphasis": "secondary",
                       "order": 5,
                       "x-generation": {
-                        "anchors": [
-                          "need:understand-plan-and-usage@1"
-                        ]
+                        "anchors": ["need:understand-plan-and-usage@1"]
                       }
                     },
                     {
@@ -3269,9 +2997,7 @@
                       "emphasis": "secondary",
                       "order": 6,
                       "x-generation": {
-                        "anchors": [
-                          "need:configure-organization@1"
-                        ]
+                        "anchors": ["need:configure-organization@1"]
                       }
                     },
                     {
@@ -3279,9 +3005,7 @@
                       "emphasis": "secondary",
                       "order": 7,
                       "x-generation": {
-                        "anchors": [
-                          "need:complete-and-prove-response@1"
-                        ]
+                        "anchors": ["need:complete-and-prove-response@1"]
                       }
                     }
                   ],
@@ -3406,63 +3130,49 @@
               "trigger": "dashboardOpenForms",
               "to": "forms",
               "x-generation": {
-                "anchors": [
-                  "need:publish-hosted-form@1"
-                ]
+                "anchors": ["need:publish-hosted-form@1"]
               }
             },
             {
               "trigger": "dashboardStartOnboarding",
               "to": "onboarding",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             },
             {
               "trigger": "dashboardOpenResponses",
               "to": "responses",
               "x-generation": {
-                "anchors": [
-                  "need:review-and-export-responses@1"
-                ]
+                "anchors": ["need:review-and-export-responses@1"]
               }
             },
             {
               "trigger": "dashboardOpenIntegrations",
               "to": "integrations",
               "x-generation": {
-                "anchors": [
-                  "need:connect-existing-systems@1"
-                ]
+                "anchors": ["need:connect-existing-systems@1"]
               }
             },
             {
               "trigger": "dashboardOpenAdmin",
               "to": "admin",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             },
             {
               "trigger": "dashboardOpenBilling",
               "to": "billing",
               "x-generation": {
-                "anchors": [
-                  "need:understand-plan-and-usage@1"
-                ]
+                "anchors": ["need:understand-plan-and-usage@1"]
               }
             },
             {
               "trigger": "dashboardOpenPublicForm",
               "to": "publicRespond",
               "x-generation": {
-                "anchors": [
-                  "need:complete-and-prove-response@1"
-                ]
+                "anchors": ["need:complete-and-prove-response@1"]
               }
             }
           ],
@@ -3485,9 +3195,7 @@
             "scope": "workspace",
             "label": "Set up organization",
             "x-generation": {
-              "anchors": [
-                "need:configure-organization@1"
-              ]
+              "anchors": ["need:configure-organization@1"]
             }
           },
           "slots": [
@@ -3500,9 +3208,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             },
             {
@@ -3513,9 +3219,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             },
             {
@@ -3527,47 +3231,17 @@
                 "config": {
                   "id": "onboardingPanel",
                   "title": "Finish workspace setup",
-                  "body": "Review the organization, workspace, and environment fields before opening the workspace.",
+                  "body": "Complete the required organization, workspace, and environment fields. The form action validates and saves the Response before opening the workspace.",
                   "blocks": [],
-                  "actions": [
-                    {
-                      "outputName": "completeOnboarding",
-                      "emphasis": "primary",
-                      "order": 1,
-                      "pendingLabel": "Finishing setup…",
-                      "successMessage": "Setup complete",
-                      "failureMessage": "Try again",
-                      "x-generation": {
-                        "anchors": [
-                          "need:configure-organization@1"
-                        ]
-                      }
-                    }
-                  ],
+                  "actions": [],
                   "x-generation": {
-                    "anchors": [
-                      "need:configure-organization@1"
-                    ]
-                  }
-                },
-                "actionBindings": {
-                  "completeOnboarding": {
-                    "actionRef": "completeOnboarding",
-                    "x-generation": {
-                      "anchors": [
-                        "need:configure-organization@1",
-                        "unit:onboardingUnit",
-                        "action:completeOnboarding"
-                      ]
-                    }
+                    "anchors": ["need:configure-organization@1"]
                   }
                 }
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             }
           ],
@@ -3576,16 +3250,12 @@
               "trigger": "completeOnboarding",
               "to": "dashboard",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         },
         {
@@ -3599,9 +3269,7 @@
             "label": "Forms",
             "order": 20,
             "x-generation": {
-              "anchors": [
-                "need:publish-hosted-form@1"
-              ]
+              "anchors": ["need:publish-hosted-form@1"]
             }
           },
           "slots": [
@@ -3614,9 +3282,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:publish-hosted-form@1"
-                ]
+                "anchors": ["need:publish-hosted-form@1"]
               }
             },
             {
@@ -3642,9 +3308,7 @@
                           "label": "Form",
                           "path": "name",
                           "x-generation": {
-                            "anchors": [
-                              "need:publish-hosted-form@1"
-                            ]
+                            "anchors": ["need:publish-hosted-form@1"]
                           }
                         },
                         {
@@ -3652,9 +3316,7 @@
                           "label": "Version",
                           "path": "version",
                           "x-generation": {
-                            "anchors": [
-                              "need:publish-hosted-form@1"
-                            ]
+                            "anchors": ["need:publish-hosted-form@1"]
                           }
                         },
                         {
@@ -3674,9 +3336,7 @@
                           "path": "responses",
                           "numeric": true,
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         }
                       ],
@@ -3693,9 +3353,7 @@
                         "successMessage": "Opened",
                         "failureMessage": "Try again",
                         "x-generation": {
-                          "anchors": [
-                            "need:publish-hosted-form@1"
-                          ]
+                          "anchors": ["need:publish-hosted-form@1"]
                         }
                       },
                       "x-generation": {
@@ -3708,9 +3366,7 @@
                   ],
                   "actions": [],
                   "x-generation": {
-                    "anchors": [
-                      "need:publish-hosted-form@1"
-                    ]
+                    "anchors": ["need:publish-hosted-form@1"]
                   }
                 },
                 "actionBindings": {
@@ -3740,16 +3396,12 @@
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:publish-hosted-form@1"
-                ]
+                "anchors": ["need:publish-hosted-form@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:publish-hosted-form@1"
-            ]
+            "anchors": ["need:publish-hosted-form@1"]
           }
         },
         {
@@ -3812,9 +3464,7 @@
                           "label": "Form",
                           "path": "primaryData.formDetail.name",
                           "x-generation": {
-                            "anchors": [
-                              "need:publish-hosted-form@1"
-                            ]
+                            "anchors": ["need:publish-hosted-form@1"]
                           }
                         },
                         {
@@ -3822,9 +3472,7 @@
                           "label": "Version",
                           "path": "primaryData.formDetail.version",
                           "x-generation": {
-                            "anchors": [
-                              "need:publish-hosted-form@1"
-                            ]
+                            "anchors": ["need:publish-hosted-form@1"]
                           }
                         },
                         {
@@ -3843,9 +3491,7 @@
                           "label": "Hosted address",
                           "path": "primaryData.formDetail.hostedAddress",
                           "x-generation": {
-                            "anchors": [
-                              "need:publish-hosted-form@1"
-                            ]
+                            "anchors": ["need:publish-hosted-form@1"]
                           }
                         },
                         {
@@ -3853,9 +3499,7 @@
                           "label": "Responses",
                           "path": "primaryData.formDetail.responseCount",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         }
                       ],
@@ -3881,9 +3525,7 @@
                       "successMessage": "Opened",
                       "failureMessage": "Could not open",
                       "x-generation": {
-                        "anchors": [
-                          "need:publish-hosted-form@1"
-                        ]
+                        "anchors": ["need:publish-hosted-form@1"]
                       }
                     },
                     {
@@ -3891,9 +3533,7 @@
                       "emphasis": "secondary",
                       "order": 2,
                       "x-generation": {
-                        "anchors": [
-                          "need:publish-hosted-form@1"
-                        ]
+                        "anchors": ["need:publish-hosted-form@1"]
                       }
                     },
                     {
@@ -3901,9 +3541,7 @@
                       "emphasis": "secondary",
                       "order": 3,
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     }
                   ],
@@ -3974,18 +3612,14 @@
               "trigger": "previewForm",
               "to": "formPreview",
               "x-generation": {
-                "anchors": [
-                  "need:publish-hosted-form@1"
-                ]
+                "anchors": ["need:publish-hosted-form@1"]
               }
             },
             {
               "trigger": "openFormResponses",
               "to": "responses",
               "x-generation": {
-                "anchors": [
-                  "need:review-and-export-responses@1"
-                ]
+                "anchors": ["need:review-and-export-responses@1"]
               }
             }
           ],
@@ -4006,9 +3640,7 @@
             "scope": "workspace",
             "label": "Hosted form preview",
             "x-generation": {
-              "anchors": [
-                "need:publish-hosted-form@1"
-              ]
+              "anchors": ["need:publish-hosted-form@1"]
             }
           },
           "slots": [
@@ -4021,9 +3653,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:publish-hosted-form@1"
-                ]
+                "anchors": ["need:publish-hosted-form@1"]
               }
             },
             {
@@ -4047,9 +3677,7 @@
                           "label": "Environment",
                           "path": "primaryData.preview.environment",
                           "x-generation": {
-                            "anchors": [
-                              "need:publish-hosted-form@1"
-                            ]
+                            "anchors": ["need:publish-hosted-form@1"]
                           }
                         },
                         {
@@ -4057,9 +3685,7 @@
                           "label": "State",
                           "path": "primaryData.preview.status",
                           "x-generation": {
-                            "anchors": [
-                              "need:see-honest-feature-state@1"
-                            ]
+                            "anchors": ["need:see-honest-feature-state@1"]
                           }
                         },
                         {
@@ -4067,9 +3693,7 @@
                           "label": "Published version",
                           "path": "primaryData.preview.publishedVersion",
                           "x-generation": {
-                            "anchors": [
-                              "need:publish-hosted-form@1"
-                            ]
+                            "anchors": ["need:publish-hosted-form@1"]
                           }
                         }
                       ],
@@ -4087,9 +3711,7 @@
                       "emphasis": "primary",
                       "order": 1,
                       "x-generation": {
-                        "anchors": [
-                          "need:publish-hosted-form@1"
-                        ]
+                        "anchors": ["need:publish-hosted-form@1"]
                       }
                     }
                   ],
@@ -4128,9 +3750,7 @@
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:publish-hosted-form@1"
-                ]
+                "anchors": ["need:publish-hosted-form@1"]
               }
             }
           ],
@@ -4142,16 +3762,12 @@
                 "formId": "formId"
               },
               "x-generation": {
-                "anchors": [
-                  "need:publish-hosted-form@1"
-                ]
+                "anchors": ["need:publish-hosted-form@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:publish-hosted-form@1"
-            ]
+            "anchors": ["need:publish-hosted-form@1"]
           }
         },
         {
@@ -4165,9 +3781,7 @@
             "label": "Responses",
             "order": 30,
             "x-generation": {
-              "anchors": [
-                "need:review-and-export-responses@1"
-              ]
+              "anchors": ["need:review-and-export-responses@1"]
             }
           },
           "slots": [
@@ -4180,9 +3794,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:review-and-export-responses@1"
-                ]
+                "anchors": ["need:review-and-export-responses@1"]
               }
             },
             {
@@ -4208,9 +3820,7 @@
                           "label": "Response",
                           "path": "displayReference",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         },
                         {
@@ -4218,9 +3828,7 @@
                           "label": "Form",
                           "path": "form",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         },
                         {
@@ -4228,9 +3836,7 @@
                           "label": "Status",
                           "path": "status",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         },
                         {
@@ -4238,9 +3844,7 @@
                           "label": "Submitted",
                           "path": "submittedAt",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         }
                       ],
@@ -4257,15 +3861,11 @@
                         "successMessage": "Opened",
                         "failureMessage": "Could not open",
                         "x-generation": {
-                          "anchors": [
-                            "need:review-and-export-responses@1"
-                          ]
+                          "anchors": ["need:review-and-export-responses@1"]
                         }
                       },
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     }
                   ],
@@ -4283,9 +3883,7 @@
                       "successMessage": "CSV downloaded",
                       "failureMessage": "Export failed",
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     },
                     {
@@ -4301,9 +3899,7 @@
                       "successMessage": "JSON downloaded",
                       "failureMessage": "Export failed",
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     },
                     {
@@ -4311,16 +3907,12 @@
                       "emphasis": "secondary",
                       "order": 3,
                       "x-generation": {
-                        "anchors": [
-                          "need:run-signature-workflow@1"
-                        ]
+                        "anchors": ["need:run-signature-workflow@1"]
                       }
                     }
                   ],
                   "x-generation": {
-                    "anchors": [
-                      "need:review-and-export-responses@1"
-                    ]
+                    "anchors": ["need:review-and-export-responses@1"]
                   },
                   "emptyWhen": {
                     "inputName": "primaryData",
@@ -4332,9 +3924,7 @@
                       "body": "Current information is on the way.",
                       "actions": [],
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     },
                     "empty": {
@@ -4346,16 +3936,12 @@
                           "outputName": "openPublicFormFromResponses",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     },
                     "unavailable": {
@@ -4367,16 +3953,12 @@
                           "label": "Try again",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     },
                     "error": {
@@ -4388,16 +3970,12 @@
                           "label": "Try again",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     }
                   }
@@ -4470,9 +4048,7 @@
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:review-and-export-responses@1"
-                ]
+                "anchors": ["need:review-and-export-responses@1"]
               }
             }
           ],
@@ -4481,9 +4057,7 @@
               "trigger": "openSignatures",
               "to": "signatures",
               "x-generation": {
-                "anchors": [
-                  "need:run-signature-workflow@1"
-                ]
+                "anchors": ["need:run-signature-workflow@1"]
               }
             },
             {
@@ -4498,9 +4072,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:review-and-export-responses@1"
-            ]
+            "anchors": ["need:review-and-export-responses@1"]
           }
         },
         {
@@ -4514,9 +4086,7 @@
             "label": "Response details",
             "order": 31,
             "x-generation": {
-              "anchors": [
-                "need:review-and-export-responses@1"
-              ]
+              "anchors": ["need:review-and-export-responses@1"]
             }
           },
           "slots": [
@@ -4529,9 +4099,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:review-and-export-responses@1"
-                ]
+                "anchors": ["need:review-and-export-responses@1"]
               }
             },
             {
@@ -4556,9 +4124,7 @@
                           "label": "Response",
                           "path": "primaryData.selectedResponse.displayReference",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         },
                         {
@@ -4566,9 +4132,7 @@
                           "label": "Form",
                           "path": "primaryData.selectedResponse.form",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         },
                         {
@@ -4576,9 +4140,7 @@
                           "label": "Status",
                           "path": "primaryData.selectedResponse.status",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         },
                         {
@@ -4586,9 +4148,7 @@
                           "label": "Submitted",
                           "path": "primaryData.selectedResponse.submittedAt",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         },
                         {
@@ -4596,9 +4156,7 @@
                           "label": "Submitted by",
                           "path": "primaryData.selectedResponse.submittedBy",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         },
                         {
@@ -4606,16 +4164,12 @@
                           "label": "Proof",
                           "path": "primaryData.selectedResponse.proofStatus",
                           "x-generation": {
-                            "anchors": [
-                              "need:review-and-export-responses@1"
-                            ]
+                            "anchors": ["need:review-and-export-responses@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     }
                   ],
@@ -4633,9 +4187,7 @@
                       "successMessage": "Response downloaded",
                       "failureMessage": "Download failed",
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     },
                     {
@@ -4643,16 +4195,12 @@
                       "emphasis": "secondary",
                       "order": 2,
                       "x-generation": {
-                        "anchors": [
-                          "need:review-and-export-responses@1"
-                        ]
+                        "anchors": ["need:review-and-export-responses@1"]
                       }
                     }
                   ],
                   "x-generation": {
-                    "anchors": [
-                      "need:review-and-export-responses@1"
-                    ]
+                    "anchors": ["need:review-and-export-responses@1"]
                   }
                 },
                 "dataBindings": {
@@ -4691,9 +4239,7 @@
                 }
               },
               "x-generation": {
-                "anchors": [
-                  "need:review-and-export-responses@1"
-                ]
+                "anchors": ["need:review-and-export-responses@1"]
               }
             }
           ],
@@ -4702,16 +4248,12 @@
               "trigger": "backToResponses",
               "to": "responses",
               "x-generation": {
-                "anchors": [
-                  "need:review-and-export-responses@1"
-                ]
+                "anchors": ["need:review-and-export-responses@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:review-and-export-responses@1"
-            ]
+            "anchors": ["need:review-and-export-responses@1"]
           }
         },
         {
@@ -4725,9 +4267,7 @@
             "label": "Signatures",
             "order": 40,
             "x-generation": {
-              "anchors": [
-                "need:run-signature-workflow@1"
-              ]
+              "anchors": ["need:run-signature-workflow@1"]
             }
           },
           "slots": [
@@ -4740,9 +4280,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:run-signature-workflow@1"
-                ]
+                "anchors": ["need:run-signature-workflow@1"]
               }
             },
             {
@@ -4768,9 +4306,7 @@
                           "label": "Document",
                           "path": "document",
                           "x-generation": {
-                            "anchors": [
-                              "need:run-signature-workflow@1"
-                            ]
+                            "anchors": ["need:run-signature-workflow@1"]
                           }
                         },
                         {
@@ -4778,9 +4314,7 @@
                           "label": "Recipient",
                           "path": "recipient",
                           "x-generation": {
-                            "anchors": [
-                              "need:run-signature-workflow@1"
-                            ]
+                            "anchors": ["need:run-signature-workflow@1"]
                           }
                         },
                         {
@@ -4799,9 +4333,7 @@
                           "label": "Updated",
                           "path": "updated",
                           "x-generation": {
-                            "anchors": [
-                              "need:run-signature-workflow@1"
-                            ]
+                            "anchors": ["need:run-signature-workflow@1"]
                           }
                         }
                       ],
@@ -4818,15 +4350,11 @@
                         "successMessage": "Opened",
                         "failureMessage": "Could not open",
                         "x-generation": {
-                          "anchors": [
-                            "need:run-signature-workflow@1"
-                          ]
+                          "anchors": ["need:run-signature-workflow@1"]
                         }
                       },
                       "x-generation": {
-                        "anchors": [
-                          "need:run-signature-workflow@1"
-                        ]
+                        "anchors": ["need:run-signature-workflow@1"]
                       }
                     }
                   ],
@@ -4836,16 +4364,12 @@
                       "emphasis": "primary",
                       "order": 1,
                       "x-generation": {
-                        "anchors": [
-                          "need:run-signature-workflow@1"
-                        ]
+                        "anchors": ["need:run-signature-workflow@1"]
                       }
                     }
                   ],
                   "x-generation": {
-                    "anchors": [
-                      "need:run-signature-workflow@1"
-                    ]
+                    "anchors": ["need:run-signature-workflow@1"]
                   },
                   "stateViews": {
                     "loading": {
@@ -4853,9 +4377,7 @@
                       "body": "Current information is on the way.",
                       "actions": [],
                       "x-generation": {
-                        "anchors": [
-                          "need:run-signature-workflow@1"
-                        ]
+                        "anchors": ["need:run-signature-workflow@1"]
                       }
                     },
                     "unavailable": {
@@ -4867,16 +4389,12 @@
                           "label": "Try again",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:run-signature-workflow@1"
-                            ]
+                            "anchors": ["need:run-signature-workflow@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:run-signature-workflow@1"
-                        ]
+                        "anchors": ["need:run-signature-workflow@1"]
                       }
                     },
                     "error": {
@@ -4888,16 +4406,12 @@
                           "label": "Try again",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:run-signature-workflow@1"
-                            ]
+                            "anchors": ["need:run-signature-workflow@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:run-signature-workflow@1"
-                        ]
+                        "anchors": ["need:run-signature-workflow@1"]
                       }
                     }
                   }
@@ -4939,9 +4453,7 @@
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:run-signature-workflow@1"
-                ]
+                "anchors": ["need:run-signature-workflow@1"]
               }
             }
           ],
@@ -4950,16 +4462,12 @@
               "trigger": "returnToResponses",
               "to": "responses",
               "x-generation": {
-                "anchors": [
-                  "need:run-signature-workflow@1"
-                ]
+                "anchors": ["need:run-signature-workflow@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:run-signature-workflow@1"
-            ]
+            "anchors": ["need:run-signature-workflow@1"]
           }
         },
         {
@@ -4973,9 +4481,7 @@
             "label": "Integrations",
             "order": 50,
             "x-generation": {
-              "anchors": [
-                "need:connect-existing-systems@1"
-              ]
+              "anchors": ["need:connect-existing-systems@1"]
             }
           },
           "slots": [
@@ -4988,9 +4494,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:connect-existing-systems@1"
-                ]
+                "anchors": ["need:connect-existing-systems@1"]
               }
             },
             {
@@ -5014,9 +4518,7 @@
                           "label": "Environment",
                           "path": "primaryData.integrations.environment",
                           "x-generation": {
-                            "anchors": [
-                              "need:connect-existing-systems@1"
-                            ]
+                            "anchors": ["need:connect-existing-systems@1"]
                           }
                         },
                         {
@@ -5024,9 +4526,7 @@
                           "label": "API key",
                           "path": "primaryData.integrations.apiKeyStatus",
                           "x-generation": {
-                            "anchors": [
-                              "need:connect-existing-systems@1"
-                            ]
+                            "anchors": ["need:connect-existing-systems@1"]
                           }
                         },
                         {
@@ -5034,9 +4534,7 @@
                           "label": "Webhook target",
                           "path": "primaryData.integrations.webhookTarget",
                           "x-generation": {
-                            "anchors": [
-                              "need:connect-existing-systems@1"
-                            ]
+                            "anchors": ["need:connect-existing-systems@1"]
                           }
                         },
                         {
@@ -5044,16 +4542,12 @@
                           "label": "Latest delivery",
                           "path": "primaryData.integrations.latestDelivery",
                           "x-generation": {
-                            "anchors": [
-                              "need:connect-existing-systems@1"
-                            ]
+                            "anchors": ["need:connect-existing-systems@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:connect-existing-systems@1"
-                        ]
+                        "anchors": ["need:connect-existing-systems@1"]
                       }
                     },
                     {
@@ -5068,9 +4562,7 @@
                           "label": "Event",
                           "path": "event",
                           "x-generation": {
-                            "anchors": [
-                              "need:connect-existing-systems@1"
-                            ]
+                            "anchors": ["need:connect-existing-systems@1"]
                           }
                         },
                         {
@@ -5078,9 +4570,7 @@
                           "label": "Destination",
                           "path": "destination",
                           "x-generation": {
-                            "anchors": [
-                              "need:connect-existing-systems@1"
-                            ]
+                            "anchors": ["need:connect-existing-systems@1"]
                           }
                         },
                         {
@@ -5099,16 +4589,12 @@
                           "label": "Time",
                           "path": "occurredAt",
                           "x-generation": {
-                            "anchors": [
-                              "need:connect-existing-systems@1"
-                            ]
+                            "anchors": ["need:connect-existing-systems@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:connect-existing-systems@1"
-                        ]
+                        "anchors": ["need:connect-existing-systems@1"]
                       }
                     }
                   ],
@@ -5126,9 +4612,7 @@
                       "successMessage": "Opened",
                       "failureMessage": "Could not open",
                       "x-generation": {
-                        "anchors": [
-                          "need:connect-existing-systems@1"
-                        ]
+                        "anchors": ["need:connect-existing-systems@1"]
                       }
                     },
                     {
@@ -5144,9 +4628,7 @@
                     }
                   ],
                   "x-generation": {
-                    "anchors": [
-                      "need:connect-existing-systems@1"
-                    ]
+                    "anchors": ["need:connect-existing-systems@1"]
                   },
                   "stateViews": {
                     "loading": {
@@ -5154,9 +4636,7 @@
                       "body": "Current information is on the way.",
                       "actions": [],
                       "x-generation": {
-                        "anchors": [
-                          "need:connect-existing-systems@1"
-                        ]
+                        "anchors": ["need:connect-existing-systems@1"]
                       }
                     },
                     "unavailable": {
@@ -5168,16 +4648,12 @@
                           "label": "Try again",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:connect-existing-systems@1"
-                            ]
+                            "anchors": ["need:connect-existing-systems@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:connect-existing-systems@1"
-                        ]
+                        "anchors": ["need:connect-existing-systems@1"]
                       }
                     },
                     "error": {
@@ -5189,16 +4665,12 @@
                           "label": "Try again",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:connect-existing-systems@1"
-                            ]
+                            "anchors": ["need:connect-existing-systems@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:connect-existing-systems@1"
-                        ]
+                        "anchors": ["need:connect-existing-systems@1"]
                       }
                     }
                   }
@@ -5241,9 +4713,7 @@
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:connect-existing-systems@1"
-                ]
+                "anchors": ["need:connect-existing-systems@1"]
               }
             }
           ],
@@ -5260,9 +4730,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:connect-existing-systems@1"
-            ]
+            "anchors": ["need:connect-existing-systems@1"]
           }
         },
         {
@@ -5276,9 +4744,7 @@
             "label": "Administration",
             "order": 60,
             "x-generation": {
-              "anchors": [
-                "need:configure-organization@1"
-              ]
+              "anchors": ["need:configure-organization@1"]
             }
           },
           "slots": [
@@ -5291,9 +4757,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             },
             {
@@ -5315,45 +4779,37 @@
                         {
                           "id": "organization",
                           "label": "Organization",
-                          "path": "primaryData.admin.organization",
+                          "path": "primaryData.organizationName",
                           "x-generation": {
-                            "anchors": [
-                              "need:configure-organization@1"
-                            ]
+                            "anchors": ["need:configure-organization@1"]
                           }
                         },
                         {
                           "id": "workspace",
                           "label": "Workspace",
-                          "path": "primaryData.admin.workspace",
+                          "path": "primaryData.workspaceName",
                           "x-generation": {
-                            "anchors": [
-                              "need:configure-organization@1"
-                            ]
+                            "anchors": ["need:configure-organization@1"]
                           }
                         },
                         {
                           "id": "environment",
                           "label": "Environment",
-                          "path": "primaryData.admin.environment",
+                          "path": "primaryData.environment",
                           "x-generation": {
-                            "anchors": [
-                              "need:configure-organization@1"
-                            ]
+                            "anchors": ["need:configure-organization@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:configure-organization@1"
-                        ]
+                        "anchors": ["need:configure-organization@1"]
                       }
                     },
                     {
                       "id": "teammates",
                       "type": "table",
                       "title": "Teammates",
-                      "path": "primaryData.admin.teammates",
+                      "path": "secondaryData.admin.teammates",
                       "responsiveMode": "stack",
                       "columns": [
                         {
@@ -5361,9 +4817,7 @@
                           "label": "Name",
                           "path": "name",
                           "x-generation": {
-                            "anchors": [
-                              "need:configure-organization@1"
-                            ]
+                            "anchors": ["need:configure-organization@1"]
                           }
                         },
                         {
@@ -5371,9 +4825,7 @@
                           "label": "Role",
                           "path": "role",
                           "x-generation": {
-                            "anchors": [
-                              "need:configure-organization@1"
-                            ]
+                            "anchors": ["need:configure-organization@1"]
                           }
                         },
                         {
@@ -5389,9 +4841,7 @@
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:configure-organization@1"
-                        ]
+                        "anchors": ["need:configure-organization@1"]
                       }
                     }
                   ],
@@ -5401,16 +4851,12 @@
                       "emphasis": "primary",
                       "order": 1,
                       "x-generation": {
-                        "anchors": [
-                          "need:configure-organization@1"
-                        ]
+                        "anchors": ["need:configure-organization@1"]
                       }
                     }
                   ],
                   "x-generation": {
-                    "anchors": [
-                      "need:configure-organization@1"
-                    ]
+                    "anchors": ["need:configure-organization@1"]
                   }
                 },
                 "actionBindings": {
@@ -5428,6 +4874,16 @@
                 "dataBindings": {
                   "primaryData": {
                     "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
+                    "sourceRef": "response:organization-setup",
+                    "x-generation": {
+                      "anchors": [
+                        "need:configure-organization@1",
+                        "unit:adminUnit"
+                      ]
+                    }
+                  },
+                  "secondaryData": {
+                    "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
                     "sourceRef": "host:workspace",
                     "x-generation": {
                       "anchors": [
@@ -5440,9 +4896,7 @@
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             }
           ],
@@ -5451,16 +4905,12 @@
               "trigger": "editOrganizationSetup",
               "to": "onboarding",
               "x-generation": {
-                "anchors": [
-                  "need:configure-organization@1"
-                ]
+                "anchors": ["need:configure-organization@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         },
         {
@@ -5474,9 +4924,7 @@
             "label": "Plan and usage",
             "order": 70,
             "x-generation": {
-              "anchors": [
-                "need:understand-plan-and-usage@1"
-              ]
+              "anchors": ["need:understand-plan-and-usage@1"]
             }
           },
           "slots": [
@@ -5489,9 +4937,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:understand-plan-and-usage@1"
-                ]
+                "anchors": ["need:understand-plan-and-usage@1"]
               }
             },
             {
@@ -5515,9 +4961,7 @@
                           "label": "Plan",
                           "path": "primaryData.plan",
                           "x-generation": {
-                            "anchors": [
-                              "need:understand-plan-and-usage@1"
-                            ]
+                            "anchors": ["need:understand-plan-and-usage@1"]
                           }
                         },
                         {
@@ -5525,9 +4969,7 @@
                           "label": "Billing status",
                           "path": "primaryData.billingStatus",
                           "x-generation": {
-                            "anchors": [
-                              "need:understand-plan-and-usage@1"
-                            ]
+                            "anchors": ["need:understand-plan-and-usage@1"]
                           }
                         },
                         {
@@ -5535,9 +4977,7 @@
                           "label": "Renews",
                           "path": "primaryData.renewalDate",
                           "x-generation": {
-                            "anchors": [
-                              "need:understand-plan-and-usage@1"
-                            ]
+                            "anchors": ["need:understand-plan-and-usage@1"]
                           }
                         },
                         {
@@ -5545,16 +4985,12 @@
                           "label": "Usage period",
                           "path": "primaryData.period",
                           "x-generation": {
-                            "anchors": [
-                              "need:understand-plan-and-usage@1"
-                            ]
+                            "anchors": ["need:understand-plan-and-usage@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:understand-plan-and-usage@1"
-                        ]
+                        "anchors": ["need:understand-plan-and-usage@1"]
                       }
                     },
                     {
@@ -5566,9 +5002,7 @@
                       "maxPath": "primaryData.limits.responses",
                       "suffix": " responses",
                       "x-generation": {
-                        "anchors": [
-                          "need:understand-plan-and-usage@1"
-                        ]
+                        "anchors": ["need:understand-plan-and-usage@1"]
                       }
                     },
                     {
@@ -5578,9 +5012,7 @@
                       "path": "primaryData.remaining.responses",
                       "suffix": " responses",
                       "x-generation": {
-                        "anchors": [
-                          "need:understand-plan-and-usage@1"
-                        ]
+                        "anchors": ["need:understand-plan-and-usage@1"]
                       }
                     }
                   ],
@@ -5590,16 +5022,12 @@
                       "emphasis": "primary",
                       "order": 1,
                       "x-generation": {
-                        "anchors": [
-                          "need:understand-plan-and-usage@1"
-                        ]
+                        "anchors": ["need:understand-plan-and-usage@1"]
                       }
                     }
                   ],
                   "x-generation": {
-                    "anchors": [
-                      "need:understand-plan-and-usage@1"
-                    ]
+                    "anchors": ["need:understand-plan-and-usage@1"]
                   },
                   "stateViews": {
                     "loading": {
@@ -5607,9 +5035,7 @@
                       "body": "Current information is on the way.",
                       "actions": [],
                       "x-generation": {
-                        "anchors": [
-                          "need:understand-plan-and-usage@1"
-                        ]
+                        "anchors": ["need:understand-plan-and-usage@1"]
                       }
                     },
                     "unavailable": {
@@ -5621,16 +5047,12 @@
                           "label": "Try again",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:understand-plan-and-usage@1"
-                            ]
+                            "anchors": ["need:understand-plan-and-usage@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:understand-plan-and-usage@1"
-                        ]
+                        "anchors": ["need:understand-plan-and-usage@1"]
                       }
                     },
                     "error": {
@@ -5642,16 +5064,12 @@
                           "label": "Try again",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:understand-plan-and-usage@1"
-                            ]
+                            "anchors": ["need:understand-plan-and-usage@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:understand-plan-and-usage@1"
-                        ]
+                        "anchors": ["need:understand-plan-and-usage@1"]
                       }
                     }
                   }
@@ -5683,9 +5101,7 @@
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:understand-plan-and-usage@1"
-                ]
+                "anchors": ["need:understand-plan-and-usage@1"]
               }
             }
           ],
@@ -5694,16 +5110,12 @@
               "trigger": "openAdministration",
               "to": "admin",
               "x-generation": {
-                "anchors": [
-                  "need:understand-plan-and-usage@1"
-                ]
+                "anchors": ["need:understand-plan-and-usage@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:understand-plan-and-usage@1"
-            ]
+            "anchors": ["need:understand-plan-and-usage@1"]
           }
         },
         {
@@ -5717,9 +5129,7 @@
             "label": "Support and trust",
             "order": 80,
             "x-generation": {
-              "anchors": [
-                "need:get-help-and-check-trust@1"
-              ]
+              "anchors": ["need:get-help-and-check-trust@1"]
             }
           },
           "slots": [
@@ -5732,9 +5142,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:get-help-and-check-trust@1"
-                ]
+                "anchors": ["need:get-help-and-check-trust@1"]
               }
             },
             {
@@ -5760,9 +5168,7 @@
                           "label": "Service",
                           "path": "service",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         },
                         {
@@ -5781,9 +5187,7 @@
                           "label": "Updated",
                           "path": "updated",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         }
                       ],
@@ -5800,15 +5204,11 @@
                         "successMessage": "Opened",
                         "failureMessage": "Could not open",
                         "x-generation": {
-                          "anchors": [
-                            "need:get-help-and-check-trust@1"
-                          ]
+                          "anchors": ["need:get-help-and-check-trust@1"]
                         }
                       },
                       "x-generation": {
-                        "anchors": [
-                          "need:get-help-and-check-trust@1"
-                        ]
+                        "anchors": ["need:get-help-and-check-trust@1"]
                       }
                     },
                     {
@@ -5823,9 +5223,7 @@
                           "label": "Channel",
                           "path": "label",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         },
                         {
@@ -5833,9 +5231,7 @@
                           "label": "Availability",
                           "path": "availability",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         }
                       ],
@@ -5852,15 +5248,11 @@
                         "successMessage": "Opened",
                         "failureMessage": "Could not open",
                         "x-generation": {
-                          "anchors": [
-                            "need:get-help-and-check-trust@1"
-                          ]
+                          "anchors": ["need:get-help-and-check-trust@1"]
                         }
                       },
                       "x-generation": {
-                        "anchors": [
-                          "need:get-help-and-check-trust@1"
-                        ]
+                        "anchors": ["need:get-help-and-check-trust@1"]
                       }
                     },
                     {
@@ -5875,9 +5267,7 @@
                           "label": "Document",
                           "path": "label",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         },
                         {
@@ -5885,9 +5275,7 @@
                           "label": "Updated",
                           "path": "updated",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         }
                       ],
@@ -5904,15 +5292,11 @@
                         "successMessage": "Opened",
                         "failureMessage": "Could not open",
                         "x-generation": {
-                          "anchors": [
-                            "need:get-help-and-check-trust@1"
-                          ]
+                          "anchors": ["need:get-help-and-check-trust@1"]
                         }
                       },
                       "x-generation": {
-                        "anchors": [
-                          "need:get-help-and-check-trust@1"
-                        ]
+                        "anchors": ["need:get-help-and-check-trust@1"]
                       }
                     },
                     {
@@ -5927,9 +5311,7 @@
                           "label": "Incident",
                           "path": "summary",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         },
                         {
@@ -5937,9 +5319,7 @@
                           "label": "Status",
                           "path": "status",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         },
                         {
@@ -5947,16 +5327,12 @@
                           "label": "Started",
                           "path": "startedAt",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:get-help-and-check-trust@1"
-                        ]
+                        "anchors": ["need:get-help-and-check-trust@1"]
                       }
                     }
                   ],
@@ -5966,16 +5342,12 @@
                       "emphasis": "secondary",
                       "order": 1,
                       "x-generation": {
-                        "anchors": [
-                          "need:get-help-and-check-trust@1"
-                        ]
+                        "anchors": ["need:get-help-and-check-trust@1"]
                       }
                     }
                   ],
                   "x-generation": {
-                    "anchors": [
-                      "need:get-help-and-check-trust@1"
-                    ]
+                    "anchors": ["need:get-help-and-check-trust@1"]
                   },
                   "stateViews": {
                     "loading": {
@@ -5983,9 +5355,7 @@
                       "body": "Current information is on the way.",
                       "actions": [],
                       "x-generation": {
-                        "anchors": [
-                          "need:get-help-and-check-trust@1"
-                        ]
+                        "anchors": ["need:get-help-and-check-trust@1"]
                       }
                     },
                     "unavailable": {
@@ -5997,16 +5367,12 @@
                           "label": "Try again",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:get-help-and-check-trust@1"
-                        ]
+                        "anchors": ["need:get-help-and-check-trust@1"]
                       }
                     },
                     "error": {
@@ -6018,16 +5384,12 @@
                           "label": "Try again",
                           "emphasis": "primary",
                           "x-generation": {
-                            "anchors": [
-                              "need:get-help-and-check-trust@1"
-                            ]
+                            "anchors": ["need:get-help-and-check-trust@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:get-help-and-check-trust@1"
-                        ]
+                        "anchors": ["need:get-help-and-check-trust@1"]
                       }
                     }
                   }
@@ -6089,9 +5451,7 @@
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:get-help-and-check-trust@1"
-                ]
+                "anchors": ["need:get-help-and-check-trust@1"]
               }
             }
           ],
@@ -6100,16 +5460,12 @@
               "trigger": "returnToDashboard",
               "to": "dashboard",
               "x-generation": {
-                "anchors": [
-                  "need:get-help-and-check-trust@1"
-                ]
+                "anchors": ["need:get-help-and-check-trust@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:get-help-and-check-trust@1"
-            ]
+            "anchors": ["need:get-help-and-check-trust@1"]
           }
         },
         {
@@ -6122,9 +5478,7 @@
             "scope": "public",
             "label": "Complete a form",
             "x-generation": {
-              "anchors": [
-                "need:complete-and-prove-response@1"
-              ]
+              "anchors": ["need:complete-and-prove-response@1"]
             }
           },
           "slots": [
@@ -6137,9 +5491,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:complete-and-prove-response@1"
-                ]
+                "anchors": ["need:complete-and-prove-response@1"]
               }
             },
             {
@@ -6150,9 +5502,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:complete-and-prove-response@1"
-                ]
+                "anchors": ["need:complete-and-prove-response@1"]
               }
             }
           ],
@@ -6161,16 +5511,12 @@
               "trigger": "submitPublicResponse",
               "to": "publicReceipt",
               "x-generation": {
-                "anchors": [
-                  "need:complete-and-prove-response@1"
-                ]
+                "anchors": ["need:complete-and-prove-response@1"]
               }
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
@@ -6183,9 +5529,7 @@
             "scope": "public",
             "label": "Submission receipt",
             "x-generation": {
-              "anchors": [
-                "need:complete-and-prove-response@1"
-              ]
+              "anchors": ["need:complete-and-prove-response@1"]
             }
           },
           "slots": [
@@ -6198,9 +5542,7 @@
               },
               "position": "main",
               "x-generation": {
-                "anchors": [
-                  "need:complete-and-prove-response@1"
-                ]
+                "anchors": ["need:complete-and-prove-response@1"]
               }
             },
             {
@@ -6224,9 +5566,7 @@
                           "label": "Receipt",
                           "path": "primaryData.receipt.receiptNumber",
                           "x-generation": {
-                            "anchors": [
-                              "need:complete-and-prove-response@1"
-                            ]
+                            "anchors": ["need:complete-and-prove-response@1"]
                           }
                         },
                         {
@@ -6234,9 +5574,7 @@
                           "label": "Received",
                           "path": "primaryData.receipt.receivedAt",
                           "x-generation": {
-                            "anchors": [
-                              "need:complete-and-prove-response@1"
-                            ]
+                            "anchors": ["need:complete-and-prove-response@1"]
                           }
                         },
                         {
@@ -6244,16 +5582,12 @@
                           "label": "Proof status",
                           "path": "primaryData.receipt.proofStatus",
                           "x-generation": {
-                            "anchors": [
-                              "need:complete-and-prove-response@1"
-                            ]
+                            "anchors": ["need:complete-and-prove-response@1"]
                           }
                         }
                       ],
                       "x-generation": {
-                        "anchors": [
-                          "need:complete-and-prove-response@1"
-                        ]
+                        "anchors": ["need:complete-and-prove-response@1"]
                       }
                     }
                   ],
@@ -6271,9 +5605,7 @@
                       "successMessage": "Receipt downloaded",
                       "failureMessage": "Download failed",
                       "x-generation": {
-                        "anchors": [
-                          "need:complete-and-prove-response@1"
-                        ]
+                        "anchors": ["need:complete-and-prove-response@1"]
                       }
                     },
                     {
@@ -6297,9 +5629,7 @@
                     }
                   ],
                   "x-generation": {
-                    "anchors": [
-                      "need:complete-and-prove-response@1"
-                    ]
+                    "anchors": ["need:complete-and-prove-response@1"]
                   }
                 },
                 "actionBindings": {
@@ -6340,17 +5670,13 @@
               },
               "position": "aside",
               "x-generation": {
-                "anchors": [
-                  "need:complete-and-prove-response@1"
-                ]
+                "anchors": ["need:complete-and-prove-response@1"]
               }
             }
           ],
           "transitions": [],
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         }
       ]
@@ -6382,11 +5708,7 @@
             "properties": {
               "account": {
                 "type": "object",
-                "required": [
-                  "workspace",
-                  "signedInAs",
-                  "recovery"
-                ],
+                "required": ["workspace", "signedInAs", "recovery"],
                 "properties": {
                   "workspace": {
                     "type": "string"
@@ -6402,18 +5724,13 @@
               },
               "dashboard": {
                 "type": "object",
-                "required": [
-                  "features"
-                ],
+                "required": ["features"],
                 "properties": {
                   "features": {
                     "type": "array",
                     "items": {
                       "type": "object",
-                      "required": [
-                        "area",
-                        "status"
-                      ],
+                      "required": ["area", "status"],
                       "properties": {
                         "area": {
                           "type": "string"
@@ -6458,9 +5775,7 @@
                     },
                     "resource": {
                       "type": "object",
-                      "required": [
-                        "href"
-                      ],
+                      "required": ["href"],
                       "properties": {
                         "href": {
                           "type": "string"
@@ -6500,9 +5815,7 @@
                   },
                   "resource": {
                     "type": "object",
-                    "required": [
-                      "href"
-                    ],
+                    "required": ["href"],
                     "properties": {
                       "href": {
                         "type": "string"
@@ -6515,11 +5828,7 @@
               },
               "preview": {
                 "type": "object",
-                "required": [
-                  "environment",
-                  "status",
-                  "publishedVersion"
-                ],
+                "required": ["environment", "status", "publishedVersion"],
                 "properties": {
                   "environment": {
                     "type": "string"
@@ -6535,9 +5844,7 @@
               },
               "signatures": {
                 "type": "object",
-                "required": [
-                  "requests"
-                ],
+                "required": ["requests"],
                 "properties": {
                   "requests": {
                     "type": "array",
@@ -6565,9 +5872,7 @@
                         },
                         "resource": {
                           "type": "object",
-                          "required": [
-                            "href"
-                          ],
+                          "required": ["href"],
                           "properties": {
                             "href": {
                               "type": "string"
@@ -6607,9 +5912,7 @@
                   },
                   "documentation": {
                     "type": "object",
-                    "required": [
-                      "href"
-                    ],
+                    "required": ["href"],
                     "properties": {
                       "href": {
                         "type": "string"
@@ -6669,11 +5972,7 @@
                     "type": "array",
                     "items": {
                       "type": "object",
-                      "required": [
-                        "name",
-                        "role",
-                        "status"
-                      ],
+                      "required": ["name", "role", "status"],
                       "properties": {
                         "name": {
                           "type": "string"
@@ -6712,11 +6011,7 @@
                   },
                   "download": {
                     "type": "object",
-                    "required": [
-                      "filename",
-                      "mediaType",
-                      "content"
-                    ],
+                    "required": ["filename", "mediaType", "content"],
                     "properties": {
                       "filename": {
                         "type": "string"
@@ -6732,9 +6027,7 @@
                   },
                   "support": {
                     "type": "object",
-                    "required": [
-                      "href"
-                    ],
+                    "required": ["href"],
                     "properties": {
                       "href": {
                         "type": "string"
@@ -6768,10 +6061,65 @@
             }
           },
           "x-generation": {
-            "anchors": [
-              "need:see-honest-feature-state@1",
-              "unit:dashboardUnit"
-            ]
+            "anchors": ["need:see-honest-feature-state@1", "unit:dashboardUnit"]
+          }
+        },
+        {
+          "id": "response:organization-setup",
+          "kind": "definition-response",
+          "definitionRef": "https://formspec.cloud/definitions/organization-setup",
+          "definitionVersion": "0.12.0",
+          "responseSelection": {
+            "status": "completed",
+            "cardinality": "latest",
+            "orderBy": "authored-desc",
+            "tieBreak": "response-id-asc",
+            "partitionBy": "definition"
+          },
+          "description": "Latest completed organization setup Response.",
+          "schema": {
+            "type": "object",
+            "required": [
+              "organizationName",
+              "workspaceName",
+              "environment"
+            ],
+            "properties": {
+              "organizationName": {
+                "type": "string"
+              },
+              "workspaceName": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string",
+                "enum": ["production", "sandbox"]
+              }
+            },
+            "additionalProperties": false
+          },
+          "owner": "host",
+          "scope": "session",
+          "availability": {
+            "level": "route",
+            "surfaceRef": "https://formspec.cloud/app",
+            "routeRef": "admin"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT30S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "block-render",
+            "provenance": {
+              "kind": "definition-response",
+              "source": "latest completed organization setup Response"
+            }
+          },
+          "x-generation": {
+            "anchors": ["need:configure-organization@1"]
           }
         },
         {
@@ -6825,9 +6173,7 @@
                     },
                     "resource": {
                       "type": "object",
-                      "required": [
-                        "href"
-                      ],
+                      "required": ["href"],
                       "properties": {
                         "href": {
                           "type": "string"
@@ -6877,18 +6223,11 @@
               },
               "exports": {
                 "type": "object",
-                "required": [
-                  "csv",
-                  "json"
-                ],
+                "required": ["csv", "json"],
                 "properties": {
                   "csv": {
                     "type": "object",
-                    "required": [
-                      "filename",
-                      "mediaType",
-                      "content"
-                    ],
+                    "required": ["filename", "mediaType", "content"],
                     "properties": {
                       "filename": {
                         "type": "string"
@@ -6904,11 +6243,7 @@
                   },
                   "json": {
                     "type": "object",
-                    "required": [
-                      "filename",
-                      "mediaType",
-                      "content"
-                    ],
+                    "required": ["filename", "mediaType", "content"],
                     "properties": {
                       "filename": {
                         "type": "string"
@@ -6927,11 +6262,7 @@
               },
               "selectedExport": {
                 "type": "object",
-                "required": [
-                  "filename",
-                  "mediaType",
-                  "content"
-                ],
+                "required": ["filename", "mediaType", "content"],
                 "properties": {
                   "filename": {
                     "type": "string"
@@ -7004,9 +6335,7 @@
               },
               "usage": {
                 "type": "object",
-                "required": [
-                  "responses"
-                ],
+                "required": ["responses"],
                 "properties": {
                   "responses": {
                     "type": "number"
@@ -7016,9 +6345,7 @@
               },
               "limits": {
                 "type": "object",
-                "required": [
-                  "responses"
-                ],
+                "required": ["responses"],
                 "properties": {
                   "responses": {
                     "type": "number"
@@ -7028,9 +6355,7 @@
               },
               "remaining": {
                 "type": "object",
-                "required": [
-                  "responses"
-                ],
+                "required": ["responses"],
                 "properties": {
                   "responses": {
                     "type": "number"
@@ -7062,10 +6387,7 @@
             }
           },
           "x-generation": {
-            "anchors": [
-              "need:understand-plan-and-usage@1",
-              "unit:billingUnit"
-            ]
+            "anchors": ["need:understand-plan-and-usage@1", "unit:billingUnit"]
           }
         },
         {
@@ -7085,12 +6407,7 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "service",
-                    "status",
-                    "updated",
-                    "resource"
-                  ],
+                  "required": ["service", "status", "updated", "resource"],
                   "properties": {
                     "service": {
                       "type": "string"
@@ -7103,9 +6420,7 @@
                     },
                     "resource": {
                       "type": "object",
-                      "required": [
-                        "href"
-                      ],
+                      "required": ["href"],
                       "properties": {
                         "href": {
                           "type": "string"
@@ -7121,11 +6436,7 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "summary",
-                    "status",
-                    "startedAt"
-                  ],
+                  "required": ["summary", "status", "startedAt"],
                   "properties": {
                     "summary": {
                       "type": "string"
@@ -7144,11 +6455,7 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "label",
-                    "availability",
-                    "resource"
-                  ],
+                  "required": ["label", "availability", "resource"],
                   "properties": {
                     "label": {
                       "type": "string"
@@ -7158,9 +6465,7 @@
                     },
                     "resource": {
                       "type": "object",
-                      "required": [
-                        "href"
-                      ],
+                      "required": ["href"],
                       "properties": {
                         "href": {
                           "type": "string"
@@ -7176,11 +6481,7 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "label",
-                    "updated",
-                    "resource"
-                  ],
+                  "required": ["label", "updated", "resource"],
                   "properties": {
                     "label": {
                       "type": "string"
@@ -7190,9 +6491,7 @@
                     },
                     "resource": {
                       "type": "object",
-                      "required": [
-                        "href"
-                      ],
+                      "required": ["href"],
                       "properties": {
                         "href": {
                           "type": "string"
@@ -7260,9 +6559,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:access-workspace-safely@1"
-            ]
+            "anchors": ["need:access-workspace-safely@1"]
           }
         },
         {
@@ -7284,9 +6581,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:publish-hosted-form@1"
-            ]
+            "anchors": ["need:publish-hosted-form@1"]
           }
         },
         {
@@ -7308,9 +6603,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         },
         {
@@ -7332,9 +6625,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:review-and-export-responses@1"
-            ]
+            "anchors": ["need:review-and-export-responses@1"]
           }
         },
         {
@@ -7356,9 +6647,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:connect-existing-systems@1"
-            ]
+            "anchors": ["need:connect-existing-systems@1"]
           }
         },
         {
@@ -7380,9 +6669,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         },
         {
@@ -7404,9 +6691,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:understand-plan-and-usage@1"
-            ]
+            "anchors": ["need:understand-plan-and-usage@1"]
           }
         },
         {
@@ -7428,33 +6713,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
-          }
-        },
-        {
-          "id": "completeOnboarding",
-          "intent": "x-complete-onboarding",
-          "actor": "user",
-          "label": {
-            "literal": "Finish setup"
-          },
-          "validation": {
-            "profile": "off",
-            "blocking": "non-blocking",
-            "persistence": "none"
-          },
-          "effects": [
-            {
-              "type": "hostEvent",
-              "eventName": "formspec.app.complete-onboarding"
-            }
-          ],
-          "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
@@ -7479,9 +6738,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:publish-hosted-form@1"
-            ]
+            "anchors": ["need:publish-hosted-form@1"]
           }
         },
         {
@@ -7503,9 +6760,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:publish-hosted-form@1"
-            ]
+            "anchors": ["need:publish-hosted-form@1"]
           }
         },
         {
@@ -7527,9 +6782,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:review-and-export-responses@1"
-            ]
+            "anchors": ["need:review-and-export-responses@1"]
           }
         },
         {
@@ -7551,9 +6804,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:publish-hosted-form@1"
-            ]
+            "anchors": ["need:publish-hosted-form@1"]
           }
         },
         {
@@ -7575,9 +6826,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:run-signature-workflow@1"
-            ]
+            "anchors": ["need:run-signature-workflow@1"]
           }
         },
         {
@@ -7599,9 +6848,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:run-signature-workflow@1"
-            ]
+            "anchors": ["need:run-signature-workflow@1"]
           }
         },
         {
@@ -7648,9 +6895,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         },
         {
@@ -7672,9 +6917,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:understand-plan-and-usage@1"
-            ]
+            "anchors": ["need:understand-plan-and-usage@1"]
           }
         },
         {
@@ -7696,9 +6939,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:get-help-and-check-trust@1"
-            ]
+            "anchors": ["need:get-help-and-check-trust@1"]
           }
         },
         {
@@ -7745,9 +6986,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:review-and-export-responses@1"
-            ]
+            "anchors": ["need:review-and-export-responses@1"]
           }
         },
         {
@@ -7772,9 +7011,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:publish-hosted-form@1"
-            ]
+            "anchors": ["need:publish-hosted-form@1"]
           }
         },
         {
@@ -7799,9 +7036,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:review-and-export-responses@1"
-            ]
+            "anchors": ["need:review-and-export-responses@1"]
           }
         },
         {
@@ -7825,9 +7060,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:review-and-export-responses@1"
-            ]
+            "anchors": ["need:review-and-export-responses@1"]
           }
         },
         {
@@ -7851,9 +7084,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:review-and-export-responses@1"
-            ]
+            "anchors": ["need:review-and-export-responses@1"]
           }
         },
         {
@@ -7877,9 +7108,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:review-and-export-responses@1"
-            ]
+            "anchors": ["need:review-and-export-responses@1"]
           }
         },
         {
@@ -7904,9 +7133,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:run-signature-workflow@1"
-            ]
+            "anchors": ["need:run-signature-workflow@1"]
           }
         },
         {
@@ -7931,9 +7158,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:connect-existing-systems@1"
-            ]
+            "anchors": ["need:connect-existing-systems@1"]
           }
         },
         {
@@ -7958,9 +7183,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:get-help-and-check-trust@1"
-            ]
+            "anchors": ["need:get-help-and-check-trust@1"]
           }
         },
         {
@@ -7985,9 +7208,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:get-help-and-check-trust@1"
-            ]
+            "anchors": ["need:get-help-and-check-trust@1"]
           }
         },
         {
@@ -8012,9 +7233,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:get-help-and-check-trust@1"
-            ]
+            "anchors": ["need:get-help-and-check-trust@1"]
           }
         },
         {
@@ -8038,9 +7257,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
@@ -8073,6 +7290,33 @@
         }
       ]
     },
+    "https://formspec.cloud/actions/organization-setup": {
+      "$formspecResponseActions": "1.0",
+      "version": "0.12.0",
+      "targetDefinition": {
+        "url": "https://formspec.cloud/definitions/organization-setup",
+        "compatibleVersions": "0.12.0"
+      },
+      "actions": [
+        {
+          "id": "completeOnboarding",
+          "intent": "submit",
+          "actor": "user",
+          "label": {
+            "literal": "Finish setup"
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigation.completeOnboarding"
+            }
+          ],
+          "x-generation": {
+            "anchors": ["need:configure-organization@1"]
+          }
+        }
+      ]
+    },
     "https://formspec.cloud/actions/public-response": {
       "$formspecResponseActions": "1.0",
       "version": "0.12.0",
@@ -8095,9 +7339,7 @@
             }
           ],
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         }
       ]
@@ -8122,9 +7364,7 @@
           "content": "Use the legal or operating name teammates will recognize. You can change the display name later.",
           "priority": "primary",
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         },
         {
@@ -8136,9 +7376,7 @@
           "content": "Use a short name for the team or program that will own these forms and responses.",
           "priority": "primary",
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         },
         {
@@ -8164,9 +7402,7 @@
           "title": "Tenant provisioning context",
           "content": "Resolve organization ownership and environment eligibility before proposing setup values.",
           "x-generation": {
-            "anchors": [
-              "need:configure-organization@1"
-            ]
+            "anchors": ["need:configure-organization@1"]
           }
         }
       ]
@@ -8191,9 +7427,7 @@
           "content": "Enter the name you want the receiving organization to see on this submission and its receipt.",
           "priority": "primary",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
@@ -8205,9 +7439,7 @@
           "content": "Use an address you can access. The submission receipt and any follow-up notices will use it.",
           "priority": "primary",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
@@ -8219,9 +7451,7 @@
           "content": "Describe the request clearly enough for the organization to route it. Do not include passwords or payment card numbers.",
           "priority": "primary",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
@@ -8233,9 +7463,7 @@
           "content": "Notices cover this submission, including its receipt and status. They do not subscribe you to marketing.",
           "priority": "supplementary",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         },
         {
@@ -8246,9 +7474,7 @@
           "title": "Response handling context",
           "content": "Never infer consent. Preserve the person supplied email and response text exactly.",
           "x-generation": {
-            "anchors": [
-              "need:complete-and-prove-response@1"
-            ]
+            "anchors": ["need:complete-and-prove-response@1"]
           }
         }
       ]

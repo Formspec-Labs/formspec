@@ -1,0 +1,240 @@
+{
+  "$formspecOutcomeVerificationCase": "0.1",
+  "id": "organization-empty-required-fields-are-blocked",
+  "version": "0.1.0",
+  "need": {
+    "documentRef": "https://formspec.cloud/needs/saas-v1",
+    "documentDigest": "sha256:ac31871e3b982e6c97285a324c14e87b872fc6c6e382561b507edef7516d2dc7",
+    "id": "configure-organization",
+    "revision": 1
+  },
+  "app": {
+    "id": "https://formspec.cloud/apps/saas-v1",
+    "version": "0.12.0",
+    "digest": "sha256:3dbcbc010c6cbe8bed648436a9d37ffd5839de4ff801fa34dd54ff4a5c1c4527"
+  },
+  "experience": {
+    "documentRef": "https://formspec.cloud/experience/saas-v1",
+    "documentDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374",
+    "unitId": "onboardingUnit"
+  },
+  "procedure": [
+    {
+      "id": "open-onboarding",
+      "kind": "open-route",
+      "surfaceRef": "https://formspec.cloud/app",
+      "surfaceDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0",
+      "routeId": "onboarding"
+    },
+    {
+      "id": "set-empty-organization",
+      "kind": "set-item",
+      "renderStepRef": "open-onboarding",
+      "control": {
+        "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+        "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+        "subjectKind": "definition-item",
+        "subjectRef": "organizationName"
+      },
+      "definitionRef": "https://formspec.cloud/definitions/organization-setup",
+      "definitionDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+      "path": "organizationName",
+      "value": ""
+    },
+    {
+      "id": "finish-empty-onboarding",
+      "kind": "activate-control",
+      "renderStepRef": "open-onboarding",
+      "control": {
+        "artifactRef": "https://formspec.cloud/actions/organization-setup",
+        "artifactDigest": "sha256:e72d3a1d166d43ae2cb223bc5848403b4e102fc809f1018359c3982e3a20778e",
+        "subjectKind": "response-action",
+        "subjectRef": "completeOnboarding"
+      },
+      "actionsRef": "https://formspec.cloud/actions/organization-setup",
+      "actionsDigest": "sha256:e72d3a1d166d43ae2cb223bc5848403b4e102fc809f1018359c3982e3a20778e",
+      "actionId": "completeOnboarding",
+      "responseStepRef": "set-empty-organization"
+    },
+    {
+      "id": "after-empty-onboarding",
+      "kind": "checkpoint"
+    }
+  ],
+  "expectedObservations": [
+    {
+      "id": "required-organization-fields-are-invalid",
+      "kind": "validation-report",
+      "ruleRefs": [
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+            "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+            "subjectKind": "definition-bind",
+            "subjectRef": "organizationName"
+          }
+        },
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://formspec.cloud/experience/saas-v1",
+            "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374",
+            "subjectKind": "experience-unit",
+            "subjectRef": "onboardingUnit"
+          }
+        },
+        {
+          "kind": "specification-rule",
+          "specRef": "https://formspec.org/specs/core",
+          "specVersion": "1.0.0-draft.1",
+          "ruleId": "validation.constraint-result"
+        }
+      ],
+      "checkpointRef": "after-empty-onboarding",
+      "requiredEvidence": "runtime",
+      "stepRef": "finish-empty-onboarding",
+      "subject": {
+        "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+        "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+        "subjectKind": "definition-bind",
+        "subjectRef": "organizationName"
+      },
+      "definitionRef": "https://formspec.cloud/definitions/organization-setup",
+      "definitionDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+      "valid": false,
+      "containsIssues": [
+        {
+          "path": "organizationName",
+          "code": "REQUIRED"
+        }
+      ]
+    },
+    {
+      "id": "empty-onboarding-action-is-blocked",
+      "kind": "action-invocation",
+      "ruleRefs": [
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://formspec.cloud/actions/organization-setup",
+            "artifactDigest": "sha256:e72d3a1d166d43ae2cb223bc5848403b4e102fc809f1018359c3982e3a20778e",
+            "subjectKind": "response-action",
+            "subjectRef": "completeOnboarding"
+          }
+        },
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://formspec.cloud/experience/saas-v1",
+            "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374",
+            "subjectKind": "experience-unit",
+            "subjectRef": "onboardingUnit"
+          }
+        },
+        {
+          "kind": "specification-rule",
+          "specRef": "https://formspec.org/specs/response-actions",
+          "specVersion": "1.0.0-draft.1",
+          "ruleId": "invocation.blocking-gate"
+        }
+      ],
+      "checkpointRef": "after-empty-onboarding",
+      "requiredEvidence": "runtime",
+      "stepRef": "finish-empty-onboarding",
+      "actionsRef": "https://formspec.cloud/actions/organization-setup",
+      "actionsDigest": "sha256:e72d3a1d166d43ae2cb223bc5848403b4e102fc809f1018359c3982e3a20778e",
+      "actionId": "completeOnboarding",
+      "terminal": "blocked",
+      "effects": [
+        {
+          "index": 0,
+          "type": "hostEvent",
+          "status": "not-invoked"
+        }
+      ]
+    },
+    {
+      "id": "empty-onboarding-stays-on-form-route",
+      "kind": "route-state",
+      "ruleRefs": [
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://formspec.cloud/app",
+            "artifactDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0",
+            "subjectKind": "surface-route",
+            "subjectRef": "onboarding"
+          }
+        },
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://formspec.cloud/experience/saas-v1",
+            "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374",
+            "subjectKind": "experience-unit",
+            "subjectRef": "onboardingUnit"
+          }
+        },
+        {
+          "kind": "specification-rule",
+          "specRef": "https://formspec.org/specs/surface",
+          "specVersion": "0.2.0-draft.1",
+          "ruleId": "routing.current-route-state"
+        }
+      ],
+      "checkpointRef": "after-empty-onboarding",
+      "requiredEvidence": "runtime",
+      "stepRef": "finish-empty-onboarding",
+      "subject": {
+        "artifactRef": "https://formspec.cloud/app",
+        "artifactDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0",
+        "subjectKind": "surface-route",
+        "subjectRef": "onboarding"
+      },
+      "surfaceRef": "https://formspec.cloud/app",
+      "surfaceDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0",
+      "routeId": "onboarding"
+    },
+    {
+      "id": "empty-onboarding-form-remains-rendered",
+      "kind": "rendered-output",
+      "ruleRefs": [
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://formspec.cloud/app",
+            "artifactDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0",
+            "subjectKind": "surface-node",
+            "subjectRef": "onboarding/onboardingForm"
+          }
+        },
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://formspec.cloud/experience/saas-v1",
+            "artifactDigest": "sha256:d347771f6473f128233432373539ad0c06dd83ea1fc12400d73314bbfd970374",
+            "subjectKind": "experience-unit",
+            "subjectRef": "onboardingUnit"
+          }
+        },
+        {
+          "kind": "specification-rule",
+          "specRef": "https://formspec.org/specs/surface",
+          "specVersion": "0.2.0-draft.1",
+          "ruleId": "rendering.semantic-output"
+        }
+      ],
+      "checkpointRef": "after-empty-onboarding",
+      "requiredEvidence": "runtime",
+      "stepRef": "finish-empty-onboarding",
+      "node": {
+        "artifactRef": "https://formspec.cloud/app",
+        "artifactDigest": "sha256:c25dc3b22632ae43e47f813bf0386960517558a9ac64eb512b0a4210781103e0",
+        "subjectKind": "surface-node",
+        "subjectRef": "onboarding/onboardingForm"
+      },
+      "rendered": true
+    }
+  ]
+}

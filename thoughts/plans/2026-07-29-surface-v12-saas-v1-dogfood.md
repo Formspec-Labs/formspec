@@ -10,28 +10,50 @@ decision: can the generic Wireframes MCP represent the planned Formspec Cloud Sa
 
 ## Corrected result
 
-**Passed after framework correction and a structured reconstruction.**
+**The framework proof and its four required technical outcome cases pass. The
+formal demo claim remains held for human approval.**
 
 The corrected v12 bundle and an unrelated control bundle render through one
 fixed host. The host imports only a structured preview set and contains no
 SaaS-specific route, field, action, sample-data, or layout branches. Replacing
 the selected structured documents produces a different application.
 
-The SaaS artifact has 14 routes, 22 Response Actions, two Definitions, 14
+The SaaS artifact has 15 routes, 34 Response Actions, two Definitions, 15
 mounted Experience units, and 10 adopted Needs. Its reasoning review resolves
-all 256 rendered and behavior nodes to current adopted Needs and mounted
-Experience paths; the control resolves 12 of 12.
-The verifier passed both bundles and all seven graph phases for each.
-Playwright rendered all 14 routes, followed all 22 actions, exercised loaded,
-empty, loading, and unavailable data states, completed the public form at
-mobile width, and rendered the control bundle without a console warning or
-error.
+all 391 rendered and behavior nodes to current adopted Needs and mounted
+Experience paths; the control resolves 12 of 12. The verifier passes both
+bundles and all seven graph phases for each.
+
+The take-two browser audit correctly invalidated the earlier “fully demoable”
+claim: organization setup could complete with missing data and discard entered
+values, while the public form could issue a receipt for invalid input. Those
+failures now have four structured `OutcomeVerificationCase` inputs and
+append-only `OutcomeVerificationReport` outputs:
+
+- empty organization setup is blocked: 4/4 expectations passed;
+- valid organization values remain visible: 8/8 passed;
+- invalid public response is blocked: 6/6 passed; and
+- the unrelated genericity control renders: 2/2 passed.
+
+The three SaaS cases individually support their declared outcomes. The aggregate
+`demo` claim remains held only by `HUMAN_ADEQUACY_NOT_APPROVED`, so technical
+evidence cannot silently appoint itself as product approval.
+
+Playwright reran all 15 routes at desktop and mobile widths, for 30 checks, and
+all five data profiles on every route, for 75 checks. The pass found one generic
+mobile toggle-layout defect and corrected it in the shared React and Web
+Component skin. The final route, profile, flow, and unrelated-control checks
+recorded no horizontal overflow or browser warning/error.
 
 The corrected artifacts are a structured reconstruction after the framework
 changes, not a fresh blind public-builder replay. The unchanged attempt-7
 call/results transcript remains useful failure evidence. The closure is
 governed by
 [`2026-07-30-wireframes-data-only-reasoning-closure.md`](./2026-07-30-wireframes-data-only-reasoning-closure.md).
+The final outcome-verification design is
+[`2026-07-31-outcome-verification-cases-and-reports.md`](../specs/2026-07-31-outcome-verification-cases-and-reports.md),
+and the browser evidence is
+[`outcome-verification-review.md`](../../spikes/surface-v12-saas-v1-dogfood/evidence/outcome-verification-review.md).
 
 ## Original result, retained for comparison
 
@@ -93,9 +115,11 @@ recorded in
 
 The corrected local result establishes that the Wireframes framework can render
 the SaaS V1 wireframe and an independent control from structured data alone,
-with direct current-Need reasoning for every inventoried rendered node.
-Attempt 7 remains the failed historical run that exposed the missing authoring,
-validation, rendering, and reasoning support.
+with direct current-Need reasoning for every inventoried rendered node. It also
+establishes the tested validation and state-retention outcomes through
+structured cases, generic execution, and durable reports. Attempt 7 remains the
+failed historical run that exposed the missing authoring, validation,
+rendering, and reasoning support.
 
 This is not runtime qualification. It does not prove persistence, tenant
 isolation, authentication, entitlement enforcement, billing, webhook or email
