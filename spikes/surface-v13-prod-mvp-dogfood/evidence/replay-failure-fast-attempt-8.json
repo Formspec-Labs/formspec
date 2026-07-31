@@ -1,0 +1,17 @@
+{
+  "attempt": 8,
+  "status": "failed",
+  "stage": "publication-gate",
+  "call": 166,
+  "tool": "formspec_wireframes_validate",
+  "code": "WIREFRAMES-PUBLICATION-GATE-FAILED",
+  "diagnostics": [
+    {
+      "code": "SURFACE-ROUTE-UNREACHABLE",
+      "routeId": "responseDetail",
+      "entry": "forms",
+      "message": "Surface route 'responseDetail' is not reachable from entry 'forms'."
+    }
+  ],
+  "resolution": "Preserved as failed evidence; attempt 9 adds a Need-traced StructuredPanel table row action and a fully parameterized openResponse transition."
+}

@@ -1,0 +1,26 @@
+{
+  "attempt": 11,
+  "status": "held",
+  "replay": {
+    "calls": 172,
+    "outcome": "success",
+    "validationPasses": 2,
+    "validationErrors": 0,
+    "validationWarnings": 0,
+    "unsupportedFeatures": 0,
+    "exported": true
+  },
+  "reasoning": {
+    "complete": false,
+    "unservedNeedIds": [],
+    "unjustifiedUnitIds": [],
+    "unmountedUnitIds": [],
+    "orphanRenderedNodeIds": [],
+    "renderedWithoutExperiencePath": [],
+    "unmountedActionIds": ["saveFormDraft", "publishForm"]
+  },
+  "finding": "Both reported actions are Definition-scoped Response Actions whose targetDefinition is mounted by formWorkspace/formSettings. Studio validation and export passed, but the reasoning collector did not count that generic Definition mount.",
+  "browserReviewGap": "The Forms QueueTable listed existing forms without a row action, so FRM-001 could create but could not find and reopen stored work.",
+  "browserReviewRuntimeGap": "After create, formWorkspace bound the published runtime resource before publication and produced two /runtime/forms/{newId} 404 errors. The always-visible Open public form action also implied that a draft already had a public runtime.",
+  "resolution": "Preserved as held evidence. Attempt 12 replays after the Studio mounted-targetDefinition reasoning fix, adds generic QueueTable open actions, renders draft facts only from resource:form, and transitions publishForm to the public URL using its returned formId. Acceptance requires complete=true and a zero-error create-to-publish browser flow."
+}

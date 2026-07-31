@@ -1,0 +1,36 @@
+{
+  "attempt": 10,
+  "status": "failed",
+  "stage": "cross-artifact-validation",
+  "call": 167,
+  "tool": "formspec_wireframes_validate",
+  "code": "WIREFRAMES-VALIDATION-FAILED",
+  "summary": {
+    "schemaFailures": 0,
+    "graphErrors": 5,
+    "unsupportedFeatures": 0,
+    "warnings": 0,
+    "infos": 6
+  },
+  "diagnostics": [
+    {
+      "code": "STRUCTURED-PANEL-ACTION-UNBOUND",
+      "routeId": "forms",
+      "slotId": "formsActions",
+      "outputs": ["tertiary", "danger"]
+    },
+    {
+      "code": "STRUCTURED-PANEL-ACTION-UNBOUND",
+      "routeId": "formWorkspace",
+      "slotId": "formFacts",
+      "outputs": ["tertiary", "danger"]
+    },
+    {
+      "code": "STRUCTURED-PANEL-ACTION-UNBOUND",
+      "routeId": "publicVerify",
+      "slotId": "verificationPanel",
+      "outputs": ["secondary"]
+    }
+  ],
+  "resolution": "Preserved as failed evidence; attempt 11 aligns each actionBindings key with the configured outputName."
+}

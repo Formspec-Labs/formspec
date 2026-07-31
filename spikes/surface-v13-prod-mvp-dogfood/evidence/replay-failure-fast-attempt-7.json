@@ -1,0 +1,22 @@
+{
+  "attempt": 7,
+  "status": "failed",
+  "replays": [
+    {
+      "stage": "widget-binding",
+      "call": 114,
+      "tool": "formspec_wireframes_bind_slot",
+      "code": "VALIDATION",
+      "message": "Surface slot 'formsActions' has unresolved widget bindings: openResponses and viewReadiness.",
+      "resolution": "Studio plural Response Actions lookup fixed in commit d8a4d39; replay advanced past this call."
+    },
+    {
+      "stage": "transition-authoring",
+      "call": 154,
+      "tool": "formspec_wireframes_add_transition",
+      "code": "VALIDATION",
+      "message": "Surface transition target 'formVersions' is missing required route params: formId.",
+      "resolution": "Preserved as failed evidence; corrected in attempt 8 with a complete parameterized-transition audit."
+    }
+  ]
+}

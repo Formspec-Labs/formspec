@@ -1,0 +1,6150 @@
+{
+  "manifest": {
+    "$formspecBundle": "2.4",
+    "version": "0.13.0",
+    "id": "https://demo.formspec.org/apps/managed-single-cell",
+    "title": "Formspec ManagedSingleCell",
+    "x-generation": {
+      "anchors": [
+        "need:manageForm@1",
+        "need:operateCell@1"
+      ]
+    },
+    "definitions": [
+      {
+        "url": "https://demo.formspec.org/definitions/managed-form-create",
+        "version": "1.0.0"
+      },
+      {
+        "url": "https://demo.formspec.org/definitions/managed-form-settings",
+        "version": "1.0.0"
+      },
+      {
+        "url": "https://demo.formspec.org/definitions/community-intake",
+        "version": "1.0.0"
+      }
+    ],
+    "experience": {
+      "url": "urn:formspec:doc:5b366f5723f9aa5c:experience"
+    },
+    "responseActionDocuments": [
+      {
+        "url": "https://demo.formspec.org/response-actions/managed-form-create",
+        "version": "1.0.0"
+      },
+      {
+        "url": "https://demo.formspec.org/response-actions/managed-form-settings",
+        "version": "1.0.0"
+      },
+      {
+        "url": "https://demo.formspec.org/response-actions/community-intake",
+        "version": "1.0.0"
+      },
+      {
+        "url": "https://demo.formspec.org/response-actions/managed-single-cell-app",
+        "version": "1.0.0"
+      }
+    ],
+    "registries": [
+      {
+        "url": "urn:formspec:doc:5b366f5723f9aa5c:registry",
+        "version": "1.1.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://demo.formspec.org/apps/managed-single-cell/surfaces/product",
+        "version": "0.13.0"
+      }
+    ],
+    "entrySurface": "https://demo.formspec.org/apps/managed-single-cell/surfaces/product",
+    "dataSources": [
+      {
+        "url": "https://demo.formspec.org/data-sources/managed-single-cell",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-formspec-starter",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "documents": {
+    "https://demo.formspec.org/apps/managed-single-cell/surfaces/product": {
+      "$formspecSurface": "0.2",
+      "id": "product",
+      "routes": [
+        {
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          },
+          "id": "forms",
+          "path": "/app/forms",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:manageForm@1"
+                ]
+              },
+              "id": "ownerFormsExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "ownerForms"
+              },
+              "position": "aside",
+              "title": "Owner outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:manageForm@1"
+                ]
+              },
+              "id": "formCreation",
+              "slotType": "definition-form",
+              "binding": {
+                "definitionRef": "https://demo.formspec.org/definitions/managed-form-create",
+                "presentation": "create"
+              },
+              "position": "main",
+              "title": "Create a managed form"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:manageForm@1"
+                ]
+              },
+              "id": "formsQueue",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "QueueTable",
+                "config": {
+                  "caption": "Managed forms",
+                  "emptyMessage": "No managed forms are available from the active cell.",
+                  "columns": [
+                    {
+                      "key": "display_name",
+                      "label": "Form",
+                      "x-generation": {
+                        "anchors": [
+                          "need:manageForm@1"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "draft_version",
+                      "label": "Draft version",
+                      "numeric": true,
+                      "x-generation": {
+                        "anchors": [
+                          "need:protectVersions@1"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "archived_at",
+                      "label": "Archived",
+                      "x-generation": {
+                        "anchors": [
+                          "need:manageForm@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:manageForm@1"
+                    ]
+                  },
+                  "rowKey": "form_id",
+                  "rowHeaderKey": "display_name",
+                  "rowAction": {
+                    "outputName": "open",
+                    "columnLabel": "Form",
+                    "payload": {
+                      "formId": {
+                        "path": "form_id"
+                      }
+                    },
+                    "emphasis": "secondary",
+                    "pendingLabel": "Opening…",
+                    "successMessage": "Opened",
+                    "failureMessage": "Try again",
+                    "x-generation": {
+                      "anchors": [
+                        "need:manageForm@1"
+                      ]
+                    }
+                  }
+                },
+                "dataBindings": {
+                  "rows": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "query:forms",
+                    "x-generation": {
+                      "anchors": [
+                        "need:manageForm@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "open": {
+                    "actionRef": "openForm",
+                    "x-generation": {
+                      "anchors": [
+                        "need:manageForm@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Current managed forms"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:manageForm@1"
+                ]
+              },
+              "id": "formsActions",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "formsActionsPanel",
+                  "title": "Choose the next form task",
+                  "body": "Actions use the active host; this bundle contains no form fixtures.",
+                  "actions": [
+                    {
+                      "outputName": "tertiary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:reviewResponses@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "danger",
+                      "x-generation": {
+                        "anchors": [
+                          "need:operateCell@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:manageForm@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "tertiary": {
+                    "actionRef": "openResponses",
+                    "x-generation": {
+                      "anchors": [
+                        "need:reviewResponses@1"
+                      ]
+                    }
+                  },
+                  "danger": {
+                    "actionRef": "viewReadiness",
+                    "x-generation": {
+                      "anchors": [
+                        "need:operateCell@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Form routes"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureEnvelope@1"
+                ]
+              },
+              "id": "signatureRoute",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "formsSignatureActionsPanel",
+                  "title": "Signature work",
+                  "body": "Open the signature queue returned by the active host.",
+                  "actions": [
+                    {
+                      "outputName": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:signatureEnvelope@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:signatureEnvelope@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "openSignatures",
+                    "x-generation": {
+                      "anchors": [
+                        "need:signatureEnvelope@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Signature route"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:manageForm@1"
+              ]
+            },
+            "visible": true,
+            "scope": "owner",
+            "label": "Forms",
+            "order": 1
+          },
+          "title": "Forms",
+          "routeClass": "intake",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:manageForm@1"
+                ]
+              },
+              "trigger": "createForm",
+              "to": "formWorkspace",
+              "params": {
+                "formId": "formId"
+              }
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:manageForm@1"
+                ]
+              },
+              "trigger": "openForm",
+              "to": "formWorkspace",
+              "params": {
+                "formId": "formId"
+              }
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:reviewResponses@1"
+                ]
+              },
+              "trigger": "openResponses",
+              "to": "responses"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureEnvelope@1"
+                ]
+              },
+              "trigger": "openSignatures",
+              "to": "signatures"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:operateCell@1"
+                ]
+              },
+              "trigger": "viewReadiness",
+              "to": "opsReadiness"
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1",
+              "need:publishForm@1"
+            ]
+          },
+          "id": "formWorkspace",
+          "path": "/app/forms/{formId}",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:publishForm@1"
+                ]
+              },
+              "id": "ownerWorkspaceExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "ownerWorkspace"
+              },
+              "position": "aside",
+              "title": "Publishing outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:manageForm@1",
+                  "need:publishForm@1"
+                ]
+              },
+              "id": "formSettings",
+              "slotType": "definition-form",
+              "binding": {
+                "definitionRef": "https://demo.formspec.org/definitions/managed-form-settings",
+                "presentation": "edit"
+              },
+              "position": "main",
+              "title": "Draft and publication settings"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:publishForm@1"
+                ]
+              },
+              "id": "formFacts",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "formFactsPanel",
+                  "title": "Form draft",
+                  "body": "These facts come from the stored draft. Publishing creates the immutable public runtime.",
+                  "blocks": [
+                    {
+                      "id": "formFacts",
+                      "type": "key-value",
+                      "items": [
+                        {
+                          "id": "name",
+                          "label": "Form",
+                          "path": "primary.display_name",
+                          "x-generation": {
+                            "anchors": [
+                              "need:manageForm@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "slug",
+                          "label": "Public link name",
+                          "path": "primary.slug",
+                          "x-generation": {
+                            "anchors": [
+                              "need:publishForm@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "draftVersion",
+                          "label": "Draft version",
+                          "path": "primary.draft_version",
+                          "x-generation": {
+                            "anchors": [
+                              "need:protectVersions@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:protectVersions@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:protectVersions@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:publishForm@1",
+                      "need:protectVersions@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "resource:form",
+                    "x-generation": {
+                      "anchors": [
+                        "need:manageForm@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "openVersions",
+                    "x-generation": {
+                      "anchors": [
+                        "need:protectVersions@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Active form state"
+            }
+          ],
+          "params": [
+            {
+              "name": "formId",
+              "type": "string",
+              "description": "Managed form identifier.",
+              "example": "v13-community-intake"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:manageForm@1"
+              ]
+            },
+            "visible": false
+          },
+          "title": "Form workspace",
+          "routeClass": "intake",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:protectVersions@1"
+                ]
+              },
+              "trigger": "openVersions",
+              "to": "formVersions",
+              "params": {
+                "formId": "formId"
+              }
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:publishForm@1",
+                  "need:embedPublishedForm@1"
+                ]
+              },
+              "trigger": "publishForm",
+              "to": "publicRespond",
+              "params": {
+                "formId": "formId"
+              }
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:protectVersions@1"
+            ]
+          },
+          "id": "formVersions",
+          "path": "/app/forms/{formId}/versions",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:protectVersions@1"
+                ]
+              },
+              "id": "versionExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "versionControl"
+              },
+              "position": "aside",
+              "title": "Version outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:protectVersions@1"
+                ]
+              },
+              "id": "versionPanel",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "versionPanel",
+                  "title": "Published version",
+                  "body": "Retiring a version does not rewrite responses or signature envelopes already pinned to it.",
+                  "blocks": [
+                    {
+                      "id": "versionFacts",
+                      "type": "table",
+                      "x-generation": {
+                        "anchors": [
+                          "need:protectVersions@1"
+                        ]
+                      },
+                      "path": "primary.by_version",
+                      "caption": "Published versions",
+                      "responsiveMode": "stack",
+                      "columns": [
+                        {
+                          "id": "version",
+                          "label": "Version",
+                          "path": "form_version_id",
+                          "x-generation": {
+                            "anchors": [
+                              "need:protectVersions@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "status",
+                          "label": "Status",
+                          "path": "status",
+                          "x-generation": {
+                            "anchors": [
+                              "need:protectVersions@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "sessions",
+                          "label": "Active sessions",
+                          "path": "active_sessions",
+                          "x-generation": {
+                            "anchors": [
+                              "need:protectVersions@1"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:protectVersions@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:protectVersions@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:protectVersions@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "resource:form-sessions",
+                    "x-generation": {
+                      "anchors": [
+                        "need:protectVersions@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "retireVersion",
+                    "x-generation": {
+                      "anchors": [
+                        "need:protectVersions@1"
+                      ]
+                    }
+                  },
+                  "secondary": {
+                    "actionRef": "returnToForm",
+                    "x-generation": {
+                      "anchors": [
+                        "need:protectVersions@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Immutable version record"
+            }
+          ],
+          "params": [
+            {
+              "name": "formId",
+              "type": "string",
+              "description": "Managed form identifier.",
+              "example": "v13-community-intake"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:protectVersions@1"
+              ]
+            },
+            "visible": false
+          },
+          "title": "Published versions",
+          "routeClass": "proof",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:protectVersions@1"
+                ]
+              },
+              "trigger": "returnToForm",
+              "to": "formWorkspace",
+              "params": {
+                "formId": "formId"
+              }
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponses@1"
+            ]
+          },
+          "id": "responses",
+          "path": "/app/responses",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:reviewResponses@1"
+                ]
+              },
+              "id": "responseQueueExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "responseQueue"
+              },
+              "position": "aside",
+              "title": "Response outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:reviewResponses@1"
+                ]
+              },
+              "id": "responseQueueTable",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "QueueTable",
+                "config": {
+                  "caption": "Responses from the active cell",
+                  "emptyMessage": "No accepted responses are available from the active cell.",
+                  "columns": [
+                    {
+                      "key": "response_id",
+                      "label": "Response",
+                      "x-generation": {
+                        "anchors": [
+                          "need:reviewResponses@1"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "status",
+                      "label": "Intake status",
+                      "x-generation": {
+                        "anchors": [
+                          "need:reviewResponses@1"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "proof_state",
+                      "label": "Proof state",
+                      "x-generation": {
+                        "anchors": [
+                          "need:submissionProof@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:reviewResponses@1"
+                    ]
+                  },
+                  "rowKey": "response_id",
+                  "rowHeaderKey": "response_id",
+                  "rowAction": {
+                    "outputName": "open",
+                    "columnLabel": "Response",
+                    "payload": {
+                      "responseId": {
+                        "path": "response_id"
+                      }
+                    },
+                    "emphasis": "secondary",
+                    "pendingLabel": "Opening…",
+                    "successMessage": "Opened",
+                    "failureMessage": "Try again",
+                    "x-generation": {
+                      "anchors": [
+                        "need:reviewResponses@1"
+                      ]
+                    }
+                  }
+                },
+                "dataBindings": {
+                  "rows": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "query:responses",
+                    "x-generation": {
+                      "anchors": [
+                        "need:reviewResponses@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "open": {
+                    "actionRef": "openResponse",
+                    "x-generation": {
+                      "anchors": [
+                        "need:reviewResponses@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Accepted response queue"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:reviewResponses@1"
+                ]
+              },
+              "id": "responseActions",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "responseActionsPanel",
+                  "title": "Inspect or export",
+                  "body": "Exports come from host actions and never from invented widget rows.",
+                  "actions": [
+                    {
+                      "outputName": "primary",
+                      "payload": {
+                        "resource": {
+                          "path": "primary.csv"
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:reviewResponses@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "secondary",
+                      "payload": {
+                        "resource": {
+                          "path": "primary.json"
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:reviewResponses@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:reviewResponses@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "resource:response-export-links",
+                    "x-generation": {
+                      "anchors": [
+                        "need:reviewResponses@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "exportCsv",
+                    "x-generation": {
+                      "anchors": [
+                        "need:reviewResponses@1"
+                      ]
+                    }
+                  },
+                  "secondary": {
+                    "actionRef": "exportJson",
+                    "x-generation": {
+                      "anchors": [
+                        "need:reviewResponses@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Response actions"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:reviewResponses@1"
+              ]
+            },
+            "visible": true,
+            "scope": "owner",
+            "label": "Responses",
+            "order": 2
+          },
+          "title": "Responses",
+          "routeClass": "proof",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:reviewResponses@1"
+                ]
+              },
+              "trigger": "openResponse",
+              "to": "responseDetail",
+              "params": {
+                "responseId": "responseId"
+              }
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponses@1",
+              "need:submissionProof@1"
+            ]
+          },
+          "id": "responseDetail",
+          "path": "/app/responses/{responseId}",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:submissionProof@1"
+                ]
+              },
+              "id": "responseInspectionExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "responseInspection"
+              },
+              "position": "aside",
+              "title": "Proof work outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:submissionProof@1"
+                ]
+              },
+              "id": "responsePanel",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "responseDetailPanel",
+                  "title": "Accepted response",
+                  "body": "Accepted intake and verifier-backed proof are separate states.",
+                  "blocks": [
+                    {
+                      "id": "responseFacts",
+                      "type": "key-value",
+                      "items": [
+                        {
+                          "id": "status",
+                          "label": "Intake status",
+                          "path": "primary.status",
+                          "x-generation": {
+                            "anchors": [
+                              "need:reviewResponses@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "proof",
+                          "label": "Reported proof state",
+                          "path": "primary.proof_state",
+                          "x-generation": {
+                            "anchors": [
+                              "need:submissionProof@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "hash",
+                          "label": "Response hash",
+                          "path": "primary.response_hash",
+                          "x-generation": {
+                            "anchors": [
+                              "need:verifyIntegrity@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:submissionProof@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:submissionProof@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "secondary",
+                      "payload": {
+                        "recipient": {
+                          "path": "primary.response_data.email"
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:notifyReceipt@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "tertiary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:verifyIntegrity@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:submissionProof@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "resource:response",
+                    "x-generation": {
+                      "anchors": [
+                        "need:reviewResponses@1",
+                        "need:submissionProof@1"
+                      ]
+                    }
+                  },
+                  "secondary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "resource:receipt",
+                    "x-generation": {
+                      "anchors": [
+                        "need:verifyIntegrity@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "openReceipt",
+                    "x-generation": {
+                      "anchors": [
+                        "need:submissionProof@1"
+                      ]
+                    }
+                  },
+                  "secondary": {
+                    "actionRef": "emailReceipt",
+                    "x-generation": {
+                      "anchors": [
+                        "need:notifyReceipt@1"
+                      ]
+                    }
+                  },
+                  "tertiary": {
+                    "actionRef": "remediateProof",
+                    "x-generation": {
+                      "anchors": [
+                        "need:verifyIntegrity@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Response and proof status"
+            }
+          ],
+          "params": [
+            {
+              "name": "responseId",
+              "type": "string",
+              "description": "Accepted response identifier.",
+              "example": "response_v13_demo"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:reviewResponses@1"
+              ]
+            },
+            "visible": false
+          },
+          "title": "Response detail",
+          "routeClass": "proof",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:submissionProof@1"
+                ]
+              },
+              "trigger": "openReceipt",
+              "to": "publicReceipt",
+              "params": {
+                "responseId": "responseId"
+              }
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:signatureEnvelope@1",
+              "need:signatureStatus@1"
+            ]
+          },
+          "id": "signatures",
+          "path": "/app/signatures",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureEnvelope@1"
+                ]
+              },
+              "id": "signatureExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "signatureOperations"
+              },
+              "position": "aside",
+              "title": "Signature outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureEnvelope@1"
+                ]
+              },
+              "id": "signaturePanel",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "signatureOperationsPanel",
+                  "title": "Responses available for signature",
+                  "body": "Create an envelope only for a response that exposes a signed payload digest.",
+                  "blocks": [
+                    {
+                      "id": "signatureCandidates",
+                      "type": "table",
+                      "path": "primary",
+                      "caption": "Accepted responses",
+                      "responsiveMode": "stack",
+                      "columns": [
+                        {
+                          "id": "response",
+                          "label": "Response",
+                          "path": "response_id",
+                          "x-generation": {
+                            "anchors": [
+                              "need:signatureEnvelope@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "status",
+                          "label": "Status",
+                          "path": "status",
+                          "x-generation": {
+                            "anchors": [
+                              "need:signatureStatus@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "rowAction": {
+                        "outputName": "primary",
+                        "label": "Create envelope",
+                        "payload": {
+                          "responseId": {
+                            "path": "response_id"
+                          },
+                          "signerEmail": {
+                            "path": "response_data.email"
+                          }
+                        },
+                        "x-generation": {
+                          "anchors": [
+                            "need:signatureEnvelope@1"
+                          ]
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:signatureEnvelope@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [],
+                  "x-generation": {
+                    "anchors": [
+                      "need:signatureEnvelope@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "query:responses",
+                    "x-generation": {
+                      "anchors": [
+                        "need:signatureEnvelope@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "createEnvelope",
+                    "x-generation": {
+                      "anchors": [
+                        "need:signatureEnvelope@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Optional signature operations"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:signatureEnvelope@1"
+              ]
+            },
+            "visible": true,
+            "scope": "owner",
+            "label": "Signatures",
+            "order": 3
+          },
+          "title": "Signatures",
+          "routeClass": "ceremony",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureEnvelope@1"
+                ]
+              },
+              "trigger": "createEnvelope",
+              "to": "publicSign",
+              "params": {
+                "envelopeId": "envelopeId"
+              }
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:operateCell@1"
+            ]
+          },
+          "id": "opsReadiness",
+          "path": "/ops/readiness",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:operateCell@1"
+                ]
+              },
+              "id": "readinessExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "readinessReview"
+              },
+              "position": "aside",
+              "title": "Operations outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:operateCell@1"
+                ]
+              },
+              "id": "readinessPanel",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "readinessPanel",
+                  "title": "Active cell readiness",
+                  "body": "These values describe the active profile and adapters. They do not certify a production deployment, backup, or restore.",
+                  "blocks": [
+                    {
+                      "id": "readinessStatus",
+                      "type": "key-value",
+                      "items": [
+                        {
+                          "id": "status",
+                          "label": "Overall status",
+                          "path": "primary.status",
+                          "x-generation": {
+                            "anchors": [
+                              "need:operateCell@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:operateCell@1"
+                        ]
+                      }
+                    },
+                    {
+                      "id": "components",
+                      "type": "table",
+                      "path": "primary.components",
+                      "caption": "Readiness components",
+                      "responsiveMode": "stack",
+                      "columns": [
+                        {
+                          "id": "component",
+                          "label": "Component",
+                          "path": "id",
+                          "x-generation": {
+                            "anchors": [
+                              "need:operateCell@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "status",
+                          "label": "Status",
+                          "path": "status",
+                          "x-generation": {
+                            "anchors": [
+                              "need:operateCell@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "detail",
+                          "label": "Adapter detail",
+                          "path": "detail",
+                          "x-generation": {
+                            "anchors": [
+                              "need:operateCell@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:operateCell@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:manageForm@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:operateCell@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "resource:readiness",
+                    "x-generation": {
+                      "anchors": [
+                        "need:operateCell@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "returnToForms",
+                    "x-generation": {
+                      "anchors": [
+                        "need:manageForm@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Returned component checks"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:operateCell@1"
+              ]
+            },
+            "visible": true,
+            "scope": "owner",
+            "label": "Readiness",
+            "order": 4
+          },
+          "title": "Cell readiness",
+          "routeClass": "operation",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:manageForm@1"
+                ]
+              },
+              "trigger": "returnToForms",
+              "to": "forms"
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:accessibleResponse@1"
+            ]
+          },
+          "id": "publicRespond",
+          "path": "/forms/{formId}",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:accessibleResponse@1"
+                ]
+              },
+              "id": "respondentExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "respondentEntry"
+              },
+              "position": "aside",
+              "title": "Response outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:accessibleResponse@1"
+                ]
+              },
+              "id": "publicResponseForm",
+              "slotType": "definition-form",
+              "binding": {
+                "definitionRef": "https://demo.formspec.org/definitions/community-intake",
+                "presentation": "public"
+              },
+              "position": "main",
+              "title": "Your response"
+            }
+          ],
+          "params": [
+            {
+              "name": "formId",
+              "type": "string",
+              "description": "Published form identifier.",
+              "example": "v13-community-intake"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:accessibleResponse@1"
+              ]
+            },
+            "visible": false
+          },
+          "title": "Community program intake",
+          "routeClass": "intake",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:reviewResponse@1"
+                ]
+              },
+              "trigger": "reviewPublicResponse",
+              "to": "publicReview",
+              "params": {
+                "formId": "formId"
+              }
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponse@1"
+            ]
+          },
+          "id": "publicReview",
+          "path": "/forms/{formId}/review",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:reviewResponse@1"
+                ]
+              },
+              "id": "reviewExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "respondentReview"
+              },
+              "position": "aside",
+              "title": "Review outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:reviewResponse@1"
+                ]
+              },
+              "id": "reviewPanel",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "reviewPanel",
+                  "title": "Check your response",
+                  "body": "Submit now or review the optional signature statement. No signature is implied by this review page.",
+                  "blocks": [
+                    {
+                      "id": "answers",
+                      "type": "key-value",
+                      "items": [
+                        {
+                          "id": "name",
+                          "label": "Full name",
+                          "path": "primary.data.fullName",
+                          "x-generation": {
+                            "anchors": [
+                              "need:reviewResponse@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "email",
+                          "label": "Email address",
+                          "path": "primary.data.email",
+                          "x-generation": {
+                            "anchors": [
+                              "need:reviewResponse@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "program",
+                          "label": "Program",
+                          "path": "primary.data.program",
+                          "x-generation": {
+                            "anchors": [
+                              "need:reviewResponse@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "request",
+                          "label": "Request",
+                          "path": "primary.data.request",
+                          "x-generation": {
+                            "anchors": [
+                              "need:reviewResponse@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:reviewResponse@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:reviewResponse@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "secondary",
+                      "payload": {
+                        "responseData": {
+                          "path": "primary.data"
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:submissionProof@1",
+                          "need:postSubmit@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "tertiary",
+                      "payload": {
+                        "responseData": {
+                          "path": "primary.data"
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:signatureRequirement@1",
+                          "need:signatureEnvelope@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:reviewResponse@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "response:public-intake",
+                    "x-generation": {
+                      "anchors": [
+                        "need:reviewResponse@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "editPublicResponse",
+                    "x-generation": {
+                      "anchors": [
+                        "need:reviewResponse@1"
+                      ]
+                    }
+                  },
+                  "secondary": {
+                    "actionRef": "submitPublicResponse",
+                    "x-generation": {
+                      "anchors": [
+                        "need:submissionProof@1",
+                        "need:postSubmit@1"
+                      ]
+                    }
+                  },
+                  "tertiary": {
+                    "actionRef": "submitPublicResponseForSignature",
+                    "x-generation": {
+                      "anchors": [
+                        "need:signatureRequirement@1",
+                        "need:signatureEnvelope@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Answers and next action"
+            }
+          ],
+          "params": [
+            {
+              "name": "formId",
+              "type": "string",
+              "description": "Published form identifier.",
+              "example": "v13-community-intake"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:reviewResponse@1"
+              ]
+            },
+            "visible": false
+          },
+          "title": "Review your response",
+          "routeClass": "attestation",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:reviewResponse@1"
+                ]
+              },
+              "trigger": "editPublicResponse",
+              "to": "publicRespond",
+              "params": {
+                "formId": "formId"
+              }
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureRequirement@1"
+                ]
+              },
+              "trigger": "submitPublicResponseForSignature",
+              "to": "publicSign",
+              "params": {
+                "envelopeId": "envelopeId"
+              }
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:submissionProof@1"
+                ]
+              },
+              "trigger": "submitPublicResponse",
+              "to": "publicReceipt",
+              "params": {
+                "responseId": "responseId"
+              }
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:signatureRequirement@1",
+              "need:signatureEnvelope@1"
+            ]
+          },
+          "id": "publicSign",
+          "path": "/signatures/{envelopeId}/sign",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureRequirement@1"
+                ]
+              },
+              "id": "signerExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "signerCeremony"
+              },
+              "position": "aside",
+              "title": "Signature outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureRequirement@1"
+                ]
+              },
+              "id": "ceremonyFrame",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "CeremonyFrame",
+                "config": {
+                  "lead": "Read this statement before the host asks you to sign.",
+                  "statement": "I confirm that the response I reviewed is accurate and that this signature applies to that exact response digest.",
+                  "acknowledgement": "The host records the signing act; this frame only shows the statement.",
+                  "x-generation": {
+                    "anchors": [
+                      "need:signatureRequirement@1"
+                    ]
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Statement to sign"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureEnvelope@1"
+                ]
+              },
+              "id": "signatureAction",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "signatureActionPanel",
+                  "title": "Complete the host signing step",
+                  "body": "Completion is accepted separately from certificate materialization.",
+                  "actions": [
+                    {
+                      "outputName": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:signatureEnvelope@1",
+                          "need:signatureCertificate@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:signatureEnvelope@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "resource:signature-envelope",
+                    "x-generation": {
+                      "anchors": [
+                        "need:signatureEnvelope@1",
+                        "need:signatureCertificate@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "completeSignature",
+                    "x-generation": {
+                      "anchors": [
+                        "need:signatureEnvelope@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Host signing action"
+            }
+          ],
+          "params": [
+            {
+              "name": "envelopeId",
+              "type": "string",
+              "description": "Signature envelope identifier.",
+              "example": "envelope-v13-community-intake"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:signatureRequirement@1"
+              ]
+            },
+            "visible": false
+          },
+          "title": "Review the signature statement",
+          "routeClass": "ceremony",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureEnvelope@1"
+                ]
+              },
+              "trigger": "completeSignature",
+              "to": "signatureCertificate",
+              "params": {
+                "responseId": "responseId",
+                "envelopeId": "envelopeId"
+              }
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:signatureCertificate@1"
+            ]
+          },
+          "id": "signatureCertificate",
+          "path": "/signatures/{envelopeId}/certificate/{responseId}",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureCertificate@1"
+                ]
+              },
+              "id": "certificateExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "signatureCertificateReview"
+              },
+              "position": "aside",
+              "title": "Certificate outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:signatureCertificate@1"
+                ]
+              },
+              "id": "certificatePanel",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "signatureCertificatePanel",
+                  "title": "Signature certificate",
+                  "body": "Availability and verification claims come from the certificate service.",
+                  "blocks": [
+                    {
+                      "id": "certificateFacts",
+                      "type": "key-value",
+                      "items": [
+                        {
+                          "id": "state",
+                          "label": "Proof state",
+                          "path": "primary.proof_state",
+                          "x-generation": {
+                            "anchors": [
+                              "need:signatureCertificate@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "verified",
+                          "label": "Independently verifiable",
+                          "path": "primary.independently_verifiable",
+                          "x-generation": {
+                            "anchors": [
+                              "need:signatureCertificate@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "kind",
+                          "label": "Artifact",
+                          "path": "primary.artifact_kind",
+                          "x-generation": {
+                            "anchors": [
+                              "need:signatureCertificate@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:signatureCertificate@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:submissionProof@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:signatureCertificate@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "resource:signature-certificate",
+                    "x-generation": {
+                      "anchors": [
+                        "need:signatureCertificate@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "returnToReceipt",
+                    "x-generation": {
+                      "anchors": [
+                        "need:submissionProof@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Verifier-backed certificate"
+            }
+          ],
+          "params": [
+            {
+              "name": "envelopeId",
+              "type": "string",
+              "description": "Signature envelope identifier."
+            },
+            {
+              "name": "responseId",
+              "type": "string",
+              "description": "Signed response identifier."
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:signatureCertificate@1"
+              ]
+            },
+            "visible": false
+          },
+          "title": "Signature certificate",
+          "routeClass": "proof",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:submissionProof@1"
+                ]
+              },
+              "trigger": "returnToReceipt",
+              "to": "publicReceipt",
+              "params": {
+                "responseId": "responseId"
+              }
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:submissionProof@1",
+              "need:postSubmit@1"
+            ]
+          },
+          "id": "publicReceipt",
+          "path": "/receipts/{responseId}",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:submissionProof@1"
+                ]
+              },
+              "id": "receiptExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "receiptConfirmation"
+              },
+              "position": "aside",
+              "title": "Receipt outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:submissionProof@1"
+                ]
+              },
+              "id": "receiptFacts",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "ReceiptPanel",
+                "config": {
+                  "caseRefParam": "responseId",
+                  "x-generation": {
+                    "anchors": [
+                      "need:submissionProof@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "receipt": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "resource:receipt",
+                    "x-generation": {
+                      "anchors": [
+                        "need:submissionProof@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Receipt facts"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:submissionProof@1"
+                ]
+              },
+              "id": "receiptActions",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "receiptActionsPanel",
+                  "title": "Keep or verify this receipt",
+                  "body": "Received does not mean independently verified. The proof state returned by the receipt service controls that claim.",
+                  "actions": [
+                    {
+                      "outputName": "primary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:verifyIntegrity@1"
+                        ]
+                      }
+                    },
+                    {
+                      "outputName": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:submissionProof@1",
+                          "need:verifyIntegrity@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:submissionProof@1",
+                      "need:postSubmit@1"
+                    ]
+                  }
+                },
+                "actionBindings": {
+                  "primary": {
+                    "actionRef": "verifyReceipt",
+                    "x-generation": {
+                      "anchors": [
+                        "need:verifyIntegrity@1"
+                      ]
+                    }
+                  },
+                  "secondary": {
+                    "actionRef": "materializeProof",
+                    "x-generation": {
+                      "anchors": [
+                        "need:submissionProof@1",
+                        "need:verifyIntegrity@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "aside",
+              "title": "Proof actions"
+            }
+          ],
+          "params": [
+            {
+              "name": "responseId",
+              "type": "string",
+              "description": "Accepted response identifier.",
+              "example": "response_v13_demo"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:submissionProof@1"
+              ]
+            },
+            "visible": false
+          },
+          "title": "Submission receipt",
+          "routeClass": "verification",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:verifyIntegrity@1"
+                ]
+              },
+              "trigger": "verifyReceipt",
+              "to": "publicVerify",
+              "params": {
+                "responseId": "responseId"
+              }
+            }
+          ]
+        },
+        {
+          "x-generation": {
+            "anchors": [
+              "need:verifyIntegrity@1",
+              "need:signatureCertificate@1"
+            ]
+          },
+          "id": "publicVerify",
+          "path": "/verify/{responseId}",
+          "slots": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:verifyIntegrity@1"
+                ]
+              },
+              "id": "verificationExperience",
+              "slotType": "experience-unit",
+              "binding": {
+                "unitRef": "proofVerification"
+              },
+              "position": "aside",
+              "title": "Verification outcome"
+            },
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:verifyIntegrity@1"
+                ]
+              },
+              "id": "verificationPanel",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-formspec-starter",
+                "widgetName": "StructuredPanel",
+                "config": {
+                  "id": "verificationPanel",
+                  "title": "Proof returned by the verifier path",
+                  "body": "This view reports stored proof material and missing steps; it does not infer proof from dashboard status.",
+                  "blocks": [
+                    {
+                      "id": "proofFacts",
+                      "type": "key-value",
+                      "items": [
+                        {
+                          "id": "proofState",
+                          "label": "Proof state",
+                          "path": "primary.proof_state",
+                          "x-generation": {
+                            "anchors": [
+                              "need:submissionProof@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "verified",
+                          "label": "Verified",
+                          "path": "primary.verified",
+                          "x-generation": {
+                            "anchors": [
+                              "need:verifyIntegrity@1"
+                            ]
+                          }
+                        },
+                        {
+                          "id": "checkpoint",
+                          "label": "Checkpoint reference",
+                          "path": "primary.checkpoint_reference",
+                          "x-generation": {
+                            "anchors": [
+                              "need:verifyIntegrity@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "x-generation": {
+                        "anchors": [
+                          "need:verifyIntegrity@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "outputName": "secondary",
+                      "x-generation": {
+                        "anchors": [
+                          "need:submissionProof@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:verifyIntegrity@1"
+                    ]
+                  }
+                },
+                "dataBindings": {
+                  "primary": {
+                    "catalogRef": "https://demo.formspec.org/data-sources/managed-single-cell",
+                    "sourceRef": "resource:receipt",
+                    "x-generation": {
+                      "anchors": [
+                        "need:verifyIntegrity@1"
+                      ]
+                    }
+                  }
+                },
+                "actionBindings": {
+                  "secondary": {
+                    "actionRef": "returnToReceipt",
+                    "x-generation": {
+                      "anchors": [
+                        "need:submissionProof@1"
+                      ]
+                    }
+                  }
+                }
+              },
+              "position": "main",
+              "title": "Verifier result"
+            }
+          ],
+          "params": [
+            {
+              "name": "responseId",
+              "type": "string",
+              "description": "Accepted response identifier.",
+              "example": "response_v13_demo"
+            }
+          ],
+          "navigation": {
+            "x-generation": {
+              "anchors": [
+                "need:verifyIntegrity@1"
+              ]
+            },
+            "visible": false
+          },
+          "title": "Verify submission proof",
+          "routeClass": "verification",
+          "transitions": [
+            {
+              "x-generation": {
+                "anchors": [
+                  "need:submissionProof@1"
+                ]
+              },
+              "trigger": "returnToReceipt",
+              "to": "publicReceipt",
+              "params": {
+                "responseId": "responseId"
+              }
+            }
+          ]
+        }
+      ],
+      "x-generation": {
+        "anchors": [
+          "need:manageForm@1",
+          "need:operateCell@1"
+        ]
+      },
+      "entry": "forms"
+    },
+    "https://demo.formspec.org/definitions/managed-form-create": {
+      "$formspec": "1.0",
+      "url": "https://demo.formspec.org/definitions/managed-form-create",
+      "version": "1.0.0",
+      "status": "draft",
+      "title": "Formspec ManagedSingleCell",
+      "items": [
+        {
+          "key": "displayName",
+          "type": "field",
+          "label": "Form name",
+          "dataType": "string",
+          "presentation": {
+            "widgetHint": "TextInput",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          }
+        },
+        {
+          "key": "slug",
+          "type": "field",
+          "label": "Public link name",
+          "dataType": "string",
+          "presentation": {
+            "widgetHint": "TextInput",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:publishForm@1",
+              "need:embedPublishedForm@1"
+            ]
+          }
+        }
+      ],
+      "x-generation": {
+        "anchors": [
+          "need:manageForm@1"
+        ]
+      },
+      "binds": [
+        {
+          "path": "displayName",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          }
+        },
+        {
+          "path": "slug",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:publishForm@1",
+              "need:embedPublishedForm@1"
+            ]
+          }
+        }
+      ]
+    },
+    "https://demo.formspec.org/definitions/managed-form-settings": {
+      "$formspec": "1.0",
+      "url": "https://demo.formspec.org/definitions/managed-form-settings",
+      "version": "1.0.0",
+      "status": "draft",
+      "title": "Formspec ManagedSingleCell",
+      "items": [
+        {
+          "key": "displayName",
+          "type": "field",
+          "label": "Form name",
+          "dataType": "string",
+          "presentation": {
+            "widgetHint": "TextInput",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          }
+        },
+        {
+          "key": "slug",
+          "type": "field",
+          "label": "Public link name",
+          "dataType": "string",
+          "presentation": {
+            "widgetHint": "TextInput",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:publishForm@1"
+            ]
+          }
+        },
+        {
+          "key": "accessMode",
+          "type": "field",
+          "label": "Access mode",
+          "dataType": "choice",
+          "options": [
+            {
+              "value": "public",
+              "label": "Public",
+              "x-generation": {
+                "anchors": [
+                  "need:publishForm@1"
+                ]
+              }
+            },
+            {
+              "value": "protected",
+              "label": "Protected",
+              "x-generation": {
+                "anchors": [
+                  "need:publishForm@1"
+                ]
+              }
+            }
+          ],
+          "presentation": {
+            "widgetHint": "RadioGroup",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:publishForm@1"
+            ]
+          }
+        },
+        {
+          "key": "signatureMode",
+          "type": "field",
+          "label": "Signature mode",
+          "dataType": "choice",
+          "options": [
+            {
+              "value": "none",
+              "label": "No signature",
+              "x-generation": {
+                "anchors": [
+                  "need:signatureRequirement@1"
+                ]
+              }
+            },
+            {
+              "value": "optional",
+              "label": "Optional signature",
+              "x-generation": {
+                "anchors": [
+                  "need:signatureRequirement@1"
+                ]
+              }
+            },
+            {
+              "value": "required",
+              "label": "Required signature",
+              "x-generation": {
+                "anchors": [
+                  "need:signatureRequirement@1"
+                ]
+              }
+            }
+          ],
+          "presentation": {
+            "widgetHint": "RadioGroup",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:signatureRequirement@1"
+            ]
+          }
+        },
+        {
+          "key": "confirmationMessage",
+          "type": "field",
+          "label": "Confirmation message",
+          "dataType": "text",
+          "presentation": {
+            "widgetHint": "TextInput",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:postSubmit@1"
+            ]
+          }
+        },
+        {
+          "key": "sendReceiptEmail",
+          "type": "field",
+          "label": "Email a receipt link after submit",
+          "dataType": "boolean",
+          "presentation": {
+            "widgetHint": "Toggle",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:notifyReceipt@1"
+            ]
+          }
+        }
+      ],
+      "x-generation": {
+        "anchors": [
+          "need:manageForm@1"
+        ]
+      },
+      "binds": [
+        {
+          "path": "displayName",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          }
+        },
+        {
+          "path": "slug",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:publishForm@1"
+            ]
+          }
+        },
+        {
+          "path": "accessMode",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:publishForm@1"
+            ]
+          }
+        },
+        {
+          "path": "signatureMode",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:signatureRequirement@1"
+            ]
+          }
+        },
+        {
+          "path": "confirmationMessage",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:postSubmit@1"
+            ]
+          }
+        },
+        {
+          "path": "sendReceiptEmail",
+          "required": "false",
+          "x-generation": {
+            "anchors": [
+              "need:notifyReceipt@1"
+            ]
+          }
+        }
+      ]
+    },
+    "https://demo.formspec.org/definitions/community-intake": {
+      "$formspec": "1.0",
+      "url": "https://demo.formspec.org/definitions/community-intake",
+      "version": "1.0.0",
+      "status": "draft",
+      "title": "Formspec ManagedSingleCell",
+      "items": [
+        {
+          "key": "fullName",
+          "type": "field",
+          "label": "Full name",
+          "dataType": "string",
+          "presentation": {
+            "widgetHint": "TextInput",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:accessibleResponse@1"
+            ]
+          }
+        },
+        {
+          "key": "email",
+          "type": "field",
+          "label": "Email address",
+          "dataType": "string",
+          "semanticType": "https://schema.org/email",
+          "presentation": {
+            "widgetHint": "TextInput",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:accessibleResponse@1"
+            ]
+          }
+        },
+        {
+          "key": "program",
+          "type": "field",
+          "label": "Program",
+          "dataType": "choice",
+          "options": [
+            {
+              "value": "food-access",
+              "label": "Food access",
+              "x-generation": {
+                "anchors": [
+                  "need:accessibleResponse@1"
+                ]
+              }
+            },
+            {
+              "value": "housing-navigation",
+              "label": "Housing navigation",
+              "x-generation": {
+                "anchors": [
+                  "need:accessibleResponse@1"
+                ]
+              }
+            },
+            {
+              "value": "other",
+              "label": "Another program",
+              "x-generation": {
+                "anchors": [
+                  "need:accessibleResponse@1"
+                ]
+              }
+            }
+          ],
+          "presentation": {
+            "widgetHint": "Select",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:accessibleResponse@1"
+            ]
+          }
+        },
+        {
+          "key": "request",
+          "type": "field",
+          "label": "What help do you need?",
+          "dataType": "text",
+          "presentation": {
+            "widgetHint": "TextInput",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:accessibleResponse@1"
+            ]
+          }
+        },
+        {
+          "key": "attestAccuracy",
+          "type": "field",
+          "label": "I confirm that this response is accurate",
+          "dataType": "boolean",
+          "presentation": {
+            "widgetHint": "Toggle",
+            "layout": {
+              "flow": "stack"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponse@1",
+              "need:signatureRequirement@1"
+            ]
+          }
+        }
+      ],
+      "x-generation": {
+        "anchors": [
+          "need:accessibleResponse@1"
+        ]
+      },
+      "binds": [
+        {
+          "path": "fullName",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:accessibleResponse@1"
+            ]
+          }
+        },
+        {
+          "path": "email",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:accessibleResponse@1"
+            ]
+          }
+        },
+        {
+          "path": "program",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:accessibleResponse@1"
+            ]
+          }
+        },
+        {
+          "path": "request",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:accessibleResponse@1"
+            ]
+          }
+        },
+        {
+          "path": "attestAccuracy",
+          "required": "true",
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponse@1",
+              "need:signatureRequirement@1"
+            ]
+          }
+        }
+      ]
+    },
+    "urn:formspec:doc:5b366f5723f9aa5c:experience": {
+      "$formspecExperience": "1.0",
+      "version": "1.0.0",
+      "actors": [
+        {
+          "id": "formOwner",
+          "title": "Form owner",
+          "description": "Creates, publishes, and reviews managed forms and responses."
+        },
+        {
+          "id": "respondent",
+          "title": "Respondent",
+          "description": "Completes, reviews, and submits a public response."
+        },
+        {
+          "id": "signerCoordinator",
+          "title": "Signature coordinator",
+          "description": "Creates envelopes and follows signer progress."
+        },
+        {
+          "id": "signer",
+          "title": "Signer",
+          "description": "Reads the attestation and completes the signature ceremony."
+        },
+        {
+          "id": "auditor",
+          "title": "Verifier",
+          "description": "Checks receipt and certificate proof independently."
+        },
+        {
+          "id": "operator",
+          "title": "Cell operator",
+          "description": "Checks the active cell and remediates failed proof work."
+        },
+        {
+          "id": "integrator",
+          "title": "Integrator",
+          "description": "Uses the published runtime endpoint and embed snippet."
+        }
+      ],
+      "tasks": [
+        {
+          "id": "createManagedForm",
+          "title": "Create a managed form",
+          "actorRefs": [
+            "formOwner"
+          ]
+        },
+        {
+          "id": "publishRuntime",
+          "title": "Publish and distribute an immutable runtime",
+          "actorRefs": [
+            "formOwner",
+            "integrator"
+          ]
+        },
+        {
+          "id": "protectPublishedVersions",
+          "title": "Inspect and retire published versions safely",
+          "actorRefs": [
+            "formOwner"
+          ]
+        },
+        {
+          "id": "reviewAcceptedResponses",
+          "title": "Find and inspect accepted responses",
+          "actorRefs": [
+            "formOwner"
+          ]
+        },
+        {
+          "id": "coordinateSignatures",
+          "title": "Create and track signature envelopes",
+          "actorRefs": [
+            "signerCoordinator"
+          ]
+        },
+        {
+          "id": "completePublicResponse",
+          "title": "Complete and review the public form",
+          "actorRefs": [
+            "respondent"
+          ]
+        },
+        {
+          "id": "signSubmittedResponse",
+          "title": "Complete the disclosed signing act",
+          "actorRefs": [
+            "signer"
+          ]
+        },
+        {
+          "id": "retainSubmissionReceipt",
+          "title": "Keep the accepted response receipt",
+          "actorRefs": [
+            "respondent"
+          ]
+        },
+        {
+          "id": "verifyProof",
+          "title": "Check materialized proof and exact gaps",
+          "actorRefs": [
+            "auditor",
+            "operator"
+          ]
+        },
+        {
+          "id": "inspectReadiness",
+          "title": "Inspect active cell readiness",
+          "actorRefs": [
+            "operator"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "id": "ownerForms",
+          "kind": "data-entry",
+          "title": "Create and find managed forms",
+          "taskRefs": [
+            "createManagedForm"
+          ],
+          "itemRefs": [
+            {
+              "path": "displayName",
+              "purpose": "collect"
+            },
+            {
+              "path": "slug",
+              "purpose": "collect"
+            },
+            {
+              "path": "accessMode",
+              "purpose": "collect"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "createForm",
+              "role": "primary"
+            },
+            {
+              "id": "openForm",
+              "role": "secondary"
+            },
+            {
+              "id": "openResponses",
+              "role": "secondary"
+            },
+            {
+              "id": "openSignatures",
+              "role": "secondary"
+            },
+            {
+              "id": "viewReadiness",
+              "role": "secondary"
+            }
+          ],
+          "actorRef": "formOwner",
+          "needRefs": [
+            {
+              "id": "manageForm"
+            },
+            {
+              "id": "publishForm"
+            },
+            {
+              "id": "reviewResponses"
+            },
+            {
+              "id": "signatureEnvelope"
+            },
+            {
+              "id": "operateCell"
+            }
+          ]
+        },
+        {
+          "id": "ownerWorkspace",
+          "kind": "data-entry",
+          "title": "Edit and publish one managed form",
+          "taskRefs": [
+            "publishRuntime"
+          ],
+          "itemRefs": [
+            {
+              "path": "displayName",
+              "purpose": "collect"
+            },
+            {
+              "path": "slug",
+              "purpose": "collect"
+            },
+            {
+              "path": "accessMode",
+              "purpose": "collect"
+            },
+            {
+              "path": "signatureMode",
+              "purpose": "collect"
+            },
+            {
+              "path": "confirmationMessage",
+              "purpose": "collect"
+            },
+            {
+              "path": "sendReceiptEmail",
+              "purpose": "collect"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "saveFormDraft",
+              "role": "secondary"
+            },
+            {
+              "id": "publishForm",
+              "role": "primary"
+            },
+            {
+              "id": "openVersions",
+              "role": "secondary"
+            },
+            {
+              "id": "openResponses",
+              "role": "secondary"
+            }
+          ],
+          "actorRef": "formOwner",
+          "needRefs": [
+            {
+              "id": "manageForm"
+            },
+            {
+              "id": "publishForm"
+            },
+            {
+              "id": "protectVersions"
+            },
+            {
+              "id": "reviewResponses"
+            },
+            {
+              "id": "notifyReceipt"
+            },
+            {
+              "id": "postSubmit"
+            },
+            {
+              "id": "signatureRequirement"
+            }
+          ]
+        },
+        {
+          "id": "versionControl",
+          "kind": "review",
+          "title": "Inspect and retire immutable versions",
+          "taskRefs": [
+            "protectPublishedVersions"
+          ],
+          "actionRefs": [
+            {
+              "id": "retireVersion",
+              "role": "primary"
+            },
+            {
+              "id": "returnToForm",
+              "role": "escape"
+            }
+          ],
+          "actorRef": "formOwner",
+          "needRefs": [
+            {
+              "id": "protectVersions"
+            }
+          ]
+        },
+        {
+          "id": "responseQueue",
+          "kind": "review",
+          "title": "Find and export responses",
+          "taskRefs": [
+            "reviewAcceptedResponses"
+          ],
+          "actionRefs": [
+            {
+              "id": "openResponse",
+              "role": "primary"
+            },
+            {
+              "id": "exportCsv",
+              "role": "secondary"
+            },
+            {
+              "id": "exportJson",
+              "role": "secondary"
+            }
+          ],
+          "actorRef": "formOwner",
+          "needRefs": [
+            {
+              "id": "reviewResponses"
+            }
+          ]
+        },
+        {
+          "id": "responseInspection",
+          "kind": "review",
+          "title": "Inspect response output and proof work",
+          "taskRefs": [
+            "reviewAcceptedResponses",
+            "verifyProof"
+          ],
+          "actionRefs": [
+            {
+              "id": "emailReceipt",
+              "role": "secondary"
+            },
+            {
+              "id": "openReceipt",
+              "role": "primary"
+            },
+            {
+              "id": "remediateProof",
+              "role": "secondary"
+            }
+          ],
+          "actorRef": "formOwner",
+          "needRefs": [
+            {
+              "id": "reviewResponses"
+            },
+            {
+              "id": "stablePdf"
+            },
+            {
+              "id": "notifyReceipt"
+            },
+            {
+              "id": "submissionProof"
+            },
+            {
+              "id": "verifyIntegrity"
+            }
+          ]
+        },
+        {
+          "id": "signatureOperations",
+          "kind": "review",
+          "title": "Create and track optional signatures",
+          "taskRefs": [
+            "coordinateSignatures"
+          ],
+          "actionRefs": [
+            {
+              "id": "createEnvelope",
+              "role": "primary"
+            }
+          ],
+          "actorRef": "signerCoordinator",
+          "needRefs": [
+            {
+              "id": "signatureRequirement"
+            },
+            {
+              "id": "signatureEnvelope"
+            },
+            {
+              "id": "signatureStatus"
+            },
+            {
+              "id": "signatureCertificate"
+            }
+          ]
+        },
+        {
+          "id": "readinessReview",
+          "kind": "review",
+          "title": "Read the active cell readiness response",
+          "taskRefs": [
+            "inspectReadiness"
+          ],
+          "actionRefs": [
+            {
+              "id": "returnToForms",
+              "role": "escape"
+            }
+          ],
+          "actorRef": "operator",
+          "needRefs": [
+            {
+              "id": "operateCell"
+            },
+            {
+              "id": "manageForm"
+            }
+          ]
+        },
+        {
+          "id": "respondentEntry",
+          "kind": "data-entry",
+          "title": "Complete the public form",
+          "taskRefs": [
+            "completePublicResponse"
+          ],
+          "itemRefs": [
+            {
+              "path": "fullName",
+              "purpose": "collect"
+            },
+            {
+              "path": "email",
+              "purpose": "collect"
+            },
+            {
+              "path": "program",
+              "purpose": "collect"
+            },
+            {
+              "path": "request",
+              "purpose": "collect"
+            },
+            {
+              "path": "attestAccuracy",
+              "purpose": "collect"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "reviewPublicResponse",
+              "role": "primary"
+            }
+          ],
+          "actorRef": "respondent",
+          "needRefs": [
+            {
+              "id": "accessibleResponse"
+            },
+            {
+              "id": "reviewResponse"
+            },
+            {
+              "id": "signatureRequirement"
+            }
+          ]
+        },
+        {
+          "id": "respondentReview",
+          "kind": "review",
+          "title": "Review answers before commitment",
+          "taskRefs": [
+            "completePublicResponse"
+          ],
+          "itemRefs": [
+            {
+              "path": "fullName",
+              "purpose": "display"
+            },
+            {
+              "path": "email",
+              "purpose": "display"
+            },
+            {
+              "path": "program",
+              "purpose": "display"
+            },
+            {
+              "path": "request",
+              "purpose": "display"
+            },
+            {
+              "path": "attestAccuracy",
+              "purpose": "attest"
+            }
+          ],
+          "actionRefs": [
+            {
+              "id": "editPublicResponse",
+              "role": "escape"
+            },
+            {
+              "id": "submitPublicResponse",
+              "role": "primary"
+            },
+            {
+              "id": "submitPublicResponseForSignature",
+              "role": "secondary"
+            }
+          ],
+          "actorRef": "respondent",
+          "needRefs": [
+            {
+              "id": "reviewResponse"
+            },
+            {
+              "id": "submissionProof"
+            },
+            {
+              "id": "signatureRequirement"
+            }
+          ]
+        },
+        {
+          "id": "signerCeremony",
+          "kind": "attestation",
+          "title": "Read the exact statement before signing",
+          "taskRefs": [
+            "signSubmittedResponse"
+          ],
+          "actionRefs": [
+            {
+              "id": "completeSignature",
+              "role": "primary"
+            }
+          ],
+          "actorRef": "signer",
+          "needRefs": [
+            {
+              "id": "signatureRequirement"
+            },
+            {
+              "id": "signatureEnvelope"
+            }
+          ]
+        },
+        {
+          "id": "receiptConfirmation",
+          "kind": "confirmation",
+          "title": "Keep the receipt and its current proof state",
+          "taskRefs": [
+            "retainSubmissionReceipt",
+            "verifyProof"
+          ],
+          "actionRefs": [
+            {
+              "id": "verifyReceipt",
+              "role": "primary"
+            },
+            {
+              "id": "materializeProof",
+              "role": "secondary"
+            }
+          ],
+          "actorRef": "respondent",
+          "needRefs": [
+            {
+              "id": "submissionProof"
+            },
+            {
+              "id": "verifyIntegrity"
+            },
+            {
+              "id": "postSubmit"
+            },
+            {
+              "id": "notifyReceipt"
+            }
+          ]
+        },
+        {
+          "id": "proofVerification",
+          "kind": "review",
+          "title": "Inspect verifier-backed proof",
+          "taskRefs": [
+            "verifyProof"
+          ],
+          "actionRefs": [
+            {
+              "id": "returnToReceipt",
+              "role": "escape"
+            }
+          ],
+          "actorRef": "auditor",
+          "needRefs": [
+            {
+              "id": "verifyIntegrity"
+            },
+            {
+              "id": "submissionProof"
+            },
+            {
+              "id": "signatureCertificate"
+            }
+          ]
+        },
+        {
+          "id": "signatureCertificateReview",
+          "kind": "review",
+          "title": "Inspect the signature certificate",
+          "taskRefs": [
+            "verifyProof"
+          ],
+          "actionRefs": [
+            {
+              "id": "returnToReceipt",
+              "role": "primary"
+            }
+          ],
+          "actorRef": "auditor",
+          "needRefs": [
+            {
+              "id": "signatureCertificate"
+            },
+            {
+              "id": "submissionProof"
+            }
+          ]
+        }
+      ]
+    },
+    "https://demo.formspec.org/response-actions/managed-form-create": {
+      "$formspecResponseActions": "1.0",
+      "version": "1.0.0",
+      "actions": [
+        {
+          "id": "createForm",
+          "intent": "submit",
+          "label": {
+            "literal": "Create form"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "createManagedForm",
+              "idempotencyKey": "@invocation.id & '/create-form'",
+              "onError": "fail"
+            }
+          ]
+        }
+      ],
+      "x-formspec-runtime": {
+        "version": "1.0",
+        "requests": [
+          {
+            "id": "createManagedForm",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/forms",
+              "bodyDefaults": {
+                "created_by": "principal_v13_owner"
+              },
+              "bodyBindings": {
+                "/display_name": {
+                  "from": "input",
+                  "path": "response.data.displayName"
+                },
+                "/slug": {
+                  "from": "input",
+                  "path": "response.data.slug"
+                }
+              }
+            },
+            "outputs": {
+              "formId": {
+                "path": "/form_id",
+                "exposure": "transition"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:manageForm@1"
+              ]
+            }
+          }
+        ]
+      },
+      "scope": "response",
+      "targetDefinition": {
+        "url": "https://demo.formspec.org/definitions/managed-form-create",
+        "compatibleVersions": "1.0.0"
+      }
+    },
+    "https://demo.formspec.org/response-actions/managed-form-settings": {
+      "$formspecResponseActions": "1.0",
+      "version": "1.0.0",
+      "actions": [
+        {
+          "id": "saveFormDraft",
+          "intent": "save-draft",
+          "label": {
+            "literal": "Save draft"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "saveManagedFormDraft",
+              "idempotencyKey": "@invocation.id & '/save-form-draft'",
+              "onError": "fail"
+            }
+          ]
+        },
+        {
+          "id": "publishForm",
+          "intent": "submit",
+          "label": {
+            "literal": "Publish version"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:publishForm@1",
+              "need:embedPublishedForm@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "publishManagedForm",
+              "idempotencyKey": "@invocation.id & '/publish-form'",
+              "onError": "fail"
+            }
+          ]
+        }
+      ],
+      "x-formspec-runtime": {
+        "version": "1.0",
+        "requests": [
+          {
+            "id": "saveManagedFormDraft",
+            "adapter": "http-json",
+            "request": {
+              "method": "PATCH",
+              "pathTemplate": "/forms/{formId}/draft",
+              "pathBindings": {
+                "formId": {
+                  "from": "route",
+                  "path": "formId"
+                }
+              },
+              "bodyBindings": {
+                "/display_name": {
+                  "from": "input",
+                  "path": "response.data.displayName"
+                }
+              }
+            },
+            "outputs": {
+              "savedFormId": {
+                "path": "/form_id"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:manageForm@1"
+              ]
+            }
+          },
+          {
+            "id": "publishManagedForm",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/forms/{formId}/versions/publish",
+              "pathBindings": {
+                "formId": {
+                  "from": "route",
+                  "path": "formId"
+                }
+              },
+              "bodyDefaults": {
+                "definition_url": "https://demo.formspec.org/definitions/community-intake",
+                "definition_version": "1.0.0",
+                "definition": {
+                  "$formspec": "1.0",
+                  "url": "https://demo.formspec.org/definitions/community-intake",
+                  "version": "1.0.0",
+                  "status": "draft",
+                  "title": "Formspec ManagedSingleCell",
+                  "items": [
+                    {
+                      "key": "fullName",
+                      "type": "field",
+                      "label": "Full name",
+                      "dataType": "string",
+                      "presentation": {
+                        "widgetHint": "TextInput",
+                        "layout": {
+                          "flow": "stack"
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:accessibleResponse@1"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "email",
+                      "type": "field",
+                      "label": "Email address",
+                      "dataType": "string",
+                      "semanticType": "https://schema.org/email",
+                      "presentation": {
+                        "widgetHint": "TextInput",
+                        "layout": {
+                          "flow": "stack"
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:accessibleResponse@1"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "program",
+                      "type": "field",
+                      "label": "Program",
+                      "dataType": "choice",
+                      "options": [
+                        {
+                          "value": "food-access",
+                          "label": "Food access",
+                          "x-generation": {
+                            "anchors": [
+                              "need:accessibleResponse@1"
+                            ]
+                          }
+                        },
+                        {
+                          "value": "housing-navigation",
+                          "label": "Housing navigation",
+                          "x-generation": {
+                            "anchors": [
+                              "need:accessibleResponse@1"
+                            ]
+                          }
+                        },
+                        {
+                          "value": "other",
+                          "label": "Another program",
+                          "x-generation": {
+                            "anchors": [
+                              "need:accessibleResponse@1"
+                            ]
+                          }
+                        }
+                      ],
+                      "presentation": {
+                        "widgetHint": "Select",
+                        "layout": {
+                          "flow": "stack"
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:accessibleResponse@1"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "request",
+                      "type": "field",
+                      "label": "What help do you need?",
+                      "dataType": "text",
+                      "presentation": {
+                        "widgetHint": "TextInput",
+                        "layout": {
+                          "flow": "stack"
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:accessibleResponse@1"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "attestAccuracy",
+                      "type": "field",
+                      "label": "I confirm that this response is accurate",
+                      "dataType": "boolean",
+                      "presentation": {
+                        "widgetHint": "Toggle",
+                        "layout": {
+                          "flow": "stack"
+                        }
+                      },
+                      "x-generation": {
+                        "anchors": [
+                          "need:reviewResponse@1",
+                          "need:signatureRequirement@1"
+                        ]
+                      }
+                    }
+                  ],
+                  "x-generation": {
+                    "anchors": [
+                      "need:accessibleResponse@1"
+                    ]
+                  },
+                  "binds": [
+                    {
+                      "path": "fullName",
+                      "required": "true",
+                      "x-generation": {
+                        "anchors": [
+                          "need:accessibleResponse@1"
+                        ]
+                      }
+                    },
+                    {
+                      "path": "email",
+                      "required": "true",
+                      "x-generation": {
+                        "anchors": [
+                          "need:accessibleResponse@1"
+                        ]
+                      }
+                    },
+                    {
+                      "path": "program",
+                      "required": "true",
+                      "x-generation": {
+                        "anchors": [
+                          "need:accessibleResponse@1"
+                        ]
+                      }
+                    },
+                    {
+                      "path": "request",
+                      "required": "true",
+                      "x-generation": {
+                        "anchors": [
+                          "need:accessibleResponse@1"
+                        ]
+                      }
+                    },
+                    {
+                      "path": "attestAccuracy",
+                      "required": "true",
+                      "x-generation": {
+                        "anchors": [
+                          "need:reviewResponse@1",
+                          "need:signatureRequirement@1"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "definition_hash": "sha256:v13-community-intake-v1",
+                "theme_ref": null,
+                "locale_refs": [
+                  "en-US"
+                ],
+                "references": [],
+                "ontology": {
+                  "fallback": "not_configured"
+                },
+                "component_document": {
+                  "fallback": "not_configured"
+                },
+                "runtime_config": {
+                  "mode": "published",
+                  "access_mode": "public",
+                  "signature_mode": "none",
+                  "notifications": {
+                    "owner": true,
+                    "respondent": false
+                  },
+                  "post_submit": {
+                    "thank_you": "Your response was received.",
+                    "locale": "en-US",
+                    "handoff": {
+                      "kind": "receipt"
+                    }
+                  }
+                },
+                "created_by": "principal_v13_owner"
+              },
+              "bodyBindings": {
+                "/runtime_config/access_mode": {
+                  "from": "input",
+                  "path": "response.data.accessMode"
+                },
+                "/runtime_config/signature_mode": {
+                  "from": "input",
+                  "path": "response.data.signatureMode"
+                },
+                "/runtime_config/notifications/respondent": {
+                  "from": "input",
+                  "path": "response.data.sendReceiptEmail"
+                },
+                "/runtime_config/post_submit/thank_you": {
+                  "from": "input",
+                  "path": "response.data.confirmationMessage"
+                }
+              }
+            },
+            "outputs": {
+              "publishedFormId": {
+                "path": "/form_id",
+                "exposure": "session"
+              },
+              "formVersionId": {
+                "path": "/form_version_id",
+                "exposure": "session"
+              },
+              "shareUrl": {
+                "path": "/share_url"
+              },
+              "formId": {
+                "path": "/form_id",
+                "exposure": "transition"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:publishForm@1",
+                "need:embedPublishedForm@1"
+              ]
+            }
+          }
+        ]
+      },
+      "scope": "response",
+      "targetDefinition": {
+        "url": "https://demo.formspec.org/definitions/managed-form-settings",
+        "compatibleVersions": "1.0.0"
+      }
+    },
+    "https://demo.formspec.org/response-actions/community-intake": {
+      "$formspecResponseActions": "1.0",
+      "version": "1.0.0",
+      "actions": [
+        {
+          "id": "reviewPublicResponse",
+          "intent": "review",
+          "label": {
+            "literal": "Review response"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponse@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "createAnonymousSession",
+              "idempotencyKey": "@invocation.id & '/anonymous-session'",
+              "onError": "fail"
+            },
+            {
+              "type": "serviceRequest",
+              "requestRef": "createPublicDraft",
+              "idempotencyKey": "@invocation.id & '/public-draft'",
+              "onError": "fail"
+            }
+          ]
+        }
+      ],
+      "x-formspec-runtime": {
+        "version": "1.0",
+        "requests": [
+          {
+            "id": "createAnonymousSession",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/runtime/forms/{formId}/sessions/anonymous",
+              "pathBindings": {
+                "formId": {
+                  "from": "route",
+                  "path": "formId"
+                }
+              },
+              "bodyDefaults": {}
+            },
+            "outputs": {
+              "anonymousSessionToken": {
+                "path": "/session_token"
+              },
+              "publicSessionToken": {
+                "path": "/session_token",
+                "exposure": "session"
+              },
+              "anonymousSubjectRef": {
+                "path": "/subject_ref"
+              },
+              "publicSubjectRef": {
+                "path": "/subject_ref",
+                "exposure": "session"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:accessibleResponse@1",
+                "need:reviewResponse@1"
+              ]
+            }
+          },
+          {
+            "id": "createPublicDraft",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/runtime/forms/{formId}/drafts",
+              "pathBindings": {
+                "formId": {
+                  "from": "route",
+                  "path": "formId"
+                }
+              },
+              "bodyDefaults": {},
+              "bodyBindings": {
+                "/anonymous_session_token": {
+                  "from": "result",
+                  "path": "anonymousSessionToken"
+                },
+                "/anonymous_subject_ref": {
+                  "from": "result",
+                  "path": "anonymousSubjectRef"
+                },
+                "/draft_state": {
+                  "from": "input",
+                  "path": "response.data"
+                }
+              }
+            },
+            "outputs": {
+              "draftId": {
+                "path": "/draft_id",
+                "exposure": "session"
+              },
+              "draftVersion": {
+                "path": "/form_version_id",
+                "exposure": "session"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:reviewResponse@1"
+              ]
+            }
+          }
+        ]
+      },
+      "scope": "response",
+      "targetDefinition": {
+        "url": "https://demo.formspec.org/definitions/community-intake",
+        "compatibleVersions": "1.0.0"
+      }
+    },
+    "https://demo.formspec.org/response-actions/managed-single-cell-app": {
+      "$formspecResponseActions": "1.0",
+      "version": "1.0.0",
+      "actions": [
+        {
+          "id": "openVersions",
+          "intent": "review",
+          "label": {
+            "literal": "View versions"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:protectVersions@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.versions"
+            }
+          ]
+        },
+        {
+          "id": "returnToForm",
+          "intent": "review",
+          "label": {
+            "literal": "Return to form"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:protectVersions@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.form-return"
+            }
+          ]
+        },
+        {
+          "id": "openResponses",
+          "intent": "review",
+          "label": {
+            "literal": "View responses"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponses@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.responses"
+            }
+          ]
+        },
+        {
+          "id": "openReceipt",
+          "intent": "review",
+          "label": {
+            "literal": "Open receipt"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:submissionProof@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.receipt"
+            }
+          ]
+        },
+        {
+          "id": "openSignatures",
+          "intent": "review",
+          "label": {
+            "literal": "View signatures"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:signatureEnvelope@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.signatures"
+            }
+          ]
+        },
+        {
+          "id": "editPublicResponse",
+          "intent": "review",
+          "label": {
+            "literal": "Edit response"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponse@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.response-edit"
+            }
+          ]
+        },
+        {
+          "id": "returnToReceipt",
+          "intent": "review",
+          "label": {
+            "literal": "Return to receipt"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:submissionProof@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.receipt-return"
+            }
+          ]
+        },
+        {
+          "id": "viewReadiness",
+          "intent": "request-evidence",
+          "label": {
+            "literal": "View cell readiness"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:operateCell@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.readiness"
+            }
+          ]
+        },
+        {
+          "id": "returnToForms",
+          "intent": "review",
+          "label": {
+            "literal": "Return to forms"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.forms"
+            }
+          ]
+        },
+        {
+          "id": "retireVersion",
+          "intent": "submit",
+          "label": {
+            "literal": "Retire selected version"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:protectVersions@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "retirePublishedVersion",
+              "idempotencyKey": "@invocation.id & '/retire-version'",
+              "onError": "fail"
+            }
+          ]
+        },
+        {
+          "id": "emailReceipt",
+          "intent": "request-evidence",
+          "label": {
+            "literal": "Email receipt link"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:notifyReceipt@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "queueReceiptEmail",
+              "idempotencyKey": "@invocation.id & '/email-receipt'",
+              "onError": "fail"
+            }
+          ]
+        },
+        {
+          "id": "materializeProof",
+          "intent": "request-evidence",
+          "label": {
+            "literal": "Materialize receipt proof"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:submissionProof@1",
+              "need:verifyIntegrity@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "materializeReceiptProof",
+              "idempotencyKey": "@invocation.id & '/materialize-proof'",
+              "onError": "fail"
+            }
+          ]
+        },
+        {
+          "id": "verifyReceipt",
+          "intent": "request-evidence",
+          "label": {
+            "literal": "Verify proof"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:verifyIntegrity@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "verifyReceiptProof",
+              "idempotencyKey": "@invocation.id & '/verify-proof'",
+              "onError": "fail"
+            }
+          ]
+        },
+        {
+          "id": "remediateProof",
+          "intent": "request-evidence",
+          "label": {
+            "literal": "Retry failed proof"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:submissionProof@1",
+              "need:verifyIntegrity@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "remediateReceiptProof",
+              "idempotencyKey": "@invocation.id & '/remediate-proof'",
+              "onError": "fail"
+            }
+          ]
+        },
+        {
+          "id": "createEnvelope",
+          "intent": "submit",
+          "label": {
+            "literal": "Create signature envelope"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:signatureEnvelope@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "createSignatureEnvelope",
+              "idempotencyKey": "@invocation.id & '/create-envelope'",
+              "onError": "fail"
+            }
+          ]
+        },
+        {
+          "id": "completeSignature",
+          "intent": "submit",
+          "label": {
+            "literal": "Complete signature"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:signatureEnvelope@1",
+              "need:signatureCertificate@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "completeEnvelopeSigner",
+              "idempotencyKey": "@invocation.id & '/complete-signature'",
+              "onError": "fail"
+            }
+          ]
+        },
+        {
+          "id": "exportCsv",
+          "intent": "request-evidence",
+          "label": {
+            "literal": "Export CSV"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponses@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "browserResource",
+              "operation": "open",
+              "resourceRef": "resource",
+              "target": "new"
+            }
+          ]
+        },
+        {
+          "id": "exportJson",
+          "intent": "request-evidence",
+          "label": {
+            "literal": "Export JSON"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponses@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "browserResource",
+              "operation": "open",
+              "resourceRef": "resource",
+              "target": "new"
+            }
+          ]
+        },
+        {
+          "id": "submitPublicResponse",
+          "intent": "submit",
+          "label": {
+            "literal": "Submit response"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:submissionProof@1",
+              "need:postSubmit@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "submitPublicDraft",
+              "idempotencyKey": "@invocation.id & '/submit-public-draft'",
+              "onError": "fail"
+            }
+          ]
+        },
+        {
+          "id": "submitPublicResponseForSignature",
+          "intent": "submit",
+          "label": {
+            "literal": "Submit and request signature"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:signatureRequirement@1",
+              "need:signatureEnvelope@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "serviceRequest",
+              "requestRef": "submitPublicDraftForSignature",
+              "idempotencyKey": "@invocation.id & '/submit-public-draft-for-signature'",
+              "onError": "fail"
+            },
+            {
+              "type": "serviceRequest",
+              "requestRef": "createPublicSignatureEnvelope",
+              "idempotencyKey": "@invocation.id & '/create-public-signature-envelope'",
+              "onError": "fail"
+            }
+          ]
+        },
+        {
+          "id": "openResponse",
+          "intent": "review",
+          "label": {
+            "literal": "Open response"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponses@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.response"
+            }
+          ]
+        },
+        {
+          "id": "openForm",
+          "intent": "review",
+          "label": {
+            "literal": "Open form"
+          },
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          },
+          "effects": [
+            {
+              "type": "hostEvent",
+              "eventName": "formspec.navigate.form"
+            }
+          ]
+        }
+      ],
+      "x-formspec-runtime": {
+        "version": "1.0",
+        "requests": [
+          {
+            "id": "retirePublishedVersion",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/forms/{formId}/versions/{formVersionId}/retire",
+              "pathBindings": {
+                "formId": {
+                  "from": "route",
+                  "path": "formId"
+                },
+                "formVersionId": {
+                  "from": "session",
+                  "path": "formVersionId"
+                }
+              },
+              "bodyDefaults": {}
+            },
+            "x-generation": {
+              "anchors": [
+                "need:protectVersions@1"
+              ]
+            }
+          },
+          {
+            "id": "queueReceiptEmail",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/responses/{responseId}/receipt/email",
+              "pathBindings": {
+                "responseId": {
+                  "from": "route",
+                  "path": "responseId"
+                }
+              },
+              "bodyDefaults": {
+                "include_sensitive_content": false
+              },
+              "bodyBindings": {
+                "/recipient": {
+                  "from": "input",
+                  "path": "recipient"
+                }
+              }
+            },
+            "outputs": {
+              "deliveryIntentId": {
+                "path": "/delivery_intent_id"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:notifyReceipt@1"
+              ]
+            }
+          },
+          {
+            "id": "materializeReceiptProof",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/responses/{responseId}/receipt/materialize",
+              "pathBindings": {
+                "responseId": {
+                  "from": "route",
+                  "path": "responseId"
+                }
+              },
+              "bodyDefaults": {
+                "force_verifier_failure": false
+              }
+            },
+            "outputs": {
+              "proofState": {
+                "path": "/proof_state"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:submissionProof@1",
+                "need:verifyIntegrity@1"
+              ]
+            }
+          },
+          {
+            "id": "verifyReceiptProof",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/responses/{responseId}/receipt/verify",
+              "pathBindings": {
+                "responseId": {
+                  "from": "route",
+                  "path": "responseId"
+                }
+              },
+              "bodyDefaults": {}
+            },
+            "outputs": {
+              "proofArtifactRef": {
+                "path": "/artifact_ref"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:verifyIntegrity@1"
+              ]
+            }
+          },
+          {
+            "id": "remediateReceiptProof",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/responses/{responseId}/receipt/remediate",
+              "pathBindings": {
+                "responseId": {
+                  "from": "route",
+                  "path": "responseId"
+                }
+              },
+              "bodyDefaults": {
+                "reason": "Operator requested retry after proof failure."
+              }
+            },
+            "outputs": {
+              "remediationJobId": {
+                "path": "/outbox_job_id"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:submissionProof@1",
+                "need:verifyIntegrity@1"
+              ]
+            }
+          },
+          {
+            "id": "createSignatureEnvelope",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/signature-envelopes",
+              "bodyDefaults": {
+                "signers": [
+                  {
+                    "signer_id": "v13Signer",
+                    "email": null,
+                    "role": "respondent"
+                  }
+                ]
+              },
+              "bodyBindings": {
+                "/response_id": {
+                  "from": "input",
+                  "path": "responseId"
+                },
+                "/signers/0/email": {
+                  "from": "input",
+                  "path": "signerEmail"
+                }
+              }
+            },
+            "outputs": {
+              "envelopeId": {
+                "path": "/envelope_id",
+                "exposure": "transition"
+              },
+              "activeEnvelopeId": {
+                "path": "/envelope_id",
+                "exposure": "session"
+              },
+              "signedResponseId": {
+                "path": "/response_id",
+                "exposure": "session"
+              },
+              "activeSignerToken": {
+                "path": "/signers/0/signer_token",
+                "exposure": "session"
+              },
+              "activeSignerId": {
+                "path": "/signers/0/signer_id",
+                "exposure": "session"
+              },
+              "activeSignedPayloadDigest": {
+                "path": "/signed_payload_digest",
+                "exposure": "session"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:signatureEnvelope@1"
+              ]
+            }
+          },
+          {
+            "id": "completeEnvelopeSigner",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/signature-envelopes/{envelopeId}/signers/{signerId}/complete",
+              "pathBindings": {
+                "envelopeId": {
+                  "from": "session",
+                  "path": "activeEnvelopeId"
+                },
+                "signerId": {
+                  "from": "session",
+                  "path": "activeSignerId"
+                }
+              },
+              "bodyDefaults": {
+                "disclosure_accepted": true,
+                "signature_method": "electronic-signature"
+              },
+              "bodyBindings": {
+                "/signer_token": {
+                  "from": "session",
+                  "path": "activeSignerToken"
+                },
+                "/signed_payload_digest": {
+                  "from": "session",
+                  "path": "activeSignedPayloadDigest"
+                }
+              }
+            },
+            "outputs": {
+              "responseId": {
+                "path": "/response_id",
+                "exposure": "transition"
+              },
+              "envelopeId": {
+                "path": "/envelope_id",
+                "exposure": "transition"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:signatureEnvelope@1",
+                "need:signatureCertificate@1"
+              ]
+            }
+          },
+          {
+            "id": "submitPublicDraft",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/drafts/{draftId}/submit",
+              "pathBindings": {
+                "draftId": {
+                  "from": "session",
+                  "path": "draftId"
+                }
+              },
+              "bodyDefaults": {
+                "subject_ref": null,
+                "signing_requested": false
+              },
+              "bodyBindings": {
+                "/response_data": {
+                  "from": "input",
+                  "path": "responseData"
+                },
+                "/anonymous_session_token": {
+                  "from": "session",
+                  "path": "publicSessionToken"
+                }
+              }
+            },
+            "outputs": {
+              "responseId": {
+                "path": "/response_id",
+                "exposure": "transition"
+              },
+              "acceptedResponseId": {
+                "path": "/response_id",
+                "exposure": "session"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:submissionProof@1",
+                "need:postSubmit@1"
+              ]
+            }
+          },
+          {
+            "id": "submitPublicDraftForSignature",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/drafts/{draftId}/submit",
+              "pathBindings": {
+                "draftId": {
+                  "from": "session",
+                  "path": "draftId"
+                }
+              },
+              "bodyDefaults": {
+                "subject_ref": null,
+                "signing_requested": true
+              },
+              "bodyBindings": {
+                "/response_data": {
+                  "from": "input",
+                  "path": "responseData"
+                },
+                "/anonymous_session_token": {
+                  "from": "session",
+                  "path": "publicSessionToken"
+                }
+              }
+            },
+            "outputs": {
+              "signatureResponseId": {
+                "path": "/response_id"
+              },
+              "signedPayloadDigest": {
+                "path": "/signed_payload_digest"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:signatureRequirement@1",
+                "need:signatureEnvelope@1"
+              ]
+            }
+          },
+          {
+            "id": "createPublicSignatureEnvelope",
+            "adapter": "http-json",
+            "request": {
+              "method": "POST",
+              "pathTemplate": "/signature-envelopes",
+              "bodyDefaults": {
+                "signers": [
+                  {
+                    "signer_id": "v13Signer",
+                    "email": null,
+                    "role": "respondent"
+                  }
+                ]
+              },
+              "bodyBindings": {
+                "/response_id": {
+                  "from": "result",
+                  "path": "signatureResponseId"
+                },
+                "/signers/0/email": {
+                  "from": "input",
+                  "path": "responseData.email"
+                }
+              }
+            },
+            "outputs": {
+              "envelopeId": {
+                "path": "/envelope_id",
+                "exposure": "transition"
+              },
+              "activeEnvelopeId": {
+                "path": "/envelope_id",
+                "exposure": "session"
+              },
+              "signedResponseId": {
+                "path": "/response_id",
+                "exposure": "session"
+              },
+              "activeSignerToken": {
+                "path": "/signers/0/signer_token",
+                "exposure": "session"
+              },
+              "activeSignerId": {
+                "path": "/signers/0/signer_id",
+                "exposure": "session"
+              },
+              "activeSignedPayloadDigest": {
+                "path": "/signed_payload_digest",
+                "exposure": "session"
+              }
+            },
+            "x-generation": {
+              "anchors": [
+                "need:signatureEnvelope@1"
+              ]
+            }
+          }
+        ]
+      },
+      "scope": "app"
+    },
+    "urn:formspec:doc:5b366f5723f9aa5c:registry": {
+      "$formspecRegistry": "1.1",
+      "publisher": {
+        "name": "Formspec ManagedSingleCell"
+      },
+      "published": "2026-07-31T14:00:00.000Z",
+      "entries": [
+        {
+          "name": "x-formspec-starter",
+          "category": "module",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Generic starter widgets for structured forms, queues, receipts, and ceremonies.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0 <2.0.0"
+          },
+          "contributes": [
+            "x-structured-panel",
+            "x-queue-table",
+            "x-receipt-panel",
+            "x-ceremony-frame"
+          ]
+        },
+        {
+          "name": "x-structured-panel",
+          "category": "widget",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Generic structured facts, tables, progress, and mapped actions.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0 <2.0.0"
+          },
+          "widgetShape": {
+            "deliveryContractId": "@formspec-org/surface-react/StructuredPanel@0.1",
+            "dataInputs": [
+              {
+                "name": "primary",
+                "required": false
+              },
+              {
+                "name": "secondary",
+                "required": false
+              }
+            ],
+            "actionOutputs": [
+              {
+                "name": "primary"
+              },
+              {
+                "name": "secondary"
+              },
+              {
+                "name": "tertiary"
+              },
+              {
+                "name": "danger"
+              }
+            ],
+            "renderedConfigNodes": [
+              {
+                "pointerPattern": "",
+                "kind": "structured-panel"
+              },
+              {
+                "pointerPattern": "/blocks/*",
+                "kind": "structured-panel-block"
+              },
+              {
+                "pointerPattern": "/blocks/*/items/*",
+                "kind": "structured-panel-field"
+              },
+              {
+                "pointerPattern": "/blocks/*/columns/*",
+                "kind": "structured-panel-column"
+              },
+              {
+                "pointerPattern": "/blocks/*/rowAction",
+                "kind": "structured-panel-row-action"
+              },
+              {
+                "pointerPattern": "/actions/*",
+                "kind": "structured-panel-action"
+              },
+              {
+                "pointerPattern": "/stateViews/*",
+                "kind": "module-widget-state-view"
+              },
+              {
+                "pointerPattern": "/stateViews/*/actions/*",
+                "kind": "module-widget-state-action"
+              }
+            ],
+            "widgetName": "StructuredPanel"
+          }
+        },
+        {
+          "name": "x-queue-table",
+          "category": "widget",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Generic accessible queue table with stable row identity and one Need-traced row action.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0 <2.0.0"
+          },
+          "widgetShape": {
+            "deliveryContractId": "@formspec-org/surface-react/QueueTable@0.1",
+            "dataInputs": [
+              {
+                "name": "rows",
+                "required": true
+              }
+            ],
+            "renderedConfigNodes": [
+              {
+                "pointerPattern": "",
+                "kind": "queue-table"
+              },
+              {
+                "pointerPattern": "/columns/*",
+                "kind": "queue-table-column"
+              },
+              {
+                "pointerPattern": "/rowAction",
+                "kind": "queue-table-row-action"
+              }
+            ],
+            "actionOutputs": [
+              {
+                "name": "open"
+              }
+            ],
+            "widgetName": "QueueTable"
+          }
+        },
+        {
+          "name": "x-receipt-panel",
+          "category": "widget",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Generic receipt facts backed by one named receipt input.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0 <2.0.0"
+          },
+          "widgetShape": {
+            "deliveryContractId": "@formspec-org/surface-react/ReceiptPanel@0.1",
+            "dataInputs": [
+              {
+                "name": "receipt",
+                "required": true
+              }
+            ],
+            "renderedConfigNodes": [
+              {
+                "pointerPattern": "",
+                "kind": "receipt-panel"
+              }
+            ],
+            "widgetName": "ReceiptPanel"
+          }
+        },
+        {
+          "name": "x-ceremony-frame",
+          "category": "widget",
+          "version": "0.1.0",
+          "status": "stable",
+          "description": "Generic unbranded frame for displaying an attestation before a host signing act.",
+          "compatibility": {
+            "formspecVersion": ">=1.0.0 <2.0.0"
+          },
+          "widgetShape": {
+            "deliveryContractId": "@formspec-org/surface-react/CeremonyFrame@0.1",
+            "renderedConfigNodes": [
+              {
+                "pointerPattern": "",
+                "kind": "ceremony-frame"
+              }
+            ],
+            "widgetName": "CeremonyFrame"
+          }
+        }
+      ]
+    },
+    "https://demo.formspec.org/data-sources/managed-single-cell": {
+      "$formspecDataSources": "1.0",
+      "id": "https://demo.formspec.org/data-sources/managed-single-cell",
+      "version": "1.0.0",
+      "title": "ManagedSingleCell host data",
+      "description": "Strongly typed live ManagedSingleCell data plus authored safe export resources; no product fixtures or scope ids.",
+      "sources": [
+        {
+          "id": "query:forms",
+          "kind": "query-result",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT15S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "query-result",
+              "source": "GET /forms"
+            }
+          },
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "form_id": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "display_name": {
+                  "type": "string"
+                },
+                "created_by": {
+                  "type": "string"
+                },
+                "archived_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "draft_version": {
+                  "type": "integer"
+                },
+                "version_lineage": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "form_id",
+                "slug",
+                "display_name",
+                "draft_version",
+                "version_lineage"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "description": "Managed forms returned by the active cell.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/forms"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          }
+        },
+        {
+          "id": "resource:form",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT15S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "GET /forms/{formId}"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "form_id": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "display_name": {
+                "type": "string"
+              },
+              "created_by": {
+                "type": "string"
+              },
+              "archived_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "draft_version": {
+                "type": "integer"
+              },
+              "version_lineage": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "form_id",
+              "slug",
+              "display_name",
+              "draft_version",
+              "version_lineage"
+            ],
+            "additionalProperties": true
+          },
+          "description": "One managed form.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/forms/{formId}"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:manageForm@1"
+            ]
+          }
+        },
+        {
+          "id": "resource:runtime-form",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT15S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "GET /runtime/forms/{formId}"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "form_version_id": {
+                "type": "string"
+              },
+              "form_id": {
+                "type": "string"
+              },
+              "definition_url": {
+                "type": "string"
+              },
+              "definition_version": {
+                "type": "string"
+              },
+              "definition_hash": {
+                "type": "string"
+              },
+              "definition": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "runtime_config": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "brand": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "form_version_id",
+              "form_id",
+              "definition_url",
+              "definition_version",
+              "definition_hash",
+              "definition",
+              "runtime_config",
+              "brand"
+            ],
+            "additionalProperties": true
+          },
+          "description": "Published runtime configuration used by hosted and embedded forms.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/runtime/forms/{formId}"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:publishForm@1",
+              "need:embedPublishedForm@1"
+            ]
+          }
+        },
+        {
+          "id": "resource:form-sessions",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT15S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "GET /forms/{formId}/sessions"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "form_id": {
+                "type": "string"
+              },
+              "by_version": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "form_version_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "active_sessions": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "form_version_id",
+                    "status",
+                    "active_sessions"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "form_id",
+              "by_version"
+            ],
+            "additionalProperties": true
+          },
+          "description": "Immutable versions and active-session counts.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/forms/{formId}/sessions"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:protectVersions@1"
+            ]
+          }
+        },
+        {
+          "id": "query:responses",
+          "kind": "query-result",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT15S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "query-result",
+              "source": "GET /responses"
+            }
+          },
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "response_id": {
+                  "type": "string"
+                },
+                "form_version_id": {
+                  "type": "string"
+                },
+                "draft_id": {
+                  "type": "string"
+                },
+                "accepted_at": {
+                  "type": "string"
+                },
+                "response_data": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "accepted",
+                    "completed",
+                    "signed"
+                  ]
+                },
+                "proof_state": {
+                  "type": "string",
+                  "enum": [
+                    "accepted",
+                    "proof_pending",
+                    "proof_ready",
+                    "proof_failed"
+                  ]
+                },
+                "response_hash": {
+                  "type": "string"
+                },
+                "signed_payload_digest": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "additionalProperties": true
+                }
+              },
+              "required": [
+                "response_id",
+                "form_version_id",
+                "accepted_at",
+                "response_data",
+                "status",
+                "proof_state",
+                "response_hash"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "description": "Accepted responses.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/responses"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponses@1"
+            ]
+          }
+        },
+        {
+          "id": "resource:response",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT15S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "GET /responses/{responseId}"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "response_id": {
+                "type": "string"
+              },
+              "form_version_id": {
+                "type": "string"
+              },
+              "draft_id": {
+                "type": "string"
+              },
+              "accepted_at": {
+                "type": "string"
+              },
+              "response_data": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "accepted",
+                  "completed",
+                  "signed"
+                ]
+              },
+              "proof_state": {
+                "type": "string",
+                "enum": [
+                  "accepted",
+                  "proof_pending",
+                  "proof_ready",
+                  "proof_failed"
+                ]
+              },
+              "response_hash": {
+                "type": "string"
+              },
+              "signed_payload_digest": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "response_id",
+              "form_version_id",
+              "accepted_at",
+              "response_data",
+              "status",
+              "proof_state",
+              "response_hash"
+            ],
+            "additionalProperties": true
+          },
+          "description": "One accepted response.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/responses/{responseId}"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponses@1",
+              "need:submissionProof@1"
+            ]
+          }
+        },
+        {
+          "id": "resource:proof-states",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT15S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "GET /responses/{responseId}/proof-states"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "states": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "states"
+            ],
+            "additionalProperties": true
+          },
+          "description": "Allowed response proof states.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/responses/{responseId}/proof-states"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:submissionProof@1"
+            ]
+          }
+        },
+        {
+          "id": "resource:receipt",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT15S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "GET /responses/{responseId}/receipt"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "receipt_id": {
+                "type": "string"
+              },
+              "aggregate_id": {
+                "type": "string"
+              },
+              "accepted_at": {
+                "type": "string"
+              },
+              "proof_state": {
+                "type": "string",
+                "enum": [
+                  "accepted",
+                  "proof_pending",
+                  "proof_ready",
+                  "proof_failed"
+                ]
+              },
+              "verified": {
+                "type": "boolean"
+              },
+              "response_hash": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "checkpoint_reference": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "proof_report_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "rendered_object_refs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "remediation": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "receipt_id",
+              "aggregate_id",
+              "accepted_at",
+              "proof_state",
+              "verified",
+              "rendered_object_refs"
+            ],
+            "additionalProperties": true
+          },
+          "description": "Verifier-backed receipt state.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/responses/{responseId}/receipt"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:submissionProof@1",
+              "need:verifyIntegrity@1"
+            ]
+          }
+        },
+        {
+          "id": "resource:signature-envelope",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT15S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "GET /signature-envelopes/{envelopeId}"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "envelope_id": {
+                "type": "string"
+              },
+              "response_id": {
+                "type": "string"
+              },
+              "form_version_id": {
+                "type": "string"
+              },
+              "envelope_status": {
+                "type": "string"
+              },
+              "signed_payload_digest": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": true
+              },
+              "signers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "signer_id": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "signer_id",
+                    "role",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "envelope_id",
+              "response_id",
+              "form_version_id",
+              "envelope_status",
+              "signers"
+            ],
+            "additionalProperties": true
+          },
+          "description": "Signature envelope and signer state.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/signature-envelopes/{envelopeId}"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:signatureEnvelope@1",
+              "need:signatureStatus@1"
+            ]
+          }
+        },
+        {
+          "id": "resource:signature-certificate",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe",
+              "staleAfter": "PT15S"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "GET /signature-envelopes/{envelopeId}/certificate"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "envelope_id": {
+                "type": "string"
+              },
+              "artifact_kind": {
+                "type": "string",
+                "const": "signature_certificate"
+              },
+              "proof_state": {
+                "type": "string",
+                "enum": [
+                  "proof_pending",
+                  "proof_ready",
+                  "proof_failed"
+                ]
+              },
+              "independently_verifiable": {
+                "type": "boolean"
+              },
+              "signer_events": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "offline_verification": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "envelope_id",
+              "artifact_kind",
+              "proof_state",
+              "independently_verifiable",
+              "signer_events"
+            ],
+            "additionalProperties": true
+          },
+          "description": "Signature certificate when proof is ready.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/signature-envelopes/{envelopeId}/certificate"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:signatureCertificate@1"
+            ]
+          }
+        },
+        {
+          "id": "resource:readiness",
+          "kind": "document-resource",
+          "owner": "host",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "live",
+            "cache": {
+              "mode": "subscribe"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "block-render",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "GET /ready"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "status",
+              "components"
+            ],
+            "additionalProperties": true
+          },
+          "description": "Active ManagedSingleCell readiness response.",
+          "x-formspec-runtime": {
+            "adapter": "http-json",
+            "request": {
+              "method": "GET",
+              "pathTemplate": "/ready"
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:operateCell@1"
+            ]
+          }
+        },
+        {
+          "id": "response:public-intake",
+          "kind": "definition-response",
+          "definitionRef": "https://demo.formspec.org/definitions/community-intake",
+          "owner": "formspec",
+          "scope": "definition",
+          "availability": {
+            "level": "app",
+            "definitionRef": "https://demo.formspec.org/definitions/community-intake"
+          },
+          "runtime": {
+            "delivery": "draft",
+            "cache": {
+              "mode": "draft"
+            },
+            "authorizationBoundary": "formspec-session",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "definition-response",
+              "source": "active public response draft"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "$formspecResponse": {
+                "type": "string",
+                "const": "1.0"
+              },
+              "definitionUrl": {
+                "type": "string",
+                "const": "https://demo.formspec.org/definitions/community-intake"
+              },
+              "definitionVersion": {
+                "type": "string",
+                "const": "1.0.0"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "in-progress",
+                  "completed",
+                  "amended",
+                  "stopped"
+                ]
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "fullName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "program": {
+                    "type": "string"
+                  },
+                  "request": {
+                    "type": "string"
+                  },
+                  "attestAccuracy": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "fullName",
+                  "email",
+                  "program",
+                  "request",
+                  "attestAccuracy"
+                ],
+                "additionalProperties": true
+              },
+              "authored": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "$formspecResponse",
+              "definitionUrl",
+              "definitionVersion",
+              "status",
+              "data",
+              "authored"
+            ],
+            "additionalProperties": true
+          },
+          "description": "Current public response draft for review.",
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponse@1"
+            ]
+          }
+        },
+        {
+          "id": "resource:response-export-links",
+          "kind": "document-resource",
+          "owner": "formspec",
+          "scope": "resource",
+          "availability": {
+            "level": "app"
+          },
+          "runtime": {
+            "delivery": "snapshot",
+            "cache": {
+              "mode": "snapshot"
+            },
+            "authorizationBoundary": "host",
+            "failureMode": "empty-state",
+            "provenance": {
+              "kind": "document-resource",
+              "source": "authored response export resources"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "csv": {
+                "type": "object",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "const": "/responses/export?format=csv"
+                  }
+                },
+                "required": [
+                  "href"
+                ],
+                "additionalProperties": true
+              },
+              "json": {
+                "type": "object",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "const": "/responses/export?format=json"
+                  }
+                },
+                "required": [
+                  "href"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "csv",
+              "json"
+            ],
+            "additionalProperties": true
+          },
+          "description": "Safe same-origin response export resources.",
+          "x-formspec-runtime": {
+            "adapter": "embedded-json",
+            "value": {
+              "csv": {
+                "href": "/responses/export?format=csv"
+              },
+              "json": {
+                "href": "/responses/export?format=json"
+              }
+            }
+          },
+          "x-generation": {
+            "anchors": [
+              "need:reviewResponses@1"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

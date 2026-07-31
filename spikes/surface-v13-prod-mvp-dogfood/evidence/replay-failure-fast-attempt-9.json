@@ -1,0 +1,21 @@
+{
+  "attempt": 9,
+  "status": "failed",
+  "stage": "widget-binding",
+  "call": 123,
+  "tool": "formspec_wireframes_bind_slot",
+  "code": "VALIDATION",
+  "diagnostics": [
+    {
+      "code": "SURFACE-WIDGET-DATA-INPUT-UNKNOWN",
+      "input": "rows",
+      "widget": "x-formspec-starter/StructuredPanel"
+    },
+    {
+      "code": "SURFACE-WIDGET-ACTION-OUTPUT-UNKNOWN",
+      "output": "open",
+      "widget": "x-formspec-starter/StructuredPanel"
+    }
+  ],
+  "resolution": "Preserved as failed evidence. Attempt 10 uses the generic QueueTable rowAction capability added in response to this framework gap."
+}
