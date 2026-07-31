@@ -1,7 +1,14 @@
 'use client';
 
 /** @filedesc Recursive LayoutNode renderer — dispatches to field or layout components. */
-import React, { useMemo, useCallback, useEffect } from 'react';
+import React, {
+    useMemo,
+    useCallback,
+    useEffect,
+    useId,
+    useRef,
+    useState,
+} from 'react';
 import { signal as createSignal } from '@preact/signals-core';
 import {
     invokeResponseAction,
@@ -113,6 +120,27 @@ function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }
 
+type ActionFeedback =
+    | { phase: 'idle'; message: '' }
+    | { phase: 'pending'; message: string }
+    | { phase: 'settled'; message: string };
+
+function actionResultMessage(
+    result: Pick<ResponseActionInvocationResult<unknown>, 'status' | 'failureReason'>,
+): string {
+    const statusLabel = {
+        completed: 'Completed',
+        blocked: 'Blocked',
+        failed: 'Failed',
+        deferred: 'Deferred',
+        unresolved: 'Unresolved',
+    }[result.status];
+    const failureReason = result.failureReason?.trim();
+    return failureReason
+        ? `${statusLabel}: ${failureReason}`
+        : `${statusLabel}.`;
+}
+
 function ActionButtonNode({ node }: { node: LayoutNode }) {
     const {
         onSubmit,
@@ -143,6 +171,10 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         'Submit',
     );
     const actionNeedAnchors = generationNeedAnchors(resolution.action);
+    const needAttrs = needTraceAttrs([...(node.needAnchors ?? []), ...actionNeedAnchors]);
+    const statusId = useId();
+    const inFlightRef = useRef<Promise<ResponseActionInvocationResult<SubmitResult>> | null>(null);
+    const [feedback, setFeedback] = useState<ActionFeedback>({ phase: 'idle', message: '' });
 
     useEffect(() => {
         if (finding) {
@@ -150,7 +182,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         }
     }, [findingKey, onActionFinding]);
 
-    const activate = useCallback(async (
+    const invoke = useCallback(async (
         invocationContext?: ResponseActionInvocationContext,
     ): Promise<ResponseActionInvocationResult<SubmitResult>> => {
         const ports: ResponseActionInvocationPorts<SubmitResult> = {
@@ -239,6 +271,47 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         semanticControlScope,
     ]);
 
+    const activate = useCallback((
+        invocationContext?: ResponseActionInvocationContext,
+    ): Promise<ResponseActionInvocationResult<SubmitResult>> => {
+        if (inFlightRef.current) {
+            return inFlightRef.current;
+        }
+
+        setFeedback({ phase: 'pending', message: 'In progress.' });
+        const invocation = invoke(invocationContext);
+        const tracked = invocation.then(
+            (result) => {
+                setFeedback({ phase: 'settled', message: actionResultMessage(result) });
+                return result;
+            },
+            (error: unknown) => {
+                setFeedback({
+                    phase: 'settled',
+                    message: actionResultMessage({
+                        status: 'failed',
+                        failureReason: errorMessage(error),
+                    }),
+                });
+                throw error;
+            },
+        );
+        inFlightRef.current = tracked;
+        void tracked.then(
+            () => {
+                if (inFlightRef.current === tracked) {
+                    inFlightRef.current = null;
+                }
+            },
+            () => {
+                if (inFlightRef.current === tracked) {
+                    inFlightRef.current = null;
+                }
+            },
+        );
+        return tracked;
+    }, [invoke]);
+
     useEffect(() => {
         if (
             !semanticControlScope?.responseActionsArtifact
@@ -256,7 +329,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             renderInstanceId: semanticControlScope.renderInstanceId,
             responseId: semanticControlScope.responseId,
             control,
-            disabled: () => !resolution.resolved,
+            disabled: () => !resolution.resolved || inFlightRef.current !== null,
             activate: async (invocationContext) => {
                 const invocation = await activate(invocationContext);
                 const responseBinding = currentSemanticResponseBinding();
@@ -275,27 +348,46 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     ]);
 
     const handleClick = useCallback(() => {
-        void activate();
+        void activate().catch(() => {
+            // The live status reports unexpected adapter failures. Semantic
+            // callers still receive the rejected Promise from activate().
+        });
     }, [activate]);
 
+    const pending = feedback.phase === 'pending';
+
     return (
-        <button
-            // type="button" mirrors the webcomponent's ActionButton renderer
-            // (packages/formspec-webcomponent/src/components/interactive.ts):
-            // §10 is silent on the HTML type, but if an ActionButton lives
-            // inside a parent <form> and the click handler throws,
-            // type="submit" cascades to native form submission and bypasses
-            // Response Actions entirely. type="button" eliminates the
-            // foot-gun and keeps cross-renderer parity.
-            type="button"
-            className={node.cssClasses?.join(' ') || 'formspec-action formspec-submit'}
-            disabled={!resolution.resolved}
-            onClick={handleClick}
-            {...projectionMetadataAttrs(node)}
-            {...needTraceAttrs([...(node.needAnchors ?? []), ...actionNeedAnchors])}
-        >
-            {label}
-        </button>
+        <div className="formspec-action-control" {...needAttrs}>
+            <button
+                // type="button" mirrors the webcomponent's ActionButton renderer
+                // (packages/formspec-webcomponent/src/components/interactive.ts):
+                // §10 is silent on the HTML type, but if an ActionButton lives
+                // inside a parent <form> and the click handler throws,
+                // type="submit" cascades to native form submission and bypasses
+                // Response Actions entirely. type="button" eliminates the
+                // foot-gun and keeps cross-renderer parity.
+                type="button"
+                className={node.cssClasses?.join(' ') || 'formspec-action formspec-submit'}
+                disabled={!resolution.resolved || pending}
+                aria-busy={pending}
+                aria-describedby={statusId}
+                onClick={handleClick}
+                {...projectionMetadataAttrs(node)}
+                {...needAttrs}
+            >
+                {label}
+            </button>
+            <div
+                id={statusId}
+                className="formspec-action-status"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                {...needAttrs}
+            >
+                {feedback.message}
+            </div>
+        </div>
     );
 }
 

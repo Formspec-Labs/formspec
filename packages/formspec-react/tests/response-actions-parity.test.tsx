@@ -1,6 +1,6 @@
 /** @filedesc React parity coverage for Response Actions auto-injected ActionButton behavior. */
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import React from 'react';
+import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { initFormspecEngine, invokeResponseAction } from '@formspec-org/engine';
@@ -77,6 +77,16 @@ function renderInto(element: React.ReactElement): { container: HTMLElement; root
     return { container, root };
 }
 
+function deferred<T>() {
+    let resolve!: (value: T | PromiseLike<T>) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+        resolve = resolvePromise;
+        reject = rejectPromise;
+    });
+    return { promise, resolve, reject };
+}
+
 describe('React Response Actions parity', () => {
     it('uses the loaded submit intent action id for the auto-injected ActionButton', async () => {
         const submitted = vi.fn();
@@ -105,6 +115,177 @@ describe('React Response Actions parity', () => {
 
         root.unmount();
         container.remove();
+    });
+
+    it('renders accessible pending and completed feedback while suppressing duplicate activation', async () => {
+        const gate = deferred<void>();
+        const onActionResult = vi.fn();
+        const responseActionInvoker = vi.fn((input: ResponseActionInvokerInput) =>
+            gate.promise.then(() => ({
+                invocation: invokeResponseAction(
+                    input.document,
+                    input.actionRef,
+                    input.ports,
+                    input.nodeId,
+                    input.invocationContext,
+                ),
+            })));
+        const { container, root } = renderInto(
+            <FormspecForm
+                definition={definition}
+                responseActionsDocument={responseActionsDocument}
+                onSubmit={() => {}}
+                onActionResult={onActionResult}
+                responseActionInvoker={responseActionInvoker}
+            />,
+        );
+
+        const button = container.querySelector<HTMLButtonElement>('button.formspec-submit')!;
+        await act(async () => {
+            button.click();
+            button.click();
+        });
+
+        const status = container.querySelector<HTMLElement>('[role="status"]')!;
+        expect(responseActionInvoker).toHaveBeenCalledTimes(1);
+        expect(button.textContent).toBe('Send application');
+        expect(button.disabled).toBe(true);
+        expect(button.getAttribute('aria-busy')).toBe('true');
+        expect(button.getAttribute('aria-describedby')).toBe(status.id);
+        expect(status.getAttribute('aria-live')).toBe('polite');
+        expect(status.getAttribute('aria-atomic')).toBe('true');
+        expect(status.textContent).toBe('In progress.');
+        expect(status.getAttribute('data-need-anchors')).toBe(
+            button.getAttribute('data-need-anchors'),
+        );
+        expect(status.getAttribute('data-need-ids')).toBe(
+            button.getAttribute('data-need-ids'),
+        );
+
+        await act(async () => {
+            gate.resolve(undefined);
+            await gate.promise;
+        });
+
+        expect(responseActionInvoker).toHaveBeenCalledTimes(1);
+        expect(onActionResult).toHaveBeenCalledTimes(1);
+        expect(button.textContent).toBe('Send application');
+        expect(button.disabled).toBe(false);
+        expect(button.getAttribute('aria-busy')).toBe('false');
+        expect(status.textContent).toBe('Completed.');
+
+        root.unmount();
+        container.remove();
+    });
+
+    it('shows server failure text and allows a successful retry', async () => {
+        const gates = [deferred<void>(), deferred<void>()];
+        let attempt = 0;
+        const responseActionInvoker = vi.fn((input: ResponseActionInvokerInput) => {
+            const currentAttempt = attempt++;
+            return gates[currentAttempt]!.promise.then(() => {
+                if (currentAttempt === 0) {
+                    throw new Error('The Formspec server returned HTTP 503. Service unavailable');
+                }
+                return {
+                    invocation: invokeResponseAction(
+                        input.document,
+                        input.actionRef,
+                        input.ports,
+                        input.nodeId,
+                        input.invocationContext,
+                    ),
+                };
+            });
+        });
+        const { container, root } = renderInto(
+            <FormspecForm
+                definition={definition}
+                responseActionsDocument={responseActionsDocument}
+                onSubmit={() => {}}
+                responseActionInvoker={responseActionInvoker}
+            />,
+        );
+
+        const button = container.querySelector<HTMLButtonElement>('button.formspec-submit')!;
+        const status = container.querySelector<HTMLElement>('[role="status"]')!;
+        await act(async () => {
+            button.click();
+        });
+        expect(status.textContent).toBe('In progress.');
+
+        await act(async () => {
+            gates[0]!.resolve(undefined);
+            await gates[0]!.promise;
+        });
+        expect(status.textContent).toBe(
+            'Failed: The Formspec server returned HTTP 503. Service unavailable',
+        );
+        expect(button.disabled).toBe(false);
+        expect(button.getAttribute('aria-busy')).toBe('false');
+
+        await act(async () => {
+            button.click();
+        });
+        expect(responseActionInvoker).toHaveBeenCalledTimes(2);
+        expect(status.textContent).toBe('In progress.');
+        expect(button.disabled).toBe(true);
+
+        await act(async () => {
+            gates[1]!.resolve(undefined);
+            await gates[1]!.promise;
+        });
+        expect(status.textContent).toBe('Completed.');
+        expect(button.disabled).toBe(false);
+
+        root.unmount();
+        container.remove();
+    });
+
+    it('renders every structured invocation terminal with an optional failure reason', async () => {
+        const cases = [
+            { status: 'completed', expected: 'Completed.' },
+            { status: 'blocked', expected: 'Blocked: Complete the required fields.', failureReason: 'Complete the required fields.' },
+            { status: 'failed', expected: 'Failed.' },
+            { status: 'deferred', expected: 'Deferred: Waiting for review.', failureReason: 'Waiting for review.' },
+            { status: 'unresolved', expected: 'Unresolved.' },
+        ] as const;
+
+        for (const terminal of cases) {
+            const responseActionInvoker = vi.fn((input: ResponseActionInvokerInput) => ({
+                ...invokeResponseAction(
+                    input.document,
+                    input.actionRef,
+                    input.ports,
+                    input.nodeId,
+                    input.invocationContext,
+                ),
+                status: terminal.status,
+                ...('failureReason' in terminal
+                    ? { failureReason: terminal.failureReason }
+                    : {}),
+            }));
+            const { container, root } = renderInto(
+                <FormspecForm
+                    definition={definition}
+                    responseActionsDocument={responseActionsDocument}
+                    onSubmit={() => {}}
+                    responseActionInvoker={responseActionInvoker}
+                />,
+            );
+
+            const button = container.querySelector<HTMLButtonElement>('button.formspec-submit')!;
+            await act(async () => {
+                button.click();
+            });
+
+            expect(container.querySelector('[role="status"]')?.textContent).toBe(terminal.expected);
+            expect(button.disabled).toBe(false);
+            expect(button.textContent).toBe('Send application');
+
+            root.unmount();
+            container.remove();
+        }
     });
 
     it('renders every literal-labeled Definition action in document order and invokes its validation semantics', async () => {
