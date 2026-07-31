@@ -1,0 +1,57 @@
+{
+  "replayProvenance": "1.0",
+  "digestAlgorithm": "sha256",
+  "runner": {
+    "name": "@formspec-org/mcp-wireframes/replay-tool-calls",
+    "version": "0.2.0"
+  },
+  "plan": {
+    "path": "builder-calls-fast-attempt-14.json",
+    "bytes": 214855,
+    "fileSha256": "sha256:11e6c2d0603789d7a28c86d40703df1346383b450cb9321b30881bcc74c1fe12"
+  },
+  "toolCatalog": {
+    "count": 25,
+    "names": [
+      "formspec_wireframes_add_action",
+      "formspec_wireframes_add_experience_actor",
+      "formspec_wireframes_add_experience_task",
+      "formspec_wireframes_add_experience_unit",
+      "formspec_wireframes_add_route",
+      "formspec_wireframes_add_transition",
+      "formspec_wireframes_adopt_need",
+      "formspec_wireframes_bind_slot",
+      "formspec_wireframes_cite_need",
+      "formspec_wireframes_edit_definition",
+      "formspec_wireframes_edit_registry",
+      "formspec_wireframes_export",
+      "formspec_wireframes_materialize_data_sources",
+      "formspec_wireframes_materialize_definition",
+      "formspec_wireframes_materialize_response_actions",
+      "formspec_wireframes_pair_needs",
+      "formspec_wireframes_preview",
+      "formspec_wireframes_propose_need",
+      "formspec_wireframes_read_needs",
+      "formspec_wireframes_read_reasoning_review",
+      "formspec_wireframes_read_summary",
+      "formspec_wireframes_report_capability_gap",
+      "formspec_wireframes_resolve_capability_gap",
+      "formspec_wireframes_start_app",
+      "formspec_wireframes_validate"
+    ],
+    "canonicalization": "RFC 8785 JCS",
+    "canonicalSha256": "sha256:2368184bad92c26acae76850c970f4c17d9fd1c0e69053ade0014f8f76628ea4"
+  },
+  "results": {
+    "path": "builder-results-fast-attempt-14.json",
+    "bytes": 2768850,
+    "fileSha256": "sha256:44054388a993630dccabd5c47435aaf92f5b87db7137c583d98a17bf7b7805cd"
+  },
+  "export": {
+    "path": "exported-bundle-fast-attempt-14.json",
+    "bytes": 186465,
+    "fileSha256": "sha256:1c639678910de2884f802e2271129d34e1fd6431b690859bd4ebfe210605b49a",
+    "canonicalization": "RFC 8785 JCS",
+    "canonicalSha256": "sha256:b6d8b9b36f3e5eb124fcf25a164201b21af8348ae054a3a9027a8d1c3f59b3e3"
+  }
+}

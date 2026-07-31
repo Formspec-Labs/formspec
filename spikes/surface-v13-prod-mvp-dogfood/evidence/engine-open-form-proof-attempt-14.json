@@ -1,0 +1,37 @@
+{
+  "proof": "direct-engine-open-form",
+  "bundle": "exported-bundle-fast-attempt-14.json",
+  "document": "https://demo.formspec.org/response-actions/managed-single-cell-app",
+  "actionId": "openForm",
+  "actionValidation": {
+    "profile": "off",
+    "blocking": "non-blocking",
+    "persistence": "none"
+  },
+  "input": {
+    "formId": "form_engine_attempt_14"
+  },
+  "invocationId": "attempt14-open-form-proof",
+  "result": {
+    "status": "completed",
+    "validationTuple": {
+      "profile": "off",
+      "blocking": "non-blocking",
+      "persistence": "none"
+    },
+    "effectTrace": [
+      {
+        "type": "hostEvent",
+        "status": "succeeded"
+      }
+    ]
+  },
+  "hostEvents": [
+    {
+      "eventName": "formspec.navigate.form",
+      "detail": {
+        "formId": "form_engine_attempt_14"
+      }
+    }
+  ]
+}
