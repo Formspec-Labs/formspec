@@ -21,7 +21,22 @@
       "title": "Application-scoped actions",
       "required": ["scope"],
       "properties": {
-        "scope": { "const": "app" }
+        "scope": { "const": "app" },
+        "actions": {
+          "items": {
+            "required": ["validation"],
+            "properties": {
+              "validation": {
+                "properties": {
+                  "profile": { "const": "off" },
+                  "blocking": { "const": "non-blocking" },
+                  "persistence": { "const": "none" }
+                }
+              }
+            }
+          },
+          "description": "Application-scoped actions MUST each declare the explicit off/non-blocking/none validation tuple because no Response exists to supply intent defaults, validate, or persist."
+        }
       },
       "not": {
         "required": ["targetDefinition"]

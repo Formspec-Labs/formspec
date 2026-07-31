@@ -81,11 +81,13 @@ export {
     type ValidationTrigger,
 } from './validation/index.js';
 export {
+    APP_ACTION_VALIDATION_TUPLE,
     classifyResponseActionEffect,
     declaresHostEvent,
     findResponseActionByIntent,
     invokeResponseAction,
     invokeResponseActionAsync,
+    isAppActionValidationTuple,
     isDurableResponseActionEffect,
     InvalidValidationTupleError,
     missingSubmitActionFinding,

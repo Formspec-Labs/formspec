@@ -33,6 +33,27 @@ export type {
 export type StandardResponseActionIntent = 'save-draft' | 'autosave' | 'review' | 'submit' | 'request-evidence';
 
 /**
+ * The only validation tuple an app-scoped Action may declare.
+ *
+ * App actions have no Response to validate or persist. Keeping this predicate
+ * next to the executor prevents build-time gates from restating a runtime
+ * invariant with subtly different defaults.
+ */
+export const APP_ACTION_VALIDATION_TUPLE: Readonly<ValidationOverride> = Object.freeze({
+    profile: 'off',
+    blocking: 'non-blocking',
+    persistence: 'none',
+});
+
+export function isAppActionValidationTuple(value: unknown): value is ValidationOverride {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+    const tuple = value as Partial<ValidationOverride>;
+    return tuple.profile === APP_ACTION_VALIDATION_TUPLE.profile
+        && tuple.blocking === APP_ACTION_VALIDATION_TUPLE.blocking
+        && tuple.persistence === APP_ACTION_VALIDATION_TUPLE.persistence;
+}
+
+/**
  * The document accepted by the engine.
  *
  * The generated schema type is authoritative at this package boundary. Keep
@@ -808,14 +829,7 @@ function invokeResponseActionInternal<TDetail>(
     }
 
     const validationTuple = resolveResponseActionValidationTuple(resolution.action);
-    if (
-        appScoped &&
-        (
-            validationTuple.profile !== 'off' ||
-            validationTuple.blocking !== 'non-blocking' ||
-            validationTuple.persistence !== 'none'
-        )
-    ) {
+    if (appScoped && !isAppActionValidationTuple(validationTuple)) {
         return {
             status: 'failed',
             ...invocationFacts,

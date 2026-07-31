@@ -9,6 +9,7 @@ import {
   classifyResponseActionEffect,
   invokeResponseAction,
   invokeResponseActionAsync,
+  isAppActionValidationTuple,
   planResponseActionInvocation,
   resolveResponseAction,
   resolveResponseActionValidationTuple,
@@ -386,6 +387,20 @@ test('app-scoped actions fail closed without an app-action adapter', () => {
 
   assert.equal(result.status, 'failed');
   assert.equal(result.failureReason, 'app action adapter returned no detail');
+});
+
+test('app action tuple predicate accepts only the no-Response tuple', () => {
+  assert.equal(isAppActionValidationTuple({
+    profile: 'off',
+    blocking: 'non-blocking',
+    persistence: 'none',
+  }), true);
+  assert.equal(isAppActionValidationTuple(undefined), false);
+  assert.equal(isAppActionValidationTuple({
+    profile: 'on-submit',
+    blocking: 'non-blocking',
+    persistence: 'none',
+  }), false);
 });
 
 test('app-scoped actions reject response validation and persistence tuples', () => {

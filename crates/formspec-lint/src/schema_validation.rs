@@ -1261,7 +1261,7 @@ mod tests {
     }
 
     #[test]
-    fn valid_response_actions_produces_no_e101() {
+    fn response_scoped_standard_intent_defaults_produce_no_e101() {
         let actions = json!({
             "$formspecResponseActions": "1.0",
             "version": "1.0.0",
@@ -1283,6 +1283,97 @@ mod tests {
                 .iter()
                 .map(|d| (&d.code, &d.path, &d.message))
                 .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn app_scope_requires_an_explicit_validation_tuple() {
+        let actions = json!({
+            "$formspecResponseActions": "1.0",
+            "version": "1.0.0",
+            "scope": "app",
+            "actions": [{
+                "id": "open-resource",
+                "intent": "review",
+                "effects": [{
+                    "type": "hostEvent",
+                    "eventName": "open-resource"
+                }]
+            }]
+        });
+
+        assert_e101(
+            &validate_schema(&actions, DocumentType::ResponseActions),
+            "App Action without an explicit validation tuple",
+        );
+    }
+
+    #[test]
+    fn app_scope_rejects_every_other_permitted_validation_tuple() {
+        for validation in [
+            json!({
+                "profile": "off",
+                "blocking": "non-blocking",
+                "persistence": "draft-checkpoint"
+            }),
+            json!({
+                "profile": "on-submit",
+                "blocking": "non-blocking",
+                "persistence": "none"
+            }),
+            json!({
+                "profile": "on-submit",
+                "blocking": "block-on-error",
+                "persistence": "complete-response"
+            }),
+        ] {
+            let actions = json!({
+                "$formspecResponseActions": "1.0",
+                "version": "1.0.0",
+                "scope": "app",
+                "actions": [{
+                    "id": "open-resource",
+                    "intent": "review",
+                    "validation": validation,
+                    "effects": [{
+                        "type": "hostEvent",
+                        "eventName": "open-resource"
+                    }]
+                }]
+            });
+
+            assert_e101(
+                &validate_schema(&actions, DocumentType::ResponseActions),
+                "App Action with a non-app validation tuple",
+            );
+        }
+    }
+
+    #[test]
+    fn app_scope_accepts_the_explicit_no_response_tuple() {
+        let actions = json!({
+            "$formspecResponseActions": "1.0",
+            "version": "1.0.0",
+            "scope": "app",
+            "actions": [{
+                "id": "open-resource",
+                "intent": "review",
+                "validation": {
+                    "profile": "off",
+                    "blocking": "non-blocking",
+                    "persistence": "none"
+                },
+                "effects": [{
+                    "type": "hostEvent",
+                    "eventName": "open-resource"
+                }]
+            }]
+        });
+
+        let diags = validate_schema(&actions, DocumentType::ResponseActions);
+        assert!(
+            diags.is_empty(),
+            "Explicit app validation tuple should produce no E101, got: {diags:?}"
         );
     }
 
