@@ -31,6 +31,7 @@ import {
   starterWidgetModule,
   useBrowserLocation,
   type FireTransition,
+  type BrowserDownloadResource,
   type SurfaceDefinitionFormRenderInput,
   type SurfaceDefinitionFormRenderer,
   type SurfaceSemanticControlScopeRequest,
@@ -633,7 +634,10 @@ async function executeServiceRequest(
   }
 }
 
-function browserResourcePorts(navigate: (href: string) => void) {
+function browserResourcePorts(
+  navigate: (href: string) => void,
+  config: HostRuntimeConfig,
+) {
   return {
     open: (href: string, target: 'self' | 'new') => {
       if (target === 'self' && href.startsWith('/')) {
@@ -646,15 +650,7 @@ function browserResourcePorts(navigate: (href: string) => void) {
         target === 'new' ? 'noopener,noreferrer' : undefined,
       );
     },
-    download: ({
-      content,
-      filename,
-      mediaType,
-    }: {
-      content: string;
-      filename: string;
-      mediaType: string;
-    }) => {
+    download: ({ content, filename, mediaType }: BrowserDownloadResource) => {
       const href = URL.createObjectURL(new Blob([content], { type: mediaType }));
       const link = document.createElement('a');
       link.href = href;
@@ -665,6 +661,22 @@ function browserResourcePorts(navigate: (href: string) => void) {
       link.remove();
       URL.revokeObjectURL(href);
     },
+    fetchServiceResource: (path: string) => {
+      const address = new URL(path, `${config.baseUrl}/`);
+      const base = new URL(config.baseUrl);
+      if (address.origin !== base.origin) {
+        throw new Error('The download path resolves outside the configured server origin.');
+      }
+      return fetch(address, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          ...config.headers,
+          accept: '*/*',
+        },
+      });
+    },
+    maxServiceDownloadBytes: 10 * 1024 * 1024,
   };
 }
 
@@ -688,7 +700,7 @@ function actionPorts<TDetail>(
         return executeBrowserResourceEffect(
           effect,
           effectDetail,
-          browserResourcePorts(navigate),
+          browserResourcePorts(navigate, config),
         );
       }
       if (effect.type === 'serviceRequest') {

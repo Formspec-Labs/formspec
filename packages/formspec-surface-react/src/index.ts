@@ -152,4 +152,6 @@ export {
   type BrowserResourceEffectInput,
   type BrowserResourcePorts,
   type BrowserResourceResolution,
+  type BrowserServiceDownloadResource,
+  type BrowserServiceResponse,
 } from './browser-resource.js';
