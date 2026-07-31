@@ -211,6 +211,21 @@ For E604-style sites, payload validation runs only after contribution ownership
 resolves. Payload-schema failures are module-resolution diagnostics, not
 renderer fallback instructions.
 
+The AppGraph collector provides one mandatory JSON Schema evaluator for
+`widgetShape.props`. A caller cannot disable or replace that evaluator through
+the optional support profile. It validates each authored `binding.config`
+against the props schema from the exact module-scoped widget contribution. An
+invalid or unevaluable props schema fails closed. Payload diagnostics point to
+the most specific failing config location and to the Registry schema keyword
+that rejected it.
+
+If a Surface binding omits `config`, there is no payload to validate. If the
+resolved widget omits `widgetShape.props`, there is no payload schema to run.
+The resolver reports `payloadStatus: "not-run"` in either case; it does not
+synthesize an empty config or an implicit schema. Other payload-schema families
+remain explicit support-profile hooks until their Registry boundaries are
+promoted.
+
 ## 8. Known Consuming Sites
 
 This interface covers the current and planned module-consuming sites without
