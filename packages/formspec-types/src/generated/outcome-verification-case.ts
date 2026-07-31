@@ -369,7 +369,14 @@ export interface EffectTraceEntry {
   /**
    * Closed Response Actions effect-type vocabulary.
    */
-  type: 'mappingExecution' | 'ledgerAppend' | 'handoffAssembly' | 'evidenceRequest' | 'hostEvent' | 'browserResource';
+  type:
+    | 'mappingExecution'
+    | 'ledgerAppend'
+    | 'handoffAssembly'
+    | 'evidenceRequest'
+    | 'serviceRequest'
+    | 'hostEvent'
+    | 'browserResource';
   /**
    * Outcome of one declared Action effect. not-invoked is an explicit owner-produced record, not an inference from a missing effect.
    */

@@ -30,7 +30,7 @@ This document closes the Response Actions promotion gate in [Formspec Semantic L
 
 BCP 14 normative terms (MUST, MUST NOT, SHOULD, MAY) appear in capitals. "VM" means [Validation Mapping](../core/validation-mapping.md). "FEL" means [Forms Expression Language](../../../fel-core/specs/fel/fel-grammar.md). "Ledger" means [Respondent Ledger](../audit/respondent-ledger-spec.md).
 
-An **Action** is a named runtime intent declared in a Response Actions document. An **invocation** is a single attempt to execute an Action against the current Response snapshot. An **effect** is a typed side-effect request from the closed `EffectRequest.type` taxonomy. A **durable effect** is `mappingExecution`, `ledgerAppend`, `handoffAssembly`, or `evidenceRequest`. A **transient effect** is `hostEvent`.
+An **Action** is a named runtime intent declared in a Response Actions document. An **invocation** is a single attempt to execute an Action against the current Response snapshot. An **effect** is a typed side-effect request from the closed `EffectRequest.type` taxonomy. A **durable effect** is `mappingExecution`, `ledgerAppend`, `handoffAssembly`, `evidenceRequest`, or `serviceRequest`. A **transient effect** is `hostEvent` or `browserResource`.
 
 ---
 
@@ -40,7 +40,8 @@ An **Action** is a named runtime intent declared in a Response Actions document.
 - Response Actions is a sidecar artifact: it binds `ActionButton.actionRef` or host invocations to named Actions without changing Definition, Response, Mapping, Intake Handoff, or Ledger schemas.
 - Each Action resolves exactly one validation tuple: standard intents inherit the Validation Mapping master row unless a full `validation` tuple is supplied; `x-` intents MUST supply the full tuple and never consult the master table.
 - Invocation order is fixed: snapshot Response, evaluate FEL preconditions, run validation for the resolved profile, apply the blocking gate, then invoke effects in declared order.
-- Durable effects require frozen idempotency keys and replay by prior outcome; `hostEvent` is transient and MUST NOT carry an idempotency key.
+- Durable effects require frozen idempotency keys and replay by prior outcome; `hostEvent` and `browserResource` MUST NOT carry idempotency keys.
+- A typed `x-formspec-runtime` catalog plans mutation requests and allowlisted outputs. Hosts retain network, origin, credential, scope, and private session authority.
 - Runtime processors own action resolution, tuple resolution, and invocation sequencing; lint owns static compatibility/reference checks; layout may place configured triggers but must not execute or infer actions.
 - Formspec may request domain Ledger events and assemble Intake Handoffs, but it MUST NOT author `case.created` or case lifecycle events; optional `action.*` lifecycle records are processor audit observations outside the declared effect chain.
 <!-- bluf:end -->
@@ -60,6 +61,7 @@ In scope:
 - Validation trigger mapping by VM intent or full tuple override.
 - Blocking and persistence reconciliation.
 - Closed effect taxonomy, effect ordering, idempotency, replay, failure, and deferred outcomes.
+- Structured, transport-neutral assembly of host-admitted service mutation requests and allowlisted response outputs.
 - Cross-artifact references to Mapping, Intake Handoff, and Respondent Ledger.
 
 Out of scope:
@@ -67,6 +69,7 @@ Out of scope:
 - Definition behavior, Mapping body rules, Intake Handoff body shape, Ledger event taxonomy, and governed case lifecycle.
 - Component widget shape beyond citing `ActionButton.actionRef`.
 - Authorization. `actor` is metadata only; host applications own authorization.
+- Network access, base origins, credentials, authorization headers, tenant scope, and session storage. Hosts own these capabilities.
 - Workflow host acceptance, rejection, deferral, governed case identity, and `case.created`.
 
 ### 1.2 Relationship to Existing Specifications
@@ -81,6 +84,7 @@ Out of scope:
 | [Mapping](../mapping/mapping-spec.md) | `mappingExecution.mappingRef` points to a Mapping document by handle. Mapping rules are never inlined. |
 | [Intake Handoff](../core/intake-handoff-spec.semantic.md) | `handoffAssembly` assembles an Intake Handoff outcome. Response Actions describes the request, not the body. |
 | [Respondent Ledger](../audit/respondent-ledger-spec.md) | `ledgerAppend` may request published domain Ledger events. Optional `action.*` lifecycle records are processor audit observations, not declared effects. |
+| [Data Sources](../data-sources/data-sources-spec.md) | Read-only remote data belongs in Data Sources. `serviceRequest` is restricted to mutation methods. |
 
 ### 1.3 Design Principles
 
@@ -89,6 +93,7 @@ Out of scope:
 3. **Cite, do not invent.** Validation vocabulary comes from VM. Ledger kinds come from Ledger. Mapping handles come from Mapping. Handoff bodies come from Intake Handoff.
 4. **No global rollback.** Effects execute in declared order. Failure halts the chain and never reverses prior durable effects.
 5. **Idempotency at durable boundaries.** Every durable effect MUST carry an idempotency key. `hostEvent` and `browserResource` MUST NOT carry one.
+6. **Data plans requests; hosts grant capabilities.** A runtime request describes path, body, safe headers, and allowlisted outputs. It never supplies an origin, credentials, authorization, session persistence, or network implementation.
 
 ### 1.4 Schema Reference
 
@@ -102,6 +107,7 @@ Out of scope:
 | `#/properties/scope` | `scope` | <code>string</code> | no | enum: <code>"response"</code>, <code>"app"</code>; default: <code>"response"</code> | Execution scope. response actions submit and validate the target Definition. app actions execute without a form submission and MUST omit targetDefinition. |
 | `#/properties/targetDefinition` | `targetDefinition` | <code>object</code> | no | — | The Definition this Response Actions document binds to. Identical role to Experience.targetDefinition. |
 | `#/properties/version` | `version` | <code>string</code> | yes | — | Version of this Response Actions document. SemVer RECOMMENDED. |
+| `#/properties/x-formspec-runtime` | `x-formspec-runtime` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/RuntimeRequestCatalog</code> | Typed runtime bindings for durable serviceRequest effects. The catalog describes request assembly and allowlisted outputs; the host retains origin, credential, authorization, tenant-scope, and network authority. |
 <!-- schema-ref:end -->
 
 ### 1.5 Peer Artifact Stance
@@ -247,10 +253,11 @@ Persistence policies mean:
 | `ledgerAppend` | durable | required | Request a Respondent Ledger append using a published domain event kind. |
 | `handoffAssembly` | durable | required | Assemble an Intake Handoff document and forward to a recipient handle. |
 | `evidenceRequest` | durable | required | Trigger demand-timing evidence collection. |
+| `serviceRequest` | durable | required | Invoke one typed, host-admitted service mutation from `x-formspec-runtime`. |
 | `hostEvent` | transient | forbidden | Dispatch a host-local event. |
 | `browserResource` | transient | forbidden | Open or download a validated structured browser resource. |
 
-<!-- schema-ref:start id=response-actions-effects schema=schemas/response-actions.schema.json pointers=#/$defs/EffectRequest,#/$defs/MappingExecutionEffect,#/$defs/LedgerAppendEffect,#/$defs/HandoffAssemblyEffect,#/$defs/EvidenceRequestEffect,#/$defs/HostEventEffect -->
+<!-- schema-ref:start id=response-actions-effects schema=schemas/response-actions.schema.json pointers=#/$defs/EffectRequest,#/$defs/MappingExecutionEffect,#/$defs/LedgerAppendEffect,#/$defs/HandoffAssemblyEffect,#/$defs/EvidenceRequestEffect,#/$defs/ServiceRequestEffect,#/$defs/HostEventEffect,#/$defs/BrowserResourceEffect -->
 <!-- generated:schema-ref id=response-actions-effects -->
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
@@ -273,9 +280,18 @@ Persistence policies mean:
 | `#/$defs/EvidenceRequestEffect/properties/onError` | `onError` | <code>string</code> | no | enum: <code>"fail"</code>, <code>"defer"</code>; default: <code>"defer"</code> | — |
 | `#/$defs/EvidenceRequestEffect/properties/requestRef` | `requestRef` | <code>string</code> | yes | — | — |
 | `#/$defs/EvidenceRequestEffect/properties/type` | `type` | <code>const</code> | yes | const: <code>"evidenceRequest"</code> | — |
+| `#/$defs/ServiceRequestEffect/properties/idempotencyKey` | `idempotencyKey` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/IdempotencyKey</code> | — |
+| `#/$defs/ServiceRequestEffect/properties/onError` | `onError` | <code>string</code> | no | enum: <code>"fail"</code>, <code>"defer"</code>; default: <code>"fail"</code> | — |
+| `#/$defs/ServiceRequestEffect/properties/requestRef` | `requestRef` | <code>string</code> | yes | pattern: <code>^[A-Za-z][A-Za-z0-9-]*&#36;</code> | Identifier of one request in this document's x-formspec-runtime.requests catalog. |
+| `#/$defs/ServiceRequestEffect/properties/type` | `type` | <code>const</code> | yes | const: <code>"serviceRequest"</code> | — |
 | `#/$defs/HostEventEffect/properties/detailRef` | `detailRef` | <code>string</code> | no | — | Optional FEL expression producing transient event detail. |
 | `#/$defs/HostEventEffect/properties/eventName` | `eventName` | <code>string</code> | yes | — | — |
 | `#/$defs/HostEventEffect/properties/type` | `type` | <code>const</code> | yes | const: <code>"hostEvent"</code> | — |
+| `#/$defs/BrowserResourceEffect/properties/onError` | `onError` | <code>string</code> | no | enum: <code>"fail"</code>, <code>"defer"</code>; default: <code>"fail"</code> | — |
+| `#/$defs/BrowserResourceEffect/properties/operation` | `operation` | <code>string</code> | yes | enum: <code>"open"</code>, <code>"download"</code> | open follows a safe internal, HTTPS, or explicitly authored mailto destination. download saves an authored resource. |
+| `#/$defs/BrowserResourceEffect/properties/resourceRef` | `resourceRef` | <code>string</code> | yes | pattern: <code>^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*&#36;</code> | Safe own-property path into the structured action input. The resolved value is a browser resource object; it is never evaluated as code. |
+| `#/$defs/BrowserResourceEffect/properties/target` | `target` | <code>string</code> | no | enum: <code>"self"</code>, <code>"new"</code>; default: <code>"self"</code> | Browsing context for open operations. Downloads ignore this value. |
+| `#/$defs/BrowserResourceEffect/properties/type` | `type` | <code>const</code> | yes | const: <code>"browserResource"</code> | — |
 <!-- schema-ref:end -->
 
 ### 6.2 Ordered Execution and No Rollback
@@ -328,6 +344,88 @@ Each effect contributes an outcome record:
 
 `status` is `succeeded`, `failed`, `deferred`, `replayed`, or `not-invoked`. `outcomeRef` MUST be a content-addressable `sha256:<64 lowercase hex>` handle when a durable effect produces material output.
 
+### 6.6 Service Requests
+
+A `serviceRequest` effect names exactly one request in the same document's
+`x-formspec-runtime.requests` catalog. Request ids MUST be unique. A processor
+MUST reject an unresolved or ambiguous `requestRef` before invocation.
+
+<!-- schema-ref:start id=response-actions-service-requests schema=schemas/response-actions.schema.json pointers=#/$defs/ServiceRequestEffect,#/$defs/RuntimeRequestCatalog,#/$defs/RuntimeRequest,#/$defs/HttpJsonRequest,#/$defs/RuntimeValueSelector,#/$defs/RuntimeRequestOutput -->
+<!-- generated:schema-ref id=response-actions-service-requests -->
+| Pointer | Field | Type | Required | Notes | Description |
+|---|---|---|---|---|---|
+| `#/$defs/ServiceRequestEffect/properties/idempotencyKey` | `idempotencyKey` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/IdempotencyKey</code> | — |
+| `#/$defs/ServiceRequestEffect/properties/onError` | `onError` | <code>string</code> | no | enum: <code>"fail"</code>, <code>"defer"</code>; default: <code>"fail"</code> | — |
+| `#/$defs/ServiceRequestEffect/properties/requestRef` | `requestRef` | <code>string</code> | yes | pattern: <code>^[A-Za-z][A-Za-z0-9-]*&#36;</code> | Identifier of one request in this document's x-formspec-runtime.requests catalog. |
+| `#/$defs/ServiceRequestEffect/properties/type` | `type` | <code>const</code> | yes | const: <code>"serviceRequest"</code> | — |
+| `#/$defs/RuntimeRequestCatalog/properties/requests` | `requests` | <code>array</code> | yes | — | Named request bindings. Each id MUST be unique within the catalog. |
+| `#/$defs/RuntimeRequestCatalog/properties/version` | `version` | <code>const</code> | yes | const: <code>"1.0"</code> | Runtime request catalog version. |
+| `#/$defs/RuntimeRequest/properties/adapter` | `adapter` | <code>const</code> | yes | const: <code>"http-json"</code> | JSON-over-HTTP runtime adapter. |
+| `#/$defs/RuntimeRequest/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[A-Za-z][A-Za-z0-9-]*&#36;</code> | Stable request id referenced by serviceRequest.requestRef. |
+| `#/$defs/RuntimeRequest/properties/outputs` | `outputs` | <code>object</code> | no | — | Allowlisted names extracted from the parsed JSON response. Outputs default to invocation-private. `transition` outputs may enter route state; the host sends `session` outputs only to its private session store. |
+| `#/$defs/RuntimeRequest/properties/request` | `request` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/HttpJsonRequest</code> | — |
+| `#/$defs/RuntimeRequest/properties/successStatuses` | `successStatuses` | <code>array</code> | no | — | Optional exact successful HTTP status codes. Omission admits any 2xx response. |
+| `#/$defs/RuntimeRequest/properties/x-generation` | `x-generation` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Generation</code> | Generation provenance for this functional request declaration. |
+| `#/$defs/HttpJsonRequest/properties/bodyBindings` | `bodyBindings` | <code>object</code> | no | — | JSON Pointer targets populated from runtime selectors after bodyDefaults are copied. |
+| `#/$defs/HttpJsonRequest/properties/bodyDefaults` | `bodyDefaults` | <code>object</code> | no | — | Optional literal JSON object copied before bodyBindings are applied. |
+| `#/$defs/HttpJsonRequest/properties/headerBindings` | `headerBindings` | <code>object</code> | no | — | Optional non-authority request headers. Hosts MUST reject credentials, cookies, hop-by-hop headers, idempotency-key, and Formspec scope headers. |
+| `#/$defs/HttpJsonRequest/properties/method` | `method` | <code>string</code> | yes | enum: <code>"POST"</code>, <code>"PUT"</code>, <code>"PATCH"</code>, <code>"DELETE"</code> | Mutation method. Read-only GET delivery belongs in Data Sources. |
+| `#/$defs/HttpJsonRequest/properties/pathBindings` | `pathBindings` | <code>object</code> | no | — | Bindings for every and only the named placeholders in pathTemplate. Resolved values MUST be scalar. |
+| `#/$defs/HttpJsonRequest/properties/pathTemplate` | `pathTemplate` | <code>string</code> | yes | pattern: <code>^/(?!/)</code> | Same-origin absolute-path template. Braced placeholders resolve only from pathBindings; hosts reject unsafe or malformed paths. |
+| `#/$defs/HttpJsonRequest/properties/queryBindings` | `queryBindings` | <code>object</code> | no | — | Optional query values. Resolved values MUST be scalar. |
+| `#/$defs/RuntimeValueSelector/properties/from` | `from` | <code>string</code> | yes | enum: <code>"input"</code>, <code>"route"</code>, <code>"session"</code>, <code>"result"</code>, <code>"literal"</code> | Closed runtime source catalog. |
+| `#/$defs/RuntimeValueSelector/properties/path` | `path` | <code>string</code> | no | pattern: <code>^[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*&#36;</code> | Safe own-property path into the selected structured source. |
+| `#/$defs/RuntimeValueSelector/properties/value` | `value` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/JsonValue</code> | Literal JSON value when from is literal. |
+| `#/$defs/RuntimeRequestOutput/properties/exposure` | `exposure` | <code>string</code> | no | enum: <code>"internal"</code>, <code>"transition"</code>, <code>"session"</code>; default: <code>"internal"</code> | `internal` remains invocation-private; `transition` MUST resolve to a non-empty string and may be consumed by Surface transition params; `session` MUST resolve to a non-empty string, and the host sends it only to its private session store for later `from: session` selectors. |
+| `#/$defs/RuntimeRequestOutput/properties/path` | `path` | <code>string</code> | yes | pattern: <code>^/(?:[^~/]&#124;~[01])+(?:/(?:[^~/]&#124;~[01])*)*&#36;</code> | JSON Pointer into the parsed successful response body. |
+<!-- schema-ref:end -->
+
+The catalog is a typed, code-free request description. A request uses the
+`http-json` adapter and one mutation method: `POST`, `PUT`, `PATCH`, or
+`DELETE`. Read-only `GET` operations belong in Data Sources. `pathTemplate`
+MUST be one same-origin absolute path. It MUST NOT contain an origin, repeated
+slash, backslash, query, fragment, raw dot segment, or percent-encoded dot,
+slash, or backslash. `pathBindings` MUST bind every and only the template's
+named placeholders.
+
+Selectors use the closed source catalog `input`, `route`, `session`, `result`,
+or `literal`. Non-literal selectors use a safe own-property `path`; literal
+selectors carry a JSON `value`. A processor MUST reject prototype-bearing
+paths, inherited properties, accessors, cycles, non-JSON values, or a missing
+path segment. Path, query, and header bindings MUST resolve to scalar values.
+The processor percent-encodes path values, encodes query values, copies
+`bodyDefaults`, and then applies `bodyBindings` at their non-root JSON Pointer
+targets.
+
+Artifacts MUST NOT author credentials, cookies, `Host`, `Origin`,
+`Idempotency-Key`, representation headers, hop-by-hop headers, proxy/security
+headers, or `X-Formspec-*` authority and scope headers. The host chooses the
+base origin, credentials, authorization, tenant scope, idempotency header, and
+request implementation after applying its own admission policy. The reference
+engine plans requests; it does not perform network I/O.
+
+A successful adapter parses one JSON response body and extracts only names
+declared in `outputs`, using safe non-root JSON Pointers. Undeclared fields and
+the raw response body MUST NOT enter the effect trace, invocation result,
+route state, session state, lifecycle records, or diagnostics. Output
+`exposure` has three values:
+
+- `internal` (default) remains private to the adapter and may feed later
+  `from: result` selectors in the same invocation.
+- `transition` MUST be a non-empty string. The adapter may return it as a
+  transition binding only when the effect succeeds or replays.
+- `session` MUST be a non-empty string. The adapter returns it separately to
+  the host session store. It MUST NOT appear in the invocation result,
+  transition bindings, effect trace, lifecycle records, or diagnostics. A
+  later action may read the host-stored value through `from: session`.
+
+The host effect adapter returns only the normalized effect outcome and any
+allowed transition bindings to the action engine. It persists session outputs
+directly in its private session store. Retry MUST reuse the frozen effect
+idempotency key. A Promise-returning adapter requires the asynchronous
+invocation API; the synchronous API MUST fail before treating that Promise as
+a successful outcome.
+
 ## 7. Invocation State Machine
 
 Invocation follows this order:
@@ -336,11 +434,10 @@ Invocation follows this order:
 2. `preconditions`: evaluate preconditions in order.
 3. `validation`: for response scope, resolve the tuple and produce a ValidationReport unless profile is `off`; app scope requires the fixed off/non-blocking/none tuple and performs no Response validation.
 4. `blocking-gate`: if `blocking` is `block-on-error` and `ValidationReport.valid` is false, terminate `blocked` with `cause: "validation"` and invoke zero effects.
-5. `effects-running`: invoke effects in declared order.
+5. `effects-running`: invoke effects in declared order. Awaited adapters remain serial; the next effect cannot begin until the current effect reaches an outcome.
 6. Terminal: `completed`, `failed`, `deferred`, or `blocked`.
 
 **Normative rule `invocation.blocking-gate`.** When the resolved tuple uses
-`blocking: block-on-error` and the current ValidationReport has
 `valid: false`, the invocation MUST terminate as `blocked` with
 `cause: "validation"`. The processor MUST emit an explicit `not-invoked`
 outcome for every declared effect and MUST invoke none of them.
@@ -361,9 +458,12 @@ Surface routers may observe a completed invocation to decide whether a
 declared transition can advance; they do not own preconditions, validation,
 effect execution, idempotency, replay, or terminal classification. Session
 processors may authenticate the caller and bind actor/session context; they do
-not change the action state machine. Core Response processors own data/status
-mutation only through the resolved VM persistence policy; an invocation trace is
-not a substitute for a Response document.
+not change the action state machine. A host may persist explicitly exposed
+service outputs into its private session store and supply them to a later
+`from: session` selector; the action engine never exposes or stores those
+values. Core Response processors mutate data or status only through the
+resolved VM persistence policy; an invocation trace cannot replace a Response
+document.
 
 Processors MUST keep invocation/effect state explicit when a route contains
 multiple Response instances, when a route parameter selects the Response
@@ -394,6 +494,13 @@ request. It MUST resolve its `resourceRef` only against validated structured
 action input. A generic browser host MAY admit same-origin paths, HTTPS
 destinations, intentional `mailto` links, and locally generated downloads; it
 MUST fail closed for unsafe schemes or malformed resources.
+
+`serviceRequest` is durable and host-mediated. The engine may assemble its
+transport-neutral request and extract declared outputs, but only the host may
+choose an origin, attach credentials or scope, perform the request, and persist
+session outputs. A generic renderer MUST NOT infer these capabilities from
+visible copy, route state, or an extension key that is not the typed
+`x-formspec-runtime` catalog.
 
 `ActionButton.actionRef` resolves against `actions[*].id`. An unresolved ref MUST produce an inert widget and an informative finding. There is no implicit default Action, no free-string fallback, and no legacy SubmitButton behavior.
 
@@ -433,8 +540,11 @@ A conforming Response Actions document MUST:
 - Give every durable effect an `idempotencyKey` and give no `hostEvent` or
   `browserResource` an `idempotencyKey`.
 - Avoid authoring `action.*`, `case.created`, or case lifecycle events as effects.
+- Resolve each `serviceRequest.requestRef` exactly once; use safe request paths,
+  admitted authored headers, complete placeholder bindings, closed selectors,
+  safe body/output JSON Pointers, and declared output exposure.
 
-A conforming static lint processor SHOULD validate `targetDefinition` compatibility when paired with a Definition, reject duplicate `actions[*].id`, and report unresolved Component `ActionButton.actionRef` references when paired with Component documents.
+A conforming static lint processor SHOULD validate `targetDefinition` compatibility when paired with a Definition, reject duplicate `actions[*].id`, report unresolved Component `ActionButton.actionRef` references when paired with Component documents, and reject duplicate or unresolved service requests, unsafe paths or headers, placeholder mismatches, invalid selectors or JSON Pointers, and unknown output exposure.
 
 A conforming processor that executes Actions MUST implement the Section 7 state machine, enforce FEL catalog closure, freeze durable idempotency keys, preserve prior durable effects on failure, and return only the four terminal states.
 
@@ -452,3 +562,8 @@ Response Actions MUST NOT:
 8. Submit or mutate a Response from an app-scoped action.
 9. Resolve a browser resource from code, an unvalidated object, or a
    prototype-bearing path.
+10. Put an origin, credential, authorization, tenant scope, or executable
+    request code in `x-formspec-runtime`.
+11. Expose raw service response bodies, undeclared outputs, or `session`
+    outputs through effect traces, transition bindings, lifecycle records, or
+    diagnostics.

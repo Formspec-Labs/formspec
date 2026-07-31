@@ -46,6 +46,7 @@ export type ResponseActionsDocument = {
    * @minItems 1
    */
   actions: [Action, ...Action[]];
+  'x-formspec-runtime'?: RuntimeRequestCatalog;
   /**
    * This interface was referenced by `undefined`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
@@ -135,6 +136,7 @@ export type EffectRequest =
   | LedgerAppendEffect
   | HandoffAssemblyEffect
   | EvidenceRequestEffect
+  | ServiceRequestEffect
   | HostEventEffect
   | BrowserResourceEffect;
 /**
@@ -144,6 +146,51 @@ export type EffectRequest =
  * via the `definition` "IdempotencyKey".
  */
 export type IdempotencyKey = string;
+/**
+ * Code-free selector for request assembly.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "RuntimeValueSelector".
+ */
+export type RuntimeValueSelector = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Closed runtime source catalog.
+   */
+  from: 'input' | 'route' | 'session' | 'result' | 'literal';
+  /**
+   * Safe own-property path into the selected structured source.
+   */
+  path?: string;
+  /**
+   * Literal JSON value when from is literal.
+   */
+  value?:
+    | null
+    | boolean
+    | string
+    | number
+    | JsonValue[]
+    | {
+        [k: string]: JsonValue;
+      };
+};
+/**
+ * A JSON-serializable literal value.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "JsonValue".
+ */
+export type JsonValue =
+  | null
+  | boolean
+  | string
+  | number
+  | JsonValue[]
+  | {
+      [k: string]: JsonValue;
+    };
 /**
  * Complete Response Action invocation status vocabulary. unresolved means that Action resolution failed before invocation; the remaining values are terminal execution outcomes.
  *
@@ -176,6 +223,7 @@ export type ActionEffectType =
   | 'ledgerAppend'
   | 'handoffAssembly'
   | 'evidenceRequest'
+  | 'serviceRequest'
   | 'hostEvent'
   | 'browserResource';
 /**
@@ -333,6 +381,21 @@ export interface EvidenceRequestEffect {
   onError?: 'fail' | 'defer';
 }
 /**
+ * Durable request for one host-admitted service operation. The effect names the request and owns ordering, retry, and idempotency; the runtime catalog owns transport binding.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ServiceRequestEffect".
+ */
+export interface ServiceRequestEffect {
+  type: 'serviceRequest';
+  /**
+   * Identifier of one request in this document's x-formspec-runtime.requests catalog.
+   */
+  requestRef: string;
+  idempotencyKey: IdempotencyKey;
+  onError?: 'fail' | 'defer';
+}
+/**
  * Transient host-local event. MUST NOT carry idempotencyKey.
  *
  * This interface was referenced by `undefined`'s JSON-Schema
@@ -367,6 +430,111 @@ export interface BrowserResourceEffect {
    */
   target?: 'self' | 'new';
   onError?: 'fail' | 'defer';
+}
+/**
+ * Typed runtime bindings for durable serviceRequest effects. The catalog describes request assembly and allowlisted outputs; the host retains origin, credential, authorization, tenant-scope, and network authority.
+ */
+export interface RuntimeRequestCatalog {
+  /**
+   * Runtime request catalog version.
+   */
+  version: '1.0';
+  /**
+   * Named request bindings. Each id MUST be unique within the catalog.
+   *
+   * @minItems 1
+   */
+  requests: [RuntimeRequest, ...RuntimeRequest[]];
+}
+/**
+ * One host-admitted JSON-over-HTTP request and its allowlisted outputs.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "RuntimeRequest".
+ */
+export interface RuntimeRequest {
+  /**
+   * Stable request id referenced by serviceRequest.requestRef.
+   */
+  id: string;
+  /**
+   * JSON-over-HTTP runtime adapter.
+   */
+  adapter: 'http-json';
+  request: HttpJsonRequest;
+  /**
+   * Optional exact successful HTTP status codes. Omission admits any 2xx response.
+   *
+   * @minItems 1
+   */
+  successStatuses?: [number, ...number[]];
+  /**
+   * Allowlisted names extracted from the parsed JSON response. Outputs default to invocation-private. `transition` outputs may enter route state; the host sends `session` outputs only to its private session store.
+   */
+  outputs?: {
+    [k: string]: RuntimeRequestOutput;
+  };
+  'x-generation'?: Generation;
+}
+/**
+ * Structured same-origin JSON request. Base origin, credentials, authorization, scope headers, and idempotency header remain host-owned.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "HttpJsonRequest".
+ */
+export interface HttpJsonRequest {
+  /**
+   * Mutation method. Read-only GET delivery belongs in Data Sources.
+   */
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  /**
+   * Same-origin absolute-path template. Braced placeholders resolve only from pathBindings; hosts reject unsafe or malformed paths.
+   */
+  pathTemplate: string;
+  /**
+   * Bindings for every and only the named placeholders in pathTemplate. Resolved values MUST be scalar.
+   */
+  pathBindings?: {
+    [k: string]: RuntimeValueSelector;
+  };
+  /**
+   * Optional query values. Resolved values MUST be scalar.
+   */
+  queryBindings?: {
+    [k: string]: RuntimeValueSelector;
+  };
+  /**
+   * Optional non-authority request headers. Hosts MUST reject credentials, cookies, hop-by-hop headers, idempotency-key, and Formspec scope headers.
+   */
+  headerBindings?: {
+    [k: string]: RuntimeValueSelector;
+  };
+  /**
+   * Optional literal JSON object copied before bodyBindings are applied.
+   */
+  bodyDefaults?: {};
+  /**
+   * JSON Pointer targets populated from runtime selectors after bodyDefaults are copied.
+   */
+  bodyBindings?: {
+    [k: string]: RuntimeValueSelector;
+  };
+}
+/**
+ * Allowlisted response extraction. Raw response bodies never enter effect traces or navigation state. Session outputs never enter invocation results or diagnostics.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "RuntimeRequestOutput".
+ */
+export interface RuntimeRequestOutput {
+  /**
+   * JSON Pointer into the parsed successful response body.
+   */
+  path: string;
+  /**
+   * `internal` remains invocation-private; `transition` MUST resolve to a non-empty string and may be consumed by Surface transition params; `session` MUST resolve to a non-empty string, and the host sends it only to its private session store for later `from: session` selectors.
+   */
+  exposure?: 'internal' | 'transition' | 'session';
 }
 export interface DefinitionScopedResponseActions {
   scope?: 'response';

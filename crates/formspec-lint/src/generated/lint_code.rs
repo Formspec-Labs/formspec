@@ -255,6 +255,8 @@ pub enum LintCode {
     E1803,
     /// Registry code `E1804`.
     E1804,
+    /// Registry code `E1805`.
+    E1805,
     /// Registry code `W1802`.
     W1802,
 }
@@ -386,6 +388,7 @@ impl LintCode {
             LintCode::E1802 => "E1802",
             LintCode::E1803 => "E1803",
             LintCode::E1804 => "E1804",
+            LintCode::E1805 => "E1805",
             LintCode::W1802 => "W1802",
         }
     }
@@ -516,6 +519,7 @@ impl LintCode {
             LintCode::E1802 => 9,
             LintCode::E1803 => 9,
             LintCode::E1804 => 9,
+            LintCode::E1805 => 9,
             LintCode::W1802 => 9,
         }
     }
@@ -646,6 +650,7 @@ impl LintCode {
             "E1802" => Some(LintCode::E1802),
             "E1803" => Some(LintCode::E1803),
             "E1804" => Some(LintCode::E1804),
+            "E1805" => Some(LintCode::E1805),
             "W1802" => Some(LintCode::W1802),
             _ => None,
         }
@@ -776,6 +781,7 @@ impl LintCode {
         LintCode::E1802,
         LintCode::E1803,
         LintCode::E1804,
+        LintCode::E1805,
         LintCode::W1802,
     ];
 }
@@ -836,6 +842,6 @@ mod tests {
 
     #[test]
     fn registry_variant_count_matches_json() {
-        assert_eq!(LintCode::ALL.len(), 124);
+        assert_eq!(LintCode::ALL.len(), 125);
     }
 }

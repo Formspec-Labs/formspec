@@ -85,6 +85,10 @@
       "minItems": 1,
       "items": { "$ref": "#/$defs/Action" },
       "description": "Named actions. Order is documentation-only; resolution is by Action.id. Each id MUST be unique within the document."
+    },
+    "x-formspec-runtime": {
+      "$ref": "#/$defs/RuntimeRequestCatalog",
+      "description": "Typed runtime bindings for durable serviceRequest effects. The catalog describes request assembly and allowlisted outputs; the host retains origin, credential, authorization, tenant-scope, and network authority."
     }
   },
   "$defs": {
@@ -110,6 +114,7 @@
         "ledgerAppend",
         "handoffAssembly",
         "evidenceRequest",
+        "serviceRequest",
         "hostEvent",
         "browserResource"
       ],
@@ -239,6 +244,7 @@
         { "$ref": "#/$defs/LedgerAppendEffect" },
         { "$ref": "#/$defs/HandoffAssemblyEffect" },
         { "$ref": "#/$defs/EvidenceRequestEffect" },
+        { "$ref": "#/$defs/ServiceRequestEffect" },
         { "$ref": "#/$defs/HostEventEffect" },
         { "$ref": "#/$defs/BrowserResourceEffect" }
       ],
@@ -313,6 +319,22 @@
       },
       "description": "Durable effect requesting demand-timing evidence collection."
     },
+    "ServiceRequestEffect": {
+      "type": "object",
+      "required": ["type", "requestRef", "idempotencyKey"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "serviceRequest" },
+        "requestRef": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+          "description": "Identifier of one request in this document's x-formspec-runtime.requests catalog."
+        },
+        "idempotencyKey": { "$ref": "#/$defs/IdempotencyKey" },
+        "onError": { "type": "string", "enum": ["fail", "defer"], "default": "fail" }
+      },
+      "description": "Durable request for one host-admitted service operation. The effect names the request and owns ordering, retry, and idempotency; the runtime catalog owns transport binding."
+    },
     "HostEventEffect": {
       "type": "object",
       "required": ["type", "eventName"],
@@ -357,6 +379,194 @@
         }
       },
       "description": "Transient browser navigation or download request resolved from validated structured action input. MUST NOT carry idempotencyKey."
+    },
+    "RuntimeRequestCatalog": {
+      "type": "object",
+      "required": ["version", "requests"],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "1.0",
+          "description": "Runtime request catalog version."
+        },
+        "requests": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/RuntimeRequest" },
+          "description": "Named request bindings. Each id MUST be unique within the catalog."
+        }
+      },
+      "description": "Closed, typed runtime request catalog for this Response Actions document."
+    },
+    "RuntimeRequest": {
+      "type": "object",
+      "required": ["id", "adapter", "request"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+          "description": "Stable request id referenced by serviceRequest.requestRef."
+        },
+        "adapter": {
+          "const": "http-json",
+          "description": "JSON-over-HTTP runtime adapter."
+        },
+        "request": { "$ref": "#/$defs/HttpJsonRequest" },
+        "successStatuses": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 200,
+            "maximum": 299
+          },
+          "description": "Optional exact successful HTTP status codes. Omission admits any 2xx response."
+        },
+        "outputs": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+          },
+          "additionalProperties": { "$ref": "#/$defs/RuntimeRequestOutput" },
+          "description": "Allowlisted names extracted from the parsed JSON response. Outputs default to invocation-private. `transition` outputs may enter route state; the host sends `session` outputs only to its private session store."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this functional request declaration."
+        }
+      },
+      "description": "One host-admitted JSON-over-HTTP request and its allowlisted outputs."
+    },
+    "HttpJsonRequest": {
+      "type": "object",
+      "required": ["method", "pathTemplate"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["POST", "PUT", "PATCH", "DELETE"],
+          "description": "Mutation method. Read-only GET delivery belongs in Data Sources."
+        },
+        "pathTemplate": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^/(?!/)",
+          "description": "Same-origin absolute-path template. Braced placeholders resolve only from pathBindings; hosts reject unsafe or malformed paths."
+        },
+        "pathBindings": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": { "$ref": "#/$defs/RuntimeValueSelector" },
+          "description": "Bindings for every and only the named placeholders in pathTemplate. Resolved values MUST be scalar."
+        },
+        "queryBindings": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+          },
+          "additionalProperties": { "$ref": "#/$defs/RuntimeValueSelector" },
+          "description": "Optional query values. Resolved values MUST be scalar."
+        },
+        "headerBindings": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[!#$%&'*+.^_`|~0-9A-Za-z-]+$"
+          },
+          "additionalProperties": { "$ref": "#/$defs/RuntimeValueSelector" },
+          "description": "Optional non-authority request headers. Hosts MUST reject credentials, cookies, hop-by-hop headers, idempotency-key, and Formspec scope headers."
+        },
+        "bodyDefaults": {
+          "type": "object",
+          "description": "Optional literal JSON object copied before bodyBindings are applied."
+        },
+        "bodyBindings": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^/(?:[^~/]|~[01])+(?:/(?:[^~/]|~[01])*)*$"
+          },
+          "additionalProperties": { "$ref": "#/$defs/RuntimeValueSelector" },
+          "description": "JSON Pointer targets populated from runtime selectors after bodyDefaults are copied."
+        }
+      },
+      "description": "Structured same-origin JSON request. Base origin, credentials, authorization, scope headers, and idempotency header remain host-owned."
+    },
+    "RuntimeValueSelector": {
+      "type": "object",
+      "required": ["from"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "from": { "const": "literal" } },
+            "required": ["from"]
+          },
+          "then": {
+            "required": ["value"],
+            "not": { "required": ["path"] }
+          },
+          "else": {
+            "required": ["path"],
+            "not": { "required": ["value"] }
+          }
+        }
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "enum": ["input", "route", "session", "result", "literal"],
+          "description": "Closed runtime source catalog."
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_-]*(?:\\.[A-Za-z_][A-Za-z0-9_-]*)*$",
+          "description": "Safe own-property path into the selected structured source."
+        },
+        "value": {
+          "$ref": "#/$defs/JsonValue",
+          "description": "Literal JSON value when from is literal."
+        }
+      },
+      "description": "Code-free selector for request assembly."
+    },
+    "JsonValue": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "string" },
+        { "type": "number" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/JsonValue" }
+        },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/JsonValue" }
+        }
+      ],
+      "description": "A JSON-serializable literal value."
+    },
+    "RuntimeRequestOutput": {
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/(?:[^~/]|~[01])+(?:/(?:[^~/]|~[01])*)*$",
+          "description": "JSON Pointer into the parsed successful response body."
+        },
+        "exposure": {
+          "type": "string",
+          "enum": ["internal", "transition", "session"],
+          "default": "internal",
+          "description": "`internal` remains invocation-private; `transition` MUST resolve to a non-empty string and may be consumed by Surface transition params; `session` MUST resolve to a non-empty string, and the host sends it only to its private session store for later `from: session` selectors."
+        }
+      },
+      "description": "Allowlisted response extraction. Raw response bodies never enter effect traces or navigation state. Session outputs never enter invocation results or diagnostics."
     }
   }
 }

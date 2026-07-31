@@ -1,0 +1,50 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "scope": "app",
+  "actions": [
+    {
+      "id": "create-form",
+      "intent": "x-create-form",
+      "validation": {
+        "profile": "off",
+        "blocking": "non-blocking",
+        "persistence": "none"
+      },
+      "effects": [
+        {
+          "type": "serviceRequest",
+          "requestRef": "missing-request",
+          "idempotencyKey": "@invocation.id & '/create-form'"
+        }
+      ]
+    }
+  ],
+  "x-formspec-runtime": {
+    "version": "1.0",
+    "requests": [
+      {
+        "id": "create-form-request",
+        "adapter": "http-json",
+        "request": {
+          "method": "POST",
+          "pathTemplate": "/forms",
+          "bodyBindings": {
+            "/slug": {
+              "from": "input",
+              "path": "data.slug"
+            }
+          }
+        }
+      },
+      {
+        "id": "create-form-request",
+        "adapter": "http-json",
+        "request": {
+          "method": "POST",
+          "pathTemplate": "/forms"
+        }
+      }
+    ]
+  }
+}

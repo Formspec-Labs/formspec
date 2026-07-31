@@ -14,7 +14,7 @@
 //! Pass 8 (E606-E607/E610, E900-E902): Surface route graph and Response
 //! cross-field invariants (ADR 0150 §6)
 //! Registry-only E611 is emitted by the TypeScript AppGraphValidator, not this crate.
-//! Pass 9 (E1100-E1802/W1100-W1800): Companion document semantic lint
+//! Pass 9 (E1100-E1805/W1100-W1802): Companion document semantic lint
 //!
 //! ## Documentation
 //!

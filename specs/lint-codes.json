@@ -1348,6 +1348,16 @@
       "state": "tested"
     },
     {
+      "code": "E1805",
+      "pass": 9,
+      "severity": "error",
+      "title": "Response Actions service request contract invalid",
+      "specRef": "specs/response-actions/response-actions-spec.md#66-service-requests",
+      "suggestedFix": "resolve every serviceRequest.requestRef to one safe x-formspec-runtime request; align path placeholders and bindings, use closed selectors, keep authority headers host-owned, and expose only allowlisted outputs",
+      "fixtures": ["tests/fixtures/lint/E1805-response-actions-service-request-invalid.json"],
+      "state": "tested"
+    },
+    {
       "code": "W1802",
       "pass": 9,
       "severity": "warning",
