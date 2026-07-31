@@ -50,7 +50,7 @@ export const COMPONENT_SCHEMA_PROPS: Record<string, readonly string[]> = {
   Slider: ['max', 'min', 'showTicks', 'showValue', 'step'],
   Stack: ['align', 'background', 'border', 'direction', 'elevation', 'gap', 'justify', 'padding', 'radius', 'wrap'],
   Summary: ['items'],
-  Tabs: ['defaultTab', 'placement', 'tabLabels'],
+  Tabs: ['defaultTab', 'placement', 'tabLabelGeneration', 'tabLabels'],
   Text: ['format', 'text'],
   TextInput: ['inputMode', 'maxLines', 'placeholder', 'prefix', 'suffix', 'variant'],
   Toggle: ['offLabel', 'onLabel'],
