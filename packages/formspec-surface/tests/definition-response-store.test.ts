@@ -4,6 +4,7 @@ import type {
   DataSource,
   DataSourcesDocument,
   FormResponse,
+  ResponseSelection,
 } from "@formspec-org/types";
 import {
   createPreviewDefinitionResponseStore,
@@ -504,30 +505,79 @@ describe("createPreviewDefinitionResponseStore", () => {
     expect(baselineLoader).toHaveBeenCalledOnce();
   });
 
-  it("does not admit draft or incomplete Definition Response source declarations", () => {
-    const draft = definitionResponseSource({
+  it("delivers an admitted current-session draft without inventing a baseline adapter", async () => {
+    const { definitionVersion: _version, responseSelection: _selection, ...base } =
+      definitionResponseSource() as DataSource & {
+        definitionVersion: string;
+        responseSelection: ResponseSelection;
+      };
+    const draft = {
+      ...base,
       runtime: {
-        ...definitionResponseSource().runtime,
+        ...base.runtime,
         delivery: "draft",
         cache: { mode: "draft" },
       },
+    } as DataSource;
+    const store = createPreviewDefinitionResponseStore([
+      catalog(CATALOG_A, [draft]),
+    ]);
+    const unavailable: DataSourceLoadResult = {
+      status: "unavailable",
+      reason: "No host adapter is needed for a current-session draft.",
+    };
+
+    expect(store.overlay(BINDING_A, unavailable)).toEqual({
+      status: "unavailable",
+      reason: "No current-session Definition Response draft is available.",
     });
+    expect(
+      store.record({
+        binding: BINDING_A,
+        invocationId: "draft",
+        response: response({ status: "in-progress" }),
+      })
+    ).toEqual({ status: "recorded", selected: true });
+    expect(store.overlay(BINDING_A, unavailable)).toEqual({
+      status: "loaded",
+      freshness: "fresh",
+      recordId: "response-b",
+      value: { organizationName: "Acme" },
+    });
+
+    const baselineLoader = vi.fn(async () => unavailable);
+    await expect(
+      store.wrapLoader(baselineLoader)({
+        descriptor: {
+          catalogRef: CATALOG_A,
+          sourceRef: SOURCE_REF,
+          catalog: catalog(CATALOG_A, [draft]).document,
+          source: draft,
+        },
+        context: {
+          surfaceId: "public",
+          routeId: "review",
+          slotId: "draft-review",
+          moduleId: "x-preview",
+          widgetName: "StructuredPanel",
+          params: {},
+        },
+      })
+    ).resolves.toMatchObject({
+      status: "loaded",
+      value: { organizationName: "Acme" },
+    });
+  });
+
+  it("does not admit incomplete non-draft Definition Response declarations", () => {
     const incomplete = {
       ...definitionResponseSource(),
       definitionVersion: undefined,
     } as unknown as DataSource;
     const store = createPreviewDefinitionResponseStore([
-      catalog(CATALOG_A, [draft]),
       catalog(CATALOG_B, [incomplete]),
     ]);
 
-    expect(
-      store.record({
-        binding: BINDING_A,
-        invocationId: "draft",
-        response: response(),
-      })
-    ).toEqual({ status: "refused", reason: "source-unavailable" });
     expect(
       store.record({
         binding: BINDING_B,

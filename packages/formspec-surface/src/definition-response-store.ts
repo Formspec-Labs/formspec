@@ -79,11 +79,32 @@ export interface PreviewDefinitionResponseStore {
   wrapLoader(baselineLoader: DataSourceLoader): DataSourceLoader;
 }
 
-type DefinitionResponseSource = DataSource & {
+type SelectedDefinitionResponseSource = DataSource & {
   definitionRef: string;
   definitionVersion: string;
   responseSelection: ResponseSelection;
+  runtime: DataSource["runtime"] & {
+    delivery: "snapshot" | "live";
+  };
 };
+
+type DraftDefinitionResponseSource = DataSource & {
+  definitionRef: string;
+  runtime: DataSource["runtime"] & {
+    delivery: "draft";
+    cache: { mode: "draft" };
+  };
+};
+
+type DefinitionResponseSource =
+  | SelectedDefinitionResponseSource
+  | DraftDefinitionResponseSource;
+
+function isDraftDefinitionResponseSource(
+  source: DefinitionResponseSource
+): source is DraftDefinitionResponseSource {
+  return source.runtime.delivery === "draft";
+}
 
 interface StoredResponse {
   dataSnapshot: FormResponse["data"];
@@ -129,10 +150,21 @@ function isDefinitionResponseSource(
 ): source is DefinitionResponseSource {
   if (
     source.kind !== "definition-response" ||
-    (source.runtime.delivery !== "snapshot" &&
-      source.runtime.delivery !== "live") ||
     typeof source.definitionRef !== "string" ||
     source.definitionRef.length === 0
+  ) {
+    return false;
+  }
+
+  if (source.runtime.delivery === "draft") {
+    return (
+      source.runtime.cache.mode === "draft" &&
+      !("responseSelection" in source)
+    );
+  }
+  if (
+    source.runtime.delivery !== "snapshot" &&
+    source.runtime.delivery !== "live"
   ) {
     return false;
   }
@@ -556,10 +588,17 @@ export function createPreviewDefinitionResponseStore(
     if (response.definitionUrl !== bucket.source.definitionRef) {
       return { status: "refused", reason: "response-definition-mismatch" };
     }
-    if (response.definitionVersion !== bucket.source.definitionVersion) {
+    const draft = isDraftDefinitionResponseSource(bucket.source);
+    if (
+      !draft &&
+      response.definitionVersion !== bucket.source.definitionVersion
+    ) {
       return { status: "refused", reason: "response-version-mismatch" };
     }
-    if (response.status !== bucket.source.responseSelection.status) {
+    const expectedStatus = draft
+      ? "in-progress"
+      : (bucket.source as SelectedDefinitionResponseSource).responseSelection.status;
+    if (response.status !== expectedStatus) {
       return { status: "refused", reason: "response-status-mismatch" };
     }
     if (typeof response.id !== "string" || response.id.length === 0) {
@@ -610,13 +649,24 @@ export function createPreviewDefinitionResponseStore(
     binding: DefinitionResponseSourceBinding,
     baseline: DataSourceLoadResult
   ): DataSourceLoadResult => {
-    if (baseline.status !== "loaded" || baseline.freshness !== "fresh") {
-      return baseline;
-    }
     const bucket = bucketFor(binding);
     if (!bucket) return baseline;
+    const draft = bucket.source.runtime.delivery === "draft";
+    if (
+      !draft &&
+      (baseline.status !== "loaded" || baseline.freshness !== "fresh")
+    ) {
+      return baseline;
+    }
     const selection = selectedResponse(bucket);
-    if (selection.status === "empty") return baseline;
+    if (selection.status === "empty") {
+      return draft
+        ? {
+            status: "unavailable",
+            reason: "No current-session Definition Response draft is available.",
+          }
+        : baseline;
+    }
     if (selection.status === "ambiguous") {
       return {
         status: "unavailable",
@@ -637,7 +687,7 @@ export function createPreviewDefinitionResponseStore(
     }
     return {
       status: "loaded",
-      freshness: baseline.freshness,
+      freshness: "fresh",
       recordId: selection.response.responseId,
       value,
     };
