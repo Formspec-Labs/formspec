@@ -541,6 +541,48 @@
   font-variant-numeric: tabular-nums;
 }
 
+.fs-surface-queue__table [data-action-column] {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.fs-surface-queue__action {
+  min-height: 2.75rem;
+  padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-md, 0.75rem);
+  border: 1px solid var(--fs-surface-line-strong);
+  border-radius: var(--formspec-radius-md, 6px);
+  background: transparent;
+  color: var(--fs-surface-ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: var(--formspec-font-weight-medium, 500);
+}
+
+.fs-surface-queue__action[data-emphasis="primary"] {
+  border-color: transparent;
+  background: var(--fs-surface-accent-fill);
+  color: var(--fs-surface-accent-ink);
+}
+
+.fs-surface-queue__action[data-emphasis="danger"] {
+  border-color: var(--fs-surface-danger);
+  color: var(--fs-surface-danger);
+}
+
+.fs-surface-queue__action:focus-visible {
+  outline: 2px solid var(--fs-surface-focus);
+  outline-offset: 2px;
+}
+
+.fs-surface-queue__action:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.fs-surface-queue__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 /* ── Structured, data-only panel ──────────────────────────────────── */
 
 .fs-structured-panel,

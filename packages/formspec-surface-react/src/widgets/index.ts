@@ -38,7 +38,15 @@ export { WidgetEmptyState } from './empty-state.js';
 export type { IntakeBannerConfig } from './intake-banner.js';
 export type { CeremonyFrameConfig } from './ceremony-frame.js';
 export type { ReceiptFact, ReceiptPanelData } from './receipt-panel.js';
-export type { QueueColumn, QueueRow, QueueTableConfig, QueueTableData } from './queue-table.js';
+export type {
+  QueueColumn,
+  QueueRow,
+  QueueTableActionPayloadConfig,
+  QueueTableActionPayloadSelector,
+  QueueTableConfig,
+  QueueTableData,
+  QueueTableRowActionConfig,
+} from './queue-table.js';
 export type {
   StructuredKeyValueBlockConfig,
   StructuredKeyValueItemConfig,
@@ -97,9 +105,8 @@ export const STRUCTURED_PANEL_RENDERED_CONFIG_NODES = [
 
 export const QUEUE_TABLE_RENDERED_CONFIG_NODES = [
   { pointerPattern: '', kind: 'queue-table' },
-  { pointerPattern: '/rowKey', kind: 'queue-table-row-key' },
-  { pointerPattern: '/rowHeaderKey', kind: 'queue-table-row-header' },
   { pointerPattern: '/columns/*', kind: 'queue-table-column' },
+  { pointerPattern: '/rowAction', kind: 'queue-table-row-action' },
 ] as const;
 
 export const RECEIPT_PANEL_RENDERED_CONFIG_NODES = [

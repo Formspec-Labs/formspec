@@ -71,9 +71,8 @@ describe('starter widget module', () => {
         registryEntryVersion: '0.1.0',
         renderedConfigNodes: [
           { pointerPattern: '', kind: 'queue-table' },
-          { pointerPattern: '/rowKey', kind: 'queue-table-row-key' },
-          { pointerPattern: '/rowHeaderKey', kind: 'queue-table-row-header' },
           { pointerPattern: '/columns/*', kind: 'queue-table-column' },
+          { pointerPattern: '/rowAction', kind: 'queue-table-row-action' },
         ],
       },
       ReceiptPanel: {
@@ -807,5 +806,204 @@ describe('QueueTable', () => {
     );
     const cells = [...container.querySelectorAll('tbody td')].map(textOf);
     expect(cells).toEqual(['', '']);
+  });
+
+  it('emits detached row-relative payload through exactly one declared output', () => {
+    const emitAction = vi.fn();
+    const mutableRow = {
+      response_id: 'response-7',
+      summary: { status: 'accepted' },
+    };
+    const container = render(
+      <QueueTable
+        {...props({
+          config: {
+            columns: [{ key: 'response_id', label: 'Response' }],
+            rowHeaderKey: 'response_id',
+            rowAction: {
+              outputName: 'openResponse',
+              columnLabel: 'Action',
+              payload: {
+                responseId: { path: 'response_id' },
+                response: { path: '' },
+              },
+              emphasis: 'primary',
+              'x-generation': { anchors: ['need:review-responses@1'] },
+            },
+          },
+          data: { rows: [mutableRow] },
+          actions: [{
+            outputName: 'openResponse',
+            actionRef: 'openResponse',
+            intent: 'review',
+            label: { literal: 'Open' },
+            needAnchors: ['need:open-response@2'],
+          }],
+          emitAction,
+        })}
+      />,
+    );
+
+    container.querySelector<HTMLButtonElement>('[data-row-action]')?.click();
+    const input = emitAction.mock.calls[0]?.[1] as Record<string, unknown>;
+    mutableRow.response_id = 'changed';
+    mutableRow.summary.status = 'changed';
+
+    expect(emitAction).toHaveBeenCalledTimes(1);
+    expect(input).toEqual({
+      responseId: 'response-7',
+      response: {
+        response_id: 'response-7',
+        summary: { status: 'accepted' },
+      },
+    });
+    expect(Object.isFrozen(input)).toBe(true);
+    expect(Object.isFrozen(input.response)).toBe(true);
+    expect(container.querySelector('[data-action-column]')?.getAttribute('data-need-anchors')).toBe(
+      'need:review-responses@1 need:open-response@2',
+    );
+  });
+
+  it('refuses missing and duplicate action declarations', () => {
+    const config = {
+      columns: [{ key: 'ref', label: 'Reference' }],
+      rowAction: {
+        outputName: 'open',
+        columnLabel: 'Action',
+        'x-generation': { anchors: ['need:review-responses@1'] },
+      },
+    };
+    const missing = render(
+      <QueueTable {...props({ config, data: { rows } })} />,
+    );
+    expect(missing.querySelector('[data-action-column]')).toBeNull();
+    expect(missing.querySelector('button')).toBeNull();
+
+    const duplicate = render(
+      <QueueTable
+        {...props({
+          config,
+          data: { rows },
+          actions: [
+            { outputName: 'open', actionRef: 'one', intent: 'review', label: { literal: 'Open' } },
+            { outputName: 'open', actionRef: 'two', intent: 'review', label: { literal: 'Open' } },
+          ],
+        })}
+      />,
+    );
+    expect(duplicate.querySelector('[data-action-column]')).toBeNull();
+    expect(duplicate.querySelector('button')).toBeNull();
+  });
+
+  it('keeps row actions keyboard reachable and table-labelled', () => {
+    const emitAction = vi.fn();
+    const container = render(
+      <QueueTable
+        {...props({
+          config: {
+            columns: [{ key: 'ref', label: 'Reference' }],
+            caption: 'Submitted responses',
+            rowAction: {
+              outputName: 'open',
+              columnLabel: 'Review response',
+              'x-generation': { anchors: ['need:review-responses@1'] },
+            },
+          },
+          data: { rows: [rows[0]!] },
+          actions: [{
+            outputName: 'open',
+            actionRef: 'openResponse',
+            intent: 'review',
+            label: { literal: 'Open' },
+          }],
+          emitAction,
+        })}
+      />,
+    );
+    const button = container.querySelector<HTMLButtonElement>('[data-row-action]');
+    const actionHeader = container.querySelector<HTMLTableCellElement>('thead [data-action-column]');
+
+    button?.focus();
+    expect(document.activeElement).toBe(button);
+    expect(button?.type).toBe('button');
+    expect(button?.tabIndex).toBe(0);
+    expect(button?.getAttribute('aria-label')).toBe('Open: RA-1');
+    expect(actionHeader?.getAttribute('scope')).toBe('col');
+    expect(textOf(actionHeader)).toBe('Review response');
+    expect(container.querySelector('.fs-surface-queue__scroll')?.getAttribute('aria-label')).toBe(
+      'Submitted responses',
+    );
+  });
+
+  it('renders pending, completed, and failed row-action feedback', async () => {
+    let finish:
+      | ((feedback: { status: 'completed' | 'failed' }) => void)
+      | undefined;
+    const emitAction = vi.fn(() => ({
+      started: true,
+      completion: new Promise<{ status: 'completed' | 'failed' }>((resolve) => {
+        finish = resolve;
+      }),
+    }));
+    const container = render(
+      <QueueTable
+        {...props({
+          config: {
+            columns: [{ key: 'ref', label: 'Reference' }],
+            rowAction: {
+              outputName: 'open',
+              columnLabel: 'Action',
+              pendingLabel: 'Opening…',
+              successMessage: 'Opened',
+              failureMessage: 'Try again',
+              'x-generation': { anchors: ['need:review-responses@1'] },
+            },
+          },
+          data: { rows: [rows[0]!] },
+          actions: [{
+            outputName: 'open',
+            actionRef: 'openResponse',
+            intent: 'review',
+            label: { literal: 'Open' },
+          }],
+          emitAction,
+        })}
+      />,
+    );
+    const button = container.querySelector<HTMLButtonElement>('[data-row-action]');
+
+    act(() => button?.click());
+    expect(textOf(button)).toBe('Opening…');
+    expect(button?.disabled).toBe(true);
+    await act(async () => {
+      finish?.({ status: 'completed' });
+      await Promise.resolve();
+    });
+    expect(textOf(button)).toBe('Opened');
+    expect(button?.getAttribute('data-action-status')).toBe('completed');
+
+    act(() => button?.click());
+    await act(async () => {
+      finish?.({ status: 'failed' });
+      await Promise.resolve();
+    });
+    expect(textOf(button)).toBe('Try again');
+    expect(button?.getAttribute('data-action-status')).toBe('failed');
+    expect(button?.disabled).toBe(false);
+  });
+
+  it('keeps the legacy queue unchanged when rowAction is absent', () => {
+    const emitAction = vi.fn();
+    const container = render(
+      <QueueTable {...props({ data: { rows }, emitAction })} />,
+    );
+    expect([...container.querySelectorAll('thead th')].map(textOf)).toEqual([
+      'ref',
+      'household',
+      'waiting',
+    ]);
+    expect(container.querySelector('[data-action-column]')).toBeNull();
+    expect(container.querySelector('button')).toBeNull();
+    expect(emitAction).not.toHaveBeenCalled();
   });
 });

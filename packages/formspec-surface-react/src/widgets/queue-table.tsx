@@ -19,9 +19,17 @@
  * container that is focusable and labelled so the table can be reached by
  * keyboard when it overflows.
  */
+import { useState } from 'react';
+import { generationNeedAnchors } from '@formspec-org/surface';
 import { Heading } from '../heading.js';
+import { needTraceAttributes } from '../need-trace.js';
+import { admitSurfaceWidgetActionInput } from '../widget-action-runtime.js';
 import { WidgetEmptyState } from './empty-state.js';
-import type { SurfaceWidgetProps } from '../widget-api.js';
+import type {
+  SurfaceWidgetAction,
+  SurfaceWidgetActionInput,
+  SurfaceWidgetProps,
+} from '../widget-api.js';
 
 export interface QueueColumn {
   /** Key into each row object. */
@@ -33,6 +41,30 @@ export interface QueueColumn {
 
 export type QueueRow = Readonly<Record<string, unknown>>;
 
+export interface QueueTableActionPayloadSelector {
+  /** Dot-separated safe path relative to the row. An empty path selects the row. */
+  path: string;
+}
+
+export type QueueTableActionPayloadConfig = Readonly<
+  Record<string, QueueTableActionPayloadSelector>
+>;
+
+export interface QueueTableRowActionConfig {
+  outputName: string;
+  /** Visible column heading for the action controls. */
+  columnLabel: string;
+  /** Flat named selectors evaluated relative to the selected row. */
+  payload?: QueueTableActionPayloadConfig;
+  emphasis?: 'primary' | 'secondary' | 'danger';
+  pendingLabel?: string;
+  successMessage?: string;
+  failureMessage?: string;
+  'x-generation'?: {
+    anchors?: readonly string[];
+  };
+}
+
 export interface QueueTableConfig {
   columns?: readonly QueueColumn[];
   caption?: string;
@@ -42,6 +74,8 @@ export interface QueueTableConfig {
   rowHeaderKey?: string;
   /** Sentence shown when there are no rows. */
   emptyMessage?: string;
+  /** One generic action control rendered for each row. */
+  rowAction?: QueueTableRowActionConfig;
 }
 
 export interface QueueTableData {
@@ -87,7 +121,173 @@ function cellText(value: unknown): string {
   return JSON.stringify(value);
 }
 
-export function QueueTable({ config, data, headingLevel, slot }: SurfaceWidgetProps) {
+type UnknownRecord = Readonly<Record<string, unknown>>;
+
+const SAFE_PATH_PART = /^[a-zA-Z0-9_-]+$/;
+const SAFE_PAYLOAD_NAME = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+const UNSAFE_PATH_PARTS = new Set(['__proto__', 'prototype', 'constructor']);
+
+function record(value: unknown): UnknownRecord | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as UnknownRecord)
+    : undefined;
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function readRowPath(row: QueueRow, path: string): unknown {
+  if (path === '') return row;
+  const parts = path.split('.');
+  if (
+    parts.some(
+      (part) => !SAFE_PATH_PART.test(part) || UNSAFE_PATH_PARTS.has(part),
+    )
+  ) {
+    return undefined;
+  }
+
+  let current: unknown = row;
+  for (const part of parts) {
+    if (
+      (typeof current !== 'object' && typeof current !== 'function') ||
+      current === null ||
+      !Object.prototype.hasOwnProperty.call(current, part)
+    ) {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
+type SelectedRowActionInput =
+  | { accepted: true; input?: SurfaceWidgetActionInput | undefined }
+  | { accepted: false };
+
+function selectedRowActionInput(
+  configured: unknown,
+  row: QueueRow,
+): SelectedRowActionInput {
+  if (configured === undefined) return { accepted: true };
+  const selectors = record(configured);
+  if (!selectors) return { accepted: false };
+
+  const selected: Record<string, unknown> = {};
+  for (const [name, candidate] of Object.entries(selectors)) {
+    const selector = record(candidate);
+    if (!SAFE_PAYLOAD_NAME.test(name) || !selector) return { accepted: false };
+    const path = selector.path;
+    if (typeof path !== 'string') return { accepted: false };
+    const value = readRowPath(row, path);
+    if (value === undefined) return { accepted: false };
+    selected[name] = value;
+  }
+
+  const admission = admitSurfaceWidgetActionInput(selected);
+  return admission.accepted
+    ? { accepted: true, input: admission.input }
+    : { accepted: false };
+}
+
+function resolvedRowAction(
+  configured: UnknownRecord | undefined,
+  available: readonly SurfaceWidgetAction[],
+): SurfaceWidgetAction | undefined {
+  const outputName = nonEmptyString(configured?.outputName);
+  if (!outputName) return undefined;
+  const matches = available.filter((action) => action.outputName === outputName);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+function literalActionLabel(action: SurfaceWidgetAction): string | undefined {
+  const label = action.label;
+  return label && 'literal' in label ? nonEmptyString(label.literal) : undefined;
+}
+
+interface QueueRowActionButtonProps {
+  action: SurfaceWidgetAction;
+  rowLabel?: string | undefined;
+  input?: SurfaceWidgetActionInput | undefined;
+  emphasis: 'primary' | 'secondary' | 'danger';
+  pendingLabel?: string | undefined;
+  successMessage?: string | undefined;
+  failureMessage?: string | undefined;
+  anchors: readonly string[];
+  emitAction: SurfaceWidgetProps['emitAction'];
+}
+
+function QueueRowActionButton({
+  action,
+  rowLabel,
+  input,
+  emphasis,
+  pendingLabel,
+  successMessage,
+  failureMessage,
+  anchors,
+  emitAction,
+}: QueueRowActionButtonProps) {
+  const [status, setStatus] = useState<
+    'idle' | 'pending' | 'completed' | 'failed'
+  >('idle');
+  const label = literalActionLabel(action)!;
+  const visibleLabel =
+    status === 'pending'
+      ? pendingLabel ?? label
+      : status === 'completed'
+        ? successMessage ?? label
+        : status === 'failed'
+          ? failureMessage ?? label
+          : label;
+
+  return (
+    <button
+      className="fs-surface-queue__action"
+      type="button"
+      data-row-action=""
+      data-action-output={action.outputName}
+      data-action-ref={action.actionRef}
+      data-action-intent={action.intent}
+      data-action-status={status}
+      data-emphasis={emphasis}
+      aria-label={rowLabel ? `${label}: ${rowLabel}` : label}
+      aria-busy={status === 'pending' ? 'true' : undefined}
+      disabled={status === 'pending'}
+      onClick={() => {
+        const emission = input === undefined
+          ? emitAction(action.outputName)
+          : emitAction(action.outputName, input);
+        if (!emission) return;
+        setStatus('pending');
+        void emission.completion
+          .then((feedback) => {
+            setStatus(
+              feedback.status === 'completed'
+                ? 'completed'
+                : feedback.status === 'obsolete'
+                  ? 'idle'
+                  : 'failed',
+            );
+          })
+          .catch(() => setStatus('failed'));
+      }}
+      {...needTraceAttributes(anchors, action.needAnchors)}
+    >
+      <span aria-live="polite">{visibleLabel}</span>
+    </button>
+  );
+}
+
+export function QueueTable({
+  config,
+  data,
+  headingLevel,
+  slot,
+  actions = [],
+  emitAction,
+}: SurfaceWidgetProps) {
   const rows = readRows(data);
   const declared = readColumns(config);
   const columns = declared.length > 0 ? declared : inferColumns(rows);
@@ -99,6 +299,22 @@ export function QueueTable({ config, data, headingLevel, slot }: SurfaceWidgetPr
   const rowHeaderKey =
     typeof config.rowHeaderKey === 'string' ? config.rowHeaderKey : columns[0]?.key;
   const rowKey = typeof config.rowKey === 'string' ? config.rowKey : undefined;
+  const rowActionConfig = record(config.rowAction);
+  const rowActionAnchors = generationNeedAnchors(rowActionConfig);
+  const rowAction = rowActionAnchors.length > 0
+    ? resolvedRowAction(rowActionConfig, actions)
+    : undefined;
+  const rowActionLabel = rowAction ? literalActionLabel(rowAction) : undefined;
+  const rowActionColumnLabel = nonEmptyString(rowActionConfig?.columnLabel);
+  const rowActionEmphasis =
+    rowActionConfig?.emphasis === 'primary' ||
+    rowActionConfig?.emphasis === 'danger'
+      ? rowActionConfig.emphasis
+      : 'secondary';
+  const rendersRowAction =
+    rowAction !== undefined &&
+    rowActionLabel !== undefined &&
+    rowActionColumnLabel !== undefined;
 
   return (
     <div className="fs-surface-queue" data-widget="queue-table" data-row-count={rows.length}>
@@ -128,29 +344,67 @@ export function QueueTable({ config, data, headingLevel, slot }: SurfaceWidgetPr
                     {column.label}
                   </th>
                 ))}
+                {rendersRowAction ? (
+                  <th
+                    scope="col"
+                    data-action-column=""
+                    {...needTraceAttributes(rowActionAnchors, rowAction.needAnchors)}
+                  >
+                    {rowActionColumnLabel}
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, index) => (
-                <tr
-                  key={
-                    (rowKey ? cellText(row[rowKey]) : '') ||
-                    `row-${index}:${cellText(rowHeaderKey ? row[rowHeaderKey] : undefined)}`
-                  }
-                >
-                  {columns.map((column) =>
-                    column.key === rowHeaderKey ? (
-                      <th key={column.key} scope="row">
-                        {cellText(row[column.key])}
-                      </th>
-                    ) : (
-                      <td key={column.key} data-numeric={column.numeric ? 'true' : undefined}>
-                        {cellText(row[column.key])}
+              {rows.map((row, index) => {
+                const rowLabel = cellText(
+                  rowHeaderKey ? row[rowHeaderKey] : undefined,
+                );
+                const selectedInput = selectedRowActionInput(
+                  rowActionConfig?.payload,
+                  row,
+                );
+                return (
+                  <tr
+                    key={
+                      (rowKey ? cellText(row[rowKey]) : '') ||
+                      `row-${index}:${rowLabel}`
+                    }
+                  >
+                    {columns.map((column) =>
+                      column.key === rowHeaderKey ? (
+                        <th key={column.key} scope="row">
+                          {cellText(row[column.key])}
+                        </th>
+                      ) : (
+                        <td key={column.key} data-numeric={column.numeric ? 'true' : undefined}>
+                          {cellText(row[column.key])}
+                        </td>
+                      ),
+                    )}
+                    {rendersRowAction ? (
+                      <td
+                        data-action-column=""
+                        {...needTraceAttributes(rowActionAnchors, rowAction.needAnchors)}
+                      >
+                        {selectedInput.accepted ? (
+                          <QueueRowActionButton
+                            action={rowAction}
+                            rowLabel={rowLabel || undefined}
+                            input={selectedInput.input}
+                            emphasis={rowActionEmphasis}
+                            pendingLabel={nonEmptyString(rowActionConfig?.pendingLabel)}
+                            successMessage={nonEmptyString(rowActionConfig?.successMessage)}
+                            failureMessage={nonEmptyString(rowActionConfig?.failureMessage)}
+                            anchors={rowActionAnchors}
+                            emitAction={emitAction}
+                          />
+                        ) : null}
                       </td>
-                    ),
-                  )}
-                </tr>
-              ))}
+                    ) : null}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
