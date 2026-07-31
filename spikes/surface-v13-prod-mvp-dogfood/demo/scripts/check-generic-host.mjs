@@ -170,6 +170,7 @@ const requiredRuntimeMarkers = [
   'routeHref',
   'routeParamExamples',
   'param.example',
+  'entryRouteParams',
   'starterWidgetModule',
   '<SurfaceApp',
   'VITE_FORMSPEC_ROUTE_PARAMS_JSON',
@@ -191,6 +192,7 @@ const requiredRuntimeMarkers = [
   'extractServiceRequestOutputs',
   'definitionActionInvoker',
   'input.route.params',
+  'from.params',
   'key={model.sessionGeneration}',
   'useState<HostActionSession>',
   'request.descriptor.catalogRef',
@@ -249,6 +251,57 @@ if (privateSessionValueUses.length !== 2) {
     'src/App.tsx',
     'private action session values may only enter service planning and accept admitted outputs',
     `${privateSessionValueUses.length} uses`,
+  );
+}
+
+const routeParamReaderStart = appSource.indexOf('function readRouteParams(');
+const routeParamReaderEnd = appSource.indexOf(
+  '\nfunction readRuntimeConfig(',
+  routeParamReaderStart,
+);
+const routeParamReaderSource =
+  routeParamReaderStart >= 0 && routeParamReaderEnd > routeParamReaderStart
+    ? appSource.slice(routeParamReaderStart, routeParamReaderEnd)
+    : '';
+if (
+  routeParamReaderSource.includes('routeParamExamples') ||
+  !routeParamReaderSource.includes('VITE_FORMSPEC_ROUTE_PARAMS_JSON') ||
+  !routeParamReaderSource.includes("key.startsWith('routeParam.')")
+) {
+  fail(
+    'src/App.tsx',
+    'runtime route params must contain only explicit environment or query values',
+  );
+}
+if (
+  !appSource.includes('...routeParamExamples(bundle),\n    ...routeParams,') ||
+  !appSource.includes('routeHref(app.entry, entryRouteParams)')
+) {
+  fail(
+    'src/App.tsx',
+    'bundle route examples may seed only the initial entry address',
+  );
+}
+
+const transitionExecutorStart = appSource.indexOf(
+  'function transitionExecutorFor(',
+);
+const transitionExecutorEnd = appSource.indexOf(
+  '\nexport function App(',
+  transitionExecutorStart,
+);
+const transitionExecutorSource =
+  transitionExecutorStart >= 0 && transitionExecutorEnd > transitionExecutorStart
+    ? appSource.slice(transitionExecutorStart, transitionExecutorEnd)
+    : '';
+if (
+  !transitionExecutorSource.includes('params: from.params') ||
+  !transitionExecutorSource.includes('\n      from.params,') ||
+  transitionExecutorSource.includes('model.routeParams')
+) {
+  fail(
+    'src/App.tsx',
+    'transition actions must execute against the current matched route params',
   );
 }
 

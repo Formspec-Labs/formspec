@@ -137,9 +137,8 @@ function routeParamExamples(bundle: ResolvedBundle): StringMap {
   );
 }
 
-function readRouteParams(bundle: ResolvedBundle, search: string): StringMap {
+function readRouteParams(search: string): StringMap {
   const params: Record<string, string> = {
-    ...routeParamExamples(bundle),
     ...readStringMap(
       import.meta.env.VITE_FORMSPEC_ROUTE_PARAMS_JSON,
       'VITE_FORMSPEC_ROUTE_PARAMS_JSON',
@@ -198,7 +197,7 @@ export function loadBundleHost(search: string): BundleHostModel {
     throw new Error(`The bundle is not structurally renderable.\n${diagnosticText(bundle)}`);
   }
 
-  const routeParams = readRouteParams(bundle, search);
+  const routeParams = readRouteParams(search);
   const app = composeSurfaceApp(bundle.surfaces, {
     entrySurface: bundle.entrySurface,
   });
@@ -208,7 +207,11 @@ export function loadBundleHost(search: string): BundleHostModel {
       .join('\n');
     throw new Error(`The bundle does not resolve one entry route.${details ? `\n${details}` : ''}`);
   }
-  const entry = routeHref(app.entry, routeParams);
+  const entryRouteParams = Object.freeze({
+    ...routeParamExamples(bundle),
+    ...routeParams,
+  });
+  const entry = routeHref(app.entry, entryRouteParams);
   if (entry.refusal !== undefined) {
     const details = entry.diagnostics
       .map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`)
@@ -228,6 +231,7 @@ export function loadBundleHost(search: string): BundleHostModel {
       bundle.manifest.version ?? '',
       runtime.baseUrl,
       runtime.headers,
+      routeParams,
     ]),
   };
 }
@@ -755,7 +759,6 @@ function transitionExecutorFor(
   bundle: ResolvedBundle,
   config: HostRuntimeConfig,
   session: HostActionSession,
-  routeParams: StringMap,
   navigate: (href: string) => void,
 ): FireTransition {
   return async (transition, from) => {
@@ -775,7 +778,7 @@ function transitionExecutorFor(
       route: Object.freeze({
         surfaceId: from.surfaceId,
         routeId: from.routeId,
-        params: routeParams,
+        params: from.params,
       }),
     });
     const result = await invokeActionWithRuntime(
@@ -787,7 +790,7 @@ function transitionExecutorFor(
         dispatchHostEvent: () => undefined,
       },
       invocationId,
-      routeParams,
+      from.params,
       config,
       session,
       navigate,
@@ -869,13 +872,11 @@ function SessionBoundApp({ model }: { model: BundleHostModel }) {
       model.bundle,
       model.runtime,
       actionSession,
-      model.routeParams,
       navigatePreservingSearch,
     ),
     [
       actionSession,
       model.bundle,
-      model.routeParams,
       model.runtime,
       navigatePreservingSearch,
     ],
