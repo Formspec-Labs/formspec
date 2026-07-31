@@ -186,6 +186,10 @@ const requiredRuntimeMarkers = [
   'renderDefaultDefinitionForm',
   'renderBundleDefinitionForm',
   'createPreviewDefinitionResponseStore',
+  'createSemanticControlRegistry',
+  'createSurfaceSemanticControlScopeResolver',
+  'semanticArtifactIdentities',
+  'sha256Digest',
   'invokeResponseActionAsync',
   'resolveServiceRequest',
   'planServiceRequest',
@@ -195,6 +199,9 @@ const requiredRuntimeMarkers = [
   'from.params',
   'key={model.sessionGeneration}',
   'useState<HostActionSession>',
+  'useState(() => crypto.randomUUID())',
+  'const [semanticControlRegistry] = useState(',
+  'resolveSemanticControlScope={resolveSemanticControlScope}',
   'request.descriptor.catalogRef',
   'request.descriptor.sourceRef',
 ];
@@ -243,6 +250,70 @@ if (appSource.includes('actionSession = useMemo')) {
   fail(
     'src/App.tsx',
     'private action session must not be recreated by ordinary prop identity changes',
+  );
+}
+
+const artifactPairingStart = appSource.indexOf('interface ArtifactEntry');
+const artifactPairingEnd = appSource.indexOf(
+  '\nconst sourceBundle',
+  artifactPairingStart,
+);
+const artifactPairingSource =
+  artifactPairingStart >= 0 && artifactPairingEnd > artifactPairingStart
+    ? appSource.slice(artifactPairingStart, artifactPairingEnd)
+    : '';
+for (const required of [
+  'sha256Digest(document)',
+  'bundle.definitions.entries()',
+  'source.documents[ref.url]',
+  'responseActions.has(document as unknown as ResponseActionsDocument)',
+  'definitionArtifacts.size !== definitionEntries.length',
+  'responseActionsArtifacts.size !== responseActionEntries.length',
+]) {
+  if (!artifactPairingSource.includes(required)) {
+    fail(
+      'src/App.tsx',
+      'semantic control artifacts must use exact loaded objects and canonical digests',
+      required,
+    );
+  }
+}
+
+const semanticScopeStart = appSource.indexOf(
+  'const [semanticSessionId] = useState(() => crypto.randomUUID());',
+);
+const semanticScopeEnd = appSource.indexOf(
+  '\n  const definitionResponseStore',
+  semanticScopeStart,
+);
+const semanticScopeSource =
+  semanticScopeStart >= 0 && semanticScopeEnd > semanticScopeStart
+    ? appSource.slice(semanticScopeStart, semanticScopeEnd)
+    : '';
+for (const required of [
+  'const [semanticControlRegistry] = useState(',
+  '() => createSemanticControlRegistry()',
+  'definitionArtifacts: model.definitionArtifacts',
+  'responseActionsArtifacts: model.responseActionsArtifacts',
+  'hostRenderInstanceId(semanticSessionId, request)',
+  'hostResponseId(semanticSessionId, request)',
+  'responseRevision: 0',
+]) {
+  if (!semanticScopeSource.includes(required)) {
+    fail(
+      'src/App.tsx',
+      'Definition render and Response identity must be paired for one host session',
+      required,
+    );
+  }
+}
+if (
+  semanticScopeSource.includes('model.routeParams') ||
+  semanticScopeSource.includes('model.initialPath')
+) {
+  fail(
+    'src/App.tsx',
+    'semantic Response identity must not depend on product route values',
   );
 }
 const privateSessionValueUses = [...appSource.matchAll(/\bsession\.values\b/gu)];

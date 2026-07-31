@@ -18,6 +18,12 @@ import {
   type ResponseActionInvocationResult,
 } from '@formspec-org/engine';
 import {
+  createSemanticControlRegistry,
+  type SemanticArtifactIdentity,
+} from '@formspec-org/react';
+import { sha256Digest } from '@formspec-org/outcome-verification';
+import {
+  createSurfaceSemanticControlScopeResolver,
   executeBrowserResourceEffect,
   renderDefaultDefinitionForm,
   responseActionsDocumentForAction,
@@ -27,6 +33,7 @@ import {
   type FireTransition,
   type SurfaceDefinitionFormRenderInput,
   type SurfaceDefinitionFormRenderer,
+  type SurfaceSemanticControlScopeRequest,
   type SurfaceWidgetActionDetail,
   type SurfaceWidgetActionExecutor,
   type SurfaceWidgetModule,
@@ -47,6 +54,7 @@ import {
 } from '@formspec-org/surface';
 import type {
   EffectRequest,
+  FormDefinition,
   FormResponse,
   ResponseActionsDocument,
   ServiceRequestEffect,
@@ -63,6 +71,11 @@ interface HostRuntimeConfig {
 export interface BundleHostModel {
   source: BundleExport;
   bundle: ResolvedBundle;
+  definitionArtifacts: ReadonlyMap<FormDefinition, SemanticArtifactIdentity>;
+  responseActionsArtifacts: ReadonlyMap<
+    ResponseActionsDocument,
+    SemanticArtifactIdentity
+  >;
   initialPath: string;
   routeParams: StringMap;
   runtime: HostRuntimeConfig;
@@ -188,10 +201,83 @@ function diagnosticText(bundle: ResolvedBundle): string {
     .join('\n');
 }
 
+interface ArtifactEntry<T extends object> {
+  artifactRef: string;
+  document: T;
+}
+
+/** Pair only an exact loaded object with one canonical bundle artifact. */
+async function exactArtifactIdentities<T extends object>(
+  entries: readonly ArtifactEntry<T>[],
+): Promise<ReadonlyMap<T, SemanticArtifactIdentity>> {
+  const entriesByObject = new Map<T, ArtifactEntry<T>[]>();
+  for (const entry of entries) {
+    const matches = entriesByObject.get(entry.document) ?? [];
+    matches.push(entry);
+    entriesByObject.set(entry.document, matches);
+  }
+  const exactEntries = [...entriesByObject.values()].flatMap((matches) =>
+    matches.length === 1 && matches[0] ? [matches[0]] : [],
+  );
+  const identities = await Promise.all(
+    exactEntries.map(async ({ artifactRef, document }) => [
+      document,
+      {
+        artifactRef,
+        artifactDigest: await sha256Digest(document),
+      },
+    ] as const),
+  );
+  return new Map(identities);
+}
+
+/** Compute canonical identities without interpreting any product identifier. */
+async function semanticArtifactIdentities(
+  source: BundleExport,
+  bundle: ResolvedBundle,
+): Promise<Pick<
+  BundleHostModel,
+  'definitionArtifacts' | 'responseActionsArtifacts'
+>> {
+  const definitionEntries = [...bundle.definitions.entries()].map(
+    ([artifactRef, document]) => ({ artifactRef, document }),
+  );
+  const responseActions = new Set(bundle.responseActions);
+  const responseActionRefs = [
+    ...(bundle.manifest.responseActions ? [bundle.manifest.responseActions] : []),
+    ...(bundle.manifest.responseActionDocuments ?? []),
+  ];
+  const responseActionEntries = responseActionRefs.flatMap((ref) => {
+    const document = source.documents[ref.url];
+    return (
+      isRecord(document) &&
+      responseActions.has(document as unknown as ResponseActionsDocument)
+    )
+      ? [{
+          artifactRef: ref.url,
+          document: document as unknown as ResponseActionsDocument,
+        }]
+      : [];
+  });
+  const [definitionArtifacts, responseActionsArtifacts] = await Promise.all([
+    exactArtifactIdentities(definitionEntries),
+    exactArtifactIdentities(responseActionEntries),
+  ]);
+  if (
+    definitionArtifacts.size !== definitionEntries.length ||
+    responseActionsArtifacts.size !== responseActionEntries.length
+  ) {
+    throw new Error(
+      'The bundle does not pair every Definition and Response Actions document to one exact canonical artifact.',
+    );
+  }
+  return { definitionArtifacts, responseActionsArtifacts };
+}
+
 const sourceBundle = readBundleExport(bundleRaw);
 
 /** Resolve the bundle and derive its entry URL without a hand-authored scenario. */
-export function loadBundleHost(search: string): BundleHostModel {
+export async function loadBundleHost(search: string): Promise<BundleHostModel> {
   const bundle = dereferenceBundleExport(sourceBundle);
   if (!bundleIsRenderable(bundle)) {
     throw new Error(`The bundle is not structurally renderable.\n${diagnosticText(bundle)}`);
@@ -220,9 +306,11 @@ export function loadBundleHost(search: string): BundleHostModel {
   }
 
   const runtime = readRuntimeConfig();
+  const artifactIdentities = await semanticArtifactIdentities(sourceBundle, bundle);
   return {
     source: sourceBundle,
     bundle,
+    ...artifactIdentities,
     initialPath: entry.href,
     routeParams,
     runtime,
@@ -755,6 +843,30 @@ function renderBundleDefinitionFormFor(
   });
 }
 
+function hostRenderInstanceId(
+  sessionId: string,
+  request: SurfaceSemanticControlScopeRequest,
+): string {
+  return [
+    'bundle-render',
+    sessionId,
+    request.route.surfaceId,
+    request.route.routeId,
+    request.plan.slotId,
+  ].join(':');
+}
+
+function hostResponseId(
+  sessionId: string,
+  request: SurfaceSemanticControlScopeRequest,
+): string {
+  return [
+    'bundle-response',
+    sessionId,
+    request.plan.definitionRef,
+  ].join(':');
+}
+
 function transitionExecutorFor(
   bundle: ResolvedBundle,
   config: HostRuntimeConfig,
@@ -828,6 +940,29 @@ function SessionBoundApp({ model }: { model: BundleHostModel }) {
   );
   const [actionSession] = useState<HostActionSession>(
     () => ({ values: { ...model.routeParams } }),
+  );
+  const [semanticSessionId] = useState(() => crypto.randomUUID());
+  const [semanticControlRegistry] = useState(
+    () => createSemanticControlRegistry(),
+  );
+  const resolveSemanticControlScope = useMemo(
+    () => createSurfaceSemanticControlScopeResolver({
+      registry: semanticControlRegistry,
+      definitionArtifacts: model.definitionArtifacts,
+      responseActionsArtifacts: model.responseActionsArtifacts,
+      renderInstanceIdFor: (request) =>
+        hostRenderInstanceId(semanticSessionId, request),
+      responseBindingFor: (request) => ({
+        responseId: hostResponseId(semanticSessionId, request),
+        responseRevision: 0,
+      }),
+    }),
+    [
+      model.definitionArtifacts,
+      model.responseActionsArtifacts,
+      semanticControlRegistry,
+      semanticSessionId,
+    ],
   );
   const definitionResponseStore = useMemo(
     () => createPreviewDefinitionResponseStore(model.bundle.dataSources ?? []),
@@ -930,6 +1065,7 @@ function SessionBoundApp({ model }: { model: BundleHostModel }) {
       widgetActionExecutor={widgetActionExecutor}
       onFireTransition={fireTransition}
       renderDefinitionForm={renderBundleDefinitionForm}
+      resolveSemanticControlScope={resolveSemanticControlScope}
       onDefinitionActionResult={onDefinitionActionResult}
       sessionGeneration={model.sessionGeneration}
     />

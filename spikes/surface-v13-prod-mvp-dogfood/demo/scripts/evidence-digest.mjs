@@ -38,6 +38,7 @@ const REVIEW_INPUT_DIRECTORIES = [
   'packages/formspec-assist/src',
   'packages/formspec-engine/src',
   'packages/formspec-layout/src',
+  'packages/formspec-outcome-verification/src',
   'packages/formspec-react/src',
   'packages/formspec-surface/src',
   'packages/formspec-surface-react/src',
