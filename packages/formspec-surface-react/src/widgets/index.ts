@@ -78,6 +78,12 @@ export const STARTER_WIDGETS: Readonly<Record<string, SurfaceWidget>> = {
 
 export const STRUCTURED_PANEL_DELIVERY_CONTRACT_ID =
   '@formspec-org/surface-react/StructuredPanel@0.1';
+export const QUEUE_TABLE_DELIVERY_CONTRACT_ID =
+  '@formspec-org/surface-react/QueueTable@0.1';
+export const RECEIPT_PANEL_DELIVERY_CONTRACT_ID =
+  '@formspec-org/surface-react/ReceiptPanel@0.1';
+export const CEREMONY_FRAME_DELIVERY_CONTRACT_ID =
+  '@formspec-org/surface-react/CeremonyFrame@0.1';
 
 export const STRUCTURED_PANEL_RENDERED_CONFIG_NODES = [
   { pointerPattern: '', kind: 'structured-panel' },
@@ -89,18 +95,56 @@ export const STRUCTURED_PANEL_RENDERED_CONFIG_NODES = [
   ...MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES,
 ] as const;
 
+export const QUEUE_TABLE_RENDERED_CONFIG_NODES = [
+  { pointerPattern: '', kind: 'queue-table' },
+  { pointerPattern: '/columns/*', kind: 'queue-table-column' },
+] as const;
+
+export const RECEIPT_PANEL_RENDERED_CONFIG_NODES = [
+  { pointerPattern: '', kind: 'receipt-panel' },
+] as const;
+
+export const CEREMONY_FRAME_RENDERED_CONFIG_NODES = [
+  { pointerPattern: '', kind: 'ceremony-frame' },
+] as const;
+
 export function starterWidgetModule(moduleId: string): SurfaceWidgetModule {
-  const structuredPanelContract = {
-    deliveryContractId: STRUCTURED_PANEL_DELIVERY_CONTRACT_ID,
+  const contract = (
+    deliveryContractId: string,
+    renderedConfigNodes: readonly { pointerPattern: string; kind: string }[],
+  ) => ({
+    deliveryContractId,
     registryEntryVersion: '0.1.0',
-    renderedConfigNodes: STRUCTURED_PANEL_RENDERED_CONFIG_NODES,
-  };
+    renderedConfigNodes,
+  });
+  const structuredPanelContract = contract(
+    STRUCTURED_PANEL_DELIVERY_CONTRACT_ID,
+    STRUCTURED_PANEL_RENDERED_CONFIG_NODES,
+  );
+  const queueTableContract = contract(
+    QUEUE_TABLE_DELIVERY_CONTRACT_ID,
+    QUEUE_TABLE_RENDERED_CONFIG_NODES,
+  );
+  const receiptPanelContract = contract(
+    RECEIPT_PANEL_DELIVERY_CONTRACT_ID,
+    RECEIPT_PANEL_RENDERED_CONFIG_NODES,
+  );
+  const ceremonyFrameContract = contract(
+    CEREMONY_FRAME_DELIVERY_CONTRACT_ID,
+    CEREMONY_FRAME_RENDERED_CONFIG_NODES,
+  );
   return {
     moduleId,
     widgets: STARTER_WIDGETS,
     contracts: {
       StructuredPanel: structuredPanelContract,
       'x-structured-panel': structuredPanelContract,
+      QueueTable: queueTableContract,
+      'x-queue-panel': queueTableContract,
+      ReceiptPanel: receiptPanelContract,
+      'x-receipt-panel': receiptPanelContract,
+      CeremonyFrame: ceremonyFrameContract,
+      'x-ceremony-frame': ceremonyFrameContract,
     },
   };
 }

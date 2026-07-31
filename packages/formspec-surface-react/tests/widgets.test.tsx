@@ -65,6 +65,30 @@ describe('starter widget module', () => {
         },
       ]),
     );
+    expect(module.contracts).toMatchObject({
+      QueueTable: {
+        deliveryContractId: '@formspec-org/surface-react/QueueTable@0.1',
+        registryEntryVersion: '0.1.0',
+        renderedConfigNodes: [
+          { pointerPattern: '', kind: 'queue-table' },
+          { pointerPattern: '/columns/*', kind: 'queue-table-column' },
+        ],
+      },
+      ReceiptPanel: {
+        deliveryContractId: '@formspec-org/surface-react/ReceiptPanel@0.1',
+        registryEntryVersion: '0.1.0',
+        renderedConfigNodes: [
+          { pointerPattern: '', kind: 'receipt-panel' },
+        ],
+      },
+      CeremonyFrame: {
+        deliveryContractId: '@formspec-org/surface-react/CeremonyFrame@0.1',
+        registryEntryVersion: '0.1.0',
+        renderedConfigNodes: [
+          { pointerPattern: '', kind: 'ceremony-frame' },
+        ],
+      },
+    });
   });
 });
 
