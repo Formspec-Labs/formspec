@@ -190,6 +190,9 @@ const requiredRuntimeMarkers = [
   'planServiceRequest',
   'extractServiceRequestOutputs',
   'definitionActionInvoker',
+  'input.route.params',
+  'key={model.sessionGeneration}',
+  'useState<HostActionSession>',
   'request.descriptor.catalogRef',
   'request.descriptor.sourceRef',
 ];
@@ -197,6 +200,56 @@ for (const marker of requiredRuntimeMarkers) {
   if (!sourceText.includes(marker)) {
     fail('runtime sources', 'missing generic bundle/runtime integration', marker);
   }
+}
+
+const appSource = runtimeSources.get('src/App.tsx') ?? '';
+const definitionRendererStart = appSource.indexOf(
+  'function renderBundleDefinitionFormFor(',
+);
+const definitionRendererEnd = appSource.indexOf(
+  '\nfunction transitionExecutorFor(',
+  definitionRendererStart,
+);
+const definitionRendererSource =
+  definitionRendererStart >= 0 && definitionRendererEnd > definitionRendererStart
+    ? appSource.slice(definitionRendererStart, definitionRendererEnd)
+    : '';
+if (!definitionRendererSource.includes('input.route.params')) {
+  fail(
+    'src/App.tsx',
+    'Definition action runtime must use the current matched route params',
+  );
+}
+if (definitionRendererSource.includes('model.routeParams')) {
+  fail(
+    'src/App.tsx',
+    'Definition action runtime must not use bundle example or query params',
+  );
+}
+if (
+  !appSource.includes(
+    '<SessionBoundApp key={model.sessionGeneration} model={model} />',
+  ) ||
+  !appSource.includes('const [actionSession] = useState<HostActionSession>(')
+) {
+  fail(
+    'src/App.tsx',
+    'private action session must persist until the host-model generation changes',
+  );
+}
+if (appSource.includes('actionSession = useMemo')) {
+  fail(
+    'src/App.tsx',
+    'private action session must not be recreated by ordinary prop identity changes',
+  );
+}
+const privateSessionValueUses = [...appSource.matchAll(/\bsession\.values\b/gu)];
+if (privateSessionValueUses.length !== 2) {
+  fail(
+    'src/App.tsx',
+    'private action session values may only enter service planning and accept admitted outputs',
+    `${privateSessionValueUses.length} uses`,
+  );
 }
 
 let bundle;

@@ -5,7 +5,7 @@
  * from the bundle. This file supplies only generic browser, authorization,
  * loading, and Response Actions ports.
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020.js';
 import {
   extractServiceRequestOutputs,
@@ -267,10 +267,6 @@ const validateDataSourcePayload: DataSourcePayloadValidator = ({
   schema,
   value,
 }) => validateJsonPayload(schema, value);
-
-/** The bundle supplies the Definition and Actions; the host supplies the fixed renderer. */
-const renderBundleDefinitionForm: SurfaceDefinitionFormRenderer = (input) =>
-  renderDefaultDefinitionForm(input);
 
 type DataSourceRuntimeAdapter =
   | Readonly<{ adapter: 'embedded-json'; value: unknown }>
@@ -734,6 +730,27 @@ function definitionActionInvokerFor(
   };
 }
 
+/**
+ * Bind Definition actions to the route the shell actually matched. Bundle
+ * examples and query defaults can address the entry route, but they are not
+ * the runtime identity of a Definition mounted on a later route.
+ */
+function renderBundleDefinitionFormFor(
+  config: HostRuntimeConfig,
+  session: HostActionSession,
+  navigate: (href: string) => void,
+): SurfaceDefinitionFormRenderer {
+  return (input) => renderDefaultDefinitionForm({
+    ...input,
+    responseActionInvoker: definitionActionInvokerFor(
+      config,
+      session,
+      input.route.params,
+      navigate,
+    ),
+  });
+}
+
 function transitionExecutorFor(
   bundle: ResolvedBundle,
   config: HostRuntimeConfig,
@@ -790,6 +807,11 @@ function transitionExecutorFor(
 }
 
 export function App({ model }: { model: BundleHostModel }) {
+  return <SessionBoundApp key={model.sessionGeneration} model={model} />;
+}
+
+/** One private action session per explicit host-model generation. */
+function SessionBoundApp({ model }: { model: BundleHostModel }) {
   const [location, navigate] = useBrowserLocation(model.initialPath);
   const navigatePreservingSearch = useCallback(
     (href: string) => {
@@ -801,9 +823,8 @@ export function App({ model }: { model: BundleHostModel }) {
     },
     [navigate],
   );
-  const actionSession = useMemo<HostActionSession>(
+  const [actionSession] = useState<HostActionSession>(
     () => ({ values: { ...model.routeParams } }),
-    [model.sessionGeneration, model.routeParams],
   );
   const definitionResponseStore = useMemo(
     () => createPreviewDefinitionResponseStore(model.bundle.dataSources ?? []),
@@ -831,16 +852,14 @@ export function App({ model }: { model: BundleHostModel }) {
     ),
     [actionSession, model.runtime, navigatePreservingSearch],
   );
-  const definitionActionInvoker = useMemo(
-    () => definitionActionInvokerFor(
+  const renderBundleDefinitionForm = useMemo(
+    () => renderBundleDefinitionFormFor(
       model.runtime,
       actionSession,
-      model.routeParams,
       navigatePreservingSearch,
     ),
     [
       actionSession,
-      model.routeParams,
       model.runtime,
       navigatePreservingSearch,
     ],
@@ -910,7 +929,6 @@ export function App({ model }: { model: BundleHostModel }) {
       widgetActionExecutor={widgetActionExecutor}
       onFireTransition={fireTransition}
       renderDefinitionForm={renderBundleDefinitionForm}
-      definitionActionInvoker={definitionActionInvoker}
       onDefinitionActionResult={onDefinitionActionResult}
       sessionGeneration={model.sessionGeneration}
     />
