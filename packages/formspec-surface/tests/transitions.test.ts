@@ -101,6 +101,40 @@ describe('planTransitions', () => {
     expect(transitions[0]?.status).toBe('fireable');
   });
 
+  it('preserves authored result bindings for target route parameters', () => {
+    const parameterized = composeSurfaceApp([
+      surface('owner', 'list', [
+        route({
+          id: 'list',
+          path: '/forms',
+          slots: [] as never,
+          transitions: [{
+            trigger: 'createForm',
+            to: 'detail',
+            params: { formId: 'createdFormId' },
+          }],
+        }),
+        route({
+          id: 'detail',
+          path: '/forms/{formId}',
+          params: [{ name: 'formId', type: 'string' }],
+          slots: [] as never,
+        }),
+      ]),
+    ]);
+    const { transitions } = planTransitions({
+      handle: parameterized.routes[0]!,
+      app: parameterized,
+      responseActions: [{ actions: [{ id: 'createForm', intent: 'submit' }] }],
+      hasExecutor: true,
+    });
+
+    expect(transitions[0]).toMatchObject({
+      status: 'fireable',
+      params: { formId: 'createdFormId' },
+    });
+  });
+
   it('defers to a control already on the route rather than drawing a second one', () => {
     const { transitions, diagnostics } = planTransitions({
       handle: apply,

@@ -101,10 +101,17 @@ import {
 } from "./diagnostic-delivery.js";
 import { needTraceAttributes } from "./need-trace.js";
 
+export interface SurfaceTransitionOutcome {
+  advanced: boolean;
+  reason?: string;
+  /** Allowlisted string outputs from the completed Response Action. */
+  transitionBindings?: Readonly<Record<string, string>>;
+}
+
 export type FireTransition = (
   transition: PlannedTransition,
   from: SurfaceRouteHandle
-) => Promise<{ advanced: boolean; reason?: string }>;
+) => Promise<SurfaceTransitionOutcome>;
 
 /**
  * Final navigation boundary after a Response Action reports completion.
@@ -117,9 +124,41 @@ export function navigateAfterCompletedAction(
   transition: PlannedTransition,
   routeParams: Readonly<Record<string, string>>,
   onNavigate: (href: string) => void
+): "advanced" | "refused";
+export function navigateAfterCompletedAction(
+  transition: PlannedTransition,
+  routeParams: Readonly<Record<string, string>>,
+  transitionBindings: Readonly<Record<string, string>> | undefined,
+  onNavigate: (href: string) => void
+): "advanced" | "refused";
+export function navigateAfterCompletedAction(
+  transition: PlannedTransition,
+  routeParams: Readonly<Record<string, string>>,
+  transitionBindingsOrNavigate:
+    | Readonly<Record<string, string>>
+    | undefined
+    | ((href: string) => void),
+  maybeNavigate?: (href: string) => void
 ): "advanced" | "refused" {
   if (!transition.target) return "refused";
-  const destination = routeHref(transition.target, routeParams);
+  const onNavigate =
+    typeof transitionBindingsOrNavigate === "function"
+      ? transitionBindingsOrNavigate
+      : maybeNavigate;
+  if (!onNavigate) return "refused";
+  const transitionBindings =
+    typeof transitionBindingsOrNavigate === "function"
+      ? undefined
+      : transitionBindingsOrNavigate;
+  const nextParams: Record<string, string> = { ...routeParams };
+  for (const [targetParam, bindingName] of Object.entries(
+    transition.params ?? {}
+  )) {
+    const value = transitionBindings?.[bindingName];
+    if (typeof value !== "string" || value.length === 0) return "refused";
+    nextParams[targetParam] = value;
+  }
+  const destination = routeHref(transition.target, nextParams);
   if (destination.refusal !== undefined) return "refused";
   onNavigate(destination.href);
   return "advanced";
@@ -218,6 +257,10 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
     | undefined;
   /** Host form runtime seam; the current `FormspecForm` remains the default. */
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
+  /** Generic async Response Actions executor used by mounted Definition forms. */
+  definitionActionInvoker?:
+    | SurfaceDefinitionFormRenderInput["responseActionInvoker"]
+    | undefined;
   /**
    * Caller-paired canonical artifact and Response identity for semantic
    * controls. Omission leaves ordinary rendering unchanged and publishes no
@@ -572,6 +615,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
               onWidgetActionReport={props.onWidgetActionReport}
               onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
               renderDefinitionForm={props.renderDefinitionForm}
+              definitionActionInvoker={props.definitionActionInvoker}
               resolveSemanticControlScope={props.resolveSemanticControlScope}
               resolveSemanticOutputScope={props.resolveSemanticOutputScope}
               onDefinitionActionResult={props.onDefinitionActionResult}
@@ -581,7 +625,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
               referencesDocuments={bundle.references ?? []}
               ontologyDocuments={bundle.ontologies ?? []}
               onFireTransition={props.onFireTransition}
-              onAdvance={(transition) => {
+              onAdvance={(transition, outcome) => {
                 // Reached only after the action reported success. The shell
                 // navigates; it never decides that the action succeeded.
                 // Defensive final boundary. Planning withholds collision-targeted
@@ -590,6 +634,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
                 navigateAfterCompletedAction(
                   transition,
                   routePlan.params,
+                  outcome?.transitionBindings,
                   onNavigate
                 );
               }}

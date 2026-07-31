@@ -28,6 +28,7 @@ import {
   type SurfaceStrings,
 } from '@formspec-org/surface';
 import { needTraceAttributes } from './need-trace.js';
+import type { SurfaceTransitionOutcome } from './SurfaceApp.js';
 
 export interface SurfaceTransitionsProps {
   from: SurfaceRouteHandle;
@@ -40,10 +41,10 @@ export interface SurfaceTransitionsProps {
    * reason `no-executor`, and no control renders.
    */
   onFire?:
-    | ((transition: PlannedTransition, from: SurfaceRouteHandle) => Promise<{ advanced: boolean; reason?: string }>)
+    | ((transition: PlannedTransition, from: SurfaceRouteHandle) => Promise<SurfaceTransitionOutcome>)
     | undefined;
   /** Navigate. Called only after `onFire` reports the action actually succeeded. */
-  onAdvance?: ((transition: PlannedTransition) => void) | undefined;
+  onAdvance?: ((transition: PlannedTransition, outcome: SurfaceTransitionOutcome) => void) | undefined;
 }
 
 export function SurfaceTransitions({
@@ -89,8 +90,8 @@ function SurfaceTransition({
   from: SurfaceRouteHandle;
   transition: PlannedTransition;
   strings: SurfaceStrings;
-  onFire?: (transition: PlannedTransition, from: SurfaceRouteHandle) => Promise<{ advanced: boolean; reason?: string }>;
-  onAdvance?: (transition: PlannedTransition) => void;
+  onFire?: (transition: PlannedTransition, from: SurfaceRouteHandle) => Promise<SurfaceTransitionOutcome>;
+  onAdvance?: (transition: PlannedTransition, outcome: SurfaceTransitionOutcome) => void;
 }) {
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | undefined>(undefined);
@@ -136,7 +137,7 @@ function SurfaceTransition({
           setFailure(undefined);
           void onFire(transition, from)
             .then((outcome) => {
-              if (outcome.advanced) onAdvance?.(transition);
+              if (outcome.advanced) onAdvance?.(transition, outcome);
               else setFailure(outcome.reason ?? strings('transitionFailed'));
             })
             .catch((error: unknown) => {

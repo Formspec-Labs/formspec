@@ -40,6 +40,7 @@ import { FormspecForm } from '@formspec-org/react';
 import type {
   ResponseAction,
   ResponseActionInvocationResult,
+  ResponseActionInvoker,
   ResponseActionsDocument as ReactResponseActionsDocument,
   SemanticArtifactIdentity,
   SemanticControlRegistry,
@@ -123,8 +124,19 @@ export interface SurfaceDefinitionFormRenderInput {
   onDefinitionActionResult?:
     | ((result: ResponseActionInvocationResult<SubmitResult>) => void)
     | undefined;
+  /**
+   * Optional host executor for the selected Definition-scoped document. The
+   * renderer still owns action resolution and submission; this port lets a
+   * generic async Response Actions runtime perform declared durable effects.
+   */
+  responseActionInvoker?: ResponseActionInvoker<SubmitResult> | undefined;
   /** Preserve the shell's completed-action navigation boundary. */
-  onActionCompleted?: ((action: ResponseAction) => void) | undefined;
+  onActionCompleted?:
+    | ((
+        action: ResponseAction,
+        result: ResponseActionInvocationResult<SubmitResult>,
+      ) => void)
+    | undefined;
 }
 
 export type SurfaceDefinitionFormRenderer = (
@@ -233,6 +245,7 @@ export interface SurfaceSlotProps {
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
+  definitionActionInvoker?: ResponseActionInvoker<SubmitResult> | undefined;
   resolveSemanticControlScope?: SurfaceSemanticControlScopeResolver | undefined;
   /** Exact caller-paired identity used only by renderers that publish output. */
   semanticOutputScope?: SurfaceSemanticOutputScope | undefined;
@@ -240,8 +253,21 @@ export interface SurfaceSlotProps {
     | ((result: ResponseActionInvocationResult<SubmitResult>) => void)
     | undefined;
   /** A published Action reached a successful terminal with a valid report. */
-  onActionCompleted?: ((action: ResponseAction) => void) | undefined;
-  onAdvance?: ((transition: PlannedTransition) => void) | undefined;
+  onActionCompleted?:
+    | ((
+        action: ResponseAction,
+        result: ResponseActionInvocationResult<SubmitResult>,
+      ) => void)
+    | undefined;
+  onAdvance?:
+    | ((
+        transition: PlannedTransition,
+        result?: Pick<
+          ResponseActionInvocationResult<SurfaceWidgetActionDetail>,
+          'transitionBindings'
+        >,
+      ) => void)
+    | undefined;
 }
 
 /** The action that is safe to use for route advancement, or no action. */
@@ -353,6 +379,7 @@ export function SurfaceSlot({
   onWidgetActionReport,
   onRuntimeDiagnosticsChange,
   renderDefinitionForm,
+  definitionActionInvoker,
   resolveSemanticControlScope,
   semanticOutputScope,
   onDefinitionActionResult,
@@ -399,6 +426,7 @@ export function SurfaceSlot({
         ontologyDocuments: ontologyDocuments ?? [],
         onDefinitionActionResult,
         onActionCompleted,
+        responseActionInvoker: definitionActionInvoker,
       };
       const semanticControlScope = resolveSemanticControlScope?.({
         plan: renderInput.plan,
@@ -656,6 +684,7 @@ export function renderDefaultDefinitionForm({
   semanticControlScope,
   onDefinitionActionResult,
   onActionCompleted,
+  responseActionInvoker,
 }: SurfaceDefinitionFormRenderInput): ReactNode {
   return (
     <DefaultSurfaceDefinitionForm
@@ -668,6 +697,7 @@ export function renderDefaultDefinitionForm({
       semanticControlScope={semanticControlScope}
       onDefinitionActionResult={onDefinitionActionResult}
       onActionCompleted={onActionCompleted}
+      responseActionInvoker={responseActionInvoker}
     />
   );
 }
@@ -697,6 +727,7 @@ function DefaultSurfaceDefinitionForm({
   semanticControlScope,
   onDefinitionActionResult,
   onActionCompleted,
+  responseActionInvoker,
 }: SurfaceDefinitionFormRenderInput): ReactNode {
   const engine = useMemo(
     () => createFormEngine(plan.definition),
@@ -768,6 +799,7 @@ function DefaultSurfaceDefinitionForm({
       registryEntries={[...plan.registryEntries]}
       resolveFieldHelp={resolveFieldHelp}
       responseActionsDocument={responseActionsDocument ?? null}
+      responseActionInvoker={responseActionInvoker ?? null}
       {...(semanticControlScope ? { semanticControlScope } : {})}
       emitThemeTokens={false}
       {...(onActionCompleted || onDefinitionActionResult
@@ -780,7 +812,7 @@ function DefaultSurfaceDefinitionForm({
             ) => {
               onDefinitionActionResult?.(result);
               const action = completedFormAction(result);
-              if (action) onActionCompleted?.(action);
+              if (action) onActionCompleted?.(action, result);
             },
           }
         : {})}
@@ -808,7 +840,15 @@ interface SurfaceWidgetSlotProps {
   onRuntimeDiagnosticsChange?:
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
     | undefined;
-  onAdvance?: ((transition: PlannedTransition) => void) | undefined;
+  onAdvance?:
+    | ((
+        transition: PlannedTransition,
+        result?: Pick<
+          ResponseActionInvocationResult<SurfaceWidgetActionDetail>,
+          'transitionBindings'
+        >,
+      ) => void)
+    | undefined;
   semanticOutputScope?: SurfaceSemanticOutputPublisherScope | undefined;
 }
 
@@ -1141,7 +1181,7 @@ function SurfaceWidgetSlot({
             result,
             navigation: 'advanced',
           });
-          onAdvance?.(transition);
+          onAdvance?.(transition, result);
           return { status: 'completed' as const };
         })
         .catch(() => ({ status: 'failed' as const }));

@@ -1051,6 +1051,101 @@ describe("navigation", () => {
     expect(onNavigate).toHaveBeenCalledWith("/receipt/CASE-42");
   });
 
+  it("uses only allowlisted completed-action bindings for authored transition parameters", async () => {
+    const parameterSurface = {
+      $formspecSurface: "0.2",
+      id: "forms",
+      entry: "list",
+      routes: [
+        {
+          id: "list",
+          path: "/forms",
+          title: "Forms",
+          routeClass: "operation",
+          slots: [],
+          transitions: [
+            {
+              trigger: "createForm",
+              to: "detail",
+              params: { formId: "createdFormId" },
+            },
+          ],
+        },
+        {
+          id: "detail",
+          path: "/forms/{formId}",
+          params: [{ name: "formId", type: "string" }],
+          title: "Form",
+          routeClass: "operation",
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const parameterBundle = {
+      ...bundle,
+      surfaces: [parameterSurface],
+      responseActions: [
+        { actions: [{ id: "createForm", intent: "submit" }] },
+      ],
+    };
+    const onFireTransition = vi.fn(async () => ({
+      advanced: true,
+      transitionBindings: { createdFormId: "form-created-by-server" },
+    }));
+    const onNavigate = vi.fn();
+    const { container } = mount({
+      bundle: parameterBundle,
+      location: "/forms",
+      routeParams: { formId: "stale-example" },
+      onFireTransition,
+      onNavigate,
+    });
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>(".fs-surface-transition__button")
+        ?.click();
+      await Promise.resolve();
+    });
+
+    expect(onNavigate).toHaveBeenCalledWith(
+      "/forms/form-created-by-server"
+    );
+  });
+
+  it("refuses result-driven navigation when an authored binding is absent", () => {
+    const target = composeSurfaceApp([
+      {
+        $formspecSurface: "0.2",
+        id: "forms",
+        entry: "detail",
+        routes: [
+          {
+            id: "detail",
+            path: "/forms/{formId}",
+            params: [{ name: "formId", type: "string" }],
+            slots: [],
+          },
+        ],
+      } as unknown as SurfaceDocument,
+    ]).routes[0]!;
+    const transition: PlannedTransition = {
+      trigger: "createForm",
+      to: "detail",
+      params: { formId: "createdFormId" },
+      status: "fireable",
+      reason: "ready",
+      actionId: "createForm",
+      target,
+    };
+    const onNavigate = vi.fn();
+
+    expect(
+      navigateAfterCompletedAction(transition, {}, {}, onNavigate)
+    ).toBe("refused");
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
   it("does not fire a transition whose target URL is collision-refused", () => {
     const collisionSource = {
       $formspecSurface: "0.2",

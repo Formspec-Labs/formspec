@@ -58,6 +58,7 @@ import {
   type SurfaceSemanticControlScopeResolver,
 } from './SurfaceSlot.js';
 import { SurfaceTransitions } from './SurfaceTransitions.js';
+import type { SurfaceTransitionOutcome } from './SurfaceApp.js';
 import type {
   SurfaceWidget,
   SurfaceWidgetActionExecutor,
@@ -87,6 +88,9 @@ export interface SurfaceRouteViewProps {
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
+  definitionActionInvoker?:
+    | SurfaceDefinitionFormRenderInput['responseActionInvoker']
+    | undefined;
   resolveSemanticControlScope?: SurfaceSemanticControlScopeResolver | undefined;
   resolveSemanticOutputScope?: SurfaceSemanticOutputScopeResolver | undefined;
   onDefinitionActionResult?:
@@ -112,14 +116,19 @@ export interface SurfaceRouteViewProps {
     | ((
         transition: PlannedTransition,
         from: SurfaceRoutePlan<SurfaceWidget>['handle'],
-      ) => Promise<{ advanced: boolean; reason?: string }>)
+      ) => Promise<SurfaceTransitionOutcome>)
     | undefined;
   /**
    * Called when a transition has actually completed under Response Actions
    * authority — never on a click. The shell navigates; it does not decide that
    * the action succeeded.
    */
-  onAdvance?: ((transition: PlannedTransition) => void) | undefined;
+  onAdvance?:
+    | ((
+        transition: PlannedTransition,
+        outcome?: Pick<SurfaceTransitionOutcome, 'transitionBindings'>,
+      ) => void)
+    | undefined;
 }
 
 export function SurfaceRouteView({
@@ -135,6 +144,7 @@ export function SurfaceRouteView({
   onWidgetActionReport,
   onRuntimeDiagnosticsChange,
   renderDefinitionForm,
+  definitionActionInvoker,
   resolveSemanticControlScope,
   resolveSemanticOutputScope,
   onDefinitionActionResult,
@@ -235,10 +245,11 @@ export function SurfaceRouteView({
             onWidgetActionReport={onWidgetActionReport}
             onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
             renderDefinitionForm={renderDefinitionForm}
+            definitionActionInvoker={definitionActionInvoker}
             resolveSemanticControlScope={resolveSemanticControlScope}
             semanticOutputScope={semanticOutputScope}
             onDefinitionActionResult={onDefinitionActionResult}
-            onActionCompleted={(action) => {
+            onActionCompleted={(action, result) => {
               // The form's own submit ran under Response Actions authority and
               // reported success. THAT is what advances the route — not the
               // click that started it.
@@ -248,7 +259,14 @@ export function SurfaceRouteView({
                   (candidate.trigger === action.id ||
                     candidate.trigger === action.intent),
               );
-              if (supplied.length === 1 && supplied[0]) onAdvance?.(supplied[0]);
+              if (supplied.length === 1 && supplied[0]) {
+                onAdvance?.(
+                  supplied[0],
+                  result.transitionBindings
+                    ? { transitionBindings: result.transitionBindings }
+                    : undefined,
+                );
+              }
             }}
             onAdvance={onAdvance}
           />

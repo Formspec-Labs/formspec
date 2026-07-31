@@ -100,6 +100,12 @@ export type TransitionUnfireableReason =
 interface PlannedTransitionFields {
   trigger: string;
   to: string;
+  /**
+   * Authored target-route parameter mapping. Keys are parameters declared by
+   * the target route; values name allowlisted runtime bindings returned by the
+   * completed Response Action.
+   */
+  params?: Readonly<Record<string, string>>;
   /** Direct authored Need anchors for this rendered transition feature. */
   needAnchors?: readonly string[];
   when?: string;
@@ -343,6 +349,9 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
       reason: '',
     };
     if (typeof authored.when === 'string') base.when = authored.when;
+    if (authored.params && typeof authored.params === 'object') {
+      base.params = Object.freeze({ ...authored.params });
+    }
     if (target) base.target = target;
 
     if (typeof authored.when === 'string') {
