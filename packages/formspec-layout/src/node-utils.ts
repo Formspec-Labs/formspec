@@ -92,13 +92,28 @@ export interface EnsureActionButtonOptions {
     actionRef?: string;
 }
 
+function planContainsActionRef(node: LayoutNode, actionRef: string): boolean {
+    if (
+        node.component === 'ActionButton'
+        && node.props?.actionRef === actionRef
+    ) {
+        return true;
+    }
+    return node.children.some(child => planContainsActionRef(child, actionRef));
+}
+
 export function ensureActionButton(
     root: LayoutNode,
     nextId: NodeIdGenerator = createNodeIdGenerator(),
     options: EnsureActionButtonOptions = {},
 ): void {
     if (!options.actionRef) return;
-    if (planContains(root, 'Wizard') || planContains(root, 'ActionButton')) return;
+    if (
+        planContains(root, 'Wizard')
+        || planContainsActionRef(root, options.actionRef)
+    ) {
+        return;
+    }
 
     const actionNode: LayoutNode = {
         id: nextId('submit'),

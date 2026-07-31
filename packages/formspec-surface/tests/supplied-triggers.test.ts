@@ -6,7 +6,9 @@
  * intent and a scan of top-level `definition-form` slots only (divergence D13),
  * so a form inside an `embed-route` was not counted and no intent other than
  * `submit` was ever supplied-by-slot. Both are the same defect: substituting a
- * shortcut for the resolution rule surface-spec §4 already states.
+ * shortcut for the resolution rule surface-spec §4 already states. The
+ * Definition renderer now places every literal-labeled response Action, so
+ * this walk must credit the same exact controls without adding shell copies.
  */
 import { describe, expect, it } from 'vitest';
 import { composeSurfaceApp } from '../src/composition.js';
@@ -65,23 +67,23 @@ describe('slotSuppliedTriggers', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
       {
         targetDefinition: { url: DEF },
-        actions: [{ id: 'submitApplication', intent: 'submit' }],
+        actions: [{ id: 'submitApplication', intent: 'submit', label: { literal: 'Submit' } }],
       },
     ]);
     expect([...supplied].sort()).toEqual(['submit', 'submitApplication']);
   });
 
-  it('does not claim a non-submit action that the shipped form renderer cannot place', () => {
+  it('credits a literal-labeled review action that the Definition renderer places', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
       {
         targetDefinition: { url: DEF },
-        actions: [{ id: 'sendForReview', intent: 'review' }],
+        actions: [{ id: 'sendForReview', intent: 'review', label: { literal: 'Review form' } }],
       },
     ]);
-    expect([...supplied]).toEqual([]);
+    expect([...supplied].sort()).toEqual(['review', 'sendForReview']);
   });
 
-  it('does not claim an action id when no submit control will be rendered', () => {
+  it('does not claim an action id when no literal-labeled control will be rendered', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
       { targetDefinition: { url: DEF }, actions: [{ id: 'countersign' }] },
     ]);
@@ -92,10 +94,27 @@ describe('slotSuppliedTriggers', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
       {
         targetDefinition: { url: DEF },
-        actions: [{ id: 'a', intent: 'submit' }, { id: 'b', intent: 'submit' }],
+        actions: [
+          { id: 'a', intent: 'submit', label: { literal: 'Submit A' } },
+          { id: 'b', intent: 'submit', label: { literal: 'Submit B' } },
+        ],
       },
     ]);
     expect(supplied.has('submit')).toBe(false);
+    expect([...supplied].sort()).toEqual(['a', 'b']);
+  });
+
+  it('does not credit duplicate action ids as rendered controls', () => {
+    const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
+      {
+        targetDefinition: { url: DEF },
+        actions: [
+          { id: 'same-action', intent: 'review', label: { literal: 'Review' } },
+          { id: 'same-action', intent: 'submit', label: { literal: 'Submit' } },
+        ],
+      },
+    ]);
+    expect([...supplied]).toEqual([]);
   });
 
   it('supplies nothing from a slot type §5.2 excludes', () => {
@@ -116,7 +135,7 @@ describe('slotSuppliedTriggers', () => {
     const supplied = slotSuppliedTriggers(slotsFor(nonForm, 'r'), [
       {
         targetDefinition: { url: DEF },
-        actions: [{ id: 'submitApplication', intent: 'submit' }],
+        actions: [{ id: 'submitApplication', intent: 'submit', label: { literal: 'Submit' } }],
       },
     ]);
     expect([...supplied]).toEqual([]);
@@ -135,7 +154,7 @@ describe('slotSuppliedTriggers', () => {
     const supplied = slotSuppliedTriggers(slotsFor(dangling, 'r'), [
       {
         targetDefinition: { url: 'urn:absent' },
-        actions: [{ id: 'x', intent: 'submit' }],
+        actions: [{ id: 'x', intent: 'submit', label: { literal: 'Submit' } }],
       },
     ]);
     expect([...supplied]).toEqual([]);
@@ -144,7 +163,10 @@ describe('slotSuppliedTriggers', () => {
   it('honours targetDefinition — a document only supplies the slot it binds', () => {
     // `E611`'s "targeting the Definition that slot binds" (§5.4), at runtime.
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      { targetDefinition: { url: OTHER_DEF }, actions: [{ id: 'x', intent: 'submit' }] },
+      {
+        targetDefinition: { url: OTHER_DEF },
+        actions: [{ id: 'x', intent: 'submit', label: { literal: 'Submit' } }],
+      },
     ]);
     expect([...supplied]).toEqual([]);
   });
@@ -157,11 +179,11 @@ describe('slotSuppliedTriggers', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
       {
         targetDefinition: { url: DEF },
-        actions: [{ id: 'one', intent: 'submit' }],
+        actions: [{ id: 'one', intent: 'submit', label: { literal: 'Submit one' } }],
       },
       {
         targetDefinition: { url: DEF },
-        actions: [{ id: 'two', intent: 'submit' }],
+        actions: [{ id: 'two', intent: 'submit', label: { literal: 'Submit two' } }],
       },
     ]);
     expect([...supplied]).toEqual([]);
@@ -192,7 +214,7 @@ describe('the walk, wired into planTransitions', () => {
     const responseActions = [
       {
         targetDefinition: { url: DEF },
-        actions: [{ id: 'submitApplication', intent: 'submit' }],
+        actions: [{ id: 'submitApplication', intent: 'submit', label: { literal: 'Submit' } }],
       },
     ];
     const { transitions, diagnostics } = planTransitions({
@@ -203,6 +225,45 @@ describe('the walk, wired into planTransitions', () => {
       slotSuppliedTriggers: slotSuppliedTriggers(slotsFor(embedding, 'host'), responseActions),
     });
     expect(transitions[0]?.status).toBe('supplied-by-slot');
+    expect(diagnostics).toEqual([]);
+  });
+
+  it('suppresses a duplicate shell control for a rendered review action', () => {
+    const reviewSurface = surface('s', 'review-host', [
+      route({
+        id: 'review-host',
+        path: '/review',
+        slots: [slot({
+          id: 'form',
+          slotType: 'definition-form',
+          binding: { definitionRef: DEF },
+        })] as never,
+        transitions: [{ trigger: 'review', to: 'done' }],
+      }),
+      route({ id: 'done', path: '/done', slots: [] as never }),
+    ]);
+    const app = composeSurfaceApp([reviewSurface]);
+    const handle = app.routes.find((candidate) => candidate.routeId === 'review-host')!;
+    const responseActions = [{
+      targetDefinition: { url: DEF },
+      actions: [{ id: 'reviewForm', intent: 'review', label: { literal: 'Review form' } }],
+    }];
+
+    const { transitions, diagnostics } = planTransitions({
+      handle,
+      app,
+      responseActions,
+      hasExecutor: false,
+      slotSuppliedTriggers: slotSuppliedTriggers(
+        slotsFor(reviewSurface, 'review-host'),
+        responseActions,
+      ),
+    });
+
+    expect(transitions[0]).toMatchObject({
+      status: 'supplied-by-slot',
+      actionId: 'reviewForm',
+    });
     expect(diagnostics).toEqual([]);
   });
 });

@@ -27,7 +27,13 @@ import type {
     ThemeDocument as SchemaThemeDocument,
     ValidationReport,
 } from '@formspec-org/types';
-import { createFormEngine, findResponseActionByIntent, missingSubmitActionFinding, resolveResponseAction } from '@formspec-org/engine';
+import {
+    createFormEngine,
+    findResponseActionByIntent,
+    missingSubmitActionFinding,
+    resolveResponseAction,
+    resolveResponseActionValidationTuple,
+} from '@formspec-org/engine';
 import type {
     ComponentGraphProjectionContext,
     LayoutHostEvidence,
@@ -215,6 +221,131 @@ function pageModeFromPresentation(presentation: Record<string, unknown> | undefi
     return presentation?.pageMode === 'wizard' || presentation?.pageMode === 'tabs'
         ? presentation.pageMode
         : undefined;
+}
+
+const RESPONSE_ACTION_ID = /^[A-Za-z][A-Za-z0-9-]*$/;
+
+function record(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object' && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : null;
+}
+
+function hasNonEmptyString(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().length > 0;
+}
+
+function hasValidResponseActionEffectShape(value: unknown): boolean {
+    const effect = record(value);
+    if (!effect || typeof effect.type !== 'string') return false;
+    if (
+        effect.onError !== undefined
+        && effect.onError !== 'fail'
+        && effect.onError !== 'defer'
+    ) {
+        return false;
+    }
+
+    switch (effect.type) {
+        case 'mappingExecution':
+            return hasNonEmptyString(effect.mappingRef)
+                && hasNonEmptyString(effect.idempotencyKey);
+        case 'ledgerAppend':
+            return hasNonEmptyString(effect.eventKind)
+                && hasNonEmptyString(effect.idempotencyKey);
+        case 'handoffAssembly':
+            return hasNonEmptyString(effect.handoffProfileRef)
+                && hasNonEmptyString(effect.recipientRef)
+                && hasNonEmptyString(effect.idempotencyKey);
+        case 'evidenceRequest':
+        case 'serviceRequest':
+            return hasNonEmptyString(effect.requestRef)
+                && hasNonEmptyString(effect.idempotencyKey);
+        case 'hostEvent':
+            return hasNonEmptyString(effect.eventName)
+                && effect.idempotencyKey === undefined;
+        case 'browserResource':
+            return (effect.operation === 'open' || effect.operation === 'download')
+                && hasNonEmptyString(effect.resourceRef)
+                && effect.idempotencyKey === undefined;
+        default:
+            return false;
+    }
+}
+
+function hasValidResponseActionShape(value: unknown): value is ResponseAction {
+    const action = record(value);
+    if (
+        !action
+        || !hasNonEmptyString(action.id)
+        || !RESPONSE_ACTION_ID.test(action.id)
+        || !hasNonEmptyString(action.intent)
+        || !Array.isArray(action.effects)
+        || action.effects.length === 0
+        || !action.effects.every(hasValidResponseActionEffectShape)
+    ) {
+        return false;
+    }
+
+    const label = action.label;
+    if (label !== undefined) {
+        const candidate = record(label);
+        const hasLiteral = candidate ? hasNonEmptyString(candidate.literal) : false;
+        const hasRef = candidate ? hasNonEmptyString(candidate.ref) : false;
+        if (!candidate || hasLiteral === hasRef) return false;
+    }
+
+    try {
+        resolveResponseActionValidationTuple(value as ResponseAction);
+    } catch {
+        return false;
+    }
+    return true;
+}
+
+function hasLiteralActionLabel(action: ResponseAction): boolean {
+    const label = record(action.label);
+    return label ? hasNonEmptyString(label.literal) : false;
+}
+
+/**
+ * Select actions that the Definition auto-renderer can place without
+ * inventing a control label. The document itself must be a matching,
+ * response-scoped document with unique, structurally usable actions; one bad
+ * action closes the whole auto-placement seam.
+ */
+function autoPlacedDefinitionActions(
+    document: ResponseActionsDocument | null | undefined,
+    definition: { url?: unknown },
+): readonly ResponseAction[] {
+    const candidate = record(document);
+    const target = record(candidate?.targetDefinition);
+    if (
+        !candidate
+        || candidate.$formspecResponseActions !== '1.0'
+        || !hasNonEmptyString(candidate.version)
+        || (candidate.scope !== undefined && candidate.scope !== 'response')
+        || !target
+        || !hasNonEmptyString(target.url)
+        || target.url !== definition.url
+        || (
+            target.compatibleVersions !== undefined
+            && !hasNonEmptyString(target.compatibleVersions)
+        )
+        || !Array.isArray(candidate.actions)
+        || candidate.actions.length === 0
+        || !candidate.actions.every(hasValidResponseActionShape)
+    ) {
+        return [];
+    }
+
+    const ids = new Set<string>();
+    for (const action of candidate.actions) {
+        if (ids.has(action.id)) return [];
+        ids.add(action.id);
+    }
+
+    return candidate.actions.filter(hasLiteralActionLabel);
 }
 
 export interface FormspecProviderProps {
@@ -494,14 +625,13 @@ export function FormspecProvider(props: FormspecProviderProps) {
             };
         }
 
-        // §10: only inject an ActionButton when a submit-intent Action
-        // actually exists in the loaded Response Actions document. §10
-        // forbids implicit-default Actions and free-string fallbacks, so
-        // auto-injection MUST be a no-op when no submit Action is published.
+        // The host opts into Definition action controls by wiring onSubmit.
+        // Place each usable response-scoped Action in document order. Exact
+        // actionRef deduplication preserves explicitly authored controls, and
+        // literal labels keep all visible copy in the structured document.
         if (onSubmit) {
-            const submitAction = findResponseActionByIntent(responseActionsDocument, 'submit');
-            if (submitAction) {
-                ensureActionButton(root, planCtx.nextId, { pageMode, actionRef: submitAction.id });
+            for (const action of autoPlacedDefinitionActions(responseActionsDocument, def)) {
+                ensureActionButton(root, planCtx.nextId, { pageMode, actionRef: action.id });
             }
         }
         return root;

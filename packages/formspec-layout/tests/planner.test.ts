@@ -2471,10 +2471,30 @@ describe('ensureActionButton', () => {
         expect(root.children.at(-1)?.props?.actionRef).toBe('send-application');
     });
 
-    it('does not add an ActionButton when one already exists', () => {
-        const root = makeNode('Stack', [makeNode('ActionButton')]);
-        ensureActionButton(root);
+    it('does not duplicate an explicitly authored ActionButton for the same actionRef', () => {
+        const authored = makeNode('ActionButton');
+        authored.props = { actionRef: 'save-draft' };
+        const root = makeNode('Stack', [authored]);
+        ensureActionButton(root, createNodeIdGenerator(), { actionRef: 'save-draft' });
         expect(root.children.filter(c => c.component === 'ActionButton')).toHaveLength(1);
+        expect(root.children[0]).toBe(authored);
+    });
+
+    it('preserves authored ActionButtons while appending other configured actions in call order', () => {
+        const authored = makeNode('ActionButton');
+        authored.props = { actionRef: 'save-draft', label: { literal: 'Keep my draft' } };
+        const root = makeNode('Stack', [makeNode('TextInput'), authored]);
+        const nextId = createNodeIdGenerator();
+
+        ensureActionButton(root, nextId, { actionRef: 'save-draft' });
+        ensureActionButton(root, nextId, { actionRef: 'review' });
+        ensureActionButton(root, nextId, { actionRef: 'publish' });
+
+        expect(root.children
+            .filter(c => c.component === 'ActionButton')
+            .map(c => c.props?.actionRef))
+            .toEqual(['save-draft', 'review', 'publish']);
+        expect(authored.props?.label).toEqual({ literal: 'Keep my draft' });
     });
 
     it('does not add an ActionButton when the tree contains a Wizard', () => {

@@ -1077,6 +1077,7 @@ test('createDemoSubmitResponseActions defaults to non-blocking submit for demo e
   });
   assert.equal(doc.targetDefinition.url, 'https://example.gov/forms/demo');
   assert.equal(doc.actions.length, 1);
+  assert.deepEqual(doc.actions[0].label, { literal: 'Submit' });
   const tuple = resolveResponseActionValidationTuple(doc.actions[0]);
   assert.deepEqual(tuple, {
     profile: 'on-submit',

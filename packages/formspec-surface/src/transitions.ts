@@ -275,11 +275,11 @@ export function responseActionsDocumentForDefinition<
  *    control the host route renders — the same transitivity §4.4 applies to the
  *    theme grant. A shell that scans only a route's own `slots[]` reports a
  *    working page as dead.
- * 2. **The check follows the control this binding actually places.**
- *    `FormspecForm` auto-places one submit-intent Action and no other action.
- *    A plan that credited every published action would report a control that
- *    does not exist. The selected document and submit Action must each be
- *    unique, and the document must target the rendered Definition.
+ * 2. **The check follows the controls this binding actually places.**
+ *    `FormspecForm` auto-places each uniquely identified Action with a literal
+ *    structured label from the one response-scoped document targeting the
+ *    rendered Definition. Action ids are always exact; a closed-core intent is
+ *    credited only when exactly one loaded Action publishes it.
  *
  * A module widget contributes only through the complete declared chain:
  * Registry action output -> Surface action binding -> exact loaded action.
@@ -339,17 +339,44 @@ export function slotSuppliedTriggers(
         entry.definitionRef,
       );
       if (!document) continue;
-      const submitActions = (document.actions ?? []).filter(
-        (action) => action.intent === 'submit' && typeof action.id === 'string',
-      );
-      if (submitActions.length !== 1) continue;
-      supplied.add('submit');
-      supplied.add(submitActions[0]!.id as string);
+      for (const action of document.actions ?? []) {
+        if (
+          typeof action.id !== 'string'
+          || action.id.length === 0
+          || !hasLiteralActionLabel(action)
+        ) {
+          continue;
+        }
+        const idMatches = actionDeclarations.filter(
+          ({ action: candidate }) => candidate.id === action.id,
+        );
+        if (idMatches.length !== 1) continue;
+
+        supplied.add(action.id);
+        if (
+          typeof action.intent === 'string'
+          && CLOSED_RESPONSE_ACTION_INTENTS.has(action.intent)
+        ) {
+          const intentMatches = actionDeclarations.filter(
+            ({ action: candidate }) => candidate.intent === action.intent,
+          );
+          if (intentMatches.length === 1) supplied.add(action.intent);
+        }
+      }
     }
   };
 
   walk(slots);
   return supplied;
+}
+
+function hasLiteralActionLabel(
+  action: NonNullable<ResponseActionsDocumentLike['actions']>[number],
+): boolean {
+  const label = action.label;
+  if (!label || typeof label !== 'object' || Array.isArray(label)) return false;
+  const literal = (label as { literal?: unknown }).literal;
+  return typeof literal === 'string' && literal.trim().length > 0;
 }
 
 export function planTransitions(input: TransitionPlanInput): TransitionPlanResult {
