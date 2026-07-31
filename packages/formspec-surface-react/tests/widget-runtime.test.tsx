@@ -113,7 +113,11 @@ function dataCatalog(): DataSourcesDocument {
 
 function bundle(
   withData = false,
-  transitions: readonly { trigger: string; to: string }[] = [
+  transitions: readonly {
+    trigger: string;
+    to: string;
+    params?: Readonly<Record<string, string>> | undefined;
+  }[] = [
     { trigger: 'acceptReceipt', to: 'done' },
   ],
   config?: Readonly<Record<string, unknown>>,
@@ -185,6 +189,58 @@ function bundle(
       : [],
     definitions: new Map(),
     diagnostics: [],
+  };
+}
+
+function parameterBundle(): ResolvedBundle {
+  const base = bundle(false, [
+    {
+      trigger: 'acceptReceipt',
+      to: 'detail',
+      params: { formId: 'formId' },
+    },
+  ]);
+  const surface = {
+    $formspecSurface: '0.2',
+    id: 'respondent',
+    entry: 'receipt',
+    routes: [
+      {
+        id: 'receipt',
+        path: '/receipt',
+        routeClass: 'proof',
+        slots: [
+          {
+            id: 'panel',
+            slotType: 'module-widget',
+            binding: {
+              moduleId: 'x-runtime',
+              widgetName: 'RuntimeWidget',
+              actionBindings: { accepted: { actionRef: 'acceptReceipt' } },
+            },
+          },
+        ],
+        transitions: [
+          {
+            trigger: 'acceptReceipt',
+            to: 'detail',
+            params: { formId: 'formId' },
+          },
+        ],
+      },
+      {
+        id: 'detail',
+        path: '/forms/{formId}',
+        params: [{ name: 'formId', type: 'string' }],
+        routeClass: 'operation',
+        slots: [],
+      },
+    ],
+  } as unknown as SurfaceDocument;
+  return {
+    ...base,
+    surfaces: [surface],
+    surfaceRefs: new Map([[surface, SURFACE_REF]]),
   };
 }
 
@@ -594,6 +650,193 @@ describe('widget action runtime', () => {
       },
     });
     expect(onNavigate).toHaveBeenCalledWith('/done');
+  });
+
+  it('uses only a safe top-level row value for parameterized navigation', async () => {
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => completed());
+    const Widget: SurfaceWidget = ({ emitAction }) => (
+      <button
+        data-probe="emit"
+        onClick={() => emitAction('accepted', {
+          formId: 'form-from-row',
+          nested: { formId: 'nested-must-not-navigate' },
+          numericId: 42,
+          emptyId: '',
+        })}
+      >
+        Open
+      </button>
+    );
+    const onNavigate = vi.fn();
+    const reports: SurfaceWidgetActionReport[] = [];
+    const container = render(
+      <SurfaceApp
+        bundle={parameterBundle()}
+        location="/receipt"
+        onNavigate={onNavigate}
+        widgetModules={runtimeModule(Widget)}
+        widgetActionExecutor={executor}
+        onWidgetActionReport={(report) => reports.push(report)}
+        setDocumentTitle={false}
+      />,
+    );
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-probe="emit"]')?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(onNavigate).toHaveBeenCalledWith('/forms/form-from-row');
+    expect(reports.at(-1)?.navigation).toBe('advanced');
+    expect(reports.at(-1)?.result?.transitionBindings).toBeUndefined();
+    expect(reports.at(-1)?.result?.effectTrace).toEqual([]);
+    expect(JSON.stringify(reports)).not.toContain('form-from-row');
+    expect(JSON.stringify(reports)).not.toContain('nested-must-not-navigate');
+  });
+
+  it('keeps declared service output navigation for widget actions', async () => {
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => ({
+      ...completed(),
+      transitionBindings: Object.freeze({ formId: 'form-from-service' }),
+    }));
+    const Widget: SurfaceWidget = ({ emitAction }) => (
+      <button data-probe="emit" onClick={() => emitAction('accepted')}>
+        Open
+      </button>
+    );
+    const onNavigate = vi.fn();
+    const container = render(
+      <SurfaceApp
+        bundle={parameterBundle()}
+        location="/receipt"
+        onNavigate={onNavigate}
+        widgetModules={runtimeModule(Widget)}
+        widgetActionExecutor={executor}
+        setDocumentTitle={false}
+      />,
+    );
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-probe="emit"]')?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(onNavigate).toHaveBeenCalledWith('/forms/form-from-service');
+  });
+
+  it('coalesces equal service and widget binding values', async () => {
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => ({
+      ...completed(),
+      transitionBindings: Object.freeze({ formId: 'form-shared' }),
+    }));
+    const Widget: SurfaceWidget = ({ emitAction }) => (
+      <button
+        data-probe="emit"
+        onClick={() => emitAction('accepted', { formId: 'form-shared' })}
+      >
+        Open
+      </button>
+    );
+    const onNavigate = vi.fn();
+    const container = render(
+      <SurfaceApp
+        bundle={parameterBundle()}
+        location="/receipt"
+        onNavigate={onNavigate}
+        widgetModules={runtimeModule(Widget)}
+        widgetActionExecutor={executor}
+        setDocumentTitle={false}
+      />,
+    );
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-probe="emit"]')?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(onNavigate).toHaveBeenCalledWith('/forms/form-shared');
+  });
+
+  it('diagnoses and refuses conflicting service and widget binding values', async () => {
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => ({
+      ...completed(),
+      transitionBindings: Object.freeze({ formId: 'private-service-value' }),
+    }));
+    const Widget: SurfaceWidget = ({ emitAction }) => (
+      <button
+        data-probe="emit"
+        onClick={() => emitAction('accepted', { formId: 'private-widget-value' })}
+      >
+        Open
+      </button>
+    );
+    const onNavigate = vi.fn();
+    const delivered: SurfaceDiagnostic[][] = [];
+    const container = render(
+      <SurfaceApp
+        bundle={parameterBundle()}
+        location="/receipt"
+        onNavigate={onNavigate}
+        widgetModules={runtimeModule(Widget)}
+        widgetActionExecutor={executor}
+        onDiagnostics={(diagnostics) => delivered.push([...diagnostics])}
+        setDocumentTitle={false}
+      />,
+    );
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-probe="emit"]')?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(delivered.at(-1)?.map((diagnostic) => diagnostic.code)).toContain(
+      'WIDGET-ACTION-TRANSITION-AMBIGUOUS',
+    );
+    expect(JSON.stringify(delivered)).not.toContain('private-service-value');
+    expect(JSON.stringify(delivered)).not.toContain('private-widget-value');
+  });
+
+  it('refuses nested, non-string, and empty widget values as route bindings', async () => {
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => completed());
+    const Widget: SurfaceWidget = ({ emitAction }) => (
+      <button
+        data-probe="emit"
+        onClick={() => emitAction('accepted', {
+          formId: 42,
+          nested: { formId: 'nested-value' },
+          empty: '',
+        })}
+      >
+        Open
+      </button>
+    );
+    const onNavigate = vi.fn();
+    const reports: SurfaceWidgetActionReport[] = [];
+    const container = render(
+      <SurfaceApp
+        bundle={parameterBundle()}
+        location="/receipt"
+        onNavigate={onNavigate}
+        widgetModules={runtimeModule(Widget)}
+        widgetActionExecutor={executor}
+        onWidgetActionReport={(report) => reports.push(report)}
+        setDocumentTitle={false}
+      />,
+    );
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-probe="emit"]')?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(reports.at(-1)?.navigation).toBe('none');
   });
 
   it('discards navigation from a terminal after the session generation changes', async () => {

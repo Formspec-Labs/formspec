@@ -13,6 +13,7 @@ export {
   useBrowserLocation,
   useSurfaceApp,
   type FireTransition,
+  type SurfaceTransitionSource,
   type SurfaceTransitionOutcome,
   type SurfaceCurrentRouteState,
   type SurfaceAppModel,

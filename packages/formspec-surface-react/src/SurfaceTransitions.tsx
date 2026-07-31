@@ -24,14 +24,17 @@ import {
   mergeNeedAnchors,
   resolveSurfaceStrings,
   type PlannedTransition,
-  type SurfaceRouteHandle,
   type SurfaceStrings,
 } from '@formspec-org/surface';
 import { needTraceAttributes } from './need-trace.js';
-import type { SurfaceTransitionOutcome } from './SurfaceApp.js';
+import type {
+  FireTransition,
+  SurfaceTransitionOutcome,
+  SurfaceTransitionSource,
+} from './SurfaceApp.js';
 
 export interface SurfaceTransitionsProps {
-  from: SurfaceRouteHandle;
+  from: SurfaceTransitionSource;
   transitions: readonly PlannedTransition[];
   /** The shell's own person-facing strings. Defaults to the shipped English. */
   strings?: SurfaceStrings | undefined;
@@ -40,9 +43,7 @@ export interface SurfaceTransitionsProps {
    * whether it succeeded. Absent ⇒ a resolved transition is `unfireable` with
    * reason `no-executor`, and no control renders.
    */
-  onFire?:
-    | ((transition: PlannedTransition, from: SurfaceRouteHandle) => Promise<SurfaceTransitionOutcome>)
-    | undefined;
+  onFire?: FireTransition | undefined;
   /** Navigate. Called only after `onFire` reports the action actually succeeded. */
   onAdvance?: ((transition: PlannedTransition, outcome: SurfaceTransitionOutcome) => void) | undefined;
 }
@@ -87,10 +88,10 @@ function SurfaceTransition({
   onFire,
   onAdvance,
 }: {
-  from: SurfaceRouteHandle;
+  from: SurfaceTransitionSource;
   transition: PlannedTransition;
   strings: SurfaceStrings;
-  onFire?: (transition: PlannedTransition, from: SurfaceRouteHandle) => Promise<SurfaceTransitionOutcome>;
+  onFire?: FireTransition;
   onAdvance?: (transition: PlannedTransition, outcome: SurfaceTransitionOutcome) => void;
 }) {
   const [pending, setPending] = useState(false);

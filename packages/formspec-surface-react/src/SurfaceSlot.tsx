@@ -266,7 +266,7 @@ export interface SurfaceSlotProps {
           ResponseActionInvocationResult<SurfaceWidgetActionDetail>,
           'transitionBindings'
         >,
-      ) => void)
+      ) => 'advanced' | 'refused' | void)
     | undefined;
 }
 
@@ -307,6 +307,53 @@ export function completedWidgetAction(
   const validationReport = (detail as SubmitResult).validationReport;
   if (validationReport?.valid !== true) return undefined;
   return result.resolution.action;
+}
+
+type WidgetTransitionBindingMerge =
+  | Readonly<{
+      status: 'ready';
+      transitionBindings?: Readonly<Record<string, string>> | undefined;
+    }>
+  | Readonly<{
+      status: 'conflict';
+      bindingName: string;
+    }>;
+
+/**
+ * Build the private navigation handoff for one completed app-widget action.
+ *
+ * The input has already crossed {@link admitSurfaceWidgetActionInput}, so it is
+ * a detached frozen JSON object. Only its own top-level non-empty strings can
+ * become candidates. Nested values, arbitrary executor detail, and response
+ * bodies are absent from this function's inputs and therefore cannot enter the
+ * route parameter handoff.
+ */
+function mergeAppWidgetTransitionBindings(
+  document: GeneratedResponseActionsDocument,
+  input: SurfaceWidgetActionInput | undefined,
+  serviceBindings: Readonly<Record<string, string>> | undefined,
+): WidgetTransitionBindingMerge {
+  const merged: Record<string, string> = Object.create(null) as Record<string, string>;
+  for (const [name, value] of Object.entries(serviceBindings ?? {})) {
+    merged[name] = value;
+  }
+
+  if (document.scope === 'app' && input && Object.isFrozen(input)) {
+    for (const [name, value] of Object.entries(input)) {
+      if (typeof value !== 'string' || value.length === 0) continue;
+      if (
+        Object.prototype.hasOwnProperty.call(merged, name)
+        && merged[name] !== value
+      ) {
+        return { status: 'conflict', bindingName: name };
+      }
+      merged[name] = value;
+    }
+  }
+
+  return Object.keys(merged).length === 0
+    ? { status: 'ready' }
+    : { status: 'ready', transitionBindings: Object.freeze(merged) };
 }
 
 /**
@@ -847,7 +894,7 @@ interface SurfaceWidgetSlotProps {
           ResponseActionInvocationResult<SurfaceWidgetActionDetail>,
           'transitionBindings'
         >,
-      ) => void)
+      ) => 'advanced' | 'refused' | void)
     | undefined;
   semanticOutputScope?: SurfaceSemanticOutputPublisherScope | undefined;
 }
@@ -1170,18 +1217,43 @@ function SurfaceWidgetSlot({
             });
             return { status: 'completed' as const };
           }
+          const bindingMerge = mergeAppWidgetTransitionBindings(
+            document,
+            inputAdmission.input,
+            result.transitionBindings,
+          );
+          if (bindingMerge.status === 'conflict') {
+            reportRefusal(
+              invocationId,
+              outputName,
+              'WIDGET-ACTION-TRANSITION-AMBIGUOUS',
+              `Completed widget action "${action.id}" supplies conflicting values for transition binding "${bindingMerge.bindingName}". Navigation was refused.`,
+              {
+                actionRef,
+                outputName,
+                bindingName: bindingMerge.bindingName,
+                sources: ['service-output', 'widget-input'],
+              },
+            );
+            return { status: 'failed' as const };
+          }
           if (navigatedInvocations.current.has(invocationId)) {
             return { status: 'completed' as const };
           }
           navigatedInvocations.current.add(invocationId);
+          const navigation = onAdvance?.(
+            transition,
+            bindingMerge.transitionBindings
+              ? { transitionBindings: bindingMerge.transitionBindings }
+              : undefined,
+          );
           onWidgetActionReport?.({
             invocationId,
             actionRef,
             outputName,
             result,
-            navigation: 'advanced',
+            navigation: navigation === 'advanced' ? 'advanced' : 'none',
           });
-          onAdvance?.(transition, result);
           return { status: 'completed' as const };
         })
         .catch(() => ({ status: 'failed' as const }));

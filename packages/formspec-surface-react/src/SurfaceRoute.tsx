@@ -58,7 +58,10 @@ import {
   type SurfaceSemanticControlScopeResolver,
 } from './SurfaceSlot.js';
 import { SurfaceTransitions } from './SurfaceTransitions.js';
-import type { SurfaceTransitionOutcome } from './SurfaceApp.js';
+import type {
+  FireTransition,
+  SurfaceTransitionOutcome,
+} from './SurfaceApp.js';
 import type {
   SurfaceWidget,
   SurfaceWidgetActionExecutor,
@@ -112,12 +115,7 @@ export interface SurfaceRouteViewProps {
   /** Manifested Ontology documents available to matching Definition forms. */
   ontologyDocuments?: readonly OntologyDocument[] | undefined;
   /** Runs a transition's action under Response Actions authority. */
-  onFireTransition?:
-    | ((
-        transition: PlannedTransition,
-        from: SurfaceRoutePlan<SurfaceWidget>['handle'],
-      ) => Promise<SurfaceTransitionOutcome>)
-    | undefined;
+  onFireTransition?: FireTransition | undefined;
   /**
    * Called when a transition has actually completed under Response Actions
    * authority — never on a click. The shell navigates; it does not decide that
@@ -127,7 +125,7 @@ export interface SurfaceRouteViewProps {
     | ((
         transition: PlannedTransition,
         outcome?: Pick<SurfaceTransitionOutcome, 'transitionBindings'>,
-      ) => void)
+      ) => 'advanced' | 'refused' | void)
     | undefined;
 }
 
@@ -274,7 +272,7 @@ export function SurfaceRouteView({
       </div>
 
       <SurfaceTransitions
-        from={handle}
+        from={{ ...handle, params: plan.params }}
         transitions={plan.transitions}
         strings={text}
         {...(onFireTransition ? { onFire: onFireTransition } : {})}

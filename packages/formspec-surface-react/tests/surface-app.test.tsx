@@ -175,6 +175,7 @@ describe("generated Response Actions engine seam", () => {
         {
           id: "submitApplication",
           intent: "submit",
+          label: { literal: "Submit application" },
           effects: [{ type: "hostEvent", eventName: "formspec-submit" }],
         },
       ],
@@ -1047,8 +1048,122 @@ describe("navigation", () => {
     });
 
     expect(onFireTransition).toHaveBeenCalledOnce();
+    expect(onFireTransition).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        routeId: "case",
+        params: { caseRef: "CASE-42" },
+      })
+    );
     expect(onNavigate).toHaveBeenCalledOnce();
     expect(onNavigate).toHaveBeenCalledWith("/receipt/CASE-42");
+  });
+
+  it("carries the current public form id from a completed Definition action into review", async () => {
+    const definitionUrl = "urn:test:public-response";
+    const action = {
+      id: "submitResponse",
+      intent: "submit",
+      label: { literal: "Review response" },
+    };
+    const parameterSurface = {
+      $formspecSurface: "0.2",
+      id: "public-form",
+      entry: "publicRespond",
+      routes: [
+        {
+          id: "publicRespond",
+          path: "/public/forms/{formId}/respond",
+          params: [{ name: "formId", type: "string" }],
+          routeClass: "intake",
+          slots: [
+            {
+              id: "response",
+              slotType: "definition-form",
+              binding: { definitionRef: definitionUrl },
+            },
+          ],
+          transitions: [
+            {
+              trigger: "submitResponse",
+              to: "publicReview",
+              params: { formId: "formId" },
+            },
+          ],
+        },
+        {
+          id: "publicReview",
+          path: "/public/forms/{formId}/review",
+          params: [{ name: "formId", type: "string" }],
+          routeClass: "intake",
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const parameterBundle: ResolvedBundle = {
+      ...bundle,
+      surfaces: [parameterSurface],
+      responseActions: [
+        {
+          $formspecResponseActions: "1.0",
+          version: "1.0.0",
+          targetDefinition: { url: definitionUrl },
+          actions: [action],
+        } as ResponseActionsDocument,
+      ],
+      definitions: new Map([
+        [
+          definitionUrl,
+          {
+            $formspec: "1.0",
+            url: definitionUrl,
+            version: "1.0.0",
+            title: "Public response",
+            items: [],
+          } as unknown as FormDefinition,
+        ],
+      ]),
+    };
+    const onNavigate = vi.fn();
+    const container = render(
+      <SurfaceApp
+        bundle={parameterBundle}
+        location="/public/forms/community-intake/respond"
+        onNavigate={onNavigate}
+        renderDefinitionForm={({ onActionCompleted }) => (
+          <button
+            data-probe="complete-definition"
+            onClick={() => onActionCompleted?.(
+              action,
+              {
+                status: "completed",
+                resolution: { resolved: true, action },
+                validationTuple: null,
+                detail: {
+                  response: {},
+                  validationReport: { valid: true },
+                },
+                effectTrace: [],
+              } as never
+            )}
+          >
+            Review
+          </button>
+        )}
+        setDocumentTitle={false}
+      />
+    );
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[data-probe="complete-definition"]')
+        ?.click();
+      await Promise.resolve();
+    });
+
+    expect(onNavigate).toHaveBeenCalledWith(
+      "/public/forms/community-intake/review"
+    );
   });
 
   it("uses only allowlisted completed-action bindings for authored transition parameters", async () => {

@@ -104,13 +104,23 @@ import { needTraceAttributes } from "./need-trace.js";
 export interface SurfaceTransitionOutcome {
   advanced: boolean;
   reason?: string;
-  /** Allowlisted string outputs from the completed Response Action. */
+  /**
+   * Allowlisted strings admitted for authored transition parameters.
+   * Response Action runtimes supply declared transition outputs. A completed
+   * app-scoped widget action may also supply its already-admitted top-level
+   * string input; that merge remains private to the navigation handoff.
+   */
   transitionBindings?: Readonly<Record<string, string>>;
 }
 
+/** Matched route identity plus the admitted values parsed from its address. */
+export type SurfaceTransitionSource = SurfaceRouteHandle & Readonly<{
+  params: Readonly<Record<string, string>>;
+}>;
+
 export type FireTransition = (
   transition: PlannedTransition,
-  from: SurfaceRouteHandle
+  from: SurfaceTransitionSource
 ) => Promise<SurfaceTransitionOutcome>;
 
 /**
@@ -154,8 +164,14 @@ export function navigateAfterCompletedAction(
   for (const [targetParam, bindingName] of Object.entries(
     transition.params ?? {}
   )) {
-    const value = transitionBindings?.[bindingName];
-    if (typeof value !== "string" || value.length === 0) return "refused";
+    const routeValue = routeParams[bindingName];
+    const actionValue = transitionBindings?.[bindingName];
+    const admitted = [routeValue, actionValue].filter(
+      (value): value is string => typeof value === "string" && value.length > 0
+    );
+    if (admitted.length === 0) return "refused";
+    const value = admitted[0]!;
+    if (admitted.some((candidate) => candidate !== value)) return "refused";
     nextParams[targetParam] = value;
   }
   const destination = routeHref(transition.target, nextParams);
@@ -631,7 +647,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
                 // Defensive final boundary. Planning withholds collision-targeted
                 // transition controls, and this check prevents a future or
                 // slot-supplied path from publishing the same refused address.
-                navigateAfterCompletedAction(
+                return navigateAfterCompletedAction(
                   transition,
                   routePlan.params,
                   outcome?.transitionBindings,
