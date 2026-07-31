@@ -34,6 +34,7 @@ server-side authorization policy behind that boundary.
 - App Manifest v2.1 introduces `dataSources[]` sibling references by URL/version; v2.0 manifests remain valid but cannot carry `dataSources[]`.
 - Each source declares a closed source family, owner, scope, availability selector, runtime delivery/cache/failure/provenance behavior, and coarse authorization boundary.
 - Route or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
+- A `definition-response` source delivers and validates the selected Response's `data` object, not the Form Response envelope; AppGraph checks direct top-level schema properties against the exact resolved Definition.
 - The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
 - Fine-grained actor, operation, route, widget, or field authorization stays fail-closed here by decision, not by deferral: runtime data-access authorization is server-side engine territory (ADR 0117, Zanzibar-lineage behind `AuthorizationPort`), and ADR 0152 (accepted) covers authoring-time write authority only.
 - ADR 0153 gate 5 "Closed" is the catalog contract. The availability validator (`fs-r2od`) and runtime loader (`fs-9d5e`) are now implemented; their durable source and test evidence lives in the linked tracker records.
@@ -187,6 +188,23 @@ A `definition-response` source with `runtime.delivery: "draft"` addresses the
 current-session draft. It remains valid without `definitionVersion` and MUST
 omit `responseSelection`; its `cache.mode` remains `draft`.
 
+The loaded source value for every `definition-response` delivery is the
+selected Form Response's `data` object. It is not the Form Response envelope.
+Response identity travels separately as the loader result's `recordId`; fields
+such as Response `id`, `definition`, `status`, and `authored` are not implicit
+properties of the delivered value. A source `schema`, when present, therefore
+describes `Response.data` directly.
+
+App-graph validation MUST resolve `definitionRef` exactly and compare every
+direct top-level `source.schema.properties` name with the resolved Definition's
+top-level data-producing item keys. Root fields and groups produce keys; root
+display items do not, and children of a group remain nested under the group's
+key even when the group is repeatable. A property with no matching Definition
+key is an error. A property named `status` or `data` remains valid when the
+Definition genuinely declares that root data key. Validators MUST report an
+indeterminate error for unsupported top-level schema compositions instead of
+guessing a flattened property set.
+
 ### 4.3 Owner and Scope
 
 `owner` declares who supplies the source:
@@ -297,6 +315,9 @@ A Data-Sources-Aware Processor MUST:
 9. Reject provenance kind drift.
 10. Reject route or slot availability without a Surface URL.
 11. Reject fine-grained authorization fields not declared by this schema.
+12. For a `definition-response` source schema, resolve `definitionRef` exactly
+    and reject top-level properties that are not top-level `Response.data` keys
+    in that Definition; fail closed when the schema shape cannot be compared.
 
 ### 10.1 Conformance Fixtures
 
@@ -391,7 +412,8 @@ order:
    `runtime.authorizationBoundary`;
 3. call `DataSourceLoader`; and
 4. when `source.schema` is present, validate the returned value with the host's
-   JSON Schema validator.
+   JSON Schema validator. For `definition-response`, that value is
+   `Response.data`, never the enclosing Form Response.
 
 A missing authorization port is a refusal. A declared payload schema with no
 validator is a validation failure. Exceptions at any stage are unavailable

@@ -353,6 +353,8 @@ The built-in vNext checks use these stable diagnostic families:
 | `DATA-SOURCE-CATALOG-REF` | error | A loaded Data Sources catalog is not manifested exactly once or its document `id` differs from that reference URL. |
 | `DATA-SOURCE-ID-COLLISION` | error | A catalog declares the same source id more than once. |
 | `DATA-SOURCE-AVAILABILITY-REF` | error | A Definition, Surface, qualified route, qualified slot, or module availability selector does not resolve. |
+| `DATA-SOURCE-DEFINITION-DATA-SCHEMA` | error | A `definition-response` source schema declares a direct top-level property that is not a root `Response.data` key in the exact resolved Definition. |
+| `DATA-SOURCE-DEFINITION-DATA-SCHEMA-INDETERMINATE` | error | AppGraph cannot safely compare a `definition-response` source schema with the resolved Definition because the schema composition or Definition item shape is unsupported. |
 | `APP-GRAPH-WIDGET-DATA-BINDING` | error | An optional widget data binding names an undeclared input, catalog, source, or unavailable source. |
 | `WIDGET-DATA-REQUIRED-UNAVAILABLE` | error | A required Registry input is unbound or its exact source descriptor is unavailable. |
 | `E612` | error | A Surface widget action binding names an output the resolved Registry widget does not declare or an `actionRef` that does not resolve to exactly one loaded Response Actions action. |

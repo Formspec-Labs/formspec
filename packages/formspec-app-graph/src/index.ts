@@ -76,6 +76,7 @@ export {
   validateExecutableSchemaContracts,
 } from './executable-schema-contracts.js';
 export {
+  DATA_SOURCE_CONTRACT_CODES,
   validateDataSources,
 } from './data-sources.js';
 export {

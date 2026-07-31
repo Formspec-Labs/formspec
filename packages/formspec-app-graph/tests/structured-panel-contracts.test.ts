@@ -277,6 +277,39 @@ describe('validateStructuredPanelContracts', () => {
     expect(report[4]?.details?.reason).toBe('data-input-unbound');
   });
 
+  it('rejects FormResponse-envelope paths after the source schema is corrected to Response.data', () => {
+    const report = validateStructuredPanelContracts(fixture({
+      blocks: [{
+        id: 'name',
+        type: 'metric',
+        path: 'primary.data.name',
+      }],
+    }, {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          name: { type: 'string' },
+        },
+      },
+    }));
+
+    expect(report).toMatchObject([{
+      code: STRUCTURED_PANEL_CONTRACT_CODES.dataPathImpossible,
+      primarySource: {
+        jsonPointer: '/routes/0/slots/0/binding/config/blocks/0/path',
+      },
+      relatedSources: [{
+        artifactSlot: 'dataSources',
+        jsonPointer: '/sources/0/schema',
+      }],
+      details: {
+        path: 'primary.data.name',
+        reason: 'bound-source-schema-excludes-path',
+      },
+    }]);
+  });
+
   it('accepts valid literal actions and leaves open schemas to runtime checks', () => {
     const report = validateStructuredPanelContracts(fixture({
       blocks: [{

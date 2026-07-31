@@ -11,6 +11,7 @@ Source schema: `schemas/data-sources.schema.json`
 - App Manifest v2.1 introduces `dataSources[]` sibling references by URL/version; v2.0 manifests remain valid but cannot carry `dataSources[]`.
 - Each source declares a closed source family, owner, scope, availability selector, runtime delivery/cache/failure/provenance behavior, and coarse authorization boundary.
 - Route or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
+- A `definition-response` source delivers and validates the selected Response's `data` object, not the Form Response envelope; AppGraph checks direct top-level schema properties against the exact resolved Definition.
 - The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
 - Fine-grained actor, operation, route, widget, or field authorization stays fail-closed here by decision, not by deferral: runtime data-access authorization is server-side engine territory (ADR 0117, Zanzibar-lineage behind `AuthorizationPort`), and ADR 0152 (accepted) covers authoring-time write authority only.
 - ADR 0153 gate 5 "Closed" is the catalog contract. The availability validator (`fs-r2od`) and runtime loader (`fs-9d5e`) are now implemented; their durable source and test evidence lives in the linked tracker records.
@@ -27,6 +28,7 @@ Source schema: `schemas/data-sources.schema.json`
 - App Manifest v2.1 introduces `dataSources[]` sibling references by URL/version; v2.0 manifests remain valid but cannot carry `dataSources[]`.
 - Each source declares a closed source family, owner, scope, availability selector, runtime delivery/cache/failure/provenance behavior, and coarse authorization boundary.
 - Surface, route, or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
+- A `definition-response` source delivers and validates the selected Response's `data` object, not the Form Response envelope; AppGraph checks direct top-level schema properties against the exact resolved Definition.
 - The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
 
 ## Conformance Essentials
@@ -35,4 +37,5 @@ Source schema: `schemas/data-sources.schema.json`
 - Source ids MUST be unique and their prefixes MUST match source kind.
 - Live delivery requires subscribe cache mode; draft delivery requires a Definition-response source with draft cache; cache mode none forbids staleAfter.
 - Provenance kind MUST match source kind, and surface, route, or slot availability without surfaceRef is invalid.
+- Definition-response source schemas describe `Response.data`; processors resolve `definitionRef` exactly, reject direct top-level schema properties that are not Definition root data keys, and fail closed for unsupported top-level schema compositions.
 - Fine-grained authorization fields remain rejected permanently, not pending a contract: runtime data-access authorization is ADR 0117 engine territory, and ADR 0152 declines the axis.
