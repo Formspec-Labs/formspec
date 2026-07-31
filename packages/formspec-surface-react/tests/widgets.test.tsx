@@ -71,6 +71,8 @@ describe('starter widget module', () => {
         registryEntryVersion: '0.1.0',
         renderedConfigNodes: [
           { pointerPattern: '', kind: 'queue-table' },
+          { pointerPattern: '/rowKey', kind: 'queue-table-row-key' },
+          { pointerPattern: '/rowHeaderKey', kind: 'queue-table-row-header' },
           { pointerPattern: '/columns/*', kind: 'queue-table-column' },
         ],
       },
@@ -762,6 +764,34 @@ describe('QueueTable', () => {
     const container = render(<QueueTable {...props({ data: { rows } })} />);
     expect([...container.querySelectorAll('thead th')].every((th) => th.getAttribute('scope') === 'col')).toBe(true);
     expect(container.querySelectorAll('tbody th[scope="row"]')).toHaveLength(2);
+  });
+
+  it('keeps stable row identity separate from a duplicate human-readable row header', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const container = render(
+      <QueueTable
+        {...props({
+          config: {
+            columns: [
+              { key: 'name', label: 'Name' },
+              { key: 'version', label: 'Version' },
+            ],
+            rowHeaderKey: 'name',
+            rowKey: 'id',
+          },
+          data: {
+            rows: [
+              { id: 'one', name: 'Shared name', version: 1 },
+              { id: 'two', name: 'Shared name', version: 2 },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(2);
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it('makes the scroll container reachable and named for keyboard users', () => {

@@ -36,6 +36,8 @@ export type QueueRow = Readonly<Record<string, unknown>>;
 export interface QueueTableConfig {
   columns?: readonly QueueColumn[];
   caption?: string;
+  /** Stable row identity. This may differ from the human-readable row header. */
+  rowKey?: string;
   /** Which column identifies the row. Defaults to the first column. */
   rowHeaderKey?: string;
   /** Sentence shown when there are no rows. */
@@ -96,6 +98,7 @@ export function QueueTable({ config, data, headingLevel, slot }: SurfaceWidgetPr
       : 'Nothing is waiting. When applications arrive, they appear here.';
   const rowHeaderKey =
     typeof config.rowHeaderKey === 'string' ? config.rowHeaderKey : columns[0]?.key;
+  const rowKey = typeof config.rowKey === 'string' ? config.rowKey : undefined;
 
   return (
     <div className="fs-surface-queue" data-widget="queue-table" data-row-count={rows.length}>
@@ -129,7 +132,12 @@ export function QueueTable({ config, data, headingLevel, slot }: SurfaceWidgetPr
             </thead>
             <tbody>
               {rows.map((row, index) => (
-                <tr key={cellText(rowHeaderKey ? row[rowHeaderKey] : undefined) || `row-${index}`}>
+                <tr
+                  key={
+                    (rowKey ? cellText(row[rowKey]) : '') ||
+                    `row-${index}:${cellText(rowHeaderKey ? row[rowHeaderKey] : undefined)}`
+                  }
+                >
                   {columns.map((column) =>
                     column.key === rowHeaderKey ? (
                       <th key={column.key} scope="row">

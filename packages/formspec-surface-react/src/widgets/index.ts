@@ -97,6 +97,8 @@ export const STRUCTURED_PANEL_RENDERED_CONFIG_NODES = [
 
 export const QUEUE_TABLE_RENDERED_CONFIG_NODES = [
   { pointerPattern: '', kind: 'queue-table' },
+  { pointerPattern: '/rowKey', kind: 'queue-table-row-key' },
+  { pointerPattern: '/rowHeaderKey', kind: 'queue-table-row-header' },
   { pointerPattern: '/columns/*', kind: 'queue-table-column' },
 ] as const;
 
