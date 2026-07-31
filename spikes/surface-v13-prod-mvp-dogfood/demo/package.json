@@ -1,0 +1,34 @@
+{
+  "name": "formspec-v13-prod-mvp-demo-host",
+  "private": true,
+  "version": "0.13.0",
+  "description": "Fixed browser host for one data-only Formspec bundle export",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "check:generic-host": "node scripts/check-generic-host.mjs",
+    "test": "npm run check:generic-host && npm run typecheck"
+  },
+  "dependencies": {
+    "@formspec-org/engine": "file:../../../packages/formspec-engine",
+    "@formspec-org/layout": "file:../../../packages/formspec-layout",
+    "@formspec-org/surface": "file:../../../packages/formspec-surface",
+    "@formspec-org/surface-react": "file:../../../packages/formspec-surface-react",
+    "@formspec-org/types": "file:../../../packages/formspec-types",
+    "@preact/signals-core": "^1.8.0",
+    "ajv": "^8.18.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^5.6.0",
+    "vite": "^7.0.0"
+  }
+}

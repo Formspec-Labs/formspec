@@ -1,0 +1,46 @@
+/**
+ * Framework-only boot and error presentation.
+ *
+ * The rendered application uses the shipped Surface and Formspec styles.
+ * Product styling belongs in authored Theme data, not in this fixed host.
+ */
+
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.host-status {
+  width: min(36rem, calc(100% - 2rem));
+  margin: 15vh auto;
+  padding: 1rem;
+  border: 1px solid ButtonBorder;
+  border-radius: 0.5rem;
+}
+
+.host-status p,
+.host-status pre {
+  margin: 0.5rem 0 0;
+}
+
+.host-status pre {
+  overflow: auto;
+  color: GrayText;
+  font: inherit;
+  white-space: pre-wrap;
+}
+
+.host-status--error {
+  border-color: Mark;
+}
