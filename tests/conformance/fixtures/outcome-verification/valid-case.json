@@ -1,0 +1,76 @@
+{
+  "$formspecOutcomeVerificationCase": "0.1",
+  "id": "control-route-is-mounted",
+  "version": "0.1.0",
+  "need": {
+    "documentRef": "https://example.org/needs/control",
+    "documentDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "id": "view-schedule",
+    "revision": 1
+  },
+  "experience": {
+    "documentRef": "https://example.org/experience/control",
+    "documentDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "unitId": "view-schedule"
+  },
+  "app": {
+    "id": "https://example.org/apps/control",
+    "version": "1.0.0",
+    "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "procedure": [
+    {
+      "id": "open",
+      "kind": "open-route",
+      "surfaceRef": "https://example.org/surfaces/control",
+      "surfaceDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "routeId": "schedule"
+    },
+    {
+      "id": "after-open",
+      "kind": "checkpoint"
+    }
+  ],
+  "expectedObservations": [
+    {
+      "id": "schedule-is-mounted",
+      "kind": "app-graph",
+      "ruleRefs": [
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://example.org/surfaces/control",
+            "artifactDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "subjectKind": "surface-route",
+            "subjectRef": "schedule"
+          }
+        },
+        {
+          "kind": "artifact-declaration",
+          "subject": {
+            "artifactRef": "https://example.org/experience/control",
+            "artifactDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "subjectKind": "experience-unit",
+            "subjectRef": "view-schedule"
+          }
+        },
+        {
+          "kind": "specification-rule",
+          "specRef": "https://formspec.org/specs/app-graph-validator",
+          "specVersion": "1.0.0-draft.1",
+          "ruleId": "rendered-node.direct-need-trace"
+        }
+      ],
+      "checkpointRef": "after-open",
+      "requiredEvidence": "structural",
+      "subject": {
+        "artifactRef": "https://example.org/surfaces/control",
+        "artifactDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "subjectKind": "surface-route",
+        "subjectRef": "schedule"
+      },
+      "relation": "mounted",
+      "state": "present"
+    }
+  ]
+}

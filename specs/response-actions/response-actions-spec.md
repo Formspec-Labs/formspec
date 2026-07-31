@@ -339,6 +339,12 @@ Invocation follows this order:
 5. `effects-running`: invoke effects in declared order.
 6. Terminal: `completed`, `failed`, `deferred`, or `blocked`.
 
+**Normative rule `invocation.blocking-gate`.** When the resolved tuple uses
+`blocking: block-on-error` and the current ValidationReport has
+`valid: false`, the invocation MUST terminate as `blocked` with
+`cause: "validation"`. The processor MUST emit an explicit `not-invoked`
+outcome for every declared effect and MUST invoke none of them.
+
 The UI MUST NOT report success for `failed`, `deferred`, or `blocked`. On blocked validation, Response data remains preserved and status remains `in-progress`. Application actions never mutate Response state.
 
 ### 7.1 Runtime Invocation State Ownership

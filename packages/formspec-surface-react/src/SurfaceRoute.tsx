@@ -53,7 +53,9 @@ import type {
 import { Heading } from './heading.js';
 import {
   SurfaceSlotFrame,
+  type SurfaceDefinitionFormRenderInput,
   type SurfaceDefinitionFormRenderer,
+  type SurfaceSemanticControlScopeResolver,
 } from './SurfaceSlot.js';
 import { SurfaceTransitions } from './SurfaceTransitions.js';
 import type {
@@ -62,6 +64,9 @@ import type {
   SurfaceWidgetActionOutcomeStore,
   SurfaceWidgetActionReport,
 } from './widget-api.js';
+import type {
+  SurfaceSemanticOutputScopeResolver,
+} from './semantic-output.js';
 import type { WidgetActionCoordinator } from './widget-action-runtime.js';
 import { needTraceAttributes } from './need-trace.js';
 
@@ -82,6 +87,11 @@ export interface SurfaceRouteViewProps {
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
+  resolveSemanticControlScope?: SurfaceSemanticControlScopeResolver | undefined;
+  resolveSemanticOutputScope?: SurfaceSemanticOutputScopeResolver | undefined;
+  onDefinitionActionResult?:
+    | SurfaceDefinitionFormRenderInput['onDefinitionActionResult']
+    | undefined;
   showExperienceNeeds?: boolean | undefined;
   /**
    * Shows the theme-posture sentence on the page. **Default false** (§4.3.1):
@@ -125,6 +135,9 @@ export function SurfaceRouteView({
   onWidgetActionReport,
   onRuntimeDiagnosticsChange,
   renderDefinitionForm,
+  resolveSemanticControlScope,
+  resolveSemanticOutputScope,
+  onDefinitionActionResult,
   showExperienceNeeds,
   showThemeNotice = false,
   responseActionsDocuments,
@@ -157,6 +170,11 @@ export function SurfaceRouteView({
     routeClass: handle.route.routeClass,
     params,
   };
+  const semanticOutputScope = resolveSemanticOutputScope?.({
+    plan,
+    route,
+    runtimeGeneration,
+  });
 
   const titleLevel = resolveRouteTitleLevel(plan.headingBaseLevel);
   const titleText = handle.route.title ?? handle.routeId;
@@ -217,6 +235,9 @@ export function SurfaceRouteView({
             onWidgetActionReport={onWidgetActionReport}
             onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
             renderDefinitionForm={renderDefinitionForm}
+            resolveSemanticControlScope={resolveSemanticControlScope}
+            semanticOutputScope={semanticOutputScope}
+            onDefinitionActionResult={onDefinitionActionResult}
             onActionCompleted={(action) => {
               // The form's own submit ran under Response Actions authority and
               // reported success. THAT is what advances the route — not the

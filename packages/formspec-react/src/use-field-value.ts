@@ -15,7 +15,7 @@ export interface UseFieldValueResult {
  * Use this when you don't need label/error/required state.
  */
 export function useFieldValue(path: string): UseFieldValueResult {
-    const { engine } = useFormspecContext();
+    const { engine, advanceSemanticResponseRevision } = useFormspecContext();
 
     const vm = useMemo(() => {
         const fieldVM = engine.getFieldVM(path);
@@ -24,6 +24,13 @@ export function useFieldValue(path: string): UseFieldValueResult {
     }, [engine, path]);
 
     const value = useSignal(vm.value);
+    const setValue = useMemo(
+        () => (nextValue: any) => {
+            vm.setValue(nextValue);
+            advanceSemanticResponseRevision();
+        },
+        [advanceSemanticResponseRevision, vm],
+    );
 
-    return { value, setValue: vm.setValue };
+    return { value, setValue };
 }

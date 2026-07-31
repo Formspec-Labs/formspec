@@ -1,4 +1,6 @@
 /** @filedesc Narrow host form-runtime callback through App -> Route -> Slot. */
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { initFormspecEngine } from '@formspec-org/engine';
 import type {
@@ -8,9 +10,20 @@ import type {
   ResponseActionsDocument,
   SurfaceDocument,
 } from '@formspec-org/types';
-import type { ResolvedBundle } from '@formspec-org/surface';
+import {
+  createSurfaceSemanticOutputRegistry,
+  type ResolvedBundle,
+} from '@formspec-org/surface';
 import { SurfaceApp } from '../src/SurfaceApp.js';
-import type { SurfaceDefinitionFormRenderer } from '../src/SurfaceSlot.js';
+import {
+  createSurfaceSemanticOutputScopeResolver,
+} from '../src/semantic-output.js';
+import { createSurfaceSemanticControlScopeResolver } from '../src/SurfaceSlot.js';
+import type {
+  SurfaceDefinitionFormRenderer,
+  SurfaceSemanticControlScopeRequest,
+} from '../src/SurfaceSlot.js';
+import { createSemanticControlRegistry } from '@formspec-org/react';
 import { render } from './render.js';
 
 const DEFINITION_REF = 'https://example.test/definitions/application';
@@ -74,6 +87,71 @@ function fixture(): ResolvedBundle {
 }
 
 describe('renderDefinitionForm', () => {
+  it('publishes the default form slot only while its renderer is mounted', () => {
+    const registry = createSurfaceSemanticOutputRegistry();
+    const resolveSemanticOutputScope =
+      createSurfaceSemanticOutputScopeResolver({
+        registry,
+        surfaceArtifactFor: ({ route }) =>
+          route.surfaceRef
+            ? {
+                artifactRef: route.surfaceRef,
+                artifactDigest: `sha256:${'s'.repeat(64)}`,
+              }
+            : undefined,
+        renderInstanceIdFor: () => 'render:respondent:apply',
+      });
+    const target = {
+      renderInstanceId: 'render:respondent:apply',
+      node: {
+        artifactRef: SURFACE_REF,
+        artifactDigest: `sha256:${'s'.repeat(64)}`,
+        subjectKind: 'surface-node' as const,
+        subjectRef: 'apply/form',
+      },
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <SurfaceApp
+          bundle={fixture()}
+          location="/apply"
+          onNavigate={() => {}}
+          resolveSemanticOutputScope={resolveSemanticOutputScope}
+          setDocumentTitle={false}
+        />,
+      );
+    });
+    expect(registry.lookup(target)).toMatchObject({
+      status: 'resolved',
+      output: { rendered: true },
+    });
+
+    act(() => root.unmount());
+    expect(registry.lookup(target)).toMatchObject({ status: 'missing' });
+
+    const customContainer = document.createElement('div');
+    document.body.appendChild(customContainer);
+    const customRoot = createRoot(customContainer);
+    act(() => {
+      customRoot.render(
+        <SurfaceApp
+          bundle={fixture()}
+          location="/apply"
+          onNavigate={() => {}}
+          renderDefinitionForm={() => <div data-probe="custom-form" />}
+          resolveSemanticOutputScope={resolveSemanticOutputScope}
+          setDocumentTitle={false}
+        />,
+      );
+    });
+    expect(registry.lookup(target)).toMatchObject({ status: 'missing' });
+    act(() => customRoot.unmount());
+  });
+
   it('receives the resolved plan, route grant/context, and selected action document', () => {
     const renderer = vi.fn<SurfaceDefinitionFormRenderer>(
       ({ plan, grant, route, responseActionsDocument }) => (
@@ -116,6 +194,96 @@ describe('renderDefinitionForm', () => {
         actions: [{ id: 'submitApplication' }],
       },
     });
+  });
+
+  it('pairs one generic Surface form with a caller-supplied semantic-control scope', () => {
+    const bundle = fixture();
+    const definition = bundle.definitions.get(DEFINITION_REF);
+    const actions = bundle.responseActions[0];
+    if (!definition || !actions) throw new Error('semantic pairing fixture is incomplete');
+    const registry = createSemanticControlRegistry();
+    const pairedResolver = createSurfaceSemanticControlScopeResolver({
+      registry,
+      definitionArtifacts: new Map([[
+        definition,
+        {
+          artifactRef: DEFINITION_REF,
+          artifactDigest: `sha256:${'d'.repeat(64)}`,
+        },
+      ]]),
+      responseActionsArtifacts: new Map([[
+        actions,
+        {
+          artifactRef: 'https://example.test/actions/application',
+          artifactDigest: `sha256:${'a'.repeat(64)}`,
+        },
+      ]]),
+      renderInstanceIdFor: (request) =>
+        `render:${request.route.surfaceId}:${request.route.routeId}`,
+      responseBindingFor: () => ({
+        responseId: 'response-application-1',
+        responseRevision: 0,
+      }),
+    });
+    const resolveSemanticControlScope = vi.fn(
+      (request: SurfaceSemanticControlScopeRequest) => pairedResolver(request),
+    );
+    const renderer = vi.fn<SurfaceDefinitionFormRenderer>(
+      ({ semanticControlScope }) => (
+        <div
+          data-probe="semantic-form"
+          data-render-instance={semanticControlScope?.renderInstanceId}
+          data-response={semanticControlScope?.responseId}
+        />
+      ),
+    );
+
+    const container = render(
+      <SurfaceApp
+        bundle={bundle}
+        location="/apply"
+        onNavigate={() => {}}
+        renderDefinitionForm={renderer}
+        resolveSemanticControlScope={resolveSemanticControlScope}
+        setDocumentTitle={false}
+      />,
+    );
+
+    expect(container.querySelector('[data-probe="semantic-form"]')).toMatchObject({
+      dataset: {
+        renderInstance: 'render:respondent:apply',
+        response: 'response-application-1',
+      },
+    });
+    expect(resolveSemanticControlScope).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plan: expect.objectContaining({
+          definitionRef: DEFINITION_REF,
+          definition: expect.any(Object),
+        }),
+        route: expect.objectContaining({
+          surfaceId: 'respondent',
+          routeId: 'apply',
+        }),
+        responseActionsDocument: expect.objectContaining({
+          actions: [{ id: 'submitApplication', intent: 'submit' }],
+        }),
+        runtimeGeneration: expect.any(String),
+      }),
+    );
+    const request = resolveSemanticControlScope.mock.calls[0]?.[0];
+    if (!request) throw new Error('scope resolver request was not captured');
+    const unpairedResolver = createSurfaceSemanticControlScopeResolver({
+      registry,
+      definitionArtifacts: new Map(),
+      responseActionsArtifacts: new Map(),
+      renderInstanceIdFor: () => 'render-unpaired',
+      responseBindingFor: () => ({
+        responseId: 'response-unpaired',
+        responseRevision: 0,
+      }),
+    });
+    expect(unpairedResolver(request)).toBeUndefined();
   });
 
   it('renders manifested human References as Need-traced help without exposing agent or ontology data', () => {

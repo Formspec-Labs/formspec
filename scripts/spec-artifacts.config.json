@@ -765,6 +765,42 @@
         "A production implementation must refuse payload mutation, another signing domain, unknown or missing kid, raw-key or sidecar-key bypass, unsigned signer claims, wrong publisher or app, stale/conflicting release state, and failed host admission.",
         "The historical v10 spike signatures are not production conformance vectors because they use the spike domain, sidecar public keys, and unsigned signer claims."
       ]
+    },
+    {
+      "spec": "specs/observability/outcome-verification-spec.md",
+      "schema": "schemas/outcome-verification-case.schema.json",
+      "behaviorEssentials": [
+        "An Outcome Verification Case pins one Need revision and one app version, then declares a data-only procedure and closed expected-observation set.",
+        "Cases describe tests but never grant execution authority; every run requires separate caller admission for an isolated preview or test target.",
+        "The generic runner uses only open-route, set-item, activate-control, and checkpoint steps through public semantic-control interfaces.",
+        "Every expectation cites digest-pinned owner declarations and stable versioned specification rules.",
+        "Version 0.1 admits exactly six observation kinds and no extension lane."
+      ],
+      "conformanceEssentials": [
+        "The case root, every step, every qualified reference, and every expectation payload are closed.",
+        "Every document-local identity includes its owner reference and digest.",
+        "Evidence classes follow the exact kind compatibility matrix.",
+        "The same generic runner must process product and unrelated-control fixtures without product-specific code.",
+        "Cases contain no scripts, DOM selectors, credentials, capabilities, or direct executor calls."
+      ]
+    },
+    {
+      "spec": "specs/observability/outcome-verification-spec.md",
+      "schema": "schemas/outcome-verification-report.schema.json",
+      "behaviorEssentials": [
+        "A report compares normalized owner-produced observations against one canonical case digest and exact source set.",
+        "The comparator is pure, receives time as input, and compares finite JSON through RFC 8785 canonicalization.",
+        "Missing, duplicated, unsupported, incomplete, or uncorrelated evidence is indeterminate; stale pins are stale.",
+        "Overall precedence is stale, failed, indeterminate, then passed.",
+        "Every report fixes its claim scope to declared observations and never asserts Need satisfaction."
+      ],
+      "conformanceEssentials": [
+        "NormalizedObservation and ComparatorRequest are closed definitions in the report schema; ComparatorRequest is not a third persisted document.",
+        "Non-structural observations bind one producing step and one later checkpoint.",
+        "Reports include exact source pins, bounded observation time, immutable step bindings, and one result per expectation.",
+        "Summary counts and overall conclusion are deterministic outputs of the comparator.",
+        "Credentials, capabilities, product-specific payload fields, and satisfied conclusions are rejected."
+      ]
     }
   ]
 }

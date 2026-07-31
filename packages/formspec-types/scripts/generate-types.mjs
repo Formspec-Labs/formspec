@@ -35,6 +35,7 @@ for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mappin
   'ontology', 'references', 'validation-mapping', 'experience', 'needs', 'changelog',
   'response-actions', 'response', 'intake-handoff', 'validation-report', 'validation-result',
   'fel-functions', 'screener', 'determination', 'surface', 'surface-scenario', 'data-sources',
+  'outcome-verification-case', 'outcome-verification-report',
   'app-graph-validation-report', 'module-resolution-report', 'ui-graph-policy',
   'component-graph-projection-context',
   'verification-receipt']) {
@@ -151,6 +152,8 @@ const SCHEMA_SOURCES = [
   { file: 'surface.schema.json', title: 'SurfaceDocument' },
   { file: 'surface-scenario.schema.json', title: 'SurfacePreviewScenario' },
   { file: 'data-sources.schema.json', title: 'DataSourcesDocument' },
+  { file: 'outcome-verification-case.schema.json', title: 'OutcomeVerificationCase' },
+  { file: 'outcome-verification-report.schema.json', title: 'OutcomeVerificationReport' },
   { file: 'artifact-resolution-report.schema.json', title: 'ArtifactResolutionReport' },
   { file: 'app-graph-validation-report.schema.json', title: 'AppGraphValidationReport' },
   { file: 'module-resolution-report.schema.json', title: 'ModuleResolutionReport' },

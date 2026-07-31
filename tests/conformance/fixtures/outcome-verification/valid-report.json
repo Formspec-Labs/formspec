@@ -1,0 +1,130 @@
+{
+  "$formspecOutcomeVerificationReport": "0.1",
+  "id": "urn:formspec:outcome-report:0000000000000000000000000000000000000000000000000000000000000000",
+  "generatedAt": "2026-07-31T12:00:01Z",
+  "caseRef": "control-route-is-mounted",
+  "caseDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "lintClearanceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "actionPlanSetDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+  "executionReceipt": {
+    "ref": "receipt://control-preview/run-1",
+    "evidenceDigest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+  },
+  "run": {
+    "runId": "control-preview/run-1",
+    "admissionContextDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "target": {
+      "class": "preview",
+      "ref": "preview://control",
+      "buildRef": "urn:formspec:build:control",
+      "buildDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "implementations": {
+        "host": {
+          "id": "example/host",
+          "version": "0.1.0",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "renderer": {
+          "id": "example/renderer",
+          "version": "0.1.0",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "runner": {
+          "id": "example/runner",
+          "version": "0.1.0",
+          "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "runtime": {
+          "id": "example/runtime",
+          "version": "0.1.0",
+          "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "verifier": {
+          "id": "@formspec-org/outcome-verification",
+          "version": "0.1.0",
+          "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+        },
+        "adapter": {
+          "id": "example/adapter",
+          "version": "0.1.0",
+          "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      },
+      "implementationSetDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "targetIdentityDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+    }
+  },
+  "inspectedSources": [
+    {
+      "artifactRef": "https://example.org/apps/control",
+      "artifactDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "artifactRef": "https://example.org/surfaces/control",
+      "artifactDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ],
+  "boundary": {
+    "startedAt": "2026-07-31T12:00:00Z",
+    "endedAt": "2026-07-31T12:00:01Z"
+  },
+  "bindings": [
+    {
+      "id": "binding/open",
+      "stepId": "open",
+      "kind": "open-route",
+      "surfaceRef": "https://example.org/surfaces/control",
+      "surfaceDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "routeId": "schedule",
+      "routeInstanceId": "route/control/1",
+      "renderInstanceId": "render/control/1"
+    },
+    {
+      "id": "binding/after-open",
+      "stepId": "after-open",
+      "kind": "checkpoint",
+      "boundary": {
+        "startedAt": "2026-07-31T12:00:00Z",
+        "endedAt": "2026-07-31T12:00:01Z"
+      },
+      "includedBindingRefs": ["binding/open"]
+    }
+  ],
+  "results": [
+    {
+      "expectationId": "schedule-is-mounted",
+      "conclusion": "passed",
+      "reasonCode": "MATCH",
+      "requiredEvidence": "structural",
+      "observedEvidence": "structural",
+      "observedSummary": {
+        "relation": "mounted",
+        "state": "present"
+      },
+      "sourceRefs": [
+        {
+          "artifactRef": "https://example.org/surfaces/control",
+          "artifactDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "evidenceRefs": ["memory://app-graph/control/run-1"],
+      "observationBoundary": {
+        "startedAt": "2026-07-31T12:00:00Z",
+        "endedAt": "2026-07-31T12:00:01Z"
+      }
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "indeterminate": 0,
+    "stale": 0
+  },
+  "conclusion": "passed",
+  "claimScope": {
+    "claim": "declared-observations",
+    "needSatisfaction": "not-asserted"
+  },
+  "diagnostics": []
+}

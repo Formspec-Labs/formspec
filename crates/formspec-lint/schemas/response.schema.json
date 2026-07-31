@@ -17,6 +17,12 @@
     "authoredSignatures": ["id"]
   },
   "$defs": {
+    "ResponseStatus": {
+      "type": "string",
+      "enum": ["in-progress", "completed", "amended", "stopped"],
+      "description": "The current lifecycle status of a Response. A completed Response has no error-severity validation results; saving data remains allowed in every status.",
+      "examples": ["in-progress", "completed", "amended", "stopped"]
+    },
     "ResponseMetadataPathKey": {
       "type": "string",
       "description": "Definition item path used as a Response metadata map key. Supports dot notation, repeat wildcards, or JSON Pointer form whose first segment is a Definition item key and whose remaining segments are Definition item keys, numeric indices, or repeat wildcards; empty strings and free-form labels are not valid item paths.",
@@ -472,8 +478,7 @@
       }
     },
     "status": {
-      "type": "string",
-      "enum": ["in-progress", "completed", "amended", "stopped"],
+      "$ref": "#/$defs/ResponseStatus",
       "description": "The current lifecycle status of this Response. 'in-progress': actively being edited, MAY contain validation errors. 'completed': all error-severity validation results resolved, form submitted — a Response with one or more error-severity results MUST NOT be marked completed. 'amended': previously completed, reopened for modification. 'stopped': abandoned before completion, data preserved for audit. Saving data MUST never be blocked by validation status (VE-05) — only the transition to 'completed' requires zero error-level results.",
       "examples": ["in-progress", "completed", "amended", "stopped"],
       "x-lm": {

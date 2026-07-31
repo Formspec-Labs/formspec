@@ -13,6 +13,7 @@ export {
   useBrowserLocation,
   useSurfaceApp,
   type FireTransition,
+  type SurfaceCurrentRouteState,
   type SurfaceAppModel,
   type SurfaceAppProps,
   type SurfaceNavProps,
@@ -21,14 +22,26 @@ export {
 
 export { SurfaceRouteView, type SurfaceRouteViewProps } from './SurfaceRoute.js';
 export {
+  createSurfaceSemanticOutputScopeResolver,
+  surfaceSemanticOutputSubjectRef,
+  useSurfaceSemanticOutputs,
+  type SurfaceSemanticOutputPairing,
+  type SurfaceSemanticOutputScopeRequest,
+  type SurfaceSemanticOutputScopeResolver,
+} from './semantic-output.js';
+export {
   SurfaceSlot,
   SurfaceSlotFrame,
   completedWidgetAction,
+  createSurfaceSemanticControlScopeResolver,
   renderDefaultDefinitionForm,
   rendersOwnHeading,
   type ResolvedDefinitionFormPlan,
   type SurfaceDefinitionFormRenderer,
   type SurfaceDefinitionFormRenderInput,
+  type SurfaceSemanticControlScopeRequest,
+  type SurfaceSemanticControlScopeResolver,
+  type SurfaceSemanticControlPairing,
   type SurfaceSlotProps,
 } from './SurfaceSlot.js';
 export { SurfaceTransitions, type SurfaceTransitionsProps } from './SurfaceTransitions.js';

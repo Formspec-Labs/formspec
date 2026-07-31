@@ -492,7 +492,7 @@ The canonical structural contract for Response properties is generated from
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Implementor-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions and MUST preserve them during round-tripping. Extensions MUST NOT alter core semantics (validation, calculation, relevance, required state). |
 | `#/properties/id` | `id` | <code>string</code> | no | — | A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId. |
 | `#/properties/metadata` | `metadata` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseMetadata</code> | Optional response metadata envelope for per-field provenance, derivation traces, and disclosures shown. |
-| `#/properties/status` | `status` | <code>string</code> | yes | enum: <code>"in-progress"</code>, <code>"completed"</code>, <code>"amended"</code>, <code>"stopped"</code>; critical | The current lifecycle status of this Response. 'in-progress': actively being edited, MAY contain validation errors. 'completed': all error-severity validation results resolved, form submitted — a Response with one or more error-severity results MUST NOT be marked completed. 'amended': previously completed, reopened for modification. 'stopped': abandoned before completion, data preserved for audit. Saving data MUST never be blocked by validation status (VE-05) — only the transition to 'completed' requires zero error-level results. |
+| `#/properties/status` | `status` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseStatus</code>; critical | The current lifecycle status of this Response. 'in-progress': actively being edited, MAY contain validation errors. 'completed': all error-severity validation results resolved, form submitted — a Response with one or more error-severity results MUST NOT be marked completed. 'amended': previously completed, reopened for modification. 'stopped': abandoned before completion, data preserved for audit. Saving data MUST never be blocked by validation status (VE-05) — only the transition to 'completed' requires zero error-level results. |
 | `#/properties/subject` | `subject` | <code>object</code> | no | — | The entity this Response is about — the grant, patient, project, or other domain object the form data describes. Distinct from 'author' (who filled in the form). |
 | `#/properties/validationResults` | `validationResults` | <code>array</code> | no | — | The most recent set of ValidationResult entries for this Response. Includes results from all sources: bind constraints, validation shapes, required checks, type checks, and external validation. Only error-severity results block the transition to 'completed' status. Warning and info results are advisory. Non-relevant fields MUST NOT produce results. When persisted alongside the Response, this array represents a snapshot — it may be stale if the data has changed since the last validation run. |
 <!-- schema-ref:end -->
@@ -523,6 +523,12 @@ Response Actions invocation/effect traces belong to the Response Actions
 runtime. A draft store MAY persist an in-progress Response snapshot for a
 session, but draft persistence is not route state and MUST NOT be used as the
 only identity for the Response instance.
+
+**Normative rule `response.snapshot-status`.** A processor that reports a
+Response observation MUST identify the complete Response snapshot by its
+Response id and pinned Definition tuple and MUST report the `status` stored in
+that snapshot. It MUST NOT infer Response status from route position, visible
+success copy, an Action terminal state, or a receipt.
 
 A hidden or collapsed route-local Definition slot does not mutate the Response
 instance by itself. Runtime policy MAY reject draft creation or action
@@ -1497,6 +1503,12 @@ codes override the generic defaults.
 | `CONSTRAINT_PARSE_ERROR` | `constraint` | Bind `constraint` expression failed to parse. |
 | `SHAPE_FAILED` | `shape` | Shape's constraint returned `false`. |
 | `EXTERNAL_FAILED` | `external` | External validation source reported a failure. |
+
+**Normative rule `validation.constraint-result`.** When a Bind `constraint`
+evaluates to `false`, a conforming processor MUST emit an error-severity
+ValidationResult with `constraintKind: "constraint"` and code
+`CONSTRAINT_FAILED`. A processor MUST NOT report that Response snapshot as
+valid while this result remains current.
 
 > **Example.** A set of ValidationResult entries:
 >

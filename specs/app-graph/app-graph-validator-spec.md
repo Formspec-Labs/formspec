@@ -331,6 +331,16 @@ app-graph report.
 | Component Surface/route target resolution, duplicate route claims, route-bound control Definition context, fake `targetDefinition` rejection, and node identity disambiguation | Component Surface/route identity contract plus `AppGraphValidator` gates | `cross-artifact` | The shared kernel currently enforces loaded Component membership, Surface/route/slot target resolution, duplicate route claims, exact-only Surface version mismatch, ref-less Component handle rejection, evidence-limited fake `targetDefinition` rejection, URL-based `definition-form` route context for route-bound Components with bound controls, stable route-scoped nodePath segment availability (`nodeId`, then `bind`, then `id`), sibling segment ambiguity, and duplicate constructed graph-wide Component node identity keys. Studio/kernel graph-wide operations and provenance validation remain later gates. |
 | Component projection output and renderer fallback | Projection/runtime/renderer gates | not validator-owned | The validator may check future Component graph identity, but it must not render Components or choose fallback behavior. |
 
+#### Stable rendered-Need evidence rule
+
+**Normative rule `rendered-node.direct-need-trace`.** When the caller activates
+the strict rendered-Need trace profile, AppGraphValidator MUST credit a
+candidate output only when the loaded graph proves both relationships: the
+candidate carries a direct `need:<id>@<revision>` anchor to the current adopted
+Need, and the candidate is mounted through resolved graph relationships. The
+validator MUST keep this static result separate from runtime authorization,
+applicability, precondition, effect, and Need-satisfaction conclusions.
+
 ### 7.1 vNext Surface graph diagnostics
 
 The built-in vNext checks use these stable diagnostic families:

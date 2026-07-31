@@ -286,6 +286,20 @@ Bindings SHOULD expose the validated anchors as inert DOM review metadata on
 the element that renders the node. DOM metadata is evidence for inspection; it
 does not replace graph validation and MUST NOT grant authorization.
 
+**Normative rule `rendering.semantic-output`.** A renderer that exposes a
+portable semantic-output observation MAY publish only a node it actually
+rendered in its current commit. It MUST identify that node by its qualified
+owning document, digest, render-instance identity, and stable review identity.
+The Surface shell MUST assign each publisher the exact `routeId/slotId`
+subject prefix it owns. The publisher MUST reject every declaration outside
+that exact subject or its descendants.
+The observation has `rendered: true` and MAY report operability or semantic
+value only when the renderer produced that fact. Absence and ambiguous
+publishers produce no observation; a renderer MUST NOT infer `rendered: false`
+from configuration or missing output. An adapter MUST NOT derive the
+observation from product-specific DOM selectors, visible copy, or document
+position.
+
 ## 4. Slot Bindings
 
 ### Slot Binding Validity
@@ -467,6 +481,12 @@ the active Surface route, resolved route params, and any host-local navigation
 history. That runtime route state MUST be keyed by Surface identity plus
 `routes[].id`; it MUST NOT be keyed only by Definition URL, Component handle, or
 renderer-local DOM state.
+
+**Normative rule `routing.current-route-state`.** A host/router observation of
+the current route MUST identify the exact Surface reference and digest,
+`routes[].id`, and committed render-instance identity. A click, configured
+transition, Response status, or rendered node cannot substitute for that
+authoritative current-route state.
 
 Surface route state is separate from session, Response, and Response Actions
 state. A Surface route may contain zero, one, or more `definition-form` slots,

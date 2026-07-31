@@ -64,7 +64,13 @@ export interface UseFieldResult {
  * For finer-grained subscriptions, use useFieldValue/useFieldError.
  */
 export function useField(path: string): UseFieldResult {
-    const { engine, touchField, touchedVersion, isTouched } = useFormspecContext();
+    const {
+        engine,
+        touchField,
+        touchedVersion,
+        isTouched,
+        advanceSemanticResponseRevision,
+    } = useFormspecContext();
 
     const vm = useMemo(() => {
         const fieldVM = engine.getFieldVM(path);
@@ -92,18 +98,25 @@ export function useField(path: string): UseFieldResult {
     const touched = isTouched(vm.instancePath);
 
     const touch = useMemo(() => () => touchField(vm.instancePath), [touchField, vm]);
+    const setValue = useMemo(
+        () => (nextValue: any) => {
+            vm.setValue(nextValue);
+            advanceSemanticResponseRevision();
+        },
+        [advanceSemanticResponseRevision, vm],
+    );
 
     const inputProps = useMemo(() => ({
         id: vm.id,
         name: vm.instancePath,
         value: value ?? '',
-        onChange: (e: { target: { value: any } }) => vm.setValue(e.target.value),
+        onChange: (e: { target: { value: any } }) => setValue(e.target.value),
         onBlur: () => touchField(vm.instancePath),
         required,
         readOnly: readonly,
         'aria-invalid': !!firstError,
         'aria-required': required,
-    }), [vm, value, required, readonly, firstError, touchField]);
+    }), [vm, value, required, readonly, firstError, touchField, setValue]);
 
     return {
         id: vm.id,
@@ -126,7 +139,7 @@ export function useField(path: string): UseFieldResult {
         options,
         optionsState,
         disabledDisplay: vm.disabledDisplay,
-        setValue: vm.setValue,
+        setValue,
         touch,
         inputProps,
     };

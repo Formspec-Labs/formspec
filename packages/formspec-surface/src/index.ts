@@ -166,6 +166,36 @@ export {
 } from './data-source-loader.js';
 
 export {
+  createPreviewDefinitionResponseStore,
+  type DefinitionResponseRecordRefusalReason,
+  type DefinitionResponseRecordResult,
+  type DefinitionResponseSourceBinding,
+  type PreviewDefinitionResponseStore,
+  type RecordDefinitionResponseInput,
+} from './definition-response-store.js';
+
+export {
+  createSurfaceSemanticOutputRegistry,
+  type AmbiguousSurfaceSemanticOutput,
+  type MissingSurfaceSemanticOutput,
+  type QualifiedSurfaceSemanticOutputRef,
+  type ResolvedSurfaceSemanticOutput,
+  type SurfaceSemanticOutputArtifactIdentity,
+  type SurfaceSemanticOutputDeclaration,
+  type SurfaceSemanticOutputLookup,
+  type SurfaceSemanticOutputMount,
+  type SurfaceSemanticOutputMountScopeIdentity,
+  type SurfaceSemanticOutputObservation,
+  type SurfaceSemanticOutputPublisherScope,
+  type SurfaceSemanticOutputRegistry,
+  type SurfaceSemanticOutputScope,
+  type SurfaceSemanticOutputScopeIdentity,
+  type SurfaceSemanticOutputSnapshotEntry,
+  type SurfaceSemanticOutputTarget,
+  type SurfaceSemanticValue,
+} from './semantic-output.js';
+
+export {
   planTransitions,
   responseActionsDocumentForDefinition,
   slotSuppliedTriggers,

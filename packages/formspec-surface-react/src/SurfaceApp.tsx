@@ -48,7 +48,7 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from 'react';
+} from "react";
 import {
   composeSurfaceApp,
   createThemeAuthority,
@@ -78,27 +78,32 @@ import {
   type ThemeAuthority,
   type TransitionConditionEvaluator,
   type WidgetRegistry,
-} from '@formspec-org/surface';
-import type { RegistryEntry } from '@formspec-org/types';
-import { SurfaceRouteView } from './SurfaceRoute.js';
+} from "@formspec-org/surface";
+import type { RegistryEntry } from "@formspec-org/types";
+import { SurfaceRouteView } from "./SurfaceRoute.js";
 import type {
   SurfaceWidget,
   SurfaceWidgetActionExecutor,
   SurfaceWidgetActionOutcomeStore,
   SurfaceWidgetActionReport,
   SurfaceWidgetModule,
-} from './widget-api.js';
-import type { SurfaceDefinitionFormRenderer } from './SurfaceSlot.js';
-import { createWidgetActionCoordinator } from './widget-action-runtime.js';
+} from "./widget-api.js";
+import type {
+  SurfaceDefinitionFormRenderInput,
+  SurfaceDefinitionFormRenderer,
+  SurfaceSemanticControlScopeResolver,
+} from "./SurfaceSlot.js";
+import type { SurfaceSemanticOutputScopeResolver } from "./semantic-output.js";
+import { createWidgetActionCoordinator } from "./widget-action-runtime.js";
 import {
   diagnosticListsEqual,
   useDiagnosticDelivery,
-} from './diagnostic-delivery.js';
-import { needTraceAttributes } from './need-trace.js';
+} from "./diagnostic-delivery.js";
+import { needTraceAttributes } from "./need-trace.js";
 
 export type FireTransition = (
   transition: PlannedTransition,
-  from: SurfaceRouteHandle,
+  from: SurfaceRouteHandle
 ) => Promise<{ advanced: boolean; reason?: string }>;
 
 /**
@@ -111,22 +116,35 @@ export type FireTransition = (
 export function navigateAfterCompletedAction(
   transition: PlannedTransition,
   routeParams: Readonly<Record<string, string>>,
-  onNavigate: (href: string) => void,
-): 'advanced' | 'refused' {
-  if (!transition.target) return 'refused';
+  onNavigate: (href: string) => void
+): "advanced" | "refused" {
+  if (!transition.target) return "refused";
   const destination = routeHref(transition.target, routeParams);
-  if (destination.refusal !== undefined) return 'refused';
+  if (destination.refusal !== undefined) return "refused";
   onNavigate(destination.href);
-  return 'advanced';
+  return "advanced";
 }
 
 export interface UseSurfaceAppInput {
   bundle: ResolvedBundle;
   widgetModules?: readonly SurfaceWidgetModule[] | undefined;
   /** Host-supplied navigation labels. See `composeSurfaceApp`. */
-  surfaceLabel?: SurfaceCompositionOptions['surfaceLabel'] | undefined;
+  surfaceLabel?: SurfaceCompositionOptions["surfaceLabel"] | undefined;
   /** Host-supplied token aliases. Not a platform rule — see `createThemeAuthority`. */
   tokenAliases?: Readonly<Record<string, readonly string[]>> | undefined;
+}
+
+/**
+ * Host/router-owned current route after a committed Surface render.
+ * The Surface object identity lets an evidence adapter pair its caller-owned
+ * canonical digest without asking the renderer to compute or attest one.
+ */
+export interface SurfaceCurrentRouteState {
+  surface: SurfaceRouteHandle["surface"];
+  surfaceId: string;
+  surfaceRef?: string | undefined;
+  routeId: string;
+  routeInstanceId: string;
 }
 
 export interface SurfaceAppModel {
@@ -195,9 +213,26 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
   widgetActionOutcomeStore?: SurfaceWidgetActionOutcomeStore | undefined;
   /** Opaque host generation marker; changing it invalidates late navigation. */
   sessionGeneration?: string | number | undefined;
-  onWidgetActionReport?: ((report: SurfaceWidgetActionReport) => void) | undefined;
+  onWidgetActionReport?:
+    | ((report: SurfaceWidgetActionReport) => void)
+    | undefined;
   /** Host form runtime seam; the current `FormspecForm` remains the default. */
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
+  /**
+   * Caller-paired canonical artifact and Response identity for semantic
+   * controls. Omission leaves ordinary rendering unchanged and publishes no
+   * executable semantic-control lookup.
+   */
+  resolveSemanticControlScope?: SurfaceSemanticControlScopeResolver | undefined;
+  /**
+   * Caller-paired canonical Surface identity for renderer-produced output.
+   * Omission publishes no semantic-output evidence.
+   */
+  resolveSemanticOutputScope?: SurfaceSemanticOutputScopeResolver | undefined;
+  /** Receives every terminal from the default mounted Definition renderer. */
+  onDefinitionActionResult?:
+    | SurfaceDefinitionFormRenderInput["onDefinitionActionResult"]
+    | undefined;
   /**
    * Admits or refuses each authored static image source before rendering.
    * Without this host resolver, image slots remain unavailable.
@@ -249,7 +284,16 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
    * change. Equivalent object identities and callback replacement do not
    * replay the list.
    */
-  onDiagnostics?: ((diagnostics: readonly SurfaceDiagnostic[]) => void) | undefined;
+  onDiagnostics?:
+    | ((diagnostics: readonly SurfaceDiagnostic[]) => void)
+    | undefined;
+  /**
+   * Receives authoritative current-route state after commit and `undefined`
+   * when no route is current or the committed route unmounts.
+   */
+  onCurrentRouteStateChange?:
+    | ((state: SurfaceCurrentRouteState | undefined) => void)
+    | undefined;
 }
 
 /**
@@ -257,17 +301,23 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
  * medium. Read, never removed: §4.5's no-scrubbing rule.
  */
 function documentRootFormspecProperties(): string[] {
-  if (typeof document === 'undefined') return [];
+  if (typeof document === "undefined") return [];
   const style = document.documentElement.style;
   const properties: string[] = [];
   for (let index = 0; index < style.length; index += 1) {
     const property = style[index];
-    if (property?.startsWith('--formspec-')) properties.push(property);
+    if (property?.startsWith("--formspec-")) properties.push(property);
   }
   return properties;
 }
 
-const DEFAULT_NAVIGATION_SCOPE = 'default';
+const DEFAULT_NAVIGATION_SCOPE = "default";
+let routeInstanceSequence = 0;
+
+function allocateRouteInstanceId(): string {
+  routeInstanceSequence += 1;
+  return `formspec-route-instance:${routeInstanceSequence}`;
+}
 
 function routeNavigationScope(handle: SurfaceRouteHandle): string {
   return handle.route.navigation?.scope ?? DEFAULT_NAVIGATION_SCOPE;
@@ -280,11 +330,17 @@ export function SurfaceApp(props: SurfaceAppProps) {
   const widgetActionCoordinator = useRef(createWidgetActionCoordinator());
 
   const strings: SurfaceStrings = useMemo(
-    () => (typeof props.strings === 'function' ? props.strings : resolveSurfaceStrings(props.strings)),
-    [props.strings],
+    () =>
+      typeof props.strings === "function"
+        ? props.strings
+        : resolveSurfaceStrings(props.strings),
+    [props.strings]
   );
 
-  const resolution = useMemo(() => matchRoute(model.app, location), [model.app, location]);
+  const resolution = useMemo(
+    () => matchRoute(model.app, location),
+    [model.app, location]
+  );
   const activeNavigationScope = resolution.match
     ? routeNavigationScope(resolution.match.handle)
     : DEFAULT_NAVIGATION_SCOPE;
@@ -293,16 +349,32 @@ export function SurfaceApp(props: SurfaceAppProps) {
     const params = Object.entries(props.routeParams ?? {})
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, value]) => `${key.length}:${key}${value.length}:${value}`)
-      .join('|');
+      .join("|");
     const parts = [
-      String(props.sessionGeneration ?? 'default'),
+      String(props.sessionGeneration ?? "default"),
       location,
-      resolution.match?.handle.surfaceId ?? '',
-      resolution.match?.handle.routeId ?? '',
+      resolution.match?.handle.surfaceId ?? "",
+      resolution.match?.handle.routeId ?? "",
       params,
     ];
-    return parts.map((part) => `${part.length}:${part}`).join('|');
+    return parts.map((part) => `${part.length}:${part}`).join("|");
   }, [location, props.routeParams, props.sessionGeneration, resolution.match]);
+
+  const routeInstance = useRef<
+    | {
+        generation: string;
+        id: string;
+      }
+    | undefined
+  >(undefined);
+  if (!resolution.match) {
+    routeInstance.current = undefined;
+  } else if (routeInstance.current?.generation !== runtimeGeneration) {
+    routeInstance.current = {
+      generation: runtimeGeneration,
+      id: allocateRouteInstanceId(),
+    };
+  }
 
   const routePlan: SurfaceRoutePlan<SurfaceWidget> | undefined = useMemo(() => {
     if (!resolution.match) return undefined;
@@ -344,7 +416,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
       new Map<
         string,
         { generation: string; diagnostics: readonly SurfaceDiagnostic[] }
-      >(),
+      >()
   );
   const onRuntimeDiagnosticsChange = useCallback(
     (scope: string, next: readonly SurfaceDiagnostic[]) => {
@@ -361,19 +433,22 @@ export function SurfaceApp(props: SurfaceAppProps) {
         if (next.length === 0) {
           updated.delete(scope);
         } else {
-          updated.set(scope, { generation: runtimeGeneration, diagnostics: next });
+          updated.set(scope, {
+            generation: runtimeGeneration,
+            diagnostics: next,
+          });
         }
         return updated;
       });
     },
-    [runtimeGeneration],
+    [runtimeGeneration]
   );
   const runtimeDiagnostics = useMemo(
     () =>
       [...runtimeDiagnosticsByScope.values()]
         .filter((entry) => entry.generation === runtimeGeneration)
         .flatMap((entry) => entry.diagnostics),
-    [runtimeDiagnosticsByScope, runtimeGeneration],
+    [runtimeDiagnosticsByScope, runtimeGeneration]
   );
 
   const navigationDiagnostics = useMemo(
@@ -382,26 +457,28 @@ export function SurfaceApp(props: SurfaceAppProps) {
         .filter(
           (handle) =>
             handle.route.navigation?.visible !== false &&
-            routeNavigationScope(handle) === activeNavigationScope,
+            routeNavigationScope(handle) === activeNavigationScope
         )
         .flatMap(
-          (handle) => routeHref(handle, props.routeParams ?? {}).diagnostics,
+          (handle) => routeHref(handle, props.routeParams ?? {}).diagnostics
         ),
-    [activeNavigationScope, model.app, props.routeParams],
+    [activeNavigationScope, model.app, props.routeParams]
   );
 
   // Read after the route's `useLayoutEffect` has emitted its own tokens, so a
   // property found here is one something ELSE wrote globally. `join` is the
   // dependency so a re-render with the same root state does not loop.
-  const [rootProperties, setRootProperties] = useState<string>('');
+  const [rootProperties, setRootProperties] = useState<string>("");
   useEffect(() => {
-    const observed = documentRootFormspecProperties().join(',');
-    setRootProperties((previous) => (previous === observed ? previous : observed));
+    const observed = documentRootFormspecProperties().join(",");
+    setRootProperties((previous) =>
+      previous === observed ? previous : observed
+    );
   });
 
   const diagnostics = useMemo(() => {
     const rootDiagnostic = documentRootContaminationDiagnostic(
-      rootProperties === '' ? [] : rootProperties.split(','),
+      rootProperties === "" ? [] : rootProperties.split(",")
     );
     return [
       ...model.diagnostics,
@@ -423,7 +500,26 @@ export function SurfaceApp(props: SurfaceAppProps) {
   useDiagnosticDelivery(diagnostics, onDiagnostics);
 
   useEffect(() => {
-    if (!setDocumentTitle || typeof document === 'undefined') return;
+    const deliver = props.onCurrentRouteStateChange;
+    if (!deliver) return;
+    if (!routePlan) {
+      deliver(undefined);
+      return;
+    }
+    deliver({
+      surface: routePlan.handle.surface,
+      surfaceId: routePlan.handle.surfaceId,
+      ...(routePlan.surfaceRef === undefined
+        ? {}
+        : { surfaceRef: routePlan.surfaceRef }),
+      routeId: routePlan.handle.routeId,
+      routeInstanceId: routeInstance.current!.id,
+    });
+    return () => deliver(undefined);
+  }, [props.onCurrentRouteStateChange, routePlan, runtimeGeneration]);
+
+  useEffect(() => {
+    if (!setDocumentTitle || typeof document === "undefined") return;
     if (!bundle.title) return;
     const previous = document.title;
     document.title = bundle.title;
@@ -457,8 +553,8 @@ export function SurfaceApp(props: SurfaceAppProps) {
           location={location}
           routeParams={props.routeParams}
           onNavigate={onNavigate}
-          label={props.navigationLabel ?? strings('navigationLabel')}
-          menuLabel={props.navigationLabel ?? strings('navigationLabel')}
+          label={props.navigationLabel ?? strings("navigationLabel")}
+          menuLabel={props.navigationLabel ?? strings("navigationLabel")}
         />
         <main className="fs-surface-main">
           {routePlan ? (
@@ -476,6 +572,9 @@ export function SurfaceApp(props: SurfaceAppProps) {
               onWidgetActionReport={props.onWidgetActionReport}
               onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
               renderDefinitionForm={props.renderDefinitionForm}
+              resolveSemanticControlScope={props.resolveSemanticControlScope}
+              resolveSemanticOutputScope={props.resolveSemanticOutputScope}
+              onDefinitionActionResult={props.onDefinitionActionResult}
               showExperienceNeeds={props.showExperienceNeeds}
               showThemeNotice={props.showThemeNotice}
               responseActionsDocuments={bundle.responseActions}
@@ -491,12 +590,12 @@ export function SurfaceApp(props: SurfaceAppProps) {
                 navigateAfterCompletedAction(
                   transition,
                   routePlan.params,
-                  onNavigate,
+                  onNavigate
                 );
               }}
             />
           ) : (
-            (props.renderNotFound?.(location) ?? <NotFound strings={strings} />)
+            props.renderNotFound?.(location) ?? <NotFound strings={strings} />
           )}
         </main>
       </div>
@@ -540,7 +639,7 @@ export function SurfaceNav({
         .filter(
           ({ handle }) =>
             handle.route.navigation?.visible !== false &&
-            routeNavigationScope(handle) === activeNavigationScope,
+            routeNavigationScope(handle) === activeNavigationScope
         )
         .sort((left, right) => {
           const leftOrder = left.handle.route.navigation?.order;
@@ -550,7 +649,10 @@ export function SurfaceNav({
           }
           if (leftOrder === undefined) return 1;
           if (rightOrder === undefined) return -1;
-          return leftOrder - rightOrder || left.declarationOrder - right.declarationOrder;
+          return (
+            leftOrder - rightOrder ||
+            left.declarationOrder - right.declarationOrder
+          );
         })
         .map(({ handle }) => handle),
     }))
@@ -569,16 +671,17 @@ export function SurfaceNav({
       ...group.routes.map((handle) =>
         mergeNeedAnchors(
           generationNeedAnchors(handle.route.navigation),
-          generationNeedAnchors(handle.route),
-        )),
-    ]),
+          generationNeedAnchors(handle.route)
+        )
+      ),
+    ])
   );
   return (
     <nav
       className="fs-surface-nav"
-      aria-label={label ?? 'Pages in this app'}
+      aria-label={label ?? "Pages in this app"}
       data-navigation-scope={activeNavigationScope}
-      data-menu-open={menuOpen ? 'true' : 'false'}
+      data-menu-open={menuOpen ? "true" : "false"}
     >
       <button
         className="fs-surface-nav__toggle"
@@ -587,8 +690,8 @@ export function SurfaceNav({
         onClick={() => setMenuOpen((open) => !open)}
         {...needTraceAttributes(navigationNeedAnchors)}
       >
-        <span>{menuLabel ?? label ?? 'Pages in this app'}</span>
-        <span aria-hidden="true">{menuOpen ? '×' : '☰'}</span>
+        <span>{menuLabel ?? label ?? "Pages in this app"}</span>
+        <span aria-hidden="true">{menuOpen ? "×" : "☰"}</span>
       </button>
       <div className="fs-surface-nav__content">
         {groups.map((group) => (
@@ -605,22 +708,26 @@ export function SurfaceNav({
               {group.routes.map((handle, index) => {
                 const { href, refusal } = routeHref(handle, routeParams ?? {});
                 const navigationLabel =
-                  handle.route.navigation?.label ?? handle.route.title ?? handle.routeId;
-                const navigationAnchors = generationNeedAnchors(handle.route.navigation);
+                  handle.route.navigation?.label ??
+                  handle.route.title ??
+                  handle.routeId;
+                const navigationAnchors = generationNeedAnchors(
+                  handle.route.navigation
+                );
                 const traceAttributes = needTraceAttributes(
                   handle.route.navigation?.label === undefined
                     ? mergeNeedAnchors(
-                      navigationAnchors,
-                      generationNeedAnchors(handle.route),
-                    )
-                    : navigationAnchors,
+                        navigationAnchors,
+                        generationNeedAnchors(handle.route)
+                      )
+                    : navigationAnchors
                 );
                 const unavailableReason =
-                  refusal === 'collision'
-                    ? 'route-collision'
-                    : refusal === 'parameters'
-                      ? 'route-params'
-                      : undefined;
+                  refusal === "collision"
+                    ? "route-collision"
+                    : refusal === "parameters"
+                    ? "route-params"
+                    : undefined;
                 return (
                   <li key={`${handle.surfaceId}/${handle.routeId}/${index}`}>
                     {unavailableReason ? (
@@ -637,7 +744,7 @@ export function SurfaceNav({
                       <a
                         href={href}
                         data-nav-route={handle.routeId}
-                        aria-current={href === location ? 'page' : undefined}
+                        aria-current={href === location ? "page" : undefined}
                         {...traceAttributes}
                         onClick={(event) => {
                           event.preventDefault();
@@ -662,8 +769,8 @@ export function SurfaceNav({
 function NotFound({ strings }: { strings: SurfaceStrings }) {
   return (
     <div className="fs-surface-notfound" data-probe="route-not-found">
-      <h1>{strings('notFoundTitle')}</h1>
-      <p>{strings('notFoundBody')}</p>
+      <h1>{strings("notFoundTitle")}</h1>
+      <p>{strings("notFoundBody")}</p>
     </div>
   );
 }
@@ -674,23 +781,28 @@ function NotFound({ strings }: { strings: SurfaceStrings }) {
  * Deliberately minimal — `pushState` + `popstate`. A host with a real router
  * passes its own `location`/`onNavigate` and never calls this.
  */
-export function useBrowserLocation(fallback = '/'): [string, (href: string) => void] {
+export function useBrowserLocation(
+  fallback = "/"
+): [string, (href: string) => void] {
   const read = useCallback(
-    () => (typeof window === 'undefined' ? fallback : window.location.pathname || fallback),
-    [fallback],
+    () =>
+      typeof window === "undefined"
+        ? fallback
+        : window.location.pathname || fallback,
+    [fallback]
   );
   const [location, setLocation] = useState<string>(read);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const onPop = () => setLocation(read());
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, [read]);
 
   const navigate = useCallback((href: string) => {
-    if (typeof window !== 'undefined') {
-      window.history.pushState({}, '', href);
+    if (typeof window !== "undefined") {
+      window.history.pushState({}, "", href);
       window.scrollTo(0, 0);
     }
     setLocation(href);

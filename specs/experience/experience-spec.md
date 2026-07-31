@@ -258,7 +258,11 @@ A **Unit** is the substantive payload of an Experience Document. Each Unit group
 | `accessibility` | object | OPTIONAL | Accessibility intent (S5.3). |
 | `extensions` | object | OPTIONAL | `x-`-prefixed extension data. |
 
-A Unit MAY also carry `needRefs` — landed in `schemas/experience.schema.json` (S11.3) but specified by the [Needs specification](../needs/needs-spec.md) S7, which owns its shape, its deliberate unpinnedness, its optional usable-outcome `completion` declaration, and its resolution against a caller-paired Needs Document.
+A Unit MAY also carry `needRefs`, defined by this specification and landed in
+`schemas/experience.schema.json` (S11.3). Experience owns the `NeedRef` shape,
+its deliberate unpinnedness, and its optional `completion` declaration. The
+[Needs specification](../needs/needs-spec.md) S7 owns resolution against a
+caller-paired Needs Document and the cited Need's lifecycle meaning.
 
 A Unit with zero `itemRefs`, zero `conceptRefs`, and zero `actionRefs` is permitted but contributes nothing to coverage (S8). Such units are intended for placeholder or planning purposes.
 
@@ -341,11 +345,16 @@ expected to provide for that cited Need. Its closed `shape` vocabulary is
 `action`, `submitted-definition`, `resource`, `navigation`, and
 `observable-result`.
 
+Experience owns this shape and its abstract meaning. The declaration states
+what kind of outcome the Unit intends to provide without describing a route,
+widget, host operation, or runtime test.
+
 The declaration records expected product outcome on the satisfying side. It
 does not name a Component, route, widget, or host operation, and it does not
 change Experience's presentation-neutral role. Direct Need anchors on rendered
-artifacts identify candidate outputs. The advisory matching semantics and
-diagnostics belong to the Needs specification S7.
+artifacts identify candidate outputs. AppGraphValidator owns static candidate
+matching and its diagnostics. The Needs specification owns Need resolution and
+the prohibition against computed Need satisfaction.
 
 ## 7. Applicability
 

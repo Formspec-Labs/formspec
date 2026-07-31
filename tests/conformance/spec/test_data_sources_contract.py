@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[3]
 FIXTURES_DIR = ROOT / "tests" / "conformance" / "fixtures" / "data-sources"
 DATA_SOURCES_SCHEMA = load_schema("data-sources.schema.json")
 COMMON_SCHEMA = load_schema("common.schema.json")
+RESPONSE_SCHEMA = load_schema("response.schema.json")
 
 PREFIX_BY_KIND = {
     "host-state": "host:",
@@ -29,7 +30,11 @@ PREFIX_BY_KIND = {
 def _validator() -> Draft202012Validator:
     return Draft202012Validator(
         DATA_SOURCES_SCHEMA,
-        registry=build_schema_registry(COMMON_SCHEMA, DATA_SOURCES_SCHEMA),
+        registry=build_schema_registry(
+            COMMON_SCHEMA,
+            DATA_SOURCES_SCHEMA,
+            RESPONSE_SCHEMA,
+        ),
         format_checker=Draft202012Validator.FORMAT_CHECKER,
     )
 

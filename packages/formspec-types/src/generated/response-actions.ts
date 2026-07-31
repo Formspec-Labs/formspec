@@ -145,6 +145,40 @@ export type EffectRequest =
  */
 export type IdempotencyKey = string;
 /**
+ * Complete Response Action invocation status vocabulary. unresolved means that Action resolution failed before invocation; the remaining values are terminal execution outcomes.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ActionInvocationStatus".
+ */
+export type ActionInvocationStatus = 'unresolved' | 'blocked' | 'failed' | 'deferred' | 'completed';
+/**
+ * Terminal outcome returned after a Response Action invocation begins.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ActionTerminalStatus".
+ */
+export type ActionTerminalStatus = 'blocked' | 'failed' | 'deferred' | 'completed';
+/**
+ * Outcome of one declared Action effect. not-invoked is an explicit owner-produced record, not an inference from a missing effect.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "EffectOutcomeStatus".
+ */
+export type EffectOutcomeStatus = 'succeeded' | 'failed' | 'deferred' | 'replayed' | 'not-invoked';
+/**
+ * Closed Response Actions effect-type vocabulary.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ActionEffectType".
+ */
+export type ActionEffectType =
+  | 'mappingExecution'
+  | 'ledgerAppend'
+  | 'handoffAssembly'
+  | 'evidenceRequest'
+  | 'hostEvent'
+  | 'browserResource';
+/**
  * Extension object whose keys must be prefixed with x-.
  */
 export interface Extensions {}

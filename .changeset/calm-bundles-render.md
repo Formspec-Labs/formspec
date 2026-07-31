@@ -1,5 +1,6 @@
 ---
 "@formspec-org/engine": minor
+"@formspec-org/outcome-verification": minor
 "@formspec-org/app-graph": minor
 "@formspec-org/layout": minor
 "@formspec-org/webcomponent": minor
@@ -15,4 +16,6 @@
 
 Add production signed-bundle admission, complete vNext AppGraph validation,
 platform-under-tenant Theme layering, target-aware Locale handling, and
-runtime Surface data, action, form, and widget integrations.
+runtime Surface data, action, form, and widget integrations. Add generic
+semantic controls, deterministic preview/test Definition Response delivery,
+and data-only outcome verification.

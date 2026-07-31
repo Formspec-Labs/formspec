@@ -1114,10 +1114,10 @@ derivation traces, and disclosures shown.</td>
 <tr>
 <td><code>#/properties/status</code></td>
 <td><code>status</code></td>
-<td><code>string</code></td>
+<td><code>$ref</code></td>
 <td>yes</td>
-<td>enum: <code>“in-progress”</code>, <code>“completed”</code>,
-<code>“amended”</code>, <code>“stopped”</code>; critical</td>
+<td><code>$ref</code>: <code>#/$defs/ResponseStatus</code>;
+critical</td>
 <td>The current lifecycle status of this Response. ‘in-progress’:
 actively being edited, MAY contain validation errors. ‘completed’: all
 error-severity validation results resolved, form submitted — a Response
@@ -1179,6 +1179,13 @@ invocation/effect traces belong to the Response Actions runtime. A draft
 store MAY persist an in-progress Response snapshot for a session, but
 draft persistence is not route state and MUST NOT be used as the only
 identity for the Response instance.</p>
+<p><strong>Normative rule
+<code>response.snapshot-status</code>.</strong> A processor that reports
+a Response observation MUST identify the complete Response snapshot by
+its Response id and pinned Definition tuple and MUST report the
+<code>status</code> stored in that snapshot. It MUST NOT infer Response
+status from route position, visible success copy, an Action terminal
+state, or a receipt.</p>
 <p>A hidden or collapsed route-local Definition slot does not mutate the
 Response instance by itself. Runtime policy MAY reject draft creation or
 action invocation for hidden state only when a production
@@ -2589,6 +2596,13 @@ Shape-level and external codes override the generic defaults.</p>
 </tr>
 </tbody>
 </table>
+<p><strong>Normative rule
+<code>validation.constraint-result</code>.</strong> When a Bind
+<code>constraint</code> evaluates to <code>false</code>, a conforming
+processor MUST emit an error-severity ValidationResult with
+<code>constraintKind: "constraint"</code> and code
+<code>CONSTRAINT_FAILED</code>. A processor MUST NOT report that
+Response snapshot as valid while this result remains current.</p>
 <blockquote>
 <p><strong>Example.</strong> A set of ValidationResult entries:</p>
 <div class="sourceCode" id="cb18"><pre

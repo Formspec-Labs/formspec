@@ -49,6 +49,7 @@ export { useFocusField } from './use-focus-field';
 export type { UseFocusFieldResult } from './use-focus-field';
 export { useRuntimeContext } from './use-runtime-context';
 export type { UseRuntimeContextResult, RuntimeContext } from './use-runtime-context';
+export { useSemanticFieldControl } from './use-semantic-field-control';
 
 // ── Component map types ──
 export type { FieldComponentProps, LayoutComponentProps, DisplayComponentProps, ComponentMap } from './component-map';
@@ -65,6 +66,25 @@ export {
     uiGraphRoutePolicyAttrs,
 } from './projection-metadata';
 export type { ProjectionMetadataAttrs } from './projection-metadata';
+export { createSemanticControlRegistry } from './semantic-controls';
+export type {
+    QualifiedSemanticSubjectRef,
+    SemanticActivateControlContext,
+    SemanticActivateControlResult,
+    SemanticActivateControlSuccess,
+    SemanticArtifactIdentity,
+    SemanticControlActivation,
+    SemanticControlRefusal,
+    SemanticControlRefusalReason,
+    SemanticControlRegistration,
+    SemanticControlRegistry,
+    SemanticControlScope,
+    SemanticControlTarget,
+    SemanticResponseBinding,
+    SemanticSetItemControlRegistration,
+    SemanticSetItemResult,
+    SemanticSetItemSuccess,
+} from './semantic-controls';
 
 // ── Screener ──
 export { FormspecScreener, useScreener } from './screener';

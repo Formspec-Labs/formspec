@@ -38,6 +38,11 @@ const CHANGELOG_SCHEMA: &str = include_str!("../schemas/changelog.schema.json");
 const REGISTRY_SCHEMA: &str = include_str!("../schemas/registry.schema.json");
 const VALIDATION_REPORT_SCHEMA: &str = include_str!("../schemas/validation-report.schema.json");
 const VALIDATION_RESULT_SCHEMA: &str = include_str!("../schemas/validation-result.schema.json");
+const DATA_SOURCES_SCHEMA: &str = include_str!("../schemas/data-sources.schema.json");
+const OUTCOME_VERIFICATION_CASE_SCHEMA: &str =
+    include_str!("../schemas/outcome-verification-case.schema.json");
+const OUTCOME_VERIFICATION_REPORT_SCHEMA: &str =
+    include_str!("../schemas/outcome-verification-report.schema.json");
 const VERIFICATION_RECEIPT_SCHEMA: &str =
     include_str!("../schemas/verification-receipt.schema.json");
 const SCREENER_SCHEMA: &str = include_str!("../schemas/screener.schema.json");
@@ -78,6 +83,15 @@ const CROSS_REF_SCHEMAS: &[(&str, &str)] = &[
         RESPONSE_ACTIONS_SCHEMA,
         "https://formspec.org/schemas/responseActions/1.0",
     ),
+    (RESPONSE_SCHEMA, "https://formspec.org/schemas/response/1.0"),
+    (
+        DATA_SOURCES_SCHEMA,
+        "https://formspec.org/schemas/dataSources/1.0",
+    ),
+    (
+        OUTCOME_VERIFICATION_CASE_SCHEMA,
+        "https://formspec.org/schemas/outcomeVerificationCase/0.1",
+    ),
     (
         EXPERIENCE_SCHEMA,
         "https://formspec.org/schemas/experience/1.0",
@@ -105,6 +119,9 @@ struct SchemaSet {
     registry: Validator,
     validation_report: Validator,
     validation_result: Validator,
+    data_sources: Validator,
+    outcome_verification_case: Validator,
+    outcome_verification_report: Validator,
     screener: Validator,
     determination: Validator,
 }
@@ -130,6 +147,9 @@ fn schema_set() -> &'static SchemaSet {
         registry: build_validator(REGISTRY_SCHEMA),
         validation_report: build_validator(VALIDATION_REPORT_SCHEMA),
         validation_result: build_validator(VALIDATION_RESULT_SCHEMA),
+        data_sources: build_validator(DATA_SOURCES_SCHEMA),
+        outcome_verification_case: build_validator(OUTCOME_VERIFICATION_CASE_SCHEMA),
+        outcome_verification_report: build_validator(OUTCOME_VERIFICATION_REPORT_SCHEMA),
         screener: build_validator(SCREENER_SCHEMA),
         determination: build_validator(DETERMINATION_SCHEMA),
     })
@@ -275,6 +295,9 @@ pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnosti
         DocumentType::Registry => &set.registry,
         DocumentType::ValidationReport => &set.validation_report,
         DocumentType::ValidationResult => &set.validation_result,
+        DocumentType::DataSources => &set.data_sources,
+        DocumentType::OutcomeVerificationCase => &set.outcome_verification_case,
+        DocumentType::OutcomeVerificationReport => &set.outcome_verification_report,
         DocumentType::Screener => &set.screener,
         DocumentType::Determination => &set.determination,
         DocumentType::FelFunctions => return Vec::new(),
@@ -409,6 +432,18 @@ mod tests {
         include_str!("../../../schemas/validation-mapping.schema.json");
     const CANONICAL_RESPONSE_ACTIONS_SCHEMA: &str =
         include_str!("../../../schemas/response-actions.schema.json");
+    const CANONICAL_DATA_SOURCES_SCHEMA: &str =
+        include_str!("../../../schemas/data-sources.schema.json");
+    const CANONICAL_OUTCOME_VERIFICATION_CASE_SCHEMA: &str =
+        include_str!("../../../schemas/outcome-verification-case.schema.json");
+    const CANONICAL_OUTCOME_VERIFICATION_REPORT_SCHEMA: &str =
+        include_str!("../../../schemas/outcome-verification-report.schema.json");
+    const VALID_DATA_SOURCES_FIXTURE: &str =
+        include_str!("../../../tests/conformance/fixtures/data-sources/valid-catalog.json");
+    const VALID_OUTCOME_VERIFICATION_CASE_FIXTURE: &str =
+        include_str!("../../../tests/conformance/fixtures/outcome-verification/valid-case.json");
+    const VALID_OUTCOME_VERIFICATION_REPORT_FIXTURE: &str =
+        include_str!("../../../tests/conformance/fixtures/outcome-verification/valid-report.json");
 
     fn assert_embedded_schema_matches_canonical(
         embedded_text: &str,
@@ -422,6 +457,41 @@ mod tests {
         assert_eq!(
             embedded, canonical,
             "formspec-lint embeds schemas/{schema_name}; update both together"
+        );
+    }
+
+    fn parse_fixture(text: &str) -> Value {
+        serde_json::from_str(text).expect("fixture must contain valid JSON")
+    }
+
+    fn source<'a>(doc: &'a Value, source_id: &str) -> &'a Value {
+        doc["sources"]
+            .as_array()
+            .expect("fixture sources must be an array")
+            .iter()
+            .find(|entry| entry["id"] == source_id)
+            .expect("fixture source must exist")
+    }
+
+    fn source_mut<'a>(doc: &'a mut Value, source_id: &str) -> &'a mut Value {
+        doc["sources"]
+            .as_array_mut()
+            .expect("fixture sources must be an array")
+            .iter_mut()
+            .find(|entry| entry["id"] == source_id)
+            .expect("fixture source must exist")
+    }
+
+    fn assert_e101(diags: &[LintDiagnostic], context: &str) {
+        assert!(
+            diags
+                .iter()
+                .any(|diagnostic| diagnostic.code == crate::LintCode::E101),
+            "{context} must produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|diagnostic| (&diagnostic.code, &diagnostic.path, &diagnostic.message))
+                .collect::<Vec<_>>()
         );
     }
 
@@ -551,6 +621,143 @@ mod tests {
             RESPONSE_ACTIONS_SCHEMA,
             CANONICAL_RESPONSE_ACTIONS_SCHEMA,
             "response-actions.schema.json",
+        );
+    }
+
+    #[test]
+    fn embedded_data_sources_schema_matches_canonical_schema() {
+        assert_embedded_schema_matches_canonical(
+            DATA_SOURCES_SCHEMA,
+            CANONICAL_DATA_SOURCES_SCHEMA,
+            "data-sources.schema.json",
+        );
+    }
+
+    #[test]
+    fn embedded_outcome_verification_schemas_match_canonical_schemas() {
+        assert_embedded_schema_matches_canonical(
+            OUTCOME_VERIFICATION_CASE_SCHEMA,
+            CANONICAL_OUTCOME_VERIFICATION_CASE_SCHEMA,
+            "outcome-verification-case.schema.json",
+        );
+        assert_embedded_schema_matches_canonical(
+            OUTCOME_VERIFICATION_REPORT_SCHEMA,
+            CANONICAL_OUTCOME_VERIFICATION_REPORT_SCHEMA,
+            "outcome-verification-report.schema.json",
+        );
+    }
+
+    #[test]
+    fn valid_outcome_verification_documents_produce_no_e101() {
+        let case = parse_fixture(VALID_OUTCOME_VERIFICATION_CASE_FIXTURE);
+        let report = parse_fixture(VALID_OUTCOME_VERIFICATION_REPORT_FIXTURE);
+
+        let case_diags = validate_schema(&case, DocumentType::OutcomeVerificationCase);
+        let report_diags = validate_schema(&report, DocumentType::OutcomeVerificationReport);
+
+        assert!(
+            case_diags.is_empty(),
+            "valid Outcome Verification Case must pass: {case_diags:?}"
+        );
+        assert!(
+            report_diags.is_empty(),
+            "valid Outcome Verification Report must pass: {report_diags:?}"
+        );
+    }
+
+    #[test]
+    fn invalid_outcome_verification_documents_produce_e101() {
+        let mut case = parse_fixture(VALID_OUTCOME_VERIFICATION_CASE_FIXTURE);
+        case["expectedObservations"][0]["kind"] = json!("resource-result");
+        let case_diags = validate_schema(&case, DocumentType::OutcomeVerificationCase);
+        assert_e101(&case_diags, "unknown Outcome Verification observation kind");
+
+        let mut report = parse_fixture(VALID_OUTCOME_VERIFICATION_REPORT_FIXTURE);
+        report["claimScope"]["needSatisfaction"] = json!("satisfied");
+        let report_diags = validate_schema(&report, DocumentType::OutcomeVerificationReport);
+        assert_e101(&report_diags, "Outcome report Need-satisfaction claim");
+    }
+
+    #[test]
+    fn valid_definition_response_selection_combinations_produce_no_e101() {
+        let snapshot = parse_fixture(VALID_DATA_SOURCES_FIXTURE);
+        let snapshot_diags = validate_schema(&snapshot, DocumentType::DataSources);
+        assert!(
+            snapshot_diags.is_empty(),
+            "valid snapshot and draft source combinations must pass: {snapshot_diags:?}"
+        );
+
+        let draft = source(&snapshot, "response:new-matter-draft");
+        assert!(draft.get("definitionVersion").is_none());
+        assert!(draft.get("responseSelection").is_none());
+
+        let mut live = snapshot;
+        let live_source = source_mut(&mut live, "response:latest-completed-matter");
+        live_source["runtime"]["delivery"] = json!("live");
+        live_source["runtime"]["cache"]["mode"] = json!("subscribe");
+        let live_diags = validate_schema(&live, DocumentType::DataSources);
+        assert!(
+            live_diags.is_empty(),
+            "valid live Definition-response source must pass: {live_diags:?}"
+        );
+    }
+
+    #[test]
+    fn non_draft_definition_response_requires_version_and_selection() {
+        for field in ["definitionVersion", "responseSelection"] {
+            let mut doc = parse_fixture(VALID_DATA_SOURCES_FIXTURE);
+            source_mut(&mut doc, "response:latest-completed-matter")
+                .as_object_mut()
+                .expect("fixture source must be an object")
+                .remove(field);
+
+            let diags = validate_schema(&doc, DocumentType::DataSources);
+            assert_e101(&diags, &format!("non-draft source without {field}"));
+        }
+    }
+
+    #[test]
+    fn definition_response_selection_values_and_shape_are_closed() {
+        for (field, invalid_value) in [
+            ("status", json!("amended")),
+            ("cardinality", json!("all")),
+            ("orderBy", json!("authored-asc")),
+            ("tieBreak", json!("response-id-desc")),
+            ("partitionBy", json!("catalog")),
+        ] {
+            let mut doc = parse_fixture(VALID_DATA_SOURCES_FIXTURE);
+            source_mut(&mut doc, "response:latest-completed-matter")["responseSelection"][field] =
+                invalid_value;
+
+            let diags = validate_schema(&doc, DocumentType::DataSources);
+            assert_e101(&diags, &format!("invalid selection field {field}"));
+        }
+
+        let mut doc = parse_fixture(VALID_DATA_SOURCES_FIXTURE);
+        source_mut(&mut doc, "response:latest-completed-matter")["responseSelection"]["limit"] =
+            json!(1);
+        let diags = validate_schema(&doc, DocumentType::DataSources);
+        assert_e101(&diags, "extra Definition-response selection field");
+    }
+
+    #[test]
+    fn draft_and_other_source_kinds_reject_response_selection() {
+        let mut draft_doc = parse_fixture(VALID_DATA_SOURCES_FIXTURE);
+        let selection =
+            source(&draft_doc, "response:latest-completed-matter")["responseSelection"].clone();
+        source_mut(&mut draft_doc, "response:new-matter-draft")["responseSelection"] =
+            selection.clone();
+        let draft_diags = validate_schema(&draft_doc, DocumentType::DataSources);
+        assert_e101(&draft_diags, "draft source with completed selection");
+
+        let mut other_doc = parse_fixture(VALID_DATA_SOURCES_FIXTURE);
+        let host = source_mut(&mut other_doc, "host:open-matters");
+        host["definitionVersion"] = json!("1.0.0");
+        host["responseSelection"] = selection;
+        let other_diags = validate_schema(&other_doc, DocumentType::DataSources);
+        assert_e101(
+            &other_diags,
+            "non-Definition-response source with response selection fields",
         );
     }
 

@@ -1,0 +1,1210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/outcomeVerificationReport/0.1",
+  "title": "Outcome Verification Report",
+  "description": "A generated, point-in-time comparison of normalized owner-produced observations against one digest-pinned Outcome Verification Case. A passing report covers only the case's declared observations and never asserts Need satisfaction.",
+  "type": "object",
+  "required": [
+    "$formspecOutcomeVerificationReport",
+    "id",
+    "generatedAt",
+    "caseRef",
+    "caseDigest",
+    "lintClearanceDigest",
+    "actionPlanSetDigest",
+    "executionReceipt",
+    "run",
+    "inspectedSources",
+    "boundary",
+    "bindings",
+    "results",
+    "summary",
+    "conclusion",
+    "claimScope",
+    "diagnostics"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$formspecOutcomeVerificationReport": {
+      "const": "0.1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^urn:formspec:outcome-report:[0-9a-f]{64}$",
+      "description": "Deterministic report identity derived from the canonical SHA-256 of targetIdentityDigest, runId, and caseDigest."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "caseRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseDigest": {
+      "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+    },
+    "lintClearanceDigest": {
+      "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest",
+      "description": "Digest of the schema-valid, cross-document lint clearance bound to this exact case and inspected source set."
+    },
+    "actionPlanSetDigest": {
+      "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest",
+      "description": "Canonical digest of the complete owner-produced Action plan set used by this run."
+    },
+    "executionReceipt": {
+      "$ref": "#/$defs/ExecutionReceiptRef"
+    },
+    "run": {
+      "$ref": "#/$defs/RunIdentity"
+    },
+    "inspectedSources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SourcePin"
+      }
+    },
+    "boundary": {
+      "$ref": "#/$defs/ObservationBoundary"
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/StepBinding"
+      }
+    },
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ExpectationResult"
+      }
+    },
+    "summary": {
+      "$ref": "#/$defs/ResultSummary"
+    },
+    "conclusion": {
+      "$ref": "#/$defs/Conclusion"
+    },
+    "claimScope": {
+      "$ref": "#/$defs/ClaimScope"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Diagnostic"
+      }
+    }
+  },
+  "$defs": {
+    "ImplementationIdentity": {
+      "type": "object",
+      "required": ["id", "version", "digest"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        }
+      }
+    },
+    "ExecutionReceiptRef": {
+      "type": "object",
+      "required": ["ref", "evidenceDigest"],
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        }
+      }
+    },
+    "ResolvedTargetIdentity": {
+      "type": "object",
+      "required": [
+        "class",
+        "ref",
+        "buildRef",
+        "buildDigest",
+        "implementations",
+        "implementationSetDigest",
+        "targetIdentityDigest"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": ["preview", "test"]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "buildRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "buildDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "implementations": {
+          "$ref": "#/$defs/ComparatorImplementations"
+        },
+        "implementationSetDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "targetIdentityDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        }
+      }
+    },
+    "RunIdentity": {
+      "type": "object",
+      "required": [
+        "runId",
+        "admissionContextDigest",
+        "target"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "admissionContextDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "target": {
+          "$ref": "#/$defs/ResolvedTargetIdentity"
+        }
+      }
+    },
+    "SourcePin": {
+      "type": "object",
+      "required": ["artifactRef", "artifactDigest"],
+      "additionalProperties": false,
+      "properties": {
+        "artifactRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "artifactDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        }
+      }
+    },
+    "ObservationBoundary": {
+      "type": "object",
+      "required": ["startedAt", "endedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "OpenRouteBinding": {
+      "type": "object",
+      "required": [
+        "id",
+        "stepId",
+        "kind",
+        "surfaceRef",
+        "surfaceDigest",
+        "routeId",
+        "routeInstanceId",
+        "renderInstanceId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stepId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "open-route"
+        },
+        "surfaceRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "surfaceDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "routeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "routeInstanceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "renderInstanceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataSourceRequestIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "Owner-produced Data Source request identities emitted while opening and rendering this route."
+        }
+      }
+    },
+    "SetItemBinding": {
+      "type": "object",
+      "required": [
+        "id",
+        "stepId",
+        "kind",
+        "routeInstanceId",
+        "renderInstanceId",
+        "control",
+        "definitionRef",
+        "definitionDigest",
+        "path",
+        "responseId",
+        "responseRevision"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stepId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "set-item"
+        },
+        "routeInstanceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "renderInstanceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/QualifiedSubjectRef"
+        },
+        "definitionRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "definitionDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseRevision": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ActivateControlBinding": {
+      "type": "object",
+      "required": [
+        "id",
+        "stepId",
+        "kind",
+        "routeInstanceId",
+        "renderInstanceId",
+        "control",
+        "actionsRef",
+        "actionsDigest",
+        "actionId",
+        "invocationId",
+        "responseId",
+        "responseRevision",
+        "effects"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stepId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "activate-control"
+        },
+        "routeInstanceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "renderInstanceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/QualifiedSubjectRef"
+        },
+        "actionsRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "actionsDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "invocationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/EffectTraceEntry"
+          }
+        }
+      }
+    },
+    "CheckpointBinding": {
+      "type": "object",
+      "required": ["id", "stepId", "kind", "boundary", "includedBindingRefs"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stepId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "checkpoint"
+        },
+        "boundary": {
+          "$ref": "#/$defs/ObservationBoundary"
+        },
+        "includedBindingRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "StepBinding": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/OpenRouteBinding"
+        },
+        {
+          "$ref": "#/$defs/SetItemBinding"
+        },
+        {
+          "$ref": "#/$defs/ActivateControlBinding"
+        },
+        {
+          "$ref": "#/$defs/CheckpointBinding"
+        }
+      ]
+    },
+    "AppGraphObservedPayload": {
+      "type": "object",
+      "required": ["subject", "relation", "state"],
+      "additionalProperties": false,
+      "properties": {
+        "subject": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/QualifiedSubjectRef"
+        },
+        "relation": {
+          "type": "string",
+          "enum": ["resolves", "mounted", "direct-need-trace"]
+        },
+        "state": {
+          "type": "string",
+          "enum": ["present", "absent"]
+        }
+      }
+    },
+    "ValidationIssueObserved": {
+      "type": "object",
+      "required": ["path", "code"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ValidationReportObservedPayload": {
+      "type": "object",
+      "required": [
+        "definitionRef",
+        "definitionDigest",
+        "responseId",
+        "responseRevision",
+        "valid",
+        "issues"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "definitionRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "definitionDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "responseId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Revision of the exact Response validated by this report."
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ValidationIssueObserved"
+          }
+        }
+      }
+    },
+    "ResponseObservedPayload": {
+      "type": "object",
+      "required": [
+        "definitionRef",
+        "definitionDigest",
+        "responseId",
+        "responseRevision",
+        "responseDigest",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "definitionRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "definitionDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "responseId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Revision of the exact complete Response snapshot observed."
+        },
+        "responseDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest",
+          "description": "Digest of the canonical complete Response snapshot supplying status and item evidence."
+        },
+        "status": {
+          "$ref": "https://formspec.org/schemas/response/1.0#/$defs/ResponseStatus"
+        },
+        "item": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/ResponseItemExpectation"
+        }
+      }
+    },
+    "ActionInvocationObservedPayload": {
+      "type": "object",
+      "required": [
+        "actionsRef",
+        "actionsDigest",
+        "actionId",
+        "terminal",
+        "effects",
+        "invocationId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "actionsRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "actionsDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "terminal": {
+          "$ref": "https://formspec.org/schemas/responseActions/1.0#/$defs/ActionTerminalStatus"
+        },
+        "effects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/EffectTraceEntry"
+          }
+        },
+        "invocationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "DataSourceResultObservedPayload": {
+      "type": "object",
+      "required": [
+        "catalogRef",
+        "catalogDigest",
+        "sourceId",
+        "state",
+        "requestId"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "loaded"
+              }
+            },
+            "required": ["state"]
+          },
+          "then": {
+            "required": ["freshness"]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": ["freshness"]
+                },
+                {
+                  "required": ["recordId"]
+                },
+                {
+                  "required": ["valueDigest"]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "properties": {
+        "catalogRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "catalogDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "$ref": "https://formspec.org/schemas/dataSources/1.0#/$defs/DataSourceLoadState"
+        },
+        "freshness": {
+          "$ref": "https://formspec.org/schemas/dataSources/1.0#/$defs/DataSourceFreshness"
+        },
+        "recordId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valueDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "RouteStateObservedPayload": {
+      "type": "object",
+      "required": [
+        "surfaceRef",
+        "surfaceDigest",
+        "routeId",
+        "routeInstanceId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "surfaceRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "surfaceDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "routeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "routeInstanceId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "RenderedOutputObservedPayload": {
+      "type": "object",
+      "required": ["node", "rendered", "renderInstanceId"],
+      "additionalProperties": false,
+      "properties": {
+        "node": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/QualifiedSubjectRef"
+        },
+        "rendered": {
+          "const": true
+        },
+        "operable": {
+          "type": "boolean"
+        },
+        "semanticValue": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/FiniteJson"
+        },
+        "renderInstanceId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "NormalizedObservationBase": {
+      "type": "object",
+      "required": [
+        "id",
+        "expectationId",
+        "kind",
+        "evidenceClass",
+        "source",
+        "boundary",
+        "checkpointBindingRef",
+        "adapter",
+        "payload"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string"
+        },
+        "evidenceClass": {
+          "type": "string",
+          "enum": ["structural", "simulated", "runtime"]
+        },
+        "source": {
+          "$ref": "#/$defs/SourcePin"
+        },
+        "boundary": {
+          "$ref": "#/$defs/ObservationBoundary"
+        },
+        "checkpointBindingRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stepBindingRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adapter": {
+          "$ref": "#/$defs/ImplementationIdentity"
+        },
+        "payload": {}
+      }
+    },
+    "NormalizedAppGraphObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NormalizedObservationBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "app-graph"
+            },
+            "evidenceClass": {
+              "const": "structural"
+            },
+            "payload": {
+              "$ref": "#/$defs/AppGraphObservedPayload"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "NormalizedValidationReportObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NormalizedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": ["stepBindingRef"],
+          "properties": {
+            "kind": {
+              "const": "validation-report"
+            },
+            "evidenceClass": {
+              "enum": ["simulated", "runtime"]
+            },
+            "payload": {
+              "$ref": "#/$defs/ValidationReportObservedPayload"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "NormalizedResponseObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NormalizedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": ["stepBindingRef"],
+          "properties": {
+            "kind": {
+              "const": "response"
+            },
+            "evidenceClass": {
+              "enum": ["simulated", "runtime"]
+            },
+            "payload": {
+              "$ref": "#/$defs/ResponseObservedPayload"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "NormalizedActionInvocationObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NormalizedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": ["stepBindingRef"],
+          "properties": {
+            "kind": {
+              "const": "action-invocation"
+            },
+            "evidenceClass": {
+              "enum": ["simulated", "runtime"]
+            },
+            "payload": {
+              "$ref": "#/$defs/ActionInvocationObservedPayload"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "NormalizedDataSourceResultObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NormalizedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": ["stepBindingRef"],
+          "properties": {
+            "kind": {
+              "const": "data-source-result"
+            },
+            "evidenceClass": {
+              "enum": ["simulated", "runtime"]
+            },
+            "payload": {
+              "$ref": "#/$defs/DataSourceResultObservedPayload"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "NormalizedRouteStateObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NormalizedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": ["stepBindingRef"],
+          "properties": {
+            "kind": {
+              "const": "route-state"
+            },
+            "evidenceClass": {
+              "enum": ["simulated", "runtime"]
+            },
+            "payload": {
+              "$ref": "#/$defs/RouteStateObservedPayload"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "NormalizedRenderedOutputObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NormalizedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": ["stepBindingRef"],
+          "properties": {
+            "kind": {
+              "const": "rendered-output"
+            },
+            "evidenceClass": {
+              "enum": ["simulated", "runtime"]
+            },
+            "payload": {
+              "$ref": "#/$defs/RenderedOutputObservedPayload"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "NormalizedObservation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/NormalizedAppGraphObservation"
+        },
+        {
+          "$ref": "#/$defs/NormalizedValidationReportObservation"
+        },
+        {
+          "$ref": "#/$defs/NormalizedResponseObservation"
+        },
+        {
+          "$ref": "#/$defs/NormalizedActionInvocationObservation"
+        },
+        {
+          "$ref": "#/$defs/NormalizedDataSourceResultObservation"
+        },
+        {
+          "$ref": "#/$defs/NormalizedRouteStateObservation"
+        },
+        {
+          "$ref": "#/$defs/NormalizedRenderedOutputObservation"
+        }
+      ]
+    },
+    "ComparatorImplementations": {
+      "type": "object",
+      "required": [
+        "host",
+        "renderer",
+        "runner",
+        "runtime",
+        "verifier",
+        "adapter"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "$ref": "#/$defs/ImplementationIdentity"
+        },
+        "renderer": {
+          "$ref": "#/$defs/ImplementationIdentity"
+        },
+        "runner": {
+          "$ref": "#/$defs/ImplementationIdentity"
+        },
+        "runtime": {
+          "$ref": "#/$defs/ImplementationIdentity"
+        },
+        "verifier": {
+          "$ref": "#/$defs/ImplementationIdentity"
+        },
+        "adapter": {
+          "$ref": "#/$defs/ImplementationIdentity"
+        }
+      }
+    },
+    "ComparatorRequest": {
+      "type": "object",
+      "required": [
+        "case",
+        "caseDigest",
+        "lintClearanceDigest",
+        "actionPlanSetDigest",
+        "pairedSources",
+        "generatedAt",
+        "run",
+        "bindings",
+        "boundary",
+        "observations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "case": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1"
+        },
+        "caseDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "lintClearanceDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "actionPlanSetDigest": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/Digest"
+        },
+        "pairedSources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/SourcePin"
+          }
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "run": {
+          "$ref": "#/$defs/RunIdentity"
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StepBinding"
+          }
+        },
+        "boundary": {
+          "$ref": "#/$defs/ObservationBoundary"
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NormalizedObservation"
+          }
+        }
+      }
+    },
+    "Conclusion": {
+      "type": "string",
+      "enum": ["passed", "failed", "indeterminate", "stale"]
+    },
+    "ReasonCode": {
+      "type": "string",
+      "enum": [
+        "MATCH",
+        "EXPECTED_VALUE_MISMATCH",
+        "EVIDENCE_CLASS_MISMATCH",
+        "MISSING_EVIDENCE",
+        "DUPLICATE_EVIDENCE",
+        "UNSUPPORTED_OBSERVATION_KIND",
+        "STALE_CASE",
+        "STALE_SOURCE",
+        "STALE_EVIDENCE",
+        "UNRESOLVED_RULE",
+        "UNBOUND_EVIDENCE",
+        "AMBIGUOUS_EVIDENCE"
+      ]
+    },
+    "ExpectationResult": {
+      "type": "object",
+      "required": [
+        "expectationId",
+        "conclusion",
+        "reasonCode",
+        "requiredEvidence",
+        "sourceRefs",
+        "evidenceRefs"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "expectationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conclusion": {
+          "$ref": "#/$defs/Conclusion"
+        },
+        "reasonCode": {
+          "$ref": "#/$defs/ReasonCode"
+        },
+        "requiredEvidence": {
+          "type": "string",
+          "enum": ["structural", "simulated", "runtime"]
+        },
+        "observedEvidence": {
+          "type": "string",
+          "enum": ["structural", "simulated", "runtime"]
+        },
+        "observedSummary": {
+          "$ref": "https://formspec.org/schemas/outcomeVerificationCase/0.1#/$defs/FiniteJson"
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourcePin"
+          }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "observationBoundary": {
+          "$ref": "#/$defs/ObservationBoundary"
+        },
+        "stepBindingRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "correlationRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "ResultSummary": {
+      "type": "object",
+      "required": ["total", "passed", "failed", "indeterminate", "stale"],
+      "additionalProperties": false,
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "indeterminate": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ClaimScope": {
+      "type": "object",
+      "required": ["claim", "needSatisfaction"],
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "const": "declared-observations"
+        },
+        "needSatisfaction": {
+          "const": "not-asserted"
+        }
+      }
+    },
+    "Diagnostic": {
+      "type": "object",
+      "required": ["code", "severity", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]*$"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["error", "warning", "info"]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectationId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

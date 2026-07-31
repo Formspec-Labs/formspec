@@ -55,6 +55,7 @@ In scope:
 - source family taxonomy,
 - source owner and scope metadata,
 - source-to-app, Definition, Surface, route, slot, or module availability,
+- deterministic non-draft Definition-response selection,
 - delivery, cache, staleness, failure-mode, and provenance declarations, and
 - a coarse authorization boundary that fails closed, leaving fine-grained runtime data access to the server-side engine (ADR 0117).
 
@@ -74,10 +75,10 @@ The core Definition spec already defines secondary instances. A Definition's top
 
 A Data Sources document does not create `@instance()` names by default. A processor MAY bridge a Data Source to a Definition instance only when a later app-graph validator or runtime loader explicitly defines that mapping. Until then, Definition-local `instances` and peer Data Sources are separate contracts:
 
-| Surface | Owns |
-|---|---|
-| Definition `instances` | form-local secondary data exposed to FEL `@instance()` |
-| Data Sources document | app-level source family, availability, cache, failure, provenance, and coarse authorization declarations |
+| Surface                | Owns                                                                                                     |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| Definition `instances` | form-local secondary data exposed to FEL `@instance()`                                                   |
+| Data Sources document  | app-level source family, availability, cache, failure, provenance, and coarse authorization declarations |
 
 This split preserves the simple-form path and prevents app-level source catalogs from silently changing Definition semantics.
 
@@ -115,24 +116,78 @@ A conforming Data Sources document MUST include `$formspecDataSources`, `id`, `v
 
 Every `sources[]` entry MUST have a unique `id`, a `kind`, an `owner`, a `scope`, an `availability` selector, and `runtime` behavior.
 
+<!-- schema-ref:start id=data-source-shape schema=schemas/data-sources.schema.json pointers=#/$defs/DataSource,#/$defs/ResponseSelection -->
+<!-- generated:schema-ref id=data-source-shape -->
+| Pointer | Field | Type | Required | Notes | Description |
+|---|---|---|---|---|---|
+| `#/$defs/DataSource/properties/availability` | `availability` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/Availability</code> | — |
+| `#/$defs/DataSource/properties/definitionRef` | `definitionRef` | <code>string</code> | no | — | Canonical Definition URL when this source family reads or exposes Definition-response state. |
+| `#/$defs/DataSource/properties/definitionVersion` | `definitionVersion` | <code>string</code> | no | — | Exact Definition version used to partition non-draft Definition-response selection. The pair (definitionRef, definitionVersion) is immutable selection identity. |
+| `#/$defs/DataSource/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/DataSource/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | — |
+| `#/$defs/DataSource/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^(host&#124;response&#124;resource&#124;query&#124;conversation&#124;route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*&#36;</code> | Stable source id unique within this document. Prefix MUST match kind: host, response, resource, query, conversation, or route. |
+| `#/$defs/DataSource/properties/kind` | `kind` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/DataSourceKind</code> | — |
+| `#/$defs/DataSource/properties/owner` | `owner` | <code>string</code> | yes | enum: <code>"host"</code>, <code>"formspec"</code>, <code>"module"</code> | Runtime owner responsible for supplying this source. This is ownership metadata, not authorization. |
+| `#/$defs/DataSource/properties/responseSelection` | `responseSelection` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseSelection</code> | Complete deterministic selection policy for a non-draft Definition-response source. |
+| `#/$defs/DataSource/properties/runtime` | `runtime` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/RuntimeBehavior</code> | — |
+| `#/$defs/DataSource/properties/schema` | `schema` | <code>object</code> | no | — | Optional JSON Schema fragment describing payload shape. This is a contract for hosts and validators, not inline source data. |
+| `#/$defs/DataSource/properties/scope` | `scope` | <code>string</code> | yes | enum: <code>"session"</code>, <code>"route"</code>, <code>"definition"</code>, <code>"resource"</code> | Lifetime or addressing scope for the source. |
+| `#/$defs/DataSource/properties/x-generation` | `x-generation` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Generation</code> | Direct generation provenance for this Data Source declaration. Strict data-only authoring profiles require this source's own current adopted Need anchor; catalog or consuming widget-binding anchors do not cover it. |
+| `#/$defs/ResponseSelection/properties/cardinality` | `cardinality` | <code>const</code> | yes | const: <code>"latest"</code> | Return exactly the latest matching Response when one exists. |
+| `#/$defs/ResponseSelection/properties/orderBy` | `orderBy` | <code>const</code> | yes | const: <code>"authored-desc"</code> | Order matching Responses by the RFC 3339 instant represented by authored, newest first. |
+| `#/$defs/ResponseSelection/properties/partitionBy` | `partitionBy` | <code>const</code> | yes | const: <code>"definition"</code> | Select only within the exact (definitionRef, definitionVersion) partition. |
+| `#/$defs/ResponseSelection/properties/status` | `status` | <code>const</code> | yes | const: <code>"completed"</code>; <code>&#36;ref</code>: <code>https://formspec.org/schemas/response/1.0#/&#36;defs/ResponseStatus</code> | Select only Responses whose owner-defined ResponseStatus is completed. |
+| `#/$defs/ResponseSelection/properties/tieBreak` | `tieBreak` | <code>const</code> | yes | const: <code>"response-id-asc"</code> | Resolve equal authored instants by Response id ascending in unsigned UTF-8 byte order. |
+<!-- schema-ref:end -->
+
 ### 4.1 Source Identity and Kind
 
 `kind` is a closed enum:
 
-| Kind | ID prefix | Meaning |
-|---|---|---|
-| `host-state` | `host:` | Host application state such as active matter, current user profile, or environment context. |
-| `definition-response` | `response:` | Draft or completed Response state for a named Definition. |
-| `document-resource` | `resource:` | External document, attachment, knowledge base, or reference resource. |
-| `conversation-stream` | `conversation:` | Conversation transcript or stream supplied by a host or module. |
-| `query-result` | `query:` | Materialized result of a host-defined query. |
-| `route-params` | `route:` | Route parameter values made available to consumers on a Surface route. |
+| Kind                  | ID prefix       | Meaning                                                                                     |
+| --------------------- | --------------- | ------------------------------------------------------------------------------------------- |
+| `host-state`          | `host:`         | Host application state such as active matter, current user profile, or environment context. |
+| `definition-response` | `response:`     | Draft or completed Response state for a named Definition.                                   |
+| `document-resource`   | `resource:`     | External document, attachment, knowledge base, or reference resource.                       |
+| `conversation-stream` | `conversation:` | Conversation transcript or stream supplied by a host or module.                             |
+| `query-result`        | `query:`        | Materialized result of a host-defined query.                                                |
+| `route-params`        | `route:`        | Route parameter values made available to consumers on a Surface route.                      |
 
 The `id` prefix MUST match `kind`. A `definition-response` source MUST declare `definitionRef` as a canonical Definition URL.
 
 Source ids MUST be unique within one Data Sources document. JSON Schema cannot enforce uniqueness by object property, so processors MUST reject duplicates.
 
-### 4.2 Owner and Scope
+### 4.2 Non-draft Definition-response selection
+
+A `definition-response` source with `runtime.delivery: "snapshot"` or
+`runtime.delivery: "live"` MUST declare `definitionVersion` and the complete
+closed `responseSelection` object:
+
+| Field         | Required value    | Meaning                                                                                              |
+| ------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `status`      | `completed`       | Uses the owner-defined `ResponseStatus`; amended, stopped, and in-progress Responses are ineligible. |
+| `cardinality` | `latest`          | Return at most one matching Response.                                                                |
+| `orderBy`     | `authored-desc`   | Prefer the newest RFC 3339 instant represented by Response `authored`, after applying its timezone.  |
+| `tieBreak`    | `response-id-asc` | For equal instants, prefer the smallest Response `id` in unsigned UTF-8 byte order.                  |
+| `partitionBy` | `definition`      | Restrict candidates to the exact `(definitionRef, definitionVersion)` pair.                          |
+
+The loader MUST filter by the exact Definition pair and completed status before
+ordering. It MUST parse `authored` as an RFC 3339 date-time; raw timestamp
+strings are not the ordering key. Every candidate after filtering MUST have a
+valid `authored` value and stable Response `id`. Two distinct candidates with
+the same authored instant and Response id are ambiguous. In any of these
+invalid or ambiguous cases, the host MUST report the source unavailable.
+
+The loader MUST NOT substitute the newest Response across Definition versions,
+current-session state, array order, locale-sensitive string comparison, or
+host-specific default ordering. No eligible Response also produces an
+unavailable result; it does not produce an empty or sample Response.
+
+A `definition-response` source with `runtime.delivery: "draft"` addresses the
+current-session draft. It remains valid without `definitionVersion` and MUST
+omit `responseSelection`; its `cache.mode` remains `draft`.
+
+### 4.3 Owner and Scope
 
 `owner` declares who supplies the source:
 
@@ -153,14 +208,14 @@ This is source ownership metadata only. It MUST NOT be used as fine-grained auth
 
 `availability.level` declares where the source is advertised in the resolved app graph:
 
-| Level | Required selector fields |
-|---|---|
-| `app` | none |
-| `definition` | `definitionRef` |
-| `surface` | `surfaceRef` |
-| `route` | `surfaceRef`, `routeRef` |
-| `slot` | `surfaceRef`, `routeRef`, `slotId` |
-| `module` | `moduleId` |
+| Level        | Required selector fields           |
+| ------------ | ---------------------------------- |
+| `app`        | none                               |
+| `definition` | `definitionRef`                    |
+| `surface`    | `surfaceRef`                       |
+| `route`      | `surfaceRef`, `routeRef`           |
+| `slot`       | `surfaceRef`, `routeRef`, `slotId` |
+| `module`     | `moduleId`                         |
 
 Surface, route, and slot availability MUST include `surfaceRef`. App Manifests may compose multiple Surfaces, and route ids are unique only within a Surface document. A surface, route, or slot selector without `surfaceRef` is ambiguous and MUST be rejected.
 
@@ -170,11 +225,11 @@ Schema validation verifies selector shape. Cross-artifact resolution - for examp
 
 `runtime.delivery` declares how consumers receive the source:
 
-| Delivery | Required cache behavior |
-|---|---|
-| `snapshot` | any cache mode except rules forbidden by `CacheRule` |
-| `live` | `cache.mode: "subscribe"` |
-| `draft` | source `kind: "definition-response"` and `cache.mode: "draft"` |
+| Delivery   | Required cache behavior                                        |
+| ---------- | -------------------------------------------------------------- |
+| `snapshot` | any cache mode except rules forbidden by `CacheRule`           |
+| `live`     | `cache.mode: "subscribe"`                                      |
+| `draft`    | source `kind: "definition-response"` and `cache.mode: "draft"` |
 
 `runtime.cache.mode` is one of:
 
@@ -216,7 +271,7 @@ widget binding, or related source anchor does not cover it.
 - `formspec-session`
 - `module`
 
-It answers only which boundary must admit the source before exposure. It does not express actor allowlists, field policy, route policy, widget policy, operation policy, or per-source ACLs. Such fine-grained fields MUST be rejected — permanently, not pending a contract. Fine-grained *runtime data-access* authorization belongs to the server-side engine: ADR 0117 commits Zanzibar-lineage (OpenFGA / Cedar / OPA as adapters) behind `AuthorizationPort`. ADR 0152 (accepted) is not that contract and declines this axis explicitly — §4.3 keeps read/disclosure authority out of scope, and §6 scores this document's `authorizationBoundary` as no coverage. A catalog that grew per-source ACLs would be reimplementing the engine in an authored artifact.
+It answers only which boundary must admit the source before exposure. It does not express actor allowlists, field policy, route policy, widget policy, operation policy, or per-source ACLs. Such fine-grained fields MUST be rejected — permanently, not pending a contract. Fine-grained _runtime data-access_ authorization belongs to the server-side engine: ADR 0117 commits Zanzibar-lineage (OpenFGA / Cedar / OPA as adapters) behind `AuthorizationPort`. ADR 0152 (accepted) is not that contract and declines this axis explicitly — §4.3 keeps read/disclosure authority out of scope, and §6 scores this document's `authorizationBoundary` as no coverage. A catalog that grew per-source ACLs would be reimplementing the engine in an authored artifact.
 
 ## 9. App Manifest Integration
 
@@ -236,26 +291,29 @@ A Data-Sources-Aware Processor MUST:
 4. Reject `cache.mode: "none"` with `staleAfter`.
 5. Reject `delivery: "live"` unless `cache.mode` is `subscribe`.
 6. Reject `delivery: "draft"` unless the source is `kind: "definition-response"` and `cache.mode` is `draft`.
-7. Reject provenance kind drift.
-8. Reject route or slot availability without a Surface URL.
-9. Reject fine-grained authorization fields not declared by this schema.
+7. Require the exact closed `responseSelection` policy and `definitionVersion` for every non-draft Definition-response source.
+8. Reject `responseSelection` on draft sources and reject
+   `definitionVersion` or `responseSelection` on every other source kind.
+9. Reject provenance kind drift.
+10. Reject route or slot availability without a Surface URL.
+11. Reject fine-grained authorization fields not declared by this schema.
 
 ### 10.1 Conformance Fixtures
 
 The normative fixture corpus lives at `tests/conformance/fixtures/data-sources/`:
 
-| Fixture | Posture | Proves |
-|---|---|---|
-| `valid-catalog.json` | positive | App-level, slot-level, Definition-response draft, and module-level sources validate. |
-| `duplicate-id.json` | negative | Duplicate source ids are semantic errors. |
-| `id-prefix-mismatch.json` | negative | Source id prefix must match `kind`. |
-| `cache-none-stale-after.json` | negative | `cache.mode: "none"` forbids `staleAfter`. |
-| `live-with-snapshot-cache.json` | negative | Live delivery requires subscribe cache mode. |
-| `draft-not-definition-response.json` | negative | Draft delivery is only valid for Definition-response sources with draft cache. |
-| `provenance-kind-mismatch.json` | negative | Provenance kind must match source kind. |
-| `surface-without-surface-ref.json` | negative | Surface availability is ambiguous without a Surface URL. |
-| `slot-without-surface-ref.json` | negative | Slot availability is ambiguous without a Surface URL. |
-| `fine-grained-auth.json` | negative | Fine-grained authorization fields are rejected; runtime data access is ADR 0117 engine territory, not catalog surface (§8). |
+| Fixture                              | Posture  | Proves                                                                                                                      |
+| ------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `valid-catalog.json`                 | positive | App-level, slot-level, draft and latest-completed Definition-response, and module-level sources validate.                   |
+| `duplicate-id.json`                  | negative | Duplicate source ids are semantic errors.                                                                                   |
+| `id-prefix-mismatch.json`            | negative | Source id prefix must match `kind`.                                                                                         |
+| `cache-none-stale-after.json`        | negative | `cache.mode: "none"` forbids `staleAfter`.                                                                                  |
+| `live-with-snapshot-cache.json`      | negative | Live delivery requires subscribe cache mode.                                                                                |
+| `draft-not-definition-response.json` | negative | Draft delivery is only valid for Definition-response sources with draft cache.                                              |
+| `provenance-kind-mismatch.json`      | negative | Provenance kind must match source kind.                                                                                     |
+| `surface-without-surface-ref.json`   | negative | Surface availability is ambiguous without a Surface URL.                                                                    |
+| `slot-without-surface-ref.json`      | negative | Slot availability is ambiguous without a Surface URL.                                                                       |
+| `fine-grained-auth.json`             | negative | Fine-grained authorization fields are rejected; runtime data access is ADR 0117 engine territory, not catalog surface (§8). |
 
 App Manifest v2.1 Data Sources references are covered in `tests/conformance/fixtures/bundle/app-with-data-sources-v2-1.json`; v2.0 rejection is covered in `invalid-data-sources-in-2-0.json`.
 
@@ -265,16 +323,16 @@ This v1.0 document closes the **catalog contract** (ADR 0153 gate 5) and
 defines the narrow snapshot-loader behavior in §12. Shared graph loading,
 validation, and the reference runtime live in the named packages below.
 
-| Concern | Status | Where |
-|---|---|---|
-| Peer artifact spec + schema + fixtures | **Closed** (this document) | §3–§10 |
-| `ArtifactResolver` / `ModuleResolver` load `dataSources[]` siblings | **Closed** (contract + kernel) | ADR 0153 gates 4, 12; `artifact-resolver-spec.md` |
-| `AppGraphValidator` availability cross-artifact checks | **Closed** | `@formspec-org/app-graph`; stack ticket [`fs-r2od`](../../../.tickets/fs-r2od.md) |
-| Payload fetch and host loader port | **Closed for snapshot MVP** | §12; `@formspec-org/surface` canonical port and HTTP document-resource bridge |
-| Full cache, subscription, and draft-delivery enforcement | **Open** | Later runtime work; not implied by the snapshot MVP |
-| Source-to-Definition-instance bridge | **Open** | Explicit mapping only; not implied by catalog |
-| Renderer fallback / query language | **Out of scope** | — |
-| Fine-grained runtime data-access authorization | **Out of this artifact by decision** | ADR 0117 (server-side engine behind `AuthorizationPort`); ADR 0152 §4.3 / §6 declines the axis |
+| Concern                                                             | Status                               | Where                                                                                          |
+| ------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Peer artifact spec + schema + fixtures                              | **Closed** (this document)           | §3–§10                                                                                         |
+| `ArtifactResolver` / `ModuleResolver` load `dataSources[]` siblings | **Closed** (contract + kernel)       | ADR 0153 gates 4, 12; `artifact-resolver-spec.md`                                              |
+| `AppGraphValidator` availability cross-artifact checks              | **Closed**                           | `@formspec-org/app-graph`; stack ticket [`fs-r2od`](../../../.tickets/fs-r2od.md)              |
+| Payload fetch and host loader port                                  | **Closed for snapshot MVP**          | §12; `@formspec-org/surface` canonical port and HTTP document-resource bridge                  |
+| Full cache, subscription, and draft-delivery enforcement            | **Open**                             | Later runtime work; not implied by the snapshot MVP                                            |
+| Source-to-Definition-instance bridge                                | **Open**                             | Explicit mapping only; not implied by catalog                                                  |
+| Renderer fallback / query language                                  | **Out of scope**                     | —                                                                                              |
+| Fine-grained runtime data-access authorization                      | **Out of this artifact by decision** | ADR 0117 (server-side engine behind `AuthorizationPort`); ADR 0152 §4.3 / §6 declines the axis |
 
 **Cold-read index:** [`thoughts/2026-05-26-open-work-index.md`](../../../thoughts/2026-05-26-open-work-index.md).
 
@@ -301,8 +359,23 @@ unqualified source lookup, or use widget configuration as payload.
 
 The loader returns either:
 
-- `loaded`, with a value and explicit `fresh` or `stale` status; or
+- `loaded`, with a value, explicit `fresh` or `stale` status, and an optional
+  owner-produced `recordId` when the source has record identity; or
 - `unavailable`, with a reason.
+
+**Normative rule `loader.qualified-result`.** Each loader result MUST identify
+the exact `(catalogRef, sourceRef)` request. A `loaded` result MUST report
+`fresh` or `stale`; an `unavailable` result MUST omit freshness and value
+identity. Consumers MUST NOT infer a result, source identity, or freshness from
+catalog order, a filename, a widget name, or a local clock.
+
+For a non-draft `definition-response` source, the qualified request also carries
+the exact source-declared `definitionRef`, `definitionVersion`, and
+`responseSelection`. The loader MUST return only the Response selected by §4.2
+or report the source unavailable, and a loaded result MUST set `recordId` to
+that selected Response's exact `id`. A generic host MUST NOT invent a meaning
+for “latest completed,” and a consumer MUST NOT derive `recordId` from an
+expectation, request, or prior action.
 
 The loader does not make an authorization decision and does not validate its own
 payload. Keeping those decisions outside the load port prevents an HTTP client

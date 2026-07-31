@@ -9,6 +9,7 @@ export const TIER_PACKAGES = {
   kernel: ['@formspec-org/types'],
   foundation: [
     '@formspec-org/engine',
+    '@formspec-org/outcome-verification',
     '@formspec-org/app-graph',
     '@formspec-org/layout',
     '@formspec-org/webcomponent',

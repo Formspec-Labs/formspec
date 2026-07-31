@@ -5,6 +5,7 @@ import React, { useMemo, useCallback, useEffect } from 'react';
 import { signal as createSignal } from '@preact/signals-core';
 import {
     invokeResponseAction,
+    type ResponseActionInvocationContext,
     type ResponseActionInvocationPorts,
     type ResponseActionInvocationResult,
 } from '@formspec-org/engine';
@@ -124,6 +125,8 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         resolveActionIdempotencyKey,
         responseActionsDocument,
         resolveActionRef,
+        semanticControlScope,
+        currentSemanticResponseBinding,
     } = useFormspecContext();
     const form = useForm();
     const actionRef = actionRefFor(node);
@@ -147,9 +150,17 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         }
     }, [findingKey, onActionFinding]);
 
-    const handleClick = useCallback(() => {
+    const activate = useCallback(async (
+        invocationContext?: ResponseActionInvocationContext,
+    ): Promise<ResponseActionInvocationResult<SubmitResult>> => {
         const ports: ResponseActionInvocationPorts<SubmitResult> = {
-            submit: ({ profile, validationTuple }) => form.submit({ profile, validationTuple }),
+            submit: ({ profile, validationTuple }) => form.submit({
+                profile,
+                validationTuple,
+                ...(semanticControlScope
+                    ? { id: semanticControlScope.responseId }
+                    : {}),
+            }),
             dispatchHostEvent: (eventName, detail, action) => {
                 onHostEvent?.(eventName, detail, action);
                 if (eventName === 'formspec-submit') {
@@ -165,6 +176,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             if (result.finding) {
                 onActionFinding?.(result.finding);
             }
+            return result;
         };
 
         if (responseActionInvoker) {
@@ -173,25 +185,44 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
                 actionRef,
                 nodeId: node.id,
                 ports,
+                ...(invocationContext ? { invocationContext } : {}),
             });
             if (isPromiseLike(result)) {
-                void result
-                    .then(value => finish(normalizeInvokerResult(value)))
-                    .catch(error => finish({
+                try {
+                    return finish(normalizeInvokerResult(await result));
+                } catch (error) {
+                    return finish({
                         status: 'failed',
+                        ...(invocationContext?.invocationId
+                            ? { invocationId: invocationContext.invocationId }
+                            : {}),
+                        ...(invocationContext?.actionArtifact
+                            ? {
+                                actionOwner: {
+                                    ...invocationContext.actionArtifact,
+                                    subjectKind: 'response-action',
+                                    subjectRef: actionRef,
+                                } as const,
+                            }
+                            : {}),
                         resolution,
                         validationTuple: null,
                         detail: null,
                         effectTrace: [],
                         failureReason: errorMessage(error),
-                    }));
-                return;
+                    });
+                }
             }
-            finish(normalizeInvokerResult(result));
-            return;
+            return finish(normalizeInvokerResult(result));
         }
 
-        finish(invokeResponseAction(responseActionsDocument, actionRef, ports, node.id));
+        return finish(invokeResponseAction(
+            responseActionsDocument,
+            actionRef,
+            ports,
+            node.id,
+            invocationContext,
+        ));
     }, [
         actionRef,
         dispatchActionEffect,
@@ -205,7 +236,47 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         responseActionInvoker,
         resolveActionIdempotencyKey,
         responseActionsDocument,
+        semanticControlScope,
     ]);
+
+    useEffect(() => {
+        if (
+            !semanticControlScope?.responseActionsArtifact
+            || !resolution.resolved
+        ) {
+            return;
+        }
+        const control = {
+            ...semanticControlScope.responseActionsArtifact,
+            subjectKind: 'response-action' as const,
+            subjectRef: actionRef,
+        };
+        return semanticControlScope.registry.register({
+            capability: 'activate-control',
+            renderInstanceId: semanticControlScope.renderInstanceId,
+            responseId: semanticControlScope.responseId,
+            control,
+            disabled: () => !resolution.resolved,
+            activate: async (invocationContext) => {
+                const invocation = await activate(invocationContext);
+                const responseBinding = currentSemanticResponseBinding();
+                if (!responseBinding) {
+                    throw new Error('semantic Response binding is unavailable');
+                }
+                return { invocation, responseBinding };
+            },
+        });
+    }, [
+        actionRef,
+        activate,
+        currentSemanticResponseBinding,
+        resolution.resolved,
+        semanticControlScope,
+    ]);
+
+    const handleClick = useCallback(() => {
+        void activate();
+    }, [activate]);
 
     return (
         <button

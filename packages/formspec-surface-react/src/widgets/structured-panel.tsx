@@ -15,6 +15,10 @@
  * Invalid or absent anchors never become DOM claims.
  */
 import { useState, type ReactNode } from 'react';
+import type {
+  SurfaceSemanticOutputDeclaration,
+  SurfaceSemanticValue,
+} from '@formspec-org/surface';
 import { Heading, nextLevel } from '../heading.js';
 import type {
   SurfaceWidgetAction,
@@ -27,6 +31,10 @@ import type {
   ModuleWidgetStateViewsConfig,
 } from '../widget-state.js';
 import { WidgetEmptyState } from './empty-state.js';
+import {
+  surfaceSemanticOutputSubjectRef,
+  useSurfaceSemanticOutputs,
+} from '../semantic-output.js';
 
 interface GeneratedFromNeeds {
   'x-generation'?: {
@@ -231,11 +239,17 @@ export function readStructuredPanelPath(root: unknown, path: unknown): unknown {
   return current;
 }
 
-function scalarText(value: unknown): string | undefined {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'boolean') return String(value);
-  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+type StructuredScalarValue = string | boolean | number;
+
+function scalarValue(value: unknown): StructuredScalarValue | undefined {
+  if (typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
   return undefined;
+}
+
+function scalarText(value: unknown): string | undefined {
+  const scalar = scalarValue(value);
+  return scalar === undefined ? undefined : String(scalar);
 }
 
 function selectedActionPayload(
@@ -401,17 +415,52 @@ function renderMetric(
   });
 }
 
+interface RenderedKeyValueItem {
+  id: string;
+  label: string;
+  value: string;
+  semanticValue: StructuredScalarValue;
+  anchors: readonly string[];
+}
+
 function valueForFact(
   item: UnknownRecord,
   data: Readonly<Record<string, unknown>>,
   routeParams: Readonly<Record<string, string>>,
-): string | undefined {
+): Readonly<{
+  value: string;
+  semanticValue: StructuredScalarValue;
+}> | undefined {
   const path = nonEmptyString(item.path);
   const routeParam = nonEmptyString(item.routeParam);
   if ((path === undefined) === (routeParam === undefined)) return undefined;
-  return path
-    ? scalarText(readStructuredPanelPath(data, path))
-    : scalarText(readStructuredPanelPath(routeParams, routeParam));
+  const semanticValue = scalarValue(
+    path
+      ? readStructuredPanelPath(data, path)
+      : readStructuredPanelPath(routeParams, routeParam),
+  );
+  return semanticValue === undefined
+    ? undefined
+    : { value: String(semanticValue), semanticValue };
+}
+
+function renderedKeyValueItems(
+  block: UnknownRecord,
+  data: Readonly<Record<string, unknown>>,
+  routeParams: Readonly<Record<string, string>>,
+): RenderedKeyValueItem[] {
+  if (!Array.isArray(block.items)) return [];
+  return block.items.flatMap((candidate) => {
+    const item = record(candidate);
+    const id = safeId(item?.id);
+    const label = nonEmptyString(item?.label);
+    const anchors = item ? needAnchors(item) : [];
+    if (!item || !id || !label || anchors.length === 0) return [];
+    const value = valueForFact(item, data, routeParams);
+    return value === undefined
+      ? []
+      : [{ id, label, ...value, anchors }];
+  });
 }
 
 function renderKeyValue(
@@ -421,19 +470,7 @@ function renderKeyValue(
   headingLevel: SurfaceWidgetProps['headingLevel'],
 ): ReactNode {
   return blockFrame(block, headingLevel, (anchors) => {
-    const items = Array.isArray(block.items)
-      ? block.items.flatMap((candidate) => {
-          const item = record(candidate);
-          const id = safeId(item?.id);
-          const label = nonEmptyString(item?.label);
-          const itemAnchors = item ? needAnchors(item) : [];
-          if (!item || !id || !label || itemAnchors.length === 0) return [];
-          const value = valueForFact(item, data, routeParams);
-          return value === undefined
-            ? []
-            : [{ id, label, value, anchors: itemAnchors }];
-        })
-      : [];
+    const items = renderedKeyValueItems(block, data, routeParams);
     if (items.length === 0) return blockEmpty(block, anchors);
     return (
       <dl className="fs-structured-panel__facts">
@@ -481,6 +518,43 @@ function renderList(
   });
 }
 
+interface RenderedTableColumn {
+  id: string;
+  label: string;
+  path: string;
+  numeric: boolean;
+  anchors: readonly string[];
+}
+
+function renderedTableRows(
+  block: UnknownRecord,
+  data: Readonly<Record<string, unknown>>,
+): UnknownRecord[] {
+  const rawRows = readStructuredPanelPath(data, block.path);
+  return Array.isArray(rawRows)
+    ? rawRows.filter((row): row is UnknownRecord => record(row) !== undefined)
+    : [];
+}
+
+function renderedTableColumns(block: UnknownRecord): RenderedTableColumn[] {
+  if (!Array.isArray(block.columns)) return [];
+  return block.columns.flatMap((candidate) => {
+    const column = record(candidate);
+    const id = safeId(column?.id);
+    const label = nonEmptyString(column?.label);
+    const path = nonEmptyString(column?.path);
+    const anchors = column ? needAnchors(column) : [];
+    if (!column || !id || !label || !path || anchors.length === 0) return [];
+    return [{
+      id,
+      label,
+      path,
+      numeric: column.numeric === true,
+      anchors,
+    }];
+  });
+}
+
 function renderTable(
   block: UnknownRecord,
   data: Readonly<Record<string, unknown>>,
@@ -489,29 +563,8 @@ function renderTable(
   emitAction: SurfaceWidgetProps['emitAction'],
 ): ReactNode {
   return blockFrame(block, headingLevel, (anchors) => {
-    const rawRows = readStructuredPanelPath(data, block.path);
-    const rows = Array.isArray(rawRows)
-      ? rawRows.filter((row): row is UnknownRecord => record(row) !== undefined)
-      : [];
-    const columns = Array.isArray(block.columns)
-      ? block.columns.flatMap((candidate) => {
-          const column = record(candidate);
-          const id = safeId(column?.id);
-          const label = nonEmptyString(column?.label);
-          const path = nonEmptyString(column?.path);
-          const columnAnchors = column ? needAnchors(column) : [];
-          if (!column || !id || !label || !path || columnAnchors.length === 0) {
-            return [];
-          }
-          return [{
-            id,
-            label,
-            path,
-            numeric: column.numeric === true,
-            anchors: columnAnchors,
-          }];
-        })
-      : [];
+    const rows = renderedTableRows(block, data);
+    const columns = renderedTableColumns(block);
     if (rows.length === 0 || columns.length === 0) return blockEmpty(block, anchors);
     const caption = nonEmptyString(block.caption);
     const responsiveMode = block.responsiveMode === 'scroll' ? 'scroll' : 'stack';
@@ -695,13 +748,25 @@ function literalActionLabel(action: SurfaceWidgetAction): string | undefined {
     : undefined;
 }
 
-function renderActions(
+interface RenderedActionPresentation {
+  action: SurfaceWidgetAction;
+  label: string;
+  anchors: readonly string[];
+  authoredOrder: number;
+  index: number;
+  emphasis: 'primary' | 'secondary' | 'danger';
+  input: SurfaceWidgetActionInput | undefined;
+  pendingLabel: string | undefined;
+  successMessage: string | undefined;
+  failureMessage: string | undefined;
+}
+
+function renderedActionPresentations(
   configured: unknown,
   available: readonly SurfaceWidgetAction[],
-  emitAction: SurfaceWidgetProps['emitAction'],
   data: Readonly<Record<string, unknown>>,
-): ReactNode {
-  if (!Array.isArray(configured)) return null;
+): RenderedActionPresentation[] {
+  if (!Array.isArray(configured)) return [];
   const presentations = configured.flatMap((candidate, index) => {
     const presentation = record(candidate);
     const outputName = nonEmptyString(presentation?.outputName);
@@ -720,6 +785,8 @@ function renderActions(
       presentation.emphasis === 'danger'
         ? presentation.emphasis
         : 'secondary';
+    const input = selectedActionPayload(presentation.payload, data);
+    if (presentation.payload !== undefined && input === undefined) return [];
     return [{
       action,
       label,
@@ -727,7 +794,7 @@ function renderActions(
       authoredOrder,
       index,
       emphasis,
-      payload: presentation.payload,
+      input,
       pendingLabel: nonEmptyString(presentation.pendingLabel),
       successMessage: nonEmptyString(presentation.successMessage),
       failureMessage: nonEmptyString(presentation.failureMessage),
@@ -736,6 +803,13 @@ function renderActions(
   presentations.sort(
     (left, right) => left.authoredOrder - right.authoredOrder || left.index - right.index,
   );
+  return presentations;
+}
+
+function renderActions(
+  presentations: readonly RenderedActionPresentation[],
+  emitAction: SurfaceWidgetProps['emitAction'],
+): ReactNode {
   if (presentations.length === 0) return null;
   return (
     <div className="fs-structured-panel__actions">
@@ -744,13 +818,11 @@ function renderActions(
         label,
         anchors,
         emphasis,
-        payload: configuredPayload,
+        input,
         pendingLabel,
         successMessage,
         failureMessage,
       }) => {
-        const input = selectedActionPayload(configuredPayload, data);
-        if (configuredPayload !== undefined && input === undefined) return null;
         return (
           <StructuredActionButton
             key={action.outputName}
@@ -770,6 +842,103 @@ function renderActions(
   );
 }
 
+interface RenderedBlockEntry {
+  block: UnknownRecord;
+  id: string;
+  node: ReactNode;
+}
+
+function semanticDeclaration(
+  segments: readonly string[],
+  details: Readonly<{
+    operable?: boolean | undefined;
+    semanticValue?: SurfaceSemanticValue | undefined;
+  }> = {},
+): SurfaceSemanticOutputDeclaration | undefined {
+  const subjectRef = surfaceSemanticOutputSubjectRef(...segments);
+  if (!subjectRef) return undefined;
+  return {
+    subjectRef,
+    ...(details.operable === undefined ? {} : { operable: details.operable }),
+    ...(details.semanticValue === undefined
+      ? {}
+      : { semanticValue: details.semanticValue }),
+  };
+}
+
+function structuredBlockSemanticOutputs(
+  entry: RenderedBlockEntry,
+  baseSegments: readonly string[],
+  data: Readonly<Record<string, unknown>>,
+  routeParams: Readonly<Record<string, string>>,
+  actions: readonly SurfaceWidgetAction[],
+): SurfaceSemanticOutputDeclaration[] {
+  const { block, id } = entry;
+  const blockSegments = [...baseSegments, id];
+  const outputs: SurfaceSemanticOutputDeclaration[] = [];
+  const blockOutput = semanticDeclaration(blockSegments);
+  if (blockOutput) outputs.push(blockOutput);
+
+  if (block.type === 'key-value') {
+    for (const item of renderedKeyValueItems(block, data, routeParams)) {
+      const output = semanticDeclaration(
+        [...blockSegments, item.id],
+        { semanticValue: item.semanticValue },
+      );
+      if (output) outputs.push(output);
+    }
+  }
+
+  if (block.type === 'table') {
+    const rows = renderedTableRows(block, data);
+    const columns = renderedTableColumns(block);
+    if (rows.length === 0 || columns.length === 0) return outputs;
+    for (const column of columns) {
+      const output = semanticDeclaration([...blockSegments, column.id]);
+      if (output) outputs.push(output);
+    }
+
+    const rowActionConfig = record(block.rowAction);
+    const rowAction =
+      rowActionConfig
+      && needAnchors(rowActionConfig).length > 0
+        ? resolvedAction(
+            nonEmptyString(rowActionConfig.outputName),
+            actions,
+          )
+        : undefined;
+    if (
+      rowAction
+      && literalActionLabel(rowAction)
+      && nonEmptyString(rowActionConfig?.columnLabel)
+    ) {
+      const output = semanticDeclaration(
+        [...blockSegments, rowAction.outputName],
+        {
+          semanticValue: {
+            outputName: rowAction.outputName,
+            actionRef: rowAction.actionRef,
+            intent: rowAction.intent,
+          },
+        },
+      );
+      if (output) outputs.push(output);
+    }
+  }
+
+  return outputs;
+}
+
+function omitDuplicateSemanticSubjects(
+  outputs: readonly SurfaceSemanticOutputDeclaration[],
+): SurfaceSemanticOutputDeclaration[] {
+  const counts = new Map<string, number>();
+  for (const output of outputs) {
+    counts.set(output.subjectRef, (counts.get(output.subjectRef) ?? 0) + 1);
+  }
+  return outputs.filter((output) => counts.get(output.subjectRef) === 1);
+}
+
 export function StructuredPanel({
   actions = [],
   config,
@@ -778,6 +947,7 @@ export function StructuredPanel({
   headingLevel,
   route,
   slot,
+  semanticOutputScope,
 }: SurfaceWidgetProps) {
   const panel = record(config) ?? {};
   const panelAnchors = needAnchors(panel);
@@ -786,7 +956,8 @@ export function StructuredPanel({
   const configuredActions = Array.isArray(panel.actions) ? panel.actions : [];
   const actionAnchors = configuredActions.flatMap(needAnchors);
   const allAnchors = mergeAnchors(panelAnchors, blockAnchors, actionAnchors);
-  const panelId = safeId(panel.id) ?? slot.id;
+  const authoredPanelId = safeId(panel.id);
+  const panelId = authoredPanelId ?? slot.id;
 
   const eyebrow = panelAnchors.length > 0 ? nonEmptyString(panel.eyebrow) : undefined;
   const state = panelAnchors.length > 0 ? nonEmptyString(panel.state) : undefined;
@@ -794,30 +965,76 @@ export function StructuredPanel({
   const body = panelAnchors.length > 0 ? nonEmptyString(panel.body) : undefined;
   const header = eyebrow || state || title || body;
   const blockHeadingLevel = title ? nextLevel(headingLevel) : headingLevel;
-  const renderedBlocks = configuredBlocks
-    .map((block) =>
-      renderBlock(
+  const renderedBlockEntries = configuredBlocks.flatMap((candidate) => {
+    const block = record(candidate);
+    const id = safeId(block?.id);
+    if (!block || !id) return [];
+    const node = renderBlock(
         block,
         data,
         route.params,
         blockHeadingLevel,
         actions,
         emitAction,
-      ),
-    )
-    .filter((block) => block !== null);
-  const renderedActions = renderActions(
+      );
+    return node === null || node === undefined
+      ? []
+      : [{ block, id, node }];
+  });
+  const renderedBlocks = renderedBlockEntries.map((entry) => entry.node);
+  const actionPresentations = renderedActionPresentations(
     configuredActions,
     actions,
-    emitAction,
     data,
+  );
+  const renderedActions = renderActions(actionPresentations, emitAction);
+  const emptyMessage =
+    panelAnchors.length > 0
+      ? nonEmptyString(panel.emptyMessage)
+      : undefined;
+  const panelRenders =
+    Boolean(header)
+    || renderedBlocks.length > 0
+    || actionPresentations.length > 0
+    || emptyMessage !== undefined;
+
+  const baseSegments =
+    panelRenders && authoredPanelId
+      ? [route.routeId, slot.id, authoredPanelId]
+      : undefined;
+  const semanticOutputs: SurfaceSemanticOutputDeclaration[] = [];
+  if (baseSegments) {
+    const panelOutput = semanticDeclaration(baseSegments);
+    if (panelOutput) semanticOutputs.push(panelOutput);
+    for (const entry of renderedBlockEntries) {
+      semanticOutputs.push(...structuredBlockSemanticOutputs(
+        entry,
+        baseSegments,
+        data,
+        route.params,
+        actions,
+      ));
+    }
+    for (const presentation of actionPresentations) {
+      const output = semanticDeclaration(
+        [...baseSegments, presentation.action.outputName],
+        {
+          semanticValue: {
+            outputName: presentation.action.outputName,
+            actionRef: presentation.action.actionRef,
+            intent: presentation.action.intent,
+          },
+        },
+      );
+      if (output) semanticOutputs.push(output);
+    }
+  }
+  useSurfaceSemanticOutputs(
+    semanticOutputScope,
+    omitDuplicateSemanticSubjects(semanticOutputs),
   );
 
   if (!header && renderedBlocks.length === 0 && !renderedActions) {
-    const emptyMessage =
-      panelAnchors.length > 0
-        ? nonEmptyString(panel.emptyMessage)
-        : undefined;
     if (!emptyMessage) return null;
     return (
       <div

@@ -41,9 +41,14 @@ import type {
   ResponseAction,
   ResponseActionInvocationResult,
   ResponseActionsDocument as ReactResponseActionsDocument,
+  SemanticArtifactIdentity,
+  SemanticControlRegistry,
+  SemanticControlScope,
+  SemanticResponseBinding,
   SubmitResult,
 } from '@formspec-org/react';
 import type {
+  FormDefinition,
   OntologyDocument,
   ReferencesDocument,
   ResponseActionsDocument as GeneratedResponseActionsDocument,
@@ -57,7 +62,10 @@ import {
   type DataSourcePayloadValidator,
   type PlannedTransition,
   type SlotPlan,
+  type StaticContentPlan,
   type SurfaceDiagnostic,
+  type SurfaceSemanticOutputPublisherScope,
+  type SurfaceSemanticOutputScope,
   type SurfaceStrings,
   type ThemeGrant,
   type WidgetDataDelivery,
@@ -87,6 +95,10 @@ import {
   type ModuleWidgetStateName,
 } from './widget-state.js';
 import { needIdTraceAttributes, needTraceAttributes } from './need-trace.js';
+import {
+  surfaceSemanticOutputSubjectRef,
+  useSurfaceSemanticOutputs,
+} from './semantic-output.js';
 
 export type ResolvedDefinitionFormPlan = Extract<
   SlotPlan<SurfaceWidget>,
@@ -105,6 +117,12 @@ export interface SurfaceDefinitionFormRenderInput {
   responseActionsDocument: ReactResponseActionsDocument | undefined;
   referencesDocuments: readonly ReferencesDocument[];
   ontologyDocuments: readonly OntologyDocument[];
+  /** Exact runtime identity for generic semantic-control lookup, when admitted. */
+  semanticControlScope?: SemanticControlScope | undefined;
+  /** Receives every terminal from the mounted Definition Action control. */
+  onDefinitionActionResult?:
+    | ((result: ResponseActionInvocationResult<SubmitResult>) => void)
+    | undefined;
   /** Preserve the shell's completed-action navigation boundary. */
   onActionCompleted?: ((action: ResponseAction) => void) | undefined;
 }
@@ -112,6 +130,73 @@ export interface SurfaceDefinitionFormRenderInput {
 export type SurfaceDefinitionFormRenderer = (
   input: SurfaceDefinitionFormRenderInput,
 ) => ReactNode;
+
+export interface SurfaceSemanticControlScopeRequest {
+  plan: ResolvedDefinitionFormPlan;
+  route: SurfaceWidgetRouteContext;
+  responseActionsDocument: ReactResponseActionsDocument | undefined;
+  runtimeGeneration: string | undefined;
+}
+
+/**
+ * Host pairing for artifact digests and Response identity. The Surface shell
+ * passes exact loaded objects and invents none of these facts.
+ */
+export type SurfaceSemanticControlScopeResolver = (
+  request: SurfaceSemanticControlScopeRequest,
+) => SemanticControlScope | undefined;
+
+export interface SurfaceSemanticControlPairing {
+  registry: SemanticControlRegistry;
+  /** Exact loaded object identity to caller-computed canonical artifact facts. */
+  definitionArtifacts: ReadonlyMap<FormDefinition, SemanticArtifactIdentity>;
+  /** Exact loaded object identity to caller-computed canonical artifact facts. */
+  responseActionsArtifacts: ReadonlyMap<
+    ReactResponseActionsDocument,
+    SemanticArtifactIdentity
+  >;
+  renderInstanceIdFor(
+    request: SurfaceSemanticControlScopeRequest,
+  ): string | undefined;
+  responseBindingFor(
+    request: SurfaceSemanticControlScopeRequest,
+  ): SemanticResponseBinding | undefined;
+}
+
+/**
+ * Build a fail-closed resolver from caller-paired object identities.
+ * Canonicalization and digest computation stay outside the Surface renderer.
+ */
+export function createSurfaceSemanticControlScopeResolver(
+  pairing: SurfaceSemanticControlPairing,
+): SurfaceSemanticControlScopeResolver {
+  return (request) => {
+    const definitionArtifact = pairing.definitionArtifacts.get(
+      request.plan.definition,
+    );
+    const responseActionsArtifact = request.responseActionsDocument
+      ? pairing.responseActionsArtifacts.get(request.responseActionsDocument)
+      : undefined;
+    const renderInstanceId = pairing.renderInstanceIdFor(request);
+    const responseBinding = pairing.responseBindingFor(request);
+    if (
+      !definitionArtifact
+      || !renderInstanceId
+      || !responseBinding
+      || (request.responseActionsDocument && !responseActionsArtifact)
+    ) {
+      return undefined;
+    }
+    return {
+      registry: pairing.registry,
+      renderInstanceId,
+      definitionArtifact,
+      ...(responseActionsArtifact ? { responseActionsArtifact } : {}),
+      responseId: responseBinding.responseId,
+      initialResponseRevision: responseBinding.responseRevision,
+    };
+  };
+}
 
 export interface SurfaceSlotProps {
   plan: SlotPlan<SurfaceWidget>;
@@ -148,6 +233,12 @@ export interface SurfaceSlotProps {
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
+  resolveSemanticControlScope?: SurfaceSemanticControlScopeResolver | undefined;
+  /** Exact caller-paired identity used only by renderers that publish output. */
+  semanticOutputScope?: SurfaceSemanticOutputScope | undefined;
+  onDefinitionActionResult?:
+    | ((result: ResponseActionInvocationResult<SubmitResult>) => void)
+    | undefined;
   /** A published Action reached a successful terminal with a valid report. */
   onActionCompleted?: ((action: ResponseAction) => void) | undefined;
   onAdvance?: ((transition: PlannedTransition) => void) | undefined;
@@ -262,9 +353,23 @@ export function SurfaceSlot({
   onWidgetActionReport,
   onRuntimeDiagnosticsChange,
   renderDefinitionForm,
+  resolveSemanticControlScope,
+  semanticOutputScope,
+  onDefinitionActionResult,
   onActionCompleted,
   onAdvance,
 }: SurfaceSlotProps): ReactNode {
+  const subjectPrefix = surfaceSemanticOutputSubjectRef(
+    route.routeId,
+    plan.slotId,
+  );
+  const slotSemanticOutputScope:
+    | SurfaceSemanticOutputPublisherScope
+    | undefined =
+    semanticOutputScope && subjectPrefix
+      ? { ...semanticOutputScope, subjectPrefix }
+      : undefined;
+
   switch (plan.slotType) {
     case 'definition-form': {
       if (plan.status === 'unresolved' || plan.definition === undefined) {
@@ -292,11 +397,26 @@ export function SurfaceSlot({
         responseActionsDocument,
         referencesDocuments: referencesDocuments ?? [],
         ontologyDocuments: ontologyDocuments ?? [],
+        onDefinitionActionResult,
         onActionCompleted,
       };
+      const semanticControlScope = resolveSemanticControlScope?.({
+        plan: renderInput.plan,
+        route,
+        responseActionsDocument,
+        runtimeGeneration,
+      });
+      if (semanticControlScope) {
+        renderInput.semanticControlScope = semanticControlScope;
+      }
       return renderDefinitionForm
         ? renderDefinitionForm(renderInput)
-        : renderDefaultDefinitionForm(renderInput);
+        : (
+            <DefaultDefinitionFormSlot
+              input={renderInput}
+              semanticOutputScope={slotSemanticOutputScope}
+            />
+          );
     }
 
     case 'experience-unit': {
@@ -369,6 +489,7 @@ export function SurfaceSlot({
           onWidgetActionReport={onWidgetActionReport}
           onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
           onAdvance={onAdvance}
+          semanticOutputScope={slotSemanticOutputScope}
         />
       );
     }
@@ -378,49 +499,15 @@ export function SurfaceSlot({
       if (content === undefined) {
         return <UnavailableSlot>{strings('slotUnavailableStaticContent')}</UnavailableSlot>;
       }
-      switch (content.kind) {
-        case 'heading':
-          return (
-            <Heading
-              level={content.level}
-              className="fs-surface-static-heading"
-              {...needTraceAttributes(plan.contentNeedAnchors)}
-            >
-              {content.content}
-            </Heading>
-          );
-        case 'text':
-          return (
-            <p
-              className="fs-surface-static-text"
-              {...needTraceAttributes(plan.contentNeedAnchors)}
-            >
-              {content.content}
-            </p>
-          );
-        case 'image':
-          return (
-            <img
-              className="fs-surface-static-image"
-              src={content.src}
-              alt={content.alt}
-              {...needTraceAttributes(plan.contentNeedAnchors)}
-              // Empty alt is an explicit authored decorative choice in Surface
-              // 0.2. Missing alt never reaches this renderer.
-              {...(content.decorative ? { role: 'presentation' } : {})}
-            />
-          );
-        case 'divider':
-          // Presentational only: no accessible name, not focusable, and
-          // `content` is not rendered as text even when non-empty (§3.4.2).
-          return (
-            <hr
-              className="fs-surface-static-divider"
-              {...needTraceAttributes(plan.contentNeedAnchors)}
-            />
-          );
-      }
-      return null;
+      return (
+        <SurfaceStaticContent
+          content={content}
+          needAnchors={plan.contentNeedAnchors}
+          routeId={route.routeId}
+          slotId={plan.slotId}
+          semanticOutputScope={slotSemanticOutputScope}
+        />
+      );
     }
 
     case 'embed-route': {
@@ -463,6 +550,9 @@ export function SurfaceSlot({
               onWidgetActionReport={onWidgetActionReport}
               onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
               renderDefinitionForm={renderDefinitionForm}
+              resolveSemanticControlScope={resolveSemanticControlScope}
+              semanticOutputScope={semanticOutputScope}
+              onDefinitionActionResult={onDefinitionActionResult}
               onActionCompleted={onActionCompleted}
               onAdvance={onAdvance}
             />
@@ -476,6 +566,86 @@ export function SurfaceSlot({
   }
 }
 
+interface SurfaceStaticContentProps {
+  content: StaticContentPlan;
+  needAnchors: readonly string[] | undefined;
+  routeId: string;
+  slotId: string;
+  semanticOutputScope: SurfaceSemanticOutputPublisherScope | undefined;
+}
+
+function SurfaceStaticContent({
+  content,
+  needAnchors,
+  routeId,
+  slotId,
+  semanticOutputScope,
+}: SurfaceStaticContentProps): ReactNode {
+  const subjectRef = surfaceSemanticOutputSubjectRef(routeId, slotId);
+  const semanticValue =
+    content.kind === 'heading' || content.kind === 'text'
+      ? content.content
+      : content.kind === 'image'
+        ? {
+            src: content.src,
+            alt: content.alt,
+            decorative: content.decorative,
+          }
+        : undefined;
+  useSurfaceSemanticOutputs(
+    semanticOutputScope,
+    subjectRef
+      ? [{
+          subjectRef,
+          ...(semanticValue === undefined ? {} : { semanticValue }),
+        }]
+      : [],
+  );
+
+  switch (content.kind) {
+    case 'heading':
+      return (
+        <Heading
+          level={content.level}
+          className="fs-surface-static-heading"
+          {...needTraceAttributes(needAnchors)}
+        >
+          {content.content}
+        </Heading>
+      );
+    case 'text':
+      return (
+        <p
+          className="fs-surface-static-text"
+          {...needTraceAttributes(needAnchors)}
+        >
+          {content.content}
+        </p>
+      );
+    case 'image':
+      return (
+        <img
+          className="fs-surface-static-image"
+          src={content.src}
+          alt={content.alt}
+          {...needTraceAttributes(needAnchors)}
+          // Empty alt is an explicit authored decorative choice in Surface
+          // 0.2. Missing alt never reaches this renderer.
+          {...(content.decorative ? { role: 'presentation' } : {})}
+        />
+      );
+    case 'divider':
+      // Presentational only: no accessible name, not focusable, and no
+      // semantic value is invented for an authored divider.
+      return (
+        <hr
+          className="fs-surface-static-divider"
+          {...needTraceAttributes(needAnchors)}
+        />
+      );
+  }
+}
+
 export function renderDefaultDefinitionForm({
   plan,
   grant,
@@ -483,6 +653,8 @@ export function renderDefaultDefinitionForm({
   referencesDocuments,
   ontologyDocuments,
   responseActionsDocument,
+  semanticControlScope,
+  onDefinitionActionResult,
   onActionCompleted,
 }: SurfaceDefinitionFormRenderInput): ReactNode {
   return (
@@ -493,9 +665,27 @@ export function renderDefaultDefinitionForm({
       referencesDocuments={referencesDocuments}
       ontologyDocuments={ontologyDocuments}
       responseActionsDocument={responseActionsDocument}
+      semanticControlScope={semanticControlScope}
+      onDefinitionActionResult={onDefinitionActionResult}
       onActionCompleted={onActionCompleted}
     />
   );
+}
+
+function DefaultDefinitionFormSlot({
+  input,
+  semanticOutputScope,
+}: {
+  input: SurfaceDefinitionFormRenderInput;
+  semanticOutputScope: SurfaceSemanticOutputPublisherScope | undefined;
+}): ReactNode {
+  useSurfaceSemanticOutputs(
+    semanticOutputScope,
+    semanticOutputScope
+      ? [{ subjectRef: semanticOutputScope.subjectPrefix }]
+      : [],
+  );
+  return renderDefaultDefinitionForm(input);
 }
 
 function DefaultSurfaceDefinitionForm({
@@ -504,6 +694,8 @@ function DefaultSurfaceDefinitionForm({
   referencesDocuments,
   ontologyDocuments,
   responseActionsDocument,
+  semanticControlScope,
+  onDefinitionActionResult,
   onActionCompleted,
 }: SurfaceDefinitionFormRenderInput): ReactNode {
   const engine = useMemo(
@@ -576,8 +768,9 @@ function DefaultSurfaceDefinitionForm({
       registryEntries={[...plan.registryEntries]}
       resolveFieldHelp={resolveFieldHelp}
       responseActionsDocument={responseActionsDocument ?? null}
+      {...(semanticControlScope ? { semanticControlScope } : {})}
       emitThemeTokens={false}
-      {...(onActionCompleted
+      {...(onActionCompleted || onDefinitionActionResult
         ? {
             // `onSubmit` requests the renderer's declared submit control. It is
             // a no-op because durable effects have not reached a terminal yet.
@@ -585,8 +778,9 @@ function DefaultSurfaceDefinitionForm({
             onActionResult: (
               result: ResponseActionInvocationResult<SubmitResult>,
             ) => {
+              onDefinitionActionResult?.(result);
               const action = completedFormAction(result);
-              if (action) onActionCompleted(action);
+              if (action) onActionCompleted?.(action);
             },
           }
         : {})}
@@ -615,6 +809,7 @@ interface SurfaceWidgetSlotProps {
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
     | undefined;
   onAdvance?: ((transition: PlannedTransition) => void) | undefined;
+  semanticOutputScope?: SurfaceSemanticOutputPublisherScope | undefined;
 }
 
 const EMPTY_WIDGET_DATA = Object.freeze({}) as Readonly<Record<string, unknown>>;
@@ -644,6 +839,7 @@ function SurfaceWidgetSlot({
   onWidgetActionReport,
   onRuntimeDiagnosticsChange,
   onAdvance,
+  semanticOutputScope,
 }: SurfaceWidgetSlotProps): ReactNode {
   const [delivery, setDelivery] = useState<WidgetDataState>(
     plan.dataInputs.length === 0 ? READY_WITH_NO_DATA : { status: 'loading' },
@@ -1054,6 +1250,7 @@ function SurfaceWidgetSlot({
       actions={resolvedActions}
       emitAction={emitAction}
       admitsTenantTheme={grant.admitsTenantTheme}
+      semanticOutputScope={semanticOutputScope}
     />
   );
 }

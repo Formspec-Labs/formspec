@@ -19,7 +19,18 @@ import type {
   ThemeDocument,
   MappingDocument,
   ResponseActionsDocument,
+  ActionInvocationStatus,
+  ActionTerminalStatus,
+  EffectOutcomeStatus,
   DataSourcesDocument,
+  DataSourceLoadState,
+  DataSourceFreshness,
+  ResponseSelection,
+  OutcomeVerificationCase,
+  OutcomeVerificationReport,
+  ValidationReportObservedPayload,
+  ResponseObservedPayload,
+  ResponseStatus,
   SurfacePreviewScenario,
   ArtifactResolutionReport,
   AppGraphValidationReport,
@@ -65,6 +76,27 @@ describe('generated types smoke test', () => {
     const dataSources = {} as DataSourcesDocument;
     expect(dataSources).toBeDefined();
 
+    const outcomeVerificationCase = {} as OutcomeVerificationCase;
+    expect(outcomeVerificationCase).toBeDefined();
+
+    const outcomeVerificationReport = {} as OutcomeVerificationReport;
+    expect(outcomeVerificationReport).toBeDefined();
+
+    const responseStatus = 'in-progress' satisfies ResponseStatus;
+    const invocationStatus = 'blocked' satisfies ActionInvocationStatus;
+    const terminalStatus = 'completed' satisfies ActionTerminalStatus;
+    const effectStatus = 'not-invoked' satisfies EffectOutcomeStatus;
+    const loadState = 'loaded' satisfies DataSourceLoadState;
+    const freshness = 'fresh' satisfies DataSourceFreshness;
+    expect([
+      responseStatus,
+      invocationStatus,
+      terminalStatus,
+      effectStatus,
+      loadState,
+      freshness,
+    ]).toHaveLength(6);
+
     const surfaceScenario = {} as SurfacePreviewScenario;
     expect(surfaceScenario).toBeDefined();
 
@@ -108,6 +140,41 @@ describe('generated types smoke test', () => {
     expect(variable).toBeDefined();
     expect(instance).toBeDefined();
     expect(option).toBeDefined();
+  });
+
+  it('selection and Response observation types preserve exact required fields', () => {
+    const selection = {
+      status: 'completed',
+      cardinality: 'latest',
+      orderBy: 'authored-desc',
+      tieBreak: 'response-id-asc',
+      partitionBy: 'definition',
+    } satisfies ResponseSelection;
+    const validationObservation = {
+      definitionRef: 'https://example.org/definition',
+      definitionDigest:
+        'sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+      responseId: 'response/1',
+      responseRevision: 1,
+      valid: false,
+      codes: ['CONSTRAINT_FAILED', 'CONSTRAINT_FAILED'],
+    } satisfies ValidationReportObservedPayload;
+    const responseObservation = {
+      definitionRef: 'https://example.org/definition',
+      definitionDigest:
+        'sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+      responseId: 'response/1',
+      responseRevision: 1,
+      responseDigest:
+        'sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+      status: 'completed',
+    } satisfies ResponseObservedPayload;
+
+    expect([
+      selection.status,
+      validationObservation.responseRevision,
+      responseObservation.responseDigest,
+    ]).toHaveLength(3);
   });
 });
 
@@ -181,7 +248,13 @@ describe('generated types — tightness against permissive intersections', () =>
       resolve(__dirname, '../src/generated/data-sources.ts'),
       'utf-8',
     );
-    for (const typeName of ['DataSource', 'Availability', 'RuntimeBehavior', 'CacheRule']) {
+    for (const typeName of [
+      'DataSource',
+      'ResponseSelection',
+      'Availability',
+      'RuntimeBehavior',
+      'CacheRule',
+    ]) {
       expect(src).not.toMatch(
         new RegExp(`export type ${typeName} = \\{\\s*\\[k: string\\]: unknown;\\s*\\} &`, 'm'),
       );

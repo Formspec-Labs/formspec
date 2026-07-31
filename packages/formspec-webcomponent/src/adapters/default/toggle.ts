@@ -14,6 +14,7 @@ export const renderToggle: AdapterRenderFn<ToggleBehavior> = (
     if (effectiveLP === 'top') {
         fieldDOM.root.classList.add('formspec-field--inline');
     }
+    fieldDOM.root.classList.add('formspec-field--toggle');
 
     const toggleContainer = document.createElement('div');
     toggleContainer.className = 'formspec-toggle';

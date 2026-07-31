@@ -60,6 +60,35 @@
       }
     },
     {
+      "id": "response:latest-completed-matter",
+      "kind": "definition-response",
+      "definitionRef": "https://example.gov/apps/data-aware-workspace/definition",
+      "definitionVersion": "1.0.0",
+      "responseSelection": {
+        "status": "completed",
+        "cardinality": "latest",
+        "orderBy": "authored-desc",
+        "tieBreak": "response-id-asc",
+        "partitionBy": "definition"
+      },
+      "owner": "formspec",
+      "scope": "definition",
+      "availability": {
+        "level": "definition",
+        "definitionRef": "https://example.gov/apps/data-aware-workspace/definition"
+      },
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "snapshot" },
+        "authorizationBoundary": "formspec-session",
+        "failureMode": "empty-state",
+        "provenance": {
+          "kind": "definition-response",
+          "source": "response:completed:latest-matter"
+        }
+      }
+    },
+    {
       "id": "query:search-results",
       "kind": "query-result",
       "owner": "module",

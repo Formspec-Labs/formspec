@@ -1,0 +1,942 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/outcomeVerificationCase/0.1",
+  "title": "Outcome Verification Case",
+  "description": "An authored, data-only procedure and closed set of expected observations for one pinned Need and application version. A case describes a test; it does not authorize execution or assert Need satisfaction.",
+  "type": "object",
+  "required": [
+    "$formspecOutcomeVerificationCase",
+    "id",
+    "version",
+    "need",
+    "experience",
+    "app",
+    "procedure",
+    "expectedObservations"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$formspecOutcomeVerificationCase": {
+      "const": "0.1",
+      "description": "Outcome Verification Case specification version."
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable case identifier."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of this case. SemVer is recommended."
+    },
+    "need": {
+      "$ref": "#/$defs/NeedPin"
+    },
+    "app": {
+      "$ref": "#/$defs/AppPin"
+    },
+    "experience": {
+      "$ref": "#/$defs/ExperiencePin"
+    },
+    "procedure": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ProcedureStep"
+      },
+      "description": "Ordered steps interpreted by a generic admitted runner."
+    },
+    "expectedObservations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ExpectedObservation"
+      },
+      "description": "Closed observations compared after the declared procedure."
+    }
+  },
+  "$defs": {
+    "Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Lowercase SHA-256 digest of canonical JSON bytes."
+    },
+    "FiniteJson": {
+      "description": "A JSON value. JSON serialization excludes non-finite numbers and host objects.",
+      "type": ["null", "boolean", "string", "number", "array", "object"]
+    },
+    "NeedPin": {
+      "type": "object",
+      "required": ["documentRef", "documentDigest", "id", "revision"],
+      "additionalProperties": false,
+      "properties": {
+        "documentRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "documentDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "AppPin": {
+      "type": "object",
+      "required": ["id", "version", "digest"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uri"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        }
+      }
+    },
+    "ExperiencePin": {
+      "type": "object",
+      "required": ["documentRef", "documentDigest", "unitId"],
+      "additionalProperties": false,
+      "properties": {
+        "documentRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "documentDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "unitId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "QualifiedSubjectRef": {
+      "type": "object",
+      "required": [
+        "artifactRef",
+        "artifactDigest",
+        "subjectKind",
+        "subjectRef"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "artifactRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "artifactDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "subjectKind": {
+          "type": "string",
+          "enum": [
+            "app-manifest",
+            "need",
+            "experience-unit",
+            "definition-item",
+            "definition-bind",
+            "definition-shape",
+            "response-action",
+            "response-action-effect",
+            "surface-route",
+            "surface-slot",
+            "surface-node",
+            "data-source"
+          ]
+        },
+        "subjectRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "DefinitionItemControlRef": {
+      "type": "object",
+      "required": [
+        "artifactRef",
+        "artifactDigest",
+        "subjectKind",
+        "subjectRef"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "artifactRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "artifactDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "subjectKind": {
+          "const": "definition-item"
+        },
+        "subjectRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ResponseActionControlRef": {
+      "type": "object",
+      "required": [
+        "artifactRef",
+        "artifactDigest",
+        "subjectKind",
+        "subjectRef"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "artifactRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "artifactDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "subjectKind": {
+          "const": "response-action"
+        },
+        "subjectRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ArtifactDeclarationRuleRef": {
+      "type": "object",
+      "required": ["kind", "subject"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "artifact-declaration"
+        },
+        "subject": {
+          "$ref": "#/$defs/QualifiedSubjectRef"
+        }
+      }
+    },
+    "SpecificationRuleRef": {
+      "type": "object",
+      "required": ["kind", "specRef", "specVersion", "ruleId"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "specification-rule"
+        },
+        "specRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "specVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ruleId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+        }
+      }
+    },
+    "RuleRef": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ArtifactDeclarationRuleRef"
+        },
+        {
+          "$ref": "#/$defs/SpecificationRuleRef"
+        }
+      ]
+    },
+    "OpenRouteStep": {
+      "type": "object",
+      "required": ["id", "kind", "surfaceRef", "surfaceDigest", "routeId"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "open-route"
+        },
+        "surfaceRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "surfaceDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "routeId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "SetItemStep": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "renderStepRef",
+        "control",
+        "definitionRef",
+        "definitionDigest",
+        "path",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "set-item"
+        },
+        "renderStepRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control": {
+          "$ref": "#/$defs/DefinitionItemControlRef"
+        },
+        "definitionRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "definitionDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "$ref": "#/$defs/FiniteJson"
+        }
+      }
+    },
+    "ActivateControlStep": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "renderStepRef",
+        "control",
+        "actionsRef",
+        "actionsDigest",
+        "actionId",
+        "responseStepRef"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "activate-control"
+        },
+        "renderStepRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control": {
+          "$ref": "#/$defs/ResponseActionControlRef"
+        },
+        "actionsRef": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "actionsDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseStepRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "CheckpointStep": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "checkpoint"
+        }
+      }
+    },
+    "ProcedureStep": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/OpenRouteStep"
+        },
+        {
+          "$ref": "#/$defs/SetItemStep"
+        },
+        {
+          "$ref": "#/$defs/ActivateControlStep"
+        },
+        {
+          "$ref": "#/$defs/CheckpointStep"
+        }
+      ]
+    },
+    "EffectTraceEntry": {
+      "type": "object",
+      "required": ["index", "type", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "$ref": "https://formspec.org/schemas/responseActions/1.0#/$defs/ActionEffectType"
+        },
+        "status": {
+          "$ref": "https://formspec.org/schemas/responseActions/1.0#/$defs/EffectOutcomeStatus"
+        },
+        "outcomeRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ResponseItemExpectation": {
+      "type": "object",
+      "required": ["path", "presence"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "presence": {
+                "const": "present"
+              }
+            },
+            "required": ["presence"]
+          },
+          "then": {
+            "required": ["value"]
+          },
+          "else": {
+            "not": {
+              "required": ["value"]
+            }
+          }
+        }
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "presence": {
+          "type": "string",
+          "enum": ["present", "absent"]
+        },
+        "value": {
+          "$ref": "#/$defs/FiniteJson"
+        }
+      }
+    },
+    "ExpectedObservationBase": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "ruleRefs",
+        "checkpointRef",
+        "requiredEvidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string"
+        },
+        "ruleRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/RuleRef"
+          }
+        },
+        "checkpointRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredEvidence": {
+          "type": "string",
+          "enum": ["structural", "simulated", "runtime"]
+        }
+      }
+    },
+    "ExpectedAppGraphObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ExpectedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": ["subject", "relation", "state"],
+          "properties": {
+            "kind": {
+              "const": "app-graph"
+            },
+            "requiredEvidence": {
+              "const": "structural"
+            },
+            "subject": {
+              "$ref": "#/$defs/QualifiedSubjectRef"
+            },
+            "relation": {
+              "type": "string",
+              "enum": ["resolves", "mounted", "direct-need-trace"]
+            },
+            "state": {
+              "type": "string",
+              "enum": ["present", "absent"]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ValidationSubjectRef": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/QualifiedSubjectRef"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "subjectKind": {
+              "const": "definition-bind"
+            }
+          }
+        }
+      ]
+    },
+    "ValidationIssueExpectation": {
+      "type": "object",
+      "required": ["path", "code"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ExpectedValidationReportObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ExpectedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "stepRef",
+            "subject",
+            "definitionRef",
+            "definitionDigest",
+            "valid"
+          ],
+          "properties": {
+            "kind": {
+              "const": "validation-report"
+            },
+            "requiredEvidence": {
+              "enum": ["simulated", "runtime"]
+            },
+            "stepRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "subject": {
+              "$ref": "#/$defs/ValidationSubjectRef"
+            },
+            "definitionRef": {
+              "type": "string",
+              "format": "uri-reference"
+            },
+            "definitionDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "valid": {
+              "type": "boolean"
+            },
+            "containsIssues": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ValidationIssueExpectation"
+              },
+              "uniqueItems": true
+            },
+            "excludesIssues": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ValidationIssueExpectation"
+              },
+              "uniqueItems": true
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ResponseSubjectRef": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/QualifiedSubjectRef"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "subjectKind": {
+              "const": "definition-item"
+            }
+          }
+        }
+      ]
+    },
+    "ExpectedResponseObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ExpectedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "stepRef",
+            "subject",
+            "definitionRef",
+            "definitionDigest",
+            "item"
+          ],
+          "properties": {
+            "kind": {
+              "const": "response"
+            },
+            "requiredEvidence": {
+              "enum": ["simulated", "runtime"]
+            },
+            "stepRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "subject": {
+              "$ref": "#/$defs/ResponseSubjectRef"
+            },
+            "definitionRef": {
+              "type": "string",
+              "format": "uri-reference"
+            },
+            "definitionDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "status": {
+              "$ref": "https://formspec.org/schemas/response/1.0#/$defs/ResponseStatus"
+            },
+            "item": {
+              "$ref": "#/$defs/ResponseItemExpectation"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ExpectedActionInvocationObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ExpectedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "stepRef",
+            "actionsRef",
+            "actionsDigest",
+            "actionId",
+            "terminal",
+            "effects"
+          ],
+          "properties": {
+            "kind": {
+              "const": "action-invocation"
+            },
+            "requiredEvidence": {
+              "enum": ["simulated", "runtime"]
+            },
+            "stepRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "actionsRef": {
+              "type": "string",
+              "format": "uri-reference"
+            },
+            "actionsDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "actionId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "terminal": {
+              "$ref": "https://formspec.org/schemas/responseActions/1.0#/$defs/ActionTerminalStatus"
+            },
+            "effects": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/EffectTraceEntry"
+              }
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ExpectedDataSourceResultObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ExpectedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "stepRef",
+            "catalogRef",
+            "catalogDigest",
+            "sourceId",
+            "state"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "loaded"
+                  }
+                },
+                "required": ["state"]
+              },
+              "then": {
+                "required": ["freshness"]
+              },
+              "else": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": ["freshness"]
+                    },
+                    {
+                      "required": ["recordId"]
+                    },
+                    {
+                      "required": ["valueDigest"]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "properties": {
+            "kind": {
+              "const": "data-source-result"
+            },
+            "requiredEvidence": {
+              "enum": ["simulated", "runtime"]
+            },
+            "stepRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "recordStepRef": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Prior response-producing step whose Response id must equal the observed record id."
+            },
+            "catalogRef": {
+              "type": "string",
+              "format": "uri-reference"
+            },
+            "catalogDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "sourceId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "state": {
+              "$ref": "https://formspec.org/schemas/dataSources/1.0#/$defs/DataSourceLoadState"
+            },
+            "freshness": {
+              "$ref": "https://formspec.org/schemas/dataSources/1.0#/$defs/DataSourceFreshness"
+            },
+            "recordId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "valueDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "RouteSubjectRef": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/QualifiedSubjectRef"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "subjectKind": {
+              "const": "surface-route"
+            }
+          }
+        }
+      ]
+    },
+    "ExpectedRouteStateObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ExpectedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "stepRef",
+            "subject",
+            "surfaceRef",
+            "surfaceDigest",
+            "routeId"
+          ],
+          "properties": {
+            "kind": {
+              "const": "route-state"
+            },
+            "requiredEvidence": {
+              "enum": ["simulated", "runtime"]
+            },
+            "stepRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "subject": {
+              "$ref": "#/$defs/RouteSubjectRef"
+            },
+            "surfaceRef": {
+              "type": "string",
+              "format": "uri-reference"
+            },
+            "surfaceDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "routeId": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ExpectedRenderedOutputObservation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ExpectedObservationBase"
+        },
+        {
+          "type": "object",
+          "required": ["stepRef", "node", "rendered"],
+          "properties": {
+            "kind": {
+              "const": "rendered-output"
+            },
+            "requiredEvidence": {
+              "enum": ["simulated", "runtime"]
+            },
+            "stepRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "node": {
+              "$ref": "#/$defs/QualifiedSubjectRef"
+            },
+            "rendered": {
+              "const": true
+            },
+            "operable": {
+              "type": "boolean"
+            },
+            "semanticValue": {
+              "$ref": "#/$defs/FiniteJson"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ExpectedObservation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ExpectedAppGraphObservation"
+        },
+        {
+          "$ref": "#/$defs/ExpectedValidationReportObservation"
+        },
+        {
+          "$ref": "#/$defs/ExpectedResponseObservation"
+        },
+        {
+          "$ref": "#/$defs/ExpectedActionInvocationObservation"
+        },
+        {
+          "$ref": "#/$defs/ExpectedDataSourceResultObservation"
+        },
+        {
+          "$ref": "#/$defs/ExpectedRouteStateObservation"
+        },
+        {
+          "$ref": "#/$defs/ExpectedRenderedOutputObservation"
+        }
+      ]
+    }
+  }
+}

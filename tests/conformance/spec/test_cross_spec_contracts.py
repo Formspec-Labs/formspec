@@ -527,7 +527,8 @@ class TestResponseSchema:
         }
 
     def test_s2_1_6__status_enum(self):
-        assert RESP_S["properties"]["status"]["enum"] == [
+        assert RESP_S["properties"]["status"]["$ref"] == "#/$defs/ResponseStatus"
+        assert RESP_S["$defs"]["ResponseStatus"]["enum"] == [
             "in-progress", "completed", "amended", "stopped"
         ]
 

@@ -92,6 +92,26 @@ describe('Field spacing token ownership', () => {
         expect(extractRuleProp(layoutCSS, '.formspec-checkbox-group', 'padding-left')).toBe('0');
     });
 
+    it('keeps toggle supporting content on full-width rows', () => {
+        expect(extractRuleProp(
+            layoutCSS,
+            '.formspec-field--inline.formspec-field--toggle',
+            'grid-template-columns',
+        )).toBe('minmax(0, 1fr) auto');
+        expect(layoutCSS).toMatch(/\.formspec-field--toggle\s*>\s*:is\(/);
+        expect(layoutCSS).toContain('grid-column: 1 / -1;');
+        expect(extractRuleProp(
+            layoutCSS,
+            '.formspec-field--toggle > .formspec-error:empty',
+            'display',
+        )).toBe('block');
+        expect(extractRuleProp(
+            layoutCSS,
+            '.formspec-field--toggle > .formspec-error:empty',
+            'visibility',
+        )).toBe('hidden');
+    });
+
     it('neutralizes native fieldset and legend chrome so grouped controls match across renderers', () => {
         expect(extractRuleProp(layoutCSS, '.formspec-fieldset', 'border')).toBe('0');
         expect(extractRuleProp(layoutCSS, '.formspec-fieldset', 'padding')).toBe('0');

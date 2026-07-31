@@ -28,6 +28,12 @@ pub enum DocumentType {
     IntakeHandoff,
     ValidationReport,
     ValidationResult,
+    /// App-level catalog of qualified data source declarations.
+    DataSources,
+    /// Authored outcome procedure and expected-observation document.
+    OutcomeVerificationCase,
+    /// Generated outcome comparison report document.
+    OutcomeVerificationReport,
     Registry,
     Changelog,
     FelFunctions,
@@ -58,6 +64,9 @@ impl DocumentType {
             DocumentType::IntakeHandoff => "intake_handoff",
             DocumentType::ValidationReport => "validation_report",
             DocumentType::ValidationResult => "validation_result",
+            DocumentType::DataSources => "data_sources",
+            DocumentType::OutcomeVerificationCase => "outcome_verification_case",
+            DocumentType::OutcomeVerificationReport => "outcome_verification_report",
             DocumentType::Registry => "registry",
             DocumentType::Changelog => "changelog",
             DocumentType::FelFunctions => "fel_functions",
@@ -91,6 +100,13 @@ impl DocumentType {
             }
             "validation_report" | "validationReport" => Some(DocumentType::ValidationReport),
             "validation_result" | "validationResult" => Some(DocumentType::ValidationResult),
+            "data_sources" | "dataSources" | "data-sources" => Some(DocumentType::DataSources),
+            "outcome_verification_case"
+            | "outcomeVerificationCase"
+            | "outcome-verification-case" => Some(DocumentType::OutcomeVerificationCase),
+            "outcome_verification_report"
+            | "outcomeVerificationReport"
+            | "outcome-verification-report" => Some(DocumentType::OutcomeVerificationReport),
             "registry" => Some(DocumentType::Registry),
             "changelog" => Some(DocumentType::Changelog),
             "fel_functions" | "fel-functions" => Some(DocumentType::FelFunctions),
@@ -151,7 +167,7 @@ pub struct SchemaValidationPlan {
 // ── Document type detection ─────────────────────────────────────
 
 /// Marker fields that identify document types.
-/// Every Formspec document type has a `$formspec*` marker field (required, const "1.0"):
+/// Every Formspec document type has a required, versioned `$formspec*` marker field:
 ///   - Definition:        `$formspec`
 ///   - Theme:             `$formspecTheme`
 ///   - Component:         `$formspecComponent`
@@ -167,6 +183,9 @@ pub struct SchemaValidationPlan {
 ///   - IntakeHandoff:     `$formspecIntakeHandoff`
 ///   - ValidationReport:  `$formspecValidationReport`
 ///   - ValidationResult:  `$formspecValidationResult`
+///   - DataSources:        `$formspecDataSources`
+///   - OutcomeVerificationCase: `$formspecOutcomeVerificationCase`
+///   - OutcomeVerificationReport: `$formspecOutcomeVerificationReport`
 ///   - Changelog:         `$formspecChangelog`
 ///   - FEL Functions:     `$formspecFelFunctions`
 const MARKER_FIELDS: &[(&str, DocumentType)] = &[
@@ -189,6 +208,15 @@ const MARKER_FIELDS: &[(&str, DocumentType)] = &[
     ("$formspecIntakeHandoff", DocumentType::IntakeHandoff),
     ("$formspecValidationReport", DocumentType::ValidationReport),
     ("$formspecValidationResult", DocumentType::ValidationResult),
+    ("$formspecDataSources", DocumentType::DataSources),
+    (
+        "$formspecOutcomeVerificationCase",
+        DocumentType::OutcomeVerificationCase,
+    ),
+    (
+        "$formspecOutcomeVerificationReport",
+        DocumentType::OutcomeVerificationReport,
+    ),
     ("$formspecChangelog", DocumentType::Changelog),
     ("$formspecFelFunctions", DocumentType::FelFunctions),
     ("$formspecScreener", DocumentType::Screener),
@@ -523,6 +551,39 @@ mod tests {
     }
 
     #[test]
+    fn test_detect_outcome_verification_documents() {
+        let case = json!({
+            "$formspecOutcomeVerificationCase": "0.1",
+            "id": "case-1"
+        });
+        let report = json!({
+            "$formspecOutcomeVerificationReport": "0.1",
+            "id": "report-1"
+        });
+
+        assert_eq!(
+            detect_document_type(&case),
+            Some(DocumentType::OutcomeVerificationCase)
+        );
+        assert_eq!(
+            detect_document_type(&report),
+            Some(DocumentType::OutcomeVerificationReport)
+        );
+    }
+
+    #[test]
+    fn test_detect_data_sources_document() {
+        let doc = json!({
+            "$formspecDataSources": "1.0",
+            "id": "https://example.org/data-sources",
+            "version": "1.0.0",
+            "sources": []
+        });
+
+        assert_eq!(detect_document_type(&doc), Some(DocumentType::DataSources));
+    }
+
+    #[test]
     fn test_detect_fel_functions() {
         let doc = json!({
             "$formspecFelFunctions": "1.0",
@@ -669,6 +730,15 @@ mod tests {
             DocumentType::ValidationResult.schema_key(),
             "validation_result"
         );
+        assert_eq!(DocumentType::DataSources.schema_key(), "data_sources");
+        assert_eq!(
+            DocumentType::OutcomeVerificationCase.schema_key(),
+            "outcome_verification_case"
+        );
+        assert_eq!(
+            DocumentType::OutcomeVerificationReport.schema_key(),
+            "outcome_verification_report"
+        );
         assert_eq!(DocumentType::Registry.schema_key(), "registry");
         assert_eq!(DocumentType::Changelog.schema_key(), "changelog");
         assert_eq!(DocumentType::FelFunctions.schema_key(), "fel_functions");
@@ -691,6 +761,32 @@ mod tests {
             DocumentType::from_schema_key("validation_result"),
             Some(DocumentType::ValidationResult)
         );
+        for key in ["data_sources", "data-sources", "dataSources"] {
+            assert_eq!(
+                DocumentType::from_schema_key(key),
+                Some(DocumentType::DataSources)
+            );
+        }
+        for key in [
+            "outcome_verification_case",
+            "outcome-verification-case",
+            "outcomeVerificationCase",
+        ] {
+            assert_eq!(
+                DocumentType::from_schema_key(key),
+                Some(DocumentType::OutcomeVerificationCase)
+            );
+        }
+        for key in [
+            "outcome_verification_report",
+            "outcome-verification-report",
+            "outcomeVerificationReport",
+        ] {
+            assert_eq!(
+                DocumentType::from_schema_key(key),
+                Some(DocumentType::OutcomeVerificationReport)
+            );
+        }
         assert_eq!(
             DocumentType::from_schema_key("intake_handoff"),
             Some(DocumentType::IntakeHandoff)

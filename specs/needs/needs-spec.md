@@ -371,7 +371,11 @@ Violations are reported as `NEED-DOC-001` or `NEED-GROUND-001` findings (S9.4). 
 
 ## 7. Citing Needs from Experience — `needRefs`
 
-*This section specifies an addition to the Experience Unit shape (experience-spec S5.1), landed in [`schemas/experience.schema.json`](../../schemas/experience.schema.json) as `Unit.needRefs` and `$defs.NeedRef`.*
+*Experience S5.1 and S6.4 own the `Unit.needRefs` and `NeedRef.completion`
+shapes landed in
+[`schemas/experience.schema.json`](../../schemas/experience.schema.json).
+This section owns how those citations resolve against a caller-paired Needs
+Document and what they may conclude about a Need.*
 
 An Experience Unit MAY declare:
 
@@ -392,7 +396,8 @@ Semantics: a `needRef` is the inverse of the OSLC-RM `satisfiedBy` edge, carried
 
 Resolution: when a Needs Document is paired, every `needRefs[].id` MUST resolve to a `need.id` in it; unresolved refs produce `NEED-REF-001`. A ref resolving to a `superseded` or `withdrawn` Need resolves successfully — staleness is the reserved codes' territory (S9.5), and one defect gets one code. When no Needs Document is paired, resolution is inapplicable and emits nothing (S2.1).
 
-`NeedCompletion.shape` uses this closed vocabulary:
+For reference, Experience S6.4 defines this closed
+`NeedCompletion.shape` vocabulary:
 
 | Shape | The static graph must identify |
 |-------|-------------------------------|
@@ -407,10 +412,12 @@ implementation target. Direct `need:<id>@<revision>` anchors identify candidate
 outputs. `completion` does not place a control, make an artifact render, grant
 authorization, or assert that a runtime attempt succeeded.
 
-An AppGraph usable-outcome advisor evaluates only `NeedRef` entries that declare
-`completion`. It MUST keep this advisory result separate from S9 coverage and
-MUST NOT change `NEED-COVERAGE-001` or `NEED-COVERAGE-002`. For an adopted Need
-at its current revision, it reports:
+AppGraphValidator owns usable-outcome candidate matching for `NeedRef` entries
+that declare `completion`. Its stable
+`rendered-node.direct-need-trace` rule keeps that static result separate from
+S9 coverage and does not change `NEED-COVERAGE-001` or
+`NEED-COVERAGE-002`. For an adopted Need at its current revision, the current
+advisor reports:
 
 | Code | Severity | Static conclusion |
 |------|----------|-------------------|

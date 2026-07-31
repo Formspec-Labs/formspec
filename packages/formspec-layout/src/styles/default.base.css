@@ -142,6 +142,34 @@
   line-height: 1.4;
 }
 
+.formspec-field--inline.formspec-field--toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: var(--formspec-spacing-xs, 0.25rem);
+}
+
+.formspec-field--toggle > .formspec-label {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.formspec-field--toggle > .formspec-toggle {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.formspec-field--toggle > :is(
+  .formspec-description,
+  .formspec-hint,
+  .formspec-field-help,
+  .formspec-remote-options-status,
+  .formspec-error
+) {
+  grid-column: 1 / -1;
+}
+
 .formspec-label {
   display: block;
 }
@@ -260,6 +288,11 @@ h6.formspec-heading {
 
 .formspec-error:empty {
   display: none;
+}
+
+.formspec-field--toggle > .formspec-error:empty {
+  display: block;
+  visibility: hidden;
 }
 
 .formspec-required {

@@ -1043,6 +1043,66 @@
       ],
       "runtimeScope": "package-conformance-only",
       "runtimeRationale": "Needs v1 defines the authored document, its schema, generated types, the caller-paired host-evidence boundary, the five live NEED-* diagnostics on the shared AppGraphValidator report, and the fixture corpus. AppGraphValidator consumes paired Needs evidence and its package corpus executes the same fixtures. Formspec Studio already ships caller-paired read, propose, adopt, and cite authoring verbs in its own repository. There is no Rust surface: no lint pass reads a Needs Document, and needs.schema.json is deliberately absent from the crates/formspec-lint/schemas mirror because nothing in the crate would consume it. ADR 0159 Amendment A3 classifies the existing artifact under PURPOSE without adding another runtime. Regeneration behavior over need: anchors (S9.5 reserved codes) and posture wiring for the candidate needs.adoption authority handle remain future work."
+    },
+    "outcome-verification-case": {
+      "status": "enforced",
+      "spec": "specs/observability/outcome-verification-spec.md",
+      "schema": "schemas/outcome-verification-case.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_outcome_verification_schema.py",
+        "tests/conformance/spec/test_outcome_verification_contract.py",
+        "packages/formspec-types/tests/schema-sync.test.ts"
+      ],
+      "crates": [],
+      "fixtures": [
+        "tests/conformance/fixtures/outcome-verification/valid-case.json"
+      ],
+      "packages": {
+        "outcome-verification": [
+          "packages/formspec-outcome-verification/src/"
+        ],
+        "types": [
+          "packages/formspec-types/src/generated/outcome-verification-case.ts"
+        ]
+      },
+      "checks": [
+        "Schema tests cover the closed case root, procedure, rule references, six expectation kinds, evidence compatibility, and owner-vocabulary references.",
+        "Normative contract tests pin the stable rule catalog and the Experience, Needs, AppGraph, and Outcome Verification ownership split.",
+        "Generated TypeScript exports the case root, procedure-step union, qualified references, and six expectation variants.",
+        "The outcome-verification package consumes the generated types and implements generic lint and execution boundaries."
+      ],
+      "runtimeScope": "package-conformance-only",
+      "runtimeRationale": "Outcome Verification cases are authored OBSERVABILITY data. The TypeScript package supplies the generic lint and admitted runner boundary; no Rust runtime owns execution."
+    },
+    "outcome-verification-report": {
+      "status": "enforced",
+      "spec": "specs/observability/outcome-verification-spec.md",
+      "schema": "schemas/outcome-verification-report.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_outcome_verification_schema.py",
+        "tests/conformance/spec/test_outcome_verification_contract.py",
+        "packages/formspec-types/tests/schema-sync.test.ts"
+      ],
+      "crates": [],
+      "fixtures": [
+        "tests/conformance/fixtures/outcome-verification/valid-report.json"
+      ],
+      "packages": {
+        "outcome-verification": [
+          "packages/formspec-outcome-verification/src/"
+        ],
+        "types": [
+          "packages/formspec-types/src/generated/outcome-verification-report.ts"
+        ]
+      },
+      "checks": [
+        "Schema tests cover closed normalized observations, comparator input, report output, fixed claim scope, and causal binding fields.",
+        "Normative contract tests pin deterministic conclusion precedence and the ban on Need-satisfaction conclusions.",
+        "Generated TypeScript exports ComparatorRequest, NormalizedObservation, StepBinding, OutcomeVerificationReport, and closed conclusion vocabularies.",
+        "The outcome-verification package supplies the pure comparator, generic runner, and lint checks."
+      ],
+      "runtimeScope": "package-conformance-only",
+      "runtimeRationale": "Outcome Verification reports are generated OBSERVABILITY records. The pure TypeScript comparator owns report generation; no browser, renderer, product, or Rust runtime is part of the comparison package."
     }
   }
 }

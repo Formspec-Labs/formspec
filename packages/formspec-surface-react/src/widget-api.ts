@@ -33,7 +33,12 @@
  * route graph, and transitions are the shell's (`transitions.ts`).
  */
 import type { ReactNode } from 'react';
-import type { HeadingLevel, RouteClass, WidgetModule } from '@formspec-org/surface';
+import type {
+  HeadingLevel,
+  RouteClass,
+  SurfaceSemanticOutputPublisherScope,
+  WidgetModule,
+} from '@formspec-org/surface';
 import type {
   ResponseActionInvocationResult,
   ResponseActionInvokerResult,
@@ -127,6 +132,11 @@ export interface SurfaceWidgetProps {
     input?: SurfaceWidgetActionInput | undefined,
   ) => SurfaceWidgetActionEmission | void;
   admitsTenantTheme: boolean;
+  /**
+   * Caller-paired output identity. A widget publishes nothing unless its own
+   * renderer explicitly commits semantic outputs through this scope.
+   */
+  semanticOutputScope?: SurfaceSemanticOutputPublisherScope | undefined;
 }
 
 export type SurfaceWidget = (props: SurfaceWidgetProps) => ReactNode;

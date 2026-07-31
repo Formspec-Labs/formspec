@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import {
   findResponseActionByIntent,
+  classifyResponseActionEffect,
   invokeResponseAction,
+  planResponseActionInvocation,
   resolveResponseAction,
   resolveResponseActionValidationTuple,
   ResponseActionsPreconditionCatalog,
@@ -44,6 +46,42 @@ test('resolves ActionButton actionRef against a Response Actions document', () =
   assert.equal(resolution.finding, undefined);
 });
 
+test('pure invocation planning exposes every durable effect before execution', () => {
+  const document = {
+    ...responseActions,
+    actions: [{
+      id: 'mixed-effects',
+      intent: 'submit',
+      effects: [
+        { type: 'hostEvent', eventName: 'previewed' },
+        { type: 'browserResource', operation: 'open', resourceRef: 'receipt' },
+        {
+          type: 'ledgerAppend',
+          eventKind: 'response.completed',
+          idempotencyKey: '@invocation.id & "/ledger"',
+        },
+      ],
+    }],
+  };
+
+  const plan = planResponseActionInvocation(document, 'mixed-effects', 'button-1');
+
+  assert.equal(plan.resolution.resolved, true);
+  assert.deepEqual(
+    plan.effects.map(({ effectIndex, effectClass, durable }) => ({
+      effectIndex,
+      effectClass,
+      durable,
+    })),
+    [
+      { effectIndex: 0, effectClass: 'transient', durable: false },
+      { effectIndex: 1, effectClass: 'browser-local', durable: false },
+      { effectIndex: 2, effectClass: 'durable', durable: true },
+    ],
+  );
+  assert.equal(classifyResponseActionEffect({ type: 'future-effect' }), 'durable');
+});
+
 test('reports inert action finding when actionRef cannot resolve', () => {
   const resolution = resolveResponseAction(responseActions, 'missing', 'node-1');
 
@@ -55,6 +93,22 @@ test('reports inert action finding when actionRef cannot resolve', () => {
     nodeId: 'node-1',
     target: 'missing',
   });
+});
+
+test('refuses an ambiguous Action id when schema validation was bypassed', () => {
+  const duplicated = {
+    ...responseActions,
+    actions: [
+      responseActions.actions[0],
+      { ...responseActions.actions[0], intent: 'review' },
+    ],
+  };
+
+  const resolution = resolveResponseAction(duplicated, 'send-application', 'node-1');
+
+  assert.equal(resolution.resolved, false);
+  assert.equal(resolution.action, null);
+  assert.equal(resolution.finding.reason, 'ambiguous-actionRef');
 });
 
 test('uses VM master table tuple for standard intents', () => {
@@ -454,7 +508,11 @@ test('durable effect failures halt in order without rolling back prior effects',
 
   assert.equal(result.status, 'failed');
   assert.equal(result.failedEffectIndex, 1);
-  assert.deepEqual(result.effectTrace.map(effect => effect.status), ['succeeded', 'failed']);
+  assert.deepEqual(
+    result.effectTrace.map(effect => effect.status),
+    ['succeeded', 'failed', 'not-invoked'],
+  );
+  assert.equal(result.effectTrace[2].type, 'hostEvent');
   assert.deepEqual(hostEvents, []);
 });
 
@@ -531,7 +589,60 @@ test('retry-once reuses frozen idempotency keys and retries only the failed effe
     { type: 'handoffAssembly', key: 'inv-1/effect-1', attempt: 0 },
     { type: 'handoffAssembly', key: 'inv-1/effect-1', attempt: 1 },
   ]);
-  assert.deepEqual(result.effectTrace.map(effect => effect.status), ['succeeded', 'failed', 'succeeded']);
+  assert.deepEqual(result.effectTrace.map(effect => effect.status), ['succeeded', 'succeeded']);
+});
+
+test('returns deterministic invocation identity and exact action-owner facts', () => {
+  const result = invokeResponseAction(responseActions, 'send-application', {
+    submit: () => ({ response: {}, validationReport: { valid: true } }),
+    dispatchHostEvent: () => {},
+  }, 'button-1', {
+    invocationId: 'case-7/run-3/activate-submit',
+    actionArtifact: {
+      artifactRef: 'https://example.gov/actions/intake',
+      artifactDigest: `sha256:${'a'.repeat(64)}`,
+    },
+  });
+
+  assert.equal(result.invocationId, 'case-7/run-3/activate-submit');
+  assert.deepEqual(result.actionOwner, {
+    artifactRef: 'https://example.gov/actions/intake',
+    artifactDigest: `sha256:${'a'.repeat(64)}`,
+    subjectKind: 'response-action',
+    subjectRef: 'send-application',
+  });
+});
+
+test('blocking produces one explicit not-invoked record per declared effect', () => {
+  const document = {
+    ...responseActions,
+    actions: [{
+      id: 'blocked-chain',
+      intent: 'submit',
+      effects: [
+        { type: 'hostEvent', eventName: 'first' },
+        {
+          type: 'ledgerAppend',
+          eventKind: 'response.completed',
+          idempotencyKey: '@invocation.id & "/ledger"',
+        },
+      ],
+    }],
+  };
+  const result = invokeResponseAction(document, 'blocked-chain', {
+    submit: () => ({ response: {}, validationReport: { valid: false } }),
+    dispatchHostEvent: () => assert.fail('blocked action must execute nothing'),
+  }, 'button-1', { invocationId: 'blocked-1' });
+
+  assert.equal(result.status, 'blocked');
+  assert.equal(result.invocationId, 'blocked-1');
+  assert.deepEqual(
+    result.effectTrace.map(({ type, status }) => ({ type, status })),
+    [
+      { type: 'hostEvent', status: 'not-invoked' },
+      { type: 'ledgerAppend', status: 'not-invoked' },
+    ],
+  );
 });
 
 test('recordActionLifecycle emits action.invoked once on happy-path invocation', () => {

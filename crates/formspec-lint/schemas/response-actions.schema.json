@@ -88,6 +88,33 @@
     }
   },
   "$defs": {
+    "ActionInvocationStatus": {
+      "type": "string",
+      "enum": ["unresolved", "blocked", "failed", "deferred", "completed"],
+      "description": "Complete Response Action invocation status vocabulary. unresolved means that Action resolution failed before invocation; the remaining values are terminal execution outcomes."
+    },
+    "ActionTerminalStatus": {
+      "type": "string",
+      "enum": ["blocked", "failed", "deferred", "completed"],
+      "description": "Terminal outcome returned after a Response Action invocation begins."
+    },
+    "EffectOutcomeStatus": {
+      "type": "string",
+      "enum": ["succeeded", "failed", "deferred", "replayed", "not-invoked"],
+      "description": "Outcome of one declared Action effect. not-invoked is an explicit owner-produced record, not an inference from a missing effect."
+    },
+    "ActionEffectType": {
+      "type": "string",
+      "enum": [
+        "mappingExecution",
+        "ledgerAppend",
+        "handoffAssembly",
+        "evidenceRequest",
+        "hostEvent",
+        "browserResource"
+      ],
+      "description": "Closed Response Actions effect-type vocabulary."
+    },
     "ActionIntent": {
       "oneOf": [
         { "$ref": "https://formspec.org/schemas/validationMapping/1.0#/$defs/ActionIntent" },

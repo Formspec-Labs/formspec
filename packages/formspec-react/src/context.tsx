@@ -15,6 +15,7 @@ import type {
     ResponseActionEffectOutcome,
     ResponseActionIdempotencyKeyContext,
     ResponseActionInvocationPorts,
+    ResponseActionInvocationContext,
     ResponseActionInvocationResult,
     ResponseActionPreconditionResult,
     ResponseActionsDocumentInput,
@@ -43,6 +44,10 @@ import {
     mergeFormPresentationForPlanning,
 } from '@formspec-org/layout';
 import type { ComponentMap } from './component-map';
+import type {
+    SemanticControlScope,
+    SemanticResponseBinding,
+} from './semantic-controls';
 
 const platformTheme = buildPlatformTheme();
 
@@ -59,6 +64,7 @@ export interface ResponseActionInvokerInput<TDetail = SubmitResult> {
     actionRef: string;
     nodeId?: string;
     ports: ResponseActionInvocationPorts<TDetail>;
+    invocationContext?: ResponseActionInvocationContext;
 }
 
 export type ResponseActionInvokerResult<TDetail = SubmitResult> =
@@ -179,6 +185,10 @@ export interface FormspecContextValue {
     ) => string;
     /** Resolve an ActionButton actionRef against the loaded Response Actions document. */
     resolveActionRef: (actionRef: string, nodeId?: string) => ActionResolution;
+    /** Exact runtime identity used only by the public semantic-control seam. */
+    semanticControlScope?: SemanticControlScope;
+    currentSemanticResponseBinding: () => SemanticResponseBinding | null;
+    advanceSemanticResponseRevision: () => SemanticResponseBinding | null;
     /** Mark a field as touched (e.g., on blur). */
     touchField: (path: string) => void;
     /** Touch every field in the definition (e.g., before submit to reveal all errors). */
@@ -227,6 +237,11 @@ export interface FormspecProviderProps {
     emitThemeTokens?: boolean;
     /** Response Actions document for ActionButton actionRef resolution. */
     responseActionsDocument?: ResponseActionsDocument | null;
+    /**
+     * Exact artifact, render, and Response identity for renderer-owned
+     * semantic controls. Omit for ordinary human-only rendering.
+     */
+    semanticControlScope?: SemanticControlScope;
     /** Initial response data to pre-populate fields (for edit flows). */
     initialData?: Record<string, any>;
     /** Registry entries for extension field validation. */
@@ -290,6 +305,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         hostEvidence,
         themeDocument,
         responseActionsDocument,
+        semanticControlScope,
         initialData,
         registryEntries,
         resolveFieldHelp,
@@ -310,6 +326,36 @@ export function FormspecProvider(props: FormspecProviderProps) {
     } = props;
     const fieldHelpLabel = props.fieldHelpLabel ?? 'Help and guidance';
     const shouldEmitThemeTokens = props.emitThemeTokens ?? true;
+    const semanticResponseState = useMemo(
+        () => ({
+            responseRevision: semanticControlScope?.initialResponseRevision ?? 0,
+        }),
+        [
+            semanticControlScope?.renderInstanceId,
+            semanticControlScope?.responseId,
+            semanticControlScope?.initialResponseRevision,
+        ],
+    );
+    const currentSemanticResponseBinding = useCallback(
+        (): SemanticResponseBinding | null => semanticControlScope
+            ? {
+                responseId: semanticControlScope.responseId,
+                responseRevision: semanticResponseState.responseRevision,
+            }
+            : null,
+        [semanticControlScope, semanticResponseState],
+    );
+    const advanceSemanticResponseRevision = useCallback(
+        (): SemanticResponseBinding | null => {
+            if (!semanticControlScope) return null;
+            semanticResponseState.responseRevision += 1;
+            return {
+                responseId: semanticControlScope.responseId,
+                responseRevision: semanticResponseState.responseRevision,
+            };
+        },
+        [semanticControlScope, semanticResponseState],
+    );
     const hasIssuerOverrideProp = Object.prototype.hasOwnProperty.call(props, 'issuerOverride');
     const effectiveThemeDocument = useMemo(
         () => themeDocument
@@ -535,6 +581,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             componentGraph,
             hostEvidence,
             responseActionsDocument,
+            semanticControlScope,
             onSubmit,
             onHostEvent,
             onActionFinding,
@@ -544,6 +591,8 @@ export function FormspecProvider(props: FormspecProviderProps) {
             dispatchActionEffect,
             resolveActionIdempotencyKey,
             resolveActionRef,
+            currentSemanticResponseBinding,
+            advanceSemanticResponseRevision,
             touchField,
             touchAllFields,
             touchedVersion: touchedVersionSignal,
@@ -554,7 +603,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             fieldHelpLabel,
             formPresentation: mergedFormPresentation,
         }),
-        [engine, layoutPlan, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation],
+        [engine, layoutPlan, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation],
     );
 
     return (

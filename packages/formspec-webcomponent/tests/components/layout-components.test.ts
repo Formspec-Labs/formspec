@@ -203,6 +203,7 @@ describe('layout components — Toggle', () => {
             },
         );
         const wrap = el.querySelector('.formspec-toggle') as HTMLElement;
+        expect(wrap.closest('.formspec-field--toggle')).not.toBeNull();
         const off = wrap.querySelector('.formspec-toggle-off') as HTMLElement;
         const on = wrap.querySelector('.formspec-toggle-on') as HTMLElement;
         expect(off.textContent).toBe('Off');

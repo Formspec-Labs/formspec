@@ -33,4 +33,13 @@ export { useFocusField } from './use-focus-field';
 export type { UseFocusFieldResult } from './use-focus-field';
 export { useRuntimeContext } from './use-runtime-context';
 export type { UseRuntimeContextResult, RuntimeContext } from './use-runtime-context';
+export { useSemanticFieldControl } from './use-semantic-field-control';
+export type {
+    QualifiedSemanticSubjectRef,
+    SemanticActivateControlContext,
+    SemanticControlRegistry,
+    SemanticControlScope,
+    SemanticControlTarget,
+    SemanticResponseBinding,
+} from './semantic-controls';
 export type { FieldComponentProps, LayoutComponentProps, DisplayComponentProps, ComponentMap } from './component-map';

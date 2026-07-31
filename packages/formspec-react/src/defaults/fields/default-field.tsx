@@ -8,6 +8,7 @@ import type { ExtensionAttrs } from './field-control-types';
 import { GroupControl } from './group-control';
 import { renderControl } from './render-control';
 import { needTraceAttrs, projectionMetadataAttrs } from '../../projection-metadata.js';
+import { useSemanticFieldControl } from '../../use-semantic-field-control.js';
 
 /**
  * Default field renderer — works for any field type.
@@ -18,6 +19,7 @@ import { needTraceAttrs, projectionMetadataAttrs } from '../../projection-metada
 export function DefaultField({ field, node }: FieldComponentProps) {
     const isProtected = !field.visible && field.disabledDisplay === 'protected';
     const isReadonly = field.readonly || isProtected;
+    useSemanticFieldControl(field, isReadonly);
     const showError = !!(field.error && field.touched);
     const themeClass = node.cssClasses?.join(' ') || '';
     const graphAttrs = projectionMetadataAttrs(node);
@@ -147,7 +149,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
 
         return (
             <div
-                className={`formspec-field formspec-field--inline ${isProtected ? 'formspec-protected' : ''} ${themeClass}`.trim()}
+                className={`formspec-field formspec-field--inline formspec-field--toggle ${isProtected ? 'formspec-protected' : ''} ${themeClass}`.trim()}
                 style={node.style as React.CSSProperties | undefined}
                 data-name={field.path}
                 {...graphAttrs}

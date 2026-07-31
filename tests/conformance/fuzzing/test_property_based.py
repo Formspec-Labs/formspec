@@ -582,12 +582,40 @@ def mutate_delete_required(doc, schema):
     return None, "no deletable field found"
 
 
+def _resolve_local_ref(schema_node, root_schema):
+    """Follow a chain of local JSON Schema references without resolving files."""
+    seen = set()
+    while isinstance(schema_node, dict):
+        ref = schema_node.get("$ref")
+        if not isinstance(ref, str) or not ref.startswith("#/") or ref in seen:
+            break
+        seen.add(ref)
+
+        resolved = root_schema
+        try:
+            for raw_token in ref[2:].split("/"):
+                token = raw_token.replace("~1", "/").replace("~0", "~")
+                resolved = resolved[token]
+        except (KeyError, TypeError):
+            break
+        schema_node = resolved
+
+    return schema_node
+
+
 def mutate_bad_enum(doc, schema):
     """Find a field with an enum constraint and set an invalid value."""
     props = schema.get("properties", {})
     mutated = copy.deepcopy(doc)
     for field, field_schema in props.items():
-        if "enum" in field_schema and field in mutated:
+        resolved_schema = field_schema
+        if isinstance(field_schema, dict) and "enum" not in field_schema:
+            resolved_schema = _resolve_local_ref(field_schema, schema)
+        if (
+            isinstance(resolved_schema, dict)
+            and "enum" in resolved_schema
+            and field in mutated
+        ):
             mutated[field] = "__INVALID_ENUM_VALUE__"
             return mutated, f"bad enum on '{field}'"
     return None, "no enum field found"

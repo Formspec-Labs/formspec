@@ -681,6 +681,7 @@ describe('Toggle — role switch', () => {
         };
         const container = renderField(def, node);
         const toggleWrapper = container.querySelector('.formspec-toggle');
+        expect(container.querySelector('.formspec-field--toggle')).not.toBeNull();
         expect(toggleWrapper).toBeTruthy();
         // The toggle container should contain the input and the on/off labels
         const input = toggleWrapper!.querySelector('input[role="switch"]');

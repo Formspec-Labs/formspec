@@ -22,6 +22,11 @@ export type DataSource = {
    */
   definitionRef?: string;
   /**
+   * Exact Definition version used to partition non-draft Definition-response selection. The pair (definitionRef, definitionVersion) is immutable selection identity.
+   */
+  definitionVersion?: string;
+  responseSelection?: ResponseSelection;
+  /**
    * Runtime owner responsible for supplying this source. This is ownership metadata, not authorization.
    */
   owner: 'host' | 'formspec' | 'module';
@@ -121,6 +126,20 @@ export type CacheRule = {
    */
   staleAfter?: string;
 };
+/**
+ * Host-reported outcome of one Data Source load request.
+ *
+ * This interface was referenced by `DataSourcesDocument`'s JSON-Schema
+ * via the `definition` "DataSourceLoadState".
+ */
+export type DataSourceLoadState = 'loaded' | 'unavailable';
+/**
+ * Host-reported freshness of a loaded Data Source value. Hosts report this value; consumers do not infer it from a clock.
+ *
+ * This interface was referenced by `DataSourcesDocument`'s JSON-Schema
+ * via the `definition` "DataSourceFreshness".
+ */
+export type DataSourceFreshness = 'fresh' | 'stale';
 
 /**
  * Peer app-graph artifact declaring named Data Sources for app, route, slot, module, resource, and Definition-response availability. Definition-local instances remain the authority for @instance() lookup inside a Definition; this document is the app-level catalog consumed by App Manifest resolution and future AppGraphValidator work.
@@ -155,6 +174,31 @@ export interface DataSourcesDocument {
    * via the `patternProperty` "^x-".
    */
   [k: `x-${string}`]: unknown;
+}
+/**
+ * Complete deterministic selection policy for a non-draft Definition-response source.
+ */
+export interface ResponseSelection {
+  /**
+   * Select only Responses whose owner-defined ResponseStatus is completed.
+   */
+  status: 'completed';
+  /**
+   * Return exactly the latest matching Response when one exists.
+   */
+  cardinality: 'latest';
+  /**
+   * Order matching Responses by the RFC 3339 instant represented by authored, newest first.
+   */
+  orderBy: 'authored-desc';
+  /**
+   * Resolve equal authored instants by Response id ascending in unsigned UTF-8 byte order.
+   */
+  tieBreak: 'response-id-asc';
+  /**
+   * Select only within the exact (definitionRef, definitionVersion) partition.
+   */
+  partitionBy: 'definition';
 }
 /**
  * This interface was referenced by `DataSourcesDocument`'s JSON-Schema
