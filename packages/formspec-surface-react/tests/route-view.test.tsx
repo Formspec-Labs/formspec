@@ -74,6 +74,36 @@ const surface = surfaceWith([
     ],
   },
   {
+    id: 'starter-headings',
+    path: '/starter-headings',
+    title: 'Starter widgets',
+    routeClass: 'operation',
+    slots: [
+      {
+        id: 'queue',
+        slotType: 'module-widget',
+        title: 'Submitted responses',
+        binding: { moduleId: 'x-chrome', widgetName: 'x-queue-panel' },
+      },
+      {
+        id: 'receipt',
+        slotType: 'module-widget',
+        title: 'Receipt details',
+        binding: { moduleId: 'x-chrome', widgetName: 'x-receipt-panel' },
+      },
+      {
+        id: 'ceremony',
+        slotType: 'module-widget',
+        title: 'Review and sign',
+        binding: {
+          moduleId: 'x-chrome',
+          widgetName: 'x-ceremony-frame',
+          config: { statement: 'I confirm that this response is accurate.' },
+        },
+      },
+    ],
+  },
+  {
     id: 'ghost',
     path: '/ghost',
     title: 'Unclassified',
@@ -166,6 +196,25 @@ describe('heading structure', () => {
       'Before you start',
     );
   });
+
+  it.each([
+    ['queue', 'Submitted responses'],
+    ['receipt', 'Receipt details'],
+    ['ceremony', 'Review and sign'],
+  ])(
+    'gives the %s starter widget one visible authored slot heading and one labelled region',
+    (slotId, title) => {
+      const container = view('starter-headings');
+      const slot = container.querySelector(`[data-slot="${slotId}"]`);
+
+      expect(slot?.getAttribute('aria-label')).toBe(title);
+      expect(
+        [...(slot?.querySelectorAll('h1,h2,h3,h4,h5,h6') ?? [])]
+          .filter((heading) => textOf(heading) === title),
+      ).toHaveLength(1);
+      expect(textOf(slot?.querySelector('.fs-surface-slot__title') ?? null)).toBe(title);
+    },
+  );
 });
 
 describe('the host-supplied heading baseline (D14c)', () => {

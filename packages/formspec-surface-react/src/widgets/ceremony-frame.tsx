@@ -52,7 +52,7 @@ function readConfig(config: Readonly<Record<string, unknown>>): CeremonyFrameCon
   return parsed;
 }
 
-export function CeremonyFrame({ config, headingLevel, admitsTenantTheme, slot }: SurfaceWidgetProps) {
+export function CeremonyFrame({ config, headingLevel, admitsTenantTheme }: SurfaceWidgetProps) {
   const parsed = readConfig(config);
 
   return (
@@ -61,11 +61,6 @@ export function CeremonyFrame({ config, headingLevel, admitsTenantTheme, slot }:
       data-widget="ceremony-frame"
       data-tenant-theme={admitsTenantTheme ? 'admitted' : 'refused'}
     >
-      {slot.title && (
-        <Heading level={headingLevel} className="fs-surface-ceremony__title">
-          {slot.title}
-        </Heading>
-      )}
       {parsed.lead && <p className="fs-surface-ceremony__lead">{parsed.lead}</p>}
 
       {parsed.statement ? (

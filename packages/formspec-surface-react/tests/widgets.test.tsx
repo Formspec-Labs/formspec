@@ -800,6 +800,23 @@ describe('QueueTable', () => {
     expect(scroll?.getAttribute('aria-label')).toBe('Queue');
   });
 
+  it('uses the authored slot title only as the table-region label fallback', () => {
+    const container = render(
+      <QueueTable
+        {...props({
+          slot: { id: 'responses', title: 'Submitted responses' },
+          data: { rows },
+        })}
+      />,
+    );
+
+    expect(container.querySelector('h1,h2,h3,h4,h5,h6')).toBeNull();
+    expect(container.querySelector('.fs-surface-queue__scroll')?.getAttribute('aria-label')).toBe(
+      'Submitted responses',
+    );
+    expect(container.querySelector('table')).not.toBeNull();
+  });
+
   it('renders a missing cell as empty rather than "undefined"', () => {
     const container = render(
       <QueueTable {...props({ config: { columns: [{ key: 'ref', label: 'Ref' }, { key: 'ghost', label: 'Ghost' }] }, data: { rows } })} />,

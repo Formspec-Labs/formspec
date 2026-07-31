@@ -20,7 +20,6 @@
  * the fact: if the route is `/receipt/{caseRef}`, the reference in the address
  * bar IS the reference, and it is shown as such.
  */
-import { Heading } from '../heading.js';
 import { WidgetEmptyState } from './empty-state.js';
 import type { SurfaceWidgetProps } from '../widget-api.js';
 
@@ -73,7 +72,7 @@ function formatWhen(iso: string): string {
   return Number.isNaN(at.getTime()) ? iso : at.toLocaleString();
 }
 
-export function ReceiptPanel({ data, route, headingLevel, slot, config }: SurfaceWidgetProps) {
+export function ReceiptPanel({ data, route, config }: SurfaceWidgetProps) {
   const parsed = readReceiptInput(data);
   // The address bar is a fact about this page, not invented content: a
   // `/receipt/{caseRef}` route IS addressed by the reference.
@@ -89,12 +88,6 @@ export function ReceiptPanel({ data, route, headingLevel, slot, config }: Surfac
 
   return (
     <div className="fs-surface-receipt" data-widget="receipt-panel">
-      {slot.title && (
-        <Heading level={headingLevel} className="fs-surface-receipt__title">
-          {slot.title}
-        </Heading>
-      )}
-
       {rows.length === 0 ? (
         <WidgetEmptyState>
           There is no receipt to show. Nothing has been submitted through this release yet.

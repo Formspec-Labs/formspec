@@ -21,7 +21,6 @@
  */
 import { useState } from 'react';
 import { generationNeedAnchors } from '@formspec-org/surface';
-import { Heading } from '../heading.js';
 import { needTraceAttributes } from '../need-trace.js';
 import { admitSurfaceWidgetActionInput } from '../widget-action-runtime.js';
 import { WidgetEmptyState } from './empty-state.js';
@@ -283,7 +282,6 @@ function QueueRowActionButton({
 export function QueueTable({
   config,
   data,
-  headingLevel,
   slot,
   actions = [],
   emitAction,
@@ -318,12 +316,6 @@ export function QueueTable({
 
   return (
     <div className="fs-surface-queue" data-widget="queue-table" data-row-count={rows.length}>
-      {slot.title && (
-        <Heading level={headingLevel} className="fs-surface-queue__title">
-          {slot.title}
-        </Heading>
-      )}
-
       {rows.length === 0 || columns.length === 0 ? (
         <WidgetEmptyState>{emptyMessage}</WidgetEmptyState>
       ) : (
