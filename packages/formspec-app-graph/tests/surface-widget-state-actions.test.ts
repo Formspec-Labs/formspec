@@ -1,6 +1,7 @@
 /** @filedesc Generic module-widget state actions use declared mapped outputs. */
 import { describe, expect, it } from 'vitest';
 import {
+  validateSurfaceResponseActionTriggers,
   validateSurfaceWidgetActions,
   type AppGraphContext,
   type ResolvedArtifactHandle,
@@ -67,6 +68,7 @@ describe('module-widget state actions', () => {
       }],
     });
     const responseActions = handle('responseActions', 'responseActions', {
+      scope: 'app',
       actions: [{
         id: 'translated-action',
         intent: 'review',
@@ -104,5 +106,133 @@ describe('module-widget state actions', () => {
       }],
       details: { reason: 'state-action-label-not-renderable' },
     }]);
+  });
+
+  it('requires one application-scoped action owner for a widget binding', () => {
+    const registry = handle('registry', 'registry', {
+      entries: [{
+        name: 'x-module',
+        category: 'module',
+        contributes: ['x-widget'],
+      }, {
+        name: 'x-widget',
+        category: 'widget',
+        widgetShape: {
+          widgetName: 'AnyWidget',
+          actionOutputs: [{ name: 'open' }],
+        },
+      }],
+    });
+    const surface = handle('surface', 'surface', {
+      routes: [{
+        id: 'home',
+        slots: [{
+          id: 'widget',
+          slotType: 'module-widget',
+          binding: {
+            moduleId: 'x-module',
+            widgetName: 'AnyWidget',
+            actionBindings: { open: { actionRef: 'open-record' } },
+          },
+        }],
+        transitions: [{ trigger: 'open-record', to: 'done' }],
+      }, {
+        id: 'done',
+        slots: [],
+      }],
+    });
+    const responseScoped = handle('responseActions[0]', 'responseActions', {
+      targetDefinition: { url: 'urn:definition' },
+      actions: [{ id: 'open-record', intent: 'review' }],
+    });
+    const responseContext: AppGraphContext = {
+      manifest: handle('manifest', 'appManifest', {}),
+      handles: [registry, surface, responseScoped],
+      schemaResults: [],
+      evidenceResults: [],
+    };
+
+    expect(validateSurfaceWidgetActions(responseContext)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'E612',
+          details: expect.objectContaining({
+            reason: 'widget-action-scope-mismatch',
+            actualScope: 'response',
+            requiredScope: 'app',
+          }),
+        }),
+      ]),
+    );
+    expect(validateSurfaceResponseActionTriggers(responseContext)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'E611',
+          details: expect.objectContaining({ reason: 'transition-unfireable' }),
+        }),
+      ]),
+    );
+
+    const formSurface = handle('surface', 'surface', {
+      routes: [{
+        id: 'home',
+        slots: [{
+          id: 'form',
+          slotType: 'definition-form',
+          binding: { definitionRef: 'urn:definition' },
+        }],
+        transitions: [{ trigger: 'open-record', to: 'done' }],
+      }, {
+        id: 'done',
+        slots: [],
+      }],
+    });
+    expect(validateSurfaceResponseActionTriggers({
+      ...responseContext,
+      handles: [formSurface, responseScoped],
+    }).some((diagnostic) => diagnostic.code === 'E611')).toBe(false);
+
+    const missingContext: AppGraphContext = {
+      ...responseContext,
+      handles: [registry, surface],
+    };
+    expect(validateSurfaceWidgetActions(missingContext)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'E612',
+          details: expect.objectContaining({
+            reason: 'widget-action-ref-unresolved',
+            actionMatches: 0,
+          }),
+        }),
+      ]),
+    );
+
+    const ambiguousContext: AppGraphContext = {
+      ...responseContext,
+      handles: [
+        registry,
+        surface,
+        handle('responseActions[0]', 'responseActions', {
+          scope: 'app',
+          actions: [{ id: 'open-record', intent: 'review' }],
+        }),
+        handle('responseActions[1]', 'responseActions', {
+          scope: 'app',
+          actions: [{ id: 'open-record', intent: 'review' }],
+        }),
+      ],
+    };
+    expect(validateSurfaceWidgetActions(ambiguousContext)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'E612',
+          details: expect.objectContaining({
+            reason: 'widget-action-ref-ambiguous',
+            actionMatches: 2,
+          }),
+        }),
+      ]),
+    );
   });
 });

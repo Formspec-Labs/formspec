@@ -27,12 +27,17 @@ const CATALOG_REF = 'https://example.test/data/runtime';
 const responseActions = {
   $formspecResponseActions: '1.0',
   version: '1.0.0',
-  targetDefinition: { url: 'urn:def' },
+  scope: 'app',
   actions: [
     {
       id: 'acceptReceipt',
       intent: 'review',
       label: { literal: 'Accept receipt' },
+      validation: {
+        profile: 'off',
+        blocking: 'non-blocking',
+        persistence: 'none',
+      },
       'x-generation': {
         anchors: [
           'need:accept-receipt@3',
@@ -706,6 +711,44 @@ describe('widget action runtime', () => {
     expect(executor).not.toHaveBeenCalled();
     expect(delivered.at(-1)?.map((diagnostic) => diagnostic.code)).toContain(
       'WIDGET-ACTION-INPUT-INVALID',
+    );
+  });
+
+  it('rejects a response-scoped widget action before calling the executor', async () => {
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => completed());
+    const Widget: SurfaceWidget = ({ emitAction }) => (
+      <button data-probe="emit" onClick={() => emitAction('accepted')}>
+        Accept
+      </button>
+    );
+    const delivered: SurfaceDiagnostic[][] = [];
+    const responseScopedBundle = {
+      ...bundle(),
+      responseActions: [{
+        ...responseActions,
+        scope: 'response',
+        targetDefinition: { url: 'urn:def' },
+      } as unknown as ResponseActionsDocument],
+    };
+    const container = render(
+      <SurfaceApp
+        bundle={responseScopedBundle}
+        location="/receipt"
+        onNavigate={() => {}}
+        widgetModules={runtimeModule(Widget)}
+        widgetActionExecutor={executor}
+        onDiagnostics={(diagnostics) => delivered.push([...diagnostics])}
+        setDocumentTitle={false}
+      />,
+    );
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-probe="emit"]')?.click();
+      await Promise.resolve();
+    });
+    expect(executor).not.toHaveBeenCalled();
+    expect(delivered.at(-1)?.map((diagnostic) => diagnostic.code)).toContain(
+      'WIDGET-ACTION-REF-UNRESOLVED',
     );
   });
 

@@ -397,6 +397,7 @@ describe('planRoute — dispatch over the closed taxonomy', () => {
       dataSources: [{ catalogRef, document: data }],
       responseActions: [
         {
+          scope: 'app',
           actions: [
             {
               id: 'acceptReceipt',

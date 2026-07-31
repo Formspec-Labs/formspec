@@ -206,7 +206,10 @@ export function responseActionsDocumentForAction(
       .filter((action) => action.id === actionRef)
       .map(() => document),
   );
-  return matches.length === 1 ? matches[0] : undefined;
+  const match = matches.length === 1 ? matches[0] : undefined;
+  return match?.scope === 'app' && match.targetDefinition === undefined
+    ? match
+    : undefined;
 }
 
 export interface DeliverWidgetActionRequest extends SurfaceWidgetActionExecutorInput {

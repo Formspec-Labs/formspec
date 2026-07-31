@@ -161,6 +161,8 @@ export type TransitionConditionEvaluator = (request: {
 
 /** Minimal read of a Response Actions document — the fields a trigger resolves against. */
 export interface ResponseActionsDocumentLike {
+  /** Explicit application scope is required before a module-widget may invoke an action. */
+  scope?: unknown;
   /** The Definition this document binds to. `E611`'s "targeting the Definition that slot binds". */
   targetDefinition?: { url?: unknown } | undefined;
   actions?: readonly {
@@ -199,32 +201,44 @@ export interface TransitionPlanResult {
 }
 
 interface ResolvedTriggers {
-  actionIds: Set<string>;
+  /** action id -> one entry per declaration; repeated ids remain ambiguous. */
+  byId: Map<string, number>;
   /** intent → action ids publishing it. A trigger resolves only at exactly one. */
   byIntent: Map<string, string[]>;
   documentCount: number;
 }
 
 function indexTriggers(documents: readonly ResponseActionsDocumentLike[]): ResolvedTriggers {
-  const actionIds = new Set<string>();
+  const byId = new Map<string, number>();
   const byIntent = new Map<string, string[]>();
   for (const document of documents) {
     for (const action of document.actions ?? []) {
       const id = typeof action.id === 'string' ? action.id : undefined;
       if (!id) continue;
-      actionIds.add(id);
+      byId.set(id, (byId.get(id) ?? 0) + 1);
       const intent = typeof action.intent === 'string' ? action.intent : undefined;
       if (intent && CLOSED_RESPONSE_ACTION_INTENTS.has(intent)) {
         byIntent.set(intent, [...(byIntent.get(intent) ?? []), id]);
       }
     }
   }
-  return { actionIds, byIntent, documentCount: documents.length };
+  return { byId, byIntent, documentCount: documents.length };
 }
 
 function targetDefinitionUrl(document: ResponseActionsDocumentLike): string | undefined {
   const url = document.targetDefinition?.url;
   return typeof url === 'string' ? url : undefined;
+}
+
+function isApplicationScoped(document: ResponseActionsDocumentLike): boolean {
+  return document.scope === 'app' && targetDefinitionUrl(document) === undefined;
+}
+
+function isDefinitionScoped(document: ResponseActionsDocumentLike): boolean {
+  return (
+    (document.scope === undefined || document.scope === 'response')
+    && targetDefinitionUrl(document) !== undefined
+  );
 }
 
 /**
@@ -241,7 +255,9 @@ export function responseActionsDocumentForDefinition<
   definitionRef: string,
 ): TDocument | undefined {
   const matching = documents.filter(
-    (document) => targetDefinitionUrl(document) === definitionRef,
+    (document) =>
+      isDefinitionScoped(document)
+      && targetDefinitionUrl(document) === definitionRef,
   );
   return matching.length === 1 ? matching[0] : undefined;
 }
@@ -279,7 +295,9 @@ export function slotSuppliedTriggers(
 ): ReadonlySet<string> {
   const supplied = new Set<string>();
   if (responseActions.length === 0) return supplied;
-  const actions = responseActions.flatMap((document) => document.actions ?? []);
+  const actionDeclarations = responseActions.flatMap((document) =>
+    (document.actions ?? []).map((action) => ({ document, action })),
+  );
 
   const walk = (entries: readonly SlotPlan<unknown>[]): void => {
     for (const entry of entries) {
@@ -293,14 +311,18 @@ export function slotSuppliedTriggers(
         if (options.includeWidgetActions === false) continue;
         for (const output of entry.actionOutputs) {
           if (!output.actionRef) continue;
-          const matches = actions.filter((action) => action.id === output.actionRef);
+          const matches = actionDeclarations.filter(
+            ({ action }) => action.id === output.actionRef,
+          );
           if (matches.length !== 1) continue;
-          const action = matches[0];
-          if (!action || typeof action.id !== 'string') continue;
+          const match = matches[0];
+          if (!match || !isApplicationScoped(match.document)) continue;
+          const { action } = match;
+          if (typeof action.id !== 'string') continue;
           supplied.add(action.id);
           if (typeof action.intent === 'string') {
-            const intentMatches = actions.filter(
-              (candidate) => candidate.intent === action.intent,
+            const intentMatches = actionDeclarations.filter(
+              ({ action: candidate }) => candidate.intent === action.intent,
             );
             if (intentMatches.length === 1) supplied.add(action.intent);
           }
@@ -412,9 +434,11 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
       };
     }
 
-    const byId = resolved.actionIds.has(trigger);
+    const idMatches = resolved.byId.get(trigger) ?? 0;
     const publishers = resolved.byIntent.get(trigger) ?? [];
-    const actionId = byId ? trigger : publishers.length === 1 ? publishers[0] : undefined;
+    const actionId = idMatches > 0
+      ? idMatches === 1 ? trigger : undefined
+      : publishers.length === 1 ? publishers[0] : undefined;
 
     if (actionId === undefined) {
       return {
@@ -422,7 +446,9 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
         status: 'unfireable',
         unfireableReason: 'trigger-unresolved',
         reason: text(
-          publishers.length > 1 ? 'transitionTriggerAmbiguous' : 'transitionTriggerUnresolved',
+          idMatches > 1 || publishers.length > 1
+            ? 'transitionTriggerAmbiguous'
+            : 'transitionTriggerUnresolved',
           { to, trigger },
         ),
       };

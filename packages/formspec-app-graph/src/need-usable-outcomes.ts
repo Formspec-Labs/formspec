@@ -484,6 +484,14 @@ function uniqueAction(
   return value ? { action, value } : undefined;
 }
 
+function uniqueWidgetAction(
+  context: AppGraphContext,
+  actionId: string,
+): { action: ResponseActionReference; value: JsonRecord } | undefined {
+  const resolved = uniqueAction(context, actionId);
+  return resolved?.action.scope === 'app' ? resolved : undefined;
+}
+
 function componentNodeBlocker(
   handle: ResolvedArtifactHandle,
   pointer: string,
@@ -593,7 +601,7 @@ function widgetControl(
     'actionRef',
   );
   if (!actionRef) return { candidate: true, reason: 'widget-action-binding-missing' };
-  const resolved = uniqueAction(context, actionRef);
+  const resolved = uniqueWidgetAction(context, actionRef);
   if (!resolved) return { candidate: true, reason: 'widget-action-ref-unresolved' };
   const literalLabel = stringProp(record(ownProp(resolved.value, 'label')), 'literal');
   if (!literalLabel || literalLabel.trim().length === 0) {
@@ -903,7 +911,7 @@ function routeHasResolvedWidgetActionSource(
       return Boolean(
         actionRef
         && actionIds.includes(actionRef)
-        && uniqueAction(context, actionRef)
+        && uniqueWidgetAction(context, actionRef)
         && declaredOutputCount(context, widget, outputName) === 1,
       );
     });

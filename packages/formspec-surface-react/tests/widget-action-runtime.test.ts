@@ -20,7 +20,7 @@ const action = { id: 'acceptReceipt', intent: 'review' };
 const document = {
   $formspecResponseActions: '1.0',
   version: '1.0.0',
-  targetDefinition: { url: 'urn:def' },
+  scope: 'app',
   actions: [action],
 } as unknown as ResponseActionsDocument;
 
@@ -64,6 +64,18 @@ describe('responseActionsDocumentForAction', () => {
     expect(responseActionsDocumentForAction([document], 'missing')).toBeUndefined();
     expect(
       responseActionsDocumentForAction([document, document], 'acceptReceipt'),
+    ).toBeUndefined();
+  });
+
+  it('rejects a response-scoped owner even when its action id is unique', () => {
+    const responseScoped = {
+      ...document,
+      scope: 'response',
+      targetDefinition: { url: 'urn:def' },
+    } as unknown as ResponseActionsDocument;
+
+    expect(
+      responseActionsDocumentForAction([responseScoped], 'acceptReceipt'),
     ).toBeUndefined();
   });
 });

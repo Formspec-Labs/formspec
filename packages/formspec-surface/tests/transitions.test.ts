@@ -101,6 +101,33 @@ describe('planTransitions', () => {
     expect(transitions[0]?.status).toBe('fireable');
   });
 
+  it('refuses a direct action id declared more than once', () => {
+    const submitById = composeSurfaceApp([
+      {
+        ...respondentSurface,
+        routes: [
+          { ...respondentSurface.routes[0], transitions: [{ trigger: 'sendItIn', to: 'receipt' }] },
+          respondentSurface.routes[1],
+        ],
+      } as typeof respondentSurface,
+    ]);
+    const { transitions } = planTransitions({
+      handle: submitById.routes[0]!,
+      app: submitById,
+      responseActions: [
+        { scope: 'app', actions: [{ id: 'sendItIn', intent: 'review' }] },
+        { targetDefinition: { url: 'urn:definition' }, actions: [{ id: 'sendItIn', intent: 'submit' }] },
+      ],
+      hasExecutor: true,
+    });
+
+    expect(transitions[0]).toMatchObject({
+      status: 'unfireable',
+      unfireableReason: 'trigger-unresolved',
+    });
+    expect(transitions[0]?.reason).toContain('More than one');
+  });
+
   it('preserves authored result bindings for target route parameters', () => {
     const parameterized = composeSurfaceApp([
       surface('owner', 'list', [

@@ -496,10 +496,20 @@ function resolveWidgetAction(
   actionRef: string,
 ): WidgetActionMetadataPlan | undefined {
   const matches = documents.flatMap((document) =>
-    (document.actions ?? []).filter((action) => action.id === actionRef),
+    (document.actions ?? [])
+      .filter((action) => action.id === actionRef)
+      .map((action) => ({ document, action })),
   );
   if (matches.length !== 1) return undefined;
-  const action = matches[0];
+  const match = matches[0];
+  if (
+    !match
+    || match.document.scope !== 'app'
+    || match.document.targetDefinition !== undefined
+  ) {
+    return undefined;
+  }
+  const { action } = match;
   if (!action || typeof action.intent !== 'string') return undefined;
 
   const labelRecord =

@@ -88,8 +88,11 @@ function actionBindingPointer(widget: SurfaceWidgetSlot, outputName: string): st
   return `/routes/${widget.routeIndex}/slots/${widget.slotIndex}/binding/actionBindings/${escapeJsonPointerToken(outputName)}`;
 }
 
-function actionMatches(references: ResponseActionReferences, actionRef: string): number {
-  return references.actions.filter((action) => action.id === actionRef).length;
+function actionMatches(
+  references: ResponseActionReferences,
+  actionRef: string,
+): ResponseActionReferences['actions'] {
+  return references.actions.filter((action) => action.id === actionRef);
 }
 
 function validActionsForWidget(
@@ -105,10 +108,12 @@ function validActionsForWidget(
   const bindings = record(ownProp(widget.binding, 'actionBindings'));
   return Object.entries(bindings ?? {}).flatMap(([outputName, value]) => {
     const actionRef = stringProp(record(value), 'actionRef');
+    const matches = actionRef ? actionMatches(references, actionRef) : [];
     return (
       outputs.get(outputName) === 1
       && actionRef
-      && actionMatches(references, actionRef) === 1
+      && matches.length === 1
+      && matches[0]?.scope === 'app'
     )
       ? [{ widget, outputName, actionRef }]
       : [];
@@ -162,8 +167,8 @@ function widgetActionBindingDiagnostics(
             },
           });
         }
-        const matches = actionRef ? actionMatches(references, actionRef) : 0;
-        if (matches !== 1) {
+        const matches = actionRef ? actionMatches(references, actionRef) : [];
+        if (matches.length !== 1) {
           diagnostics.push({
             code: 'E612',
             severity: 'error',
@@ -178,7 +183,9 @@ function widgetActionBindingDiagnostics(
               diagnosticSourceForHandle(handle, '/actions')
             ),
             details: {
-              reason: 'widget-action-ref-unresolved',
+              reason: matches.length > 1
+                ? 'widget-action-ref-ambiguous'
+                : 'widget-action-ref-unresolved',
               surfaceRef: widget.surfaceRef,
               routeId: widget.routeId,
               slotId: widget.slotId,
@@ -186,7 +193,35 @@ function widgetActionBindingDiagnostics(
               widgetName: widget.widgetName,
               outputName,
               actionRef,
-              actionMatches: matches,
+              actionMatches: matches.length,
+            },
+          });
+        } else if (matches[0]!.scope !== 'app') {
+          diagnostics.push({
+            code: 'E612',
+            severity: 'error',
+            phase: 'cross-artifact',
+            origin: 'app-graph-validator',
+            message: `Surface widget output '${outputName}' actionRef '${actionRef}' resolves to a ${matches[0]!.scope}-scoped Response Actions document; module-widget bindings require scope 'app'.`,
+            primarySource: diagnosticSourceForHandle(
+              widget.surface,
+              `${actionBindingPointer(widget, outputName)}/actionRef`,
+            ),
+            relatedSources: [diagnosticSourceForHandle(
+              matches[0]!.handle,
+              `/actions/${matches[0]!.actionIndex}`,
+            )],
+            details: {
+              reason: 'widget-action-scope-mismatch',
+              surfaceRef: widget.surfaceRef,
+              routeId: widget.routeId,
+              slotId: widget.slotId,
+              moduleId: widget.moduleId,
+              widgetName: widget.widgetName,
+              outputName,
+              actionRef,
+              actualScope: matches[0]!.scope,
+              requiredScope: 'app',
             },
           });
         }
@@ -241,10 +276,8 @@ function widgetActionBindingDiagnostics(
           continue;
         }
         const actionRef = stringProp(binding, 'actionRef');
-        const matches = actionRef
-          ? references.actions.filter((action) => action.id === actionRef)
-          : [];
-        if (matches.length !== 1) continue;
+        const matches = actionRef ? actionMatches(references, actionRef) : [];
+        if (matches.length !== 1 || matches[0]!.scope !== 'app') continue;
         const match = matches[0]!;
         const action = recordArray(ownProp(record(match.handle.document), 'actions'))[
           match.actionIndex
