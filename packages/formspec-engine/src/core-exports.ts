@@ -50,6 +50,9 @@ export type {
     ActionRefFinding,
     ActionResolution,
     ResponseAction,
+    ResponseActionAsyncInvocationPorts,
+    ResponseActionEffectDispatchResult,
+    ResponseActionEffectDispatchValue,
     ResponseActionEffectOutcome,
     ResponseActionEffectStatus,
     ResponseActionEffectDispatchContext,
@@ -82,6 +85,7 @@ export {
     declaresHostEvent,
     findResponseActionByIntent,
     invokeResponseAction,
+    invokeResponseActionAsync,
     isDurableResponseActionEffect,
     InvalidValidationTupleError,
     missingSubmitActionFinding,
@@ -91,6 +95,18 @@ export {
     resolveResponseActionValidationTuple,
     validationProfileForAction,
 } from './response-actions.js';
+export type {
+    ExtractedServiceRequestOutputs,
+    PlannedServiceRequest,
+    ServiceRequestSources,
+} from './service-request-runtime.js';
+export {
+    extractServiceRequestOutputs,
+    planServiceRequest,
+    resolveRuntimeValueSelector,
+    resolveServiceRequest,
+    ServiceRequestRuntimeError,
+} from './service-request-runtime.js';
 export {
     createDemoSubmitResponseActions,
     type DemoSubmitResponseActionsOptions,

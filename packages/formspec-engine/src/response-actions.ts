@@ -79,6 +79,20 @@ export interface ResponseActionEffectOutcome {
     replayToken?: string;
 }
 
+/**
+ * Host adapter result for one effect. Only allowlisted transition strings may
+ * cross into a completed invocation result; adapter-private data is ignored.
+ */
+export interface ResponseActionEffectDispatchResult {
+    outcome: ResponseActionEffectOutcome;
+    transitionBindings?: Readonly<Record<string, string>>;
+}
+
+export type ResponseActionEffectDispatchValue =
+    | ResponseActionEffectOutcome
+    | ResponseActionEffectDispatchResult
+    | void;
+
 export interface ResponseActionIdempotencyKeyContext {
     effectIndex: number;
 }
@@ -210,7 +224,7 @@ export interface ResponseActionInvocationPorts<TDetail> {
         detail: TDetail,
         action: ResponseAction,
         context: ResponseActionEffectDispatchContext,
-    ) => ResponseActionEffectOutcome | void;
+    ) => ResponseActionEffectDispatchValue;
     resolveIdempotencyKey?: (
         effect: EffectRequest,
         action: ResponseAction,
@@ -238,6 +252,19 @@ export interface ResponseActionInvocationPorts<TDetail> {
     ) => void;
 }
 
+/** Async counterpart whose effect adapter may return a Promise. */
+export type ResponseActionAsyncInvocationPorts<TDetail> = Omit<
+    ResponseActionInvocationPorts<TDetail>,
+    'dispatchEffect'
+> & {
+    dispatchEffect?: (
+        effect: EffectRequest,
+        detail: TDetail,
+        action: ResponseAction,
+        context: ResponseActionEffectDispatchContext,
+    ) => ResponseActionEffectDispatchValue | PromiseLike<ResponseActionEffectDispatchValue>;
+};
+
 /** Schema-owned complete invocation-status vocabulary. */
 export type ResponseActionInvocationStatus = ActionInvocationStatus;
 
@@ -246,6 +273,11 @@ export interface ResponseActionOwnerFacts {
     artifactDigest: string;
     subjectKind: 'response-action';
     subjectRef: string;
+}
+
+interface ResolvedResponseActionInvocationFacts {
+    invocationId: string;
+    actionOwner?: ResponseActionOwnerFacts;
 }
 
 export interface ResponseActionInvocationResult<TDetail> {
@@ -258,6 +290,8 @@ export interface ResponseActionInvocationResult<TDetail> {
     validationTuple: ValidationOverride | null;
     detail: TDetail | null;
     effectTrace: ResponseActionEffectOutcome[];
+    /** Present only on completed invocations with declared transition outputs. */
+    transitionBindings?: Readonly<Record<string, string>>;
     finding?: ActionRefFinding;
     blockedCause?: 'validation' | 'precondition';
     blockedPreconditionId?: string;
@@ -526,7 +560,7 @@ export function declaresHostEvent(action: ResponseAction, eventName: string): bo
 
 function inferValidationReportValid<TDetail>(
     detail: TDetail,
-    ports: ResponseActionInvocationPorts<TDetail>,
+    ports: Pick<ResponseActionInvocationPorts<TDetail>, 'validationReportValid'>,
 ): boolean | null {
     const fromPort = ports.validationReportValid?.(detail);
     if (typeof fromPort === 'boolean') {
@@ -558,25 +592,107 @@ function effectErrorPolicy(effect: EffectRequest): 'fail' | 'defer' {
     return effect.type === 'evidenceRequest' ? 'defer' : 'fail';
 }
 
-function normalizeEffectOutcome(
+interface NormalizedEffectDispatch {
+    outcome: ResponseActionEffectOutcome;
+    transitionBindings?: Readonly<Record<string, string>>;
+}
+
+function safeTransitionBindings(
+    value: unknown,
+): Readonly<Record<string, string>> | undefined {
+    if (value === undefined) return undefined;
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('effect transitionBindings must be an object');
+    }
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+        throw new Error('effect transitionBindings must be a plain object');
+    }
+    const bindings: Record<string, string> = Object.create(null) as Record<string, string>;
+    for (const name of Object.keys(value)) {
+        if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(name)) {
+            throw new Error(`effect transition binding ${JSON.stringify(name)} has an unsafe name`);
+        }
+        const descriptor = Object.getOwnPropertyDescriptor(value, name);
+        if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+            throw new Error(`effect transition binding ${JSON.stringify(name)} is not an own data property`);
+        }
+        if (typeof descriptor.value !== 'string' || descriptor.value.length === 0) {
+            throw new Error(`effect transition binding ${JSON.stringify(name)} must be a non-empty string`);
+        }
+        bindings[name] = descriptor.value;
+    }
+    return Object.freeze(bindings);
+}
+
+function normalizeEffectDispatch(
     effect: EffectRequest,
-    outcome: ResponseActionEffectOutcome | void,
+    value: ResponseActionEffectDispatchValue,
     idempotencyKey?: string,
-): ResponseActionEffectOutcome {
+): NormalizedEffectDispatch {
     const fallback = { type: effect.type };
-    if (!outcome) {
+    if (!value) {
         return {
-            ...fallback,
-            status: 'succeeded',
-            ...(idempotencyKey ? { idempotencyKey } : {}),
+            outcome: {
+                ...fallback,
+                status: 'succeeded',
+                ...(idempotencyKey ? { idempotencyKey } : {}),
+            },
         };
     }
+    const wrapped = Object.prototype.hasOwnProperty.call(value, 'outcome');
+    const outcome = wrapped
+        ? (value as ResponseActionEffectDispatchResult).outcome
+        : value as ResponseActionEffectOutcome;
+    if (!outcome || typeof outcome !== 'object') {
+        throw new Error('effect dispatcher returned no outcome');
+    }
+    if (!['succeeded', 'failed', 'deferred', 'replayed', 'not-invoked'].includes(outcome.status)) {
+        throw new Error('effect dispatcher returned an unsupported outcome status');
+    }
+    for (const member of ['outcomeRef', 'reason', 'replayToken'] as const) {
+        if (outcome[member] !== undefined && typeof outcome[member] !== 'string') {
+            throw new Error(`effect dispatcher outcome ${member} must be a string`);
+        }
+    }
     return {
-        ...fallback,
-        ...outcome,
-        type: effect.type,
-        ...(idempotencyKey ? { idempotencyKey } : {}),
+        outcome: {
+            ...fallback,
+            status: outcome.status,
+            ...(idempotencyKey ? { idempotencyKey } : {}),
+            ...(outcome.outcomeRef !== undefined ? { outcomeRef: outcome.outcomeRef } : {}),
+            ...(outcome.reason !== undefined ? { reason: outcome.reason } : {}),
+            ...(outcome.replayToken !== undefined ? { replayToken: outcome.replayToken } : {}),
+        },
+        ...(wrapped
+            ? {
+                transitionBindings: safeTransitionBindings(
+                    (value as ResponseActionEffectDispatchResult).transitionBindings,
+                ),
+            }
+            : {}),
     };
+}
+
+function mergeTransitionBindings(
+    target: Record<string, string>,
+    source: Readonly<Record<string, string>> | undefined,
+): void {
+    if (!source) return;
+    for (const name of Object.keys(source)) {
+        if (Object.prototype.hasOwnProperty.call(target, name)) {
+            throw new Error(`duplicate transition binding ${JSON.stringify(name)}`);
+        }
+    }
+    for (const [name, value] of Object.entries(source)) {
+        target[name] = value;
+    }
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+    return value !== null
+        && (typeof value === 'object' || typeof value === 'function')
+        && typeof (value as { then?: unknown }).then === 'function';
 }
 
 function effectWithIdempotencyKey(effect: EffectRequest, idempotencyKey: string | undefined): EffectRequest {
@@ -631,13 +747,14 @@ function notInvokedEffectTrace(
     }));
 }
 
-export function invokeResponseAction<TDetail>(
+function invokeResponseActionInternal<TDetail>(
     document: ResponseActionsDocumentInput | null | undefined,
     actionRef: string,
-    ports: ResponseActionInvocationPorts<TDetail>,
+    ports: ResponseActionInvocationPorts<TDetail> | ResponseActionAsyncInvocationPorts<TDetail>,
     nodeId?: string,
     invocationContext?: ResponseActionInvocationContext,
-): ResponseActionInvocationResult<TDetail> {
+    asyncEffects = false,
+): ResponseActionInvocationResult<TDetail> | Promise<ResponseActionInvocationResult<TDetail>> {
     const resolution = resolveResponseAction(document, actionRef, nodeId);
     if (!resolution.resolved || !resolution.action) {
         return {
@@ -654,7 +771,7 @@ export function invokeResponseAction<TDetail>(
     const priorInvocationRef = invocationContext?.priorInvocationRef;
     const actionId = resolution.action.id;
     const effects = resolution.action.effects ?? [];
-    const invocationFacts = {
+    const invocationFacts: ResolvedResponseActionInvocationFacts = {
         invocationId,
         ...(invocationContext?.actionArtifact
             ? {
@@ -869,7 +986,20 @@ export function invokeResponseAction<TDetail>(
         }
     }
 
+    if (asyncEffects) {
+        return invokeResponseActionEffectsAsync(
+            resolution.action,
+            resolution,
+            validationTuple,
+            detail,
+            invocationFacts,
+            ports as ResponseActionAsyncInvocationPorts<TDetail>,
+            emitLifecycle,
+        );
+    }
+
     const effectTrace: ResponseActionEffectOutcome[] = [];
+    const transitionBindings: Record<string, string> = Object.create(null) as Record<string, string>;
     const frozenIdempotencyKeys = new Map<number, string>();
     const retriedEffects = new Set<number>();
     for (let effectIndex = 0; effectIndex < effects.length; effectIndex += 1) {
@@ -880,6 +1010,7 @@ export function invokeResponseAction<TDetail>(
             let idempotencyKey: string | undefined;
             let effectForDispatch = effect;
             let outcome: ResponseActionEffectOutcome;
+            let retryableFailure = true;
 
             try {
                 if (isDurableResponseActionEffect(effect)) {
@@ -907,7 +1038,7 @@ export function invokeResponseAction<TDetail>(
 
                 if (effect.type === 'hostEvent' && typeof effect.eventName === 'string') {
                     ports.dispatchHostEvent(effect.eventName, detail, resolution.action);
-                    outcome = normalizeEffectOutcome(effect, undefined);
+                    outcome = normalizeEffectDispatch(effect, undefined).outcome;
                 } else if (!ports.dispatchEffect) {
                     outcome = {
                         type: effect.type,
@@ -916,15 +1047,40 @@ export function invokeResponseAction<TDetail>(
                         reason: 'missing effect dispatcher',
                     };
                 } else {
-                    outcome = normalizeEffectOutcome(
-                        effect,
-                        ports.dispatchEffect(effectForDispatch, detail, resolution.action, {
+                    const dispatchValue = ports.dispatchEffect(
+                        effectForDispatch,
+                        detail,
+                        resolution.action,
+                        {
                             effectIndex,
                             attempt,
                             ...(idempotencyKey ? { idempotencyKey } : {}),
-                        }),
-                        idempotencyKey,
+                        },
                     );
+                    if (isPromiseLike(dispatchValue)) {
+                        retryableFailure = false;
+                        void Promise.resolve(dispatchValue).catch(() => undefined);
+                        throw new Error(
+                            'async effect dispatcher returned a Promise; use invokeResponseActionAsync',
+                        );
+                    }
+                    let normalized: NormalizedEffectDispatch;
+                    try {
+                        normalized = normalizeEffectDispatch(effect, dispatchValue, idempotencyKey);
+                        if (
+                            normalized.outcome.status === 'succeeded'
+                            || normalized.outcome.status === 'replayed'
+                        ) {
+                            mergeTransitionBindings(
+                                transitionBindings,
+                                normalized.transitionBindings,
+                            );
+                        }
+                    } catch (error) {
+                        retryableFailure = false;
+                        throw error;
+                    }
+                    outcome = normalized.outcome;
                 }
             } catch (error) {
                 outcome = {
@@ -944,7 +1100,8 @@ export function invokeResponseAction<TDetail>(
                 break;
             }
 
-            const deferred = outcome.status === 'deferred' || effectErrorPolicy(effect) === 'defer';
+            const deferred = outcome.status === 'deferred'
+                || (retryableFailure && effectErrorPolicy(effect) === 'defer');
             if (deferred) {
                 emitLifecycle('action.deferred', {
                     terminal: 'deferred',
@@ -973,7 +1130,11 @@ export function invokeResponseAction<TDetail>(
                 };
             }
 
-            if (resolution.action.onFailure === 'retry-once' && !retriedEffects.has(effectIndex)) {
+            if (
+                retryableFailure
+                && resolution.action.onFailure === 'retry-once'
+                && !retriedEffects.has(effectIndex)
+            ) {
                 retriedEffects.add(effectIndex);
                 attempt += 1;
                 continue;
@@ -1012,5 +1173,223 @@ export function invokeResponseAction<TDetail>(
         validationTuple,
         detail,
         effectTrace,
+        ...(Object.keys(transitionBindings).length > 0
+            ? { transitionBindings: Object.freeze(transitionBindings) }
+            : {}),
     };
+}
+
+async function invokeResponseActionEffectsAsync<TDetail>(
+    action: ResponseAction,
+    resolution: ActionResolution,
+    validationTuple: ValidationOverride,
+    detail: TDetail,
+    invocationFacts: ResolvedResponseActionInvocationFacts,
+    ports: ResponseActionAsyncInvocationPorts<TDetail>,
+    emitLifecycle: (
+        kind: ResponseActionLifecycleKind,
+        extra?: Partial<ResponseActionLifecyclePayload>,
+    ) => void,
+): Promise<ResponseActionInvocationResult<TDetail>> {
+    const effects = action.effects ?? [];
+    const effectTrace: ResponseActionEffectOutcome[] = [];
+    const transitionBindings: Record<string, string> = Object.create(null) as Record<string, string>;
+    const frozenIdempotencyKeys = new Map<number, string>();
+    const retriedEffects = new Set<number>();
+
+    for (let effectIndex = 0; effectIndex < effects.length; effectIndex += 1) {
+        const effect = effects[effectIndex];
+        let attempt = 0;
+
+        while (true) {
+            let idempotencyKey: string | undefined;
+            let effectForDispatch = effect;
+            let outcome: ResponseActionEffectOutcome;
+            let retryableFailure = true;
+
+            try {
+                if (isDurableResponseActionEffect(effect)) {
+                    idempotencyKey = frozenIdempotencyKeys.get(effectIndex);
+                    if (!idempotencyKey) {
+                        maybeWarnAboutStaticIdempotencyKey(
+                            action.id,
+                            effectIndex,
+                            (effect as { idempotencyKey?: unknown }).idempotencyKey,
+                        );
+                        if (!ports.resolveIdempotencyKey) {
+                            throw new Error('missing idempotency key resolver');
+                        }
+                        idempotencyKey = ports.resolveIdempotencyKey(effect, action, { effectIndex });
+                        if (!idempotencyKey) {
+                            throw new Error('idempotency key resolver returned an empty key');
+                        }
+                        frozenIdempotencyKeys.set(effectIndex, idempotencyKey);
+                    }
+                    effectForDispatch = effectWithIdempotencyKey(effect, idempotencyKey);
+                }
+
+                if (effect.type === 'hostEvent' && typeof effect.eventName === 'string') {
+                    ports.dispatchHostEvent(effect.eventName, detail, action);
+                    outcome = normalizeEffectDispatch(effect, undefined).outcome;
+                } else if (!ports.dispatchEffect) {
+                    outcome = {
+                        type: effect.type,
+                        status: 'failed',
+                        ...(idempotencyKey ? { idempotencyKey } : {}),
+                        reason: 'missing effect dispatcher',
+                    };
+                } else {
+                    const dispatchValue = await ports.dispatchEffect(
+                        effectForDispatch,
+                        detail,
+                        action,
+                        {
+                            effectIndex,
+                            attempt,
+                            ...(idempotencyKey ? { idempotencyKey } : {}),
+                        },
+                    );
+                    let normalized: NormalizedEffectDispatch;
+                    try {
+                        normalized = normalizeEffectDispatch(effect, dispatchValue, idempotencyKey);
+                        if (
+                            normalized.outcome.status === 'succeeded'
+                            || normalized.outcome.status === 'replayed'
+                        ) {
+                            mergeTransitionBindings(
+                                transitionBindings,
+                                normalized.transitionBindings,
+                            );
+                        }
+                    } catch (error) {
+                        retryableFailure = false;
+                        throw error;
+                    }
+                    outcome = normalized.outcome;
+                }
+            } catch (error) {
+                outcome = {
+                    type: effect.type,
+                    status: 'failed',
+                    ...(idempotencyKey ? { idempotencyKey } : {}),
+                    reason: errorMessage(error),
+                };
+            }
+
+            effectTrace[effectIndex] = outcome;
+            if (outcome.status === 'succeeded' || outcome.status === 'replayed') break;
+
+            const deferred = outcome.status === 'deferred'
+                || (retryableFailure && effectErrorPolicy(effect) === 'defer');
+            if (deferred) {
+                emitLifecycle('action.deferred', {
+                    terminal: 'deferred',
+                    effectIndex,
+                    attempt: attempt + 1,
+                    ...(outcome.replayToken ? { replayTokenRef: outcome.replayToken } : {}),
+                    ...(outcome.reason ? { causeRef: outcome.reason } : {}),
+                });
+                return {
+                    status: 'deferred',
+                    ...invocationFacts,
+                    resolution,
+                    validationTuple,
+                    detail,
+                    effectTrace: [
+                        ...effectTrace,
+                        ...notInvokedEffectTrace(
+                            effects,
+                            effectIndex + 1,
+                            `action deferred at effect ${effectIndex}`,
+                        ),
+                    ],
+                    deferredEffectIndex: effectIndex,
+                    replayToken: outcome.replayToken,
+                    failureReason: outcome.reason,
+                };
+            }
+
+            if (
+                retryableFailure
+                && action.onFailure === 'retry-once'
+                && !retriedEffects.has(effectIndex)
+            ) {
+                retriedEffects.add(effectIndex);
+                attempt += 1;
+                continue;
+            }
+
+            emitLifecycle('action.failed', {
+                terminal: 'failed',
+                effectIndex,
+                attempt: attempt + 1,
+                ...(outcome.reason ? { causeRef: outcome.reason } : {}),
+            });
+            return {
+                status: 'failed',
+                ...invocationFacts,
+                resolution,
+                validationTuple,
+                detail,
+                effectTrace: [
+                    ...effectTrace,
+                    ...notInvokedEffectTrace(
+                        effects,
+                        effectIndex + 1,
+                        `action failed at effect ${effectIndex}`,
+                    ),
+                ],
+                failedEffectIndex: effectIndex,
+                failureReason: outcome.reason,
+            };
+        }
+    }
+
+    return {
+        status: 'completed',
+        ...invocationFacts,
+        resolution,
+        validationTuple,
+        detail,
+        effectTrace,
+        ...(Object.keys(transitionBindings).length > 0
+            ? { transitionBindings: Object.freeze(transitionBindings) }
+            : {}),
+    };
+}
+
+/** Invoke an Action with synchronous effect adapters. Promise outcomes fail fast. */
+export function invokeResponseAction<TDetail>(
+    document: ResponseActionsDocumentInput | null | undefined,
+    actionRef: string,
+    ports: ResponseActionInvocationPorts<TDetail>,
+    nodeId?: string,
+    invocationContext?: ResponseActionInvocationContext,
+): ResponseActionInvocationResult<TDetail> {
+    return invokeResponseActionInternal(
+        document,
+        actionRef,
+        ports,
+        nodeId,
+        invocationContext,
+        false,
+    ) as ResponseActionInvocationResult<TDetail>;
+}
+
+/** Invoke an Action while awaiting effect adapters in strict declaration order. */
+export async function invokeResponseActionAsync<TDetail>(
+    document: ResponseActionsDocumentInput | null | undefined,
+    actionRef: string,
+    ports: ResponseActionAsyncInvocationPorts<TDetail>,
+    nodeId?: string,
+    invocationContext?: ResponseActionInvocationContext,
+): Promise<ResponseActionInvocationResult<TDetail>> {
+    return await invokeResponseActionInternal(
+        document,
+        actionRef,
+        ports,
+        nodeId,
+        invocationContext,
+        true,
+    );
 }

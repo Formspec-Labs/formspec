@@ -8,6 +8,7 @@ import {
   findResponseActionByIntent,
   classifyResponseActionEffect,
   invokeResponseAction,
+  invokeResponseActionAsync,
   planResponseActionInvocation,
   resolveResponseAction,
   resolveResponseActionValidationTuple,
@@ -590,6 +591,137 @@ test('retry-once reuses frozen idempotency keys and retries only the failed effe
     { type: 'handoffAssembly', key: 'inv-1/effect-1', attempt: 1 },
   ]);
   assert.deepEqual(result.effectTrace.map(effect => effect.status), ['succeeded', 'succeeded']);
+});
+
+test('async invocation awaits effects in order, retries with frozen keys, and exposes only transition bindings', async () => {
+  const sensitive = 'host-private-session-token';
+  const rawSecret = 'undeclared-response-field';
+  const document = {
+    ...responseActions,
+    actions: [{
+      id: 'async-service-chain',
+      intent: 'submit',
+      onFailure: 'retry-once',
+      effects: [
+        { type: 'serviceRequest', requestRef: 'create-draft', idempotencyKey: '@invocation.id + "/draft"' },
+        { type: 'serviceRequest', requestRef: 'publish-draft', idempotencyKey: '@invocation.id + "/publish"' },
+      ],
+    }],
+  };
+  const calls = [];
+  const resolvedKeys = [];
+
+  const result = await invokeResponseActionAsync(document, 'async-service-chain', {
+    submit: () => ({ response: {}, validationReport: { valid: true } }),
+    dispatchHostEvent: () => {},
+    resolveIdempotencyKey: (effect, action, context) => {
+      const key = `run-1/effect-${context.effectIndex}`;
+      resolvedKeys.push(key);
+      return key;
+    },
+    dispatchEffect: async (effect, detail, action, context) => {
+      calls.push(`start:${context.effectIndex}:${context.attempt}:${context.idempotencyKey}`);
+      await Promise.resolve();
+      calls.push(`end:${context.effectIndex}:${context.attempt}`);
+      if (context.effectIndex === 0 && context.attempt === 0) {
+        return { type: effect.type, status: 'failed', reason: 'retry me' };
+      }
+      return {
+        outcome: {
+          type: effect.type,
+          status: 'succeeded',
+          rawBody: { secret: rawSecret },
+        },
+        transitionBindings: context.effectIndex === 0
+          ? { draftId: 'draft-42' }
+          : { publishedId: 'published-42' },
+        // Adapter-private fields are deliberately ignored by the engine.
+        sessionBindings: { draftToken: sensitive },
+      };
+    },
+  }, undefined, { invocationId: 'run-1' });
+
+  assert.equal(result.status, 'completed');
+  assert.deepEqual(resolvedKeys, ['run-1/effect-0', 'run-1/effect-1']);
+  assert.deepEqual(calls, [
+    'start:0:0:run-1/effect-0',
+    'end:0:0',
+    'start:0:1:run-1/effect-0',
+    'end:0:1',
+    'start:1:0:run-1/effect-1',
+    'end:1:0',
+  ]);
+  assert.deepEqual({ ...result.transitionBindings }, {
+    draftId: 'draft-42',
+    publishedId: 'published-42',
+  });
+  assert.deepEqual(result.effectTrace.map(({ type, status, idempotencyKey }) => ({
+    type, status, idempotencyKey,
+  })), [
+    { type: 'serviceRequest', status: 'succeeded', idempotencyKey: 'run-1/effect-0' },
+    { type: 'serviceRequest', status: 'succeeded', idempotencyKey: 'run-1/effect-1' },
+  ]);
+  assert.equal(JSON.stringify(result).includes(sensitive), false);
+  assert.equal(JSON.stringify(result).includes(rawSecret), false);
+  assert.equal('sessionBindings' in result, false);
+});
+
+test('sync invocation fails fast when an effect adapter returns a Promise', () => {
+  const document = {
+    ...responseActions,
+    actions: [{
+      id: 'sync-promise',
+      intent: 'submit',
+      onFailure: 'retry-once',
+      effects: [
+        { type: 'serviceRequest', requestRef: 'save', idempotencyKey: '@invocation.id + "/save"' },
+      ],
+    }],
+  };
+  let dispatches = 0;
+  const result = invokeResponseAction(document, 'sync-promise', {
+    submit: () => ({ response: {}, validationReport: { valid: true } }),
+    dispatchHostEvent: () => {},
+    resolveIdempotencyKey: () => 'run-2/save',
+    dispatchEffect: () => {
+      dispatches += 1;
+      return Promise.resolve({ type: 'serviceRequest', status: 'succeeded' });
+    },
+  });
+
+  assert.equal(result.status, 'failed');
+  assert.equal(dispatches, 1);
+  assert.match(result.failureReason, /use invokeResponseActionAsync/);
+  assert.equal(result.transitionBindings, undefined);
+});
+
+test('invalid or duplicate transition bindings fail without leaking partial bindings', async () => {
+  const document = {
+    ...responseActions,
+    actions: [{
+      id: 'duplicate-bindings',
+      intent: 'submit',
+      effects: [
+        { type: 'serviceRequest', requestRef: 'one', idempotencyKey: '@invocation.id + "/one"' },
+        { type: 'serviceRequest', requestRef: 'two', idempotencyKey: '@invocation.id + "/two"' },
+      ],
+    }],
+  };
+  const result = await invokeResponseActionAsync(document, 'duplicate-bindings', {
+    submit: () => ({ response: {}, validationReport: { valid: true } }),
+    dispatchHostEvent: () => {},
+    resolveIdempotencyKey: (effect, action, context) => `run-3/${context.effectIndex}`,
+    dispatchEffect: async (effect, detail, action, context) => ({
+      outcome: { type: effect.type, status: 'succeeded' },
+      transitionBindings: { duplicate: `value-${context.effectIndex}` },
+    }),
+  });
+
+  assert.equal(result.status, 'failed');
+  assert.equal(result.failedEffectIndex, 1);
+  assert.match(result.failureReason, /duplicate transition binding/);
+  assert.equal(result.transitionBindings, undefined);
+  assert.deepEqual(result.effectTrace.map(({ status }) => status), ['succeeded', 'failed']);
 });
 
 test('returns deterministic invocation identity and exact action-owner facts', () => {
