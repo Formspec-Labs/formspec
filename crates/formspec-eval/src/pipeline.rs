@@ -1,14 +1,13 @@
 //! Top-level evaluate orchestration (rebuild → recalculate → revalidate → NRB).
 
 use crate::eval_options::EvalOptions;
+use crate::fel_eval::Fel;
 use crate::nrb::apply_nrb;
 use crate::rebuild;
 use crate::recalculate::recalculate;
 use crate::revalidate::revalidate;
 use crate::runtime_seed::{apply_previous_non_relevant, seed_prepopulate_tree};
-use crate::types::{
-    self, EvalContext, EvalTrigger, EvaluationResult, ExtensionConstraint, ValidationResult,
-};
+use crate::types::{self, EvaluationResult, ValidationResult};
 use crate::{expand_repeat_instances, rebuild_item_tree};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -19,32 +18,20 @@ pub fn evaluate(
     data: &HashMap<String, Value>,
     options: &EvalOptions,
 ) -> EvaluationResult {
-    evaluate_inner(
-        definition,
-        data,
-        options.trigger,
-        &options.extension_constraints,
-        &options.instances,
-        &options.context,
-    )
-}
-
-fn evaluate_inner(
-    definition: &Value,
-    data: &HashMap<String, Value>,
-    trigger: EvalTrigger,
-    extension_constraints: &[ExtensionConstraint],
-    instances: &HashMap<String, Value>,
-    context: &EvalContext,
-) -> EvaluationResult {
+    let context = &options.context;
     let flat_data = rebuild::augment_nested_data(data);
 
     let mut items = rebuild_item_tree(definition);
 
     let mut seeded_data = flat_data;
-    seed_prepopulate_tree(&items, &mut seeded_data, instances);
+    seed_prepopulate_tree(&items, &mut seeded_data, &options.instances);
 
-    rebuild::seed_initial_values(&items, &mut seeded_data, context.now_iso.as_deref());
+    rebuild::seed_initial_values(
+        &items,
+        &mut seeded_data,
+        context.now_iso.as_deref(),
+        Fel::default(),
+    );
 
     expand_repeat_instances(&mut items, &seeded_data);
 
@@ -59,52 +46,24 @@ fn evaluate_inner(
         &mut items,
         &seeded_data,
         definition,
-        context.now_iso.as_deref(),
         context.previous_validations.as_deref(),
-        instances,
+        options,
     );
 
-    let shapes = definition.get("shapes").and_then(|v| v.as_array());
-    let formspec_version = definition
-        .get("$formspec")
-        .and_then(|v| v.as_str())
-        .unwrap_or("1.0.0");
-    let (mut validations, mut diagnostics) = revalidate(
-        &items,
-        &values,
-        &var_values,
-        shapes.map(|v| v.as_slice()),
-        trigger,
-        extension_constraints,
-        formspec_version,
-        context.now_iso.as_deref(),
-        context.repeat_counts.as_ref(),
-        instances,
-    );
+    let (mut validations, mut diagnostics) =
+        revalidate(&items, &values, &var_values, definition, options);
 
     let (next_values, next_var_values, _) = recalculate(
         &mut items,
         &seeded_data,
         definition,
-        context.now_iso.as_deref(),
         Some(&validations),
-        instances,
+        options,
     );
     if next_values != values || next_var_values != var_values {
         values = next_values;
         var_values = next_var_values;
-        (validations, diagnostics) = revalidate(
-            &items,
-            &values,
-            &var_values,
-            shapes.map(|v| v.as_slice()),
-            trigger,
-            extension_constraints,
-            formspec_version,
-            context.now_iso.as_deref(),
-            context.repeat_counts.as_ref(),
-            instances,
-        );
+        (validations, diagnostics) = revalidate(&items, &values, &var_values, definition, options);
     }
 
     if let Some(cycle_msg) = cycle_err {

@@ -6,13 +6,12 @@ mod expr;
 mod items;
 mod shapes;
 
-/// Shared FEL evaluation for screener route conditions (see `screener_eval`).
-pub(crate) use expr::{evaluate_shape_expression, result_has_eval_errors};
-
 use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
 
+use crate::eval_options::EvalOptions;
+use crate::fel_eval::Fel;
 use crate::types::{EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult};
 
 use crate::rebuild::is_wildcard_bind;
@@ -20,10 +19,11 @@ use crate::recalculate::repeats::ResponseIndex;
 use env::{
     RepeatGroupArrays, SiblingValues, apply_excluded_values_to_env, build_validation_env_typed,
 };
-use items::validate_items;
-use shapes::validate_shape;
 
 /// Validate all constraints and shapes.
+///
+/// Shapes and the `$formspec` version come from `definition`; `options` supplies
+/// the trigger, registry extension constraints, clock, repeat counts, and instances.
 ///
 /// Returns validation results and, separately, author diagnostics for
 /// constraint and shape expressions that hit evaluation errors (Core §3.10.2).
@@ -33,59 +33,62 @@ pub fn revalidate(
     items: &[ItemInfo],
     values: &HashMap<String, Value>,
     variables: &HashMap<String, fel_core::Value>,
-    shapes: Option<&[Value]>,
-    trigger: EvalTrigger,
-    extension_constraints: &[ExtensionConstraint],
-    formspec_version: &str,
-    now_iso: Option<&str>,
-    repeat_counts: Option<&HashMap<String, u64>>,
-    instances: &HashMap<String, Value>,
+    definition: &Value,
+    options: &EvalOptions,
 ) -> (Vec<ValidationResult>, Vec<EvalDiagnostic>) {
-    let mut results = Vec::new();
-    let mut diagnostics = Vec::new();
+    let mut findings = Findings::default();
+    let trigger = options.trigger;
 
     if trigger == EvalTrigger::Disabled {
-        return (results, diagnostics);
+        return (findings.results, findings.diagnostics);
     }
 
     let index = ResponseIndex::new(items, values);
     let data_types = &index.data_types;
-    let mut env = build_validation_env_typed(values, variables, now_iso, instances, data_types);
+    let mut env = build_validation_env_typed(
+        values,
+        variables,
+        options.context.now_iso.as_deref(),
+        &options.instances,
+        data_types,
+    );
 
     // 9a: Apply excludedValue — non-relevant fields with excludedValue="null" appear as null in FEL
     apply_excluded_values_to_env(items, &mut env);
 
-    let shapes_by_id: HashMap<String, &Value> = shapes
-        .unwrap_or(&[])
-        .iter()
-        .filter_map(|shape| {
-            shape
-                .get("id")
-                .and_then(|v| v.as_str())
-                .map(|id| (id.to_string(), shape))
-        })
-        .collect();
-
-    let siblings = SiblingValues::new(values, data_types);
-
-    // Build extension lookup map
-    let ext_by_name: HashMap<&str, &ExtensionConstraint> = extension_constraints
-        .iter()
-        .map(|c| (c.name.as_str(), c))
-        .collect();
+    let shapes = definition
+        .get("shapes")
+        .and_then(Value::as_array)
+        .map(Vec::as_slice);
+    let validation = Validation {
+        items,
+        values,
+        siblings: SiblingValues::new(values, data_types),
+        shapes_by_id: shapes
+            .unwrap_or(&[])
+            .iter()
+            .filter_map(|shape| {
+                shape
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .map(|id| (id.to_string(), shape))
+            })
+            .collect(),
+        ext_by_name: options
+            .extension_constraints
+            .iter()
+            .map(|c| (c.name.as_str(), c))
+            .collect(),
+        formspec_version: definition
+            .get("$formspec")
+            .and_then(Value::as_str)
+            .unwrap_or("1.0.0"),
+        repeat_counts: options.context.repeat_counts.as_ref(),
+        fel: Fel::default(),
+    };
 
     // Bind constraints + extension constraints
-    validate_items(
-        items,
-        &mut env,
-        values,
-        &siblings,
-        &ext_by_name,
-        formspec_version,
-        repeat_counts,
-        &mut results,
-        &mut diagnostics,
-    );
+    validation.validate_items(items, &mut env, &mut findings);
 
     // Shape rules — filtered by timing. Non-wildcard shapes read `$group` row
     // arrays; wildcard shapes resolve rows through flat indexed keys.
@@ -119,16 +122,7 @@ pub fn revalidate(
             if with_arrays {
                 repeat_arrays.swap(&mut env);
             }
-            validate_shape(
-                shape,
-                &shapes_by_id,
-                &mut env,
-                values,
-                &siblings,
-                items,
-                &mut results,
-                &mut diagnostics,
-            );
+            validation.validate_shape(shape, &mut env, &mut findings);
             if with_arrays {
                 repeat_arrays.swap(&mut env);
             }
@@ -137,9 +131,38 @@ pub fn revalidate(
 
     // A shape referenced from a composition is evaluated again there; keep one copy.
     let mut seen = HashSet::new();
-    diagnostics.retain(|d| seen.insert(d.clone()));
+    findings.diagnostics.retain(|d| seen.insert(d.clone()));
 
-    (results, diagnostics)
+    (findings.results, findings.diagnostics)
+}
+
+/// Read-only inputs shared by bind-constraint and shape validation.
+struct Validation<'a> {
+    /// Evaluated item tree (relevance, constraints, cardinality).
+    items: &'a [ItemInfo],
+    /// Response values after recalculation.
+    values: &'a HashMap<String, Value>,
+    /// Row-sibling values for bare `$field` aliases.
+    siblings: SiblingValues<'a>,
+    /// Shapes by `id`, for composition references.
+    shapes_by_id: HashMap<String, &'a Value>,
+    /// Registry extension constraints by extension name.
+    ext_by_name: HashMap<&'a str, &'a ExtensionConstraint>,
+    /// Definition `$formspec` version, for extension compatibility ranges.
+    formspec_version: &'a str,
+    /// Authoritative repeat counts by group path, when the host keeps them.
+    repeat_counts: Option<&'a HashMap<String, u64>>,
+    /// FEL evaluation seam.
+    fel: Fel<'a>,
+}
+
+/// Validation output: results for respondents, diagnostics for authors.
+#[derive(Default)]
+struct Findings {
+    /// Validation results.
+    results: Vec<ValidationResult>,
+    /// Author-facing evaluation errors (Core §3.10.2).
+    diagnostics: Vec<EvalDiagnostic>,
 }
 
 #[cfg(test)]
@@ -192,13 +215,8 @@ mod tests {
             &items,
             &values,
             &HashMap::new(),
-            None,
-            EvalTrigger::Continuous,
-            &[],
-            "1.0.0",
-            None,
-            None,
-            &HashMap::new(),
+            &json!({}),
+            &EvalOptions::default(),
         );
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].path, "email");
@@ -249,13 +267,8 @@ mod tests {
             &items,
             &values,
             &HashMap::new(),
-            None,
-            EvalTrigger::Continuous,
-            &[],
-            "1.0.0",
-            None,
-            None,
-            &HashMap::new(),
+            &json!({}),
+            &EvalOptions::default(),
         );
         assert!(
             results.is_empty(),
@@ -308,13 +321,8 @@ mod tests {
             &items,
             &values,
             &HashMap::new(),
-            None,
-            EvalTrigger::Continuous,
-            &[],
-            "1.0.0",
-            None,
-            None,
-            &HashMap::new(),
+            &json!({}),
+            &EvalOptions::default(),
         );
         assert!(
             results.is_empty(),
@@ -383,13 +391,8 @@ mod tests {
             &items,
             &values,
             &HashMap::new(),
-            None,
-            EvalTrigger::Continuous,
-            &[],
-            "1.0.0",
-            None,
-            None,
-            &HashMap::new(),
+            &json!({}),
+            &EvalOptions::default(),
         );
         let constraint_errors: Vec<_> = results
             .iter()
@@ -444,13 +447,8 @@ mod tests {
             &items,
             &values,
             &HashMap::new(),
-            None,
-            EvalTrigger::Continuous,
-            &[],
-            "1.0.0",
-            None,
-            None,
-            &HashMap::new(),
+            &json!({}),
+            &EvalOptions::default(),
         );
         let constraint_errors: Vec<_> = results
             .iter()
@@ -506,13 +504,8 @@ mod tests {
             &items,
             &values,
             &HashMap::new(),
-            None,
-            EvalTrigger::Continuous,
-            &[],
-            "1.0.0",
-            None,
-            None,
-            &HashMap::new(),
+            &json!({}),
+            &EvalOptions::default(),
         );
         let constraint_errors: Vec<_> = results
             .iter()
@@ -571,13 +564,8 @@ mod tests {
             &items,
             &values,
             &HashMap::new(),
-            None,
-            EvalTrigger::Continuous,
-            &[],
-            "1.0.0",
-            None,
-            None,
-            &HashMap::new(),
+            &json!({}),
+            &EvalOptions::default(),
         );
         assert_eq!(results.len(), 1, "got {results:?}");
         assert_eq!(results[0].code, "CONSTRAINT_PARSE_ERROR");
@@ -643,13 +631,8 @@ mod tests {
             &items,
             &values,
             &HashMap::new(),
-            Some(&shapes),
-            EvalTrigger::Continuous,
-            &[],
-            "1.0.0",
-            None,
-            None,
-            &HashMap::new(),
+            &json!({ "shapes": shapes }),
+            &EvalOptions::default(),
         );
         assert_eq!(results.len(), 1, "got {results:?}");
         assert_eq!(results[0].message, "Amount must pass bogus check");

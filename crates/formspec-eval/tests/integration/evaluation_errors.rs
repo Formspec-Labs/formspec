@@ -127,7 +127,11 @@ fn bind_constraint_false_uses_constraint_message() {
     );
     let result = evaluate(&def, &data(), &EvalOptions::default());
 
-    let messages: Vec<&str> = result.validations.iter().map(|v| v.message.as_str()).collect();
+    let messages: Vec<&str> = result
+        .validations
+        .iter()
+        .map(|v| v.message.as_str())
+        .collect();
     assert_eq!(messages, vec!["Name is not allowed"]);
 }
 

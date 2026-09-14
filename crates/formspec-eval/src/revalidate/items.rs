@@ -9,111 +9,110 @@ use formspec_core::registry_client::version_satisfies;
 use serde_json::Value;
 use url::Url;
 
-use fel_core::{FormspecEnvironment, evaluate, parse};
+use fel_core::{FormspecEnvironment, parse};
 
 use crate::convert::resolve_value_by_path;
 use crate::fel_json::json_to_runtime_fel_typed;
 use crate::rebuild::detect_repeat_count;
 use crate::types::{
-    ConstraintKind, EvalDiagnostic, ExtensionConstraint, ItemInfo, Severity, ValidationCode,
-    ValidationResult, ValidationSource, resolve_qualified_repeat_refs,
+    ConstraintKind, ExtensionConstraint, ItemInfo, Severity, ValidationCode, ValidationResult,
+    ValidationSource, resolve_qualified_repeat_refs,
 };
 
 use crate::value_predicate::{is_empty_for_required_bind, value_skips_optional_bind_checks};
 
-use super::env::{SiblingValues, restore_sibling_aliases};
+use super::env::restore_sibling_aliases;
 use super::expr::{ConstraintSite, constraint_passes};
+use super::{Findings, Validation};
 
-pub(super) fn validate_items(
-    items: &[ItemInfo],
-    env: &mut FormspecEnvironment,
-    values: &HashMap<String, Value>,
-    siblings: &SiblingValues<'_>,
-    ext_by_name: &HashMap<&str, &ExtensionConstraint>,
-    formspec_version: &str,
-    repeat_counts: Option<&HashMap<String, u64>>,
-    results: &mut Vec<ValidationResult>,
-    diagnostics: &mut Vec<EvalDiagnostic>,
-) {
-    for item in items {
-        // Skip non-relevant items (validation suppressed per S5.6)
-        if !item.relevant {
-            continue;
-        }
+impl Validation<'_> {
+    /// Validates `items` and their descendants: required, type, constraint, extensions, cardinality.
+    pub(super) fn validate_items(
+        &self,
+        items: &[ItemInfo],
+        env: &mut FormspecEnvironment,
+        findings: &mut Findings,
+    ) {
+        let (values, siblings) = (self.values, &self.siblings);
+        for item in items {
+            // Skip non-relevant items (validation suppressed per S5.6)
+            if !item.relevant {
+                continue;
+            }
 
-        // 9d: resolve value by walking nested objects for dotted paths
-        let val = resolve_value_by_path(values, &item.path);
+            // 9d: resolve value by walking nested objects for dotted paths
+            let val = resolve_value_by_path(values, &item.path);
 
-        // Required check
-        if item.required && is_empty_for_required_bind(&val) {
-            results.push(ValidationResult {
-                path: item.path.clone(),
-                severity: Severity::Error,
-                constraint_kind: ConstraintKind::Required,
-                code: ValidationCode::Required,
-                message: "Required".to_string(),
-                constraint: None,
-                source: ValidationSource::Bind,
-                shape_id: None,
-                context: None,
-            });
-        }
+            // Required check
+            if item.required && is_empty_for_required_bind(&val) {
+                findings.results.push(ValidationResult {
+                    path: item.path.clone(),
+                    severity: Severity::Error,
+                    constraint_kind: ConstraintKind::Required,
+                    code: ValidationCode::Required,
+                    message: "Required".to_string(),
+                    constraint: None,
+                    source: ValidationSource::Bind,
+                    shape_id: None,
+                    context: None,
+                });
+            }
 
-        // Type mismatch check — covers all 13 spec dataTypes.
-        // Skip for null AND empty values (same gate as constraint checks per §3.8.1).
-        if !val.is_null()
-            && !value_skips_optional_bind_checks(&val)
-            && let Some(ref dt) = item.data_type
-        {
-            let mismatch = match dt.as_str() {
-                // String-family: must be a JSON string
-                "string" | "text" => !val.is_string(),
-                "choice" => !val.as_str().map_or(false, |s| {
-                    item.option_values.is_empty() || item.option_values.iter().any(|o| o == s)
-                }),
+            // Type mismatch check — covers all 13 spec dataTypes.
+            // Skip for null AND empty values (same gate as constraint checks per §3.8.1).
+            if !val.is_null()
+                && !value_skips_optional_bind_checks(&val)
+                && let Some(ref dt) = item.data_type
+            {
+                let mismatch = match dt.as_str() {
+                    // String-family: must be a JSON string
+                    "string" | "text" => !val.is_string(),
+                    "choice" => !val.as_str().map_or(false, |s| {
+                        item.option_values.is_empty() || item.option_values.iter().any(|o| o == s)
+                    }),
 
-                // Numeric: integer must be whole, decimal any number
-                "integer" => {
-                    !(val.is_i64()
-                        || val.is_u64()
-                        || val.is_f64() && {
-                            let f = val.as_f64().unwrap();
-                            f.fract() == 0.0
+                    // Numeric: integer must be whole, decimal any number
+                    "integer" => {
+                        !(val.is_i64()
+                            || val.is_u64()
+                            || val.is_f64() && {
+                                let f = val.as_f64().unwrap();
+                                f.fract() == 0.0
+                            })
+                    }
+                    "number" | "decimal" => !val.is_number(),
+
+                    "boolean" => !val.is_boolean(),
+
+                    // Date: string in YYYY-MM-DD format with valid ranges
+                    "date" => !val.as_str().map_or(false, is_valid_date),
+
+                    // DateTime: string in ISO 8601 date-time format
+                    "dateTime" => !val.as_str().map_or(false, is_valid_datetime),
+
+                    // Time: string in HH:MM:SS format
+                    "time" => !val.as_str().map_or(false, is_valid_time),
+
+                    // URI: string with a scheme component
+                    "uri" => !val.as_str().map_or(false, is_valid_uri),
+
+                    // multiChoice: array where every element is a string (and in options if defined)
+                    "multiChoice" => !val.as_array().map_or(false, |arr| {
+                        arr.iter().all(|v| {
+                            v.as_str().map_or(false, |s| {
+                                item.option_values.is_empty()
+                                    || item.option_values.iter().any(|o| o == s)
+                            })
                         })
-                }
-                "number" | "decimal" => !val.is_number(),
+                    }),
 
-                "boolean" => !val.is_boolean(),
-
-                // Date: string in YYYY-MM-DD format with valid ranges
-                "date" => !val.as_str().map_or(false, is_valid_date),
-
-                // DateTime: string in ISO 8601 date-time format
-                "dateTime" => !val.as_str().map_or(false, is_valid_datetime),
-
-                // Time: string in HH:MM:SS format
-                "time" => !val.as_str().map_or(false, is_valid_time),
-
-                // URI: string with a scheme component
-                "uri" => !val.as_str().map_or(false, is_valid_uri),
-
-                // multiChoice: array where every element is a string (and in options if defined)
-                "multiChoice" => !val.as_array().map_or(false, |arr| {
-                    arr.iter().all(|v| {
-                        v.as_str().map_or(false, |s| {
-                            item.option_values.is_empty()
-                                || item.option_values.iter().any(|o| o == s)
-                        })
-                    })
-                }),
-
-                // money: object with amount (string or number) + currency (string, 3 uppercase letters)
-                // Spec requires string amounts in responses, but we accept numeric for Postel's Law.
-                "money" => {
-                    !val.as_object().map_or(false, |obj| {
-                        let amount_ok = obj.get("amount").map_or(false, |a| {
-                            // Accept string decimal
-                            a.as_str().map_or(false, |s| {
+                    // money: object with amount (string or number) + currency (string, 3 uppercase letters)
+                    // Spec requires string amounts in responses, but we accept numeric for Postel's Law.
+                    "money" => {
+                        !val.as_object().map_or(false, |obj| {
+                            let amount_ok = obj.get("amount").map_or(false, |a| {
+                                // Accept string decimal
+                                a.as_str().map_or(false, |s| {
                                 !s.is_empty()
                                     && s.bytes()
                                         .all(|b| b.is_ascii_digit() || b == b'.' || b == b'-')
@@ -121,171 +120,174 @@ pub(super) fn validate_items(
                             })
                             // Also accept numeric (Postel's Law — inbound values may use numbers)
                             || a.is_number()
-                        });
-                        let currency_ok = obj
-                            .get("currency")
-                            .and_then(Value::as_str)
-                            .map_or(false, |s| {
-                                s.len() == 3 && s.bytes().all(|b| b.is_ascii_uppercase())
                             });
-                        amount_ok && currency_ok
-                    })
-                }
-
-                // attachment: object with contentType (string).
-                // url/data completeness is a submission-level check, not a type check.
-                // If the item declares accepted MIME types, contentType must match one.
-                "attachment" => {
-                    !val.as_object().map_or(false, |obj| {
-                        let ct = obj.get("contentType").and_then(Value::as_str);
-                        ct.map_or(false, |s| {
-                            if item.accept_types.is_empty() {
-                                !s.is_empty()
-                            } else {
-                                item.accept_types.iter().any(|accepted| {
-                                    // Support wildcard like "image/*"
-                                    if let Some(prefix) = accepted.strip_suffix("/*") {
-                                        s.starts_with(prefix)
-                                            && s.as_bytes().get(prefix.len()) == Some(&b'/')
-                                    } else {
-                                        s == accepted
-                                    }
-                                })
-                            }
+                            let currency_ok = obj
+                                .get("currency")
+                                .and_then(Value::as_str)
+                                .map_or(false, |s| {
+                                    s.len() == 3 && s.bytes().all(|b| b.is_ascii_uppercase())
+                                });
+                            amount_ok && currency_ok
                         })
-                    })
+                    }
+
+                    // attachment: object with contentType (string).
+                    // url/data completeness is a submission-level check, not a type check.
+                    // If the item declares accepted MIME types, contentType must match one.
+                    "attachment" => {
+                        !val.as_object().map_or(false, |obj| {
+                            let ct = obj.get("contentType").and_then(Value::as_str);
+                            ct.map_or(false, |s| {
+                                if item.accept_types.is_empty() {
+                                    !s.is_empty()
+                                } else {
+                                    item.accept_types.iter().any(|accepted| {
+                                        // Support wildcard like "image/*"
+                                        if let Some(prefix) = accepted.strip_suffix("/*") {
+                                            s.starts_with(prefix)
+                                                && s.as_bytes().get(prefix.len()) == Some(&b'/')
+                                        } else {
+                                            s == accepted
+                                        }
+                                    })
+                                }
+                            })
+                        })
+                    }
+
+                    _ => false,
+                };
+                if mismatch {
+                    findings.results.push(ValidationResult {
+                        path: item.path.clone(),
+                        severity: Severity::Error,
+                        constraint_kind: ConstraintKind::Type,
+                        code: ValidationCode::TypeMismatch,
+                        message: format!("Invalid {dt}"),
+                        constraint: None,
+                        source: ValidationSource::Bind,
+                        shape_id: None,
+                        context: None,
+                    });
+                }
+            }
+
+            // Constraint check — skip for empty values (§3.8.1).
+            // "A constraint that cannot be evaluated due to null inputs is not considered
+            // violated."  The `required` bind, not `constraint`, enforces non-emptiness.
+            if !value_skips_optional_bind_checks(&val)
+                && let Some(ref expr) = item.constraint
+            {
+                let normalized_expr = resolve_qualified_repeat_refs(expr, &item.path);
+                let saved_aliases = siblings.bind(env, &item.path);
+                // Temporarily bind bare $ to this field's value (typed like env fields — S2.1.3)
+                let prev_dollar = env.data.remove("");
+                env.data.insert(
+                    String::new(),
+                    json_to_runtime_fel_typed(&val, item.data_type.as_deref()),
+                );
+
+                // Core §3.10.1 definition errors (syntax error, undefined function) share
+                // CONSTRAINT_PARSE_ERROR with a processor-generated message (Phase 3 step 1a);
+                // only a `false` result is CONSTRAINT_FAILED, labeled by `constraintMessage`.
+                let site = ConstraintSite {
+                    path: &item.path,
+                    shape_id: None,
+                    fel: self.fel,
+                };
+                let outcome = match parse(&normalized_expr) {
+                    Ok(parsed) => site.settle(
+                        self.fel.evaluate(&parsed, env),
+                        expr,
+                        &mut findings.diagnostics,
+                    ),
+                    Err(e) => Err(e.to_string()),
+                };
+                let failure = match outcome {
+                    Ok(value) if constraint_passes(&value) => None,
+                    Ok(_) => Some((
+                        ValidationCode::ConstraintFailed,
+                        item.constraint_message
+                            .clone()
+                            .unwrap_or_else(|| format!("Constraint failed: {expr}")),
+                    )),
+                    Err(detail) => Some((
+                        ValidationCode::ConstraintParseError,
+                        format!("Constraint expression error: {detail}"),
+                    )),
+                };
+                if let Some((code, message)) = failure {
+                    findings.results.push(ValidationResult {
+                        path: item.path.clone(),
+                        severity: Severity::Error,
+                        constraint_kind: ConstraintKind::Constraint,
+                        code,
+                        message,
+                        constraint: Some(expr.clone()),
+                        source: ValidationSource::Bind,
+                        shape_id: None,
+                        context: None,
+                    });
                 }
 
-                _ => false,
-            };
-            if mismatch {
-                results.push(ValidationResult {
-                    path: item.path.clone(),
-                    severity: Severity::Error,
-                    constraint_kind: ConstraintKind::Type,
-                    code: ValidationCode::TypeMismatch,
-                    message: format!("Invalid {dt}"),
-                    constraint: None,
-                    source: ValidationSource::Bind,
-                    shape_id: None,
-                    context: None,
-                });
+                // Restore previous bare $ binding
+                env.data.remove("");
+                if let Some(prev) = prev_dollar {
+                    env.data.insert(String::new(), prev);
+                }
+                restore_sibling_aliases(env, saved_aliases);
             }
-        }
 
-        // Constraint check — skip for empty values (§3.8.1).
-        // "A constraint that cannot be evaluated due to null inputs is not considered
-        // violated."  The `required` bind, not `constraint`, enforces non-emptiness.
-        if !value_skips_optional_bind_checks(&val)
-            && let Some(ref expr) = item.constraint
-        {
-            let normalized_expr = resolve_qualified_repeat_refs(expr, &item.path);
-            let saved_aliases = siblings.bind(env, &item.path);
-            // Temporarily bind bare $ to this field's value (typed like env fields — S2.1.3)
-            let prev_dollar = env.data.remove("");
-            env.data.insert(
-                String::new(),
-                json_to_runtime_fel_typed(&val, item.data_type.as_deref()),
+            // Extension constraint enforcement
+            validate_extension_constraints(
+                item,
+                &val,
+                &self.ext_by_name,
+                self.formspec_version,
+                &mut findings.results,
             );
 
-            // Core §3.10.1 definition errors (syntax error, undefined function) share
-            // CONSTRAINT_PARSE_ERROR with a processor-generated message (Phase 3 step 1a);
-            // only a `false` result is CONSTRAINT_FAILED, labeled by `constraintMessage`.
-            let site = ConstraintSite {
-                path: &item.path,
-                shape_id: None,
-            };
-            let outcome = match parse(&normalized_expr) {
-                Ok(parsed) => site.settle(evaluate(&parsed, env), expr, diagnostics),
-                Err(e) => Err(e.to_string()),
-            };
-            let failure = match outcome {
-                Ok(value) if constraint_passes(&value) => None,
-                Ok(_) => Some((
-                    ValidationCode::ConstraintFailed,
-                    item.constraint_message
-                        .clone()
-                        .unwrap_or_else(|| format!("Constraint failed: {expr}")),
-                )),
-                Err(detail) => Some((
-                    ValidationCode::ConstraintParseError,
-                    format!("Constraint expression error: {detail}"),
-                )),
-            };
-            if let Some((code, message)) = failure {
-                results.push(ValidationResult {
-                    path: item.path.clone(),
-                    severity: Severity::Error,
-                    constraint_kind: ConstraintKind::Constraint,
-                    code,
-                    message,
-                    constraint: Some(expr.clone()),
-                    source: ValidationSource::Bind,
-                    shape_id: None,
-                    context: None,
-                });
+            // Cardinality check for repeatable groups
+            if item.repeatable {
+                let count = self
+                    .repeat_counts
+                    .and_then(|m| m.get(&item.path).copied())
+                    .map(|n| n as usize)
+                    .unwrap_or_else(|| detect_repeat_count(&item.path, values));
+                if let Some(min) = item.repeat_min
+                    && (count as u64) < min
+                {
+                    findings.results.push(ValidationResult {
+                        path: item.path.clone(),
+                        severity: Severity::Error,
+                        constraint_kind: ConstraintKind::Cardinality,
+                        code: ValidationCode::MinRepeat,
+                        message: format!("Minimum {min} entries required"),
+                        constraint: None,
+                        source: ValidationSource::Bind,
+                        shape_id: None,
+                        context: None,
+                    });
+                }
+                if let Some(max) = item.repeat_max
+                    && (count as u64) > max
+                {
+                    findings.results.push(ValidationResult {
+                        path: item.path.clone(),
+                        severity: Severity::Error,
+                        constraint_kind: ConstraintKind::Cardinality,
+                        code: ValidationCode::MaxRepeat,
+                        message: format!("Maximum {max} entries allowed"),
+                        constraint: None,
+                        source: ValidationSource::Bind,
+                        shape_id: None,
+                        context: None,
+                    });
+                }
             }
 
-            // Restore previous bare $ binding
-            env.data.remove("");
-            if let Some(prev) = prev_dollar {
-                env.data.insert(String::new(), prev);
-            }
-            restore_sibling_aliases(env, saved_aliases);
+            self.validate_items(&item.children, env, findings);
         }
-
-        // Extension constraint enforcement
-        validate_extension_constraints(item, &val, ext_by_name, formspec_version, results);
-
-        // Cardinality check for repeatable groups
-        if item.repeatable {
-            let count = repeat_counts
-                .and_then(|m| m.get(&item.path).copied())
-                .map(|n| n as usize)
-                .unwrap_or_else(|| detect_repeat_count(&item.path, values));
-            if let Some(min) = item.repeat_min
-                && (count as u64) < min
-            {
-                results.push(ValidationResult {
-                    path: item.path.clone(),
-                    severity: Severity::Error,
-                    constraint_kind: ConstraintKind::Cardinality,
-                    code: ValidationCode::MinRepeat,
-                    message: format!("Minimum {min} entries required"),
-                    constraint: None,
-                    source: ValidationSource::Bind,
-                    shape_id: None,
-                    context: None,
-                });
-            }
-            if let Some(max) = item.repeat_max
-                && (count as u64) > max
-            {
-                results.push(ValidationResult {
-                    path: item.path.clone(),
-                    severity: Severity::Error,
-                    constraint_kind: ConstraintKind::Cardinality,
-                    code: ValidationCode::MaxRepeat,
-                    message: format!("Maximum {max} entries allowed"),
-                    constraint: None,
-                    source: ValidationSource::Bind,
-                    shape_id: None,
-                    context: None,
-                });
-            }
-        }
-
-        validate_items(
-            &item.children,
-            env,
-            values,
-            siblings,
-            ext_by_name,
-            formspec_version,
-            repeat_counts,
-            results,
-            diagnostics,
-        );
     }
 }
 

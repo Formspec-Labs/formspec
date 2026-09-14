@@ -18,6 +18,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
+mod fel_eval;
 mod fel_json;
 mod value_predicate;
 

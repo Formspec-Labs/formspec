@@ -2,8 +2,9 @@
 
 use std::collections::{HashMap, HashSet};
 
-use fel_core::{FormspecEnvironment, Value, evaluate, extract_dependencies, parse};
+use fel_core::{FormspecEnvironment, Value, extract_dependencies, parse};
 
+use crate::fel_eval::Fel;
 use crate::types::{VariableDef, strip_indices};
 
 /// Topologically sort variables by their dependencies.
@@ -154,6 +155,7 @@ fn restore_scope_field_aliases(
 pub(crate) fn evaluate_variables_scoped(
     var_defs: &[VariableDef],
     env: &mut FormspecEnvironment,
+    fel: Fel<'_>,
 ) -> (
     HashMap<String, Value>,
     HashMap<String, Value>,
@@ -180,7 +182,7 @@ pub(crate) fn evaluate_variables_scoped(
                 visible_variables_for_scope(&scoped_values, scope),
             );
             if let Ok(parsed) = parse(&var.expression) {
-                let value = evaluate(&parsed, env).value;
+                let value = fel.evaluate(&parsed, env).value;
                 var_values.insert(name.clone(), value.clone());
                 scoped_values.insert(format!("{scope}:{name}"), value);
             }

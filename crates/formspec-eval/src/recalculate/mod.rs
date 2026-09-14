@@ -9,20 +9,27 @@ mod calculate_pass;
 pub(crate) mod json_fel;
 pub(crate) mod repeats;
 mod variables;
+mod walk;
 
 use std::collections::{HashMap, HashSet};
 
 use fel_core::{FormspecEnvironment, Value as FelValue};
 use serde_json::Value;
 
+use crate::eval_options::EvalOptions;
+use crate::fel_eval::Fel;
 use crate::rebuild::parse_variables;
-use crate::types::ItemInfo;
+use crate::types::{ItemInfo, ValidationResult};
 
 pub use variables::topo_sort_variables;
 
-pub(crate) use bind_pass::eval_bool;
+use bind_pass::{BindPass, Parent};
+use walk::Walk;
 
 /// Recalculate all computed values with full processing model.
+///
+/// `previous_validations` feed the `valid()` MIP state; `options` supplies the
+/// clock (`context.now_iso`) and named instances.
 ///
 /// Returns response values, variable values, and a variable cycle error. Variables
 /// stay FEL values so a `date`-valued variable reads as a date downstream (Core §4.5).
@@ -30,20 +37,20 @@ pub fn recalculate(
     items: &mut [ItemInfo],
     data: &HashMap<String, Value>,
     definition: &Value,
-    now_iso: Option<&str>,
-    previous_validations: Option<&[crate::types::ValidationResult]>,
-    instances: &HashMap<String, Value>,
+    previous_validations: Option<&[ValidationResult]>,
+    options: &EvalOptions,
 ) -> (
     HashMap<String, Value>,
     HashMap<String, FelValue>,
     Option<String>,
 ) {
+    let fel = Fel::default();
     let mut env = FormspecEnvironment::new();
-    if let Some(now_iso) = now_iso {
+    if let Some(now_iso) = options.context.now_iso.as_deref() {
         env.set_now_from_iso(now_iso);
     }
 
-    for (name, value) in instances {
+    for (name, value) in &options.instances {
         env.set_instance(name, json_fel::json_to_runtime_fel(value));
     }
     let mut values = data.clone();
@@ -70,7 +77,7 @@ pub fn recalculate(
 
     let var_defs = parse_variables(definition);
     let (initial_var_values, scoped_var_values, cycle_err) =
-        variables::evaluate_variables_scoped(&var_defs, &mut env);
+        variables::evaluate_variables_scoped(&var_defs, &mut env, fel);
 
     env.variables.extend(initial_var_values.clone());
 
@@ -86,59 +93,50 @@ pub fn recalculate(
         .map(|result| result.path.clone())
         .collect();
 
-    if has_scoped {
-        bind_pass::evaluate_items_with_inheritance_scoped(
-            items,
-            &mut env,
-            &mut values,
-            &index,
-            true,
-            false,
-            &scoped_var_values,
-            &invalid_paths,
-        );
-    } else {
-        bind_pass::evaluate_items_with_inheritance(
-            items,
-            &mut env,
-            &mut values,
-            &index,
-            true,
-            false,
-            &invalid_paths,
-        );
-    }
+    let walk = |scoped_vars| Walk {
+        index: &index,
+        scoped_vars: has_scoped.then_some(scoped_vars),
+        fel,
+    };
+
+    walk(&scoped_var_values).items(
+        items,
+        &mut env,
+        &mut values,
+        &mut BindPass {
+            invalid_paths: &invalid_paths,
+        },
+        Parent::ROOT,
+    );
 
     calculate_pass::settle_calculated_values(
         items,
         &mut env,
         &mut values,
-        &index,
-        has_scoped.then_some(&scoped_var_values),
+        &walk(&scoped_var_values),
     );
     repeats::populate_repeat_group_arrays(items, &values, &index, &mut env);
 
     let (mut final_var_values, final_scoped_var_values, _) =
-        variables::evaluate_variables_scoped(&var_defs, &mut env);
+        variables::evaluate_variables_scoped(&var_defs, &mut env, fel);
     env.variables.extend(final_var_values.clone());
 
     calculate_pass::settle_calculated_values(
         items,
         &mut env,
         &mut values,
-        &index,
-        has_scoped.then_some(&final_scoped_var_values),
+        &walk(&final_scoped_var_values),
     );
     repeats::populate_repeat_group_arrays(items, &values, &index, &mut env);
 
-    (final_var_values, _, _) = variables::evaluate_variables_scoped(&var_defs, &mut env);
+    (final_var_values, _, _) = variables::evaluate_variables_scoped(&var_defs, &mut env, fel);
     env.variables.extend(final_var_values.clone());
 
     // Re-evaluate required expressions now that all calculated values and
     // variables have settled. The initial bind pass evaluated required before
     // calculate for each item, so required states that depend on calculated
     // fields may be stale (spec S2.4: topological evaluation order).
-    bind_pass::refresh_required_state(items, &mut env, &invalid_paths);
+    bind_pass::refresh_required_state(items, &mut env, &invalid_paths, fel);
 
     (values, final_var_values, cycle_err)
 }
@@ -170,7 +168,7 @@ mod tests {
 
         let data = HashMap::new();
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, None, &HashMap::new());
+        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         let parent = find_item_by_path(&items, "parent").unwrap();
         assert!(!parent.relevant, "parent should be non-relevant");
@@ -199,7 +197,7 @@ mod tests {
 
         let data = HashMap::new();
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, None, &HashMap::new());
+        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         let parent = find_item_by_path(&items, "parent").unwrap();
         assert!(parent.relevant, "parent should be relevant");
@@ -230,7 +228,7 @@ mod tests {
         data.insert("section.field".to_string(), json!("test"));
 
         let mut items = rebuild_item_tree(&def);
-        let (values, _, _) = recalculate(&mut items, &data, &def, None, None, &HashMap::new());
+        let (values, _, _) = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         let child = find_item_by_path(&items, "section.field").unwrap();
         assert!(
@@ -264,7 +262,7 @@ mod tests {
         data.insert("section.field".to_string(), json!("test"));
 
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, None, &HashMap::new());
+        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         let parent = find_item_by_path(&items, "section").unwrap();
         assert!(
@@ -298,7 +296,7 @@ mod tests {
 
         let mut items = rebuild_item_tree(&def);
         let (values, var_values, _) =
-            recalculate(&mut items, &data, &def, None, None, &HashMap::new());
+            recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         assert_eq!(values.get("total"), Some(&json!(100)));
         assert!(
@@ -323,7 +321,7 @@ mod tests {
         data.insert("toggle".to_string(), json!(false));
 
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, None, &HashMap::new());
+        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         let field = find_item_by_path(&items, "field").unwrap();
         assert!(
@@ -353,7 +351,7 @@ mod tests {
 
         let data = HashMap::new();
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, None, &HashMap::new());
+        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         assert!(!find_item_by_path(&items, "grandparent").unwrap().relevant);
         assert!(
@@ -390,7 +388,7 @@ mod tests {
         data.insert("grandparent.parent.child".to_string(), json!("val"));
 
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, None, &HashMap::new());
+        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         let child = find_item_by_path(&items, "grandparent.parent.child").unwrap();
         assert!(
@@ -424,7 +422,7 @@ mod tests {
 
         let data = HashMap::new();
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, None, &HashMap::new());
+        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         let grandparent = find_item_by_path(&items, "grandparent").unwrap();
         assert!(
@@ -455,7 +453,7 @@ mod tests {
 
         let data = HashMap::new();
         let mut items = rebuild_item_tree(&def);
-        let (values, _, _) = recalculate(&mut items, &data, &def, None, None, &HashMap::new());
+        let (values, _, _) = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         assert_eq!(values.get("parent"), Some(&json!(42)));
         assert_eq!(values.get("parent.child"), None);

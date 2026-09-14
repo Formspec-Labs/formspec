@@ -1,12 +1,13 @@
 //! FEL expression evaluation for validation (shape and bind constraint truthiness).
 #![allow(clippy::missing_docs_in_private_items)]
 
-use fel_core::error::{Diagnostic, Severity};
+use fel_core::error::Severity;
 use fel_core::{
-    EvalResult, FormspecEnvironment, Value, evaluate, expr_is_interpolation_static_literal, parse,
+    EvalResult, FormspecEnvironment, Value, expr_is_interpolation_static_literal, parse,
     undefined_function_names_from_diagnostics,
 };
 
+use crate::fel_eval::Fel;
 use crate::types::EvalDiagnostic;
 
 /// Whether a constraint-position value passes.
@@ -24,6 +25,8 @@ pub(super) struct ConstraintSite<'a> {
     pub(super) path: &'a str,
     /// Shape ID for shape expressions.
     pub(super) shape_id: Option<&'a str>,
+    /// FEL evaluation seam.
+    pub(super) fel: Fel<'a>,
 }
 
 impl ConstraintSite<'_> {
@@ -38,7 +41,7 @@ impl ConstraintSite<'_> {
         diagnostics: &mut Vec<EvalDiagnostic>,
     ) -> Option<Value> {
         let parsed = parse(expression).ok()?;
-        self.settle(evaluate(&parsed, env), expression, diagnostics)
+        self.settle(self.fel.evaluate(&parsed, env), expression, diagnostics)
             .ok()
     }
 
@@ -83,31 +86,6 @@ impl ConstraintSite<'_> {
     }
 }
 
-/// True when the evaluation produced error-level diagnostics (broken expression).
-pub(crate) fn result_has_eval_errors(result: &EvalResult) -> bool {
-    result
-        .diagnostics
-        .iter()
-        .any(|d| d.severity == Severity::Error)
-}
-
-/// Evaluate a FEL expression, folding parse errors into an error diagnostic.
-///
-/// Used where any failure is one "expression error" signal (screener routes,
-/// shape `context` values). Constraint positions use [`ConstraintSite::evaluate`],
-/// which keeps syntax errors distinct from evaluation errors.
-pub(crate) fn evaluate_shape_expression(expr: &str, env: &FormspecEnvironment) -> EvalResult {
-    match parse(expr) {
-        Ok(parsed) => evaluate(&parsed, env),
-        Err(e) => EvalResult {
-            value: Value::Null,
-            diagnostics: vec![Diagnostic::error(format!(
-                "FEL parse error in constraint: {e}"
-            ))],
-        },
-    }
-}
-
 /// Resolve `{{expression}}` interpolation sequences in a message string.
 ///
 /// Rules (per locale spec §3.3.1):
@@ -115,7 +93,11 @@ pub(crate) fn evaluate_shape_expression(expr: &str, env: &FormspecEnvironment) -
 /// 2. Failed parse, eval error diagnostics, or rule 3a -> literal `{{original expr}}`
 /// 3. Otherwise coerce value to display string (null -> "" when allowed)
 /// 4. Non-recursive: replacement text is not re-scanned
-pub(super) fn interpolate_message(template: &str, env: &FormspecEnvironment) -> String {
+pub(super) fn interpolate_message(
+    template: &str,
+    env: &FormspecEnvironment,
+    fel: Fel<'_>,
+) -> String {
     // No {{ at all — fast path
     if !template.contains("{{") {
         return template.to_string();
@@ -140,7 +122,7 @@ pub(super) fn interpolate_message(template: &str, env: &FormspecEnvironment) -> 
                 let expr = &template[i + 2..close];
                 let evaluated = match parse(expr) {
                     Ok(parsed) => {
-                        let er = evaluate(&parsed, env);
+                        let er = fel.evaluate(&parsed, env);
                         let trim = expr.trim();
                         let has_binding_sigil = trim.contains('$') || trim.contains('@');
                         if er.diagnostics.iter().any(|d| d.severity == Severity::Error) {
@@ -208,6 +190,7 @@ fn fel_value_to_display(value: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use fel_core::Diagnostic;
     use rust_decimal::Decimal;
 
     /// Core §3.8.1 / §3.10.2: `null` passes whether it came from missing data or an eval error.
@@ -223,6 +206,7 @@ mod tests {
         let site = ConstraintSite {
             path: "amount",
             shape_id: Some("s1"),
+            fel: Fel::default(),
         };
         let result = EvalResult {
             value: Value::Null,
@@ -249,6 +233,7 @@ mod tests {
         let site = ConstraintSite {
             path: "x",
             shape_id: None,
+            fel: Fel::default(),
         };
         let mut diagnostics = Vec::new();
         assert_eq!(
@@ -271,21 +256,25 @@ mod tests {
     #[test]
     fn basic_interpolation() {
         let env = make_env();
-        let result = interpolate_message("Budget {{$budget}} exceeds {{$limit}}", &env);
+        let result = interpolate_message(
+            "Budget {{$budget}} exceeds {{$limit}}",
+            &env,
+            Fel::default(),
+        );
         assert_eq!(result, "Budget 1000 exceeds 500");
     }
 
     #[test]
     fn escape_double_braces() {
         let env = make_env();
-        let result = interpolate_message("Use {{{{ for templates", &env);
+        let result = interpolate_message("Use {{{{ for templates", &env, Fel::default());
         assert_eq!(result, "Use {{ for templates");
     }
 
     #[test]
     fn error_recovery_bad_expr() {
         let env = make_env();
-        let result = interpolate_message("{{badExpr!!!}}", &env);
+        let result = interpolate_message("{{badExpr!!!}}", &env, Fel::default());
         assert_eq!(result, "{{badExpr!!!}}");
     }
 
@@ -293,7 +282,7 @@ mod tests {
     fn interpolation_preserves_null_without_sigil_or_static_literal() {
         let env = make_env();
         assert_eq!(
-            interpolate_message("x {{!!!bad}} y", &env),
+            interpolate_message("x {{!!!bad}} y", &env, Fel::default()),
             "x {{!!!bad}} y"
         );
     }
@@ -301,33 +290,36 @@ mod tests {
     #[test]
     fn interpolation_null_literal_still_empty() {
         let env = make_env();
-        assert_eq!(interpolate_message("{{null}}", &env), "");
+        assert_eq!(interpolate_message("{{null}}", &env, Fel::default()), "");
     }
 
     #[test]
     fn interpolation_not_null_still_empty() {
         let env = make_env();
-        assert_eq!(interpolate_message("{{not null}}", &env), "");
+        assert_eq!(
+            interpolate_message("{{not null}}", &env, Fel::default()),
+            ""
+        );
     }
 
     #[test]
     fn interpolation_eval_error_preserves_literal() {
         let env = make_env();
-        let result = interpolate_message("{{noSuchFn()}}", &env);
+        let result = interpolate_message("{{noSuchFn()}}", &env, Fel::default());
         assert_eq!(result, "{{noSuchFn()}}");
     }
 
     #[test]
     fn null_coercion() {
         let env = make_env();
-        let result = interpolate_message("Value is '{{$empty}}'", &env);
+        let result = interpolate_message("Value is '{{$empty}}'", &env, Fel::default());
         assert_eq!(result, "Value is ''");
     }
 
     #[test]
     fn no_expressions_passthrough() {
         let env = make_env();
-        let result = interpolate_message("Plain text", &env);
+        let result = interpolate_message("Plain text", &env, Fel::default());
         assert_eq!(result, "Plain text");
     }
 
@@ -336,42 +328,46 @@ mod tests {
         let mut env = FormspecEnvironment::new();
         env.set_field("trick", Value::String("{{$budget}}".to_string()));
         env.set_field("budget", Value::Number(Decimal::from(999)));
-        let result = interpolate_message("Got {{$trick}}", &env);
+        let result = interpolate_message("Got {{$trick}}", &env, Fel::default());
         assert_eq!(result, "Got {{$budget}}");
     }
 
     #[test]
     fn boolean_coercion() {
         let env = make_env();
-        let result = interpolate_message("Flag is {{$flag}}", &env);
+        let result = interpolate_message("Flag is {{$flag}}", &env, Fel::default());
         assert_eq!(result, "Flag is true");
     }
 
     #[test]
     fn string_interpolation() {
         let env = make_env();
-        let result = interpolate_message("Hello {{$name}}", &env);
+        let result = interpolate_message("Hello {{$name}}", &env, Fel::default());
         assert_eq!(result, "Hello Alice");
     }
 
     #[test]
     fn mixed_text_and_expressions() {
         let env = make_env();
-        let result = interpolate_message("{{$name}} spent {{$budget}} of {{$limit}} allowed", &env);
+        let result = interpolate_message(
+            "{{$name}} spent {{$budget}} of {{$limit}} allowed",
+            &env,
+            Fel::default(),
+        );
         assert_eq!(result, "Alice spent 1000 of 500 allowed");
     }
 
     #[test]
     fn unclosed_braces_literal() {
         let env = make_env();
-        let result = interpolate_message("Unclosed {{expr here", &env);
+        let result = interpolate_message("Unclosed {{expr here", &env, Fel::default());
         assert_eq!(result, "Unclosed {{expr here");
     }
 
     #[test]
     fn preserves_utf8_non_ascii_text() {
         let env = make_env();
-        let result = interpolate_message("Café déjà vu — Привет 你好", &env);
+        let result = interpolate_message("Café déjà vu — Привет 你好", &env, Fel::default());
         assert_eq!(result, "Café déjà vu — Привет 你好");
     }
 }

@@ -1,7 +1,9 @@
 //! FEL condition and numeric evaluation for screener routes.
 
-use fel_core::FormspecEnvironment;
+use fel_core::{FormspecEnvironment, has_error_diagnostics};
 use rust_decimal::prelude::ToPrimitive;
+
+use crate::fel_eval::Fel;
 
 use crate::types::determination::{EliminationReason, RouteResult};
 
@@ -18,8 +20,8 @@ pub(crate) struct NumericEval {
 }
 
 pub(crate) fn eval_screener_condition(condition: &str, env: &FormspecEnvironment) -> ConditionEval {
-    let result = crate::revalidate::evaluate_shape_expression(condition, env);
-    let expression_error = crate::revalidate::result_has_eval_errors(&result);
+    let result = Fel::default().evaluate_source(condition, env);
+    let expression_error = has_error_diagnostics(&result.diagnostics);
     let truthy = !expression_error && result.value.is_truthy();
     ConditionEval {
         truthy,
@@ -28,8 +30,8 @@ pub(crate) fn eval_screener_condition(condition: &str, env: &FormspecEnvironment
 }
 
 pub(crate) fn eval_screener_numeric(expr_str: &str, env: &FormspecEnvironment) -> NumericEval {
-    let result = crate::revalidate::evaluate_shape_expression(expr_str, env);
-    if crate::revalidate::result_has_eval_errors(&result) {
+    let result = Fel::default().evaluate_source(expr_str, env);
+    if has_error_diagnostics(&result.diagnostics) {
         return NumericEval {
             value: None,
             expression_error: true,

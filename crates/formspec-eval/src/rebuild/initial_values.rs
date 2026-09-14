@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
+use crate::fel_eval::Fel;
 use crate::types::ItemInfo;
 
 /// Seed initial values for fields that are missing from data (9e).
@@ -13,6 +14,7 @@ pub(crate) fn seed_initial_values(
     items: &[ItemInfo],
     data: &mut HashMap<String, Value>,
     now_iso: Option<&str>,
+    fel: Fel<'_>,
 ) {
     for item in items {
         if let Some(ref init_val) = item.initial_value
@@ -30,7 +32,7 @@ pub(crate) fn seed_initial_values(
                         for (k, v) in data.iter() {
                             env.set_field(k, crate::fel_json::json_to_runtime_fel(v));
                         }
-                        let result = fel_core::evaluate(&parsed, &env);
+                        let result = fel.evaluate(&parsed, &env);
                         data.insert(item.path.clone(), fel_core::fel_to_json(&result.value));
                     }
                 }
@@ -39,6 +41,6 @@ pub(crate) fn seed_initial_values(
                 }
             }
         }
-        seed_initial_values(&item.children, data, now_iso);
+        seed_initial_values(&item.children, data, now_iso, fel);
     }
 }
