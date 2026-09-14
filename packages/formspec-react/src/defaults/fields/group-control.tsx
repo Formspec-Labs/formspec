@@ -9,13 +9,13 @@ export function GroupControl({
     node,
     isReadonly,
     labelId,
-    groupSupplementaryDescribedBy,
+    describedBy,
 }: {
     field: FieldComponentProps['field'];
     node: FieldComponentProps['node'];
     isReadonly: boolean;
     labelId: string;
-    groupSupplementaryDescribedBy: string | undefined;
+    describedBy: string | undefined;
 }) {
     if (node.component === 'RadioGroup') {
         const orientation = node.props?.orientation as string | undefined;
@@ -24,7 +24,7 @@ export function GroupControl({
                 className="formspec-radio-group"
                 role="radiogroup"
                 aria-labelledby={labelId}
-                {...(groupSupplementaryDescribedBy ? { 'aria-describedby': groupSupplementaryDescribedBy } : {})}
+                {...(describedBy ? { 'aria-describedby': describedBy } : {})}
                 {...(orientation === 'horizontal' ? { 'data-orientation': 'horizontal' as const } : {})}
             >
                 {field.options.map((opt) => (
@@ -61,7 +61,7 @@ export function GroupControl({
             className="formspec-checkbox-group"
             role="group"
             aria-labelledby={labelId}
-            {...(groupSupplementaryDescribedBy ? { 'aria-describedby': groupSupplementaryDescribedBy } : {})}
+            {...(describedBy ? { 'aria-describedby': describedBy } : {})}
             style={columnStyle}
             {...dataColumns}
         >

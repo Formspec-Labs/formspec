@@ -194,12 +194,12 @@ export function renderControl(
                     field={field}
                     node={node}
                     isReadonly={isReadonly}
-                    supplementaryDescribedBy={describedBy}
+                    describedBy={describedBy}
                 />
             );
 
         case 'Signature':
-            return <SignatureControl field={field} node={node} supplementaryDescribedBy={describedBy} />;
+            return <SignatureControl field={field} node={node} describedBy={describedBy} />;
 
         case 'TextInput':
         default: {

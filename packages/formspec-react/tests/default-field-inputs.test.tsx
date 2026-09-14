@@ -1374,8 +1374,8 @@ describe('Rating — slider keyboard navigation', () => {
 
 // ── aria-describedby policy (supplementary text only, not errors) ─
 
-describe('DefaultField — aria-describedby excludes validation errors', () => {
-    it('TextInput keeps hint in aria-describedby but not error id when invalid', () => {
+describe('DefaultField — aria-describedby links the visible error', () => {
+    it('TextInput names the error id after the hint only while the error is shown', () => {
         const def = baseDef([{
             key: 'email',
             type: 'field',
@@ -1383,7 +1383,7 @@ describe('DefaultField — aria-describedby excludes validation errors', () => {
             label: 'Email',
             hint: 'Work email',
         }]);
-        def.binds = [{ path: 'email', constraint: 'false' }];
+        def.binds = [{ path: 'email', constraint: "$email != 'not-an-email'" }];
         const engine = createFormEngine(def);
         const node: LayoutNode = {
             id: 'email-field',
@@ -1406,16 +1406,55 @@ describe('DefaultField — aria-describedby excludes validation errors', () => {
                 </FormspecProvider>,
             );
         });
-        engine.setValue('email', 'not-an-email');
-        actSync(() => {
-            const inputEl = container.querySelector('#field-email') as HTMLInputElement;
-            inputEl?.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-        });
         const input = container.querySelector('#field-email') as HTMLInputElement;
-        const db = input.getAttribute('aria-describedby') ?? '';
-        expect(db).toContain('field-email-hint');
-        expect(db).not.toContain('field-email-error');
+        expect(input.getAttribute('aria-describedby')).toBe('field-email-hint');
+
+        actSync(() => engine.setValue('email', 'not-an-email'));
+        actSync(() => {
+            input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        });
         expect(input.getAttribute('aria-invalid')).toBe('true');
+        expect(container.querySelector('#field-email-error')?.textContent).not.toBe('');
+        expect(input.getAttribute('aria-describedby')).toBe('field-email-hint field-email-error');
+
+        actSync(() => engine.setValue('email', 'me@example.com'));
+        expect(input.getAttribute('aria-invalid')).toBe('false');
+        expect(input.getAttribute('aria-describedby')).toBe('field-email-hint');
+    });
+
+    it('RadioGroup names the error id on the radiogroup while the error is shown', () => {
+        const def = baseDef([{
+            key: 'color',
+            type: 'field',
+            dataType: 'choice',
+            label: 'Color',
+            options: [{ value: 'red', label: 'Red' }, { value: 'blue', label: 'Blue' }],
+        }]);
+        def.binds = [{ path: 'color', required: 'true' }];
+        const engine = createFormEngine(def);
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        const node: LayoutNode = {
+            id: 'color-field', component: 'RadioGroup', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'color',
+        };
+        actSync(() => {
+            root.render(
+                <FormspecProvider engine={engine}>
+                    <FormspecNode node={{ id: 'root', component: 'Stack', category: 'layout', props: {}, cssClasses: [], children: [node] }} />
+                </FormspecProvider>,
+            );
+        });
+        const group = container.querySelector('[role="radiogroup"]') as HTMLElement;
+        expect(group.hasAttribute('aria-describedby')).toBe(false);
+
+        actSync(() => (container.querySelector('input[type="radio"]') as HTMLInputElement).click());
+        expect(group.hasAttribute('aria-describedby')).toBe(false);
+
+        actSync(() => engine.setValue('color', null));
+        expect(container.querySelector('#field-color-error')?.textContent).not.toBe('');
+        expect(group.getAttribute('aria-describedby')).toBe('field-color-error');
     });
 });
 

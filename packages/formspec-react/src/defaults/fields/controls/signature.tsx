@@ -6,11 +6,11 @@ import type { FieldComponentProps } from '../../../component-map';
 export function SignatureControl({
     field,
     node,
-    supplementaryDescribedBy,
+    describedBy,
 }: {
     field: FieldComponentProps['field'];
     node: FieldComponentProps['node'];
-    supplementaryDescribedBy?: string;
+    describedBy?: string;
 }) {
     const showError = !!(field.error && field.touched);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -105,7 +105,7 @@ export function SignatureControl({
                 role="img"
                 aria-label={`Signature pad for ${field.label}`}
                 aria-invalid={showError}
-                {...(supplementaryDescribedBy ? { 'aria-describedby': supplementaryDescribedBy } : {})}
+                {...(describedBy ? { 'aria-describedby': describedBy } : {})}
                 tabIndex={0}
                 className="formspec-signature-canvas"
                 style={{ width: '100%', height, touchAction: 'none', cursor: 'crosshair', display: 'block' }}

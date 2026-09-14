@@ -115,10 +115,16 @@ export function DefaultField({ field, node }: FieldComponentProps) {
         </details>
     ) : null;
 
-    const supplementaryDescribedBy =
-        [field.description ? descId : '', field.hint ? `${field.id}-hint` : ''].filter(Boolean).join(' ') || undefined;
+    // Supplementary text ids, plus the error id while an error is shown (USWDS validation pattern:
+    // the control's aria-describedby names its error message). Parity with webcomponent bindSharedFieldEffects.
+    const errorId = `${field.id}-error`;
+    const describedBy = [
+        field.description ? descId : '',
+        field.hint ? `${field.id}-hint` : '',
+        showError ? errorId : '',
+    ].filter(Boolean).join(' ') || undefined;
     const errorNode = (
-        <p id={`${field.id}-error`} className="formspec-error" aria-live="polite">
+        <p id={errorId} className="formspec-error" aria-live="polite">
             {showError ? field.error : ''}
         </p>
     );
@@ -143,7 +149,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 disabled={isReadonly}
                 aria-invalid={showError}
                 aria-required={field.required || undefined}
-                {...(supplementaryDescribedBy ? { 'aria-describedby': supplementaryDescribedBy } : {})}
+                {...(describedBy ? { 'aria-describedby': describedBy } : {})}
             />
         );
 
@@ -188,8 +194,6 @@ export function DefaultField({ field, node }: FieldComponentProps) {
     if (node.component === 'RadioGroup' || node.component === 'CheckboxGroup') {
         const labelId = `${field.id}-label`;
         const labelHidden = node.labelPosition === 'hidden';
-        const groupSupplementaryDescribedBy =
-            [field.description ? descId : '', field.hint ? `${field.id}-hint` : ''].filter(Boolean).join(' ') || undefined;
 
         return (
             <fieldset
@@ -214,7 +218,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                     node={node}
                     isReadonly={isReadonly}
                     labelId={labelId}
-                    groupSupplementaryDescribedBy={groupSupplementaryDescribedBy}
+                    describedBy={describedBy}
                 />
                 {errorNode}
             </fieldset>
@@ -249,7 +253,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
             {hintNode}
             {helpNode}
 
-            {renderControl(field, node, supplementaryDescribedBy, isProtected, extensionAttrs, resolvePlaceholder)}
+            {renderControl(field, node, describedBy, isProtected, extensionAttrs, resolvePlaceholder)}
 
             {errorNode}
         </div>

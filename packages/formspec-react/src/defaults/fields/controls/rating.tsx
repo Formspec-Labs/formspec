@@ -18,12 +18,12 @@ export function RatingControl({
     field,
     node,
     isReadonly,
-    supplementaryDescribedBy,
+    describedBy,
 }: {
     field: FieldComponentProps['field'];
     node: FieldComponentProps['node'];
     isReadonly: boolean;
-    supplementaryDescribedBy?: string;
+    describedBy?: string;
 }) {
     const showError = !!(field.error && field.touched);
     const maxFromProps = node.props?.max ?? node.props?.maxRating;
@@ -91,7 +91,7 @@ export function RatingControl({
             aria-valuetext={`${currentValue} of ${maxRating}`}
             aria-label={field.label}
             aria-invalid={showError}
-            {...(supplementaryDescribedBy ? { 'aria-describedby': supplementaryDescribedBy } : {})}
+            {...(describedBy ? { 'aria-describedby': describedBy } : {})}
             onKeyDown={handleKeyDown}
         >
             {Array.from({ length: maxRating }, (_, idx) => {
