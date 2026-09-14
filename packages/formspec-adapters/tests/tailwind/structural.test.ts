@@ -217,7 +217,7 @@ describe('Tailwind RadioGroup', () => {
         expect(typeof refs.rebuildOptions).toBe('function');
     });
 
-    it('keeps group ARIA on the fieldset, not the first radio', () => {
+    it('keeps group ARIA on the fieldset as a labelled radiogroup, not the first radio', () => {
         const parent = makeParent();
         const b = mockRadioGroup();
         renderRadioGroup(b, parent, mockAdapterContext());
@@ -225,6 +225,9 @@ describe('Tailwind RadioGroup', () => {
         const fieldset = parent.querySelector('fieldset')!;
         expect(refs.control).toBe(fieldset);
         expect(refs.skipAriaDescribedBy).toBe(true);
+        expect(fieldset.getAttribute('role')).toBe('radiogroup');
+        const labelledBy = fieldset.getAttribute('aria-labelledby')!;
+        expect(parent.querySelector(`#${labelledBy}`)?.tagName).toBe('LEGEND');
     });
 });
 

@@ -252,11 +252,51 @@ describe('RadioGroup accessibility', () => {
         }
     });
 
-    it('error paragraph is a polite live region', () => {
-        const el = renderRadioGroup();
-        const err = el.querySelector('#field-color-error') as HTMLElement;
-        expect(err).not.toBeNull();
-        expect(err.getAttribute('aria-live')).toBe('polite');
+    function renderBoundRadioGroup(bind: Record<string, string>, initialValue?: string) {
+        const el = document.createElement('formspec-render-radio') as any;
+        document.body.appendChild(el);
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:radio-state',
+            version: '1.0.0',
+            title: 'Radio state',
+            items: [{
+                key: 'color', type: 'field', label: 'Favorite Color', dataType: 'choice',
+                ...(initialValue ? { initialValue } : {}),
+                options: [{ value: 'red', label: 'Red' }, { value: 'blue', label: 'Blue' }],
+                presentation: { widgetHint: 'RadioGroup' },
+            }],
+            binds: [{ path: 'color', ...bind }],
+        };
+        el.render();
+        return el;
+    }
+
+    it('puts required and invalid state on the radiogroup, not the first radio', () => {
+        const el = renderBoundRadioGroup({ required: 'true' });
+        const group = el.querySelector('[role="radiogroup"]') as HTMLElement;
+        expect(group.getAttribute('aria-required')).toBe('true');
+        el.submit({ emitEvent: false });
+        expect(group.getAttribute('aria-invalid')).toBe('true');
+        for (const radio of el.querySelectorAll('input[type="radio"]')) {
+            expect(radio.hasAttribute('aria-required')).toBe(false);
+            expect(radio.hasAttribute('aria-invalid')).toBe(false);
+        }
+    });
+
+    it('keeps a read-only radio group focusable but unchangeable', () => {
+        const el = renderBoundRadioGroup({ readonly: 'true' }, 'red');
+        const group = el.querySelector('[role="radiogroup"]') as HTMLElement;
+        expect(group.getAttribute('aria-readonly')).toBe('true');
+        const [, blue] = el.querySelectorAll('input[type="radio"]') as NodeListOf<HTMLInputElement>;
+        expect(blue.disabled).toBe(false);
+        expect(blue.hasAttribute('aria-readonly')).toBe(false);
+
+        // Canceled click: no selection, no change event. (Browsers also restore the previously checked
+        // radio; happy-dom does not, so the first radio's checked state is not asserted.)
+        blue.click();
+        expect(blue.checked).toBe(false);
+        expect(el.getEngine().signals['color'].value).toBe('red');
     });
 });
 

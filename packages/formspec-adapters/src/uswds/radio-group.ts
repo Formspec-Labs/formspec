@@ -6,6 +6,9 @@ export const renderRadioGroup: AdapterRenderFn<RadioGroupBehavior> = (
     behavior, parent, actx
 ) => {
     const { root, label, hint, error } = createUSWDSFieldDOM(behavior, { asGroup: true });
+    // Group state (required / invalid / readonly) lands on the radiogroup, which a plain fieldset cannot carry.
+    root.setAttribute('role', 'radiogroup');
+    root.setAttribute('aria-labelledby', label.id);
 
     root.appendChild(error);
 

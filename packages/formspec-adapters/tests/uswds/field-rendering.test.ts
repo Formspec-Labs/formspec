@@ -91,6 +91,45 @@ describe('USWDS error messages — aria-describedby', () => {
     });
 });
 
+describe('USWDS radio group state', () => {
+    const radioItem = (extra: Record<string, unknown> = {}) => ({
+        key: 'able', type: 'field', dataType: 'choice', label: 'Able to work?',
+        options: [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }],
+        ...extra,
+    });
+    const radioTree = { component: 'Stack', children: [{ component: 'RadioGroup', bind: 'able' }] };
+
+    it('exposes required and invalid state on the radiogroup fieldset, not the first radio', () => {
+        const el = renderForm([radioItem()], { binds: [{ path: 'able', required: 'true' }], componentTree: radioTree });
+        const fieldset = el.querySelector('fieldset[data-name="able"]') as HTMLElement;
+        expect(fieldset.getAttribute('role')).toBe('radiogroup');
+        expect(fieldset.getAttribute('aria-labelledby')).toBe('field-able-label');
+        expect(fieldset.getAttribute('aria-required')).toBe('true');
+        el.submit({ emitEvent: false });
+        expect(fieldset.getAttribute('aria-invalid')).toBe('true');
+        for (const radio of el.querySelectorAll('input[type="radio"]')) {
+            expect(radio.hasAttribute('aria-required')).toBe(false);
+            expect(radio.hasAttribute('aria-invalid')).toBe(false);
+        }
+    });
+
+    it('keeps a read-only radio group focusable but unchangeable', () => {
+        const el = renderForm([radioItem({ initialValue: 'yes' })], {
+            binds: [{ path: 'able', readonly: 'true' }], componentTree: radioTree,
+        });
+        const fieldset = el.querySelector('fieldset[data-name="able"]') as HTMLElement;
+        expect(fieldset.getAttribute('aria-readonly')).toBe('true');
+        const [, no] = el.querySelectorAll('input[type="radio"]') as NodeListOf<HTMLInputElement>;
+        expect(no.disabled).toBe(false);
+
+        // Canceled click: no selection, no change event. (Browsers also restore the previously checked
+        // radio; happy-dom does not, so the first radio's checked state is not asserted.)
+        no.click();
+        expect(no.checked).toBe(false);
+        expect(el.getEngine().signals['able'].value).toBe('yes');
+    });
+});
+
 describe('USWDS submit with errors — focus', () => {
     it('moves focus to the first invalid field in page order', () => {
         const el = renderForm(

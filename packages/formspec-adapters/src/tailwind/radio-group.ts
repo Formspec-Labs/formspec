@@ -14,9 +14,13 @@ export const renderRadioGroup: AdapterRenderFn<RadioGroupBehavior> = (
 
     const legend = el('legend', {
         class: p.labelPosition === 'hidden' ? TW.labelHidden : TW.legend,
+        id: `${behavior.id}-label`,
     });
     legend.textContent = behavior.label;
     fieldset.appendChild(legend);
+    // Group state (required / invalid / readonly) lands on the radiogroup, which a plain fieldset cannot carry.
+    fieldset.setAttribute('role', 'radiogroup');
+    fieldset.setAttribute('aria-labelledby', legend.id);
 
     const hint = createTailwindHint(behavior);
     fieldset.appendChild(hint);

@@ -115,6 +115,9 @@ export function bindSharedFieldEffects(
         || refs.control.querySelector('select')
         || refs.control.querySelector('textarea')
         || refs.control;
+    // Field state (required / invalid / readonly): a radio group exposes it on its radiogroup container
+    // (WAI-ARIA radiogroup supports all three), not on the first radio.
+    const stateTarget = refs.control.getAttribute('role') === 'radiogroup' ? refs.control : actualInput;
 
     // Required indicator + reactive label
     disposers.push(effect(() => {
@@ -130,7 +133,7 @@ export function bindSharedFieldEffects(
             indicator.textContent = ' *';
             refs.label.appendChild(indicator);
         }
-        actualInput.setAttribute('aria-required', String(isRequired));
+        stateTarget.setAttribute('aria-required', String(isRequired));
     }));
 
     // ARIA describedby: supplementary text ids (description and hint only while shown), plus the error
@@ -189,7 +192,7 @@ export function bindSharedFieldEffects(
         const shouldShowError = ctx.touchedFields.has(fieldPath) || submitOccurred;
         const showError = shouldShowError ? (effectiveError || '') : '';
         if (refs.error) refs.error.textContent = showError;
-        actualInput.setAttribute('aria-invalid', String(!!showError));
+        stateTarget.setAttribute('aria-invalid', String(!!showError));
         syncDescribedBy(!!showError);
         if (refs.onValidationChange) refs.onValidationChange(!!showError, showError);
     }));
@@ -206,7 +209,7 @@ export function bindSharedFieldEffects(
                 actualInput.disabled = isReadonly;
             }
         }
-        actualInput.setAttribute('aria-readonly', String(isReadonly));
+        stateTarget.setAttribute('aria-readonly', String(isReadonly));
         refs.root.classList.toggle('formspec-field--readonly', isReadonly);
     }));
 
