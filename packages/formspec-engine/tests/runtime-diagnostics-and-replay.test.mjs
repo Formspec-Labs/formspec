@@ -184,3 +184,22 @@ test('diagnostics snapshot carries author-facing evaluation errors (Core §3.10.
 
   assert.deepEqual(byPath(engine.getDiagnosticsSnapshot({ profile: 'off' }).evaluationDiagnostics), bindDiagnostics);
 });
+
+test('an undefined function fails its constraint (Core §3.10.1) and still appears in the diagnostics snapshot', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'http://example.org/undefined-function',
+    version: '1.0.0',
+    title: 'Undefined Function',
+    items: [{ key: 'qty', type: 'field', dataType: 'integer', label: 'Qty' }],
+    binds: [{ path: 'qty', constraint: 'nosuchfn($)', constraintMessage: 'Qty check failed' }]
+  });
+  engine.setValue('qty', 1);
+
+  const snapshot = engine.getDiagnosticsSnapshot();
+  const failures = snapshot.validation.results.map(({ path, code, constraintKind }) => ({ path, code, constraintKind }));
+  assert.deepEqual(failures, [{ path: 'qty', code: 'CONSTRAINT_FAILED', constraintKind: 'constraint' }]);
+  assert.deepEqual(snapshot.evaluationDiagnostics, [
+    { path: 'qty', expression: 'nosuchfn($)', message: 'undefined function: nosuchfn' }
+  ]);
+});

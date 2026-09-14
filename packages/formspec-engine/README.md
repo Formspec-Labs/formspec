@@ -184,8 +184,9 @@ evaluateScreener(): { target: string; label?: string } | null
 getDiagnosticsSnapshot(options?: { profile? }): FormEngineDiagnosticsSnapshot
 // Full snapshot: all values, MIP states, dependencies, validation, runtime context.
 // evaluationDiagnostics: EvalDiagnostic[] ({ path, expression, shapeId?, message }) — author-facing
-// constraint/shape expression errors from the same evaluation as `validation`. They passed as null
-// (Core §3.8.1) and never appear in validation results; do not show them to respondents.
+// constraint/shape expression errors from the same evaluation as `validation`. Evaluation errors (type
+// errors, division by zero; Core §3.10.2) pass as null and appear only here; an undefined function
+// (§3.10.1 definition error) also fails its constraint. Do not show diagnostics to respondents.
 
 applyReplayEvent(event: EngineReplayEvent): EngineReplayApplyResult
 replay(events: EngineReplayEvent[], options?: { stopOnError? }): EngineReplayResult

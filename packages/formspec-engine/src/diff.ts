@@ -7,8 +7,8 @@ export interface EvalValidation {
 }
 
 /**
- * Author-facing FEL error from a bind constraint or shape expression (Rust `EvalDiagnostic`).
- * The expression evaluated to null, so it passed (Core §3.8.1); never a respondent-visible result.
+ * Author-facing FEL error from a bind constraint or shape expression (Rust `EvalDiagnostic`); never shown to
+ * respondents. Evaluation errors (Core §3.10.2) pass as null; an undefined function (§3.10.1) also fails.
  */
 export interface EvalDiagnostic {
     /** Resolved instance path of the bind or shape target (`#` for form-level shapes). */
