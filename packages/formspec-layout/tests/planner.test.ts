@@ -80,6 +80,34 @@ function findItemByPath(items: any[], path: string): any | null {
 // ── planComponentTree ────────────────────────────────────────────────
 
 describe('planComponentTree', () => {
+    it('plans a display component bound to a display Item as that Item (label text, path link, no value bind)', () => {
+        const items = [
+            {
+                key: 'section',
+                type: 'group',
+                label: 'Section',
+                children: [{ key: 'notice', type: 'display', label: 'Week of {{$week}}' }],
+            },
+        ];
+        const tree = {
+            component: 'Stack',
+            children: [
+                {
+                    component: 'Stack',
+                    bind: 'section',
+                    children: [{ component: 'Text', bind: 'notice', text: 'Ignored when bind is present' }],
+                },
+            ],
+        };
+        const ctx = makeCtx({ items, findItem: (k) => findItemAtPath(items as any, k) });
+
+        const text = planComponentTree(tree, ctx).children[0].children[0];
+        expect(text.category).toBe('display');
+        expect(text.bindPath).toBe('section.notice');
+        expect(text.props.bind).toBeUndefined();
+        expect(text.props.text).toBe('Week of {{$week}}');
+    });
+
     it('plans a simple Stack with children', () => {
         const tree = {
             component: 'Stack',
@@ -1879,6 +1907,35 @@ describe('planDefinitionFallback', () => {
         expect(nodes[0].component).toBe('Text');
         expect(nodes[0].category).toBe('display');
         expect(nodes[0].props.text).toBe('Please read carefully.');
+    });
+
+    it('links display items to their Definition path so renderers resolve Locale, {{}} and relevance', () => {
+        const items = [
+            { key: 'info', type: 'display', label: 'Week of {{$week}}' },
+            {
+                key: 'rows',
+                type: 'group',
+                repeatable: true,
+                label: 'Rows',
+                children: [{ key: 'rowNote', type: 'display', label: 'Row {{@index}}' }],
+            },
+        ];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+
+        const nodes = planDefinitionFallback(items, ctx);
+        expect(nodes[0].bindPath).toBe('info');
+        expect(nodes[1].children[0].bindPath).toBe('rows[0].rowNote');
+    });
+
+    it('does not read a non-schema Item `relevant`; relevance comes from Binds', () => {
+        const items = [
+            { key: 'info', type: 'display', label: 'Info', relevant: '$show = true' },
+        ];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+
+        const nodes = planDefinitionFallback(items, ctx);
+        expect(nodes[0].when).toBeUndefined();
+        expect(nodes[0].whenPrefix).toBeUndefined();
     });
 
     it('uses theme widget when available', () => {

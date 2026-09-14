@@ -179,9 +179,10 @@ export function planComponentTree(
     }
 
     if (item && item.type === 'display') {
-        if (props.text == null) {
-            props.text = item.label ?? '';
-        }
+        // Component §5.14: `text` is ignored when `bind` is present. A display Item has
+        // no value, so the bound "value" is its label; `bindPath` (above) lets renderers
+        // resolve it live (Locale, FEL `{{}}`) and apply the Item's Bind relevance.
+        props.text = item.label ?? '';
         delete props.bind;
     }
 

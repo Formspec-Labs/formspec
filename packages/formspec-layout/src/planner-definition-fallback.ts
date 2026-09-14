@@ -144,28 +144,24 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
         };
     }
 
-    const displayItem = item as FormItem & { relevant?: string; presentation?: Record<string, unknown> };
+    const displayPresentation = item.presentation as Record<string, unknown> | undefined;
     const displayWidget = widgetTokenToComponent(
-        (displayItem.presentation as { widgetHint?: string } | undefined)?.widgetHint,
+        (displayPresentation as { widgetHint?: string } | undefined)?.widgetHint,
     ) ?? 'Text';
-    const { widgetHint: _wh, cssClass: _dc, labelPosition: _dl, ...displayPresentationProps } = displayItem.presentation ?? {};
-    const displayNode: LayoutNode = {
+    const { widgetHint: _wh, cssClass: _dc, labelPosition: _dl, ...displayPresentationProps } = displayPresentation ?? {};
+    // `text` is the static inline label; `bindPath` lets renderers resolve the live
+    // label (Locale `<key>.label`, FEL `{{}}`) and Bind relevance for this Item.
+    return {
         id: planCtx.nextId('display'),
         component: displayWidget,
         category: 'display',
         props: { text: item.label || '', ...displayPresentationProps },
-        style: gridPlacementStyleFromLayout((displayItem.presentation as { layout?: unknown } | undefined)?.layout),
+        style: gridPlacementStyleFromLayout((displayPresentation as { layout?: unknown } | undefined)?.layout),
         cssClasses: normalizeCssClass(presentation.cssClass),
         children: [],
         needAnchors: needGenerationAnchors(item),
+        bindPath: fullPath,
     };
-
-    if (displayItem.relevant) {
-        displayNode.when = displayItem.relevant;
-        displayNode.whenPrefix = prefix;
-    }
-
-    return displayNode;
 }
 
 function planThemePagesFromDefinitionItems(items: FormItem[], ctx: PlanContext): LayoutNode[] {
