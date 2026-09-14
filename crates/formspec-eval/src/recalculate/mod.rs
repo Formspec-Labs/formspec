@@ -8,6 +8,7 @@ mod bind_pass;
 mod calculate_pass;
 pub(crate) mod json_fel;
 pub(crate) mod repeats;
+mod text_pass;
 mod variables;
 mod walk;
 
@@ -19,7 +20,7 @@ use serde_json::Value;
 use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
 use crate::rebuild::parse_variables;
-use crate::types::{ItemInfo, ValidationResult};
+use crate::types::{ItemInfo, ItemText, ValidationResult};
 
 pub use variables::topo_sort_variables;
 
@@ -44,6 +45,42 @@ pub fn recalculate(
     HashMap<String, FelValue>,
     Option<String>,
 ) {
+    let recalculated = recalculate_phase(
+        items,
+        data,
+        definition,
+        previous_validations,
+        options,
+        false,
+    );
+    (
+        recalculated.values,
+        recalculated.variables,
+        recalculated.cycle_error,
+    )
+}
+
+/// Output of one recalculate phase.
+pub(crate) struct Recalculated {
+    /// Response values.
+    pub(crate) values: HashMap<String, Value>,
+    /// Variable values as FEL values.
+    pub(crate) variables: HashMap<String, FelValue>,
+    /// Variable dependency cycle, if any.
+    pub(crate) cycle_error: Option<String>,
+    /// Item text by instance path, when requested and `options.item_text` is set.
+    pub(crate) item_text: Option<HashMap<String, ItemText>>,
+}
+
+/// [`recalculate`], plus Item text from the settled scope when `resolve_text` and `options.item_text`.
+pub(crate) fn recalculate_phase(
+    items: &mut [ItemInfo],
+    data: &HashMap<String, Value>,
+    definition: &Value,
+    previous_validations: Option<&[ValidationResult]>,
+    options: &EvalOptions,
+    resolve_text: bool,
+) -> Recalculated {
     let fel = Fel::new(options.extensions);
     let mut env = FormspecEnvironment::new();
     if let Some(now_iso) = options.context.now_iso.as_deref() {
@@ -138,7 +175,22 @@ pub fn recalculate(
     // fields may be stale (spec S2.4: topological evaluation order).
     bind_pass::refresh_required_state(items, &mut env, &invalid_paths, fel);
 
-    (values, final_var_values, cycle_err)
+    let item_text = options
+        .item_text
+        .as_ref()
+        .filter(|_| resolve_text)
+        .map(|request| {
+            let mut pass = text_pass::TextPass::new(definition, request);
+            walk(&final_scoped_var_values).items(items, &mut env, &mut values, &mut pass, ());
+            pass.text
+        });
+
+    Recalculated {
+        values,
+        variables: final_var_values,
+        cycle_error: cycle_err,
+        item_text,
+    }
 }
 
 #[cfg(test)]

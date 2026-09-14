@@ -84,6 +84,32 @@ pub struct EvalContext {
     pub repeat_counts: Option<HashMap<String, u64>>,
 }
 
+/// Request to resolve Item text in the same evaluation (Core §4.2.1 text interpolation).
+#[derive(Debug, Clone, Default)]
+pub struct ItemTextRequest {
+    /// Active Locale strings by key (`<itemKey>.label`, `<itemKey>.label@short`, …).
+    ///
+    /// The caller applies the Locale fallback cascade (Locale §4) first, so each key maps
+    /// to the string the cascade would return; missing keys fall back to inline text.
+    pub locale_strings: HashMap<String, String>,
+}
+
+/// Display text for one Item instance, `{{expression}}` resolved in its scope.
+///
+/// Each property follows the Locale cascade (§3.1.1–§3.1.2): Locale string, then the
+/// Definition's inline text, interpolated under Locale §3.3.1.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ItemText {
+    /// Primary label (`""` when neither Locale nor Definition has one).
+    pub label: String,
+    /// Context labels by context name: every Definition `labels` context and Locale `label@context` key.
+    pub labels: HashMap<String, String>,
+    /// Help text, when the Locale or Definition has it.
+    pub description: Option<String>,
+    /// Instructional hint, when the Locale or Definition has it.
+    pub hint: Option<String>,
+}
+
 /// Result of the full evaluation cycle.
 #[derive(Debug, Clone)]
 pub struct EvaluationResult {
@@ -101,4 +127,6 @@ pub struct EvaluationResult {
     pub required: HashMap<String, bool>,
     /// Readonly state by path.
     pub readonly: HashMap<String, bool>,
+    /// Item text by instance path; `Some` only when [`crate::EvalOptions::item_text`] asked for it.
+    pub item_text: Option<HashMap<String, ItemText>>,
 }

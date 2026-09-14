@@ -14,7 +14,8 @@ use formspec_core::wire_keys::evaluation_batch_keys;
 use crate::extension_constraints_from_registry_documents;
 use crate::types::{
     ConstraintKind, EvalContext, EvalDiagnostic, EvalTrigger, EvaluationResult,
-    ExtensionConstraint, Severity, ValidationCode, ValidationResult, ValidationSource,
+    ExtensionConstraint, ItemText, ItemTextRequest, Severity, ValidationCode, ValidationResult,
+    ValidationSource,
 };
 
 /// Full batch evaluation output as JSON (matches `evaluateDefinition` WASM shape, camelCase).
@@ -52,7 +53,34 @@ pub fn evaluation_result_to_json_value_styled(
     root.insert("variables".into(), json!(result.variables));
     root.insert("required".into(), json!(result.required));
     root.insert("readonly".into(), json!(result.readonly));
+    if let Some(item_text) = &result.item_text {
+        root.insert(
+            "itemText".into(),
+            Value::Object(
+                item_text
+                    .iter()
+                    .map(|(path, text)| (path.clone(), item_text_to_json_object(text)))
+                    .collect(),
+            ),
+        );
+    }
     Value::Object(root)
+}
+
+/// `{ label, labels?, description?, hint? }`: absent properties are omitted.
+fn item_text_to_json_object(text: &ItemText) -> Value {
+    let mut m = Map::new();
+    m.insert("label".into(), json!(text.label));
+    if !text.labels.is_empty() {
+        m.insert("labels".into(), json!(text.labels));
+    }
+    if let Some(description) = &text.description {
+        m.insert("description".into(), json!(description));
+    }
+    if let Some(hint) = &text.hint {
+        m.insert("hint".into(), json!(hint));
+    }
+    Value::Object(m)
 }
 
 fn validation_result_to_json_object(
@@ -103,6 +131,8 @@ pub struct EvalHostContextBundle {
     pub instances: HashMap<String, Value>,
     /// Extension constraints derived from optional registry documents in the context object.
     pub constraints: Vec<ExtensionConstraint>,
+    /// Item text request from `itemText: { localeStrings? }`, when present.
+    pub item_text: Option<ItemTextRequest>,
 }
 
 /// Parse the optional JSON context object passed to `evaluateDefinition` from JavaScript.
@@ -114,7 +144,27 @@ pub fn eval_host_context_from_json_map(
         trigger: parse_eval_trigger(ctx_obj)?,
         instances: parse_instances(ctx_obj),
         constraints: parse_registry_documents(ctx_obj),
+        item_text: parse_item_text_request(ctx_obj),
     })
+}
+
+fn parse_item_text_request(ctx_obj: &Map<String, Value>) -> Option<ItemTextRequest> {
+    let request = ctx_obj
+        .get("itemText")
+        .or_else(|| ctx_obj.get("item_text"))?
+        .as_object()?;
+    let locale_strings = request
+        .get("localeStrings")
+        .or_else(|| request.get("locale_strings"))
+        .and_then(Value::as_object)
+        .map(|strings| {
+            strings
+                .iter()
+                .filter_map(|(key, value)| Some((key.clone(), value.as_str()?.to_string())))
+                .collect()
+        })
+        .unwrap_or_default();
+    Some(ItemTextRequest { locale_strings })
 }
 
 fn parse_eval_context(ctx_obj: &Map<String, Value>) -> Result<EvalContext, String> {

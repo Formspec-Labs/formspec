@@ -23,6 +23,7 @@ mod fel_json;
 mod value_predicate;
 
 pub mod convert;
+pub mod interpolation;
 pub mod nrb;
 pub mod rebuild;
 pub mod recalculate;
@@ -52,7 +53,7 @@ pub use revalidate::revalidate;
 pub use screener_eval::evaluate_screener_document;
 pub use types::{
     AnswerInput, AnswerState, DeterminationRecord, EvalContext, EvalDiagnostic, EvalTrigger,
-    EvaluationResult, ExtensionConstraint, InputEntry, ItemInfo, NrbMode, OverrideBlock,
-    PhaseResult, RouteResult, ScreenerRef, ValidationResult, ValidityBlock, VariableDef,
-    WhitespaceMode, parse_answer_state,
+    EvaluationResult, ExtensionConstraint, InputEntry, ItemInfo, ItemText, ItemTextRequest,
+    NrbMode, OverrideBlock, PhaseResult, RouteResult, ScreenerRef, ValidationResult, ValidityBlock,
+    VariableDef, WhitespaceMode, parse_answer_state,
 };

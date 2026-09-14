@@ -8,6 +8,7 @@ use serde_json::Value as JsonValue;
 
 use crate::fel_eval::Fel;
 use crate::fel_json::json_to_runtime_fel_typed;
+use crate::interpolation::interpolate_fel;
 use crate::rebuild::{
     expand_wildcard_path, instantiate_wildcard_expr, is_wildcard_bind, wildcard_base,
 };
@@ -17,7 +18,7 @@ use crate::types::{
 };
 
 use super::env::restore_sibling_aliases;
-use super::expr::{ConstraintSite, constraint_passes, interpolate_message};
+use super::expr::{ConstraintSite, constraint_passes};
 use super::{Findings, Validation};
 
 impl Validation<'_> {
@@ -98,7 +99,7 @@ impl Validation<'_> {
                 severity: Severity::parse_wire(severity).unwrap_or(Severity::Error),
                 constraint_kind: ConstraintKind::Shape,
                 code: ValidationCode::from_wire(scode),
-                message: interpolate_message(message, env, fel),
+                message: interpolate_fel(message, env, fel, str::to_string).text,
                 constraint: shape
                     .get("constraint")
                     .and_then(|v| v.as_str())
@@ -216,7 +217,7 @@ impl Validation<'_> {
                     severity: Severity::parse_wire(severity).unwrap_or(Severity::Error),
                     constraint_kind: ConstraintKind::Shape,
                     code: ValidationCode::from_wire(scode),
-                    message: interpolate_message(message, env, fel),
+                    message: interpolate_fel(message, env, fel, str::to_string).text,
                     constraint: constraint_expr.clone(),
                     source: ValidationSource::Shape,
                     shape_id: sid.clone(),

@@ -4,7 +4,7 @@ use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
 use crate::nrb::apply_nrb;
 use crate::rebuild;
-use crate::recalculate::recalculate;
+use crate::recalculate::recalculate_phase;
 use crate::revalidate::revalidate;
 use crate::runtime_seed::{apply_previous_non_relevant, seed_prepopulate_tree};
 use crate::types::{self, EvaluationResult, ValidationResult};
@@ -42,27 +42,33 @@ pub fn evaluate(
         apply_previous_non_relevant(&mut items, prev_nr);
     }
 
-    let (mut values, mut var_values, cycle_err) = recalculate(
+    let first = recalculate_phase(
         &mut items,
         &seeded_data,
         definition,
         context.previous_validations.as_deref(),
         options,
+        false,
     );
+    let (mut values, mut var_values, cycle_err) =
+        (first.values, first.variables, first.cycle_error);
 
     let (mut validations, mut diagnostics) =
         revalidate(&items, &values, &var_values, definition, options);
 
-    let (next_values, next_var_values, _) = recalculate(
+    // Item text resolves in this pass: it sees `valid()` from the validations above.
+    let next = recalculate_phase(
         &mut items,
         &seeded_data,
         definition,
         Some(&validations),
         options,
+        true,
     );
-    if next_values != values || next_var_values != var_values {
-        values = next_values;
-        var_values = next_var_values;
+    let item_text = next.item_text;
+    if next.values != values || next.variables != var_values {
+        values = next.values;
+        var_values = next.variables;
         (validations, diagnostics) = revalidate(&items, &values, &var_values, definition, options);
     }
 
@@ -106,5 +112,6 @@ pub fn evaluate(
         variables,
         required,
         readonly,
+        item_text,
     }
 }

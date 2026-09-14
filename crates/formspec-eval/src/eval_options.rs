@@ -6,7 +6,7 @@ use std::fmt;
 use fel_core::ExtensionFunctions;
 use serde_json::Value;
 
-use crate::types::{EvalContext, EvalTrigger, ExtensionConstraint};
+use crate::types::{EvalContext, EvalTrigger, ExtensionConstraint, ItemTextRequest};
 
 /// Options for a single definition evaluation ([`crate::pipeline::evaluate`]).
 #[derive(Clone)]
@@ -24,6 +24,8 @@ pub struct EvalOptions<'a> {
     /// Without them, a call to an extension function is a definition error
     /// (Core §3.10.1).
     pub extensions: Option<&'a dyn ExtensionFunctions>,
+    /// Resolve Item text too ([`crate::EvaluationResult::item_text`]); `None` skips the text pass.
+    pub item_text: Option<ItemTextRequest>,
 }
 
 impl Default for EvalOptions<'_> {
@@ -34,6 +36,7 @@ impl Default for EvalOptions<'_> {
             instances: HashMap::new(),
             context: EvalContext::default(),
             extensions: None,
+            item_text: None,
         }
     }
 }
@@ -49,6 +52,7 @@ impl fmt::Debug for EvalOptions<'_> {
                 "extensions",
                 &self.extensions.map(|_| "<host extension functions>"),
             )
+            .field("item_text", &self.item_text)
             .finish()
     }
 }
@@ -80,6 +84,12 @@ impl<'a> EvalOptions<'a> {
     /// Set runtime evaluation context.
     pub fn context(mut self, context: EvalContext) -> Self {
         self.context = context;
+        self
+    }
+
+    /// Resolve Item text for every Item instance alongside evaluation (Core §4.2.1).
+    pub fn item_text(mut self, request: ItemTextRequest) -> Self {
+        self.item_text = Some(request);
         self
     }
 
