@@ -51,11 +51,20 @@ def _minimal_theme(**overrides: object) -> dict:
     return base
 
 
+def _paired_theme(**overrides: object) -> dict:
+    """Definition-scoped theme targeting ``_minimal_definition()``.
+
+    W705/W706 resolve keys only for a Definition-scoped theme; a theme with no
+    ``targetDefinition`` is bundle-scoped and suspends them (theme spec §7.2).
+    """
+    return _minimal_theme(targetDefinition={"url": "https://example.com/forms/test"}, **overrides)
+
+
 # -- W705: items keys that don't match definition item paths --
 
 
 def test_w705_fires_for_unresolved_items_key() -> None:
-    theme = _minimal_theme(items={"nonexistent.field": {"style": {"color": "red"}}})
+    theme = _paired_theme(items={"nonexistent.field": {"style": {"color": "red"}}})
     definition = _minimal_definition()
 
     diagnostics = lint(theme, component_definition=definition)
@@ -66,7 +75,7 @@ def test_w705_fires_for_unresolved_items_key() -> None:
 
 
 def test_w705_clean_for_valid_items_key() -> None:
-    theme = _minimal_theme(items={"address.street": {"style": {"color": "red"}}})
+    theme = _paired_theme(items={"address.street": {"style": {"color": "red"}}})
     definition = _minimal_definition()
 
     diagnostics = lint(theme, component_definition=definition)
@@ -84,7 +93,7 @@ def test_w705_skipped_without_definition() -> None:
 
 
 def test_w705_accepts_top_level_key() -> None:
-    theme = _minimal_theme(items={"name": {"style": {"color": "red"}}})
+    theme = _paired_theme(items={"name": {"style": {"color": "red"}}})
     definition = _minimal_definition()
 
     diagnostics = lint(theme, component_definition=definition)
@@ -96,7 +105,7 @@ def test_w705_accepts_top_level_key() -> None:
 
 
 def test_w706_fires_for_unresolved_region_key() -> None:
-    theme = _minimal_theme(
+    theme = _paired_theme(
         pages=[
             {
                 "id": "p1",
@@ -115,7 +124,7 @@ def test_w706_fires_for_unresolved_region_key() -> None:
 
 
 def test_w706_clean_for_valid_region_key() -> None:
-    theme = _minimal_theme(
+    theme = _paired_theme(
         pages=[
             {
                 "id": "p1",
@@ -146,6 +155,19 @@ def test_w706_skipped_without_definition() -> None:
     diagnostics = lint(theme)
 
     assert not any(d.code == "W706" for d in diagnostics)
+
+
+def test_w705_w706_suspended_for_bundle_scoped_theme() -> None:
+    """No targetDefinition: keys are not resolved against a caller-paired Definition."""
+    theme = _minimal_theme(
+        items={"bogus": {"style": {"color": "red"}}},
+        pages=[{"id": "p1", "title": "Page 1", "regions": [{"key": "missingGroup", "span": 12}]}],
+    )
+    definition = _minimal_definition()
+
+    diagnostics = lint(theme, component_definition=definition)
+
+    assert not any(d.code in ("W705", "W706") for d in diagnostics)
 
 
 # -- W707: targetDefinition.url doesn't match definition URL --
