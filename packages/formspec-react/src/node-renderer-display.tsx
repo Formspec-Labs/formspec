@@ -7,7 +7,7 @@ import type { LayoutNode } from '@formspec-org/layout';
 import type { FormItem } from '@formspec-org/types';
 import { useFormspecContext, findItemByKey } from './context.js';
 import { useSignal } from './use-signal';
-import { useRepeatCount } from './use-repeat-count';
+import { useRepeatAffordances } from './use-repeat-affordances';
 import { ValidationSummary } from './validation-summary';
 import { DividerLayout } from './defaults/layout/default-layout';
 import {
@@ -534,15 +534,17 @@ function DataTableDisplay({
     const defaultCurrency = engine.getDefinition()?.formPresentation?.defaultCurrency || 'USD';
 
     const repeatPath = bindKey || '';
-    const count = useRepeatCount(repeatPath);
+    const { count, relevant, canAdd, canRemove } = useRepeatAffordances(repeatPath);
 
     const handleAdd = useCallback(() => {
-        if (repeatPath) engine.addRepeatInstance(repeatPath);
-    }, [engine, repeatPath]);
+        if (repeatPath && canAdd) engine.addRepeatInstance(repeatPath);
+    }, [canAdd, engine, repeatPath]);
 
     const handleRemove = useCallback((idx: number) => {
         if (repeatPath) engine.removeRepeatInstance(repeatPath, idx);
     }, [engine, repeatPath]);
+
+    if (!relevant) return null;
 
     if (!bindKey || columns.length === 0) {
         return (
@@ -591,21 +593,24 @@ function DataTableDisplay({
                             ))}
                             {allowRemove && (
                                 <td>
-                                    <button
-                                        type="button"
-                                        className="formspec-datatable-remove formspec-button-danger formspec-focus-ring"
-                                        aria-label={`Remove row ${i + 1}`}
-                                        onClick={() => handleRemove(i)}
-                                    >
-                                        Remove
-                                    </button>
+                                    {/* Keep the Actions cell so columns line up; Remove appears only above minRepeat. */}
+                                    {canRemove && (
+                                        <button
+                                            type="button"
+                                            className="formspec-datatable-remove formspec-button-danger formspec-focus-ring"
+                                            aria-label={`Remove row ${i + 1}`}
+                                            onClick={() => handleRemove(i)}
+                                        >
+                                            Remove
+                                        </button>
+                                    )}
                                 </td>
                             )}
                         </tr>
                     ))}
                 </tbody>
             </table>
-            {allowAdd && (
+            {allowAdd && canAdd && (
                 <button
                     type="button"
                     className="formspec-datatable-add formspec-focus-ring"

@@ -2384,6 +2384,7 @@ describe('DataTable select column rendering', () => {
         expect(wrapper.querySelector('.formspec-datatable-add')).toBeTruthy();
         const actionHeader = wrapper.querySelector('th:last-child .formspec-sr-only');
         expect(actionHeader?.textContent).toBe('Actions');
+        flushSync(() => engine.addRepeatInstance('expenses')); // Remove appears above minRepeat
         const removeButton = wrapper.querySelector('.formspec-datatable-remove') as HTMLButtonElement;
         expect(removeButton).toBeTruthy();
         expect(removeButton.className).toBe('formspec-datatable-remove formspec-button-danger formspec-focus-ring');

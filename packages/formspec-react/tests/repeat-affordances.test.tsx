@@ -103,3 +103,39 @@ for (const suite of suites) {
         });
     });
 }
+
+describe('repeat affordances — DataTable bound to the repeat', () => {
+    const tree = {
+        component: 'Stack',
+        children: [
+            { component: 'TextInput', bind: 'worked' },
+            {
+                component: 'DataTable',
+                bind: 'jobs',
+                allowAdd: true,
+                allowRemove: true,
+                columns: [{ header: 'Employer', bind: 'employer' }],
+            },
+        ],
+    };
+
+    it('renders no table while the group is not relevant', () => {
+        const { container, engine } = render(tree);
+        expect(container.querySelector('.formspec-data-table-wrapper')).toBeNull();
+
+        act(() => engine.setValue('worked', 'yes'));
+        expect(container.querySelector('.formspec-data-table-wrapper')).toBeTruthy();
+    });
+
+    it('hides Add Row at maxRepeat and Remove at or below minRepeat', () => {
+        const { container, engine } = render(tree);
+        act(() => engine.setValue('worked', 'yes'));
+        const add = () => container.querySelector<HTMLButtonElement>('.formspec-datatable-add');
+        expect(container.querySelectorAll('.formspec-datatable-remove')).toHaveLength(0);
+
+        act(() => add()!.click());
+        expect(engine.repeats.jobs.value).toBe(2);
+        expect(add()).toBeNull();
+        expect(container.querySelectorAll('.formspec-datatable-remove')).toHaveLength(2);
+    });
+});
