@@ -100,7 +100,13 @@ describe('renderUSWDSAccordion — repeat bound, in formspec-render', () => {
         globalRegistry.setAdapter('default');
     });
 
-    function render() {
+    const jobsTree = { component: 'Accordion', bind: 'jobs', children: [{ component: 'TextInput', bind: 'employer' }] };
+    const jobsItems = [{
+        key: 'jobs', type: 'group', label: 'Job', repeatable: true, minRepeat: 1,
+        children: [{ key: 'employer', type: 'field', dataType: 'string', label: 'Employer' }],
+    }];
+
+    function render(tree: any = jobsTree, items: any[] = jobsItems) {
         globalRegistry.registerAdapter(uswdsAdapter);
         globalRegistry.setAdapter('uswds');
         const el = document.createElement('formspec-render') as any;
@@ -109,21 +115,34 @@ describe('renderUSWDSAccordion — repeat bound, in formspec-render', () => {
             $formspecComponent: '1.0',
             version: '1.0.0',
             targetDefinition: { url: 'urn:test:jobs' },
-            tree: { component: 'Accordion', bind: 'jobs', children: [{ component: 'TextInput', bind: 'employer' }] },
+            tree,
         };
-        el.definition = {
-            $formspec: '1.0',
-            url: 'urn:test:jobs',
-            version: '1.0.0',
-            title: 'Jobs',
-            items: [{
-                key: 'jobs', type: 'group', label: 'Job', repeatable: true, minRepeat: 1,
-                children: [{ key: 'employer', type: 'field', dataType: 'string', label: 'Employer' }],
-            }],
-        };
+        el.definition = { $formspec: '1.0', url: 'urn:test:jobs', version: '1.0.0', title: 'Jobs', items };
         el.render();
         return { el, engine: el.getEngine() };
     }
+
+    it('focusField opens the hidden panel holding the field', () => {
+        const { el } = render(
+            {
+                component: 'Accordion',
+                defaultOpen: 0,
+                children: [{ component: 'TextInput', bind: 'name' }, { component: 'TextInput', bind: 'email' }],
+            },
+            [
+                { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+                { key: 'email', type: 'field', dataType: 'string', label: 'Email' },
+            ],
+        );
+        const [namePanel, emailPanel] = Array.from(el.querySelectorAll('.usa-accordion__content')) as HTMLElement[];
+        expect(emailPanel.hidden).toBe(true);
+
+        expect(el.focusField('email')).toBe(true);
+
+        expect(emailPanel.hidden).toBe(false);
+        expect(namePanel.hidden).toBe(true);
+        expect(document.activeElement).toBe(emailPanel.querySelector('input'));
+    });
 
     it('disposes the previous rows\' effects on every re-render', () => {
         const { el, engine } = render();

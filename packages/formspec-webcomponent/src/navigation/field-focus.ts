@@ -1,4 +1,4 @@
-/** @filedesc Field focus and reveal logic for wizard panels, tabs, and collapsibles. */
+/** @filedesc Field focus and reveal logic for wizard panels, tabs, collapsibles, and accordions. */
 import type { NavigationHost } from './index.js';
 import { normalizeFieldPath } from './paths.js';
 
@@ -40,6 +40,24 @@ export function revealTabsForField(_host: NavigationHost, fieldEl: HTMLElement):
     }
 }
 
+/**
+ * Open every disclosure hiding the field: `<details>` ancestors (Collapsible, default Accordion items)
+ * and ARIA disclosure panels (`hidden`, toggled by an `aria-expanded` control, e.g. USWDS Accordion).
+ * Clicking the control lets the adapter apply its own rules, such as closing sibling panels.
+ */
+function revealDisclosuresForField(host: NavigationHost, fieldEl: HTMLElement): void {
+    for (let el = fieldEl.parentElement; el && el !== host; el = el.parentElement) {
+        if (el instanceof HTMLDetailsElement) {
+            el.open = true;
+        } else if (el.hidden && el.id) {
+            const id = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(el.id) : el.id;
+            const selector = `[aria-controls="${id}"][aria-expanded="false"]`;
+            const control = el.parentElement?.querySelector(selector) ?? host.querySelector(selector);
+            if (control instanceof HTMLElement) control.click();
+        }
+    }
+}
+
 export function focusField(host: NavigationHost, path: string): boolean {
     const normalizedPath = normalizeFieldPath(path);
     let fieldEl = findFieldElement(host, normalizedPath);
@@ -65,11 +83,7 @@ export function focusField(host: NavigationHost, path: string): boolean {
     fieldEl = findFieldElement(host, normalizedPath);
     if (!fieldEl) return false;
 
-    let collapsible = fieldEl.closest('details.formspec-collapsible') as HTMLDetailsElement | null;
-    while (collapsible) {
-        collapsible.open = true;
-        collapsible = collapsible.parentElement?.closest('details.formspec-collapsible') as HTMLDetailsElement | null;
-    }
+    revealDisclosuresForField(host, fieldEl);
 
     const inputEl = fieldEl.querySelector('input, select, textarea, button, [tabindex]');
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
