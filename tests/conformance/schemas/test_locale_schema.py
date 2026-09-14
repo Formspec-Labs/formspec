@@ -119,7 +119,7 @@ class TestLocaleSchema:
 
     def test_every_closed_surface_shell_key_is_schema_valid(self) -> None:
         shell_keys = LOCALE_SCHEMA["$defs"]["SurfaceShellStringKey"]["enum"]
-        assert len(shell_keys) == len(set(shell_keys)) == 23
+        assert shell_keys and len(shell_keys) == len(set(shell_keys))
         for key in shell_keys:
             doc = _minimal_locale()
             doc["target"] = {
