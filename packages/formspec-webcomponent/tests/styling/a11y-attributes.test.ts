@@ -61,6 +61,50 @@ describe('a11y attributes — label/describedby', () => {
     });
 });
 
+describe('a11y attributes — validation state writes', () => {
+    afterEach(() => {
+        document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
+    });
+
+    it('does not rewrite aria-describedby or aria-invalid on other fields when one field is touched', () => {
+        const el = renderWith(
+            [
+                { key: 'first', type: 'field', dataType: 'string', label: 'First' },
+                { key: 'second', type: 'field', dataType: 'string', label: 'Second', hint: 'Second hint' },
+            ],
+            [],
+            { component: 'Section', children: [{ component: 'TextInput', bind: 'first' }, { component: 'TextInput', bind: 'second' }] },
+        );
+        const second = el.querySelector('#field-second') as HTMLInputElement;
+        const writes: string[] = [];
+        for (const method of ['setAttribute', 'removeAttribute'] as const) {
+            const original = second[method].bind(second) as (...args: any[]) => void;
+            (second as any)[method] = (name: string, ...rest: any[]) => {
+                writes.push(name);
+                original(name, ...rest);
+            };
+        }
+
+        el.querySelector('[data-name="first"]')!.dispatchEvent(new Event('focusout', { bubbles: true }));
+
+        expect(el.touchedVersion.value).toBe(1);
+        expect(writes.filter((name) => name === 'aria-describedby' || name === 'aria-invalid')).toEqual([]);
+        expect(second.getAttribute('aria-describedby')).toBe('field-second-hint');
+        expect(second.getAttribute('aria-invalid')).toBe('false');
+    });
+
+    it('announces an error through aria-describedby only, not a live region on the message', () => {
+        const el = renderWith(
+            [{ key: 'age', type: 'field', dataType: 'integer', label: 'Age' }],
+            [{ path: 'age', required: 'true' }],
+            { component: 'Section', children: [{ component: 'NumberInput', bind: 'age' }] },
+        );
+        const error = el.querySelector('#field-age-error') as HTMLElement;
+        expect(error.hasAttribute('aria-live')).toBe(false);
+        expect(error.closest('[aria-live]:not([aria-live="off"])')).toBeNull();
+    });
+});
+
 describe('a11y attributes — description linked via aria-describedby', () => {
     afterEach(() => {
         document.body.querySelectorAll('formspec-render').forEach(el => el.remove());

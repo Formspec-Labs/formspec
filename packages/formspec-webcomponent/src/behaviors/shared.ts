@@ -76,6 +76,13 @@ function showFieldText(el: HTMLElement | null | undefined, text: string | null |
     el.hidden = !text;
 }
 
+/** Set (or with `null`, remove) an attribute only when it changes: field effects re-run on every touch. */
+function syncAttribute(el: Element, name: string, value: string | null): void {
+    if (el.getAttribute(name) === value) return;
+    if (value === null) el.removeAttribute(name);
+    else el.setAttribute(name, value);
+}
+
 /** Warn if the component type is incompatible with the item's dataType. */
 export function warnIfIncompatible(
     componentType: string,
@@ -157,8 +164,7 @@ export function bindSharedFieldEffects(
     const syncDescribedBy = (errorShown = lastErrorShown) => {
         lastErrorShown = errorShown;
         const ids = [...new Set([...supplementaryIds(), errorShown ? refs.error?.id : undefined].filter(Boolean))].join(' ');
-        if (ids) ariaTarget.setAttribute('aria-describedby', ids);
-        else ariaTarget.removeAttribute('aria-describedby');
+        syncAttribute(ariaTarget, 'aria-describedby', ids || null);
     };
 
     // Hint + description text (Locale changes, `{{}}` interpolation of live values). Adapters render both,
@@ -171,7 +177,7 @@ export function bindSharedFieldEffects(
         }));
     }
 
-    // Validation display
+    // Validation display. Re-runs for every field whenever any field is touched, so write only changes.
     disposers.push(effect(() => {
         ctx.touchedVersion.value; // subscribe to touch changes
 
@@ -191,8 +197,8 @@ export function bindSharedFieldEffects(
         const submitOccurred = ctx.latestSubmitDetailSignal?.value !== null;
         const shouldShowError = ctx.touchedFields.has(fieldPath) || submitOccurred;
         const showError = shouldShowError ? (effectiveError || '') : '';
-        if (refs.error) refs.error.textContent = showError;
-        stateTarget.setAttribute('aria-invalid', String(!!showError));
+        if (refs.error && refs.error.textContent !== showError) refs.error.textContent = showError;
+        syncAttribute(stateTarget, 'aria-invalid', String(!!showError));
         syncDescribedBy(!!showError);
         if (refs.onValidationChange) refs.onValidationChange(!!showError, showError);
     }));

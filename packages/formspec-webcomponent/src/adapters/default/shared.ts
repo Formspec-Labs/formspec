@@ -94,7 +94,8 @@ export function createFieldDOM(
     const error = document.createElement('p');
     error.className = 'formspec-error';
     error.id = errorId;
-    error.setAttribute('aria-live', 'polite');
+    // Not a live region: the control's aria-describedby names this message while it shows, so a live
+    // region would announce it twice (and announce every invalid field at once on submit).
     if (slots.error) actx.applyClassValue(error, slots.error);
 
     return { root, label, hint, error };
