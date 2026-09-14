@@ -77,6 +77,7 @@ export type SurfaceShellStringKey =
   | '$module.x-formspec-surface.shell.slotUnavailableDefinitionForm'
   | '$module.x-formspec-surface.shell.slotUnavailableExperienceUnit'
   | '$module.x-formspec-surface.shell.slotUnavailableWidgetUnimplemented'
+  | '$module.x-formspec-surface.shell.slotUnavailableWidgetIncompatible'
   | '$module.x-formspec-surface.shell.slotUnavailableWidgetUndeclared'
   | '$module.x-formspec-surface.shell.slotUnavailableWidgetData'
   | '$module.x-formspec-surface.shell.slotUnavailableStaticContent'

@@ -670,6 +670,7 @@ MUST contain these exact suffixes one-for-one:
 | `slotUnavailableDefinitionForm` | none |
 | `slotUnavailableExperienceUnit` | none |
 | `slotUnavailableWidgetUnimplemented` | `$widgetName` |
+| `slotUnavailableWidgetIncompatible` | `$widgetName` |
 | `slotUnavailableWidgetUndeclared` | `$widgetName` |
 | `slotUnavailableWidgetData` | none |
 | `slotUnavailableStaticContent` | none |

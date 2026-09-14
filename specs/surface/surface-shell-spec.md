@@ -520,7 +520,8 @@ targets MAY override the shell's person-facing text through
 exactly:
 
 `slotUnavailableDefinitionForm`, `slotUnavailableExperienceUnit`,
-`slotUnavailableWidgetUnimplemented`, `slotUnavailableWidgetUndeclared`,
+`slotUnavailableWidgetUnimplemented`, `slotUnavailableWidgetIncompatible`,
+`slotUnavailableWidgetUndeclared`,
 `slotUnavailableWidgetData`, `slotUnavailableStaticContent`,
 `slotUnavailableEmbedUnresolved`,
 `slotUnavailableEmbedCycle`, `widgetEmpty`, `notFoundTitle`, `notFoundBody`,
@@ -642,15 +643,16 @@ only runtime extension point inside a route.
   §2.4, §8.1). Three fields in the graph are called some variant of *widget
   name*; a shell that keys on the wrong one silently mis-resolves the day two
   vocabularies collide.
-- **Three resolution outcomes, and they are different diagnostics.**
+- **Four resolution outcomes, and they are different diagnostics.**
 
   | Outcome | Meaning | Diagnostic |
   |---|---|---|
-  | resolved | A Registry in the bundle declares the widget **and** a registered module implements it. | — |
+  | resolved | A Registry in the bundle declares the widget **and** a registered module implements it with a matching delivery contract. | — |
   | undeclared | No Registry in the bundle declares this widget. | `WIDGET-UNDECLARED` |
   | unimplemented | A Registry declares it; nothing the host registered implements it. | `WIDGET-UNIMPLEMENTED` |
+  | incompatible | A Registry declares it and a registered module implements it, but the implementation's delivery contract does not match the Registry entry. The slot is unavailable. | `WIDGET-DELIVERY-CONTRACT-MISMATCH` |
 
-  Collapsing the last two loses the only information that says who fixes it —
+  Collapsing undeclared and unimplemented loses the only information that says who fixes it —
   *undeclared* is an authoring defect, *unimplemented* is a deployment defect.
 
   **`WIDGET-UNDECLARED` reports declaration, not delivery, and MUST fire even
@@ -2007,7 +2009,7 @@ not claim that any child shipped.
 | `route-matching` | `implemented` | §2.3, §2.7 | Unsupplied markers fail and malformed escapes cannot escape a render. |
 | `route-path-grammar-mismatch` | `implemented` | §2.3, §7.3 | Schema and Studio admit only `{name}` markers; runtime keeps no legacy alias. |
 | `slot-dispatch` | `implemented` | §3, §3.5 | Dispatch is exhaustive; embedded routes preserve grants, headings, and cycle termination. |
-| `module-widget-runtime` | `implemented` | §3.3 | Registry identity yields exact `resolved`, `unimplemented`, or `undeclared` posture. |
+| `module-widget-runtime` | `implemented` | §3.3 | Registry identity yields exact `resolved`, `unimplemented`, `incompatible`, or `undeclared` posture. |
 | `widget-x-intake-banner` | `implemented` | §1.3 principle 2, §3.3 | The starter widget renders authored configuration or an explicit empty state. |
 | `widget-x-ceremony-frame` | `implemented` | §4.2, §4.4 | Token scoping makes the frame unbranded; the widget invents no signing control. |
 | `widget-x-receipt-panel` | `implemented` | §3.3, §9.2 | The starter widget renders admitted receipt input and may use the addressed route reference as fact. |

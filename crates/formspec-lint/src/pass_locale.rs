@@ -2,6 +2,7 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use std::collections::{HashMap, HashSet};
+use std::sync::OnceLock;
 
 use formspec_core::visit_component_subtree;
 use serde_json::Value;
@@ -34,31 +35,23 @@ const DATA_TERMINALS: &[&str] = &[
     "bind",
     "path",
 ];
-const SURFACE_SHELL_STRING_KEYS: &[&str] = &[
-    "slotUnavailableDefinitionForm",
-    "slotUnavailableExperienceUnit",
-    "slotUnavailableWidgetUnimplemented",
-    "slotUnavailableWidgetUndeclared",
-    "slotUnavailableWidgetData",
-    "slotUnavailableStaticContent",
-    "slotUnavailableEmbedUnresolved",
-    "slotUnavailableEmbedCycle",
-    "widgetEmpty",
-    "notFoundTitle",
-    "notFoundBody",
-    "navigationLabel",
-    "transitionContinue",
-    "transitionPending",
-    "transitionFailed",
-    "transitionTargetUnresolved",
-    "transitionTargetCollision",
-    "transitionNoResponseActions",
-    "transitionTriggerUnresolved",
-    "transitionTriggerAmbiguous",
-    "transitionNoExecutor",
-    "transitionSuppliedBySlot",
-    "transitionFireable",
-];
+/// Locale §3.1.9 `SurfaceStringKey` suffixes, read from the embedded Locale
+/// schema enum so the lint never carries a second copy of the closed set.
+fn surface_shell_string_keys() -> &'static HashSet<String> {
+    const SHELL_PREFIX: &str = "$module.x-formspec-surface.shell.";
+    static KEYS: OnceLock<HashSet<String>> = OnceLock::new();
+    KEYS.get_or_init(|| {
+        let schema: Value = serde_json::from_str(include_str!("../schemas/locale.schema.json"))
+            .expect("embedded Locale schema is valid JSON");
+        schema["$defs"]["SurfaceShellStringKey"]["enum"]
+            .as_array()
+            .expect("Locale schema declares the SurfaceShellStringKey enum")
+            .iter()
+            .filter_map(|key| key.as_str()?.strip_prefix(SHELL_PREFIX))
+            .map(str::to_owned)
+            .collect()
+    })
+}
 
 pub(crate) fn lint_locale(locale: &Value, options: &LintOptions) -> Vec<LintDiagnostic> {
     let mut analyzer = Analyzer {
@@ -222,7 +215,7 @@ impl<'a> Analyzer<'a> {
 
         if parts[0] == "x-formspec-surface"
             && parts[1] == "shell"
-            && !SURFACE_SHELL_STRING_KEYS.contains(&strip_context(&parts[2]))
+            && !surface_shell_string_keys().contains(strip_context(&parts[2]))
         {
             self.diagnostics.push(error(
                 crate::LintCode::E1401,
@@ -924,6 +917,7 @@ mod tests {
         locale["strings"] = json!({
             "$module.x-reviewer.case.heading": "Review",
             "$module.x-formspec-surface.shell.navigationLabel": "Pages",
+            "$module.x-formspec-surface.shell.slotUnavailableWidgetIncompatible": "Mismatch",
             "$module.x-formspec-surface.shell.notAKey": "Unknown"
         });
 
@@ -940,9 +934,14 @@ mod tests {
                 diag.code == crate::LintCode::E1401 && diag.path.contains("notAKey")
             })
         );
-        assert!(!diagnostics.iter().any(|diag| {
-            diag.path.contains("x-reviewer") || diag.path.contains("navigationLabel")
-        }));
+        assert!(
+            !diagnostics.iter().any(|diag| {
+                diag.path.contains("x-reviewer")
+                    || diag.path.contains("navigationLabel")
+                    || diag.path.contains("slotUnavailableWidgetIncompatible")
+            }),
+            "{diagnostics:?}"
+        );
     }
 
     #[test]
