@@ -82,7 +82,7 @@ import {
   resolveExtension as _resolveExtension,
 } from './queries/index.js';
 import { evalFELWithTrace, type FelTraceResult } from '@formspec-org/engine/fel-runtime';
-import { componentDocumentIsDerived, exportComponentTree } from './component-export.js';
+import { exportComponentTree } from './component-export.js';
 import { indexRegistryPayload } from './registry-index.js';
 import { normalizeBindsFromUnknown } from './definition-binds.js';
 import {
@@ -345,6 +345,7 @@ export class RawProject implements IProjectCore {
       if (m.rules?.length) exportMappings[id] = withMappingEnvelope(m, url);
     }
 
+    const componentExport = exportComponentTree(this._state);
     const bundle: ProjectBundle = {
       // ADR 0150 §5.2 App Manifest reframe: `definitions` is plural. P0 authoring
       // still owns a single Definition, so this array is single-element; multi-
@@ -352,7 +353,9 @@ export class RawProject implements IProjectCore {
       definitions: [this._state.definition],
       // component-spec §1.2: a Component Document overrides Theme widget selection, so a
       // tree the Definition alone generates is not emitted — its absence lets the theme apply.
-      ...(componentDocumentIsDerived(this._state) ? {} : { component: this._exportComponent(url) }),
+      ...(componentExport.derived ? {} : {
+        component: withComponentEnvelope({ ...this._state.component, tree: componentExport.tree }, url),
+      }),
       theme: {
         ...withThemeEnvelope(exportTheme),
       },
@@ -390,14 +393,6 @@ export class RawProject implements IProjectCore {
     }
 
     return structuredClone(bundle);
-  }
-
-  private _exportComponent(url: string): ComponentDocument {
-    const { tree, ...restComponent } = this._state.component as Record<string, unknown>;
-    return withComponentEnvelope(
-      { ...restComponent, tree: tree ? exportComponentTree(tree, this._state.definition) : undefined },
-      url,
-    );
   }
 
   // ── History ──────────────────────────────────────────────────────

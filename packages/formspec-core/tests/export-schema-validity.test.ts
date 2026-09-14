@@ -372,6 +372,20 @@ describe('componentDocumentIsDerived', () => {
     expect(component).toMatchObject({ $formspecComponent: '1.0', targetDefinition: { url: 'urn:derived' } });
     expect(JSON.stringify(component!.tree)).toContain('"RadioGroup"');
   });
+
+  it('export cost stays linear in the item count', () => {
+    // Bound: item lookup once per export, not one WASM round trip of the whole item
+    // tree per bound node (was 7.5 s derived / 12.3 s authored at this size).
+    const items = Array.from({ length: 2000 }, (_, i) => ({ type: 'field', key: `f${i}`, label: `F${i}`, dataType: 'string' }));
+    const project = createRawProject({
+      seed: { definition: { $formspec: '1.0', url: 'urn:perf', version: '1.0.0', status: 'draft', title: 'T', items } as any },
+    });
+    const time = (fn: () => void) => { const t = performance.now(); fn(); return performance.now() - t; };
+
+    expect(time(() => expect(project.export()).not.toHaveProperty('component'))).toBeLessThan(1000);
+    project.dispatch({ type: 'component.setNodeType', payload: { node: { bind: 'f0' }, component: 'Textarea' } });
+    expect(time(() => expect(project.export()).toHaveProperty('component'))).toBeLessThan(1000);
+  });
 });
 
 // ── Mappings: schema requires rules minItems 1 ─────────────────────
