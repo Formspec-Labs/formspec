@@ -11,6 +11,7 @@ use super::repeats::{
     restore_instance_aliases,
 };
 use super::variables::visible_variables;
+use crate::fel_json::is_date_data_type;
 use crate::types::{ItemInfo, WhitespaceMode, resolve_qualified_repeat_refs};
 
 /// Apply whitespace normalization to all items that have a whitespace bind.
@@ -85,10 +86,17 @@ pub(crate) fn evaluate_single_item(
                     env.set_field(&item.path, coerced);
                 }
             } else if let Some(ref default_val) = item.default_value {
-                let fel = json_to_runtime_fel_typed(default_val, item.data_type.as_deref());
-                let coerced = coerce_calculated_value(item, fel);
-                let json_val = fel_to_ui_json(&coerced);
-                values.insert(item.path.clone(), json_val.clone());
+                let data_type = item.data_type.as_deref();
+                let coerced = coerce_calculated_value(
+                    item,
+                    json_to_runtime_fel_typed(default_val, data_type),
+                );
+                let json_val = if is_date_data_type(data_type) {
+                    default_val.clone()
+                } else {
+                    fel_to_ui_json(&coerced)
+                };
+                values.insert(item.path.clone(), json_val);
                 env.set_field(&item.path, coerced);
             }
         }

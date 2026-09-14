@@ -42,12 +42,20 @@ pub(crate) fn json_to_runtime_fel(value: &JsonValue) -> Value {
 /// the ISO parse (unparsable text decodes to `null`). The engine's ad-hoc FEL
 /// context uses the same envelope. Other values pass through unchanged.
 pub(crate) fn typed_json_leaf(value: &JsonValue, data_type: Option<&str>) -> JsonValue {
-    match (data_type, value) {
-        (Some("date" | "dateTime"), JsonValue::String(text)) => {
+    match value {
+        JsonValue::String(text) if is_date_data_type(data_type) => {
             json!({ "$type": "date", "value": text })
         }
         _ => value.clone(),
     }
+}
+
+/// Whether a field `dataType` reads as FEL `date` (Core §2.1.3).
+///
+/// FEL `date` has no zone, offset, or source precision, so its JSON rendering
+/// is not the response value: keep the authored text for these types.
+pub(crate) fn is_date_data_type(data_type: Option<&str>) -> bool {
+    matches!(data_type, Some("date" | "dateTime"))
 }
 
 /// Convert a response leaf of field type `data_type` to a FEL [`Value`] (Core §2.1.3).
