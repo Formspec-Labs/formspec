@@ -287,6 +287,30 @@ def _format_table(results: list[dict]) -> list[str]:
     return rows
 
 
+def relative_server_paths(config: dict[str, Any]) -> list[tuple[str, str]]:
+    """Return (server, token) for each stdio command or arg that is a relative filesystem path.
+
+    The agent runs with cwd=REPO_ROOT, so a path written relative to the config's own
+    repository (formspec-studio/.mcp.json uses `packages/...`) never resolves and the
+    server dies before its first frame. Bare commands (`node`), flags without a path
+    value, URLs, and scoped npm specs (`@scope/pkg`) are not filesystem paths.
+    """
+    found: list[tuple[str, str]] = []
+    for name, server in (config.get("mcpServers") or {}).items():
+        if not isinstance(server, dict) or "command" not in server:
+            continue
+        for token in [server["command"], *server.get("args", [])]:
+            if not isinstance(token, str):
+                continue
+            value = token.split("=", 1)[1] if token.startswith("-") and "=" in token else token
+            if value.startswith("-") or "://" in value or value.startswith("@"):
+                continue
+            looks_like_path = "/" in value or "\\" in value or value.startswith(".")
+            if looks_like_path and not Path(value).is_absolute():
+                found.append((name, token))
+    return found
+
+
 def _iso_date() -> str:
     return time.strftime("%Y-%m-%d")
 
@@ -320,11 +344,26 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--mcp-config", type=Path, required=True,
-        help="MCP config that launches Forms-MCP (it lives in formspec-studio); no repo-local default.",
+        help=(
+            "MCP config that launches Forms-MCP; no repo-local default. Every stdio server "
+            "command and path argument must be absolute, because the agent runs with "
+            "cwd=REPO_ROOT (formspec-studio/.mcp.json uses relative paths and will not work as-is)."
+        ),
     )
     args = parser.parse_args(argv)
     if not args.mcp_config.is_file():
         parser.error(f"--mcp-config {args.mcp_config} does not exist")
+    try:
+        mcp_config = json.loads(args.mcp_config.read_text())
+    except json.JSONDecodeError as exc:
+        parser.error(f"--mcp-config {args.mcp_config} is not valid JSON: {exc}")
+    relative = relative_server_paths(mcp_config)
+    if relative:
+        listed = ", ".join(f"{name}: {token!r}" for name, token in relative)
+        parser.error(
+            f"--mcp-config {args.mcp_config} has a relative path the agent cannot resolve from "
+            f"{REPO_ROOT} ({listed}); use absolute server commands and paths"
+        )
     # The agent runs with cwd=REPO_ROOT, so pin the caller's path before dispatch.
     args.mcp_config = args.mcp_config.resolve()
 

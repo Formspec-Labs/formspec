@@ -235,7 +235,10 @@ def test_main_rejects_a_missing_mcp_config(tmp_path, capsys):
 
 def test_main_hands_the_agent_an_absolute_mcp_config(tmp_path, monkeypatch):
     """The agent runs with cwd=REPO_ROOT, so a caller-relative config path must be resolved first."""
-    (tmp_path / "studio.mcp.json").write_text('{"mcpServers": {}}')
+    server_entry = tmp_path / "dist" / "index.js"
+    (tmp_path / "studio.mcp.json").write_text(json.dumps({
+        "mcpServers": {"formspec-mcp": {"command": "node", "args": [str(server_entry)]}},
+    }))
     monkeypatch.chdir(tmp_path)
     seen: dict[str, Path] = {}
 
@@ -256,3 +259,24 @@ def test_main_hands_the_agent_an_absolute_mcp_config(tmp_path, monkeypatch):
         ])
 
     assert seen["mcp_config"] == tmp_path.resolve() / "studio.mcp.json"
+
+
+@pytest.mark.parametrize("server", [
+    {"command": "node", "args": ["packages/formspec-mcp/dist/index.js"]},
+    {"command": "./bin/formspec-mcp"},
+    {"command": "node", "args": ["--require=../preload.js", "/abs/dist/index.js"]},
+])
+def test_main_rejects_relative_server_paths_the_agent_cwd_cannot_resolve(tmp_path, capsys, server):
+    """formspec-studio/.mcp.json uses studio-relative args; under cwd=REPO_ROOT they die as "Connection closed"."""
+    config = tmp_path / "studio.mcp.json"
+    config.write_text(json.dumps({"mcpServers": {"formspec-mcp": server}}))
+
+    with patch.object(run_mcp_loop, "run_task", side_effect=AssertionError("dispatched")), \
+         pytest.raises(SystemExit) as exit_info:
+        run_mcp_loop.main(["invoice", "--model", "sonnet", "--mcp-config", str(config)])
+
+    assert exit_info.value.code == 2
+    err = capsys.readouterr().err
+    assert "formspec-mcp" in err
+    assert "relative path" in err
+    assert "absolute" in err
