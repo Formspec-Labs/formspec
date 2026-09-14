@@ -48,7 +48,7 @@ private `runtime_seed` (prePopulate / previous non-relevant). [`mod@screener_eva
 
 ### [`formspec_eval`](formspec_eval.md)
 
-*7 modules*
+*8 modules*
 
 ### [`convert`](convert.md)
 
@@ -61,6 +61,10 @@ private `runtime_seed` (prePopulate / previous non-relevant). [`mod@screener_eva
 ### [`eval_options`](eval_options.md)
 
 *1 struct*
+
+### [`interpolation`](interpolation.md)
+
+*2 structs, 3 functions*
 
 ### [`nrb`](nrb.md)
 
@@ -116,7 +120,7 @@ private `runtime_seed` (prePopulate / previous non-relevant). [`mod@screener_eva
 
 ### [`types::evaluation`](types/evaluation.md)
 
-*1 enum, 3 structs*
+*1 enum, 6 structs*
 
 ### [`types::extensions`](types/extensions.md)
 
@@ -147,6 +151,7 @@ private `runtime_seed` (prePopulate / previous non-relevant). [`mod@screener_eva
 **Modules**
 
 - [`convert`](#convert) - Value resolution helpers for dotted paths and nested objects.
+- [`interpolation`](#interpolation) - `{{expression}}` interpolation (Locale §3.3.1) for Item text, Locale strings, and Shape messages.
 - [`nrb`](#nrb) - Phase 4: NRB (Non-Relevant Behavior) application.
 - [`rebuild`](#rebuild) - Phase 1: Rebuild — build the item tree from a definition JSON.
 - [`recalculate`](#recalculate) - Phase 2: Recalculate — evaluate computed values and bind expressions.
@@ -159,6 +164,29 @@ private `runtime_seed` (prePopulate / previous non-relevant). [`mod@screener_eva
 ## Module: convert
 
 Value resolution helpers for dotted paths and nested objects.
+
+
+
+## Module: interpolation
+
+`{{expression}}` interpolation (Locale §3.3.1) for Item text, Locale strings, and Shape messages.
+
+One implementation owns the template rules for every host:
+
+1. `{{{{` renders a literal `{{`.
+2. An expression that fails to parse, or whose evaluation records an error
+   diagnostic, renders as its literal `{{expression}}` and adds a warning; the
+   rest of the string still resolves.
+3. A `null` result renders as `""`, unless (rule 3a) the trimmed expression has
+   neither a `$` nor an `@` sigil and is not an interpolation static literal, in
+   which case it fails like rule 2.
+4. Other results coerce to display strings.
+5. Replacement text is not re-scanned.
+
+[`interpolate_template`] scans a template and asks a resolver for each expression;
+[`interpolation_text`] applies rules 2–4 to one evaluated expression, so a host that
+evaluates elsewhere (a JavaScript callback) keeps the same rules.
+[`interpolate_fel_template`] does both against a FEL environment.
 
 
 
@@ -263,6 +291,7 @@ Parsed WASM / JSON evaluation context bundle.
 - `trigger: crate::types::EvalTrigger` - Shape-rule timing for this batch (`submit` / `continuous` / …).
 - `instances: std::collections::HashMap<String, serde_json::Value>` - Named instance payloads merged into the FEL environment.
 - `constraints: Vec<crate::types::ExtensionConstraint>` - Extension constraints derived from optional registry documents in the context object.
+- `item_text: Option<crate::types::ItemTextRequest>` - Item text request from `itemText: { localeStrings? }`, when present.
 
 
 
@@ -336,11 +365,16 @@ fn evaluation_result_to_json_value_styled(result: &crate::types::EvaluationResul
 
 Options for a single definition evaluation ([`crate::pipeline::evaluate`]).
 
+**Generic Parameters:**
+- 'a
+
 **Fields:**
 - `trigger: crate::types::EvalTrigger` - When to evaluate shape rules.
 - `extension_constraints: Vec<crate::types::ExtensionConstraint>` - Extension constraints resolved from registry documents.
 - `instances: std::collections::HashMap<String, serde_json::Value>` - Named instance payloads for pre-populate and `@instance()`.
 - `context: crate::types::EvalContext` - Runtime context (now, prior validations, repeat counts).
+- `extensions: Option<&'a dyn ExtensionFunctions>` - Host extension functions (Core §3.12) for every Definition expression.
+- `item_text: Option<crate::types::ItemTextRequest>` - Resolve Item text too ([`crate::EvaluationResult::item_text`]); `None` skips the text pass.
 
 **Methods:**
 
@@ -349,15 +383,132 @@ Options for a single definition evaluation ([`crate::pipeline::evaluate`]).
 - `fn extension_constraints(self: Self, constraints: Vec<ExtensionConstraint>) -> Self` - Replace extension constraints from registries.
 - `fn instances(self: Self, instances: HashMap<String, Value>) -> Self` - Set named instance payloads.
 - `fn context(self: Self, context: EvalContext) -> Self` - Set runtime evaluation context.
+- `fn item_text(self: Self, request: ItemTextRequest) -> Self` - Resolve Item text for every Item instance alongside evaluation (Core §4.2.1).
+- `fn extensions(self: Self, extensions: &'a dyn ExtensionFunctions) -> Self` - Resolve extension function calls through the host's `extensions` (Core §3.12).
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
 - **Clone**
-  - `fn clone(self: &Self) -> EvalOptions`
+  - `fn clone(self: &Self) -> EvalOptions<'a>`
 - **Default**
   - `fn default() -> Self`
+
+---
+
+## Source: formspec_eval/interpolation.md
+
+**formspec_eval > interpolation**
+
+# Module: interpolation
+
+## Contents
+
+**Structs**
+
+- [`Interpolated`](#interpolated) - Resolved template text plus a warning per expression left literal.
+- [`InterpolationWarning`](#interpolationwarning) - An `{{expression}}` that failed and stayed literal.
+
+**Functions**
+
+- [`interpolate_fel_template`](#interpolate_fel_template) - Interpolates `template` against `env`, resolving host `extensions` (Core §3.12).
+- [`interpolate_template`](#interpolate_template) - Resolves every `{{expression}}` in `template` through `resolve`.
+- [`interpolation_text`](#interpolation_text) - Display text for one evaluated `expression` (Locale §3.3.1 rules 2–4).
+
+---
+
+## formspec_eval::interpolation::Interpolated
+
+*Struct*
+
+Resolved template text plus a warning per expression left literal.
+
+**Fields:**
+- `text: String` - Text with every resolvable `{{expression}}` replaced.
+- `warnings: Vec<InterpolationWarning>` - One entry per expression rendered literally (Locale §3.3.1 rules 2 and 3a).
+
+**Traits:** Eq
+
+**Trait Implementations:**
+
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> Interpolated`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &Interpolated) -> bool`
+- **Default**
+  - `fn default() -> Interpolated`
+
+
+
+## formspec_eval::interpolation::InterpolationWarning
+
+*Struct*
+
+An `{{expression}}` that failed and stayed literal.
+
+**Fields:**
+- `expression: String` - Expression source between the braces, untrimmed.
+- `message: String` - Why it failed.
+
+**Traits:** Eq
+
+**Trait Implementations:**
+
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> InterpolationWarning`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &InterpolationWarning) -> bool`
+
+
+
+## formspec_eval::interpolation::interpolate_fel_template
+
+*Function*
+
+Interpolates `template` against `env`, resolving host `extensions` (Core §3.12).
+
+```rust
+fn interpolate_fel_template(template: &str, env: &fel_core::FormspecEnvironment, extensions: Option<&dyn ExtensionFunctions>) -> Interpolated
+```
+
+
+
+## formspec_eval::interpolation::interpolate_template
+
+*Function*
+
+Resolves every `{{expression}}` in `template` through `resolve`.
+
+`resolve` returns the display text, or an error message to keep the expression
+literal and record a warning. Escapes, unclosed braces, and non-recursion are
+handled here.
+
+```rust
+fn interpolate_template<impl FnMut(&str) -> Result<String, String>>(template: &str, resolve: impl Trait) -> Interpolated
+```
+
+
+
+## formspec_eval::interpolation::interpolation_text
+
+*Function*
+
+Display text for one evaluated `expression` (Locale §3.3.1 rules 2–4).
+
+# Errors
+
+A warning message when the expression must stay literal: `has_error_diagnostics`
+(rule 2), or a `null` result without a `$` / `@` sigil from an expression that is
+not an interpolation static literal (rule 3a).
+
+```rust
+fn interpolation_text(expression: &str, value: &fel_core::Value, has_error_diagnostics: bool) -> Result<String, String>
+```
 
 ---
 
@@ -543,8 +694,14 @@ fn expand_repeat_instances(items: & mut [crate::types::ItemInfo], data: &std::co
 
 Recalculate all computed values with full processing model.
 
+`previous_validations` feed the `valid()` MIP state; `options` supplies the
+clock (`context.now_iso`) and named instances.
+
+Returns response values, variable values, and a variable cycle error. Variables
+stay FEL values so a `date`-valued variable reads as a date downstream (Core §4.5).
+
 ```rust
-fn recalculate(items: & mut [crate::types::ItemInfo], data: &std::collections::HashMap<String, serde_json::Value>, definition: &serde_json::Value, now_iso: Option<&str>, previous_validations: Option<&[crate::types::ValidationResult]>, instances: &std::collections::HashMap<String, serde_json::Value>) -> (std::collections::HashMap<String, serde_json::Value>, std::collections::HashMap<String, serde_json::Value>, Option<String>)
+fn recalculate(items: & mut [crate::types::ItemInfo], data: &std::collections::HashMap<String, serde_json::Value>, definition: &serde_json::Value, previous_validations: Option<&[crate::types::ValidationResult]>, options: &crate::eval_options::EvalOptions) -> (std::collections::HashMap<String, serde_json::Value>, std::collections::HashMap<String, fel_core::Value>, Option<String>)
 ```
 
 ---
@@ -621,8 +778,16 @@ fn extension_constraints_from_registry_documents(docs: &[serde_json::Value]) -> 
 
 Validate all constraints and shapes.
 
+Shapes and the `$formspec` version come from `definition`; `options` supplies
+the trigger, registry extension constraints, clock, repeat counts, and instances.
+
+Returns validation results and, separately, author diagnostics for
+constraint and shape expressions that hit evaluation errors (Core §3.10.2).
+Those expressions evaluate to `null` and pass (§3.8.1), so they never
+appear among the validation results.
+
 ```rust
-fn revalidate(items: &[crate::types::ItemInfo], values: &std::collections::HashMap<String, serde_json::Value>, variables: &std::collections::HashMap<String, serde_json::Value>, shapes: Option<&[serde_json::Value]>, trigger: crate::types::EvalTrigger, extension_constraints: &[crate::types::ExtensionConstraint], formspec_version: &str, now_iso: Option<&str>, repeat_counts: Option<&std::collections::HashMap<String, u64>>, instances: &std::collections::HashMap<String, serde_json::Value>) -> Vec<crate::types::ValidationResult>
+fn revalidate(items: &[crate::types::ItemInfo], values: &std::collections::HashMap<String, serde_json::Value>, variables: &std::collections::HashMap<String, fel_core::Value>, definition: &serde_json::Value, options: &crate::eval_options::EvalOptions) -> (Vec<crate::types::ValidationResult>, Vec<crate::types::EvalDiagnostic>)
 ```
 
 ---
@@ -835,20 +1000,22 @@ The complete evaluation output of a Screener Document.
 Top-level determination status on the wire.
 
 **Variants:**
-- `Completed`
-- `Partial`
-- `Expired`
-- `Unavailable`
+- `Completed` - All phases evaluated; record is actionable.
+- `Partial` - Pipeline stopped before all phases (e.g. override halt).
+- `Expired` - Past `validUntil` from `resultValidity`.
+- `Unavailable` - Required inputs missing or screener could not run.
 
 **Methods:**
 
-- `fn as_wire_str(self: Self) -> &'static str`
-- `fn parse_wire(s: &str) -> Option<Self>`
+- `fn as_wire_str(self: Self) -> &'static str` - Serialize to the determination schema string.
+- `fn parse_wire(s: &str) -> Option<Self>` - Parse a determination schema status string.
 
 **Traits:** Copy, Eq
 
 **Trait Implementations:**
 
+- **PartialEq**
+  - `fn eq(self: &Self, other: &&str) -> bool`
 - **Deserialize**
   - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
 - **Serialize**
@@ -857,14 +1024,12 @@ Top-level determination status on the wire.
   - `fn hash<__H>(self: &Self, state: & mut __H)`
 - **PartialEq**
   - `fn eq(self: &Self, other: &DeterminationStatus) -> bool`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &str) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> DeterminationStatus`
 - **PartialEq**
-  - `fn eq(self: &Self, other: &&str) -> bool`
+  - `fn eq(self: &Self, other: &str) -> bool`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -875,16 +1040,16 @@ Top-level determination status on the wire.
 Why an eliminated route did not match.
 
 **Variants:**
-- `ConditionFalse`
-- `BelowThreshold`
-- `MaxExceeded`
-- `NullScore`
-- `ExpressionError`
+- `ConditionFalse` - Route condition evaluated to false.
+- `BelowThreshold` - Score below the phase threshold.
+- `MaxExceeded` - Fan-out cap exceeded.
+- `NullScore` - Score expression yielded null.
+- `ExpressionError` - Condition or score FEL evaluation failed.
 
 **Methods:**
 
-- `fn as_wire_str(self: Self) -> &'static str`
-- `fn parse_wire(s: &str) -> Option<Self>`
+- `fn as_wire_str(self: Self) -> &'static str` - Serialize to the determination schema elimination reason string.
+- `fn parse_wire(s: &str) -> Option<Self>` - Parse a determination schema elimination reason string.
 
 **Traits:** Eq, Copy
 
@@ -983,14 +1148,14 @@ Result of evaluating a single phase.
 Per-phase evaluation status on the wire.
 
 **Variants:**
-- `Evaluated`
-- `Skipped`
-- `UnsupportedStrategy`
+- `Evaluated` - Phase ran with the declared strategy.
+- `Skipped` - Phase omitted (e.g. prior override halt).
+- `UnsupportedStrategy` - Strategy id is not implemented in this evaluator.
 
 **Methods:**
 
-- `fn as_wire_str(self: Self) -> &'static str`
-- `fn parse_wire(s: &str) -> Option<Self>`
+- `fn as_wire_str(self: Self) -> &'static str` - Serialize to the determination schema phase status string.
+- `fn parse_wire(s: &str) -> Option<Self>` - Parse a determination schema phase status string.
 
 **Traits:** Eq, Copy
 
@@ -1022,15 +1187,15 @@ Per-phase evaluation status on the wire.
 Phase evaluation strategy (built-ins + screener-declared extensions).
 
 **Variants:**
-- `FirstMatch`
-- `FanOut`
-- `ScoreThreshold`
+- `FirstMatch` - First matching route wins.
+- `FanOut` - All matching routes are retained.
+- `ScoreThreshold` - Routes ranked by score against a threshold.
 - `Other(String)` - Any other strategy id from the screener document (including `x-*`).
 
 **Methods:**
 
-- `fn from_wire<impl Into<String>>(s: impl Trait) -> Self`
-- `fn as_wire_str(self: &Self) -> Cow<str>`
+- `fn from_wire<impl Into<String>>(s: impl Trait) -> Self` - Parse built-in strategy ids; unknown ids become [`PhaseStrategy::Other`].
+- `fn as_wire_str(self: &Self) -> Cow<str>` - Serialize to the screener/determination strategy id string.
 
 **Traits:** Eq
 
@@ -1071,12 +1236,12 @@ A single route's evaluation outcome.
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> RouteResult`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1147,7 +1312,10 @@ fn parse_answer_state(s: &str) -> AnswerState
 **Structs**
 
 - [`EvalContext`](#evalcontext) - Optional runtime context injected into a single evaluation cycle.
+- [`EvalDiagnostic`](#evaldiagnostic) - Evaluation error from a constraint or shape expression (Core §3.10.2).
 - [`EvaluationResult`](#evaluationresult) - Result of the full evaluation cycle.
+- [`ItemText`](#itemtext) - Display text for one Item instance, `{{expression}}` resolved in its scope.
+- [`ItemTextRequest`](#itemtextrequest) - Request to resolve Item text in the same evaluation (Core §4.2.1 text interpolation).
 - [`ValidationResult`](#validationresult) - Validation result for a single field.
 
 **Enums**
@@ -1176,6 +1344,38 @@ Optional runtime context injected into a single evaluation cycle.
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> EvalContext`
+
+
+
+## formspec_eval::types::evaluation::EvalDiagnostic
+
+*Struct*
+
+Evaluation error from a constraint or shape expression (Core §3.10.2).
+
+The expression evaluated to `null`, so the constraint passed (§3.8.1). The
+diagnostic is for Definition authors (debug consoles, previews) and MUST NOT
+be shown to end users as a validation error, so it never enters
+[`EvaluationResult::validations`].
+
+**Fields:**
+- `path: String` - Resolved path of the bind or shape target (`#` for form-level shapes).
+- `expression: String` - FEL expression that raised the error, as evaluated.
+- `shape_id: Option<String>` - Shape ID when a shape expression raised the error.
+- `message: String` - fel-core diagnostic message.
+
+**Traits:** Eq
+
+**Trait Implementations:**
+
+- **PartialEq**
+  - `fn eq(self: &Self, other: &EvalDiagnostic) -> bool`
+- **Hash**
+  - `fn hash<__H>(self: &Self, state: & mut __H)`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> EvalDiagnostic`
 
 
 
@@ -1217,17 +1417,69 @@ Result of the full evaluation cycle.
 **Fields:**
 - `values: std::collections::HashMap<String, serde_json::Value>` - All field values after recalculation (post-NRB).
 - `validations: Vec<ValidationResult>` - Validation results.
+- `diagnostics: Vec<EvalDiagnostic>` - Author-facing evaluation errors from constraint and shape expressions.
 - `non_relevant: Vec<String>` - Fields marked non-relevant.
 - `variables: std::collections::HashMap<String, serde_json::Value>` - Evaluated variable values.
 - `required: std::collections::HashMap<String, bool>` - Required state by path.
 - `readonly: std::collections::HashMap<String, bool>` - Readonly state by path.
+- `item_text: Option<std::collections::HashMap<String, ItemText>>` - Item text by instance path; `Some` only when [`crate::EvalOptions::item_text`] asked for it.
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> EvaluationResult`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+
+
+
+## formspec_eval::types::evaluation::ItemText
+
+*Struct*
+
+Display text for one Item instance, `{{expression}}` resolved in its scope.
+
+Each property follows the Locale cascade (§3.1.1–§3.1.2): Locale string, then the
+Definition's inline text, interpolated under Locale §3.3.1.
+
+**Fields:**
+- `label: String` - Primary label (`""` when neither Locale nor Definition has one).
+- `labels: std::collections::HashMap<String, String>` - Context labels by context name: every Definition `labels` context and Locale `label@context` key.
+- `description: Option<String>` - Help text, when the Locale or Definition has it.
+- `hint: Option<String>` - Instructional hint, when the Locale or Definition has it.
+
+**Traits:** Eq
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> ItemText`
+- **Default**
+  - `fn default() -> ItemText`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &ItemText) -> bool`
+
+
+
+## formspec_eval::types::evaluation::ItemTextRequest
+
+*Struct*
+
+Request to resolve Item text in the same evaluation (Core §4.2.1 text interpolation).
+
+**Fields:**
+- `locale_strings: std::collections::HashMap<String, String>` - Active Locale strings by key (`<itemKey>.label`, `<itemKey>.label@short`, …).
+
+**Trait Implementations:**
+
+- **Default**
+  - `fn default() -> ItemTextRequest`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
-  - `fn clone(self: &Self) -> EvaluationResult`
+  - `fn clone(self: &Self) -> ItemTextRequest`
 
 
 
@@ -1394,7 +1646,7 @@ Excluded-value behavior when a field is non-relevant.
 **Methods:**
 
 - `fn parse_wire(s: &str) -> Option<Self>` - Parse definition/bind wire value; unknown strings are rejected.
-- `fn as_wire_str(self: Self) -> &'static str`
+- `fn as_wire_str(self: Self) -> &'static str` - Serialize to the definition `excludedValue` wire string.
 
 **Traits:** Eq, Copy
 
@@ -1482,22 +1734,24 @@ Whitespace normalization mode.
 What kind of rule produced the validation.
 
 **Variants:**
-- `Required`
-- `Constraint`
-- `Type`
-- `Cardinality`
-- `Shape`
-- `Definition`
+- `Required` - Missing required value.
+- `Constraint` - Bind `constraint` expression failed.
+- `Type` - Value type does not match field type.
+- `Cardinality` - Repeat min/max violation.
+- `Shape` - Cross-field shape rule.
+- `Definition` - Definition-level structural rule.
 
 **Methods:**
 
-- `fn as_wire_str(self: Self) -> &'static str`
-- `fn parse_wire(s: &str) -> Option<Self>`
+- `fn as_wire_str(self: Self) -> &'static str` - Serialize to the validation report `constraintKind` string.
+- `fn parse_wire(s: &str) -> Option<Self>` - Parse a validation report `constraintKind` string.
 
 **Traits:** Eq, Copy
 
 **Trait Implementations:**
 
+- **PartialEq**
+  - `fn eq(self: &Self, other: &&str) -> bool`
 - **Deserialize**
   - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
 - **Hash**
@@ -1512,8 +1766,6 @@ What kind of rule produced the validation.
   - `fn eq(self: &Self, other: &ConstraintKind) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> ConstraintKind`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &&str) -> bool`
 
 
 
@@ -1524,14 +1776,14 @@ What kind of rule produced the validation.
 Validation severity on the wire (`error` / `warning` / `info`).
 
 **Variants:**
-- `Error`
-- `Warning`
-- `Info`
+- `Error` - Blocks submit / completion.
+- `Warning` - Advisory; does not block submit.
+- `Info` - Informational diagnostic only.
 
 **Methods:**
 
-- `fn as_wire_str(self: Self) -> &'static str`
-- `fn parse_wire(s: &str) -> Option<Self>`
+- `fn as_wire_str(self: Self) -> &'static str` - Serialize to the validation report severity string.
+- `fn parse_wire(s: &str) -> Option<Self>` - Parse a validation report severity string.
 
 **Traits:** Eq, Copy
 
@@ -1563,32 +1815,38 @@ Validation severity on the wire (`error` / `warning` / `info`).
 Machine validation code (known codes + definition-authored shape codes).
 
 **Variants:**
-- `Required`
-- `TypeMismatch`
-- `ConstraintFailed`
-- `ConstraintParseError`
-- `MinRepeat`
-- `MaxRepeat`
-- `UnresolvedExtension`
-- `ExtensionRetired`
-- `ExtensionDeprecated`
-- `ExtensionCompatibilityMismatch`
-- `PatternMismatch`
-- `MaxLengthExceeded`
-- `RangeUnderflow`
-- `RangeOverflow`
-- `CircularDependency`
+- `Required` - Required field has no value.
+- `TypeMismatch` - Value type does not match field definition.
+- `ConstraintFailed` - Constraint expression evaluated to false.
+- `ConstraintParseError` - Constraint expression could not be parsed.
+- `MinRepeat` - Repeat count below minimum.
+- `MaxRepeat` - Repeat count above maximum.
+- `UnresolvedExtension` - Extension URI not in registry.
+- `ExtensionRetired` - Extension is retired.
+- `ExtensionDeprecated` - Extension is deprecated for this context.
+- `ExtensionCompatibilityMismatch` - Extension compatibility matrix mismatch.
+- `PatternMismatch` - String does not match `pattern`.
+- `MaxLengthExceeded` - String exceeds `maxLength`.
+- `RangeUnderflow` - Number below `minimum`.
+- `RangeOverflow` - Number above `maximum`.
+- `CircularDependency` - Calculate/bind dependency cycle detected.
 - `Shape(String)` - Shape rule `code` from the definition (e.g. `SHAPE_FAILED`).
 
 **Methods:**
 
-- `fn from_wire(s: &str) -> Self`
-- `fn as_wire_str(self: &Self) -> Cow<str>`
+- `fn from_wire(s: &str) -> Self` - Parse a validation report `code`; unknown codes become [`ValidationCode::Shape`].
+- `fn as_wire_str(self: &Self) -> Cow<str>` - Serialize to the validation report `code` string.
 
 **Traits:** Eq
 
 **Trait Implementations:**
 
+- **FromStr**
+  - `fn from_str(s: &str) -> Result<Self, <Self as >::Err>`
+- **Deserialize**
+  - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
+- **Display**
+  - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> ValidationCode`
 - **PartialEq**
@@ -1603,12 +1861,6 @@ Machine validation code (known codes + definition-authored shape codes).
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &&str) -> bool`
-- **FromStr**
-  - `fn from_str(s: &str) -> Result<Self, <Self as >::Err>`
-- **Deserialize**
-  - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
-- **Display**
-  - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
 
 
 
@@ -1619,17 +1871,17 @@ Machine validation code (known codes + definition-authored shape codes).
 Origin layer for a validation result.
 
 **Variants:**
-- `Bind`
-- `Shape`
-- `Definition`
+- `Bind` - Field bind rule (required, constraint, etc.).
+- `Shape` - Definition shape rule.
+- `Definition` - Definition document constraint.
 - `External` - Extension registry constraint (not a bind or shape rule).
 
 **Methods:**
 
-- `fn as_wire_str(self: Self) -> &'static str`
-- `fn parse_wire(s: &str) -> Option<Self>`
+- `fn as_wire_str(self: Self) -> &'static str` - Serialize to the validation report `source` string.
+- `fn parse_wire(s: &str) -> Option<Self>` - Parse a validation report `source` string.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
@@ -1651,4 +1903,3 @@ Origin layer for a validation result.
   - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 
 ---
-
