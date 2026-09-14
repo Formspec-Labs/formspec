@@ -30,6 +30,7 @@ import type { FormViewModel } from './form-view-model.js';
 import type { IssuerFetcher } from './issuer/IssuerFetcher.js';
 import type { IssuerSource, ResolvedIssuer } from './issuer/types.js';
 import type { FelTraceStep } from './fel/fel-api-runtime.js';
+import type { EvalDiagnostic } from './diff.js';
 
 // ── FEL catalog types ────────────────────────────────────────────────
 
@@ -361,6 +362,8 @@ export interface FormEngineDiagnosticsSnapshot {
     values: JsonRecord;
     mips: Record<string, { relevant: boolean; required: boolean; readonly: boolean; error: string | null }>;
     validation: ValidationReport | null;
+    /** Expression errors from the evaluation behind `validation` (the latest live evaluation when `profile: 'off'`). */
+    evaluationDiagnostics: EvalDiagnostic[];
     runtimeContext: { now: string; locale?: string; timeZone?: string; seed?: string | number };
 }
 

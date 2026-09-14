@@ -45,6 +45,7 @@ export type {
     SchemaValidator,
     SchemaValidatorSchemas,
 } from './interfaces.js';
+export type { EvalDiagnostic } from './diff.js';
 export type { ValidationProfile } from '@formspec-org/types';
 export type {
     ActionRefFinding,

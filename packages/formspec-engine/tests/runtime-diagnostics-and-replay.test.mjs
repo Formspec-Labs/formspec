@@ -142,3 +142,45 @@ test('should return replay errors and stop when configured', () => {
   assert.equal(hardError.errors[0].index, 1);
   assert.match(hardError.errors[0].error, /null/);
 });
+
+test('diagnostics snapshot carries author-facing expression errors per validation profile', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'http://example.org/eval-diagnostics',
+    version: '1.0.0',
+    title: 'Eval Diagnostics',
+    items: [
+      {
+        key: 'rows',
+        type: 'group',
+        label: 'Rows',
+        repeatable: true,
+        minRepeat: 2,
+        children: [{ key: 'qty', type: 'field', dataType: 'integer', label: 'Qty' }]
+      }
+    ],
+    binds: [{ path: 'rows[*].qty', constraint: 'nosuchfn($)' }],
+    shapes: [{ id: 'submitOnly', target: '#', timing: 'submit', constraint: 'unknownfn(1)', message: 'Never shown' }]
+  });
+
+  engine.setValue('rows[0].qty', 1);
+  engine.setValue('rows[1].qty', 2);
+
+  const byPath = (diagnostics) => [...diagnostics].sort((a, b) => a.path.localeCompare(b.path));
+  const bindDiagnostics = [
+    { path: 'rows[0].qty', expression: 'nosuchfn($)', message: 'undefined function: nosuchfn' },
+    { path: 'rows[1].qty', expression: 'nosuchfn($)', message: 'undefined function: nosuchfn' }
+  ];
+
+  const live = engine.getDiagnosticsSnapshot();
+  assert.deepEqual(byPath(live.evaluationDiagnostics), bindDiagnostics);
+  assert.equal(live.validation.valid, true, 'expression errors never become validation results');
+
+  const submit = engine.getDiagnosticsSnapshot({ profile: 'on-submit' });
+  assert.deepEqual(byPath(submit.evaluationDiagnostics), [
+    { path: '#', expression: 'unknownfn(1)', shapeId: 'submitOnly', message: 'undefined function: unknownfn' },
+    ...bindDiagnostics
+  ]);
+
+  assert.deepEqual(byPath(engine.getDiagnosticsSnapshot({ profile: 'off' }).evaluationDiagnostics), bindDiagnostics);
+});

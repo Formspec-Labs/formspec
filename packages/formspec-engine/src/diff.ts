@@ -6,9 +6,22 @@ export interface EvalValidation {
     [key: string]: unknown;
 }
 
+/**
+ * Author-facing FEL error from a bind constraint or shape expression (Rust `EvalDiagnostic`).
+ * The expression evaluated to null, so it passed (Core §3.8.1); never a respondent-visible result.
+ */
+export interface EvalDiagnostic {
+    /** Resolved instance path of the bind or shape target (`#` for form-level shapes). */
+    path: string;
+    expression: string;
+    shapeId?: string;
+    message: string;
+}
+
 export interface EvalResult {
     values: Record<string, unknown>;
     validations: EvalValidation[];
+    diagnostics: EvalDiagnostic[];
     nonRelevant: string[];
     variables: Record<string, unknown>;
     required: Record<string, boolean>;

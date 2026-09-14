@@ -339,6 +339,7 @@ export function wasmEvaluateDefinition(
 ): {
     values: any;
     validations: any[];
+    diagnostics: Array<{ path: string; expression: string; shapeId?: string; message: string }>;
     nonRelevant: string[];
     variables: any;
     required: Record<string, boolean>;

@@ -11,7 +11,7 @@ import type {
     ValidationResult,
     ValidationProfile,
 } from '@formspec-org/types';
-import { diffEvalResults, type EvalResult, type EvalValidation } from '../diff.js';
+import { diffEvalResults, type EvalDiagnostic, type EvalResult, type EvalValidation } from '../diff.js';
 import { interpolateMessage } from '../interpolate-message.js';
 import type {
     AuthoredSignatureInput,
@@ -497,14 +497,20 @@ export class FormEngine implements IFormEngine {
         if (trigger === 'disabled') {
             return null;
         }
-        return this.produceValidationReport(trigger);
+        return this.produceValidation(trigger).report;
     }
 
-    private produceValidationReport(trigger: Exclude<ValidationTrigger, 'disabled'>): ValidationReport {
+    /** Report for `trigger` plus the expression diagnostics of the evaluation that produced it. */
+    private produceValidation(trigger: Exclude<ValidationTrigger, 'disabled'>): {
+        report: ValidationReport;
+        diagnostics: EvalDiagnostic[];
+    } {
         const results: ValidationResult[] = [];
+        let diagnostics = this._fullResult?.diagnostics ?? [];
 
         if (trigger === 'demand') {
             const demandResult = this.evaluateResultForTrigger('demand');
+            diagnostics = demandResult.diagnostics;
             results.push(...collectTimedShapeValidationResults(demandResult, this._shapeTiming, 'demand'));
         } else {
             for (const [path, signalRef] of Object.entries(this.validationResults)) {
@@ -519,16 +525,20 @@ export class FormEngine implements IFormEngine {
 
             if (trigger === 'submit') {
                 const submitResult = this.evaluateResultForTrigger('submit');
+                diagnostics = submitResult.diagnostics;
                 results.push(...collectTimedShapeValidationResults(submitResult, this._shapeTiming, 'submit'));
             }
         }
 
-        return buildValidationReportEnvelope(
-            results,
-            this.nowISO(),
-            this.definition.url,
-            this.definition.version,
-        );
+        return {
+            report: buildValidationReportEnvelope(
+                results,
+                this.nowISO(),
+                this.definition.url,
+                this.definition.version,
+            ),
+            diagnostics: diagnostics.map((diagnostic) => ({ ...diagnostic })),
+        };
     }
 
     public evaluateShape(shapeId: string): ValidationResult[] {
@@ -736,7 +746,7 @@ export class FormEngine implements IFormEngine {
             setResponsePathValue(data, path, value);
         }
 
-        const report = trigger === 'disabled' ? null : this.produceValidationReport(trigger);
+        const report = trigger === 'disabled' ? null : this.produceValidation(trigger).report;
         return buildFormspecResponseEnvelope({
             definition: this.definition,
             data,
@@ -748,8 +758,12 @@ export class FormEngine implements IFormEngine {
         }) as unknown as FormResponse;
     }
 
-    public getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot {
+    public getDiagnosticsSnapshot(options: ValidationReportOptions = { profile: 'live' }): FormEngineDiagnosticsSnapshot {
         this.assertValidationReportOptions(options, 'getDiagnosticsSnapshot');
+        const trigger = this._validationProfileResolver.resolve(options.profile ?? 'live');
+        const validation = trigger === 'disabled'
+            ? { report: null, diagnostics: (this._fullResult?.diagnostics ?? []).map((diagnostic) => ({ ...diagnostic })) }
+            : this.produceValidation(trigger);
         const values: JsonRecord = {};
         const mips: FormEngineDiagnosticsSnapshot['mips'] = {};
         const repeats: Record<string, number> = {};
@@ -780,7 +794,8 @@ export class FormEngine implements IFormEngine {
             repeats,
             values,
             mips,
-            validation: this.getValidationReport(options),
+            validation: validation.report,
+            evaluationDiagnostics: validation.diagnostics,
             runtimeContext: {
                 now: timestamp,
                 locale: this._runtimeContext.locale,
