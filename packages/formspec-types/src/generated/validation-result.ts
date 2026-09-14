@@ -25,7 +25,7 @@ export interface ValidationResult {
   /**
    * The category of constraint that produced this result. Maps 1:1 to the six validation mechanisms:
    *
-   * - 'required': A required field (Bind required=true) has null or empty string value. Standard code: REQUIRED.
+   * - 'required': A required field (Bind required=true) is null, empty string, or empty array. Standard code: REQUIRED.
    * - 'type': The field's value does not conform to its declared dataType (e.g., 'abc' in an integer field). Standard code: TYPE_MISMATCH.
    * - 'cardinality': A repeatable group violates its minRepeat or maxRepeat bounds. Standard codes: MIN_REPEAT, MAX_REPEAT.
    * - 'constraint': A Bind 'constraint' expression evaluated to false (e.g., '$ > 0' on a negative value), or has a definition error (it failed to parse or calls an undefined function). Standard codes: CONSTRAINT_FAILED, CONSTRAINT_PARSE_ERROR.
