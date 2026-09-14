@@ -201,6 +201,13 @@ export function DefaultField({ field, node }: FieldComponentProps) {
     if (node.component === 'RadioGroup' || node.component === 'CheckboxGroup') {
         const labelId = `${field.id}-label`;
         const labelHidden = node.labelPosition === 'hidden';
+        // A checkbox `group` has no aria-required (WAI-ARIA 1.2): the legend says "required" in place of the asterisk.
+        const legendRequiredNode = node.component === 'CheckboxGroup' && field.required ? (
+            <>
+                <abbr className="formspec-required usa-label--required" title="required" aria-hidden="true"> *</abbr>
+                <span className="formspec-sr-only usa-sr-only"> required</span>
+            </>
+        ) : requiredNode;
 
         return (
             <fieldset
@@ -215,7 +222,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                     {...labelNeedAttrs}
                 >
                     {field.label}
-                    {requiredNode}
+                    {legendRequiredNode}
                 </legend>
                 {descriptionNode}
                 {hintNode}
@@ -224,6 +231,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                     field={field}
                     node={node}
                     isReadonly={isReadonly}
+                    invalid={showError}
                     labelId={labelId}
                     describedBy={describedBy}
                 />

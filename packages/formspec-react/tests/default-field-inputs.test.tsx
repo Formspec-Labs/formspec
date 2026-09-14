@@ -505,39 +505,107 @@ describe('RadioGroup / CheckboxGroup — fieldset + legend', () => {
 
 // ── RadioGroup / CheckboxGroup readonly ───────────────────────────
 
-describe('RadioGroup — readonly disables inputs', () => {
-    it('disables radio inputs when field is readonly', () => {
-        const def = baseDef([{
-            key: 'color', type: 'field', dataType: 'choice', label: 'Color',
-            options: [{ value: 'red', label: 'Red' }, { value: 'blue', label: 'Blue' }],
-        }]);
-        def.binds = [{ path: 'color', readonly: 'true' }];
-        const node: LayoutNode = {
-            id: 'color-field', component: 'RadioGroup', category: 'field',
-            props: {}, cssClasses: [], children: [], bindPath: 'color',
-        };
-        const container = renderField(def, node);
-        const radios = container.querySelectorAll<HTMLInputElement>('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-        radios.forEach(r => expect(r.disabled).toBe(true));
+/** A RadioGroup or CheckboxGroup over a `lock` boolean that its binds may reference; returns the engine too. */
+function renderGroup(component: 'RadioGroup' | 'CheckboxGroup', bind: Record<string, string>, initialValue?: unknown, props: Record<string, unknown> = {}) {
+    const key = component === 'RadioGroup' ? 'color' : 'tags';
+    const def = baseDef([
+        { key: 'lock', type: 'field', dataType: 'boolean', label: 'Lock' },
+        {
+            key, type: 'field', dataType: component === 'RadioGroup' ? 'choice' : 'multiChoice', label: 'Pick',
+            ...(initialValue !== undefined ? { initialValue } : {}),
+            options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }],
+        },
+    ]);
+    def.binds = [{ path: key, ...bind }];
+    const engine = createFormEngine(def);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const node: LayoutNode = {
+        id: `${key}-field`, component, category: 'field', props, cssClasses: [], children: [], bindPath: key,
+    };
+    actSync(() => {
+        root.render(
+            <FormspecProvider engine={engine}>
+                <FormspecNode node={{ id: 'root', component: 'Stack', category: 'layout', props: {}, cssClasses: [], children: [node] }} />
+            </FormspecProvider>,
+        );
+    });
+    return { container, engine, key };
+}
+
+describe('RadioGroup / CheckboxGroup — read-only stays focusable (webcomponent 51172507, b95c244d)', () => {
+    it('keeps read-only radios enabled, announces read-only on the radiogroup, and blocks changes', () => {
+        const { container, engine } = renderGroup('RadioGroup', { readonly: 'true' }, 'a');
+        const group = container.querySelector('[role="radiogroup"]') as HTMLElement;
+        expect(group.getAttribute('aria-readonly')).toBe('true');
+        const [a, b] = container.querySelectorAll<HTMLInputElement>('input[type="radio"]');
+        expect([a.disabled, b.disabled]).toEqual([false, false]);
+        expect(b.hasAttribute('aria-readonly')).toBe(false);
+
+        actSync(() => b.click());
+        actSync(() => (b.closest('label') as HTMLLabelElement).click());
+        expect(engine.signals.color.value).toBe('a');
+        expect(b.checked).toBe(false);
+    });
+
+    it('keeps read-only checkboxes enabled, each announced read-only, and blocks changes', () => {
+        const { container, engine } = renderGroup('CheckboxGroup', { readonly: 'true' }, ['a'], { selectAll: true });
+        const checkboxes = Array.from(container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+        expect(checkboxes).toHaveLength(3);
+        for (const checkbox of checkboxes) {
+            expect(checkbox.disabled).toBe(false);
+            expect(checkbox.getAttribute('aria-readonly')).toBe('true');
+        }
+        const group = container.querySelector('[role="group"]') as HTMLElement;
+        expect(group.hasAttribute('aria-readonly')).toBe(false);
+
+        const [selectAll, a, b] = checkboxes;
+        actSync(() => b.click());
+        actSync(() => a.click());
+        actSync(() => (b.closest('label') as HTMLLabelElement).click());
+        actSync(() => selectAll.click());
+        expect(engine.signals.tags.value).toEqual(['a']);
+        expect([selectAll.checked, a.checked, b.checked]).toEqual([false, true, false]);
+    });
+
+    it('lets a group change again once it is no longer read-only', () => {
+        const { container, engine } = renderGroup('CheckboxGroup', { readonly: '$lock' }, ['a']);
+        const b = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[1];
+        actSync(() => b.click());
+        expect(engine.signals.tags.value).toEqual(['a', 'b']);
+        expect(b.getAttribute('aria-readonly')).toBe('false');
     });
 });
 
-describe('CheckboxGroup — readonly disables inputs', () => {
-    it('disables checkbox inputs when field is readonly', () => {
-        const def = baseDef([{
-            key: 'tags', type: 'field', dataType: 'multi-choice', label: 'Tags',
-            options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }],
-        }]);
-        def.binds = [{ path: 'tags', readonly: 'true' }];
-        const node: LayoutNode = {
-            id: 'tags-field', component: 'CheckboxGroup', category: 'field',
-            props: {}, cssClasses: [], children: [], bindPath: 'tags',
-        };
-        const container = renderField(def, node);
-        const checkboxes = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
-        expect(checkboxes.length).toBeGreaterThan(0);
-        checkboxes.forEach(c => expect(c.disabled).toBe(true));
+describe('RadioGroup / CheckboxGroup — required and invalid state on the group', () => {
+    it('marks a required radiogroup required, and invalid once touched', () => {
+        const { container, engine } = renderGroup('RadioGroup', { required: 'true' });
+        const group = container.querySelector('[role="radiogroup"]') as HTMLElement;
+        expect(group.getAttribute('aria-required')).toBe('true');
+        expect(group.getAttribute('aria-invalid')).toBe('false');
+        actSync(() => (container.querySelector('input[type="radio"]') as HTMLInputElement).click());
+        actSync(() => engine.setValue('color', null));
+        expect(container.querySelector('#field-color-error')?.textContent).not.toBe('');
+        expect(group.getAttribute('aria-invalid')).toBe('true');
+        expect(container.querySelector('input[type="radio"]')?.hasAttribute('aria-required')).toBe(false);
+    });
+
+    it('says "required" in a required checkbox group legend with visually hidden text, following the bind', () => {
+        const { container, engine } = renderGroup('CheckboxGroup', { required: '$lock' });
+        const legend = container.querySelector('legend') as HTMLElement;
+        const group = container.querySelector('[role="group"]') as HTMLElement;
+        expect(legend.querySelector('.formspec-sr-only')).toBeNull();
+
+        actSync(() => engine.setValue('lock', true));
+        expect(legend.querySelector('.formspec-sr-only.usa-sr-only')?.textContent?.trim()).toBe('required');
+        expect(legend.querySelector('abbr')?.getAttribute('aria-hidden')).toBe('true');
+        // role=group supports no aria-required (WAI-ARIA 1.2), and on one checkbox it would read "check this box".
+        expect(group.hasAttribute('aria-required')).toBe(false);
+        expect(container.querySelector('input[type="checkbox"]')?.hasAttribute('aria-required')).toBe(false);
+
+        actSync(() => engine.setValue('lock', false));
+        expect(legend.textContent).toBe('Pick');
     });
 });
 
