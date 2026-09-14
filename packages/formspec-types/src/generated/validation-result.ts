@@ -28,7 +28,7 @@ export interface ValidationResult {
    * - 'required': A required field (Bind required=true) has null or empty string value. Standard code: REQUIRED.
    * - 'type': The field's value does not conform to its declared dataType (e.g., 'abc' in an integer field). Standard code: TYPE_MISMATCH.
    * - 'cardinality': A repeatable group violates its minRepeat or maxRepeat bounds. Standard codes: MIN_REPEAT, MAX_REPEAT.
-   * - 'constraint': A Bind 'constraint' expression evaluated to false (e.g., '$ > 0' on a negative value). Standard code: CONSTRAINT_FAILED.
+   * - 'constraint': A Bind 'constraint' expression evaluated to false (e.g., '$ > 0' on a negative value), or has a definition error (it failed to parse or calls an undefined function). Standard codes: CONSTRAINT_FAILED, CONSTRAINT_PARSE_ERROR.
    * - 'shape': A named Validation Shape's constraint or composition evaluated to invalid. Standard code: SHAPE_FAILED. The shapeId property identifies which Shape.
    * - 'external': Injected by an external system (server-side API, third-party validator, business rule engine). Standard code: EXTERNAL_FAILED. The source property will be 'external' and sourceId identifies the system.
    */
@@ -38,13 +38,14 @@ export interface ValidationResult {
    */
   message: string;
   /**
-   * A machine-readable identifier for this class of finding. Enables programmatic handling: suppressing known warnings, mapping to external error catalogs, localization key lookups, analytics grouping, and API-level error routing. Seven standard built-in codes are RESERVED and processors MUST use them for corresponding built-in constraints:
+   * A machine-readable identifier for this class of finding. Enables programmatic handling: suppressing known warnings, mapping to external error catalogs, localization key lookups, analytics grouping, and API-level error routing. The standard built-in codes below are RESERVED (core spec §2.5.1) and processors MUST use them for corresponding built-in constraints:
    *
-   * - REQUIRED — required field has null or empty string
+   * - REQUIRED — required field is null, empty string, or empty array
    * - TYPE_MISMATCH — value cannot be interpreted as the field's dataType
    * - MIN_REPEAT — fewer repeat instances than minRepeat
    * - MAX_REPEAT — more repeat instances than maxRepeat
    * - CONSTRAINT_FAILED — Bind constraint returned false
+   * - CONSTRAINT_PARSE_ERROR — Bind constraint expression has a definition error: it failed to parse or calls an undefined function
    * - SHAPE_FAILED — Shape constraint returned false (when no specific code declared)
    * - EXTERNAL_FAILED — external system reported failure (when no specific code declared)
    *

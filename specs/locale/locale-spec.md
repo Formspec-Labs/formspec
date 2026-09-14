@@ -443,9 +443,10 @@ constraint code (coarse) and per Bind (fine-grained).
 Where `<code>` matches the `code` property of the ValidationResult and
 is exactly one key segment.
 The `code` property provides machine-readable identifiers designed for
-localization key lookups. Seven codes are reserved for built-in
+localization key lookups. Core §2.5.1 reserves codes for built-in
 constraints: `REQUIRED`, `TYPE_MISMATCH`, `MIN_REPEAT`, `MAX_REPEAT`,
-`CONSTRAINT_FAILED`, `SHAPE_FAILED`, `EXTERNAL_FAILED`. Shape rules
+`CONSTRAINT_FAILED`, `CONSTRAINT_PARSE_ERROR`, `SHAPE_FAILED`,
+`EXTERNAL_FAILED`. Shape rules
 MAY define custom codes (e.g., `BUDGET_SUM_MISMATCH`). This replaces
 the message for all validation results with that code targeting the
 item.

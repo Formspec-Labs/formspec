@@ -871,13 +871,14 @@ constraint code (coarse) and per Bind (fine-grained).</p>
 <p>Where <code>&lt;code&gt;</code> matches the <code>code</code>
 property of the ValidationResult and is exactly one key segment. The
 <code>code</code> property provides machine-readable identifiers
-designed for localization key lookups. Seven codes are reserved for
+designed for localization key lookups. Core §2.5.1 reserves codes for
 built-in constraints: <code>REQUIRED</code>, <code>TYPE_MISMATCH</code>,
 <code>MIN_REPEAT</code>, <code>MAX_REPEAT</code>,
-<code>CONSTRAINT_FAILED</code>, <code>SHAPE_FAILED</code>,
-<code>EXTERNAL_FAILED</code>. Shape rules MAY define custom codes (e.g.,
-<code>BUDGET_SUM_MISMATCH</code>). This replaces the message for all
-validation results with that code targeting the item.</p>
+<code>CONSTRAINT_FAILED</code>, <code>CONSTRAINT_PARSE_ERROR</code>,
+<code>SHAPE_FAILED</code>, <code>EXTERNAL_FAILED</code>. Shape rules MAY
+define custom codes (e.g., <code>BUDGET_SUM_MISMATCH</code>). This
+replaces the message for all validation results with that code targeting
+the item.</p>
 <h5 id="per-bind-constraintmessage-and-requiredmessage">Per Bind
 (<code>constraintMessage</code> and <code>requiredMessage</code>)</h5>
 <p>Individual Binds may define a <code>constraintMessage</code> (core

@@ -46,7 +46,7 @@
     "constraintKind": {
       "type": "string",
       "enum": ["required", "type", "cardinality", "constraint", "shape", "external"],
-      "description": "The category of constraint that produced this result. Maps 1:1 to the six validation mechanisms:\n\n- 'required': A required field (Bind required=true) has null or empty string value. Standard code: REQUIRED.\n- 'type': The field's value does not conform to its declared dataType (e.g., 'abc' in an integer field). Standard code: TYPE_MISMATCH.\n- 'cardinality': A repeatable group violates its minRepeat or maxRepeat bounds. Standard codes: MIN_REPEAT, MAX_REPEAT.\n- 'constraint': A Bind 'constraint' expression evaluated to false (e.g., '$ > 0' on a negative value). Standard code: CONSTRAINT_FAILED.\n- 'shape': A named Validation Shape's constraint or composition evaluated to invalid. Standard code: SHAPE_FAILED. The shapeId property identifies which Shape.\n- 'external': Injected by an external system (server-side API, third-party validator, business rule engine). Standard code: EXTERNAL_FAILED. The source property will be 'external' and sourceId identifies the system.",
+      "description": "The category of constraint that produced this result. Maps 1:1 to the six validation mechanisms:\n\n- 'required': A required field (Bind required=true) has null or empty string value. Standard code: REQUIRED.\n- 'type': The field's value does not conform to its declared dataType (e.g., 'abc' in an integer field). Standard code: TYPE_MISMATCH.\n- 'cardinality': A repeatable group violates its minRepeat or maxRepeat bounds. Standard codes: MIN_REPEAT, MAX_REPEAT.\n- 'constraint': A Bind 'constraint' expression evaluated to false (e.g., '$ > 0' on a negative value), or has a definition error (it failed to parse or calls an undefined function). Standard codes: CONSTRAINT_FAILED, CONSTRAINT_PARSE_ERROR.\n- 'shape': A named Validation Shape's constraint or composition evaluated to invalid. Standard code: SHAPE_FAILED. The shapeId property identifies which Shape.\n- 'external': Injected by an external system (server-side API, third-party validator, business rule engine). Standard code: EXTERNAL_FAILED. The source property will be 'external' and sourceId identifies the system.",
       "examples": ["required", "type", "cardinality", "constraint", "shape", "external"],
       "x-lm": {
         "critical": true,
@@ -73,13 +73,14 @@
     },
     "code": {
       "type": "string",
-      "description": "A machine-readable identifier for this class of finding. Enables programmatic handling: suppressing known warnings, mapping to external error catalogs, localization key lookups, analytics grouping, and API-level error routing. Seven standard built-in codes are RESERVED and processors MUST use them for corresponding built-in constraints:\n\n- REQUIRED — required field has null or empty string\n- TYPE_MISMATCH — value cannot be interpreted as the field's dataType\n- MIN_REPEAT — fewer repeat instances than minRepeat\n- MAX_REPEAT — more repeat instances than maxRepeat\n- CONSTRAINT_FAILED — Bind constraint returned false\n- SHAPE_FAILED — Shape constraint returned false (when no specific code declared)\n- EXTERNAL_FAILED — external system reported failure (when no specific code declared)\n\nShape-level codes (e.g., 'BUDGET_SUM_MISMATCH') and external system codes (e.g., 'EIN_NOT_FOUND') override the generic defaults.",
+      "description": "A machine-readable identifier for this class of finding. Enables programmatic handling: suppressing known warnings, mapping to external error catalogs, localization key lookups, analytics grouping, and API-level error routing. The standard built-in codes below are RESERVED (core spec §2.5.1) and processors MUST use them for corresponding built-in constraints:\n\n- REQUIRED — required field is null, empty string, or empty array\n- TYPE_MISMATCH — value cannot be interpreted as the field's dataType\n- MIN_REPEAT — fewer repeat instances than minRepeat\n- MAX_REPEAT — more repeat instances than maxRepeat\n- CONSTRAINT_FAILED — Bind constraint returned false\n- CONSTRAINT_PARSE_ERROR — Bind constraint expression has a definition error: it failed to parse or calls an undefined function\n- SHAPE_FAILED — Shape constraint returned false (when no specific code declared)\n- EXTERNAL_FAILED — external system reported failure (when no specific code declared)\n\nShape-level codes (e.g., 'BUDGET_SUM_MISMATCH') and external system codes (e.g., 'EIN_NOT_FOUND') override the generic defaults.",
       "examples": [
         "REQUIRED",
         "TYPE_MISMATCH",
         "MIN_REPEAT",
         "MAX_REPEAT",
         "CONSTRAINT_FAILED",
+        "CONSTRAINT_PARSE_ERROR",
         "SHAPE_FAILED",
         "EXTERNAL_FAILED",
         "BUDGET_SUM_MISMATCH",
@@ -89,7 +90,7 @@
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Machine-readable error code for programmatic handling, localization, and analytics. Seven built-in codes are reserved."
+        "intent": "Machine-readable error code for programmatic handling, localization, and analytics. The built-in codes listed in core spec §2.5.1 are reserved."
       }
     },
     "shapeId": {
