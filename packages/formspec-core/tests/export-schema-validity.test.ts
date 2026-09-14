@@ -566,6 +566,41 @@ describe('export → import → export round trip keeps an authored component do
     return project;
   }
 
+  it('wrappers keep their nodes when a group key matches a display key in another group', () => {
+    const tree = {
+      component: 'Stack', gap: '$token.space.md', children: [
+        { component: 'Stack', children: [
+          { component: 'Card', children: [{ component: 'Text', bind: 'contact.notes', text: 'Notes' }] },
+          { component: 'TextInput', bind: 'contact.email' },
+        ] },
+        { component: 'Card', children: [{ component: 'Stack', children: [{ component: 'TextInput', bind: 'notes.x' }] }] },
+      ],
+    };
+    const project = importTree([
+      { type: 'group', key: 'contact', label: 'C', children: [
+        { type: 'display', key: 'notes', label: 'Notes' },
+        { type: 'field', key: 'email', label: 'E', dataType: 'string' },
+      ] },
+      { type: 'group', key: 'notes', label: 'N', children: [{ type: 'field', key: 'x', label: 'X', dataType: 'string' }] },
+    ], tree);
+    expect(project.export().component!.tree).toEqual(tree);
+  });
+
+  it('wrappers around two groups sharing a key each keep their own group', () => {
+    const tree = {
+      component: 'Stack', gap: '$token.space.md', children: [
+        { component: 'Stack', children: [{ component: 'Card', children: [{ component: 'Stack', children: [{ component: 'TextInput', bind: 'g1.addr.city' }] }] }] },
+        { component: 'Stack', children: [{ component: 'Card', children: [{ component: 'Stack', children: [{ component: 'TextInput', bind: 'g2.addr.city' }] }] }] },
+      ],
+    };
+    const addr = () => ({ type: 'group', key: 'addr', label: 'A', children: [{ type: 'field', key: 'city', label: 'City', dataType: 'string' }] });
+    const project = importTree([
+      { type: 'group', key: 'g1', label: 'G1', children: [addr()] },
+      { type: 'group', key: 'g2', label: 'G2', children: [addr()] },
+    ], tree);
+    expect(project.export().component!.tree).toEqual(tree);
+  });
+
   it('an empty layout container stays a wrapper beside a group whose fields the tree does not bind', () => {
     // component-spec §11.1 allows partial trees: `contact` has a field, so an empty Stack is not its node.
     const project = importTree([
