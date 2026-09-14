@@ -139,3 +139,83 @@ describe('repeat affordances — DataTable bound to the repeat', () => {
         expect(container.querySelectorAll('.formspec-datatable-remove')).toHaveLength(2);
     });
 });
+
+/**
+ * Presentation-only Add/Remove locks (component §4.4): a theme `widgetConfig` on a repeatable group without a
+ * Component Document (theme §4.2), or a repeat-bound Accordion's `allowAdd` / `allowRemove` (component §6.3).
+ */
+describe('repeat affordances — allowAdd / allowRemove locks', () => {
+    const URL = 'urn:test:employers';
+    const definition = {
+        $formspec: '1.0',
+        url: URL,
+        version: '1.0.0',
+        title: 'Employers',
+        items: [{
+            key: 'employersOnRecord',
+            type: 'group',
+            label: 'Employer',
+            repeatable: true,
+            children: [
+                { key: 'payerName', type: 'field', dataType: 'string', label: 'Payer' },
+                { key: 'stillWorking', type: 'field', dataType: 'string', label: 'Still working there?' },
+            ],
+        }],
+    };
+    const theme = (widgetConfig: Record<string, boolean>) => ({
+        $formspecTheme: '1.0', version: '1.0.0', targetDefinition: { url: URL },
+        items: { employersOnRecord: { widgetConfig } },
+    });
+
+    function renderLocked(props: { themeDocument?: unknown; tree?: unknown }) {
+        const engine = createFormEngine(definition);
+        engine.loadResponseData({ employersOnRecord: [{ payerName: 'ACME' }, { payerName: 'Globex' }] });
+        const container = actRender(
+            <FormspecForm
+                engine={engine}
+                {...(props.themeDocument ? { themeDocument: props.themeDocument as any } : {})}
+                {...(props.tree ? { componentDocument: { ...componentDocument(props.tree), targetDefinition: { url: URL } } } : {})}
+            />,
+        );
+        return { container, engine };
+    }
+
+    const lockedSuites = [
+        { name: 'theme widgetConfig on the repeat template', props: { themeDocument: theme({ allowAdd: false, allowRemove: false }) } },
+        {
+            name: 'repeat-bound Accordion props',
+            props: {
+                tree: {
+                    component: 'Stack',
+                    children: [{
+                        component: 'Accordion', bind: 'employersOnRecord', allowAdd: false, allowRemove: false,
+                        children: [{ component: 'TextInput', bind: 'payerName' }, { component: 'TextInput', bind: 'stillWorking' }],
+                    }],
+                },
+            },
+        },
+    ];
+
+    for (const { name, props } of lockedSuites) {
+        it(`${name}: shows every seeded row with no Add or Remove, and each row stays answerable`, () => {
+            const { container, engine } = renderLocked(props);
+            expect(engine.repeats.employersOnRecord.value).toBe(2);
+            expect(container.querySelector('.formspec-repeat-add')).toBeNull();
+            expect(container.querySelectorAll('.formspec-repeat-remove')).toHaveLength(0);
+
+            const answers = container.querySelectorAll<HTMLInputElement>('input[name$="stillWorking"]');
+            expect(answers).toHaveLength(2);
+            act(() => {
+                Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(answers[1], 'yes');
+                answers[1].dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            expect(engine.signals['employersOnRecord[1].stillWorking'].value).toBe('yes');
+        });
+    }
+
+    it('keeps Add when only Remove is locked', () => {
+        const { container } = renderLocked({ themeDocument: theme({ allowRemove: false }) });
+        expect(container.querySelector('.formspec-repeat-add')).toBeTruthy();
+        expect(container.querySelectorAll('.formspec-repeat-remove')).toHaveLength(0);
+    });
+});

@@ -6,17 +6,28 @@ import type { LayoutNode } from '@formspec-org/layout';
 import { signal } from '@preact/signals-core';
 import { useFormspecContext } from './context.js';
 import { useSignal } from './use-signal';
+import type { RepeatAffordanceLocks } from '@formspec-org/engine/render';
 import { useRepeatAffordances } from './use-repeat-affordances';
 import { RepeatInstanceContext } from './use-localized-node';
 import type { NodeRenderer } from './node-renderer-types.js';
 
 const NO_LABEL = signal('');
 
+/** A repeat node's `allowAdd` / `allowRemove` props (Accordion §6.3, or theme widgetConfig on a repeat template). */
+function repeatLocks(node: LayoutNode): RepeatAffordanceLocks {
+    const { allowAdd, allowRemove } = node.props ?? {};
+    return {
+        allowAdd: typeof allowAdd === 'boolean' ? allowAdd : undefined,
+        allowRemove: typeof allowRemove === 'boolean' ? allowRemove : undefined,
+    };
+}
+
 /** Renders a repeat group: stamps template children per instance. */
 export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChild: NodeRenderer }) {
     const { engine } = useFormspecContext();
     const repeatPath = node.repeatPath!;
-    const { count, relevant, canAdd, canRemove } = useRepeatAffordances(repeatPath);
+    // Theme widgetConfig Add/Remove locks, planned onto the template's props (theme §4.2).
+    const { count, relevant, canAdd, canRemove } = useRepeatAffordances(repeatPath, repeatLocks(node));
     const title = (node.props?.title as string) || node.repeatGroup || repeatPath;
     const containerRef = useRef<HTMLDivElement>(null);
     const addBtnRef = useRef<HTMLButtonElement>(null);
@@ -114,7 +125,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
 export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; renderChild: NodeRenderer }) {
     const { engine } = useFormspecContext();
     const bindKey = node.props?.bind as string;
-    const { count, relevant, canAdd, canRemove } = useRepeatAffordances(bindKey);
+    const { count, relevant, canAdd, canRemove } = useRepeatAffordances(bindKey, repeatLocks(node));
     const labels = (node.props?.labels as string[] | undefined) ?? [];
     const allowMultiple = node.props?.allowMultiple === true;
     const defaultOpen = node.props?.defaultOpen as number | undefined;
