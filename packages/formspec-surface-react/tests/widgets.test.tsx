@@ -402,6 +402,56 @@ describe('StructuredPanel', () => {
     expect(emitAction).toHaveBeenCalledWith('retire', { formVersionId: 'version-7' });
   });
 
+  it('confirms a panel action before emitting it once', () => {
+    const emitAction = vi.fn();
+    const container = render(
+      <StructuredPanel
+        {...props({
+          config: {
+            ...trace,
+            actions: [{
+              outputName: 'archive',
+              emphasis: 'danger',
+              confirmation: {
+                heading: 'Archive this form?',
+                body: 'New responses stop immediately.',
+                confirmLabel: 'Archive form',
+                cancelLabel: 'Keep form',
+                ...trace,
+              },
+              ...trace,
+            }],
+          },
+          actions: [{
+            outputName: 'archive',
+            actionRef: 'archiveForm',
+            intent: 'submit',
+            label: { literal: 'Archive' },
+          }],
+          emitAction,
+        })}
+      />,
+    );
+    const confirmationButton = (label: string) =>
+      [...container.querySelectorAll<HTMLButtonElement>('[data-action-confirmation] button')]
+        .find((button) => button.textContent === label);
+
+    act(() => {
+      container.querySelector<HTMLButtonElement>('.fs-structured-panel__action')?.click();
+    });
+    expect(emitAction).not.toHaveBeenCalled();
+    act(() => confirmationButton('Keep form')?.click());
+    expect(container.querySelector('[data-action-confirmation]')).toBeNull();
+    expect(emitAction).not.toHaveBeenCalled();
+
+    act(() => {
+      container.querySelector<HTMLButtonElement>('.fs-structured-panel__action')?.click();
+    });
+    act(() => confirmationButton('Archive form')?.click());
+    expect(emitAction).toHaveBeenCalledOnce();
+    expect(emitAction).toHaveBeenCalledWith('archive');
+  });
+
   it('withholds a row action whose declared confirmation is not admissible', () => {
     const complete = {
       heading: 'Retire this version?',
