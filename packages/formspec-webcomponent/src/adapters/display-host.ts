@@ -81,7 +81,7 @@ export function displayHostSlice(ctx: RenderContext): DisplayHostSlice {
                     engine.getLabel(item),
                     (expr) => engine.compileExpression(expr, path)(),
                 ).text;
-                const text = engine.resolveLocaleString(`${item.key}.label`, inline);
+                const text = engine.resolveLocaleString(`${item.key}.label`, inline, path);
                 if (text !== written) {
                     written = text;
                     write(text);

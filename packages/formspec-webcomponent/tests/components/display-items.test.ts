@@ -116,6 +116,40 @@ describe('display Items — text', () => {
         expect(visibleTexts(el)).toEqual(['Row says first', 'Row says second']);
     });
 
+    it('interpolates a localized display Item string in the repeat instance scope', () => {
+        const el = render(
+            definition([
+                {
+                    key: 'rows',
+                    type: 'group',
+                    label: 'Row',
+                    repeatable: true,
+                    minRepeat: 2,
+                    children: [
+                        { key: 'rowName', type: 'field', dataType: 'string', label: 'Row name' },
+                        { key: 'rowNote', type: 'display', label: 'Row {{$rowName}} #{{@index}}' },
+                    ],
+                },
+            ]),
+            (host) => {
+                host.localeDocuments = {
+                    $formspecLocale: '2.0',
+                    locale: 'fr',
+                    version: '1.0.0',
+                    target: { kind: 'definition', url: 'urn:test:form' },
+                    strings: { 'rowNote.label': 'Ligne {{$rowName}} #{{@index}}' },
+                };
+            },
+        );
+        const engine = el.getEngine();
+        engine.setValue('rows[0].rowName', 'first');
+        el.locale = 'fr';
+        expect(visibleTexts(el)).toEqual(['Ligne first #1', 'Ligne  #2']);
+
+        engine.setValue('rows[1].rowName', 'second');
+        expect(visibleTexts(el)).toEqual(['Ligne first #1', 'Ligne second #2']);
+    });
+
     it('keeps markdown working for a display Item rendered as markdown Text, escaping interpolated values', () => {
         const el = renderTree(
             { component: 'Stack', children: [{ component: 'Text', bind: 'note', format: 'markdown' }] },
@@ -225,8 +259,4 @@ describe('Text not planned from a display Item', () => {
         expect(el.querySelector('.formspec-text--markdown strong')?.textContent).toBe('Read');
     });
 
-    it.todo(
-        'localized display Item string in a repeat interpolates in the instance scope '
-        + '(needs IFormEngine.resolveLocaleString to accept a scope path; today it evaluates {{}} at form scope)',
-    );
 });

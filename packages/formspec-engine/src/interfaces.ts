@@ -482,8 +482,11 @@ export interface IFormEngine {
     readonly localeSignal: ReadonlyEngineSignal<number>;
     getFieldVM(path: string): FieldViewModel | undefined;
     getFormVM(): FormViewModel;
-    /** Resolve a locale string key with fallback. For component-tier `$component.` keys. */
-    resolveLocaleString(key: string, fallback: string): string;
+    /**
+     * Resolve a Locale string key with fallback. `{{}}` interpolates in the binding scope
+     * of `itemPath` (an instance path, e.g. `rows[1].note`); form scope when omitted.
+     */
+    resolveLocaleString(key: string, fallback: string, itemPath?: string): string;
 
     dispose(): void;
 

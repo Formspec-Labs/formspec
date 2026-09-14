@@ -298,6 +298,28 @@ test('Locale item-key validation messages apply to fields inside a repeatable gr
   assertItemKeyedMessagesApply(repeatEngine(), 'addresses[0].');
 });
 
+test('resolveLocaleString interpolates {{}} in the scope of the given repeat instance item', () => {
+  const engine = new FormEngine(minDef({
+    items: [{
+      key: 'rows',
+      type: 'group',
+      label: 'Rows',
+      repeatable: true,
+      minRepeat: 2,
+      children: [
+        { key: 'first', type: 'field', dataType: 'string', label: 'First' },
+        { key: 'note', type: 'display', label: 'Row {{$first}} #{{@index}}' },
+      ],
+    }],
+  }));
+  engine.setValue('rows[0].first', 'un');
+  engine.setValue('rows[1].first', 'deux');
+  engine.loadLocale(makeLocale('fr', { 'note.label': 'Ligne {{$first}} #{{@index}}' }));
+  engine.setLocale('fr');
+  assert.equal(engine.resolveLocaleString('note.label', '', 'rows[0].note'), 'Ligne un #1');
+  assert.equal(engine.resolveLocaleString('note.label', '', 'rows[1].note'), 'Ligne deux #2');
+});
+
 test('Locale full dotted-path keys do not address nested items', () => {
   const engine = new FormEngine(minDef({
     items: [{ key: 'address', type: 'group', label: 'Address', children: localizedChildren() }],

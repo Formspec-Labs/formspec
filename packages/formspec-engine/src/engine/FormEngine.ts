@@ -240,8 +240,7 @@ export class FormEngine implements IFormEngine {
             getDefinitionDescription: () => this.definition.description ?? '',
             getPageTitle: () => undefined,
             getPageDescription: () => undefined,
-            evalFEL: (expr) =>
-                wasmEvalFELWithContextEnvelope(expr, this._buildLocaleFELContext()),
+            evalFEL: (expr) => this._evalLocaleFEL(expr),
             getValidationCounts: () => {
                 const report = this.getValidationReport();
                 return {
@@ -892,12 +891,10 @@ export class FormEngine implements IFormEngine {
         return this._formViewModel;
     }
 
-    public resolveLocaleString(key: string, fallback: string): string {
+    public resolveLocaleString(key: string, fallback: string, itemPath = ''): string {
         const localized = this._localeStore.lookupKey(key);
         if (localized !== null) {
-            return interpolateMessage(localized, (expr: string) => {
-                try { return this.compileExpression(expr, '')(); } catch { return null; }
-            }).text;
+            return interpolateMessage(localized, (expr: string) => this._evalLocaleFEL(expr, itemPath)).text;
         }
         return fallback;
     }
@@ -1719,10 +1716,14 @@ export class FormEngine implements IFormEngine {
             getOptionsState: () => this.optionStateSignals[basePath] ?? this._rx.signal({ loading: false, error: null }),
             getOptionSetName: () => item.optionSet,
             setFieldValue: (value) => this.setValue(path, value),
-            evalFEL: (expr) =>
-                wasmEvalFELWithContextEnvelope(expr, this._buildLocaleFELContext(path)),
+            evalFEL: (expr) => this._evalLocaleFEL(expr, path),
         });
         this._fieldViewModels[path] = vm;
+    }
+
+    /** Locale §3.3.2: evaluate a `{{}}` segment in the binding scope of `itemPath` (form scope when empty). */
+    private _evalLocaleFEL(expression: string, itemPath = ''): unknown {
+        return wasmEvalFELWithContextEnvelope(expression, this._buildLocaleFELContext(itemPath));
     }
 
     private _buildLocaleFELContext(currentItemPath = ''): WasmFelContext {
