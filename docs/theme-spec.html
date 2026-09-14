@@ -1135,10 +1135,11 @@ count). Display-only; see below.</td>
 </table>
 <p><code>widgetConfig.maxLength</code> is a presentation hint: renderers
 SHOULD display the character count against it, but it MUST NOT block
-input or submission and MUST NOT produce a ValidationResult. A theme
-cannot enforce data rules (§1.2). To enforce a limit, the Definition
-declares a Bind <code>constraint</code>; the theme hint and the
-constraint then agree:</p>
+input or submission and MUST NOT produce a ValidationResult. No
+presentation tier overrides Definition behavioral rules (component
+§11.3). To enforce a limit, the Definition declares a Bind
+<code>constraint</code>; the theme hint and the constraint then
+agree:</p>
 <div class="sourceCode" id="cb7"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;binds&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
@@ -1450,9 +1451,12 @@ default widget for the item’s <code>dataType</code> as defined in core
 <p>Fallback resolution does NOT carry <code>widgetConfig</code> forward
 — each fallback widget uses its own default configuration unless the
 theme provides separate configuration for the fallback widget via the
-cascade. Component fallback carry/drop/translate behavior is the
-separate structured policy in <code>specs/ui-policy.json</code>; Theme
-fallback arrays only select the fallback widget chain.</p>
+cascade. Exception: <code>allowAdd</code> and <code>allowRemove</code>
+on a repeatable group item (§4.2) describe the item, not the widget, and
+MUST be honored by whichever widget renders the group after fallback.
+Component fallback carry/drop/translate behavior is the separate
+structured policy in <code>specs/ui-policy.json</code>; Theme fallback
+arrays only select the fallback widget chain.</p>
 <h3 id="widget-rendering-requirements">4.4 Widget Rendering
 Requirements</h3>
 <ul>

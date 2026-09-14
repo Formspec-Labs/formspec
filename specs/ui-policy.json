@@ -121,7 +121,7 @@
     "unknownComponentSpecificProps": "drop-with-warning",
     "components": {
       "Tabs": { "fallback": "Stack", "carry": ["children"], "drop": ["placement", "defaultTab"], "translate": { "tabLabels": "insert-heading-before-child" } },
-      "Accordion": { "fallback": "Stack", "carry": ["children"], "drop": ["allowMultiple", "defaultOpen", "allowAdd", "allowRemove"], "translate": { "labels": "collapsible-title" } },
+      "Accordion": { "fallback": "Stack", "carry": ["children"], "drop": ["allowMultiple", "defaultOpen"], "translate": { "labels": "collapsible-title", "allowAdd": "repeat-affordance-lock", "allowRemove": "repeat-affordance-lock" } },
       "RadioGroup": { "fallback": "Select", "carry": ["bind"], "drop": ["columns", "orientation"], "translate": {} },
       "MoneyInput": { "fallback": "NumberInput", "carry": ["bind", "placeholder", "step", "min", "max"], "drop": ["currency", "showCurrency", "locale"], "translate": { "showCurrency": "bound-item-prefix-hint" } },
       "Slider": { "fallback": "NumberInput", "carry": ["bind", "min", "max", "step"], "drop": ["showTicks", "showValue"], "translate": {} },
@@ -132,7 +132,7 @@
       "ProgressBar": { "fallback": "Text", "carry": ["bind", "value", "max"], "drop": ["label", "showPercent"], "translate": { "value": "value-max-percent-text" } },
       "Summary": { "fallback": "Stack", "carry": ["items"], "drop": [], "translate": { "items": "text-list-label-value" } },
       "ValidationSummary": { "fallback": "Alert", "carry": ["source", "mode", "showFieldErrors"], "drop": ["jumpLinks", "dedupe"], "translate": { "validationRows": "warning-error-alerts" } },
-      "DataTable": { "fallback": "Stack", "carry": ["bind", "columns"], "drop": ["showRowNumbers", "allowAdd", "allowRemove"], "translate": { "repeatRows": "card-per-repeat-instance" } },
+      "DataTable": { "fallback": "Stack", "carry": ["bind", "columns"], "drop": ["showRowNumbers"], "translate": { "repeatRows": "card-per-repeat-instance", "allowAdd": "repeat-affordance-lock", "allowRemove": "repeat-affordance-lock" } },
       "Panel": { "fallback": "Card", "carry": ["title", "children"], "drop": ["placement", "width"], "translate": {} },
       "Modal": { "fallback": "Collapsible", "carry": ["title", "children"], "drop": ["size", "trigger", "triggerLabel", "closable", "headingLevel", "placement"], "translate": { "defaultOpen": "constant-false" } },
       "Popover": { "fallback": "Collapsible", "carry": ["children"], "drop": ["triggerBind", "placement"], "translate": { "triggerLabel": "title" } }

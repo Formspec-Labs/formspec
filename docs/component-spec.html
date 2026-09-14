@@ -1643,8 +1643,9 @@ change the Definition’s <code>minRepeat</code> / <code>maxRepeat</code>
 cardinality or its validation, and processors MUST still load and render
 every repeat instance supplied by data, including instances beyond what
 the locked affordances would have let a user create. Programmatic and
-data-driven instance changes remain valid. Without a Component Document,
-a Theme sets the same locks through <code>widgetConfig</code> on the
+data-driven instance changes remain valid. When no component binds the
+group (no Component Document, or a partial tree per §11.1 and §11.4), a
+Theme sets the same locks through <code>widgetConfig</code> on the
 repeatable group item (theme §4.2).</p>
 <p>Other layout and container components MUST NOT bind to repeatable
 groups. Processors MUST reject such bindings.</p>
@@ -3558,7 +3559,9 @@ see §4.4.</li>
 <p>Core processors MUST replace Accordion with a <strong>Stack</strong>
 where each child is wrapped in a <strong>Collapsible</strong>. The first
 child’s Collapsible has <code>defaultOpen: true</code>; the rest have
-<code>defaultOpen: false</code>.</p>
+<code>defaultOpen: false</code>. When the Accordion binds a repeatable
+group, the fallback’s add and remove affordances MUST honor
+<code>allowAdd</code> and <code>allowRemove</code> (§4.4).</p>
 <h4 id="example-18">Example</h4>
 <div class="sourceCode" id="cb31"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
@@ -4497,7 +4500,8 @@ change cardinality validation or drop rows supplied by data (§4.4).</li>
 <p>Core processors MUST replace DataTable with a <strong>Stack</strong>
 that repeats a <strong>Card</strong> for each repeat instance. Within
 each Card, bound fields are rendered as TextInput or appropriate Core
-components.</p>
+components. The fallback’s add and remove affordances MUST honor
+<code>allowAdd</code> and <code>allowRemove</code> (§4.4).</p>
 <h4 id="example-29">Example</h4>
 <div class="sourceCode" id="cb43"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>

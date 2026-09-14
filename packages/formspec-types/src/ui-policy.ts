@@ -473,12 +473,12 @@ export const UI_POLICY = {
         ],
         "drop": [
           "allowMultiple",
-          "defaultOpen",
-          "allowAdd",
-          "allowRemove"
+          "defaultOpen"
         ],
         "translate": {
-          "labels": "collapsible-title"
+          "labels": "collapsible-title",
+          "allowAdd": "repeat-affordance-lock",
+          "allowRemove": "repeat-affordance-lock"
         }
       },
       "RadioGroup": {
@@ -624,12 +624,12 @@ export const UI_POLICY = {
           "columns"
         ],
         "drop": [
-          "showRowNumbers",
-          "allowAdd",
-          "allowRemove"
+          "showRowNumbers"
         ],
         "translate": {
-          "repeatRows": "card-per-repeat-instance"
+          "repeatRows": "card-per-repeat-instance",
+          "allowAdd": "repeat-affordance-lock",
+          "allowRemove": "repeat-affordance-lock"
         }
       },
       "Panel": {

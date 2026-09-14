@@ -512,8 +512,8 @@ Renderers MUST support these widgets.
 
 `widgetConfig.maxLength` is a presentation hint: renderers SHOULD display
 the character count against it, but it MUST NOT block input or submission
-and MUST NOT produce a ValidationResult. A theme cannot enforce data rules
-(§1.2). To enforce a limit, the Definition declares a Bind `constraint`;
+and MUST NOT produce a ValidationResult. No presentation tier overrides Definition
+behavioral rules (component §11.3). To enforce a limit, the Definition declares a Bind `constraint`;
 the theme hint and the constraint then agree:
 
 ```json
@@ -659,7 +659,9 @@ default widget for the item’s `dataType` as defined in core §4.2.5.1.
 Fallback resolution does NOT carry `widgetConfig` forward — each
 fallback widget uses its own default configuration unless the theme
 provides separate configuration for the fallback widget via the
-cascade. Component fallback carry/drop/translate behavior is the
+cascade. Exception: `allowAdd` and `allowRemove` on a repeatable group
+item (§4.2) describe the item, not the widget, and MUST be honored by
+whichever widget renders the group after fallback. Component fallback carry/drop/translate behavior is the
 separate structured policy in `specs/ui-policy.json`; Theme fallback
 arrays only select the fallback widget chain.
 

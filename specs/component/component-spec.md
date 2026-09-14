@@ -753,8 +753,9 @@ change the Definition's `minRepeat` / `maxRepeat` cardinality or its
 validation, and processors MUST still load and render every repeat instance
 supplied by data, including instances beyond what the locked affordances
 would have let a user create. Programmatic and data-driven instance changes
-remain valid. Without a Component Document, a Theme sets the same locks
-through `widgetConfig` on the repeatable group item (theme §4.2).
+remain valid. When no component binds the group (no Component Document, or
+a partial tree per §11.1 and §11.4), a Theme sets the same locks through
+`widgetConfig` on the repeatable group item (theme §4.2).
 
 Other layout and container components MUST NOT bind to repeatable groups.
 Processors MUST reject such bindings.
@@ -1919,7 +1920,9 @@ values resolve relative to the repeat context.
 
 Core processors MUST replace Accordion with a **Stack** where each
 child is wrapped in a **Collapsible**. The first child's Collapsible
-has `defaultOpen: true`; the rest have `defaultOpen: false`.
+has `defaultOpen: true`; the rest have `defaultOpen: false`. When the
+Accordion binds a repeatable group, the fallback's add and remove
+affordances MUST honor `allowAdd` and `allowRemove` (§4.4).
 
 #### Example
 
@@ -2506,7 +2509,9 @@ MAY use `bind` to reference a repeatable group.
 
 Core processors MUST replace DataTable with a **Stack** that repeats
 a **Card** for each repeat instance. Within each Card, bound fields
-are rendered as TextInput or appropriate Core components.
+are rendered as TextInput or appropriate Core components. The
+fallback's add and remove affordances MUST honor `allowAdd` and
+`allowRemove` (§4.4).
 
 #### Example
 
