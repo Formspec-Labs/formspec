@@ -107,6 +107,17 @@ test('repeat pre-populates minRepeat instances', () => {
   assert.equal(cardinalityEngine({ minRepeat: 2 }).repeats.orders.value, 2);
 });
 
+test('repeat starts with zero instances when minRepeat is absent (Core §4.2.2 default 0)', () => {
+  const engine = cardinalityEngine({});
+
+  assert.equal(engine.repeats.orders.value, 0);
+  assert.equal(engine.signals['orders[0].ref'], undefined);
+  assert.deepEqual(engine.getValidationReport().results.filter((r) => r.constraintKind === 'cardinality'), []);
+
+  assert.equal(engine.addRepeatInstance('orders'), 0);
+  assert.equal(engine.repeats['orders[0].lines'].value, 1, 'nested minRepeat still pre-populates');
+});
+
 test('addRepeatInstance refuses to add beyond maxRepeat and returns undefined', () => {
   const engine = cardinalityEngine({ minRepeat: 0, maxRepeat: 2 });
 

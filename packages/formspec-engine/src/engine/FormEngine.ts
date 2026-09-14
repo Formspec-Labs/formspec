@@ -1251,7 +1251,7 @@ export class FormEngine implements IFormEngine {
             }
 
             if (item.repeatable) {
-                const count = item.minRepeat ?? 1;
+                const count = item.minRepeat ?? 0;
                 this.repeats[path] = this._rx.signal(count);
                 for (let index = 0; index < count; index += 1) {
                     this.registerItemChildren(item.children ?? [], `${path}[${index}]`);
@@ -1291,7 +1291,7 @@ export class FormEngine implements IFormEngine {
             }
 
             if (item.repeatable) {
-                const count = item.minRepeat ?? 1;
+                const count = item.minRepeat ?? 0;
                 this.repeats[path] = this._rx.signal(count);
                 for (let index = 0; index < count; index += 1) {
                     this.registerItemChildren(item.children ?? [], `${path}[${index}]`);
