@@ -82,7 +82,7 @@ import {
   resolveExtension as _resolveExtension,
 } from './queries/index.js';
 import { evalFELWithTrace, type FelTraceResult } from '@formspec-org/engine/fel-runtime';
-import { exportComponentTree } from './component-export.js';
+import { componentDocumentIsDerived, exportComponentTree } from './component-export.js';
 import { indexRegistryPayload } from './registry-index.js';
 import { normalizeBindsFromUnknown } from './definition-binds.js';
 import {
@@ -332,8 +332,6 @@ export class RawProject implements IProjectCore {
 
   export(): ProjectBundle {
     const url = this._state.definition.url;
-    const { tree, ...restComponent } = this._state.component as Record<string, unknown>;
-    const cleanedTree = tree ? exportComponentTree(tree, this._state.definition) : null;
     const { targetDefinition: themeTarget, ...restTheme } = this._state.theme;
     // theme-spec §2.2.1: preserve absent = bundle scope. Never `themeTarget ?? { url }`.
     const exportTheme: ThemeState = themeTarget
@@ -352,12 +350,9 @@ export class RawProject implements IProjectCore {
       // still owns a single Definition, so this array is single-element; multi-
       // definition authoring lands at P1+.
       definitions: [this._state.definition],
-      component: {
-        ...withComponentEnvelope(
-          { ...restComponent, tree: cleanedTree ?? undefined },
-          url,
-        ),
-      },
+      // component-spec §1.2: a Component Document overrides Theme widget selection, so a
+      // tree the Definition alone generates is not emitted — its absence lets the theme apply.
+      ...(componentDocumentIsDerived(this._state) ? {} : { component: this._exportComponent(url) }),
       theme: {
         ...withThemeEnvelope(exportTheme),
       },
@@ -395,6 +390,14 @@ export class RawProject implements IProjectCore {
     }
 
     return structuredClone(bundle);
+  }
+
+  private _exportComponent(url: string): ComponentDocument {
+    const { tree, ...restComponent } = this._state.component as Record<string, unknown>;
+    return withComponentEnvelope(
+      { ...restComponent, tree: tree ? exportComponentTree(tree, this._state.definition) : undefined },
+      url,
+    );
   }
 
   // ── History ──────────────────────────────────────────────────────

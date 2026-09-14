@@ -174,8 +174,14 @@ export interface ProjectBundle {
    * carries exactly one element. Multi-Definition authoring lands at P1+.
    */
   definitions: FormDefinition[];
-  /** The component (UI tree) artifact. */
-  component: ComponentDocument;
+  /**
+   * The component (UI tree) artifact — present only when authored. A tree the
+   * Definition alone generates is omitted: component-spec §1.2 lets any Component
+   * Document override Theme widget selection, so exporting the generated default
+   * would silently beat theme-chosen widgets. Consumers that need a tree fall back
+   * to the Definition-driven layout.
+   */
+  component?: ComponentDocument;
   /** The theme (presentation) artifact. */
   theme: ThemeDocument;
   /** Named collection of mapping (data transform) artifacts. */

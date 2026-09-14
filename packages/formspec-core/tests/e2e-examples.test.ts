@@ -342,7 +342,10 @@ describe('Formspec Studio E2E Examples Rehydration', () => {
         // ADR 0150 §5.2 App Manifest reframe: definitions[] is plural; P0 single-element.
         fs.writeFileSync(path.join(outDir, 'definition.json'), JSON.stringify(exported.definitions[0], null, 2));
         fs.writeFileSync(path.join(outDir, 'theme.json'), JSON.stringify(exported.theme, null, 2));
-        fs.writeFileSync(path.join(outDir, 'component.json'), JSON.stringify(exported.component, null, 2));
+        // export() omits a component document the Definition alone generates
+        if (exported.component) {
+          fs.writeFileSync(path.join(outDir, 'component.json'), JSON.stringify(exported.component, null, 2));
+        }
         const defaultMapping = exported.mappings.default;
         if (defaultMapping) {
           fs.writeFileSync(path.join(outDir, 'mapping.json'), JSON.stringify(defaultMapping, null, 2));

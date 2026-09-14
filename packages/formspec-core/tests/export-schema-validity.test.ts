@@ -12,6 +12,18 @@ import { describe, it, expect } from 'vitest';
 import { createRawProject, componentDocumentIsDerived } from '../src/index.js';
 import { widgetTokenToComponent, KNOWN_COMPONENT_TYPES, COMPATIBILITY_MATRIX } from '@formspec-org/types';
 
+/**
+ * Export the component tree. export() omits a component document the Definition alone
+ * generates, so an authored root override keeps the tree exported for inspection.
+ */
+function exportAuthoredTree(project: ReturnType<typeof createRawProject>): any {
+  project.dispatch({
+    type: 'component.setNodeProperty',
+    payload: { node: { nodeId: 'root' }, property: 'gap', value: '$token.space.md' },
+  });
+  return project.export().component!.tree;
+}
+
 // ── BUG-12: Default definition must include status ─────────────────
 
 describe('BUG-12: definition status field', () => {
@@ -98,7 +110,7 @@ describe('BUG-14: widgetHint must not leak to exported tree', () => {
     });
 
     const bundle = project.export();
-    const tree = bundle.component.tree as any;
+    const tree = bundle.component!.tree as any;
 
     // Walk all nodes and check none have widgetHint
     const checkNoWidgetHint = (node: any) => {
@@ -135,8 +147,7 @@ describe('BUG-16: repeat group authoring props must not leak to export', () => {
       payload: { groupKey: 'items', repeatable: true },
     });
 
-    const bundle = project.export();
-    const tree = bundle.component.tree as any;
+    const tree = exportAuthoredTree(project);
 
     // After export, non-self-managed group containers lose their bind,
     // but the Accordion component should be there. Walk ALL nodes:
@@ -155,8 +166,7 @@ describe('BUG-16: repeat group authoring props must not leak to export', () => {
       payload: { groupKey: 'items', mode: 'dataTable' },
     });
 
-    const bundle = project.export();
-    const tree = bundle.component.tree as any;
+    const tree = exportAuthoredTree(project);
 
     const badNode = findNodeWhere(tree, (n: any) => n.displayMode !== undefined);
     expect(badNode).toBeUndefined();
@@ -177,8 +187,7 @@ describe('BUG-16: repeat group authoring props must not leak to export', () => {
       payload: { node: { bind: 'items' }, property: 'removeLabel', value: 'Remove' },
     });
 
-    const bundle = project.export();
-    const tree = bundle.component.tree as any;
+    const tree = exportAuthoredTree(project);
 
     const badAddLabel = findNodeWhere(tree, (n: any) => n.addLabel !== undefined);
     const badRemoveLabel = findNodeWhere(tree, (n: any) => n.removeLabel !== undefined);
@@ -197,8 +206,7 @@ describe('BUG-16: repeat group authoring props must not leak to export', () => {
       payload: { groupKey: 'items', config: { columns: ['name'] } },
     });
 
-    const bundle = project.export();
-    const tree = bundle.component.tree as any;
+    const tree = exportAuthoredTree(project);
 
     const badNode = findNodeWhere(tree, (n: any) => n.dataTableConfig !== undefined);
     expect(badNode).toBeUndefined();
@@ -216,12 +224,7 @@ describe('export: repeat template children bind as flat item keys', () => {
         } as any,
       },
     });
-    // An authored override keeps the tree from being the derived default, so it exports.
-    project.dispatch({
-      type: 'component.setNodeProperty',
-      payload: { node: { nodeId: 'root' }, property: 'gap', value: '$token.space.md' },
-    });
-    return project.export().component!.tree;
+    return exportAuthoredTree(project);
   }
 
   it('repeatable group nested in a plain group binds its children relative to the repeat instance', () => {
@@ -355,6 +358,20 @@ describe('componentDocumentIsDerived', () => {
     project.dispatch({ type: 'component.setToken', payload: { key: 'space.md', value: '12px' } });
     expect(componentDocumentIsDerived(project.state)).toBe(false);
   });
+
+  it('export omits a derived component document, so theme widget selection applies', () => {
+    const project = projectWithItems();
+    expect(project.export()).not.toHaveProperty('component');
+    expect(createRawProject().export()).not.toHaveProperty('component');
+  });
+
+  it('export keeps a component document that carries an authored layout change', () => {
+    const project = projectWithItems();
+    project.dispatch({ type: 'component.setNodeType', payload: { node: { bind: 'color' }, component: 'RadioGroup' } });
+    const component = project.export().component;
+    expect(component).toMatchObject({ $formspecComponent: '1.0', targetDefinition: { url: 'urn:derived' } });
+    expect(JSON.stringify(component!.tree)).toContain('"RadioGroup"');
+  });
 });
 
 // ── Mappings: schema requires rules minItems 1 ─────────────────────
@@ -393,7 +410,7 @@ describe('Export allowlist: only schema-valid properties survive', () => {
     });
 
     const bundle = project.export();
-    const tree = bundle.component.tree as any;
+    const tree = bundle.component!.tree as any;
     const nameNode = tree.children?.find((c: any) => c.bind === 'name');
     expect(nameNode).toBeDefined();
     expect(nameNode.placeholder).toBe('Enter name');
@@ -411,8 +428,7 @@ describe('Export allowlist: only schema-valid properties survive', () => {
       payload: { node: { bind: 'name' }, property: 'fooBarBaz', value: 'junk' },
     });
 
-    const bundle = project.export();
-    const tree = bundle.component.tree as any;
+    const tree = exportAuthoredTree(project);
     const nameNode = tree.children?.find((c: any) => c.bind === 'name');
     expect(nameNode).toBeDefined();
     expect(nameNode).not.toHaveProperty('fooBarBaz');
@@ -426,7 +442,7 @@ describe('Export allowlist: only schema-valid properties survive', () => {
     });
 
     const bundle = project.export();
-    const tree = bundle.component.tree as any;
+    const tree = bundle.component!.tree as any;
 
     const checkNoLayout = (node: any) => {
       expect(node).not.toHaveProperty('_layout');
@@ -445,7 +461,7 @@ describe('Export allowlist: only schema-valid properties survive', () => {
     });
 
     const bundle = project.export();
-    const tree = bundle.component.tree as any;
+    const tree = bundle.component!.tree as any;
 
     const checkNoNodeId = (node: any) => {
       expect(node).not.toHaveProperty('nodeId');

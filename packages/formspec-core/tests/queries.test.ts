@@ -1435,7 +1435,7 @@ describe('previewChangelog', () => {
 });
 
 describe('export', () => {
-  it('serializes all four artifacts', () => {
+  it('serializes the definition, theme and mappings, and omits a derived component document', () => {
     const project = createRawProject();
     project.dispatch({ type: 'definition.setFormTitle', payload: { title: 'Export Test' } });
 
@@ -1446,7 +1446,8 @@ describe('export', () => {
     expect(bundle.definitions).toBeDefined();
     expect(bundle.definitions).toHaveLength(1);
     expect(bundle.definitions[0].title).toBe('Export Test');
-    expect(bundle.component).toBeDefined();
+    // component-spec §1.2: a generated tree would override Theme widget selection.
+    expect(bundle).not.toHaveProperty('component');
     expect(bundle.theme).toBeDefined();
     expect(bundle.mappings).toBeDefined();
   });
@@ -1459,46 +1460,35 @@ describe('export', () => {
     expect(project.definition.title).not.toBe('Mutated');
   });
 
-  it('exports the effective component tree for MCP-built forms (no authored tree)', () => {
-    const project = createRawProject();
-    // Simulate MCP-style form building: add fields via dispatch, never providing an authored component
-    project.dispatch({ type: 'definition.addItem', payload: { item: { type: 'string', name: 'first_name', label: 'First Name' } } });
-    project.dispatch({ type: 'definition.addItem', payload: { item: { type: 'string', name: 'last_name', label: 'Last Name' } } });
-
-    const bundle = project.export();
-
-    // The generated tree should be present, not null
-    expect(bundle.component.tree).not.toBeNull();
-    expect(bundle.component.tree).toBeDefined();
-  });
-
   it('exports the authored component tree when one is present', () => {
-    const authoredTree = { type: 'Stack', children: [{ type: 'TextField', ref: 'name' }] };
     const project = createRawProject({
       seed: {
         component: {
           $formspecComponent: '1.0',
           version: '0.1.0',
           targetDefinition: { url: 'urn:test:authored' },
-          tree: authoredTree as any,
+          tree: {
+            component: 'Stack', nodeId: 'root',
+            children: [{ component: 'Card', nodeId: 'c1', _layout: true, children: [] }],
+          } as any,
         },
       },
     });
 
     const bundle = project.export();
 
-    expect(bundle.component.tree).toBeDefined();
-    expect((bundle.component.tree as any).component).toBe('Stack');
+    expect(bundle.component!.tree).toEqual({ component: 'Stack', children: [{ component: 'Card', children: [] }] });
   });
 
   it('exports a clean component document envelope', () => {
     const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { item: { type: 'string', name: 'email', label: 'Email' } } });
+    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'email', dataType: 'string' } });
+    project.dispatch({ type: 'component.setNodeProperty', payload: { node: { bind: 'email' }, property: 'placeholder', value: 'you@example.com' } });
 
-    const bundle = project.export();
+    const component = project.export().component as any;
 
-    expect((bundle.component as any)['x-studio-generated']).toBeUndefined();
-    expect((bundle.component as any).$formspecComponent).toBe('1.0');
-    expect((bundle.component as any).version).toBe('0.1.0');
+    expect(component['x-studio-generated']).toBeUndefined();
+    expect(component.$formspecComponent).toBe('1.0');
+    expect(component.version).toBe('0.1.0');
   });
 });

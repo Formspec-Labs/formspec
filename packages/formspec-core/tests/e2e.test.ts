@@ -53,8 +53,8 @@ describe('Formspec Studio Core E2E Validation', { timeout: 60_000 }, () => {
     // ADR 0150 §5.2 App Manifest reframe: definitions[] is plural; P0 single-element.
     fs.writeFileSync(defPath, JSON.stringify(bundle.definitions[0], null, 2));
     fs.writeFileSync(themePath, JSON.stringify(bundle.theme, null, 2));
-    // Only write component when a tree has been authored (null tree = no authored tree)
-    if (bundle.component.tree) {
+    // export() omits a component document the Definition alone generates
+    if (bundle.component) {
       fs.writeFileSync(compPath, JSON.stringify(bundle.component, null, 2));
     } else if (fs.existsSync(compPath)) {
       fs.unlinkSync(compPath);
