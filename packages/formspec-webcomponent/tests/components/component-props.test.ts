@@ -92,8 +92,9 @@ describe('component props — NumberInput stepper', () => {
         const incBtn = el.querySelector('.formspec-stepper-increment') as HTMLButtonElement;
         engine.setValue('locked', true);
 
-        decBtn.click();
         incBtn.click();
+        expect(engine.signals.qty.value).toBe(5);
+        decBtn.click();
         expect(engine.signals.qty.value).toBe(5);
         expect([decBtn.disabled, incBtn.disabled]).toEqual([true, true]);
 
