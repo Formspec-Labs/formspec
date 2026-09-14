@@ -35,10 +35,13 @@ export function renderDefaultConditionalGroup(
 }
 
 export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTMLElement, actx: AdapterContext): void {
-    const { comp, host, fullName, repeatCount, addInstance, removeInstance } = behavior;
+    const { comp, host, fullName, repeatCount, relevant, canAdd, canRemove, addInstance, removeInstance } = behavior;
     const wrapper = document.createElement('div');
     wrapper.className = 'formspec-data-table-wrapper';
     parent.appendChild(wrapper);
+    host.cleanupFns.push(effect(() => {
+        wrapper.classList.toggle('formspec-hidden', !relevant.value);
+    }));
 
     const table = document.createElement('table');
     if (comp.id) table.id = comp.id;
@@ -143,6 +146,7 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
     host.cleanupFns.push(
         effect(() => {
             const count = repeatCount.value;
+            const showRemove = allowRemove && canRemove.value;
             clearCellEffects();
             tbody.innerHTML = '';
             for (let i = 0; i < count; i++) {
@@ -282,17 +286,20 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                     tr.appendChild(td);
                 }
                 if (allowRemove) {
+                    // Keep the Actions cell so columns line up; the button appears only above minRepeat.
                     const td = document.createElement('td');
-                    const removeBtn = document.createElement('button');
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'formspec-datatable-remove formspec-button-danger formspec-focus-ring';
-                    removeBtn.textContent = 'Remove';
-                    removeBtn.setAttribute('aria-label', `Remove row ${i + 1}`);
-                    const idx = i;
-                    removeBtn.addEventListener('click', () => {
-                        removeInstance(idx);
-                    });
-                    td.appendChild(removeBtn);
+                    if (showRemove) {
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'formspec-datatable-remove formspec-button-danger formspec-focus-ring';
+                        removeBtn.textContent = 'Remove';
+                        removeBtn.setAttribute('aria-label', `Remove row ${i + 1}`);
+                        const idx = i;
+                        removeBtn.addEventListener('click', () => {
+                            removeInstance(idx);
+                        });
+                        td.appendChild(removeBtn);
+                    }
                     tr.appendChild(td);
                 }
                 tbody.appendChild(tr);
@@ -308,6 +315,9 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
         addBtn.addEventListener('click', () => {
             addInstance();
         });
+        host.cleanupFns.push(effect(() => {
+            addBtn.classList.toggle('formspec-hidden', !canAdd.value);
+        }));
         wrapper.appendChild(addBtn);
     }
 

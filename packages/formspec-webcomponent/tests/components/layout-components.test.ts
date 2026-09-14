@@ -285,6 +285,7 @@ describe('layout components — DataTable parity', () => {
         expect(wrapper.querySelector('.formspec-datatable-add')).not.toBeNull();
         const actionHeader = wrapper.querySelector('th:last-child .formspec-sr-only');
         expect(actionHeader?.textContent).toBe('Actions');
+        el.getEngine().addRepeatInstance('expenses'); // Remove appears above minRepeat
         const removeButton = wrapper.querySelector('.formspec-datatable-remove') as HTMLButtonElement;
         expect(removeButton).not.toBeNull();
         expect(removeButton.className).toBe('formspec-datatable-remove formspec-button-danger formspec-focus-ring');

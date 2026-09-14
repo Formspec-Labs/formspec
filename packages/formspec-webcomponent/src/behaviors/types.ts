@@ -1,5 +1,5 @@
 /** @filedesc Core behavior contract types for the headless component architecture. */
-import type { Signal } from '@preact/signals-core';
+import type { ReadonlySignal, Signal } from '@preact/signals-core';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import type { FieldViewModel } from '@formspec-org/engine';
 import type { PresentationBlock, ItemDescriptor, LayoutNode } from '@formspec-org/layout';
@@ -201,7 +201,13 @@ export interface DataTableBehavior {
     allowAdd: boolean;
     allowRemove: boolean;
     groupLabel: string;
-    repeatCount: Signal<number>;
+    repeatCount: ReadonlySignal<number>;
+    /** False while the bound group is not relevant: hide the whole table. */
+    relevant: ReadonlySignal<boolean>;
+    /** False at `maxRepeat`: hide Add; `addInstance` is a no-op. */
+    canAdd: ReadonlySignal<boolean>;
+    /** False at or below `minRepeat`: omit Remove; `removeInstance` is a no-op. */
+    canRemove: ReadonlySignal<boolean>;
     addInstance(): void;
     removeInstance(index: number): void;
     bind(refs: DataTableRefs): () => void;

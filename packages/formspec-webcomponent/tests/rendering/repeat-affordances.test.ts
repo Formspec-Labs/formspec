@@ -148,3 +148,59 @@ describe('repeat instance header', () => {
         ]);
     });
 });
+
+describe('repeat affordances — DataTable bound to the repeat', () => {
+    const tree = {
+        component: 'Stack',
+        children: [
+            { component: 'TextInput', bind: 'worked' },
+            {
+                component: 'DataTable',
+                bind: 'jobs',
+                allowAdd: true,
+                allowRemove: true,
+                columns: [{ header: 'Employer', bind: 'employer' }],
+            },
+        ],
+    };
+
+    afterEach(() => {
+        document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
+    });
+
+    it('hides the table while the group is not relevant', () => {
+        const { element, engine } = render(tree);
+        const wrapper = element.querySelector('.formspec-data-table-wrapper');
+        expect(isHidden(wrapper)).toBe(true);
+
+        engine.setValue('worked', 'yes');
+        expect(isHidden(wrapper)).toBe(false);
+    });
+
+    it('hides Add Row at maxRepeat and ignores clicks there', () => {
+        const { element, engine } = render(tree);
+        engine.setValue('worked', 'yes');
+        const add = element.querySelector('.formspec-datatable-add') as HTMLButtonElement;
+
+        add.click();
+        expect(engine.repeats.jobs.value).toBe(2);
+        expect(isHidden(add)).toBe(true);
+
+        add.click();
+        expect(engine.repeats.jobs.value).toBe(2);
+    });
+
+    it('offers Remove only while the count is above minRepeat', () => {
+        const { element, engine } = render(tree);
+        engine.setValue('worked', 'yes');
+        expect(element.querySelectorAll('.formspec-datatable-remove')).toHaveLength(0);
+
+        engine.addRepeatInstance('jobs');
+        const removes = element.querySelectorAll<HTMLButtonElement>('.formspec-datatable-remove');
+        expect(removes).toHaveLength(2);
+
+        removes[0].click();
+        expect(engine.repeats.jobs.value).toBe(1);
+        expect(element.querySelectorAll('.formspec-datatable-remove')).toHaveLength(0);
+    });
+});
