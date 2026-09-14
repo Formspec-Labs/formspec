@@ -1172,7 +1172,8 @@ export class FormEngine implements IFormEngine {
         }
 
         for (const bind of this.definition.binds ?? []) {
-            const path = toBasePath(bind.path);
+            // Core §4.3.3 / Rust BindTargets: only `[*]` is stripped; a concrete `[n]` names no Item.
+            const path = bind.path.replace(/\[\*\]/g, '');
             this._bindConfigs[path] = { ...this._bindConfigs[path], ...(bind as EngineBindConfig), path };
             if (bind.calculate && !parseInstanceTarget(bind.path)) {
                 this._calculatedFields.add(path);

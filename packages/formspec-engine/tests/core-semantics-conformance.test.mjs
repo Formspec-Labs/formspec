@@ -188,3 +188,38 @@ test('nrb-vs-excluded-value: hidden values can read as null in FEL while still b
   assert.equal(response.data?.secret, undefined);
   assert.equal(response.data?.mirror, 'NULL');
 });
+
+test('bind-path-targets: only [*] is stripped from a Bind path, as in Rust (Core §4.3.3)', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'http://example.org/bind-path-targets',
+    version: '1.0.0',
+    title: 'Bind Path Targets',
+    items: [
+      {
+        key: 'rows',
+        type: 'group',
+        label: 'Rows',
+        repeatable: true,
+        minRepeat: 2,
+        children: [
+          { key: 'manual', type: 'field', dataType: 'integer', label: 'Manual' },
+          { key: 'auto', type: 'field', dataType: 'integer', label: 'Auto' }
+        ]
+      }
+    ],
+    binds: [
+      // `[1]` is not FieldRef syntax: the path names no Item, so Rust applies nothing and neither may TS.
+      { path: 'rows[1].manual', calculate: '7' },
+      { path: 'rows[*].auto', calculate: '9' }
+    ]
+  });
+
+  engine.setValue('rows[0].manual', 3);
+  engine.setValue('rows[1].manual', 4);
+  engine.setValue('rows[0].auto', 1);
+
+  assert.deepEqual([engine.signals['rows[0].manual'].value, engine.signals['rows[1].manual'].value], [3, 4]);
+  assert.equal(engine.signals['rows[0].auto'].value, 9);
+  assert.equal(engine.getResponse().data.rows[1].manual, 4);
+});
