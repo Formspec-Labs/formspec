@@ -1938,6 +1938,25 @@ describe('planDefinitionFallback', () => {
         expect(nodes[1].props).not.toHaveProperty('allowAdd');
     });
 
+    it('keeps widgetConfig allowAdd/allowRemove whatever widget and fallback chain the theme names (theme §4.3)', () => {
+        const items = [{
+            key: 'employersOnRecord', type: 'group', label: 'Employer', repeatable: true,
+            children: [{ key: 'payerName', type: 'field', dataType: 'string', label: 'Payer' }],
+        }];
+        const theme = {
+            items: {
+                employersOnRecord: {
+                    widget: 'x-employer-cards', fallback: ['DataTable', 'Accordion'],
+                    widgetConfig: { allowAdd: false, allowRemove: false },
+                },
+            },
+        } as PlanContext['theme'];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k), theme, isComponentAvailable: (type) => type === 'Stack' });
+        const [node] = planDefinitionFallback(items, ctx);
+        expect(node.isRepeatTemplate).toBe(true);
+        expect(node.props).toMatchObject({ allowAdd: false, allowRemove: false });
+    });
+
     it('plans display items', () => {
         const items = [
             { key: 'info', type: 'display', label: 'Please read carefully.' },
