@@ -15,7 +15,7 @@ export interface ValidationResult {
    */
   $formspecValidationResult: '1.0';
   /**
-   * The resolved instance path to the data node that produced this result. Uses dot-notation for nesting and 1-based bracket notation for repeat instances. MUST use concrete indexes (e.g., 'lineItems[2].amount'), NOT definition-time wildcards ('lineItems[*].amount'). This unambiguously identifies the specific data node that failed, even within deeply nested repeatable groups. For root-level fields, the path is just the field key. For form-level Shape results targeting '#', the path is the Shape's target (typically '#' or a specific field the Shape was evaluated against).
+   * The resolved instance path to the data node that produced this result. Uses dot-notation for nesting and 0-based bracket notation for repeat instances (core §4.3.3): 'lineItems[2].amount' is the third instance, while FEL '@index' for that instance is 3. MUST use concrete indexes, NOT definition-time wildcards ('lineItems[*].amount'). This unambiguously identifies the specific data node that failed, even within deeply nested repeatable groups. For root-level fields, the path is just the field key. For form-level Shape results targeting '#', the path is the Shape's target (typically '#' or a specific field the Shape was evaluated against).
    */
   path: string;
   /**
