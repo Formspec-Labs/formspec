@@ -1006,53 +1006,6 @@ function DefaultDefinitionFormSlot({
   return renderDefaultDefinitionForm(input);
 }
 
-/** Apply admitted object data before any field component subscribes. */
-function hydrateDefinitionFormEngine(
-  engine: IFormEngine,
-  data: Readonly<Record<string, unknown>>,
-  prefix = '',
-): void {
-  for (const [key, value] of Object.entries(data)) {
-    const path = prefix ? `${prefix}.${key}` : key;
-    const signal = engine.signals[path];
-    if (
-      signal &&
-      Object.getOwnPropertyDescriptor(Object.getPrototypeOf(signal), 'value')
-        ?.set
-    ) {
-      engine.setValue(
-        path,
-        value as Parameters<IFormEngine['setValue']>[1],
-      );
-      continue;
-    }
-    if (Array.isArray(value) && engine.repeats[path] !== undefined) {
-      const currentCount = engine.repeats[path]?.value ?? 0;
-      for (let index = currentCount; index < value.length; index += 1) {
-        engine.addRepeatInstance(path);
-      }
-      for (let index = 0; index < value.length; index += 1) {
-        const member = value[index];
-        if (member !== null && typeof member === 'object' && !Array.isArray(member)) {
-          hydrateDefinitionFormEngine(
-            engine,
-            member as Readonly<Record<string, unknown>>,
-            `${path}[${index}]`,
-          );
-        }
-      }
-      continue;
-    }
-    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-      hydrateDefinitionFormEngine(
-        engine,
-        value as Readonly<Record<string, unknown>>,
-        path,
-      );
-    }
-  }
-}
-
 function DefaultSurfaceDefinitionForm({
   plan,
   grant,
@@ -1068,7 +1021,10 @@ function DefaultSurfaceDefinitionForm({
   const engine = useMemo(() => {
     const created = createFormEngine(plan.definition);
     if (initialData) {
-      hydrateDefinitionFormEngine(created, initialData.data);
+      // Before any field component subscribes; keeps every saved repeat row.
+      created.loadResponseData(
+        initialData.data as Parameters<IFormEngine['loadResponseData']>[0],
+      );
     }
     return created;
   }, [initialData?.data, plan.definition]);

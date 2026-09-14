@@ -98,7 +98,10 @@ function dataSource(): DataSource {
   } as DataSource;
 }
 
-function bundle(mappingRef?: string): ResolvedBundle {
+function bundle(
+  mappingRef?: string,
+  formDefinition: FormDefinition = definition,
+): ResolvedBundle {
   const surface = {
     $formspecSurface: '0.2',
     id: 'profile',
@@ -181,7 +184,7 @@ function bundle(mappingRef?: string): ResolvedBundle {
           ],
         }
       : {}),
-    definitions: new Map([[DEFINITION_REF, definition]]),
+    definitions: new Map([[DEFINITION_REF, formDefinition]]),
     diagnostics: [],
   };
 }
@@ -425,6 +428,59 @@ describe('definition-form initial data rendering', () => {
     });
 
     expect(profileInput(container).value).toBe('Mapped Grace');
+  });
+
+  it('keeps saved repeat rows past maxRepeat', async () => {
+    const jobsDefinition = {
+      ...definition,
+      items: [
+        {
+          key: 'jobs',
+          type: 'group',
+          label: 'Job',
+          repeatable: true,
+          maxRepeat: 2,
+          children: [
+            { key: 'employer', type: 'field', label: 'Employer', dataType: 'string' },
+          ],
+        },
+      ],
+    } as unknown as FormDefinition;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SurfaceApp
+          bundle={bundle(undefined, jobsDefinition)}
+          location="/edit"
+          onNavigate={() => {}}
+          authorizeDataSource={() => ({ status: 'authorized' })}
+          dataSourceLoader={() => ({
+            status: 'loaded',
+            freshness: 'fresh',
+            recordId: 'response-jobs',
+            value: {
+              jobs: [{ employer: 'ACME' }, { employer: 'Globex' }, { employer: 'Initech' }],
+            },
+          })}
+          validateDataSourcePayload={() => ({ valid: true })}
+          setDocumentTitle={false}
+        />,
+      );
+      await flush();
+    });
+
+    const employers = Array.from(
+      container.querySelectorAll<HTMLInputElement>('input[name^="jobs["]'),
+      (input) => [input.name, input.value],
+    );
+    expect(employers).toEqual([
+      ['jobs[0].employer', 'ACME'],
+      ['jobs[1].employer', 'Globex'],
+      ['jobs[2].employer', 'Initech'],
+    ]);
   });
 
   it.each([
