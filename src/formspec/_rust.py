@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from datetime import date, datetime
 import inspect
 import sys
+from typing import Any
 
 import msgspec
 from formspec import _native as formspec_rust  # noqa: E402 — maturin-built extension
@@ -88,6 +90,7 @@ def _assert_rust_extension_contract() -> None:
         "registry_documents",
         "instances",
         "context",
+        "extension_functions",
     ]
     actual_params = list(signature.parameters.keys())
     if actual_params != expected_params:
@@ -554,6 +557,7 @@ def evaluate_definition(
     registry_documents: list[dict] | None = None,
     instances: dict[str, dict] | None = None,
     context: dict | None = None,
+    extension_functions: Mapping[str, Callable[..., Any]] | None = None,
 ) -> ProcessingResult:
     """Evaluate a definition against data using the Rust batch evaluator.
 
@@ -566,9 +570,18 @@ def evaluate_definition(
         instances: Optional dict of named instance data for prePopulate seeding.
             Keys are instance names, values are dicts of field data.
         context: Optional evaluator context (e.g. now_iso, repeat_counts, previous_validations).
+        extension_functions: Optional FEL extension functions (Core §3.12), name → callable.
+            Arguments arrive as Python values; a raised exception makes the call null and
+            adds an author diagnostic. A name matching a FEL built-in raises ValueError.
     """
     raw = formspec_rust.evaluate_def(
-        definition, data, mode, registry_documents, instances, context
+        definition,
+        data,
+        mode,
+        registry_documents,
+        instances,
+        context,
+        dict(extension_functions) if extension_functions is not None else None,
     )
     validations = raw.get("validations", [])
     is_valid = not any(v.get("severity") == "error" for v in validations)

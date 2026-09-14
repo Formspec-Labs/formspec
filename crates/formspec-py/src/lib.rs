@@ -4,6 +4,7 @@
 //! - `convert` — Python ↔ FEL / JSON, `depythonize_json`, `parse_fel_expr`, string helpers
 //! - `fel` — `eval_fel`, parse, dependencies, analysis, builtins
 //! - `document` — detect type, lint, `evaluate_def`, screener
+//! - `extensions` — Python callables as FEL extension functions for `evaluate_def`
 //! - `registry` — parse registry, find entry, lifecycle, well-known URL
 //! - `changelog` — `generate_changelog`
 //! - `mapping` — mapping document parse + `execute_mapping_doc`
@@ -16,6 +17,7 @@ pub(crate) type PyObject = pyo3::Py<pyo3::PyAny>;
 mod changelog;
 mod convert;
 mod document;
+mod extensions;
 mod fel;
 mod mapping;
 mod registry;

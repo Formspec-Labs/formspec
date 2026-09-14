@@ -46,6 +46,7 @@ def test_formspec_rust_exports_expected_contract():
         "registry_documents",
         "instances",
         "context",
+        "extension_functions",
     ]
 
     signature = inspect.signature(formspec_rust.lint_document)
@@ -274,6 +275,64 @@ def test_evaluate_definition_validation_keys_match_wasm_camel_case():
         f"constraint_kind only: pip install --no-build-isolation ./crates/formspec-py). keys={sorted(keys)}"
     )
     assert "constraint_kind" not in keys
+
+
+_EXTENSION_DEFINITION = {
+    "url": "test://extensions",
+    "version": "1.0.0",
+    "items": [
+        {"type": "field", "key": "qty", "dataType": "integer", "label": "Qty"},
+        {"type": "field", "key": "total", "dataType": "integer", "label": "Total"},
+    ],
+    "binds": [
+        {"path": "total", "calculate": "double($qty)"},
+        {"path": "qty", "constraint": "double($qty) < 10"},
+    ],
+}
+
+
+def test_evaluate_definition_calls_python_extension_functions():
+    """Core §3.12: Python callables back Definition extension functions."""
+    seen = []
+
+    def double(n):
+        seen.append(n)
+        return n * 2
+
+    result = evaluate_definition(
+        _EXTENSION_DEFINITION, {"qty": 3}, extension_functions={"double": double}
+    )
+    assert result.data["total"] == 6
+    assert result.results == []
+    assert seen and all(arg == 3 for arg in seen)
+
+
+def test_evaluate_definition_extension_failure_is_null_with_diagnostic():
+    """Core §3.12 totality: a raising callable yields null (passing) plus an author diagnostic."""
+
+    def double(_n):
+        raise RuntimeError("boom")
+
+    result = evaluate_definition(
+        _EXTENSION_DEFINITION, {"qty": 3}, extension_functions={"double": double}
+    )
+    assert result.results == []
+    assert result.data.get("total") is None
+    assert any("boom" in d["message"] for d in result.diagnostics), result.diagnostics
+
+
+def test_evaluate_definition_without_extension_is_parse_error():
+    """Core §3.10.1: an unregistered extension call stays a definition error."""
+    result = evaluate_definition(_EXTENSION_DEFINITION, {"qty": 3})
+    assert [r["code"] for r in result.results] == ["CONSTRAINT_PARSE_ERROR"]
+
+
+def test_evaluate_definition_rejects_builtin_extension_name():
+    """Core §3.12 rule 1: an extension may not shadow a built-in."""
+    with pytest.raises(ValueError, match="sum"):
+        evaluate_definition(
+            _EXTENSION_DEFINITION, {"qty": 3}, extension_functions={"sum": lambda *a: 0}
+        )
 
 
 # ── Screener (fs-zs72) ───────────────────────────────────────────

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use pyo3::prelude::*;
-use pyo3::types::PyList;
+use pyo3::types::{PyDict, PyList};
 use serde_json::Value;
 
 use formspec_core::{
@@ -22,6 +22,7 @@ use crate::PyObject;
 use crate::convert::{
     depythonize_json, json_object_to_string_map, json_to_python, normalize_wire_json_for_python,
 };
+use crate::extensions::PyExtensionFunctions;
 
 // ── Document Type Detection ─────────────────────────────────────
 
@@ -173,11 +174,16 @@ pub fn lint_document(
 ///     registry_documents: Optional list of registry document dicts
 ///     instances: Optional dict of named instance payloads
 ///     context: Optional dict with now_iso / previous_validations / repeat_counts (snake or camel keys)
+///     extension_functions: Optional dict of FEL extension name → callable (Core §3.12)
 ///
 /// Returns:
 ///     A dict with: values, validations, diagnostics, nonRelevant, variables, required, readonly
 ///     (camelCase validation and diagnostic fields).
-#[pyfunction(signature = (definition, data, trigger=None, registry_documents=None, instances=None, context=None))]
+#[pyfunction(signature = (definition, data, trigger=None, registry_documents=None, instances=None, context=None, extension_functions=None))]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "mirrors the Python keyword signature; each argument is an optional keyword"
+)]
 pub fn evaluate_def(
     py: Python,
     definition: &Bound<'_, PyAny>,
@@ -186,6 +192,7 @@ pub fn evaluate_def(
     registry_documents: Option<&Bound<'_, PyList>>,
     instances: Option<&Bound<'_, PyAny>>,
     context: Option<&Bound<'_, PyAny>>,
+    extension_functions: Option<&Bound<'_, PyDict>>,
 ) -> PyResult<PyObject> {
     let definition: Value = depythonize_json(definition)?;
     let data_val: Value = depythonize_json(data)?;
@@ -222,11 +229,17 @@ pub fn evaluate_def(
         }
     };
 
-    let options = EvalOptions::default()
+    let extensions = extension_functions
+        .map(PyExtensionFunctions::from_dict)
+        .transpose()?;
+    let mut options = EvalOptions::default()
         .trigger(eval_trigger)
         .extension_constraints(constraints)
         .instances(instances_map)
         .context(eval_context);
+    if let Some(extensions) = &extensions {
+        options = options.extensions(extensions);
+    }
 
     let result = evaluate(&definition, &data, &options);
 
