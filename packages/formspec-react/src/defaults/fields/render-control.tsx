@@ -11,6 +11,28 @@ import { SignatureControl } from './controls/signature';
 import { FileUploadControl } from './controls/file-upload';
 import { needTraceAttrs } from '../../projection-metadata.js';
 
+/** Display-only text before/after an input (definition item `prefix`/`suffix`, core §4.2.3). */
+export type InputAdornments = { prefix?: string; suffix?: string };
+
+/**
+ * Wrap `control` with prefix/suffix spans when either is set. Span ids (`<id>-prefix`, `<id>-suffix`)
+ * must join the control's aria-describedby: see {@link adornedDescribedBy}.
+ */
+function withAdornments(control: React.ReactElement, id: string, { prefix, suffix }: InputAdornments) {
+    if (!prefix && !suffix) return control;
+    return (
+        <div className="formspec-input-adornment">
+            {prefix && <span id={`${id}-prefix`} className="formspec-input-prefix">{prefix}</span>}
+            {control}
+            {suffix && <span id={`${id}-suffix`} className="formspec-input-suffix">{suffix}</span>}
+        </div>
+    );
+}
+
+function adornedDescribedBy(describedBy: string | undefined, id: string, { prefix, suffix }: InputAdornments) {
+    return [describedBy, prefix ? `${id}-prefix` : '', suffix ? `${id}-suffix` : ''].filter(Boolean).join(' ') || undefined;
+}
+
 export function renderControl(
     field: FieldComponentProps['field'],
     node: FieldComponentProps['node'],
@@ -18,6 +40,7 @@ export function renderControl(
     isProtected = false,
     extensionAttrs: ExtensionAttrs = {},
     resolvePlaceholder: (componentPlaceholder?: string) => string | undefined = (value) => value,
+    itemAdornments: InputAdornments = {},
 ) {
     const { dataType, id, path, value } = field;
     const isReadonly = field.readonly || isProtected;
@@ -123,6 +146,7 @@ export function renderControl(
             const numberInput = (
                 <input
                     {...common}
+                    aria-describedby={showStepper ? describedBy : adornedDescribedBy(describedBy, id, itemAdornments)}
                     type="number"
                     value={value ?? ''}
                     readOnly={isReadonly}
@@ -168,7 +192,7 @@ export function renderControl(
                 );
             }
 
-            return numberInput;
+            return withAdornments(numberInput, id, itemAdornments);
         }
 
         case 'FileUpload':
@@ -204,24 +228,18 @@ export function renderControl(
         case 'TextInput':
         default: {
             const maxLines = node.props?.maxLines as number | undefined;
-            const prefix = node.props?.prefix as string | undefined;
-            const suffix = node.props?.suffix as string | undefined;
             const placeholder = node.props?.placeholder as string | undefined;
             const inputMode = node.props?.inputMode as string | undefined;
             const isTextarea = dataType === 'text' || maxLines != null;
-
-            // Item 15: build aria-describedby chain that includes prefix/suffix ids
-            const adornmentIds = [
-                prefix ? `${id}-prefix` : '',
-                suffix ? `${id}-suffix` : '',
-            ].filter(Boolean);
-            const adornedDescribedBy = adornmentIds.length
-                ? [...(describedBy ? [describedBy] : []), ...adornmentIds].join(' ')
-                : describedBy;
+            // Component prop wins; else the definition item's prefix/suffix.
+            const adornments: InputAdornments = {
+                prefix: (node.props?.prefix as string | undefined) ?? itemAdornments.prefix,
+                suffix: (node.props?.suffix as string | undefined) ?? itemAdornments.suffix,
+            };
 
             const controlProps = {
                 ...common,
-                'aria-describedby': adornedDescribedBy || undefined,
+                'aria-describedby': adornedDescribedBy(describedBy, id, adornments),
             };
 
             const control = isTextarea ? (
@@ -249,17 +267,7 @@ export function renderControl(
                 />
             );
 
-            if (prefix || suffix) {
-                return (
-                    <div className="formspec-input-adornment">
-                        {/* Item 15: id on prefix/suffix spans for aria-describedby linkage */}
-                        {prefix && <span id={`${id}-prefix`} className="formspec-input-prefix">{prefix}</span>}
-                        {control}
-                        {suffix && <span id={`${id}-suffix`} className="formspec-input-suffix">{suffix}</span>}
-                    </div>
-                );
-            }
-            return control;
+            return withAdornments(control, id, adornments);
         }
     }
 }

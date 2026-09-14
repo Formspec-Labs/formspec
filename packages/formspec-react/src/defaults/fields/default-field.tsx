@@ -3,12 +3,18 @@
 /** @filedesc Default field dispatcher — layout chrome + per-component control routing. */
 import React, { useMemo } from 'react';
 import type { FieldComponentProps } from '../../component-map';
-import { useFormspecContext } from '../../context';
+import { useFormspecContext, findItemByKey } from '../../context';
 import type { ExtensionAttrs } from './field-control-types';
 import { GroupControl } from './group-control';
-import { renderControl } from './render-control';
+import { renderControl, type InputAdornments } from './render-control';
 import { needTraceAttrs, projectionMetadataAttrs } from '../../projection-metadata.js';
 import { useSemanticFieldControl } from '../../use-semantic-field-control.js';
+
+/** Definition item `prefix`/`suffix` (core §4.2.3) for the field at instance `path`. */
+function itemAdornments(engine: ReturnType<typeof useFormspecContext>['engine'], path: string): InputAdornments {
+    const item = findItemByKey(engine.getDefinition().items ?? [], path);
+    return { prefix: item?.prefix, suffix: item?.suffix };
+}
 
 /**
  * Default field renderer — works for any field type.
@@ -25,6 +31,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
     const graphAttrs = projectionMetadataAttrs(node);
 
     const {
+        engine,
         registryEntries,
         resolveFieldHelp,
         admitFieldHelpUri,
@@ -253,7 +260,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
             {hintNode}
             {helpNode}
 
-            {renderControl(field, node, describedBy, isProtected, extensionAttrs, resolvePlaceholder)}
+            {renderControl(field, node, describedBy, isProtected, extensionAttrs, resolvePlaceholder, itemAdornments(engine, field.path))}
 
             {errorNode}
         </div>

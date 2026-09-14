@@ -642,6 +642,47 @@ describe('TextInput — prefix/suffix aria-describedby', () => {
     });
 });
 
+describe('Definition item prefix/suffix (core §4.2.3)', () => {
+    it('renders the item prefix and suffix on number fields and links them via aria-describedby', () => {
+        const def = baseDef([
+            { key: 'earnings', type: 'field', dataType: 'decimal', label: 'Gross earnings', prefix: '$', suffix: 'USD' },
+        ]);
+        const node: LayoutNode = {
+            id: 'earnings-field', component: 'NumberInput', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'earnings',
+        };
+        const container = renderField(def, node);
+        const input = container.querySelector('#field-earnings') as HTMLInputElement;
+        const group = input.parentElement as HTMLElement;
+        expect(group.classList.contains('formspec-input-adornment')).toBe(true);
+        const prefix = group.querySelector('.formspec-input-prefix') as HTMLElement;
+        const suffix = group.querySelector('.formspec-input-suffix') as HTMLElement;
+        expect(prefix.textContent).toBe('$');
+        expect(suffix.textContent).toBe('USD');
+        expect(input.getAttribute('aria-describedby')).toBe(`${prefix.id} ${suffix.id}`);
+    });
+
+    it('renders the item prefix on text fields', () => {
+        const def = baseDef([{ key: 'site', type: 'field', dataType: 'string', label: 'Website', prefix: 'https://' }]);
+        const node: LayoutNode = {
+            id: 'site-field', component: 'TextInput', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'site',
+        };
+        const container = renderField(def, node);
+        expect(container.querySelector('.formspec-input-prefix')?.textContent).toBe('https://');
+    });
+
+    it('lets a component prefix override the item prefix', () => {
+        const def = baseDef([{ key: 'site', type: 'field', dataType: 'string', label: 'Website', prefix: 'https://' }]);
+        const node: LayoutNode = {
+            id: 'site-field', component: 'TextInput', category: 'field',
+            props: { prefix: 'ftp://' }, cssClasses: [], children: [], bindPath: 'site',
+        };
+        const container = renderField(def, node);
+        expect(container.querySelector('.formspec-input-prefix')?.textContent).toBe('ftp://');
+    });
+});
+
 // ── Toggle role="switch" ───────────────────────────────────────────
 
 describe('Toggle — role switch', () => {
