@@ -12,6 +12,7 @@ actually spinning up the Claude CLI. They cover three things:
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -22,6 +23,10 @@ BENCHMARKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BENCHMARKS_DIR))
 
 import run_mcp_loop  # noqa: E402
+
+# The Forms MCP lives in the sibling formspec-studio repo (formspec-stack layout).
+FORMS_MCP_SRC = BENCHMARKS_DIR.parents[1] / "formspec-studio" / "packages" / "formspec-mcp" / "src"
+ALLOWLIST_PREFIX = "mcp__formspec-mcp__"
 
 
 RESULT_KEYS = {
@@ -280,3 +285,37 @@ def test_main_rejects_relative_server_paths_the_agent_cwd_cannot_resolve(tmp_pat
     assert "formspec-mcp" in err
     assert "relative path" in err
     assert "absolute" in err
+
+
+def _forms_mcp_tool_names() -> set[str]:
+    """Tool names the Forms MCP server registers: product verbs plus node tools."""
+    if not FORMS_MCP_SRC.is_dir():
+        pytest.skip(f"Forms MCP source not checked out at {FORMS_MCP_SRC}")
+    product = (FORMS_MCP_SRC / "product-tools.ts").read_text()
+    verbs = re.search(r"PRODUCT_TOOL_NAMES = \[(.*?)\] as const", product, re.S)
+    assert verbs, "product-tools.ts no longer declares PRODUCT_TOOL_NAMES"
+    node = (FORMS_MCP_SRC / "node-tools.ts").read_text()
+    node_tools = node[node.index("export function registerNodeTools"):]
+    names = set(re.findall(r"'(formspec_\w+)'", verbs.group(1)))
+    names |= set(re.findall(r"registerTool\('(formspec_\w+)'", node_tools))
+    assert {"formspec_bootstrap_form", "formspec_publish"} <= names, names
+    return names
+
+
+def test_allowlist_matches_the_forms_mcp_tool_surface():
+    allowed = {name.removeprefix(ALLOWLIST_PREFIX) for name in run_mcp_loop.MCP_TOOL_ALLOWLIST}
+    assert all(name.startswith(ALLOWLIST_PREFIX) for name in run_mcp_loop.MCP_TOOL_ALLOWLIST)
+    tools = _forms_mcp_tool_names()
+    assert sorted(allowed - tools) == [], "allowlist names tools the Forms MCP no longer registers"
+    assert sorted(tools - allowed) == [], "Forms MCP registers tools the allowlist omits"
+
+
+def test_runner_only_names_tools_the_forms_mcp_registers(tmp_path):
+    tools = _forms_mcp_tool_names()
+    text = "\n".join([
+        Path(run_mcp_loop.__file__).read_text(),
+        run_mcp_loop.build_initial_prompt("invoice", "req", tmp_path),
+        run_mcp_loop.build_followup_prompt("invoice", "req", tmp_path, []),
+    ])
+    named = set(re.findall(r"(?<![A-Za-z0-9])formspec_[a-z_]*[a-z]", text))
+    assert sorted(named - tools) == []

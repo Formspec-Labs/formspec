@@ -24,18 +24,19 @@ Transcript is captured as JSON. The exact command shape:
         --output-format json \\
         --model <model> \\
         --mcp-config <absolute path to a Forms-MCP .mcp.json> \\
-        --allowedTools "mcp__formspec-mcp__formspec_create \\
-                        mcp__formspec-mcp__formspec_audit \\
+        --allowedTools "mcp__formspec-mcp__formspec_bootstrap_form \\
+                        mcp__formspec-mcp__formspec_validate_form \\
                         mcp__formspec-mcp__formspec_publish \\
-                        ...all formspec_* tools..." \\
+                        ...every Forms MCP tool..." \\
         --no-session-persistence \\
         --dangerously-skip-permissions \\
         <prompt via stdin>
 
-The prompt instructs the agent to call `formspec_create` to get a project_id,
-author the definition in-memory (via `formspec_set_*` / `formspec_audit`), then
-call `formspec_publish(project_id, version='0.1.0', path='<scratch>')` which
-writes the artifact set to disk for the grader.
+The prompt instructs the agent to call `formspec_bootstrap_form` to get a
+project_id, author the artifacts in memory through the product verbs (checking
+them with `formspec_validate_form`), then call
+`formspec_publish(project_id, version='0.1.0', path='<scratch>')` which writes
+the artifact set to disk for the grader.
 
 Scoring uses `run_benchmark.score_task(task_id, scratch_dir, registry)`
 unchanged — see that file for the scoring formula.
@@ -64,37 +65,42 @@ from run_benchmark import (  # noqa: E402
     score_task,
 )
 
-# Tools the agent is permitted to call. Filesystem/edit tools are excluded —
-# the only way for the agent to write anything to disk is through
-# `formspec_publish(path=...)`, which runs validated artifact serialization.
+# Tools the agent is permitted to call: the whole Forms MCP surface
+# (formspec-studio/packages/formspec-mcp/src product-tools.ts PRODUCT_TOOL_NAMES
+# plus node-tools.ts registerNodeTools); test_run_mcp_loop.py pins the match.
+# Filesystem/edit tools are excluded, so the agent writes to disk only through
+# the Forms MCP's validated serialization (`formspec_publish(path=...)`, or
+# `formspec_save`).
 MCP_TOOL_ALLOWLIST = [
-    "mcp__formspec-mcp__formspec_create",
-    "mcp__formspec-mcp__formspec_draft",
-    "mcp__formspec-mcp__formspec_load",
-    "mcp__formspec-mcp__formspec_open",
-    "mcp__formspec-mcp__formspec_save",
-    "mcp__formspec-mcp__formspec_list",
-    "mcp__formspec-mcp__formspec_publish",
-    "mcp__formspec-mcp__formspec_audit",
-    "mcp__formspec-mcp__formspec_describe",
-    "mcp__formspec-mcp__formspec_set_field",
-    "mcp__formspec-mcp__formspec_set_content",
-    "mcp__formspec-mcp__formspec_set_group",
-    "mcp__formspec-mcp__formspec_set_repeat",
-    "mcp__formspec-mcp__formspec_set_bind",
-    "mcp__formspec-mcp__formspec_set_validation",
-    "mcp__formspec-mcp__formspec_set_option_set",
-    "mcp__formspec-mcp__formspec_set_page",
-    "mcp__formspec-mcp__formspec_set_mapping",
-    "mcp__formspec-mcp__formspec_set_theme",
-    "mcp__formspec-mcp__formspec_set_component",
-    "mcp__formspec-mcp__formspec_remove",
-    "mcp__formspec-mcp__formspec_move",
-    "mcp__formspec-mcp__formspec_rename",
-    "mcp__formspec-mcp__formspec_statistics",
-    "mcp__formspec-mcp__formspec_fel",
-    "mcp__formspec-mcp__formspec_sample_data",
-    "mcp__formspec-mcp__formspec_export",
+    f"mcp__formspec-mcp__{name}"
+    for name in (
+        # Product verbs.
+        "formspec_bootstrap_form",
+        "formspec_add_form_field",
+        "formspec_set_field_behavior",
+        "formspec_add_action",
+        "formspec_bind_response_mapping",
+        "formspec_set_locale",
+        "formspec_set_theme",
+        "formspec_preview_form",
+        "formspec_validate_form",
+        "formspec_publish_form",
+        "formspec_compose_multi_view_bundle",
+        "formspec_add_changelog_entry",
+        "formspec_add_ontology_link",
+        "formspec_query_document",
+        "formspec_migrate_document",
+        "formspec_manage_lifecycle",
+        "formspec_manage_references",
+        "formspec_query_trace",
+        # Whole-artifact drafting and project files.
+        "formspec_draft",
+        "formspec_load",
+        "formspec_open",
+        "formspec_save",
+        "formspec_list",
+        "formspec_publish",
+    )
 ]
 
 
@@ -112,11 +118,14 @@ def build_initial_prompt(task_id: str, requirement: str, candidate_dir: Path) ->
         f"You are implementing a Formspec project for the following requirement.\n\n"
         f"=== REQUIREMENT ({task_id}) ===\n{requirement}\n=== END REQUIREMENT ===\n\n"
         f"Workflow (MCP tools only — no Read/Write/Bash):\n"
-        f"1. Call `formspec_create` (no args) to get a `project_id`.\n"
-        f"2. Author the definition, theme, and component documents by repeatedly calling\n"
-        f"   `formspec_set_field`, `formspec_set_bind`, `formspec_set_validation`,\n"
-        f"   `formspec_set_repeat`, `formspec_set_page`, `formspec_set_mapping`, etc.\n"
-        f"3. Call `formspec_audit` periodically — it returns lint/validation diagnostics.\n"
+        f"1. Call `formspec_bootstrap_form` to get a `project_id`.\n"
+        f"2. Author the form: `formspec_add_form_field` adds, updates, or removes fields,\n"
+        f"   content, and groups (repeatable groups included); `formspec_set_field_behavior`\n"
+        f"   sets required, visibility, readonly, calculation, and validation rules;\n"
+        f"   `formspec_bind_response_mapping`, `formspec_set_theme`, `formspec_add_action`,\n"
+        f"   and `formspec_set_locale` cover the sidecars. To submit a whole definition,\n"
+        f"   component, or theme document, use `formspec_draft` then `formspec_load`.\n"
+        f"3. Call `formspec_validate_form` periodically — it returns lint/validation diagnostics.\n"
         f"   Fix anything it flags before publishing.\n"
         f"4. When the audit is clean, call:\n"
         f"     formspec_publish(project_id=<id>, version='0.1.0', path='{candidate_dir}')\n"
@@ -139,8 +148,8 @@ def build_followup_prompt(
         f"validator reported these errors:\n\n{diag_blob}\n\n"
         f"Fix them and re-publish. Reminder of the requirement:\n\n"
         f"=== REQUIREMENT ===\n{requirement}\n=== END ===\n\n"
-        f"Use `formspec_create` to start fresh (or open the existing project), fix every "
-        f"diagnostic above, run `formspec_audit` until clean, then call:\n"
+        f"Use `formspec_bootstrap_form` to start fresh (or open the existing project), fix every "
+        f"diagnostic above, run `formspec_validate_form` until clean, then call:\n"
         f"  formspec_publish(project_id=<id>, version='0.1.0', path='{candidate_dir}')\n"
         f"Stop after publish."
     )
