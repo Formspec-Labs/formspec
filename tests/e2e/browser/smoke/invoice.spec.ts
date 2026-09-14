@@ -367,9 +367,8 @@ test.describe('Validation: Required Fields and Constraints', () => {
 
     // header.customerName is required
     expect(errorPaths).toContain('header.customerName');
-    // The engine uses 1-based external paths for repeat instances:
-    // internal lineItems[0] is reported externally as lineItems[1]
-    expect(errorPaths).toContain('lineItems[1].itemDescription');
+    // ValidationResult paths use 0-based repeat indexes, matching signal paths
+    expect(errorPaths).toContain('lineItems[0].itemDescription');
   });
 
   test('should clear Customer Name error once the field is filled', async ({ page }) => {
