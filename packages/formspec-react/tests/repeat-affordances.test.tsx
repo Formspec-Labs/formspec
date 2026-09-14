@@ -219,3 +219,34 @@ describe('repeat affordances — allowAdd / allowRemove locks', () => {
         expect(container.querySelectorAll('.formspec-repeat-remove')).toHaveLength(0);
     });
 });
+
+/** DataTable `allowAdd` / `allowRemove` default to true (component §6.14) and only hide chrome (§4.4). */
+describe('repeat affordances — DataTable defaults and locks', () => {
+    const table = (props: Record<string, unknown> = {}) => ({
+        component: 'Stack',
+        children: [
+            { component: 'TextInput', bind: 'worked' },
+            { component: 'DataTable', bind: 'jobs', columns: [{ header: 'Employer', bind: 'employer' }], ...props },
+        ],
+    });
+
+    it('shows Add Row and Remove when allowAdd/allowRemove are omitted', () => {
+        const { container, engine } = render(table());
+        act(() => engine.setValue('worked', 'yes'));
+        expect(container.querySelector('.formspec-datatable-add')).toBeTruthy();
+        act(() => engine.addRepeatInstance('jobs'));
+        expect(container.querySelectorAll('.formspec-datatable-remove')).toHaveLength(2);
+    });
+
+    it('hides Add Row and Remove when locked, keeping rows editable', () => {
+        const { container, engine } = render(table({ allowAdd: false, allowRemove: false }));
+        act(() => {
+            engine.setValue('worked', 'yes');
+            engine.addRepeatInstance('jobs');
+        });
+        expect(container.querySelector('.formspec-datatable-add')).toBeNull();
+        expect(container.querySelectorAll('.formspec-datatable-remove')).toHaveLength(0);
+        const cell = container.querySelector<HTMLInputElement>('tbody input');
+        expect(cell?.disabled).toBe(false);
+    });
+});

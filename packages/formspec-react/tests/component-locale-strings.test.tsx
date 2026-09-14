@@ -82,7 +82,7 @@ describe('$component Locale strings', () => {
                         ],
                     },
                     { component: 'Accordion', id: 'faq', labels: ['FAQ', 'More'], children: [{ component: 'Text', text: 'a' }, { component: 'Text', text: 'b' }] },
-                    { component: 'DataTable', id: 'jobTable', bind: 'jobs', columns: [{ header: 'Employer', bind: 'employer' }] },
+                    { component: 'DataTable', id: 'jobTable', bind: 'jobs', allowRemove: false, columns: [{ header: 'Employer', bind: 'employer' }] },
                     { component: 'Summary', id: 'recap', items: [{ label: 'Name', bind: 'name' }, { label: 'Amount', bind: 'amount' }] },
                 ],
             },

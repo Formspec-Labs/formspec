@@ -521,8 +521,9 @@ function DataTableDisplay({
     const { engine } = useFormspecContext();
     const bindKey = node.props?.bind as string | undefined;
     const columns = (node.props?.columns as DataTableColumn[]) || [];
-    const allowAdd = node.props?.allowAdd === true;
-    const allowRemove = node.props?.allowRemove === true;
+    // Component §6.14: both default to true; false only hides the affordance (§4.4).
+    const allowAdd = node.props?.allowAdd !== false;
+    const allowRemove = node.props?.allowRemove !== false;
     const showRowNumbers = node.props?.showRowNumbers === true;
     const groupItem = bindKey ? findItemByKey(engine.getDefinition().items ?? [], bindKey) : null;
     const fieldByKey = new Map<string, FormItem>();
@@ -534,7 +535,7 @@ function DataTableDisplay({
     const defaultCurrency = engine.getDefinition()?.formPresentation?.defaultCurrency || 'USD';
 
     const repeatPath = bindKey || '';
-    const { count, relevant, canAdd, canRemove } = useRepeatAffordances(repeatPath);
+    const { count, relevant, canAdd, canRemove } = useRepeatAffordances(repeatPath, { allowAdd, allowRemove });
 
     const handleAdd = useCallback(() => {
         if (repeatPath && canAdd) engine.addRepeatInstance(repeatPath);
@@ -610,7 +611,7 @@ function DataTableDisplay({
                     ))}
                 </tbody>
             </table>
-            {allowAdd && canAdd && (
+            {canAdd && (
                 <button
                     type="button"
                     className="formspec-datatable-add formspec-focus-ring"
