@@ -117,6 +117,46 @@ describe('project.import', () => {
     });
   });
 
+  describe('mappings (export omits rule-less mappings: mapping.schema.json rules minItems 1)', () => {
+    const definition = { $formspec: '1.0', url: 'urn:m', version: '1.0.0', title: 'M', items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }] };
+    const mappingDoc = (targetPath: string) => ({ $formspecMapping: '1.0', definitionRef: 'urn:m', rules: [{ sourcePath: 'name', targetPath }] });
+
+    it('an export -> import round trip keeps rule-less mapping tabs and their settings', () => {
+      const project = createRawProject({ seed: { definition: definition as any } });
+      project.dispatch({ type: 'mapping.create', payload: { id: 'csv', targetSchema: { format: 'csv' } } });
+      project.dispatch({ type: 'project.import', payload: project.export() });
+
+      expect(project.state.mappings.csv).toEqual({ rules: [], targetSchema: { format: 'csv' } });
+      expect(Object.keys(project.state.mappings)).toEqual(['default', 'csv']);
+      expect(project.state.selectedMappingId).toBe('csv');
+    });
+
+    it('bundle mappings replace rule-bearing ones and keep rule-less tabs the bundle does not name', () => {
+      const project = createRawProject({ seed: { definition: definition as any } });
+      project.dispatch({ type: 'mapping.create', payload: { id: 'csv', targetSchema: { format: 'csv' } } });
+      project.dispatch({ type: 'mapping.create', payload: { id: 'old' } });
+      project.dispatch({ type: 'mapping.addRule', payload: { mappingId: 'old', sourcePath: 'name', targetPath: 'n' } });
+
+      project.dispatch({ type: 'project.import', payload: { mappings: { default: mappingDoc('fullName') } } as any });
+
+      expect(Object.keys(project.state.mappings)).toEqual(['default', 'csv']);
+      expect(project.state.mappings.default.rules).toEqual([{ sourcePath: 'name', targetPath: 'fullName' }]);
+      // `old` was selected and is gone: selection moves to a mapping that exists.
+      expect(project.state.selectedMappingId).toBe('default');
+    });
+
+    it('clears the selection when no mapping is left', () => {
+      const project = createRawProject({ seed: { definition: definition as any, mappings: {} } as any });
+      project.dispatch({ type: 'mapping.addRule', payload: { sourcePath: 'name', targetPath: 'n' } });
+      expect(project.state.selectedMappingId).toBe('default');
+
+      project.dispatch({ type: 'project.import', payload: { mappings: {} } as any });
+
+      expect(project.state.mappings).toEqual({});
+      expect(project.state.selectedMappingId).toBeUndefined();
+    });
+  });
+
   it('preserves imported theme pages on definition-only import', () => {
     const project = createRawProject();
     project.dispatch({

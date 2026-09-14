@@ -46,9 +46,20 @@ export const projectHandlers = {
     }
 
     if (p.mappings) {
-      state.mappings = Object.fromEntries(
+      // A bundle replaces every mapping that carries rules. It cannot carry a rule-less
+      // one — export omits them (mapping.schema.json: rules minItems 1) — so a rule-less
+      // mapping (an empty tab, its targetSchema) is authoring scaffolding, not a document
+      // the bundle deleted: keep it unless the bundle supplies that id.
+      const imported: typeof state.mappings = Object.fromEntries(
         Object.entries(p.mappings).map(([id, mapping]) => [id, mappingStateFromDocument(mapping)]),
       );
+      for (const [id, mapping] of Object.entries(state.mappings)) {
+        if (!mapping.rules?.length && !imported[id]) imported[id] = mapping;
+      }
+      state.mappings = imported;
+    }
+    if (!state.selectedMappingId || !state.mappings[state.selectedMappingId]) {
+      state.selectedMappingId = Object.keys(state.mappings)[0];
     }
 
     // Import locale documents
