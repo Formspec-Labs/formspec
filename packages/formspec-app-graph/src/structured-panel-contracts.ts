@@ -279,39 +279,87 @@ function actionDiagnostics(
   return diagnostics;
 }
 
+/** A confirmation a StructuredPanel renderer can show: every label plus its own Need trace. */
+export interface AdmittedStructuredPanelConfirmation {
+  heading: string;
+  body: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  anchors: string[];
+}
+
+export type StructuredPanelConfirmationAdmission =
+  | { status: 'absent' }
+  | { status: 'admitted'; confirmation: AdmittedStructuredPanelConfirmation }
+  | { status: 'inadmissible'; missing: string[] };
+
 /**
- * The renderer withholds a row action whose declared confirmation lacks any
- * label or its own Need anchor, so an author's permissive props schema cannot
- * hide the missing confirmation until run time.
+ * The single admission rule for a StructuredPanel action `confirmation`, shared
+ * by the renderer and this lint so neither can drift. An inadmissible
+ * confirmation withholds its action; it never degrades to one click.
  */
+export function structuredPanelConfirmationAdmission(
+  action: unknown,
+): StructuredPanelConfirmationAdmission {
+  const declared = ownProp(record(action), 'confirmation');
+  if (declared === undefined) return { status: 'absent' };
+  const config = record(declared);
+  const label = (name: (typeof CONFIRMATION_LABELS)[number]) => {
+    const value = stringProp(config, name);
+    return value !== undefined && value.length > 0 ? value : undefined;
+  };
+  const rawAnchors = ownProp(record(ownProp(config, 'x-generation')), 'anchors');
+  const anchors = Array.isArray(rawAnchors)
+    ? rawAnchors.filter((anchor): anchor is string =>
+      typeof anchor === 'string' && NEED_ANCHOR.test(anchor)
+    )
+    : [];
+  const missing: string[] = CONFIRMATION_LABELS.filter((name) => label(name) === undefined);
+  if (anchors.length === 0) missing.push('x-generation.anchors');
+  if (missing.length > 0) return { status: 'inadmissible', missing };
+  return {
+    status: 'admitted',
+    confirmation: {
+      heading: label('heading')!,
+      body: label('body')!,
+      confirmLabel: label('confirmLabel')!,
+      cancelLabel: label('cancelLabel')!,
+      anchors,
+    },
+  };
+}
+
 function confirmationDiagnostics(
   widget: SurfaceWidgetSlot,
   config: JsonRecord,
 ): AppGraphDiagnostic[] {
-  return recordArray(ownProp(config, 'blocks')).flatMap((block, blockIndex) => {
-    if (stringProp(block, 'type') !== 'table') return [];
-    const rowAction = record(ownProp(block, 'rowAction'));
-    const declared = ownProp(rowAction, 'confirmation');
-    if (declared === undefined) return [];
-    const confirmation = record(declared);
-    const anchors = ownProp(record(ownProp(confirmation, 'x-generation')), 'anchors');
-    const missing: string[] = CONFIRMATION_LABELS.filter((label) =>
-      (stringProp(confirmation, label) ?? '').length === 0
-    );
-    if (
-      !Array.isArray(anchors)
-      || !anchors.some((anchor) => typeof anchor === 'string' && NEED_ANCHOR.test(anchor))
-    ) {
-      missing.push('x-generation.anchors');
-    }
-    if (missing.length === 0) return [];
+  const confirmable = [
+    ...recordArray(ownProp(config, 'actions')).map((action, actionIndex) => ({
+      action,
+      pointer: `/actions/${actionIndex}/confirmation`,
+      subject: `action '${stringProp(action, 'outputName') ?? actionIndex}'`,
+    })),
+    ...recordArray(ownProp(config, 'blocks')).flatMap((block, blockIndex) => {
+      const action = record(ownProp(block, 'rowAction'));
+      return stringProp(block, 'type') === 'table' && action
+        ? [{
+            action,
+            pointer: `/blocks/${blockIndex}/rowAction/confirmation`,
+            subject: `row action in block '${stringProp(block, 'id') ?? blockIndex}'`,
+          }]
+        : [];
+    }),
+  ];
+  return confirmable.flatMap(({ action, pointer, subject }) => {
+    const admission = structuredPanelConfirmationAdmission(action);
+    if (admission.status !== 'inadmissible') return [];
     return [panelDiagnostic(
       widget,
       STRUCTURED_PANEL_CONTRACT_CODES.actionConfirmationInvalid,
-      panelPointer(widget, `/blocks/${blockIndex}/rowAction/confirmation`),
-      `StructuredPanel row action confirmation in block '${stringProp(block, 'id') ?? blockIndex}' is missing ${missing.join(', ')}; the renderer withholds the action.`,
+      panelPointer(widget, pointer),
+      `StructuredPanel ${subject} confirmation has missing or invalid ${admission.missing.join(', ')}; the renderer withholds the action.`,
       'confirmation-not-admissible',
-      { blockIndex, missing },
+      { missing: admission.missing },
     )];
   });
 }

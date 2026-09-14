@@ -105,6 +105,10 @@ export const STRUCTURED_PANEL_RENDERED_CONFIG_NODES = [
     kind: 'structured-panel-action-confirmation',
   },
   { pointerPattern: '/actions/*', kind: 'structured-panel-action' },
+  {
+    pointerPattern: '/actions/*/confirmation',
+    kind: 'structured-panel-action-confirmation',
+  },
   ...MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES,
 ] as const;
 

@@ -186,6 +186,70 @@ describe('Surface semantic output publishing', () => {
     ))).toMatchObject({ status: 'missing' });
   });
 
+  it('publishes a confirmed action only when its control actually renders', () => {
+    const scope = outputScope();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const confirmed = {
+      heading: 'Retire this version?',
+      body: 'Existing records remain pinned to it.',
+      confirmLabel: 'Retire version',
+      cancelLabel: 'Keep version',
+      ...trace,
+    };
+    const untraced = { ...confirmed, 'x-generation': { anchors: ['need:x@0'] } };
+    const table = (id: string, outputName: string, confirmation: unknown) => ({
+      id,
+      type: 'table',
+      path: 'versions',
+      columns: [{ id: 'version', label: 'Version', path: 'version', ...trace }],
+      rowAction: { outputName, columnLabel: 'Action', confirmation, ...trace },
+      ...trace,
+    });
+    const action = (outputName: string) => ({
+      outputName,
+      actionRef: `${outputName}-action`,
+      intent: 'submit',
+      label: { literal: outputName },
+    });
+
+    act(() => {
+      root.render(
+        <StructuredPanel
+          {...widgetProps(scope, {
+            config: {
+              id: 'adminPanel',
+              blocks: [
+                table('kept', 'retireRow', confirmed),
+                table('withheld', 'purgeRow', untraced),
+              ],
+              actions: [
+                { outputName: 'archive', confirmation: confirmed, ...trace },
+                { outputName: 'purge', confirmation: untraced, ...trace },
+              ],
+              ...trace,
+            },
+            data: { versions: [{ version: '1.0.0' }] },
+            actions: ['retireRow', 'purgeRow', 'archive', 'purge'].map(action),
+          })}
+        />,
+      );
+    });
+
+    const rendered = [...container.querySelectorAll('button')].map((button) => button.textContent);
+    expect(rendered.sort()).toEqual(['archive', 'retireRow']);
+    for (const subject of ['kept/retireRow', 'archive']) {
+      expect(scope.registry.lookup(target(scope, `admin/panelSlot/adminPanel/${subject}`)))
+        .toMatchObject({ status: 'resolved', output: { rendered: true } });
+    }
+    for (const subject of ['withheld/purgeRow', 'purge']) {
+      expect(scope.registry.lookup(target(scope, `admin/panelSlot/adminPanel/${subject}`)))
+        .toMatchObject({ status: 'missing' });
+    }
+    act(() => root.unmount());
+  });
+
   it('records unrelated static content from the mounted renderer', () => {
     const surface = {
       $formspecSurface: '0.2',

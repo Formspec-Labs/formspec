@@ -15,6 +15,10 @@
  * Invalid or absent anchors never become DOM claims.
  */
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import {
+  structuredPanelConfirmationAdmission,
+  type AdmittedStructuredPanelConfirmation,
+} from '@formspec-org/app-graph';
 import type {
   SurfaceSemanticOutputDeclaration,
   SurfaceSemanticValue,
@@ -115,6 +119,7 @@ export interface StructuredPanelActionConfig extends GeneratedFromNeeds {
   pendingLabel?: string;
   successMessage?: string;
   failureMessage?: string;
+  confirmation?: StructuredActionConfirmationConfig;
 }
 
 export interface StructuredActionPayloadSelector {
@@ -193,25 +198,6 @@ function needAnchors(value: unknown): string[] {
   return anchors.flatMap((anchor) =>
     typeof anchor === 'string' && NEED_ANCHOR.test(anchor) ? [anchor] : [],
   );
-}
-
-type AdmittedActionConfirmation = NonNullable<
-  StructuredActionButtonProps['confirmation']
->;
-
-/** Every label present and the confirmation's own Need trace, or nothing. */
-function admittedActionConfirmation(
-  value: unknown,
-): AdmittedActionConfirmation | undefined {
-  const config = record(value);
-  const anchors = needAnchors(config);
-  const heading = nonEmptyString(config?.heading);
-  const body = nonEmptyString(config?.body);
-  const confirmLabel = nonEmptyString(config?.confirmLabel);
-  const cancelLabel = nonEmptyString(config?.cancelLabel);
-  return anchors.length > 0 && heading && body && confirmLabel && cancelLabel
-    ? { heading, body, confirmLabel, cancelLabel, anchors }
-    : undefined;
 }
 
 function mergeAnchors(...groups: readonly (readonly string[])[]): string[] {
@@ -322,13 +308,7 @@ interface StructuredActionButtonProps {
   pendingLabel?: string | undefined;
   successMessage?: string | undefined;
   failureMessage?: string | undefined;
-  confirmation?: Readonly<{
-    heading: string;
-    body: string;
-    confirmLabel: string;
-    cancelLabel: string;
-    anchors: readonly string[];
-  }> | undefined;
+  confirmation?: Readonly<AdmittedStructuredPanelConfirmation> | undefined;
 }
 
 function StructuredActionButton({
@@ -653,6 +633,49 @@ function renderedTableColumns(block: UnknownRecord): RenderedTableColumn[] {
   });
 }
 
+interface AdmittedTableRowAction {
+  config: UnknownRecord;
+  action: SurfaceWidgetAction;
+  label: string;
+  columnLabel: string;
+  emphasis: 'primary' | 'secondary' | 'danger';
+  anchors: string[];
+  confirmation: AdmittedStructuredPanelConfirmation | undefined;
+}
+
+/**
+ * The one rule for whether a table row action renders, shared by the DOM and
+ * semantic-output publication so neither can claim a control the other lacks.
+ * A declared confirmation that cannot render withholds the action rather than
+ * degrading it into a one-click destructive control.
+ */
+function admittedTableRowAction(
+  block: UnknownRecord,
+  availableActions: readonly SurfaceWidgetAction[],
+): AdmittedTableRowAction | undefined {
+  const config = record(block.rowAction);
+  const configAnchors = config ? needAnchors(config) : [];
+  if (!config || configAnchors.length === 0) return undefined;
+  const action = resolvedAction(nonEmptyString(config.outputName), availableActions);
+  const label = action ? literalActionLabel(action) : undefined;
+  const columnLabel = nonEmptyString(config.columnLabel);
+  const confirmation = structuredPanelConfirmationAdmission(config);
+  if (!action || !label || !columnLabel || confirmation.status === 'inadmissible') {
+    return undefined;
+  }
+  return {
+    config,
+    action,
+    label,
+    columnLabel,
+    emphasis: config.emphasis === 'primary' || config.emphasis === 'danger'
+      ? config.emphasis
+      : 'secondary',
+    anchors: mergeAnchors(configAnchors, action.needAnchors ?? []),
+    confirmation: confirmation.status === 'admitted' ? confirmation.confirmation : undefined,
+  };
+}
+
 function renderTable(
   block: UnknownRecord,
   data: Readonly<Record<string, unknown>>,
@@ -666,29 +689,7 @@ function renderTable(
     if (rows.length === 0 || columns.length === 0) return blockEmpty(block, anchors);
     const caption = nonEmptyString(block.caption);
     const responsiveMode = block.responsiveMode === 'scroll' ? 'scroll' : 'stack';
-    const rowActionConfig = record(block.rowAction);
-    const rowActionAnchors = rowActionConfig ? needAnchors(rowActionConfig) : [];
-    const rowAction = rowActionAnchors.length > 0
-      ? resolvedAction(nonEmptyString(rowActionConfig?.outputName), availableActions)
-      : undefined;
-    const rowActionLabel = rowAction ? literalActionLabel(rowAction) : undefined;
-    const rowActionColumnLabel = nonEmptyString(rowActionConfig?.columnLabel);
-    const rowActionEmphasis =
-      rowActionConfig?.emphasis === 'primary' ||
-      rowActionConfig?.emphasis === 'danger'
-        ? rowActionConfig.emphasis
-        : 'secondary';
-    const confirmationDeclared = rowActionConfig?.confirmation !== undefined;
-    const admittedConfirmation = admittedActionConfirmation(
-      rowActionConfig?.confirmation,
-    );
-    // A declared confirmation that cannot render withholds the action rather
-    // than degrading it into a one-click destructive control.
-    const rendersRowAction =
-      rowAction !== undefined &&
-      rowActionLabel !== undefined &&
-      rowActionColumnLabel !== undefined &&
-      (!confirmationDeclared || admittedConfirmation !== undefined);
+    const rowAction = admittedTableRowAction(block, availableActions);
     return (
       <div
         className="fs-structured-panel__table-scroll"
@@ -712,16 +713,13 @@ function renderTable(
                   {column.label}
                 </th>
               ))}
-              {rendersRowAction ? (
+              {rowAction ? (
                 <th
                   scope="col"
                   data-column-id="action"
-                  {...traceAttributes(mergeAnchors(
-                    rowActionAnchors,
-                    rowAction.needAnchors ?? [],
-                  ))}
+                  {...traceAttributes(rowAction.anchors)}
                 >
-                  {rowActionColumnLabel}
+                  {rowAction.columnLabel}
                 </th>
               ) : null}
             </tr>
@@ -740,34 +738,28 @@ function renderTable(
                     {scalarText(readStructuredPanelPath(row, column.path)) ?? ''}
                   </td>
                 ))}
-                {rendersRowAction ? (
+                {rowAction ? (
                   <td
                     data-column-id="action"
-                    data-column-label={rowActionColumnLabel}
-                    {...traceAttributes(mergeAnchors(
-                      rowActionAnchors,
-                      rowAction.needAnchors ?? [],
-                    ))}
+                    data-column-label={rowAction.columnLabel}
+                    {...traceAttributes(rowAction.anchors)}
                   >
-                    {rowActionConfig?.payload !== undefined &&
-                    selectedActionPayload(rowActionConfig.payload, row) === undefined
+                    {rowAction.config.payload !== undefined &&
+                    selectedActionPayload(rowAction.config.payload, row) === undefined
                       ? null
                       : (
                         <StructuredActionButton
-                          action={rowAction}
-                          label={rowActionLabel}
-                          emphasis={rowActionEmphasis}
-                          anchors={mergeAnchors(
-                            rowActionAnchors,
-                            rowAction.needAnchors ?? [],
-                          )}
-                          input={selectedActionPayload(rowActionConfig?.payload, row)}
+                          action={rowAction.action}
+                          label={rowAction.label}
+                          emphasis={rowAction.emphasis}
+                          anchors={rowAction.anchors}
+                          input={selectedActionPayload(rowAction.config.payload, row)}
                           emitAction={emitAction}
                           rowAction
-                          pendingLabel={nonEmptyString(rowActionConfig?.pendingLabel)}
-                          successMessage={nonEmptyString(rowActionConfig?.successMessage)}
-                          failureMessage={nonEmptyString(rowActionConfig?.failureMessage)}
-                          confirmation={admittedConfirmation}
+                          pendingLabel={nonEmptyString(rowAction.config.pendingLabel)}
+                          successMessage={nonEmptyString(rowAction.config.successMessage)}
+                          failureMessage={nonEmptyString(rowAction.config.failureMessage)}
+                          confirmation={rowAction.confirmation}
                         />
                       )}
                   </td>
@@ -865,6 +857,7 @@ interface RenderedActionPresentation {
   pendingLabel: string | undefined;
   successMessage: string | undefined;
   failureMessage: string | undefined;
+  confirmation: AdmittedStructuredPanelConfirmation | undefined;
 }
 
 function renderedActionPresentations(
@@ -893,6 +886,8 @@ function renderedActionPresentations(
         : 'secondary';
     const input = selectedActionPayload(presentation.payload, data);
     if (presentation.payload !== undefined && input === undefined) return [];
+    const confirmation = structuredPanelConfirmationAdmission(presentation);
+    if (confirmation.status === 'inadmissible') return [];
     return [{
       action,
       label,
@@ -904,6 +899,7 @@ function renderedActionPresentations(
       pendingLabel: nonEmptyString(presentation.pendingLabel),
       successMessage: nonEmptyString(presentation.successMessage),
       failureMessage: nonEmptyString(presentation.failureMessage),
+      confirmation: confirmation.status === 'admitted' ? confirmation.confirmation : undefined,
     }];
   });
   presentations.sort(
@@ -928,6 +924,7 @@ function renderActions(
         pendingLabel,
         successMessage,
         failureMessage,
+        confirmation,
       }) => {
         return (
           <StructuredActionButton
@@ -941,6 +938,7 @@ function renderActions(
             pendingLabel={pendingLabel}
             successMessage={successMessage}
             failureMessage={failureMessage}
+            confirmation={confirmation}
           />
         );
       })}
@@ -1004,20 +1002,8 @@ function structuredBlockSemanticOutputs(
       if (output) outputs.push(output);
     }
 
-    const rowActionConfig = record(block.rowAction);
-    const rowAction =
-      rowActionConfig
-      && needAnchors(rowActionConfig).length > 0
-        ? resolvedAction(
-            nonEmptyString(rowActionConfig.outputName),
-            actions,
-          )
-        : undefined;
-    if (
-      rowAction
-      && literalActionLabel(rowAction)
-      && nonEmptyString(rowActionConfig?.columnLabel)
-    ) {
+    const rowAction = admittedTableRowAction(block, actions)?.action;
+    if (rowAction) {
       const output = semanticDeclaration(
         [...blockSegments, rowAction.outputName],
         {

@@ -25,11 +25,12 @@ const CODE_COVERAGE_UNJUSTIFIED = 'NEED-COVERAGE-002';
 const ASSERTOR = 'formspec-needs-coverage-checker';
 
 /**
- * `need:<id>@<revision>` (needs-spec S8). The shared anchor regex in
+ * `need:<id>@<revision>` (needs-spec S8); revisions start at 1 with no leading
+ * zero, matching every runtime renderer. The shared anchor regex in
  * `common.schema.json` stays broad by convention; the per-prefix grammar is
  * this spec's, so it is enforced here rather than in the schema.
  */
-export const NEED_ANCHOR = /^need:([a-zA-Z][a-zA-Z0-9_-]*)@([0-9]+)$/;
+export const NEED_ANCHOR = /^need:([a-zA-Z][a-zA-Z0-9_-]*)@([1-9][0-9]*)$/;
 
 /**
  * The in-document schema id every Needs Document carries: needs-spec

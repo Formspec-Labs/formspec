@@ -413,10 +413,9 @@ describe('StructuredPanel', () => {
       'no Need anchor': complete,
       'no cancel label': { ...complete, cancelLabel: undefined, ...trace },
       'empty heading': { ...complete, heading: '', ...trace },
-      'not an object': true,
+      'not an object': null,
     };
     for (const [name, confirmation] of Object.entries(inadmissible)) {
-      const emitAction = vi.fn();
       const container = render(
         <StructuredPanel
           {...props({
@@ -445,7 +444,6 @@ describe('StructuredPanel', () => {
               intent: 'submit',
               label: { literal: 'Retire' },
             }],
-            emitAction,
           })}
         />,
       );
@@ -454,7 +452,6 @@ describe('StructuredPanel', () => {
       expect(container.querySelector('[data-row-action]'), name).toBeNull();
       expect(container.querySelector('[data-column-id="action"]'), name).toBeNull();
       expect(container.textContent, name).toContain('1.0.0');
-      expect(emitAction, name).not.toHaveBeenCalled();
     }
   });
 

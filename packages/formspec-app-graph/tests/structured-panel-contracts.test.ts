@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   STRUCTURED_PANEL_CONTRACT_CODES,
+  structuredPanelConfirmationAdmission,
   validateStructuredPanelContracts,
   type AppGraphContext,
   type ResolvedArtifactHandle,
@@ -230,7 +231,40 @@ describe('validateStructuredPanelContracts', () => {
     }]);
   });
 
-  it('rejects a declared row action confirmation the renderer cannot admit', () => {
+  it('admits a confirmation only with every label and a well-formed Need anchor', () => {
+    const labels = {
+      heading: 'Retire this version?',
+      body: 'Existing records remain pinned to it.',
+      confirmLabel: 'Retire version',
+      cancelLabel: 'Keep version',
+    };
+    const anchored = (anchors: unknown) => ({ ...labels, 'x-generation': { anchors } });
+    const missingFor = (confirmation: unknown) => {
+      const admission = structuredPanelConfirmationAdmission({ confirmation });
+      return admission.status === 'inadmissible' ? admission.missing : admission.status;
+    };
+
+    expect(structuredPanelConfirmationAdmission({})).toEqual({ status: 'absent' });
+    expect(structuredPanelConfirmationAdmission({
+      confirmation: anchored(['bogus', 'need:protect-version@3']),
+    })).toEqual({
+      status: 'admitted',
+      confirmation: { ...labels, anchors: ['need:protect-version@3'] },
+    });
+    const everything = ['heading', 'body', 'confirmLabel', 'cancelLabel', 'x-generation.anchors'];
+    expect(missingFor(null)).toEqual(everything);
+    expect(missingFor(true)).toEqual(everything);
+    expect(missingFor([])).toEqual(everything);
+    expect(missingFor({ ...anchored(['need:a@1']), body: 42 })).toEqual(['body']);
+    expect(missingFor({ ...anchored(['need:a@1']), heading: '' })).toEqual(['heading']);
+    for (const anchors of [undefined, [], ['need:a'], ['need:a@0'], ['need:a@01'], [7]]) {
+      expect(missingFor(anchored(anchors)), JSON.stringify(anchors)).toEqual([
+        'x-generation.anchors',
+      ]);
+    }
+  });
+
+  it('rejects declared action confirmations the renderer cannot admit', () => {
     const trace = { 'x-generation': { anchors: ['need:protect-version@3'] } };
     const complete = {
       heading: 'Retire this version?',
@@ -246,6 +280,10 @@ describe('validateStructuredPanelContracts', () => {
       rowAction: { outputName: 'literal', columnLabel: 'Action', confirmation },
     });
     const report = validateStructuredPanelContracts(fixture({
+      actions: [
+        { outputName: 'literal', confirmation: { ...complete, ...trace } },
+        { outputName: 'literal-too', confirmation: complete },
+      ],
       blocks: [
         table('valid', { ...complete, ...trace }),
         table('untraced', complete),
@@ -253,11 +291,20 @@ describe('validateStructuredPanelContracts', () => {
         table('malformed', true),
       ],
     }, {
-      actionBindings: { literal: { actionRef: 'literal-action' } },
+      actionBindings: {
+        literal: { actionRef: 'literal-action' },
+        'literal-too': { actionRef: 'literal-action' },
+      },
       actions: [{ id: 'literal-action', intent: 'submit', label: { literal: 'Retire' } }],
     }));
 
     expect(report).toMatchObject([{
+      code: STRUCTURED_PANEL_CONTRACT_CODES.actionConfirmationInvalid,
+      primarySource: {
+        jsonPointer: '/routes/0/slots/0/binding/config/actions/1/confirmation',
+      },
+      details: { missing: ['x-generation.anchors'] },
+    }, {
       code: STRUCTURED_PANEL_CONTRACT_CODES.actionConfirmationInvalid,
       primarySource: {
         jsonPointer: '/routes/0/slots/0/binding/config/blocks/1/rowAction/confirmation',

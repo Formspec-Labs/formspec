@@ -131,6 +131,10 @@ and cancel label without emitting the action. Confirm emits the selected row
 payload once; cancel returns to the row action. The Registry must list the
 confirmation in `renderedConfigNodes` and validate it through
 `widgetShape.props`, so destructive copy cannot bypass schema or Needs review.
+Panel `actions[]` entries accept the same `confirmation`. A declared
+confirmation missing any label or its own Need anchor withholds the action and
+its semantic output; app-graph reports
+`STRUCTURED-PANEL-ACTION-CONFIRMATION-INVALID` from the same admission rule.
 
 Hosts that need their existing draft/submit runtime use
 `renderDefinitionForm`. Its single input contains the resolved form slot plan,

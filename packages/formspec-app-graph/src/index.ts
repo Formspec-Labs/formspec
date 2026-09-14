@@ -123,7 +123,10 @@ export {
 } from './surface-widget-actions.js';
 export {
   STRUCTURED_PANEL_CONTRACT_CODES,
+  structuredPanelConfirmationAdmission,
   validateStructuredPanelContracts,
+  type AdmittedStructuredPanelConfirmation,
+  type StructuredPanelConfirmationAdmission,
 } from './structured-panel-contracts.js';
 export {
   UX_TITLE_DUPLICATE_CODE,

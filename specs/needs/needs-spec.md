@@ -447,7 +447,7 @@ A **need anchor** has the form:
 ```abnf
 need-anchor = "need:" need-id "@" revision
 need-id     = ; a need.id per S4 (pattern ^[a-zA-Z][a-zA-Z0-9_-]*$)
-revision    = 1*DIGIT
+revision    = %x31-39 *DIGIT   ; a positive integer without leading zeros
 ```
 
 Example: `need:proof-of-filing@2`.
