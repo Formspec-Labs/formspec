@@ -1970,8 +1970,9 @@ describe('repeat group rendering', () => {
     });
 
     it('renders instances when repeat count > 0', () => {
-        // Engine initializes repeatable groups with minRepeat ?? 1, so count starts at 1
+        // minRepeat is absent, so the repeat starts empty (Core §4.2.2); add one row
         const engine = createFormEngine(repeatDefinition);
+        engine.addRepeatInstance('members');
 
         const layoutPlan: LayoutNode = {
             id: 'root',
@@ -2028,7 +2029,7 @@ describe('repeat group rendering', () => {
 
     it('renders multiple instances after adding', () => {
         const engine = createFormEngine(repeatDefinition);
-        // Engine starts with 1 instance; add a second
+        engine.addRepeatInstance('members');
         engine.addRepeatInstance('members');
 
         const layoutPlan: LayoutNode = {
@@ -2134,6 +2135,7 @@ describe('repeat group rendering', () => {
     it('keeps the last repeat instance as :last-of-type despite the live region', () => {
         const engine = createFormEngine(repeatDefinition);
         engine.addRepeatInstance('members');
+        engine.addRepeatInstance('members');
 
         const layoutPlan: LayoutNode = {
             id: 'root',
@@ -2183,6 +2185,7 @@ describe('repeat group rendering', () => {
         // not the repeat template path (`members[0].memberName`) a repeat template uses.
         const engine = createFormEngine(repeatDefinition);
         engine.addRepeatInstance('members');
+        engine.addRepeatInstance('members');
         const container = renderInto(
             <FormspecForm
                 engine={engine}
@@ -2204,8 +2207,10 @@ describe('repeat group rendering', () => {
     });
 
     it('renders a visible instance header that keeps remove actions attached to each row', () => {
+        const engine = createFormEngine(repeatDefinition);
+        engine.addRepeatInstance('members');
         const container = renderInto(
-            <FormspecForm definition={repeatDefinition} />
+            <FormspecForm engine={engine} />
         );
 
         const instanceHeader = container.querySelector('.formspec-repeat-instance-header');

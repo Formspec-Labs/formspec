@@ -619,6 +619,7 @@ describe('Accordion layout', () => {
         };
         const engine = createFormEngine(def);
         engine.addRepeatInstance('members');
+        engine.addRepeatInstance('members');
 
         const node: LayoutNode = {
             id: 'acc-repeat',

@@ -659,10 +659,10 @@ const repeatDefinition = {
 };
 
 describe('useRepeatCount', () => {
-    it('returns initial repeat count (minRepeat defaults to 1)', () => {
+    it('returns initial repeat count (minRepeat defaults to 0, Core §4.2.2)', () => {
         const engine = createFormEngine(repeatDefinition);
         const { result } = renderHookWithEngine(engine, () => useRepeatCount('items'));
-        expect(result.current).toBe(1);
+        expect(result.current).toBe(0);
     });
 
     it('returns 0 for non-existent repeat path', () => {
@@ -691,13 +691,13 @@ describe('useRepeatCount', () => {
             );
         });
 
-        expect(result.current).toBe(1); // default
+        expect(result.current).toBe(0); // default
+
+        flushSync(() => { engine.addRepeatInstance('items'); });
+        expect(result.current).toBe(1);
 
         flushSync(() => { engine.addRepeatInstance('items'); });
         expect(result.current).toBe(2);
-
-        flushSync(() => { engine.addRepeatInstance('items'); });
-        expect(result.current).toBe(3);
     });
 });
 
