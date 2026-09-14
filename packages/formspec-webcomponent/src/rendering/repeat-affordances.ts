@@ -1,36 +1,18 @@
-/** @filedesc Reactive repeat chrome state (relevance, min/maxRepeat Add/Remove) and the scoped row render loop. */
+/** @filedesc Reactive repeat chrome state (the engine's repeat affordance rule as signals) and the scoped row render loop. */
 import { computed, effect, untracked, type ReadonlySignal } from '@preact/signals-core';
-import type { FormItem } from '@formspec-org/types';
-import type { IFormEngine } from '@formspec-org/engine/render';
+import { readRepeatAffordances, type RepeatAffordanceState } from '@formspec-org/engine/render';
 
-/** What a repeat renderer needs to show or hide its heading, Add, and Remove controls. */
-export interface RepeatAffordances {
-    count: ReadonlySignal<number>;
-    /** False while the repeatable group is non-relevant (core Bind `relevant` hides the node and its descendants). */
-    relevant: ReadonlySignal<boolean>;
-    /** False once count reaches `maxRepeat` (core §4.2.2: implementations MUST prevent adding beyond it). */
-    canAdd: ReadonlySignal<boolean>;
-    /** False while count is at or below `minRepeat` (component §4.4: remove affordances are subject to it). */
-    canRemove: ReadonlySignal<boolean>;
-}
+/** `RepeatAffordanceState` as signals, one per field, so each effect re-runs only when its own field changes. */
+export type RepeatAffordances = { [K in keyof RepeatAffordanceState]: ReadonlySignal<RepeatAffordanceState[K]> };
 
-/**
- * Derive repeat chrome state for the repeatable group at `repeatPath`.
- * Bounds are presentation gates only; the engine still reports MIN_REPEAT / MAX_REPEAT cardinality results.
- */
-export function repeatAffordances(
-    engine: Pick<IFormEngine, 'repeats' | 'relevantSignals'>,
-    repeatPath: string,
-    item: Pick<FormItem, 'minRepeat' | 'maxRepeat'> | null | undefined,
-): RepeatAffordances {
-    const minRepeat = item?.minRepeat ?? 0;
-    const maxRepeat = item?.maxRepeat;
-    const count = computed(() => engine.repeats[repeatPath]?.value ?? 0);
+/** Derive repeat chrome state for the repeatable group at `repeatPath` (rule: engine `readRepeatAffordances`). */
+export function repeatAffordances(...args: Parameters<typeof readRepeatAffordances>): RepeatAffordances {
+    const state = computed(() => readRepeatAffordances(...args));
     return {
-        count,
-        relevant: computed(() => engine.relevantSignals[repeatPath]?.value ?? true),
-        canAdd: computed(() => maxRepeat === undefined || count.value < maxRepeat),
-        canRemove: computed(() => count.value > minRepeat),
+        count: computed(() => state.value.count),
+        relevant: computed(() => state.value.relevant),
+        canAdd: computed(() => state.value.canAdd),
+        canRemove: computed(() => state.value.canRemove),
     };
 }
 
