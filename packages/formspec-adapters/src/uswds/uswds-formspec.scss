@@ -129,10 +129,10 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   flex: 1;
 }
 
-.formspec-container .usa-fieldset {
-  border: 0;
-  padding: 0;
-  margin: 0;
+// Group fields (RadioGroup, CheckboxGroup) take the error state on the fieldset root itself rather than a
+// wrapping usa-form-group; `.usa-fieldset { border: none; padding: 0 }` would otherwise erase the error bar.
+.usa-fieldset.usa-form-group--error {
+  @extend .usa-form-group--error;
 }
 
 .grid-row.grid-gap .usa-form-group--error,
