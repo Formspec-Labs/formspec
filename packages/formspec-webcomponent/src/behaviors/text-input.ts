@@ -7,7 +7,6 @@ import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffe
 /** Field bind and TextInput props are spread onto {@link ComponentDescriptor} at render time. */
 type TextInputComp = ComponentDescriptor & {
     bind: string;
-    labelOverride?: string;
     placeholder?: string;
     inputMode?: string;
     maxLines?: number;
@@ -56,7 +55,7 @@ export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInp
         }
     }
 
-    const labelText = comp.labelOverride || item?.label || item?.key || comp.bind;
+    const labelText = item?.label || item?.key || comp.bind;
     const vm = ctx.getFieldVM(fieldPath);
 
     return {

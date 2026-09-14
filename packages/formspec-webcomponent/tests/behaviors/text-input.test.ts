@@ -52,12 +52,15 @@ describe('useTextInput', () => {
         expect(behavior.options()).toEqual([]);
     });
 
-    it('uses labelOverride when provided', () => {
+    // Component spec removed labelOverride (ADR 0013): labels come from the Definition, Locale, or theme only.
+    it.each([
+        'useTextInput', 'useNumberInput', 'useRadioGroup', 'useCheckboxGroup', 'useSelect', 'useToggle',
+        'useDatePicker', 'useMoneyInput', 'useSlider', 'useRating', 'useFileUpload', 'useSignature',
+    ])('%s ignores the removed labelOverride prop', async (hook) => {
+        const behaviors: any = await import('../../src/behaviors');
         const items = [{ key: 'name', type: 'field', label: 'Full Name', dataType: 'string' }];
-        const ctx = makeBehaviorContext(items);
         const comp = { component: 'TextInput', bind: 'name', labelOverride: 'Your Name' };
-        const behavior = useTextInput(ctx, comp);
-        expect(behavior.label).toBe('Your Name');
+        expect(behaviors[hook](makeBehaviorContext(items), comp).label).toBe('Full Name');
     });
 
     it('reads hint and description from the field view model (Locale + {{}} interpolation)', () => {

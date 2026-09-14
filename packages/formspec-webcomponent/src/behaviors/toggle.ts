@@ -12,7 +12,7 @@ export function useToggle(ctx: BehaviorContext, comp: any): ToggleBehavior {
     const rawPresentation = ctx.resolveItemPresentation(itemDesc);
     const presentation = resolveAndStripTokens(rawPresentation, ctx.resolveToken, comp);
     const widgetClassSlots = ctx.resolveWidgetClassSlots(rawPresentation);
-    const labelText = comp.labelOverride || item?.label || item?.key || comp.bind;
+    const labelText = item?.label || item?.key || comp.bind;
     const vm = ctx.getFieldVM(fieldPath);
 
     // GOTCHA: when labelPosition is 'top' (default), force it to 'start' so

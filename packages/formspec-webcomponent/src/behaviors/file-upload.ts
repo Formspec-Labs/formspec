@@ -15,7 +15,7 @@ export function useFileUpload(ctx: BehaviorContext, comp: any): FileUploadBehavi
     const presentation = resolveAndStripTokens(rawPresentation, ctx.resolveToken, comp);
     const widgetClassSlots = ctx.resolveWidgetClassSlots(rawPresentation);
 
-    const labelText = comp.labelOverride || item?.label || item?.key || comp.bind;
+    const labelText = item?.label || item?.key || comp.bind;
     const vm = ctx.getFieldVM(fieldPath);
     const multiple = comp.multiple === true;
     const maxSize = typeof comp.maxSize === 'number' ? comp.maxSize : undefined;

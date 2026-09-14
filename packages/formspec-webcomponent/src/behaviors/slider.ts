@@ -13,7 +13,7 @@ export function useSlider(ctx: BehaviorContext, comp: any): SliderBehavior {
     const presentation = resolveAndStripTokens(rawPresentation, ctx.resolveToken, comp);
     const widgetClassSlots = ctx.resolveWidgetClassSlots(rawPresentation);
 
-    const labelText = comp.labelOverride || item?.label || item?.key || comp.bind;
+    const labelText = item?.label || item?.key || comp.bind;
     const vm = ctx.getFieldVM(fieldPath);
 
     return {

@@ -12,7 +12,7 @@ export function useSignature(ctx: BehaviorContext, comp: any): SignatureBehavior
     const presentation = resolveAndStripTokens(rawPresentation, ctx.resolveToken, comp);
     const widgetClassSlots = ctx.resolveWidgetClassSlots(rawPresentation);
 
-    const labelText = comp.labelOverride || item?.label || item?.key || comp.bind;
+    const labelText = item?.label || item?.key || comp.bind;
     const vm = ctx.getFieldVM(fieldPath);
 
     return {
