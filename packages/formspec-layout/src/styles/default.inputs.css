@@ -461,6 +461,32 @@
   -moz-appearance: textfield;
 }
 
+/* Prefix/suffix inside a stepper: the stepper draws the one box; the group only divides itself from the buttons. */
+.formspec-stepper .formspec-input-adornment {
+  align-self: stretch;
+  border-width: 0 1px;
+  border-style: none solid;
+  border-color: var(--formspec-default-border-strong);
+  border-radius: 0;
+  background: transparent;
+}
+
+.formspec-stepper .formspec-input-adornment:focus-within {
+  border-color: var(--formspec-default-border-strong);
+  outline: none;
+}
+
+.formspec-stepper .formspec-input-adornment input[type="number"] {
+  border-left: none;
+  border-right: none;
+}
+
+/* Theme widgetConfig.maxLength count past its limit reads like a validation error. */
+.formspec-character-count--over-limit {
+  color: var(--formspec-default-danger);
+  font-weight: 600;
+}
+
 .formspec-stepper input[type="number"]::-webkit-inner-spin-button,
 .formspec-stepper input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
