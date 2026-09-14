@@ -425,6 +425,25 @@ describe('reconcileComponentTree', () => {
     expect(tree.children[tree.children.length - 1].component).toBe('ActionButton');
   });
 
+  it('keeps saved sibling order when a later wrapper takes a node defined earlier', () => {
+    // `a` is defined first but saved inside the last wrapper. Placing each wrapper before the
+    // later wrappers had taken their nodes counted `a` and put w1 ahead of `y`.
+    const leaf = (key: string) => ({ component: 'TextInput', bind: key, definitionItemPath: key });
+    const existing = {
+      component: 'Stack',
+      nodeId: 'root',
+      children: [
+        leaf('y'),
+        { component: 'Card', _layout: true, nodeId: 'w1', children: [leaf('x')] },
+        { component: 'Card', _layout: true, nodeId: 'w2', children: [leaf('a')] },
+      ],
+    };
+    const definition = { items: ['a', 'y', 'x'].map(key => ({ key, type: 'field', dataType: 'string' })) } as any;
+
+    const tree = reconcileComponentTree(definition, existing);
+    expect(tree.children.map((child: any) => child.nodeId ?? child.bind)).toEqual(['y', 'w1', 'w2']);
+  });
+
   it('preserves wasLast wrapper inside a nested group', () => {
     const definition = {
       items: [{
@@ -627,10 +646,11 @@ describe('reconcileComponentTree cost', () => {
   }));
 
   it('re-inserts layout wrappers without a tree pass per wrapper', () => {
-    // Bound: relative to the same tree with no wrappers, so machine load cancels out. A walk
-    // per wrapper and per wrapped child made it O(wrappers × nodes): at this size ~100× the
-    // wrapper-free rebuild (1.2 s); one index keeps it within a small constant.
-    const fields = 8000;
+    // Bound: relative to the same tree with no wrappers, so machine load cancels out. Two
+    // O(wrappers × siblings) shapes have failed it: a tree walk per wrapper and per wrapped
+    // child, and a splice (indexOf + shift) in the flat root per moved node and per inserted
+    // wrapper — 36× the wrapper-free rebuild at this size (803 ms against 22 ms).
+    const fields = 64000;
     const items = Array.from({ length: fields }, (_, i) => ({ key: `f${i}`, type: 'field', dataType: 'string' }));
     const leaf = (key: string) => ({ component: 'TextInput', bind: key, definitionItemPath: key });
     const flat = { component: 'Stack', nodeId: 'root', children: items.map(item => leaf(item.key)) };

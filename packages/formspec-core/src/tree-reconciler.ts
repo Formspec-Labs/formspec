@@ -286,7 +286,7 @@ export function reconcileComponentTree(
   // One index over `newRoot`, kept current as nodes move, instead of a tree walk per
   // wrapper and per wrapped child (O(wrappers × nodes)): each node's parent, the node for
   // each definition path, nodes by bind / nodeId in document order, and the queues below.
-  // What remains per move is a native splice within one sibling list.
+  // A move only re-points `parentOf`; sibling lists are rebuilt once at the end.
   const parentOf = new Map<TreeNode, TreeNode>();
   const byItemPath = new Map<string, TreeNode>();
   const byBind = new Map<string, TreeNode[]>();
@@ -379,6 +379,7 @@ export function reconcileComponentTree(
     return candidates?.find(isFree);
   };
 
+  /** Moves resolved nodes into the wrapper by `parentOf` alone; sibling lists settle once, below. */
   const updateWrapperChildren = (wrapperNode: TreeNode, enclosingPath: string): void => {
     if (!wrapperNode.children) return;
     const updatedChildren: TreeNode[] = [];
@@ -389,10 +390,6 @@ export function reconcileComponentTree(
         node = child;
       } else if (child.bind || child.nodeId) {
         node = resolveWrapperChild(child, enclosingPath);
-        if (node) {
-          const siblings = parentOf.get(node)!.children!;
-          siblings.splice(siblings.indexOf(node), 1);
-        }
       }
       if (node) {
         parentOf.set(node, wrapperNode);
@@ -402,9 +399,10 @@ export function reconcileComponentTree(
     wrapperNode.children = updatedChildren;
   };
 
+  /** Wrappers each rebuilt node receives, in snapshot order. */
+  const insertsByParent = new Map<TreeNode, WrapperSnapshot[]>();
   for (const snap of wrapperSnapshots) {
-    const wrapperNode = snap.wrapper;
-    updateWrapperChildren(wrapperNode, snap.enclosingPath);
+    updateWrapperChildren(snap.wrapper, snap.enclosingPath);
 
     // The parent's definition path disambiguates duplicate group keys; a group that moved
     // since the snapshot is still found by key.
@@ -413,12 +411,37 @@ export function reconcileComponentTree(
       ?? atPath(parentRef.definitionItemPath, parentRef, isAttached)
       ?? (parentRef.nodeId ? byNodeId.get(parentRef.nodeId) : byBind.get(parentRef.bind!))?.find(isAttached)
       ?? newRoot;
-    if (!parentNode.children) parentNode.children = [];
-
-    const idx = snap.wasLast ? parentNode.children.length : Math.min(snap.position, parentNode.children.length);
-    parentNode.children.splice(idx, 0, wrapperNode);
-    parentOf.set(wrapperNode, parentNode);
+    parentOf.set(snap.wrapper, parentNode);
+    const inserts = insertsByParent.get(parentNode);
+    if (inserts) inserts.push(snap);
+    else insertsByParent.set(parentNode, [snap]);
   }
+
+  // Settle every sibling list in one walk of the final tree: keep the children still parented
+  // there (a wrapper took the rest), then place each wrapper at its saved index among them —
+  // appended when it was last or the list is now shorter, snapshot order on ties. A splice
+  // per moved node and per wrapper instead cost O(wrappers × siblings) on a flat root.
+  // Snapshots of one parent are already in index order, so the stable sort is one linear run.
+  const target = (snap: WrapperSnapshot) => (snap.wasLast ? Number.MAX_SAFE_INTEGER : snap.position);
+  const settle = (parent: TreeNode): void => {
+    const inserts = insertsByParent.get(parent)?.sort((a, b) => target(a) - target(b));
+    if (parent.children || inserts) {
+      const kept = (parent.children ?? []).filter(child => parentOf.get(child) === parent);
+      if (inserts) {
+        const children: TreeNode[] = [];
+        let next = 0;
+        for (const snap of inserts) {
+          while (next < kept.length && children.length < target(snap)) children.push(kept[next++]);
+          children.push(snap.wrapper);
+        }
+        parent.children = children.concat(kept.slice(next));
+      } else {
+        parent.children = kept;
+      }
+    }
+    for (const child of parent.children ?? []) settle(child);
+  };
+  settle(newRoot);
 
   return newRoot;
 }
