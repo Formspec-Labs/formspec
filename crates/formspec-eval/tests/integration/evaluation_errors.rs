@@ -163,6 +163,30 @@ fn composition_type_errors_follow_null_semantics() {
     assert_eq!(result.diagnostics.len(), 3, "{:?}", result.diagnostics);
 }
 
+/// Composition folds `null` as Kleene unknown, through shape references too; unknown passes.
+#[test]
+fn composition_folds_null_as_kleene_unknown() {
+    let def = definition(
+        json!([]),
+        json!([
+            { "id": "typeError", "target": "#", "message": "typeError", "constraint": "$name + 5 > 0" },
+            { "id": "notTypeError", "target": "#", "message": "notTypeError", "not": "typeError" },
+            { "id": "xoneUnknown", "target": "#", "message": "xoneUnknown", "xone": ["$name + 5 > 0", "false"] },
+            { "id": "orUnknown", "target": "#", "message": "orUnknown", "or": ["$name + 5 > 0", "false"] },
+            { "id": "xoneTwoTrue", "target": "#", "message": "xoneTwoTrue", "xone": ["true", "true", "$name + 5 > 0"] },
+            { "id": "andFalse", "target": "#", "message": "andFalse", "and": ["typeError", "false"] }
+        ]),
+    );
+    let result = evaluate(&def, &data(), &EvalOptions::default());
+
+    let failed: Vec<Option<&str>> = result
+        .validations
+        .iter()
+        .map(|v| v.shape_id.as_deref())
+        .collect();
+    assert_eq!(failed, vec![Some("xoneTwoTrue"), Some("andFalse")]);
+}
+
 /// Syntax errors are definition errors (§3.10.1), not evaluation errors: they still fail.
 #[test]
 fn shape_syntax_error_still_fails() {

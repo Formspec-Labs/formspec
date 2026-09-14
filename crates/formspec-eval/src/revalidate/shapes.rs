@@ -101,8 +101,14 @@ pub(super) fn validate_shape(
         .and_then(|v| v.as_str())
         .unwrap_or("SHAPE_FAILED");
 
-    let mut visiting = HashSet::new();
-    if !shape_passes(shape, shapes_by_id, env, target, &mut visiting, diagnostics) {
+    let passes = Composition {
+        shapes_by_id,
+        env,
+        visiting: HashSet::new(),
+        diagnostics,
+    }
+    .passes(shape, target);
+    if !passes {
         results.push(ValidationResult {
             path: target.to_string(),
             severity: Severity::parse_wire(severity).unwrap_or(Severity::Error),
@@ -270,117 +276,165 @@ fn evaluate_shape_context(
     Some(evaluated)
 }
 
-/// Evaluate one composition element: a referenced shape's pass/fail, or an inline expression.
-///
-/// `None` marks an inline syntax error (a definition error that never passes).
-fn evaluate_composition_element(
-    expr: &str,
-    shapes_by_id: &HashMap<String, &JsonValue>,
-    env: &FormspecEnvironment,
-    site: &ConstraintSite<'_>,
-    visiting: &mut HashSet<String>,
-    diagnostics: &mut Vec<EvalDiagnostic>,
-) -> Option<Value> {
-    if let Some(shape) = shapes_by_id.get(expr) {
-        return Some(Value::Boolean(shape_passes(
-            shape,
-            shapes_by_id,
-            env,
-            site.path,
-            visiting,
-            diagnostics,
-        )));
-    }
-    site.evaluate(expr, env, diagnostics)
+/// Kleene truth of a shape or composition element (Core §3.8.1: `null` is unknown).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Truth {
+    True,
+    False,
+    Unknown,
 }
 
-/// Whether `shape` passes at `target`; evaluation errors pass as `null` and land in `diagnostics`.
-fn shape_passes(
-    shape: &JsonValue,
-    shapes_by_id: &HashMap<String, &JsonValue>,
-    env: &FormspecEnvironment,
-    target: &str,
-    visiting: &mut HashSet<String>,
-    diagnostics: &mut Vec<EvalDiagnostic>,
-) -> bool {
-    let shape_id = shape.get("id").and_then(|v| v.as_str()).map(str::to_string);
-
-    if let Some(ref id) = shape_id
-        && !visiting.insert(id.clone())
-    {
-        return true;
-    }
-
-    // activeWhen follows the existing batch evaluator contract: null defaults to active.
-    if let Some(active_when) = shape.get("activeWhen").and_then(|v| v.as_str())
-        && !eval_bool(active_when, env, true)
-    {
-        if let Some(id) = shape_id {
-            visiting.remove(&id);
+impl Truth {
+    /// `null` is unknown; any other value by truthiness.
+    fn of(value: &Value) -> Self {
+        match value {
+            Value::Null => Self::Unknown,
+            value if value.is_truthy() => Self::True,
+            _ => Self::False,
         }
-        return true;
     }
 
-    let site = ConstraintSite {
-        path: target,
-        shape_id: shape_id.as_deref(),
-    };
-    // `None` when the operator is absent (or not an array): an absent operator passes.
-    let clauses = |key: &str| -> Option<Vec<&str>> {
-        shape
-            .get(key)
-            .and_then(|v| v.as_array())
-            .map(|clauses| clauses.iter().filter_map(|c| c.as_str()).collect())
-    };
+    fn not(self) -> Self {
+        match self {
+            Self::True => Self::False,
+            Self::False => Self::True,
+            Self::Unknown => Self::Unknown,
+        }
+    }
 
-    // Operators fold element values under Core §3.8.1 null semantics: `null`
-    // passes in `constraint`/`and`/`or`, `not` passes on `null`, and `xone`
-    // counts only non-null truthy elements. `None` (syntax error) never passes.
-    let passes = shape
-        .get("constraint")
-        .and_then(|v| v.as_str())
-        .is_none_or(|expr| {
-            site.evaluate(expr, env, diagnostics)
-                .is_some_and(|value| constraint_passes(&value))
-        })
-        && clauses("and").unwrap_or_default().into_iter().all(|expr| {
-            evaluate_composition_element(expr, shapes_by_id, env, &site, visiting, diagnostics)
-                .is_some_and(|value| constraint_passes(&value))
-        })
-        && clauses("or").is_none_or(|clauses| {
-            clauses.into_iter().any(|expr| {
-                evaluate_composition_element(expr, shapes_by_id, env, &site, visiting, diagnostics)
-                    .is_some_and(|value| constraint_passes(&value))
-            })
-        })
-        && shape
-            .get("not")
+    /// Kleene conjunction: false dominates, then unknown. Empty is true.
+    fn all(truths: &[Self]) -> Self {
+        if truths.contains(&Self::False) {
+            Self::False
+        } else if truths.contains(&Self::Unknown) {
+            Self::Unknown
+        } else {
+            Self::True
+        }
+    }
+
+    /// Kleene disjunction: true dominates, then unknown. Empty is false.
+    fn any(truths: &[Self]) -> Self {
+        if truths.contains(&Self::True) {
+            Self::True
+        } else if truths.contains(&Self::Unknown) {
+            Self::Unknown
+        } else {
+            Self::False
+        }
+    }
+
+    /// Exactly one true: false once two are true, else unknown if any is unknown.
+    fn exactly_one(truths: &[Self]) -> Self {
+        let true_count = truths.iter().filter(|t| **t == Self::True).count();
+        if true_count >= 2 {
+            Self::False
+        } else if truths.contains(&Self::Unknown) {
+            Self::Unknown
+        } else if true_count == 1 {
+            Self::True
+        } else {
+            Self::False
+        }
+    }
+}
+
+/// Kleene evaluation of one top-level shape and the shapes it references.
+struct Composition<'a> {
+    shapes_by_id: &'a HashMap<String, &'a JsonValue>,
+    env: &'a FormspecEnvironment,
+    /// Shape IDs on the current reference path, for cycle detection.
+    visiting: HashSet<String>,
+    diagnostics: &'a mut Vec<EvalDiagnostic>,
+}
+
+impl Composition<'_> {
+    /// Whether `shape` passes at `target`: unknown passes, false and definition errors fail.
+    fn passes(&mut self, shape: &JsonValue, target: &str) -> bool {
+        self.shape_truth(shape, target)
+            .is_some_and(|truth| truth != Truth::False)
+    }
+
+    /// Kleene truth of `shape` at `target`; `None` for a definition error (§3.10.1).
+    ///
+    /// Evaluation errors are `null`, so unknown; they land in `diagnostics`.
+    fn shape_truth(&mut self, shape: &JsonValue, target: &str) -> Option<Truth> {
+        let shape_id = shape.get("id").and_then(|v| v.as_str()).map(str::to_string);
+
+        // A reference cycle passes rather than recursing forever.
+        if let Some(ref id) = shape_id
+            && !self.visiting.insert(id.clone())
+        {
+            return Some(Truth::True);
+        }
+
+        // activeWhen follows the existing batch evaluator contract: null defaults to active.
+        let inactive = shape
+            .get("activeWhen")
             .and_then(|v| v.as_str())
-            .is_none_or(|expr| {
-                evaluate_composition_element(expr, shapes_by_id, env, &site, visiting, diagnostics)
-                    .is_some_and(|value| value.is_null() || !value.is_truthy())
-            })
-        && clauses("xone").is_none_or(|clauses| {
-            clauses
-                .into_iter()
-                .filter(|expr| {
-                    evaluate_composition_element(
-                        expr,
-                        shapes_by_id,
-                        env,
-                        &site,
-                        visiting,
-                        diagnostics,
-                    )
-                    .is_some_and(|value| !value.is_null() && value.is_truthy())
-                })
-                .count()
-                == 1
-        });
+            .is_some_and(|active_when| !eval_bool(active_when, self.env, true));
+        let truth = if inactive {
+            Some(Truth::True)
+        } else {
+            let site = ConstraintSite {
+                path: target,
+                shape_id: shape_id.as_deref(),
+            };
+            self.operators_truth(shape, &site)
+        };
 
-    if let Some(id) = shape_id {
-        visiting.remove(&id);
+        if let Some(id) = shape_id {
+            self.visiting.remove(&id);
+        }
+        truth
     }
 
-    passes
+    /// Conjoin the shape's present operators; absent operators contribute nothing.
+    fn operators_truth(&mut self, shape: &JsonValue, site: &ConstraintSite<'_>) -> Option<Truth> {
+        let elements = |key: &str| -> Option<Vec<&str>> {
+            shape
+                .get(key)
+                .and_then(|v| v.as_array())
+                .map(|exprs| exprs.iter().filter_map(|e| e.as_str()).collect())
+        };
+        let mut clauses = Vec::new();
+
+        if let Some(expr) = shape.get("constraint").and_then(|v| v.as_str()) {
+            let value = site.evaluate(expr, self.env, self.diagnostics)?;
+            clauses.push(Truth::of(&value));
+        }
+        if let Some(exprs) = elements("and") {
+            clauses.push(Truth::all(&self.elements_truths(&exprs, site)?));
+        }
+        if let Some(exprs) = elements("or") {
+            clauses.push(Truth::any(&self.elements_truths(&exprs, site)?));
+        }
+        if let Some(expr) = shape.get("not").and_then(|v| v.as_str()) {
+            clauses.push(self.element_truth(expr, site)?.not());
+        }
+        if let Some(exprs) = elements("xone") {
+            clauses.push(Truth::exactly_one(&self.elements_truths(&exprs, site)?));
+        }
+
+        Some(Truth::all(&clauses))
+    }
+
+    /// Truth of every element, all evaluated; `None` if any is a definition error.
+    fn elements_truths(&mut self, exprs: &[&str], site: &ConstraintSite<'_>) -> Option<Vec<Truth>> {
+        let truths: Vec<Option<Truth>> = exprs
+            .iter()
+            .map(|expr| self.element_truth(expr, site))
+            .collect();
+        truths.into_iter().collect()
+    }
+
+    /// Truth of one composition element: a referenced shape, or an inline expression.
+    fn element_truth(&mut self, expr: &str, site: &ConstraintSite<'_>) -> Option<Truth> {
+        match self.shapes_by_id.get(expr) {
+            Some(shape) => self.shape_truth(shape, site.path),
+            None => site
+                .evaluate(expr, self.env, self.diagnostics)
+                .map(|value| Truth::of(&value)),
+        }
+    }
 }
