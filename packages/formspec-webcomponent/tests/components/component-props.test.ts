@@ -10,7 +10,7 @@ beforeAll(async () => {
     }
 });
 
-function renderWith(items: any[], tree: any) {
+function renderWith(items: any[], tree: any, extra: Record<string, unknown> = {}) {
     const el = document.createElement('formspec-render') as any;
     document.body.appendChild(el);
     el.componentDocument = {
@@ -25,6 +25,7 @@ function renderWith(items: any[], tree: any) {
         version: '1.0.0',
         title: 'Test',
         items,
+        ...extra,
     };
     el.render();
     return el;
@@ -72,6 +73,34 @@ describe('component props — NumberInput stepper', () => {
         expect(incBtn).not.toBeNull();
         expect(decBtn.getAttribute('aria-label')).toBe('Decrease Quantity');
         expect(incBtn.getAttribute('aria-label')).toBe('Increase Quantity');
+    });
+
+    it('does not step a read-only value, and steps again once writable', () => {
+        const el = renderWith(
+            [
+                { key: 'locked', type: 'field', dataType: 'boolean', label: 'Locked' },
+                { key: 'qty', type: 'field', dataType: 'integer', label: 'Quantity', initialValue: 5 },
+            ],
+            {
+                component: 'Section',
+                children: [{ component: 'NumberInput', bind: 'qty', showStepper: true, prefix: '#' }],
+            },
+            { binds: [{ path: 'qty', readonly: '$locked' }] },
+        );
+        const engine = el.getEngine();
+        const decBtn = el.querySelector('.formspec-stepper-decrement') as HTMLButtonElement;
+        const incBtn = el.querySelector('.formspec-stepper-increment') as HTMLButtonElement;
+        engine.setValue('locked', true);
+
+        decBtn.click();
+        incBtn.click();
+        expect(engine.signals.qty.value).toBe(5);
+        expect([decBtn.disabled, incBtn.disabled]).toEqual([true, true]);
+
+        engine.setValue('locked', false);
+        incBtn.click();
+        expect(engine.signals.qty.value).toBe(6);
+        expect([decBtn.disabled, incBtn.disabled]).toEqual([false, false]);
     });
 
     it('renders a plain number input when showStepper is false or absent', () => {
