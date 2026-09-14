@@ -64,6 +64,14 @@ export function defaultComponentType(item: FormItem): string {
 }
 
 /**
+ * The component the reconciler generates for a field or group: the widgetHint's
+ * component, else {@link defaultComponentType}.
+ */
+export function generatedComponentType(item: FormItem): string {
+  return widgetTokenToComponent(item.presentation?.widgetHint) ?? defaultComponentType(item);
+}
+
+/**
  * Rebuild the component tree to mirror the definition item hierarchy.
  *
  * Pure function — takes all inputs as arguments, returns the new tree root.
@@ -183,7 +191,7 @@ export function reconcileComponentTree(
           node.component = hintComponent;
         }
       } else {
-        node = { component: hintComponent ?? defaultComponentType(item), bind: item.key };
+        node = { component: generatedComponentType(item), bind: item.key };
       }
     }
 

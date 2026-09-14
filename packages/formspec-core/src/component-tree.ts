@@ -26,9 +26,10 @@ export function walkComponentTree(
   root: EditableComponentNode,
   visit: (node: EditableComponentNode) => void,
 ): void {
+  // Breadth-first; an index cursor, not queue.shift(), keeps the walk linear.
   const queue: EditableComponentNode[] = [root];
-  while (queue.length > 0) {
-    const node = queue.shift()!;
+  for (let i = 0; i < queue.length; i++) {
+    const node = queue[i];
     visit(node);
     if (node.children?.length) queue.push(...node.children);
   }

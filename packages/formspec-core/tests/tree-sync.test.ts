@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createRawProject } from '../src/index.js';
+import { createRawProject, componentDocumentIsDerived } from '../src/index.js';
 
 describe('component tree sync', () => {
   it('auto-creates a default node for a new field', () => {
@@ -243,5 +243,50 @@ describe('component tree sync', () => {
     const after = textNode(project.component.tree as { children?: unknown[] });
     expect(after?.text).toBe('Line 1\nLine 2');
     expect(after?.style?.gridRow).toBe('span 3');
+  });
+});
+
+describe('generated widget follows the item shape', () => {
+  function project(items: unknown[]) {
+    return createRawProject({
+      seed: {
+        definition: { $formspec: '1.0', url: 'urn:shape', version: '1.0.0', status: 'draft', title: 'T', items } as any,
+      },
+    });
+  }
+  const choice = [{ value: 'a', label: 'A' }];
+
+  it('a string field changed to choice shows Select, and the document stays derived', () => {
+    const p = project([{ type: 'field', key: 'f', label: 'F', dataType: 'string' }]);
+    p.dispatch({ type: 'definition.setFieldDataType', payload: { path: 'f', dataType: 'choice' } });
+    p.dispatch({ type: 'definition.setItemProperty', payload: { path: 'f', property: 'options', value: choice } });
+    expect(p.componentFor('f')!.component).toBe('Select');
+    expect(componentDocumentIsDerived(p.state)).toBe(true);
+    expect(p.export()).not.toHaveProperty('component');
+  });
+
+  it('options added to a nested string field switch its generated TextInput to Select', () => {
+    const p = project([{ type: 'group', key: 'g', label: 'G', children: [{ type: 'field', key: 'f', label: 'F', dataType: 'string' }] }]);
+    p.dispatch({ type: 'definition.setFieldOptions', payload: { path: 'g.f', options: choice } });
+    expect(p.componentFor('f')!.component).toBe('Select');
+    expect(componentDocumentIsDerived(p.state)).toBe(true);
+  });
+
+  it('a group made repeatable becomes an Accordion, and a Stack again when it stops repeating', () => {
+    const p = project([{ type: 'group', key: 'jobs', label: 'Jobs', children: [{ type: 'field', key: 'h', label: 'H', dataType: 'integer' }] }]);
+    p.dispatch({ type: 'definition.setItemProperty', payload: { path: 'jobs', property: 'repeatable', value: true } });
+    expect(p.componentFor('jobs')!.component).toBe('Accordion');
+    expect(componentDocumentIsDerived(p.state)).toBe(true);
+    p.dispatch({ type: 'definition.setItemProperty', payload: { path: 'jobs', property: 'repeatable', value: null } });
+    expect(p.componentFor('jobs')!.component).toBe('Stack');
+    expect(componentDocumentIsDerived(p.state)).toBe(true);
+  });
+
+  it('keeps an authored widget when the item shape changes', () => {
+    const p = project([{ type: 'field', key: 'f', label: 'F', dataType: 'string' }]);
+    p.dispatch({ type: 'component.setNodeType', payload: { node: { bind: 'f' }, component: 'Textarea' } });
+    p.dispatch({ type: 'definition.setFieldOptions', payload: { path: 'f', options: choice } });
+    expect(p.componentFor('f')!.component).toBe('Textarea');
+    expect(componentDocumentIsDerived(p.state)).toBe(false);
   });
 });

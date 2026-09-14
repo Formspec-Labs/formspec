@@ -15,11 +15,14 @@
  * @module definition-binds
  */
 
-import type { CommandHandler } from '../types.js';
+import type { CommandHandler, ProjectState } from '../types.js';
 import { resolveItemLocation } from './helpers.js';
 import type { FormBind, FormItem } from '@formspec-org/types';
+import { normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
 import { setRecordProperty } from '../record-mutate.js';
 import { bindEntriesFor, mergeBindProperties } from '../definition-binds.js';
+import { editableComponentTree, walkComponentTree } from '../component-tree.js';
+import { generatedComponentType } from '../tree-reconciler.js';
 
 // ── setBind helpers ──────────────────────────────────────────────────
 
@@ -140,6 +143,33 @@ function setNestedProperty(target: Record<string, unknown>, propertyPath: string
   cursor[segments[segments.length - 1]] = value;
 }
 
+/**
+ * Run `mutate` on a field or group and keep its generated widget in step. The
+ * reconciler keeps an existing node's component, so a node still showing the
+ * widget generated for the old shape (dataType, options, repeatable, widgetHint)
+ * would otherwise read as authored — a TextInput pinned on a choice field, a Stack
+ * bound to a repeatable group (component-spec §4.4). Nodes showing any other
+ * widget are authored and stay. Returns whether the generated widget changed.
+ */
+function mutateItemShape(state: ProjectState, path: string, item: FormItem, mutate: () => void): boolean {
+  if (item.type === 'display') {
+    mutate();
+    return false;
+  }
+  const before = generatedComponentType(item);
+  mutate();
+  const after = generatedComponentType(item);
+  if (before === after) return false;
+  const tree = editableComponentTree(state);
+  if (tree) {
+    const itemPath = normalizeIndexedPath(path);
+    walkComponentTree(tree, node => {
+      if (node.definitionItemPath === itemPath && node.component === before) node.component = after;
+    });
+  }
+  return true;
+}
+
 // ── Handler table ────────────────────────────────────────────────────
 
 export const definitionBindsHandlers = {
@@ -178,11 +208,11 @@ export const definitionBindsHandlers = {
     if (!loc) throw new Error(`Item not found: ${path}`);
 
     assertPropertyApplicable(loc.item, property);
-    setNestedProperty(loc.item as Record<string, unknown>, property, value);
+    const widgetChanged = mutateItemShape(state, path, loc.item, () =>
+      setNestedProperty(loc.item as Record<string, unknown>, property, value));
     // Display body is mirrored to component `text` during reconcile; without a rebuild the tree stays stale
     // (e.g. live preview and layout canvas keep showing the old string).
-    const rebuild =
-      loc.item.type === 'display' && property === 'label';
+    const rebuild = widgetChanged || (loc.item.type === 'display' && property === 'label');
     return { rebuildComponentTree: rebuild };
   },
 
@@ -194,8 +224,8 @@ export const definitionBindsHandlers = {
     const loc = resolveItemLocation(state, path);
     if (!loc) throw new Error(`Item not found: ${path}`);
 
-    loc.item.dataType = dataType;
-    return { rebuildComponentTree: false };
+    const widgetChanged = mutateItemShape(state, path, loc.item, () => { loc.item.dataType = dataType; });
+    return { rebuildComponentTree: widgetChanged };
   },
 
   'definition.setFieldOptions': (state, payload) => {
@@ -203,15 +233,16 @@ export const definitionBindsHandlers = {
     const loc = resolveItemLocation(state, path);
     if (!loc) throw new Error(`Item not found: ${path}`);
 
-    if (typeof options === 'string') {
-      loc.item.optionSet = options;
-      delete loc.item.options;
-    } else {
-      loc.item.options = options as { value: string; label: string }[];
-      delete loc.item.optionSet;
-    }
-
-    return { rebuildComponentTree: false };
+    const widgetChanged = mutateItemShape(state, path, loc.item, () => {
+      if (typeof options === 'string') {
+        loc.item.optionSet = options;
+        delete loc.item.options;
+      } else {
+        loc.item.options = options as { value: string; label: string }[];
+        delete loc.item.optionSet;
+      }
+    });
+    return { rebuildComponentTree: widgetChanged };
   },
 
   'definition.setItemExtension': (state, payload) => {
