@@ -287,10 +287,12 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'formspec-repeat-add formspec-focus-ring';
-        addBtn.textContent = `Add ${groupLabel}`;
         const liveRegion = document.createElement('div');
         liveRegion.className = 'formspec-sr-only';
         liveRegion.setAttribute('aria-live', 'polite');
+        host.cleanupFns.push(effect(() => {
+            addBtn.textContent = `Add ${groupLabel.value}`;
+        }));
         host.cleanupFns.push(effect(() => {
             wrapper.classList.toggle('formspec-hidden', !relevant.value);
         }));
@@ -329,13 +331,15 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
                     const removeBtn = document.createElement('button');
                     removeBtn.type = 'button';
                     removeBtn.className = 'formspec-repeat-remove formspec-button-danger formspec-focus-ring';
-                    removeBtn.textContent = `Remove ${groupLabel}`;
-                    removeBtn.setAttribute('aria-label', `Remove ${groupLabel} ${i + 1}`);
                     const idx = i;
+                    rows.watch(() => {
+                        removeBtn.textContent = `Remove ${groupLabel.value}`;
+                        removeBtn.setAttribute('aria-label', `Remove ${groupLabel.value} ${idx + 1}`);
+                    });
                     removeBtn.addEventListener('click', () => {
                         removeInstance(idx);
                         const newCount = Math.max(0, count - 1);
-                        liveRegion.textContent = `${groupLabel} ${idx + 1} removed. ${newCount} remaining.`;
+                        liveRegion.textContent = `${groupLabel.value} ${idx + 1} removed. ${newCount} remaining.`;
                         queueMicrotask(() => {
                             if (newCount === 0) {
                                 addBtn.focus();
@@ -365,7 +369,7 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
             if (!canAdd.value) return;
             addInstance();
             const newCount = repeatCount.value;
-            liveRegion.textContent = `${groupLabel} ${newCount} added. ${newCount} total.`;
+            liveRegion.textContent = `${groupLabel.value} ${newCount} added. ${newCount} total.`;
             queueMicrotask(() => {
                 const latest = detailsEls[detailsEls.length - 1];
                 latest?.querySelector<HTMLElement>('input, select, textarea, button')?.focus();

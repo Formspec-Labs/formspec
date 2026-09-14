@@ -2,7 +2,9 @@
 import type { RenderContext } from '../types';
 import { layoutHostSlice } from '../adapters/layout-host';
 import { resolveCompText } from './layout-plugin-factory';
+import { effect } from '@preact/signals-core';
 import { repeatAffordances, renderRepeatRows } from '../rendering/repeat-affordances';
+import { itemLabel } from '../rendering/item-label';
 import type {
     SectionLayoutBehavior,
     StackLayoutBehavior,
@@ -61,7 +63,7 @@ export function buildAccordionBehavior(comp: any, ctx: RenderContext): Accordion
     const bindKey = comp.bind;
     const fullName = ctx.prefix ? `${ctx.prefix}.${bindKey}` : bindKey;
     const item = bindKey ? ctx.findItemByKey(bindKey) : null;
-    const groupLabel = item?.label || bindKey || '';
+    const groupLabel = itemLabel(ctx.engine, item, fullName ?? '', bindKey || '');
     const { count, relevant, canAdd, canRemove } = repeatAffordances(ctx.engine, fullName ?? '', item);
 
     return {
@@ -75,6 +77,7 @@ export function buildAccordionBehavior(comp: any, ctx: RenderContext): Accordion
             count: rows.count,
             canRemove: rows.canRemove,
             renderComponent: (child, parent, prefix) => ctx.renderComponent(child, parent, prefix, rows.cleanupFns),
+            watch: (fn) => { rows.cleanupFns.push(effect(fn)); },
         })),
         addInstance: () => {
             if (bindKey && canAdd.value) ctx.engine.addRepeatInstance(fullName);

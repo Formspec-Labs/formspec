@@ -24,11 +24,16 @@ function repeatBehavior() {
             findItemByKey: () => null,
         },
         repeatCount: count,
-        groupLabel: 'Job',
+        groupLabel: signal('Job'),
         relevant,
         canAdd: computed(() => count.value < 2),
         renderRows: (build) => {
-            effect(() => build({ count: count.value, canRemove: count.value > 1, renderComponent: vi.fn() }));
+            effect(() => build({
+                count: count.value,
+                canRemove: count.value > 1,
+                renderComponent: vi.fn(),
+                watch: (fn) => { effect(fn); },
+            }));
         },
         addInstance,
         removeInstance,

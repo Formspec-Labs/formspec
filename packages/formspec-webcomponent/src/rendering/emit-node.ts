@@ -1,5 +1,6 @@
 /** @filedesc Walks a LayoutNode tree and emits DOM via component plugin dispatch. */
 import { effect } from '@preact/signals-core';
+import { Path } from '@formspec-org/types';
 import { globalRegistry } from '../registry';
 import type { RenderContext } from '../types';
 import type { BehaviorContext } from '../behaviors/types';
@@ -17,6 +18,7 @@ import { useWizard } from '../behaviors/wizard';
 import { useTabs } from '../behaviors/tabs';
 import { applySurfaceProps } from '../adapters/default/layout';
 import { repeatAffordances, renderRepeatRows } from './repeat-affordances';
+import { itemLabel } from './item-label';
 
 export type { RenderHost } from '../hub-types.js';
 
@@ -159,9 +161,8 @@ export function emitNode(
         addBtn.type = 'button';
         addBtn.className = 'formspec-repeat-add formspec-focus-ring';
         const item = host.findItemByKey(bindKey);
-        const groupLabel = item?.label || bindKey;
+        const groupLabel = itemLabel(host.engine, item, fullRepeatPath, bindKey);
         const { count: repeatCount, relevant, canAdd, canRemove } = repeatAffordances(host.engine, fullRepeatPath, item);
-        addBtn.textContent = `Add ${groupLabel}`;
         const liveRegion = document.createElement('div');
         liveRegion.className = 'formspec-sr-only';
         liveRegion.setAttribute('aria-live', 'polite');
@@ -175,6 +176,9 @@ export function emitNode(
         cleanupFns.push(effect(() => {
             addBtn.classList.toggle('formspec-hidden', !canAdd.value);
         }));
+        cleanupFns.push(effect(() => {
+            addBtn.textContent = `Add ${groupLabel.value}`;
+        }));
         renderRepeatRows(cleanupFns, { count: repeatCount, canRemove }, (rows) => {
             const { count } = rows;
             list.replaceChildren();
@@ -182,51 +186,57 @@ export function emitNode(
                 const instanceWrapper = document.createElement('div');
                 instanceWrapper.className = 'formspec-repeat-instance';
                 instanceWrapper.setAttribute('role', 'group');
-                instanceWrapper.setAttribute('aria-label', `${groupLabel} ${idx + 1} of ${count}`);
                 list.appendChild(instanceWrapper);
 
                 const instanceHeader = document.createElement('div');
                 instanceHeader.className = 'formspec-repeat-instance-header';
                 const instanceLabel = document.createElement('p');
                 instanceLabel.className = 'formspec-repeat-instance-label';
-                instanceLabel.textContent = `${groupLabel} ${idx + 1}`;
                 instanceHeader.appendChild(instanceLabel);
                 instanceWrapper.appendChild(instanceHeader);
+
+                const removeBtn = rows.canRemove ? document.createElement('button') : null;
+                if (removeBtn) {
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'formspec-repeat-remove formspec-button-danger formspec-focus-ring';
+                    const removeIdx = idx;
+                    removeBtn.addEventListener('click', () => {
+                        host.engine.removeRepeatInstance(fullRepeatPath, removeIdx);
+                        const newCount = Math.max(0, count - 1);
+                        liveRegion.textContent = `${groupLabel.value} ${removeIdx + 1} removed. ${newCount} remaining.`;
+                        queueMicrotask(() => {
+                            if (newCount === 0) {
+                                addBtn.focus();
+                                return;
+                            }
+                            const instances = container.querySelectorAll<HTMLElement>('.formspec-repeat-instance');
+                            const targetInstance = instances[Math.min(removeIdx, newCount - 1)];
+                            findRepeatInstanceFocusTarget(targetInstance)?.focus();
+                        });
+                    });
+                    instanceHeader.appendChild(removeBtn);
+                }
+                rows.cleanupFns.push(effect(() => {
+                    const label = groupLabel.value;
+                    instanceWrapper.setAttribute('aria-label', `${label} ${idx + 1} of ${count}`);
+                    instanceLabel.textContent = `${label} ${idx + 1}`;
+                    if (removeBtn) {
+                        removeBtn.textContent = `Remove ${label}`;
+                        removeBtn.setAttribute('aria-label', `Remove ${label} ${idx + 1}`);
+                    }
+                }));
 
                 const instancePrefix = `${fullRepeatPath}[${idx}]`;
                 for (const child of node.children) {
                     emitNode(host, child, instanceWrapper, instancePrefix, headingLevel, rows.cleanupFns);
                 }
-
-                if (!rows.canRemove) continue;
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'formspec-repeat-remove formspec-button-danger formspec-focus-ring';
-                removeBtn.textContent = `Remove ${groupLabel}`;
-                removeBtn.setAttribute('aria-label', `Remove ${groupLabel} ${idx + 1}`);
-                const removeIdx = idx;
-                removeBtn.addEventListener('click', () => {
-                    host.engine.removeRepeatInstance(fullRepeatPath, removeIdx);
-                    const newCount = Math.max(0, count - 1);
-                    liveRegion.textContent = `${groupLabel} ${removeIdx + 1} removed. ${newCount} remaining.`;
-                    queueMicrotask(() => {
-                        if (newCount === 0) {
-                            addBtn.focus();
-                            return;
-                        }
-                        const instances = container.querySelectorAll<HTMLElement>('.formspec-repeat-instance');
-                        const targetInstance = instances[Math.min(removeIdx, newCount - 1)];
-                        findRepeatInstanceFocusTarget(targetInstance)?.focus();
-                    });
-                });
-                instanceHeader.appendChild(removeBtn);
             }
         });
         addBtn.addEventListener('click', () => {
             if (!canAdd.value) return;
             host.engine.addRepeatInstance(fullRepeatPath);
             const newCount = repeatCount.value;
-            liveRegion.textContent = `${groupLabel} ${newCount} added. ${newCount} total.`;
+            liveRegion.textContent = `${groupLabel.value} ${newCount} added. ${newCount} total.`;
             queueMicrotask(() => {
                 const instances = container.querySelectorAll<HTMLElement>('.formspec-repeat-instance');
                 const last = instances[instances.length - 1];
@@ -251,7 +261,17 @@ export function emitNode(
         if (node.props.title) {
             const heading = document.createElement(`h${Math.min(headingLevel, 6)}`);
             heading.className = 'formspec-group-title';
-            heading.textContent = node.props.title as string;
+            const title = node.props.title as string;
+            const groupItem = host.findItemByKey(Path.parse(nextPrefix).stripIndices());
+            if (groupItem && title === groupItem.label) {
+                // The definition planner titles a group with its inline label: show that label live.
+                const label = itemLabel(host.engine, groupItem, nextPrefix, bindKey);
+                cleanupFns.push(effect(() => {
+                    heading.textContent = label.value;
+                }));
+            } else {
+                heading.textContent = title;
+            }
             el.appendChild(heading);
         }
         const groupFullPath = nextPrefix;

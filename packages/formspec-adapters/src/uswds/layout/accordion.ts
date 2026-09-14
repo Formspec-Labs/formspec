@@ -58,13 +58,15 @@ export function renderUSWDSAccordion(
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'usa-button usa-button--outline formspec-repeat-add formspec-focus-ring';
-        addBtn.textContent = `Add ${groupLabel}`;
         const liveRegion = document.createElement('div');
         liveRegion.className = 'formspec-sr-only';
         liveRegion.setAttribute('aria-live', 'polite');
         const focusPanel = (panel: { content: HTMLElement } | undefined) =>
             panel?.content.querySelector<HTMLElement>('input, select, textarea, button')?.focus();
 
+        host.cleanupFns.push(effect(() => {
+            addBtn.textContent = `Add ${groupLabel.value}`;
+        }));
         host.cleanupFns.push(effect(() => {
             wrapper.classList.toggle('formspec-hidden', !relevant.value);
         }));
@@ -110,13 +112,15 @@ export function renderUSWDSAccordion(
                     const removeBtn = document.createElement('button');
                     removeBtn.type = 'button';
                     removeBtn.className = 'usa-button usa-button--unstyled formspec-repeat-remove formspec-focus-ring';
-                    removeBtn.textContent = `Remove ${groupLabel}`;
-                    removeBtn.setAttribute('aria-label', `Remove ${groupLabel} ${i + 1}`);
                     const idx = i;
+                    rows.watch(() => {
+                        removeBtn.textContent = `Remove ${groupLabel.value}`;
+                        removeBtn.setAttribute('aria-label', `Remove ${groupLabel.value} ${idx + 1}`);
+                    });
                     removeBtn.addEventListener('click', () => {
                         removeInstance(idx);
                         const newCount = Math.max(0, count - 1);
-                        liveRegion.textContent = `${groupLabel} ${idx + 1} removed. ${newCount} remaining.`;
+                        liveRegion.textContent = `${groupLabel.value} ${idx + 1} removed. ${newCount} remaining.`;
                         queueMicrotask(() => {
                             if (newCount === 0) addBtn.focus();
                             else focusPanel(panels[Math.min(idx, newCount - 1)]);
@@ -138,7 +142,7 @@ export function renderUSWDSAccordion(
             if (!canAdd.value) return;
             addInstance();
             const newCount = repeatCount.value;
-            liveRegion.textContent = `${groupLabel} ${newCount} added. ${newCount} total.`;
+            liveRegion.textContent = `${groupLabel.value} ${newCount} added. ${newCount} total.`;
             queueMicrotask(() => focusPanel(panels[panels.length - 1]));
         });
         wrapper.appendChild(addBtn);

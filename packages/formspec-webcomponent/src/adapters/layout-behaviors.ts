@@ -47,8 +47,8 @@ export interface AccordionLayoutBehavior {
     host: LayoutHostSlice;
     /** Current number of repeat instances (only when bound). */
     repeatCount: import('@preact/signals-core').ReadonlySignal<number>;
-    /** Resolved label for the group/item being repeated. */
-    groupLabel: string;
+    /** The repeated group's live label (Locale `<key>.label`, `{{}}`); read it in effects or `rows.watch`. */
+    groupLabel: import('@preact/signals-core').ReadonlySignal<string>;
     /** False while the bound group is non-relevant: hide the whole repeat container (headings, Add, Remove). */
     relevant: import('@preact/signals-core').ReadonlySignal<boolean>;
     /** False at `maxRepeat`: hide Add. */
@@ -72,6 +72,8 @@ export interface AccordionRowsPass {
     canRemove: boolean;
     /** Render a row child into this pass's scope. */
     renderComponent(comp: any, parent: HTMLElement, prefix: string): void;
+    /** Run `fn` as an effect disposed with this pass (e.g. row text that follows `groupLabel`). */
+    watch(fn: () => void): void;
 }
 
 export interface ModalLayoutBehavior {

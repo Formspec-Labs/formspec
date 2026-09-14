@@ -2,11 +2,11 @@
 import { effect } from '@preact/signals-core';
 import type { LayoutNode } from '@formspec-org/layout';
 import { Path, type FormItem, type ValidationResult } from '@formspec-org/types';
-import { interpolateMessage } from '@formspec-org/engine';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import type { ComponentDescriptor, TokenResolvable } from '../hub-types.js';
 import type { RenderContext, ValidationTargetMetadata } from '../types';
 import { resolveCompText as resolveComponentText } from '../components/layout-plugin-factory';
+import { itemLabel } from '../rendering/item-label';
 
 export interface DisplayHostSlice {
     engine: IFormEngine;
@@ -98,21 +98,8 @@ export function displayHostSlice(ctx: RenderContext): DisplayHostSlice {
                 write(resolveCompText(comp, prop, fallback));
                 return;
             }
-            const { engine } = ctx;
-            const { item, path } = displayItem;
-            let written: string | undefined;
-            ctx.cleanupFns.push(effect(() => {
-                engine.localeSignal.value;
-                const inline = interpolateMessage(
-                    engine.getLabel(item),
-                    (expr) => engine.compileExpression(expr, path)(),
-                ).text;
-                const text = engine.resolveLocaleString(`${item.key}.label`, inline, path);
-                if (text !== written) {
-                    written = text;
-                    write(text);
-                }
-            }));
+            const label = itemLabel(ctx.engine, displayItem.item, displayItem.path);
+            ctx.cleanupFns.push(effect(() => write(label.value)));
         },
         renderComponent: (comp, parent, pfx) => ctx.renderComponent(comp, parent, pfx),
         resolveToken: (val) => ctx.resolveToken(val),
