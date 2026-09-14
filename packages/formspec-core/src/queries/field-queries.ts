@@ -7,7 +7,8 @@
  */
 import type { FormItem, FormShape } from '@formspec-org/types';
 import { CORE_FIELD_DATA_TYPES, type CoreFieldDataType } from '@formspec-org/types';
-import { itemAtPath, normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
+import { normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
+import { itemAtIndexedPath } from '../item-index.js';
 import { editableComponentTree, walkComponentTree } from '../component-tree.js';
 import { registryEntry } from '../registry-entry.js';
 import { bindEntriesFor, mergeBindProperties } from '../definition-binds.js';
@@ -64,10 +65,11 @@ export function itemPaths(state: ProjectState): string[] {
 }
 
 /**
- * Resolve an item by its dot-path within the definition tree.
+ * Resolve an item by its dot-path within the definition tree (repeat indexes ignored).
+ * O(1) after the first lookup on a committed item tree.
  */
 export function itemAt(state: ProjectState, path: string): FormItem | undefined {
-  return itemAtPath(state.definition.items, path);
+  return itemAtIndexedPath(state.definition.items, path);
 }
 
 /**

@@ -1492,3 +1492,33 @@ describe('export', () => {
     expect(component.version).toBe('0.1.0');
   });
 });
+
+describe('per-item query cost', () => {
+  const fields = 2000;
+  function largeProject() {
+    const items = Array.from({ length: fields }, (_, i) => ({
+      type: 'group', key: `g${i}`, label: `G${i}`,
+      children: [{ type: 'field', key: 'f', label: 'F', dataType: 'string', initialValue: `v${i}` }],
+    }));
+    const binds = items.map(item => ({ path: `${item.key}[*].f`, required: 'true' }));
+    return createRawProject({
+      seed: { definition: { $formspec: '1.0', url: 'urn:perf', version: '1.0.0', status: 'draft', title: 'T', items, binds } as any },
+    });
+  }
+  const time = (fn: () => void) => { const start = performance.now(); fn(); return performance.now() - start; };
+
+  it('itemAt and normalizeBinds over every field stay linear in the item count', async () => {
+    // Bound: one path index per item tree. Each call serialized the whole item tree into
+    // WASM (itemAtPath), so reading every field was O(n²): ~1.7 ms per call at this size.
+    const { normalizeBinds } = await import('../src/queries/field-queries.js');
+    const project = largeProject();
+    project.itemAt('g0.f');
+    const elapsed = time(() => {
+      for (let i = 0; i < fields; i++) {
+        expect(project.itemAt(`g${i}[0].f`)?.initialValue).toBe(`v${i}`);
+        expect(normalizeBinds(project.state, `g${i}.f`)).toMatchObject({ required: 'true', initialValue: `v${i}` });
+      }
+    });
+    expect(elapsed).toBeLessThan(150);
+  });
+});
