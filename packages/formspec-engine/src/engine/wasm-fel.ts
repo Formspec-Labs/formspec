@@ -4,7 +4,7 @@ import type { FormVariable } from '@formspec-org/types';
 import type { ValidationResult } from '@formspec-org/types';
 import type { EvalResult, EvalValidation } from '../diff.js';
 import type { WasmFelContext } from '../wasm-bridge-runtime.js';
-import type { FormFieldValue } from '../interfaces.js';
+import type { FormFieldValue, JsonRecord, JsonValue } from '../interfaces.js';
 import type { EngineSignal } from '../reactivity/types.js';
 import type { EngineBindConfig } from './helpers.js';
 import {
@@ -144,25 +144,33 @@ export function visibleScopedVariableValues(
     return visible;
 }
 
+/** Per-call memo for repeat collections and outer-group snapshots, shared by every scope of one context base. */
+export interface FelRepeatContextCache {
+    collections: Map<string, JsonValue[]>;
+    groupSnapshots: Map<string, JsonRecord>;
+}
+
 export function buildFelRepeatWasmContext(options: {
     currentItemPath: string;
     repeats: Record<string, EngineSignal<number>>;
     fieldSignals: Record<string, EngineSignal<any>>;
     fieldDataTypes: Record<string, string | undefined>;
+    cache?: FelRepeatContextCache;
 }): WasmFelContext['repeatContext'] | undefined {
     const repeatAncestors = getRepeatAncestors(options.currentItemPath, options.repeats);
     if (repeatAncestors.length === 0) {
         return undefined;
     }
+    const cache = options.cache ?? { collections: new Map(), groupSnapshots: new Map() };
 
     let parent: WasmFelContext['repeatContext'] | undefined;
     for (const entry of repeatAncestors) {
-        const collection = buildRepeatCollection(
-            entry.groupPath,
-            entry.count,
-            options.fieldSignals,
-            options.fieldDataTypes,
-        );
+        const collectionKey = `${entry.groupPath}#${entry.count}`;
+        let collection = cache.collections.get(collectionKey);
+        if (!collection) {
+            collection = buildRepeatCollection(entry.groupPath, entry.count, options.fieldSignals, options.fieldDataTypes);
+            cache.collections.set(collectionKey, collection);
+        }
         parent = {
             current: collection[entry.index] ?? null,
             index: entry.index + 1,
@@ -174,12 +182,16 @@ export function buildFelRepeatWasmContext(options: {
 
     const outerParentPath = parentPathOf(repeatAncestors[repeatAncestors.length - 1].groupPath);
     if (parent && outerParentPath) {
-        const outer = () => buildGroupSnapshotForPath(outerParentPath, options.fieldSignals, options.fieldDataTypes);
+        let outer = cache.groupSnapshots.get(outerParentPath);
+        if (!outer) {
+            outer = buildGroupSnapshotForPath(outerParentPath, options.fieldSignals, options.fieldDataTypes);
+            cache.groupSnapshots.set(outerParentPath, outer);
+        }
         parent.parent = {
-            current: outer(),
+            current: outer,
             index: 1,
             count: 1,
-            collection: [outer()],
+            collection: [outer],
             parent: parent.parent,
         };
     }
@@ -210,6 +222,15 @@ export function lexicalScopeChain(
     return chain;
 }
 
+function tagMoneyVariableValue(value: any): any {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    if (value.$type === 'money') return value;
+    if ('amount' in value && 'currency' in value) {
+        return { $type: 'money', amount: value.amount, currency: value.currency };
+    }
+    return value;
+}
+
 export interface WasmFelContextBuildInput {
     currentItemPath: string;
     data: Record<string, any>;
@@ -233,16 +254,31 @@ export interface WasmFelContextBuildInput {
     meta?: Record<string, string | number | boolean>;
 }
 
-function tagMoneyVariableValue(value: any): any {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
-    if (value.$type === 'money') return value;
-    if ('amount' in value && 'currency' in value) {
-        return { $type: 'money', amount: value.amount, currency: value.currency };
-    }
-    return value;
+type MipState = NonNullable<WasmFelContext['mipStates']>[string];
+
+/**
+ * The scope-independent part of a FEL context: every field value and MIP state, built once from engine state.
+ * O(fields). Reuse it across `buildWasmFelExpressionContext` calls while that state is unchanged (one
+ * evaluation); treat it as read-only.
+ */
+export interface WasmFelContextBase {
+    /** Merged data, evaluation values, and signal values by instance path (signals win). */
+    rawFields: Record<string, any>;
+    /** Form-scope `fields` tree with `excludedValue` applied. */
+    fields: Record<string, any>;
+    /** Form-scope MIP states (repeat paths FEL-indexed). */
+    mipStates: NonNullable<WasmFelContext['mipStates']>;
+    mipStatesByPath: Map<string, MipState>;
+    repeatCache: FelRepeatContextCache;
+    instances: Record<string, unknown>;
 }
 
-export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput): WasmFelContext {
+export type WasmFelContextBaseInput = Omit<
+    WasmFelContextBuildInput,
+    'currentItemPath' | 'scopedVariableOverrides' | 'variableDefs' | 'variableSignals' | 'nowIso' | 'locale' | 'meta'
+>;
+
+export function buildWasmFelContextBase(options: WasmFelContextBaseInput): WasmFelContextBase {
     const result = options.resultOverride ?? options.fullResult;
     const rawFields = {
         ...(options.dataOverride ?? options.data),
@@ -264,23 +300,8 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
         );
     }
 
-    const scopes = lexicalScopeChain(options.currentItemPath, options.fieldDataTypes);
-    // Outermost scope first so the nearest enclosing scope's names win.
-    for (const scope of scopes) {
-        const prefix = `${scope}.`;
-        for (const [path, value] of Object.entries(rawFields)) {
-            if (path.startsWith(prefix)) {
-                setExpressionContextValue(
-                    fields,
-                    path.slice(prefix.length),
-                    toWasmContextValue(tagFelValueByPath(path, value, options.fieldDataTypes)),
-                );
-            }
-        }
-    }
-
-    const mipStates: WasmFelContext['mipStates'] = {};
-    const mipStatesByPath = new Map<string, NonNullable<WasmFelContext['mipStates']>[string]>();
+    const mipStates: NonNullable<WasmFelContext['mipStates']> = {};
+    const mipStatesByPath = new Map<string, MipState>();
     for (const path of Object.keys(options.fieldSignals)) {
         const state = {
             valid: (options.validationResults[path]?.value ?? []).every((r) => r.severity !== 'error'),
@@ -288,20 +309,56 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
             readonly: options.readonlySignals[path]?.value ?? false,
             required: options.requiredSignals[path]?.value ?? false,
         };
-        if (path.includes('[')) {
-            mipStates[toFelIndexedPath(path)] = { ...state };
-        } else {
-            mipStates[path] = state;
-        }
+        mipStates[path.includes('[') ? toFelIndexedPath(path) : path] = state;
         mipStatesByPath.set(path, state);
     }
-    for (const scope of scopes) {
-        const prefix = `${scope}.`;
-        for (const [path, state] of mipStatesByPath) {
-            if (path.startsWith(prefix)) {
-                mipStates[path.slice(prefix.length)] = { ...state };
+
+    return {
+        rawFields,
+        fields,
+        mipStates,
+        mipStatesByPath,
+        repeatCache: { collections: new Map(), groupSnapshots: new Map() },
+        instances: cloneValue(options.instanceData),
+    };
+}
+
+/**
+ * FEL context for `currentItemPath`: the form-scope base plus each enclosing lexical scope's names, outermost
+ * first so the nearest scope shadows (Core §3.2.1). Pass a shared `base` to avoid rebuilding form-scope state
+ * per call; the scope overlay costs O(fields × scope depth).
+ */
+export function buildWasmFelExpressionContext(
+    options: WasmFelContextBuildInput,
+    base: WasmFelContextBase = buildWasmFelContextBase(options),
+): WasmFelContext {
+    const scopes = lexicalScopeChain(options.currentItemPath, options.fieldDataTypes);
+    let fields = base.fields;
+    let mipStates = base.mipStates;
+    if (scopes.length > 0) {
+        const scopedFields: Record<string, any> = {};
+        const scopedMipStates: NonNullable<WasmFelContext['mipStates']> = {};
+        for (const scope of scopes) {
+            const prefix = `${scope}.`;
+            const level: Record<string, any> = {};
+            for (const [path, value] of Object.entries(base.rawFields)) {
+                if (path.startsWith(prefix)) {
+                    setExpressionContextValue(
+                        level,
+                        path.slice(prefix.length),
+                        toWasmContextValue(tagFelValueByPath(path, value, options.fieldDataTypes)),
+                    );
+                }
+            }
+            Object.assign(scopedFields, level);
+            for (const [path, state] of base.mipStatesByPath) {
+                if (path.startsWith(prefix)) {
+                    scopedMipStates[path.slice(prefix.length)] = state;
+                }
             }
         }
+        fields = { ...base.fields, ...scopedFields };
+        mipStates = { ...base.mipStates, ...scopedMipStates };
     }
 
     return {
@@ -322,8 +379,9 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
             repeats: options.repeats,
             fieldSignals: options.fieldSignals,
             fieldDataTypes: options.fieldDataTypes,
+            cache: base.repeatCache,
         }),
-        instances: cloneValue(options.instanceData),
+        instances: base.instances,
         nowIso: options.nowIso,
         locale: options.locale,
         meta: options.meta,

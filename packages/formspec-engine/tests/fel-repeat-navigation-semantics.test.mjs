@@ -187,3 +187,24 @@ test('a repeat row or group path is its own lexical scope for $sibling refs (Cor
   assert.equal(engine.compileExpression('$employer', '')(), 'Self');
   assert.equal(engine.compileExpression('$employer', 'jobs')(), 'Self', 'the repeat collection path is not a row scope');
 });
+
+test('ad-hoc FEL reads see every evaluation: values, added rows, removed rows', () => {
+  const engine = makeRepeatEngine();
+  const total = engine.compileExpression('sum($rows.amount)', '');
+  const rowAmount = engine.compileExpression('$amount * @count', 'rows[1]');
+  assert.equal(total(), 60);
+  assert.equal(rowAmount(), 60);
+
+  engine.setValue('rows[1].amount', 5);
+  assert.equal(total(), 45);
+  assert.equal(rowAmount(), 15);
+
+  engine.addRepeatInstance('rows');
+  engine.setValue('rows[3].amount', 1);
+  assert.equal(total(), 46);
+  assert.equal(rowAmount(), 20);
+
+  engine.removeRepeatInstance('rows', 0);
+  assert.equal(total(), 36);
+  assert.equal(rowAmount(), 90, 'rows[1] is the former rows[2] after re-keying');
+});

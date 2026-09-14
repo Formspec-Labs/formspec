@@ -624,25 +624,30 @@ export function buildGroupSnapshotForPath(
     return snapshot;
 }
 
-/** FEL context rows of repeat group `groupPath`, leaves tagged by `dataType`. */
+/** FEL context rows of repeat group `groupPath`, leaves tagged by `dataType`. One pass over signals: O(signals). */
 export function buildRepeatCollection(
     groupPath: string,
     count: number,
     signals: Record<string, EngineSignal<FormFieldValue>>,
     fieldDataTypes: Record<string, string | undefined>,
 ): JsonValue[] {
-    const rows: JsonValue[] = [];
-    for (let index = 0; index < count; index += 1) {
-        const prefix = `${groupPath}[${index}]`;
-        const row: JsonRecord = {};
-        for (const [path, signalRef] of Object.entries(signals)) {
-            if (!path.startsWith(`${prefix}.`)) {
-                continue;
-            }
-            const relative = path.slice(prefix.length + 1);
-            setResponsePathValue(row, relative, tagFelValueByPath(path, cloneValue(signalRef.value), fieldDataTypes));
+    const rows: JsonRecord[] = Array.from({ length: count }, () => ({}));
+    const prefix = `${groupPath}[`;
+    for (const [path, signalRef] of Object.entries(signals)) {
+        if (!path.startsWith(prefix)) {
+            continue;
         }
-        rows.push(row);
+        const close = path.indexOf('].', prefix.length);
+        const rawIndex = close === -1 ? '' : path.slice(prefix.length, close);
+        const index = /^\d+$/.test(rawIndex) ? Number(rawIndex) : -1;
+        if (index < 0 || index >= count) {
+            continue;
+        }
+        setResponsePathValue(
+            rows[index],
+            path.slice(close + 2),
+            tagFelValueByPath(path, cloneValue(signalRef.value), fieldDataTypes),
+        );
     }
     return rows;
 }

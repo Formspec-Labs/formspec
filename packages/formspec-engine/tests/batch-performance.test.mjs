@@ -93,4 +93,37 @@ describe('Performance baseline', () => {
         assert.ok(avg < 10, `Average getValidationReport took ${avg.toFixed(2)}ms (budget: 10ms)`);
         engine.dispose();
     });
+
+    it('should resolve 200 repeat-row labels and ad-hoc FEL reads without rebuilding context per segment', () => {
+        const rows = 200;
+        const engine = new FormEngine({
+            $formspec: '1.0',
+            url: 'urn:perf:repeat-context',
+            version: '1.0.0',
+            title: 'Repeat context',
+            items: [{
+                key: 'rows',
+                type: 'group',
+                label: 'Rows',
+                repeatable: true,
+                minRepeat: rows,
+                children: [
+                    { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+                    { key: 'note', type: 'display', label: 'Row {{@index}} of {{@count}}: {{$name}}' },
+                ],
+            }],
+        });
+
+        const start = performance.now();
+        for (let i = 0; i < rows; i++) {
+            engine.getItemLabelSignal(`rows[${i}].note`).value;
+            engine.compileExpression('$name', `rows[${i}]`)();
+        }
+        const elapsed = performance.now() - start;
+
+        console.log(`  ${rows} row labels (3 segments) + ${rows} compileExpression: ${elapsed.toFixed(0)}ms`);
+        assert.equal(engine.getItemLabelSignal('rows[199].note').value, 'Row 200 of 200: ');
+        // 800 FEL evaluations; per-segment context rebuilds made this O(rows² · fields) (~7s on an M-series laptop).
+        assert.ok(elapsed < 1500, `repeat-row FEL reads took ${elapsed.toFixed(0)}ms (budget: 1500ms)`);
+    });
 });

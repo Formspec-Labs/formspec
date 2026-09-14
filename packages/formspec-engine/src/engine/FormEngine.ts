@@ -73,11 +73,14 @@ import {
     resolvePinnedDefinition,
 } from './response-assembly.js';
 import {
+    buildWasmFelContextBase,
     buildWasmFelExpressionContext,
     mergeWasmEvalWithExternalValidations,
     normalizeExpressionForWasmEvaluation,
     visibleScopedVariableValues,
     wasmEvaluateDefinitionPayload,
+    type WasmFelContextBase,
+    type WasmFelContextBuildInput,
 } from './wasm-fel.js';
 import type { WasmFelContext } from '../wasm-bridge-runtime.js';
 import type { EngineBindConfig } from './helpers.js';
@@ -135,6 +138,9 @@ export class FormEngine implements IFormEngine {
     private readonly _evaluationVersion: EngineSignal<number>;
     private readonly _bindConfigs: Record<string, EngineBindConfig> = {};
     private readonly _fieldItems = new Map<string, FormItem>();
+    /** `dataType` of every field Item by base path, from the definition (FEL value tagging, scope checks). */
+    private readonly _fieldDataTypes: Record<string, string | undefined> = {};
+    private _felContextBase: { key: string; base: WasmFelContextBase } | null = null;
     private readonly _groupItems = new Map<string, FormItem>();
     private readonly _shapeTiming = new Map<string, 'continuous' | 'submit' | 'demand'>();
     private readonly _instanceCalculateBinds: EngineBindConfig[] = [];
@@ -486,25 +492,7 @@ export class FormEngine implements IFormEngine {
             // compileExpression is a public API — propagate errors (unlike internal evaluation).
             return wasmEvalFELWithContext(
                 this.normalizeExpressionForWasm(expression, currentItemName),
-                buildWasmFelExpressionContext({
-                    currentItemPath: currentItemName,
-                    data: this._data,
-                    fullResult: this._fullResult,
-                    fieldSignals: this.signals,
-                    validationResults: this.validationResults,
-                    relevantSignals: this.relevantSignals,
-                    readonlySignals: this.readonlySignals,
-                    requiredSignals: this.requiredSignals,
-                    repeats: this.repeats,
-                    bindConfigs: this._bindConfigs,
-                    fieldDataTypes: this.fieldDataTypesSnapshot(),
-                    variableDefs: this._variableDefs,
-                    variableSignals: this.variableSignals,
-                    instanceData: this.instanceData,
-                    nowIso: this.nowISO(),
-                    locale: this._runtimeContext.locale,
-                    meta: this._runtimeContext.meta,
-                }),
+                this.felContext(currentItemName),
             );
         };
     }
@@ -670,25 +658,7 @@ export class FormEngine implements IFormEngine {
         try {
             const result = evalFELWithContextTrace(
                 this.normalizeExpressionForWasm(calculate, basePath),
-                buildWasmFelExpressionContext({
-                    currentItemPath: basePath,
-                    data: this._data,
-                    fullResult: this._fullResult,
-                    fieldSignals: this.signals,
-                    validationResults: this.validationResults,
-                    relevantSignals: this.relevantSignals,
-                    readonlySignals: this.readonlySignals,
-                    requiredSignals: this.requiredSignals,
-                    repeats: this.repeats,
-                    bindConfigs: this._bindConfigs,
-                    fieldDataTypes: this.fieldDataTypesSnapshot(),
-                    variableDefs: this._variableDefs,
-                    variableSignals: this.variableSignals,
-                    instanceData: this.instanceData,
-                    nowIso: this.nowISO(),
-                    locale: this._runtimeContext.locale,
-                    meta: this._runtimeContext.meta,
-                }),
+                this.felContext(basePath),
             );
             const trace = Array.isArray(result.trace) ? result.trace : [];
             this._derivationTraceCache.set(basePath, {
@@ -1140,14 +1110,6 @@ export class FormEngine implements IFormEngine {
         }
     }
 
-    private fieldDataTypesSnapshot(): Record<string, string | undefined> {
-        const out: Record<string, string | undefined> = {};
-        for (const [path, item] of this._fieldItems.entries()) {
-            out[path] = item.dataType;
-        }
-        return out;
-    }
-
     /** Returns true if the source string is fetchable (HTTP(S) or absolute path). */
     private static isFetchableSource(source: string): boolean {
         return /^https?:\/\//i.test(source) || source.startsWith('/');
@@ -1194,6 +1156,9 @@ export class FormEngine implements IFormEngine {
         for (const item of items) {
             const path = prefix ? `${prefix}.${item.key}` : item.key;
             this._groupItems.set(path, item);
+            if (item.type === 'field') {
+                this._fieldDataTypes[path] = item.dataType;
+            }
             const inlineBind = extractInlineBind(item, path);
             if (inlineBind) {
                 this._bindConfigs[path] = { ...this._bindConfigs[path], ...inlineBind };
@@ -1459,29 +1424,54 @@ export class FormEngine implements IFormEngine {
     ): FormFieldValue {
         return safeEvaluateExpression(
             this.normalizeExpressionForWasm(expression, currentItemPath, replaceSelfRef),
-            buildWasmFelExpressionContext({
-                currentItemPath,
-                data: this._data,
-                fullResult: this._fullResult,
+            buildWasmFelExpressionContext(this.felContextInput(currentItemPath, {
                 resultOverride,
                 dataOverride,
                 scopedVariableOverrides,
-                fieldSignals: this.signals,
-                validationResults: this.validationResults,
-                relevantSignals: this.relevantSignals,
-                readonlySignals: this.readonlySignals,
-                requiredSignals: this.requiredSignals,
-                repeats: this.repeats,
-                bindConfigs: this._bindConfigs,
-                fieldDataTypes: this.fieldDataTypesSnapshot(),
-                variableDefs: this._variableDefs,
-                variableSignals: this.variableSignals,
-                instanceData: this.instanceData,
-                nowIso: this.nowISO(),
-                locale: this._runtimeContext.locale,
-                meta: this._runtimeContext.meta,
-            }),
+            })),
         );
+    }
+
+    private felContextInput(
+        currentItemPath: string,
+        overrides: Pick<WasmFelContextBuildInput, 'resultOverride' | 'dataOverride' | 'scopedVariableOverrides'> = {},
+    ): WasmFelContextBuildInput {
+        return {
+            currentItemPath,
+            data: this._data,
+            fullResult: this._fullResult,
+            ...overrides,
+            fieldSignals: this.signals,
+            validationResults: this.validationResults,
+            relevantSignals: this.relevantSignals,
+            readonlySignals: this.readonlySignals,
+            requiredSignals: this.requiredSignals,
+            repeats: this.repeats,
+            bindConfigs: this._bindConfigs,
+            fieldDataTypes: this._fieldDataTypes,
+            variableDefs: this._variableDefs,
+            variableSignals: this.variableSignals,
+            instanceData: this.instanceData,
+            nowIso: this.nowISO(),
+            locale: this._runtimeContext.locale,
+            meta: this._runtimeContext.meta,
+        };
+    }
+
+    /**
+     * FEL context for ad-hoc reads (compileExpression, Locale `{{}}`, derivation trace). The form-scope base is
+     * built once per engine state: values, MIPs, and results change only through `_evaluate` (evaluation
+     * version), rows through structure changes, instances through the instance version. Reading those signals
+     * also re-runs a caller's computed whenever the base would change. In-flight evaluation reads use
+     * `evaluateExpression`, which always builds fresh.
+     */
+    private felContext(currentItemPath: string): WasmFelContext {
+        const key = `${this._evaluationVersion.value}:${this.structureVersion.value}:${this.instanceVersion.value}`;
+        const input = this.felContextInput(currentItemPath);
+        if (this._felContextBase?.key !== key) {
+            this._felContextBase = { key, base: buildWasmFelContextBase(input) };
+        }
+        return buildWasmFelExpressionContext(input, this._felContextBase.base);
     }
 
     private repeatCountsSnapshot(): Record<string, number> {
@@ -1683,6 +1673,9 @@ export class FormEngine implements IFormEngine {
         // Shape timing is enforced in Rust `revalidate` for the default continuous WASM eval;
         // no TS-side filter needed for parity with batch eval.
         const delta = diffEvalResults(this._previousEvalResult, evalResult);
+        // Assign before patching: effects that run when the batch closes read `_fullResult` through FEL contexts.
+        this._previousEvalResult = evalResult;
+        this._fullResult = evalResult;
 
         this._rx.batch(() => {
             patchValueSignalsFromWasm({
@@ -1710,9 +1703,6 @@ export class FormEngine implements IFormEngine {
             });
             this._evaluationVersion.value += 1;
         });
-
-        this._previousEvalResult = evalResult;
-        this._fullResult = evalResult;
     }
 
     private evaluateResultForTrigger(trigger: 'continuous' | 'submit' | 'demand' | 'disabled'): EvalResult {
@@ -1837,29 +1827,7 @@ export class FormEngine implements IFormEngine {
 
     /** Locale §3.3.2: evaluate a `{{}}` segment in the binding scope of `itemPath` (form scope when empty). */
     private _evalLocaleFEL(expression: string, itemPath = ''): unknown {
-        return wasmEvalFELWithContextEnvelope(expression, this._buildLocaleFELContext(itemPath));
-    }
-
-    private _buildLocaleFELContext(currentItemPath = ''): WasmFelContext {
-        return buildWasmFelExpressionContext({
-            currentItemPath,
-            data: this._data,
-            fullResult: this._fullResult,
-            fieldSignals: this.signals,
-            validationResults: this.validationResults,
-            relevantSignals: this.relevantSignals,
-            readonlySignals: this.readonlySignals,
-            requiredSignals: this.requiredSignals,
-            repeats: this.repeats,
-            bindConfigs: this._bindConfigs,
-            fieldDataTypes: this.fieldDataTypesSnapshot(),
-            variableDefs: this._variableDefs,
-            variableSignals: this.variableSignals,
-            instanceData: this.instanceData,
-            nowIso: this.nowISO(),
-            locale: this._runtimeContext.locale,
-            meta: this._runtimeContext.meta,
-        });
+        return wasmEvalFELWithContextEnvelope(expression, this.felContext(itemPath));
     }
 
     private getDisplayedIssuerPin(): { url: string; version: string } | undefined {
