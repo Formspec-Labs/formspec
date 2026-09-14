@@ -230,6 +230,56 @@ describe('validateStructuredPanelContracts', () => {
     }]);
   });
 
+  it('rejects a declared row action confirmation the renderer cannot admit', () => {
+    const trace = { 'x-generation': { anchors: ['need:protect-version@3'] } };
+    const complete = {
+      heading: 'Retire this version?',
+      body: 'Existing records remain pinned to it.',
+      confirmLabel: 'Retire version',
+      cancelLabel: 'Keep version',
+    };
+    const table = (id: string, confirmation: unknown) => ({
+      id,
+      type: 'table',
+      path: 'primary.records',
+      columns: [{ id: 'id', label: 'ID', path: 'id' }],
+      rowAction: { outputName: 'literal', columnLabel: 'Action', confirmation },
+    });
+    const report = validateStructuredPanelContracts(fixture({
+      blocks: [
+        table('valid', { ...complete, ...trace }),
+        table('untraced', complete),
+        table('unlabeled', { ...complete, cancelLabel: '', ...trace }),
+        table('malformed', true),
+      ],
+    }, {
+      actionBindings: { literal: { actionRef: 'literal-action' } },
+      actions: [{ id: 'literal-action', intent: 'submit', label: { literal: 'Retire' } }],
+    }));
+
+    expect(report).toMatchObject([{
+      code: STRUCTURED_PANEL_CONTRACT_CODES.actionConfirmationInvalid,
+      primarySource: {
+        jsonPointer: '/routes/0/slots/0/binding/config/blocks/1/rowAction/confirmation',
+      },
+      details: { missing: ['x-generation.anchors'] },
+    }, {
+      code: STRUCTURED_PANEL_CONTRACT_CODES.actionConfirmationInvalid,
+      primarySource: {
+        jsonPointer: '/routes/0/slots/0/binding/config/blocks/2/rowAction/confirmation',
+      },
+      details: { missing: ['cancelLabel'] },
+    }, {
+      code: STRUCTURED_PANEL_CONTRACT_CODES.actionConfirmationInvalid,
+      primarySource: {
+        jsonPointer: '/routes/0/slots/0/binding/config/blocks/3/rowAction/confirmation',
+      },
+      details: {
+        missing: ['heading', 'body', 'confirmLabel', 'cancelLabel', 'x-generation.anchors'],
+      },
+    }]);
+  });
+
   it('rejects only paths and result shapes proven impossible by exact source schemas', () => {
     const report = validateStructuredPanelContracts(fixture({
       blocks: [{

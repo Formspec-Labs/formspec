@@ -29,7 +29,7 @@ const ASSERTOR = 'formspec-needs-coverage-checker';
  * `common.schema.json` stays broad by convention; the per-prefix grammar is
  * this spec's, so it is enforced here rather than in the schema.
  */
-const NEED_ANCHOR = /^need:([a-zA-Z][a-zA-Z0-9_-]*)@([0-9]+)$/;
+export const NEED_ANCHOR = /^need:([a-zA-Z][a-zA-Z0-9_-]*)@([0-9]+)$/;
 
 /**
  * The in-document schema id every Needs Document carries: needs-spec

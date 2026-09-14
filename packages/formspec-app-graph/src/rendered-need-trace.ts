@@ -8,6 +8,7 @@ import {
   type ResolvedArtifactHandle,
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
+import { NEED_ANCHOR } from './needs-coverage.js';
 import {
   registryWidgetEntries,
   resolvedWidgetContributionFromEntries,
@@ -18,7 +19,6 @@ import {
 type JsonRecord = Record<string, unknown>;
 
 const NEEDS_DOCUMENT_VERSION = '1.0';
-const NEED_ANCHOR = /^need:([a-zA-Z][a-zA-Z0-9_-]*)@([0-9]+)$/;
 const CONFIG_POINTER_PATTERN = /^(?:|\/(?:\*|(?:[^~/]|~[01])+)(?:\/(?:\*|(?:[^~/]|~[01])+))*)$/;
 
 export const RENDERED_NEED_TRACE_CODES = {

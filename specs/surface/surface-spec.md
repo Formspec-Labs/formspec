@@ -425,7 +425,9 @@ The confirmation UI MUST come from `binding.config`, validate against
 `widgetShape.props`, appear in `renderedConfigNodes`, and carry its own Need
 trace. Opening or canceling the confirmation MUST NOT emit the action. The
 confirm control MUST emit the same admitted output and detached input at most
-once per activation. Processors MUST NOT use implicit browser dialogs or
+once per activation. When a declared confirmation lacks any of its labels or
+its own Need trace, processors MUST withhold the action rather than render it
+without confirmation, and app-graph validation MUST report it. Processors MUST NOT use implicit browser dialogs or
 product-specific host logic as a substitute for this structured state.
 
 ### Transition trigger semantics

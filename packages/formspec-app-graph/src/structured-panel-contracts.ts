@@ -7,6 +7,7 @@ import type {
   ResolvedArtifactHandle,
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
+import { NEED_ANCHOR } from './needs-coverage.js';
 import {
   escapeJsonPointerToken,
   handlesByKind,
@@ -39,8 +40,11 @@ export const STRUCTURED_PANEL_CONTRACT_CODES = {
   duplicateActionOutput: 'STRUCTURED-PANEL-ACTION-OUTPUT-DUPLICATE',
   actionUnbound: 'STRUCTURED-PANEL-ACTION-UNBOUND',
   actionLabelNonLiteral: 'STRUCTURED-PANEL-ACTION-LABEL-NON-LITERAL',
+  actionConfirmationInvalid: 'STRUCTURED-PANEL-ACTION-CONFIRMATION-INVALID',
   dataPathImpossible: 'STRUCTURED-PANEL-DATA-PATH-IMPOSSIBLE',
 } as const;
+
+const CONFIRMATION_LABELS = ['heading', 'body', 'confirmLabel', 'cancelLabel'] as const;
 
 interface BoundSchema {
   schema: unknown;
@@ -273,6 +277,43 @@ function actionDiagnostics(
     ));
   });
   return diagnostics;
+}
+
+/**
+ * The renderer withholds a row action whose declared confirmation lacks any
+ * label or its own Need anchor, so an author's permissive props schema cannot
+ * hide the missing confirmation until run time.
+ */
+function confirmationDiagnostics(
+  widget: SurfaceWidgetSlot,
+  config: JsonRecord,
+): AppGraphDiagnostic[] {
+  return recordArray(ownProp(config, 'blocks')).flatMap((block, blockIndex) => {
+    if (stringProp(block, 'type') !== 'table') return [];
+    const rowAction = record(ownProp(block, 'rowAction'));
+    const declared = ownProp(rowAction, 'confirmation');
+    if (declared === undefined) return [];
+    const confirmation = record(declared);
+    const anchors = ownProp(record(ownProp(confirmation, 'x-generation')), 'anchors');
+    const missing: string[] = CONFIRMATION_LABELS.filter((label) =>
+      (stringProp(confirmation, label) ?? '').length === 0
+    );
+    if (
+      !Array.isArray(anchors)
+      || !anchors.some((anchor) => typeof anchor === 'string' && NEED_ANCHOR.test(anchor))
+    ) {
+      missing.push('x-generation.anchors');
+    }
+    if (missing.length === 0) return [];
+    return [panelDiagnostic(
+      widget,
+      STRUCTURED_PANEL_CONTRACT_CODES.actionConfirmationInvalid,
+      panelPointer(widget, `/blocks/${blockIndex}/rowAction/confirmation`),
+      `StructuredPanel row action confirmation in block '${stringProp(block, 'id') ?? blockIndex}' is missing ${missing.join(', ')}; the renderer withholds the action.`,
+      'confirmation-not-admissible',
+      { blockIndex, missing },
+    )];
+  });
 }
 
 function decodePointerToken(token: string): string {
@@ -819,6 +860,7 @@ export function validateStructuredPanelContracts(
       diagnostics.push(
         ...duplicateConfigDiagnostics(widget, config),
         ...actionDiagnostics(context, widget, config),
+        ...confirmationDiagnostics(widget, config),
         ...dataPathDiagnostics(context, widget, config),
       );
     }

@@ -402,6 +402,62 @@ describe('StructuredPanel', () => {
     expect(emitAction).toHaveBeenCalledWith('retire', { formVersionId: 'version-7' });
   });
 
+  it('withholds a row action whose declared confirmation is not admissible', () => {
+    const complete = {
+      heading: 'Retire this version?',
+      body: 'Existing records remain pinned to it.',
+      confirmLabel: 'Retire version',
+      cancelLabel: 'Keep version',
+    };
+    const inadmissible: Record<string, unknown> = {
+      'no Need anchor': complete,
+      'no cancel label': { ...complete, cancelLabel: undefined, ...trace },
+      'empty heading': { ...complete, heading: '', ...trace },
+      'not an object': true,
+    };
+    for (const [name, confirmation] of Object.entries(inadmissible)) {
+      const emitAction = vi.fn();
+      const container = render(
+        <StructuredPanel
+          {...props({
+            config: {
+              ...trace,
+              blocks: [{
+                id: 'versions',
+                type: 'table',
+                path: 'versions',
+                columns: [{ id: 'version', label: 'Version', path: 'version', ...trace }],
+                rowAction: {
+                  outputName: 'retire',
+                  columnLabel: 'Action',
+                  emphasis: 'danger',
+                  payload: { formVersionId: { path: 'id' } },
+                  confirmation,
+                  ...trace,
+                },
+                ...trace,
+              }],
+            },
+            data: { versions: [{ id: 'version-7', version: '1.0.0' }] },
+            actions: [{
+              outputName: 'retire',
+              actionRef: 'retireVersion',
+              intent: 'submit',
+              label: { literal: 'Retire' },
+            }],
+            emitAction,
+          })}
+        />,
+      );
+
+      // A broken confirmation must never degrade into a one-click destructive action.
+      expect(container.querySelector('[data-row-action]'), name).toBeNull();
+      expect(container.querySelector('[data-column-id="action"]'), name).toBeNull();
+      expect(container.textContent, name).toContain('1.0.0');
+      expect(emitAction, name).not.toHaveBeenCalled();
+    }
+  });
+
   it('renders authored pending, failure, and success action feedback', async () => {
     let finish:
       | ((feedback: { status: 'completed' | 'failed' }) => void)

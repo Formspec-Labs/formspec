@@ -195,6 +195,25 @@ function needAnchors(value: unknown): string[] {
   );
 }
 
+type AdmittedActionConfirmation = NonNullable<
+  StructuredActionButtonProps['confirmation']
+>;
+
+/** Every label present and the confirmation's own Need trace, or nothing. */
+function admittedActionConfirmation(
+  value: unknown,
+): AdmittedActionConfirmation | undefined {
+  const config = record(value);
+  const anchors = needAnchors(config);
+  const heading = nonEmptyString(config?.heading);
+  const body = nonEmptyString(config?.body);
+  const confirmLabel = nonEmptyString(config?.confirmLabel);
+  const cancelLabel = nonEmptyString(config?.cancelLabel);
+  return anchors.length > 0 && heading && body && confirmLabel && cancelLabel
+    ? { heading, body, confirmLabel, cancelLabel, anchors }
+    : undefined;
+}
+
 function mergeAnchors(...groups: readonly (readonly string[])[]): string[] {
   const merged: string[] = [];
   for (const group of groups) {
@@ -659,36 +678,17 @@ function renderTable(
       rowActionConfig?.emphasis === 'danger'
         ? rowActionConfig.emphasis
         : 'secondary';
-    const confirmationConfig = record(rowActionConfig?.confirmation);
-    const confirmationAnchors = confirmationConfig
-      ? needAnchors(confirmationConfig)
-      : [];
-    const confirmation = confirmationAnchors.length > 0
-      ? {
-          heading: nonEmptyString(confirmationConfig?.heading),
-          body: nonEmptyString(confirmationConfig?.body),
-          confirmLabel: nonEmptyString(confirmationConfig?.confirmLabel),
-          cancelLabel: nonEmptyString(confirmationConfig?.cancelLabel),
-          anchors: confirmationAnchors,
-        }
-      : undefined;
-    const admittedConfirmation = confirmation
-      && confirmation.heading
-      && confirmation.body
-      && confirmation.confirmLabel
-      && confirmation.cancelLabel
-      ? {
-          heading: confirmation.heading,
-          body: confirmation.body,
-          confirmLabel: confirmation.confirmLabel,
-          cancelLabel: confirmation.cancelLabel,
-          anchors: confirmation.anchors,
-        }
-      : undefined;
+    const confirmationDeclared = rowActionConfig?.confirmation !== undefined;
+    const admittedConfirmation = admittedActionConfirmation(
+      rowActionConfig?.confirmation,
+    );
+    // A declared confirmation that cannot render withholds the action rather
+    // than degrading it into a one-click destructive control.
     const rendersRowAction =
       rowAction !== undefined &&
       rowActionLabel !== undefined &&
-      rowActionColumnLabel !== undefined;
+      rowActionColumnLabel !== undefined &&
+      (!confirmationDeclared || admittedConfirmation !== undefined);
     return (
       <div
         className="fs-structured-panel__table-scroll"
