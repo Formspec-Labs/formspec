@@ -122,9 +122,12 @@ export function bindSharedFieldEffects(
         || refs.control.querySelector('select')
         || refs.control.querySelector('textarea')
         || refs.control;
-    // Field state (required / invalid / readonly): a radio group exposes it on its radiogroup container
-    // (WAI-ARIA radiogroup supports all three), not on the first radio.
-    const stateTarget = refs.control.getAttribute('role') === 'radiogroup' ? refs.control : actualInput;
+    // Field state (required / invalid / readonly) belongs to an option group, not its first option.
+    // A radiogroup carries all three (WAI-ARIA radiogroup supports them). A checkbox group's `group` role supports
+    // neither aria-required nor aria-readonly: the group carries aria-invalid, each checkbox aria-readonly, and
+    // required stays with the label's indicator (aria-required on one checkbox reads as "check this box").
+    const checkboxGroup = [...(refs.optionControls?.values() ?? [])][0]?.type === 'checkbox';
+    const stateTarget = checkboxGroup || refs.control.getAttribute('role') === 'radiogroup' ? refs.control : actualInput;
 
     // Required indicator + reactive label
     disposers.push(effect(() => {
@@ -140,7 +143,7 @@ export function bindSharedFieldEffects(
             indicator.textContent = ' *';
             refs.label.appendChild(indicator);
         }
-        stateTarget.setAttribute('aria-required', String(isRequired));
+        if (!checkboxGroup) stateTarget.setAttribute('aria-required', String(isRequired));
     }));
 
     // ARIA describedby: supplementary text ids (description and hint only while shown), plus the error
@@ -204,10 +207,22 @@ export function bindSharedFieldEffects(
     }));
 
     // Readonly
+    const readonlySignal = vm ? vm.readonly : ctx.engine.readonlySignals[fieldPath];
+    if (refs.optionControls) {
+        // `readonly` has no effect on radios or checkboxes. While read-only, cancel the click that would change an
+        // option (label clicks and keyboard selection dispatch one too): options stay enabled, focusable, and
+        // announced read-only, but the value cannot change (core §4.3 Bind `readonly`).
+        const blockReadonlyChange = (event: Event) => {
+            const target = event.target;
+            if (readonlySignal?.value && target instanceof HTMLInputElement && (target.type === 'radio' || target.type === 'checkbox')) {
+                event.preventDefault();
+            }
+        };
+        refs.control.addEventListener('click', blockReadonlyChange, true);
+        disposers.push(() => refs.control.removeEventListener('click', blockReadonlyChange, true));
+    }
     disposers.push(effect(() => {
-        const isReadonly = vm
-            ? vm.readonly.value
-            : (ctx.engine.readonlySignals[fieldPath]?.value ?? false);
+        const isReadonly = readonlySignal?.value ?? false;
         if (!refs.skipSharedReadonlyControl) {
             if (actualInput instanceof HTMLInputElement || actualInput instanceof HTMLTextAreaElement) {
                 actualInput.readOnly = isReadonly;
@@ -215,7 +230,8 @@ export function bindSharedFieldEffects(
                 actualInput.disabled = isReadonly;
             }
         }
-        stateTarget.setAttribute('aria-readonly', String(isReadonly));
+        const readonlyTargets = checkboxGroup ? refs.control.querySelectorAll('input[type="checkbox"]') : [stateTarget];
+        for (const target of readonlyTargets) target.setAttribute('aria-readonly', String(isReadonly));
         refs.root.classList.toggle('formspec-field--readonly', isReadonly);
     }));
 

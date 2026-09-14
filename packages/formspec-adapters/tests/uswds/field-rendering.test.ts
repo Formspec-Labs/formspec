@@ -130,6 +130,40 @@ describe('USWDS radio group state', () => {
     });
 });
 
+describe('USWDS checkbox group state', () => {
+    const petsItem = (extra: Record<string, unknown> = {}) => ({
+        key: 'pets', type: 'field', dataType: 'multiChoice', label: 'Pets',
+        options: [{ value: 'cat', label: 'Cat' }, { value: 'dog', label: 'Dog' }],
+        ...extra,
+    });
+    const petsTree = { component: 'Stack', children: [{ component: 'CheckboxGroup', bind: 'pets' }] };
+
+    it('marks the fieldset invalid and no checkbox required or invalid', () => {
+        const el = renderForm([petsItem()], { binds: [{ path: 'pets', required: 'true' }], componentTree: petsTree });
+        const fieldset = el.querySelector('fieldset[data-name="pets"]') as HTMLElement;
+        el.submit({ emitEvent: false });
+        expect(fieldset.getAttribute('aria-invalid')).toBe('true');
+        for (const checkbox of el.querySelectorAll('input[type="checkbox"]')) {
+            expect(checkbox.hasAttribute('aria-required')).toBe(false);
+            expect(checkbox.hasAttribute('aria-invalid')).toBe(false);
+        }
+    });
+
+    it('keeps a read-only checkbox group focusable but unchangeable', () => {
+        const el = renderForm([petsItem({ initialValue: ['cat'] })], {
+            binds: [{ path: 'pets', readonly: 'true' }], componentTree: petsTree,
+        });
+        const [cat, dog] = el.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        expect(dog.disabled).toBe(false);
+        expect(dog.getAttribute('aria-readonly')).toBe('true');
+
+        dog.click();
+        cat.click();
+        expect([cat.checked, dog.checked]).toEqual([true, false]);
+        expect(el.getEngine().signals['pets'].value).toEqual(['cat']);
+    });
+});
+
 describe('USWDS submit with errors — focus', () => {
     it('moves focus to the first invalid field in page order', () => {
         const el = renderForm(

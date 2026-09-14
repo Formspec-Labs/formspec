@@ -3,17 +3,6 @@ import { effect } from '@preact/signals-core';
 import type { RadioGroupBehavior, FieldRefs, BehaviorContext } from './types';
 import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible } from './shared';
 
-/**
- * `readonly` has no effect on radios. While the field is read-only, cancel the click that would select an
- * option (keyboard selection dispatches one too), so the radios stay focusable and announced (aria-readonly
- * on the radiogroup) but the value cannot change (core §4.3 Bind `readonly`).
- */
-function blockWhileReadonly(radio: HTMLInputElement, isReadonly: () => boolean): void {
-    radio.addEventListener('click', (event) => {
-        if (isReadonly()) event.preventDefault();
-    });
-}
-
 export function useRadioGroup(ctx: BehaviorContext, comp: any): RadioGroupBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
     const id = comp.id || toFieldId(fieldPath);
@@ -79,7 +68,6 @@ export function useRadioGroup(ctx: BehaviorContext, comp: any): RadioGroupBehavi
             // Register change listeners on each radio via optionControls
             if (refs.optionControls) {
                 for (const [_value, radio] of refs.optionControls) {
-                    blockWhileReadonly(radio, () => (vm ? vm.readonly.value : ctx.engine.readonlySignals[fieldPath]?.value) ?? false);
                     radio.addEventListener('change', () => {
                         if (radio.checked) {
                             ctx.engine.setValue(fieldPath, radio.value);
