@@ -10,10 +10,12 @@ export function findFieldElement(host: NavigationHost, path: string): HTMLElemen
 
     for (const p of candidatePaths) {
         const escapedPath = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(p) : p;
-        let fieldEl = host.querySelector(`.formspec-field[data-name="${escapedPath}"]`) as HTMLElement | null;
+        // `data-name` on the field root is the cross-adapter field identity (default, USWDS, Tailwind,
+        // React); design-system roots (usa-form-group, fieldsets) do not carry `formspec-field`.
+        let fieldEl = host.querySelector(`[data-name="${escapedPath}"]`) as HTMLElement | null;
         if (fieldEl) return fieldEl;
 
-        const allFields = Array.from(host.querySelectorAll('.formspec-field[data-name]'));
+        const allFields = Array.from(host.querySelectorAll('[data-name]'));
         const found = allFields.find((el) => {
             const name = el.getAttribute('data-name');
             return name === p || name?.startsWith(`${p}.`) || name?.startsWith(`${p}[`);

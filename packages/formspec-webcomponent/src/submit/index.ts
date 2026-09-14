@@ -37,7 +37,7 @@ function responseProfileForTuple(validationTuple: ValidationOverride | undefined
 
 /**
  * Touch all fields within a specific DOM container element (e.g. a wizard panel).
- * Fields are identified by `.formspec-field[data-name]` elements.
+ * Fields are identified by their `[data-name]` root elements.
  * Used for soft per-page wizard validation: errors become visible without blocking navigation.
  */
 export function touchFieldsInContainer(
@@ -45,7 +45,7 @@ export function touchFieldsInContainer(
     touchedFields: Set<string>,
     touchedVersion: { value: number },
 ): void {
-    const fieldEls = container.querySelectorAll('.formspec-field[data-name]');
+    const fieldEls = container.querySelectorAll('[data-name]');
     let touchedAny = false;
     for (const fieldEl of fieldEls) {
         const name = (fieldEl as HTMLElement).dataset.name;
@@ -82,6 +82,30 @@ export function touchAllFields(host: SubmitHost): void {
     }
 }
 
+/** Enclosing group/repeat path of a resolved instance path (`a[0].b` → `a[0]` → `a` → `''`). */
+function parentInstancePath(path: string): string {
+    const parent = path.replace(/(\[\d+\]|\.[^.[\]]+)$/, '');
+    return parent === path ? '' : parent;
+}
+
+/**
+ * Path of the first rendered field, in page order, that carries an error result — its own or an
+ * enclosing group's. Report order follows binds and shapes, not layout. O(fields × path depth).
+ */
+function firstInvalidFieldPath(host: SubmitHost, results: ValidationResult[]): string | null {
+    const errorPaths = new Set(
+        results.filter((r) => r.severity === 'error').map((r) => normalizeFieldPath(r.path)).filter(Boolean),
+    );
+    if (errorPaths.size === 0) return null;
+    for (const fieldEl of host.querySelectorAll('[data-name]')) {
+        const name = (fieldEl as HTMLElement).dataset.name;
+        for (let path = name; path; path = parentInstancePath(path)) {
+            if (errorPaths.has(path)) return name!;
+        }
+    }
+    return null;
+}
+
 /**
  * Build a submit payload and validation report from the current form state.
  * Optionally dispatches `formspec-submit` with `{ response, validationReport }`.
@@ -109,12 +133,10 @@ export function submit(
         }));
     }
 
-    // Scroll to first error if invalid
     if (validationReport && !validationReport.valid && host.focusField) {
         const firstError = validationReport.results.find((r: ValidationResult) => r.severity === 'error');
-        if (firstError) {
-            host.focusField(firstError.path);
-        }
+        const target = firstInvalidFieldPath(host, validationReport.results) ?? firstError?.path;
+        if (target) host.focusField(target);
     }
 
     return detail;

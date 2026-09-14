@@ -19,7 +19,7 @@ afterEach(() => {
 
 function renderForm(
     items: any[],
-    options: { binds?: any[]; theme?: any; locale?: any } = {},
+    options: { binds?: any[]; theme?: any; locale?: any; componentTree?: any } = {},
 ): any {
     globalRegistry.setAdapter('uswds');
     const el = document.createElement('formspec-render') as any;
@@ -29,6 +29,14 @@ function renderForm(
         el.locale = options.locale.locale;
     }
     if (options.theme) el.themeDocument = options.theme;
+    if (options.componentTree) {
+        el.componentDocument = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: 'urn:test:uswds-fields' },
+            tree: options.componentTree,
+        };
+    }
     el.definition = {
         $formspec: '1.0',
         url: 'urn:test:uswds-fields',
@@ -79,6 +87,36 @@ describe('USWDS error messages — aria-describedby', () => {
         el.submit({ emitEvent: false });
         expect(fieldset.getAttribute('aria-describedby')).toBe('field-able-error');
         expect(el.querySelector('input[type="radio"]')?.getAttribute('aria-describedby')).toBeNull();
+    });
+});
+
+describe('USWDS submit with errors — focus', () => {
+    it('moves focus to the first invalid field in page order', () => {
+        const el = renderForm(
+            [
+                { key: 'filled', type: 'field', dataType: 'string', label: 'Filled' },
+                { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+                {
+                    key: 'able', type: 'field', dataType: 'choice', label: 'Able to work?',
+                    options: [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }],
+                },
+            ],
+            {
+                binds: [{ path: 'name', required: 'true' }, { path: 'able', required: 'true' }],
+                // Page order (component tree) differs from definition order.
+                componentTree: {
+                    component: 'Stack',
+                    children: [
+                        { component: 'TextInput', bind: 'filled' },
+                        { component: 'RadioGroup', bind: 'able' },
+                        { component: 'TextInput', bind: 'name' },
+                    ],
+                },
+            },
+        );
+        el.submit({ emitEvent: false });
+        expect(document.activeElement?.getAttribute('name')).toBe('able');
+        expect((document.activeElement as HTMLInputElement).type).toBe('radio');
     });
 });
 
