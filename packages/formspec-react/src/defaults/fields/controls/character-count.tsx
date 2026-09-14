@@ -1,14 +1,11 @@
 /** @filedesc Accessible character count for TextInput theme widgetConfig.maxLength (a display, not a hard cap). */
 'use client';
 import React, { useEffect, useState } from 'react';
-
-/** Count copy (USWDS usa-character-count wording). */
-function characterCountStatus(length: number, maxLength: number): string {
-    if (length === 0) return `${maxLength} characters allowed`;
-    const remaining = maxLength - length;
-    const count = Math.abs(remaining);
-    return `${count} character${count === 1 ? '' : 's'} ${remaining < 0 ? 'over limit' : 'left'}`;
-}
+import {
+    CHARACTER_COUNT_ANNOUNCE_DELAY_MS,
+    characterCountLimitMessage,
+    characterCountStatus,
+} from '@formspec-org/layout';
 
 /** Id of the sr-only limit message; the control's aria-describedby must name it. */
 export const characterCountInfoId = (fieldId: string) => `${fieldId}-count-info`;
@@ -22,14 +19,14 @@ export function CharacterCount({ fieldId, length, maxLength }: { fieldId: string
     const status = characterCountStatus(length, maxLength);
     const [announced, setAnnounced] = useState(status);
     useEffect(() => {
-        const timer = setTimeout(() => setAnnounced(status), 1000);
+        const timer = setTimeout(() => setAnnounced(status), CHARACTER_COUNT_ANNOUNCE_DELAY_MS);
         return () => clearTimeout(timer);
     }, [status]);
 
     return (
         <>
             <span id={characterCountInfoId(fieldId)} className="formspec-sr-only">
-                {`You can enter up to ${maxLength} characters`}
+                {characterCountLimitMessage(maxLength)}
             </span>
             <p
                 className={`formspec-hint formspec-character-count${length > maxLength ? ' formspec-character-count--over-limit' : ''}`}

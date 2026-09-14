@@ -77,6 +77,13 @@ export {
 } from './popup-position.js';
 export type { PopupPlacement } from './popup-position.js';
 
+// TextInput character count copy (theme widgetConfig.maxLength)
+export {
+    characterCountLimitMessage,
+    characterCountStatus,
+    CHARACTER_COUNT_ANNOUNCE_DELAY_MS,
+} from './character-count.js';
+
 // Platform defaults & theme generation
 export {
     platformDefaults,
