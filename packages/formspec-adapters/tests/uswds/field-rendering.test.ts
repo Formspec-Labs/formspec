@@ -155,17 +155,19 @@ describe('USWDS character count (theme widgetConfig.maxLength)', () => {
         selectors: [{ match: { dataType: 'text' }, apply: { widget: 'TextInput', widgetConfig: { maxLength: 200 } } }],
     };
 
-    it('limits the textarea and shows characters allowed, then characters left', () => {
+    it('shows characters allowed, then characters left, without a native maxlength', () => {
         const el = renderForm(
             [{ key: 'why', type: 'field', dataType: 'text', label: 'Why not?', hint: 'Explain briefly' }],
             { theme: textTheme },
         );
         const textarea = el.querySelector('textarea#field-why') as HTMLTextAreaElement;
-        expect(textarea.maxLength).toBe(200);
+        // Native maxlength silently truncates pasted text; USWDS moves the limit to data-maxlength.
+        expect(textarea.hasAttribute('maxlength')).toBe(false);
         expect(textarea.classList.contains('usa-character-count__field')).toBe(true);
 
         const root = textarea.closest('.usa-character-count') as HTMLElement;
         expect(root).not.toBeNull();
+        expect(root.getAttribute('data-maxlength')).toBe('200');
         const status = root.querySelector('.usa-character-count__status') as HTMLElement;
         const message = root.querySelector('.usa-character-count__message') as HTMLElement;
         expect(status.textContent).toBe('200 characters allowed');
@@ -191,6 +193,43 @@ describe('USWDS character count (theme widgetConfig.maxLength)', () => {
         textarea.value = 'x'.repeat(199);
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
         expect(status.textContent).toBe('1 character left');
+    });
+
+    it('marks over-limit text invalid, visually and through ARIA, until it fits again', () => {
+        const el = renderForm(
+            [{ key: 'why', type: 'field', dataType: 'text', label: 'Why not?' }],
+            { theme: textTheme },
+        );
+        const textarea = el.querySelector('textarea#field-why') as HTMLTextAreaElement;
+        const root = textarea.closest('.usa-character-count') as HTMLElement;
+        const status = root.querySelector('.usa-character-count__status') as HTMLElement;
+        const label = root.querySelector('label[for="field-why"]') as HTMLElement;
+        const type = (value: string) => {
+            textarea.value = value;
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+
+        type('x'.repeat(202));
+        expect(status.textContent).toBe('2 characters over limit');
+        expect(status.classList.contains('usa-character-count__status--invalid')).toBe(true);
+        expect(textarea.classList.contains('usa-input--error')).toBe(true);
+        expect(root.classList.contains('usa-form-group--error')).toBe(true);
+        expect(label.classList.contains('usa-label--error')).toBe(true);
+        expect(textarea.getAttribute('aria-invalid')).toBe('true');
+        expect(textarea.validationMessage).toBe('The content is too long.');
+
+        // Formspec validation re-runs on touch and finds no error; the over-limit state survives it.
+        textarea.dispatchEvent(new Event('focusout', { bubbles: true }));
+        expect(textarea.getAttribute('aria-invalid')).toBe('true');
+        expect(textarea.classList.contains('usa-input--error')).toBe(true);
+
+        type('x'.repeat(200));
+        expect(status.textContent).toBe('0 characters left');
+        expect(status.classList.contains('usa-character-count__status--invalid')).toBe(false);
+        expect(textarea.classList.contains('usa-input--error')).toBe(false);
+        expect(root.classList.contains('usa-form-group--error')).toBe(false);
+        expect(textarea.getAttribute('aria-invalid')).toBe('false');
+        expect(textarea.validationMessage).toBe('');
     });
 
     it('renders no character count without maxLength', () => {
