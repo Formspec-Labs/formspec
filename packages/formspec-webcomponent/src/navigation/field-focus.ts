@@ -1,30 +1,22 @@
 /** @filedesc Field focus and reveal logic for wizard panels, tabs, and collapsibles. */
 import type { NavigationHost } from './index.js';
-import { normalizeFieldPath, externalPathToInternal } from './paths.js';
+import { normalizeFieldPath } from './paths.js';
 
+/** Field root for a resolved instance path (0-based indexes, as in `ValidationResult.path` and `data-name`). */
 export function findFieldElement(host: NavigationHost, path: string): HTMLElement | null {
     if (!path || path === '#') return null;
 
-    // Try provided path first (internal format), then attempt external-to-internal conversion
-    const candidatePaths = [path, externalPathToInternal(path)];
+    const escapedPath = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(path) : path;
+    // `data-name` on the field root is the cross-adapter field identity (default, USWDS, Tailwind,
+    // React); design-system roots (usa-form-group, fieldsets) do not carry `formspec-field`.
+    const fieldEl = host.querySelector(`[data-name="${escapedPath}"]`) as HTMLElement | null;
+    if (fieldEl) return fieldEl;
 
-    for (const p of candidatePaths) {
-        const escapedPath = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(p) : p;
-        // `data-name` on the field root is the cross-adapter field identity (default, USWDS, Tailwind,
-        // React); design-system roots (usa-form-group, fieldsets) do not carry `formspec-field`.
-        let fieldEl = host.querySelector(`[data-name="${escapedPath}"]`) as HTMLElement | null;
-        if (fieldEl) return fieldEl;
-
-        const allFields = Array.from(host.querySelectorAll('[data-name]'));
-        const found = allFields.find((el) => {
-            const name = el.getAttribute('data-name');
-            return name === p || name?.startsWith(`${p}.`) || name?.startsWith(`${p}[`);
-        }) as HTMLElement | undefined;
-
-        if (found) return found;
-    }
-
-    return null;
+    const found = Array.from(host.querySelectorAll('[data-name]')).find((el) => {
+        const name = el.getAttribute('data-name');
+        return name?.startsWith(`${path}.`) || name?.startsWith(`${path}[`);
+    }) as HTMLElement | undefined;
+    return found ?? null;
 }
 
 export function revealTabsForField(_host: NavigationHost, fieldEl: HTMLElement): void {

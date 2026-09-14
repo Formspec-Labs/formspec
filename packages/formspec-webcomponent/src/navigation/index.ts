@@ -4,6 +4,6 @@ export interface NavigationHost {
     querySelectorAll(selectors: string): NodeListOf<Element>;
 }
 
-export { normalizeFieldPath, externalPathToInternal } from './paths.js';
+export { normalizeFieldPath } from './paths.js';
 export { findFieldElement, revealTabsForField, focusField } from './field-focus.js';
 export { goToWizardStep } from './wizard.js';

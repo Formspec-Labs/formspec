@@ -76,15 +76,14 @@ export function makeValidationResult(
     return {
         $formspecValidationResult: '1.0',
         ...result,
-        path: toFelIndexedPath(result.path),
     } as ValidationResult;
 }
 
+/** Paths stay resolved instance paths with 0-based indexes (Core §4.3.3), exactly as WASM emits them. */
 export function toValidationResult(result: EvalValidation): ValidationResult {
     return {
         ...(result as unknown as ValidationResult),
         $formspecValidationResult: '1.0',
-        path: toFelIndexedPath(result.path),
     };
 }
 
@@ -805,6 +804,7 @@ export function snapshotSignals(signals: Record<string, EngineSignal<FormFieldVa
     return snapshot;
 }
 
+/** FEL expression addressing only (`$repeat[n]` is 1-based, Core §4.3.3); never for ValidationResult paths. */
 export function toFelIndexedPath(path: string): string {
     return path.replace(/\[(\d+)\]/g, (_match, index) => `[${Number(index) + 1}]`);
 }

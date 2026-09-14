@@ -9,7 +9,7 @@ import {
     ValidationProfile,
     ValidationResult,
 } from '@formspec-org/types';
-import { normalizeFieldPath, externalPathToInternal, findFieldElement } from '../navigation/index.js';
+import { normalizeFieldPath, findFieldElement } from '../navigation/index.js';
 import type { NavigationHost } from '../navigation/index.js';
 import type { SubmitDetail, ValidationTargetMetadata } from '../hub-types.js';
 
@@ -175,22 +175,10 @@ export function resolveValidationTarget(host: SubmitHost, resultOrPath: string |
     const normalizedPath = normalizeFieldPath(rawPath);
     const formLevel = normalizedPath === '' || normalizedPath === '#';
 
-    let path = formLevel ? '' : normalizedPath;
-    let fieldElement: HTMLElement | null = null;
+    const path = formLevel ? '' : normalizedPath;
+    const fieldElement = formLevel ? null : findFieldElement(host, normalizedPath);
 
-    if (!formLevel) {
-        const candidatePaths = [normalizedPath, externalPathToInternal(normalizedPath)]
-            .filter((candidate, index, all) => candidate && all.indexOf(candidate) === index);
-        for (const candidate of candidatePaths) {
-            const match = findFieldElement(host, candidate);
-            if (!match) continue;
-            path = candidate;
-            fieldElement = match;
-            break;
-        }
-    }
-
-    const keyPath = (path || normalizedPath).replace(/\[\d+\]/g, '');
+    const keyPath = path.replace(/\[\d+\]/g, '');
     const item = keyPath ? host.findItemByKey(keyPath) : null;
     const label = formLevel
         ? (typeof host._definition?.title === 'string' ? host._definition.title : 'Form')

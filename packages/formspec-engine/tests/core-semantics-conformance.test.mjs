@@ -40,7 +40,7 @@ test('shape-repeat-targets: wildcard shape targets emit concrete indexed paths',
   const rowError = report.results.find((result) => result.code === 'ROW_AMOUNT');
 
   assert.ok(rowError);
-  assert.equal(rowError.path, 'rows[2].amount');
+  assert.equal(rowError.path, 'rows[1].amount');
 });
 
 test('shape-row-scope: wildcard shapes evaluate sibling refs in the current row scope', () => {
@@ -87,7 +87,39 @@ test('shape-row-scope: wildcard shapes evaluate sibling refs in the current row 
   const rowError = report.results.find((result) => result.code === 'CHILD_AGE');
 
   assert.ok(rowError);
-  assert.equal(rowError.path, 'rows[2].age');
+  assert.equal(rowError.path, 'rows[1].age');
+});
+
+test('resolved-instance-paths: every ValidationResult path uses the 0-based index of its signal (Core §4.3.3)', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'http://example.org/zero-based-result-paths',
+    version: '1.0.0',
+    title: 'Zero-based Result Paths',
+    items: [
+      {
+        key: 'rows',
+        type: 'group',
+        label: 'Rows',
+        repeatable: true,
+        minRepeat: 3,
+        children: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }]
+      }
+    ],
+    binds: [{ path: 'rows[*].name', required: 'true' }]
+  });
+
+  engine.setValue('rows[0].name', 'a');
+  engine.setValue('rows[2].name', 'c');
+
+  const required = engine.getValidationReport().results.filter((result) => result.constraintKind === 'required');
+  assert.deepEqual(required.map((result) => result.path), ['rows[1].name']);
+  assert.deepEqual(engine.validationResults['rows[1].name'].value.map((result) => result.path), ['rows[1].name']);
+  assert.deepEqual(engine.validationResults['rows[2].name'].value, []);
+
+  engine.injectExternalValidation([{ path: 'rows[0].name', severity: 'error', code: 'EXT', message: 'External' }]);
+  const external = engine.getValidationReport().results.find((result) => result.code === 'EXT');
+  assert.equal(external?.path, 'rows[0].name');
 });
 
 test('nonrelevant-suppression: shapes do not emit results for non-relevant targets', () => {

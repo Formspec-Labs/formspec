@@ -324,7 +324,7 @@ interface ValidationReport {
 }
 
 interface ValidationResult {
-  path: string;              // 1-based external path
+  path: string;              // resolved instance path, 0-based indexes (Core §4.3.3)
   message: string;
   severity: 'error' | 'warning' | 'info';
   constraintKind: 'type' | 'required' | 'constraint' | 'minRepeat' | 'maxRepeat';
@@ -390,8 +390,8 @@ Grammar, stdlib, and evaluation semantics live in **`fel-core`** / **`formspec-c
 
 - Simple: `fieldName`
 - Dotted: `group.child.field`
-- Indexed (internal): `group[0].field` (0-based)
-- Indexed (external, in `ValidationResult`): `group[1].field` (1-based)
+- Indexed (signals, `ValidationResult.path`, `data-name`): `group[0].field` (0-based, Core §4.3.3)
+- Indexed in FEL expressions only: `$group[1].field`, `@index` (1-based)
 - Wildcard (binds/shapes): `items[*].field` — expanded via `resolveWildcardPath` using current repeat counts
 
 ### Definition assembly

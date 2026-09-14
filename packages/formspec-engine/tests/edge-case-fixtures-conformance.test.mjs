@@ -85,7 +85,7 @@ test('shared tax fixture keeps row-local numeric constraints in binds and totals
 
   const report = engine.getValidationReport({ profile: 'on-submit' });
 
-  const bindError = report.results.find((result) => result.source === 'bind' && result.path === 'allocations.stateAllocations[1].allocationPercent');
+  const bindError = report.results.find((result) => result.source === 'bind' && result.path === 'allocations.stateAllocations[0].allocationPercent');
   const percentShape = report.results.find((result) => result.source === 'shape' && result.shapeId === 'tax-allocation-percent-total');
   const incomeShape = report.results.find((result) => result.source === 'shape' && result.shapeId === 'tax-allocation-income-total');
 

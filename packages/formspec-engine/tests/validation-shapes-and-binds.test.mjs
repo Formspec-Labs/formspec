@@ -275,7 +275,7 @@ test('negative quantity should produce a validation error', () => {
 
   const report = getValidationReport(engine, 'continuous');
   const qtyErr = report.results.find(
-    r => r.path === 'budget.lineItems[1].quantity' && r.constraintKind === 'constraint'
+    r => r.path === 'budget.lineItems[0].quantity' && r.constraintKind === 'constraint'
   );
   assert.ok(qtyErr, 'Expected quantity constraint error');
   assert.equal(qtyErr.message, 'Quantity must not be negative.');
@@ -287,7 +287,7 @@ test('negative unitCost should produce a validation error', () => {
 
   const report = getValidationReport(engine, 'continuous');
   const costErr = report.results.find(
-    r => r.path === 'budget.lineItems[1].unitCost' && r.constraintKind === 'constraint'
+    r => r.path === 'budget.lineItems[0].unitCost' && r.constraintKind === 'constraint'
   );
   assert.ok(costErr, 'Expected unitCost constraint error');
   assert.equal(costErr.message, 'Unit cost must not be negative.');
@@ -301,7 +301,7 @@ test('zero values should be allowed', () => {
   const report = getValidationReport(engine, 'continuous');
   const constraintErrs = report.results.filter(
     r =>
-      (r.path === 'budget.lineItems[1].quantity' || r.path === 'budget.lineItems[1].unitCost') &&
+      (r.path === 'budget.lineItems[0].quantity' || r.path === 'budget.lineItems[0].unitCost') &&
       r.constraintKind === 'constraint'
   );
   assert.equal(constraintErrs.length, 0);
@@ -313,7 +313,7 @@ test('negative hourlyRate should produce a validation error', () => {
 
   const report = getValidationReport(engine, 'continuous');
   const rateErr = report.results.find(
-    r => r.path === 'projectPhases[1].phaseTasks[1].hourlyRate' && r.constraintKind === 'constraint'
+    r => r.path === 'projectPhases[0].phaseTasks[0].hourlyRate' && r.constraintKind === 'constraint'
   );
   assert.ok(rateErr, 'Expected hourlyRate constraint error');
   assert.equal(rateErr.message, 'Hourly rate must not be negative.');

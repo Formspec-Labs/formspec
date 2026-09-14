@@ -164,11 +164,10 @@ export function bindSharedFieldEffects(
             effectiveError = vm.firstError.value;
         } else {
             const error = ctx.engine.errorSignals[fieldPath]?.value;
-            // Shape errors from latest submit (external 1-indexed paths)
+            // Shape errors from latest submit (result paths share the field's 0-based indexes)
             const submitDetail = ctx.latestSubmitDetailSignal?.value;
-            const externalPath = fieldPath.replace(/\[(\d+)\]/g, (_, p1) => `[${parseInt(p1) + 1}]`);
             const submitError = submitDetail?.validationReport?.results?.find((r: any) =>
-                r.severity === 'error' && (r.path === fieldPath || r.path === externalPath || r.path === `${fieldPath}[*]`)
+                r.severity === 'error' && (r.path === fieldPath || r.path === `${fieldPath}[*]`)
             )?.message;
             effectiveError = error || submitError;
         }
