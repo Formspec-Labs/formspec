@@ -57,7 +57,7 @@
 
 .formspec-repeat-instance-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
 }
@@ -68,8 +68,11 @@
   margin-top: var(--formspec-spacing-sm, 0.5rem);
 }
 
-.formspec-repeat-instance > .formspec-repeat-remove {
-  margin-top: 0;
+/* Instance label and Remove share one row: drop UA paragraph and button margins so adapters line them up. */
+.formspec-repeat-instance-header > .formspec-repeat-instance-label,
+.formspec-repeat-instance-header > .formspec-repeat-remove {
+  align-self: center;
+  margin-block: 0;
 }
 
 /* Match specificity of `.formspec-stack:not(.grid-row)` above so row wins over column. */
