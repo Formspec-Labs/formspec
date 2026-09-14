@@ -54,7 +54,7 @@ export interface AccordionLayoutBehavior {
     groupLabel: import('@preact/signals-core').ReadonlySignal<string>;
     /** False while the bound group is non-relevant: hide the whole repeat container (headings, Add, Remove). */
     relevant: import('@preact/signals-core').ReadonlySignal<boolean>;
-    /** False at `maxRepeat`: hide Add. */
+    /** False at `maxRepeat` or when `allowAdd` is false: hide Add. */
     canAdd: import('@preact/signals-core').ReadonlySignal<boolean>;
     /**
      * Build the instance rows now and whenever the count or Remove availability changes. Each pass
@@ -71,7 +71,7 @@ export interface AccordionLayoutBehavior {
 /** One render pass of a repeat-bound Accordion's rows. */
 export interface AccordionRowsPass {
     count: number;
-    /** False at or below `minRepeat`: omit Remove. */
+    /** False at or below `minRepeat` or when `allowRemove` is false: omit Remove. */
     canRemove: boolean;
     /** Render a row child into this pass's scope. */
     renderComponent(comp: any, parent: HTMLElement, prefix: string): void;

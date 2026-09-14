@@ -163,7 +163,11 @@ export function emitNode(
         addBtn.className = 'formspec-repeat-add formspec-focus-ring';
         const item = host.findItemByKey(bindKey);
         const groupLabel = itemLabel(host.engine, item, fullRepeatPath, bindKey);
-        const { count: repeatCount, relevant, canAdd, canRemove } = repeatAffordances(host.engine, fullRepeatPath, item);
+        // Theme widgetConfig Add/Remove locks, planned onto the template's props (theme §4.2).
+        const { count: repeatCount, relevant, canAdd, canRemove } = repeatAffordances(host.engine, fullRepeatPath, item, {
+            allowAdd: node.props.allowAdd as boolean | undefined,
+            allowRemove: node.props.allowRemove as boolean | undefined,
+        });
         const liveRegion = document.createElement('div');
         liveRegion.className = 'formspec-sr-only';
         liveRegion.setAttribute('aria-live', 'polite');

@@ -204,3 +204,99 @@ describe('repeat affordances — DataTable bound to the repeat', () => {
         expect(element.querySelectorAll('.formspec-datatable-remove')).toHaveLength(0);
     });
 });
+
+/**
+ * Presentation-only Add/Remove locks (component §4.4): a theme `widgetConfig` on a repeatable group without a
+ * Component Document (theme §4.2), or a repeat-bound Accordion's `allowAdd` / `allowRemove` (component §6.3).
+ */
+describe('repeat affordances — allowAdd / allowRemove locks', () => {
+    const URL = 'urn:test:employers';
+    const definition = {
+        $formspec: '1.0',
+        url: URL,
+        version: '1.0.0',
+        title: 'Employers',
+        items: [{
+            key: 'employersOnRecord',
+            type: 'group',
+            label: 'Employer',
+            repeatable: true,
+            children: [
+                { key: 'payerName', type: 'field', dataType: 'string', label: 'Payer' },
+                { key: 'stillWorking', type: 'field', dataType: 'string', label: 'Still working there?' },
+            ],
+        }],
+    };
+    const seeded = { employersOnRecord: [{ payerName: 'ACME' }, { payerName: 'Globex' }] };
+
+    function renderLocked(options: { theme?: unknown; tree?: unknown }) {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        if (options.theme) el.themeDocument = options.theme;
+        if (options.tree) {
+            el.componentDocument = { $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: URL }, tree: options.tree };
+        }
+        el.initialData = seeded;
+        el.definition = definition;
+        el.render();
+        return { element: el as HTMLElement, engine: el.getEngine() };
+    }
+
+    const visible = (element: HTMLElement, selector: string) =>
+        Array.from(element.querySelectorAll(selector)).filter((node) => !isHidden(node));
+
+    afterEach(() => {
+        document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
+    });
+
+    const lockedSuites = [
+        {
+            name: 'theme widgetConfig on the repeat template',
+            options: {
+                theme: {
+                    $formspecTheme: '1.0', version: '1.0.0', targetDefinition: { url: URL },
+                    items: { employersOnRecord: { widgetConfig: { allowAdd: false, allowRemove: false } } },
+                },
+            },
+        },
+        {
+            name: 'repeat-bound Accordion props',
+            options: {
+                tree: {
+                    component: 'Stack',
+                    children: [{
+                        component: 'Accordion', bind: 'employersOnRecord', allowAdd: false, allowRemove: false,
+                        children: [{ component: 'TextInput', bind: 'payerName' }, { component: 'TextInput', bind: 'stillWorking' }],
+                    }],
+                },
+            },
+        },
+    ];
+
+    for (const { name, options } of lockedSuites) {
+        it(`${name}: shows every seeded row with no Add or Remove, and each row stays answerable`, () => {
+            const { element, engine } = renderLocked(options);
+            expect(engine.repeats.employersOnRecord.value).toBe(2);
+            expect(visible(element, '.formspec-repeat-add')).toHaveLength(0);
+            expect(visible(element, '.formspec-repeat-remove')).toHaveLength(0);
+
+            const answers = element.querySelectorAll<HTMLInputElement>('input[name$="stillWorking"]');
+            expect(answers).toHaveLength(2);
+            answers[1].value = 'yes';
+            answers[1].dispatchEvent(new Event('input', { bubbles: true }));
+            expect(engine.signals['employersOnRecord[1].stillWorking'].value).toBe('yes');
+            expect(engine.signals['employersOnRecord[0].payerName'].value).toBe('ACME');
+        });
+    }
+
+    it('keeps Add and Remove when only the other affordance is locked', () => {
+        const { element } = renderLocked({
+            theme: {
+                $formspecTheme: '1.0', version: '1.0.0', targetDefinition: { url: URL },
+                items: { employersOnRecord: { widgetConfig: { allowRemove: false } } },
+            },
+        });
+        expect(visible(element, '.formspec-repeat-add')).toHaveLength(1);
+        expect(visible(element, '.formspec-repeat-remove')).toHaveLength(0);
+    });
+});

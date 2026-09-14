@@ -72,7 +72,10 @@ export function buildAccordionBehavior(comp: any, ctx: RenderContext): Accordion
     const fullName = ctx.prefix ? `${ctx.prefix}.${bindKey}` : bindKey;
     const item = bindKey ? ctx.findItemByKey(bindKey) : null;
     const groupLabel = itemLabel(ctx.engine, item, fullName ?? '', bindKey || '');
-    const { count, relevant, canAdd, canRemove } = repeatAffordances(ctx.engine, fullName ?? '', item);
+    const { count, relevant, canAdd, canRemove } = repeatAffordances(ctx.engine, fullName ?? '', item, {
+        allowAdd: comp.allowAdd,
+        allowRemove: comp.allowRemove,
+    });
 
     return {
         comp,

@@ -160,4 +160,15 @@ describe('renderUSWDSAccordion — repeat bound, in formspec-render', () => {
 
         expect(el.cleanupFns.length).toBe(baseline);
     });
+
+    it('allowAdd / allowRemove false hide Add and Remove on data-supplied rows (component §6.3)', () => {
+        const { el, engine } = render({ ...jobsTree, allowAdd: false, allowRemove: false });
+        engine.addRepeatInstance('jobs');
+        expect(engine.repeats.jobs.value).toBe(2);
+        const shown = (selector: string) =>
+            Array.from(el.querySelectorAll(selector)).filter((node) => !(node as Element).classList.contains('formspec-hidden'));
+        expect(shown('.formspec-repeat-add')).toHaveLength(0);
+        expect(shown('.formspec-repeat-remove')).toHaveLength(0);
+        expect(el.querySelectorAll('input[name$="employer"]')).toHaveLength(2);
+    });
 });
