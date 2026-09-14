@@ -58,6 +58,58 @@ describe('$component Locale strings', () => {
         expect(texts(container, 'summary')).toEqual(['Plus']);
     });
 
+    it('replace array-element strings (tabLabels[N], labels[N], columns[N].header, items[N].label) and follow the locale', () => {
+        const { container, engine } = render(
+            [
+                { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+                { key: 'amount', type: 'field', dataType: 'integer', label: 'Amount' },
+                ...jobs,
+            ],
+            {
+                '$component.mainTabs.tabLabels[1]': 'Emploi de {{$name}}',
+                '$component.faq.labels[0]': 'Questions',
+                '$component.jobTable.columns[0].header': 'Employeur',
+                '$component.recap.items[1].label': 'Montant',
+            },
+            {
+                component: 'Stack',
+                children: [
+                    {
+                        component: 'Tabs', id: 'mainTabs', tabLabels: ['Personal', 'Employment'],
+                        children: [
+                            { component: 'Stack', children: [{ component: 'TextInput', bind: 'name' }] },
+                            { component: 'Stack', children: [{ component: 'NumberInput', bind: 'amount' }] },
+                        ],
+                    },
+                    { component: 'Accordion', id: 'faq', labels: ['FAQ', 'More'], children: [{ component: 'Text', text: 'a' }, { component: 'Text', text: 'b' }] },
+                    { component: 'DataTable', id: 'jobTable', bind: 'jobs', columns: [{ header: 'Employer', bind: 'employer' }] },
+                    { component: 'Summary', id: 'recap', items: [{ label: 'Name', bind: 'name' }, { label: 'Amount', bind: 'amount' }] },
+                ],
+            },
+        );
+        act(() => engine.setValue('name', 'Ada'));
+        expect(texts(container, '[role="tab"]')).toEqual(['Personal', 'Employment']);
+        expect(texts(container, '.formspec-accordion summary')).toEqual(['FAQ', 'More']);
+        expect(texts(container, '.formspec-data-table th')).toEqual(['Employer']);
+        expect(texts(container, '.formspec-summary dt')).toEqual(['Name', 'Amount']);
+
+        act(() => engine.setLocale('fr'));
+        expect(texts(container, '[role="tab"]')).toEqual(['Personal', 'Emploi de Ada']);
+        expect(texts(container, '.formspec-accordion summary')).toEqual(['Questions', 'More']);
+        expect(texts(container, '.formspec-data-table th')).toEqual(['Employeur']);
+        expect(texts(container, '.formspec-summary dt')).toEqual(['Name', 'Montant']);
+    });
+
+    it('label repeat-bound Accordion sections from labels[N]', () => {
+        const { container, engine } = render(jobs, { '$component.jobSections.labels[1]': 'Deuxième' }, {
+            component: 'Accordion', id: 'jobSections', bind: 'jobs', labels: ['First', 'Second'],
+            children: [{ component: 'TextInput', bind: 'employer' }],
+        });
+        expect(texts(container, '.formspec-accordion summary')).toEqual(['First', 'Second']);
+        act(() => engine.setLocale('fr'));
+        expect(texts(container, '.formspec-accordion summary')).toEqual(['First', 'Deuxième']);
+    });
+
     it('interpolate {{}} in each repeat instance scope (Locale §3.3.2)', () => {
         const { container, engine } = render(
             jobs,
