@@ -149,6 +149,13 @@ describe('USWDS checkbox group state', () => {
         }
     });
 
+    it('says "required" in the legend with usa-sr-only text (role=group has no aria-required)', () => {
+        const el = renderForm([petsItem()], { binds: [{ path: 'pets', required: 'true' }], componentTree: petsTree });
+        const legend = el.querySelector('fieldset[data-name="pets"] legend') as HTMLElement;
+        expect(legend.querySelector('.usa-sr-only')?.textContent?.trim()).toBe('required');
+        expect(legend.querySelector('abbr')?.getAttribute('aria-hidden')).toBe('true');
+    });
+
     it('keeps a read-only checkbox group focusable but unchangeable', () => {
         const el = renderForm([petsItem({ initialValue: ['cat'] })], {
             binds: [{ path: 'pets', readonly: 'true' }], componentTree: petsTree,

@@ -26,7 +26,7 @@ function renderCheckboxGroup(bind: Record<string, string>, initialValue?: string
         url: 'urn:test:checkbox-state',
         version: '1.0.0',
         title: 'Checkbox state',
-        items: [{
+        items: [{ key: 'lock', type: 'field', label: 'Lock', dataType: 'boolean' }, {
             key: 'pets', type: 'field', label: 'Pets', dataType: 'multiChoice',
             ...(initialValue ? { initialValue } : {}),
             options: [{ value: 'cat', label: 'Cat' }, { value: 'dog', label: 'Dog' }],
@@ -50,6 +50,22 @@ describe('CheckboxGroup state', () => {
             expect(checkbox.hasAttribute('aria-required')).toBe(false);
             expect(checkbox.hasAttribute('aria-invalid')).toBe(false);
         }
+    });
+
+    it('announces a required group through visually hidden legend text, following the required bind', () => {
+        const el = renderCheckboxGroup({ required: '$lock' });
+        const legend = el.querySelector('legend') as HTMLElement;
+        expect(legend.querySelector('.formspec-sr-only')).toBeNull();
+
+        el.getEngine().setValue('lock', true);
+        const srText = legend.querySelector('.formspec-sr-only.usa-sr-only') as HTMLElement;
+        expect(srText.textContent?.trim()).toBe('required');
+        // The visual asterisk stays out of the group's accessible name ("Pets required", not "Pets star required").
+        expect(legend.querySelector('abbr')?.getAttribute('aria-hidden')).toBe('true');
+
+        el.getEngine().setValue('lock', false);
+        expect(legend.querySelector('.formspec-sr-only')).toBeNull();
+        expect(legend.textContent).toBe('Pets');
     });
 
     it('keeps a read-only group focusable but unchangeable, each checkbox announced read-only', () => {

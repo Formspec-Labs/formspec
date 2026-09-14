@@ -249,6 +249,34 @@ describe('Tailwind CheckboxGroup', () => {
         // 2 options + 1 select-all = 3
         expect(checkboxes.length).toBe(3);
     });
+
+    it('says "required" in the legend with visually hidden text on the real render path', async () => {
+        const { initFormspecEngine } = await import('@formspec-org/engine/init-formspec-engine');
+        const { FormspecRender, globalRegistry } = await import('@formspec-org/webcomponent');
+        const { tailwindAdapter } = await import('../../src/tailwind/index');
+        await initFormspecEngine();
+        if (!customElements.get('formspec-render')) customElements.define('formspec-render', FormspecRender);
+        globalRegistry.registerAdapter(tailwindAdapter);
+        globalRegistry.setAdapter('tailwind');
+        try {
+            const el = document.createElement('formspec-render') as any;
+            document.body.appendChild(el);
+            el.definition = {
+                $formspec: '1.0', url: 'urn:test:tw-required', version: '1.0.0', title: 'Required',
+                items: [{
+                    key: 'pets', type: 'field', dataType: 'multiChoice', label: 'Pets',
+                    options: [{ value: 'cat', label: 'Cat' }, { value: 'dog', label: 'Dog' }],
+                }],
+                binds: [{ path: 'pets', required: 'true' }],
+            };
+            el.render();
+            const legend = el.querySelector('fieldset legend') as HTMLElement;
+            expect(legend.querySelector('.formspec-sr-only')?.textContent?.trim()).toBe('required');
+            el.remove();
+        } finally {
+            globalRegistry.setAdapter('default');
+        }
+    });
 });
 
 // ── Select ─────────────────────────────────────────────────────────

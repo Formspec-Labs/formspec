@@ -125,7 +125,7 @@ export function bindSharedFieldEffects(
     // Field state (required / invalid / readonly) belongs to an option group, not its first option.
     // A radiogroup carries all three (WAI-ARIA radiogroup supports them). A checkbox group's `group` role supports
     // neither aria-required nor aria-readonly: the group carries aria-invalid, each checkbox aria-readonly, and
-    // required stays with the label's indicator (aria-required on one checkbox reads as "check this box").
+    // required stays with the legend as visually hidden text (aria-required on one checkbox reads as "check this box").
     const checkboxGroup = [...(refs.optionControls?.values() ?? [])][0]?.type === 'checkbox';
     const stateTarget = checkboxGroup || refs.control.getAttribute('role') === 'radiogroup' ? refs.control : actualInput;
 
@@ -142,6 +142,14 @@ export function bindSharedFieldEffects(
             indicator.setAttribute('title', 'required');
             indicator.textContent = ' *';
             refs.label.appendChild(indicator);
+            if (checkboxGroup) {
+                // No aria-required to carry it: the legend says "required" to screen readers instead of the asterisk.
+                indicator.setAttribute('aria-hidden', 'true');
+                const srText = document.createElement('span');
+                srText.className = 'formspec-sr-only usa-sr-only';
+                srText.textContent = ' required';
+                refs.label.appendChild(srText);
+            }
         }
         if (!checkboxGroup) stateTarget.setAttribute('aria-required', String(isRequired));
     }));
