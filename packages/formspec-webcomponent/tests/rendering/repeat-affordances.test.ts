@@ -300,3 +300,41 @@ describe('repeat affordances — allowAdd / allowRemove locks', () => {
         expect(visible(element, '.formspec-repeat-remove')).toHaveLength(0);
     });
 });
+
+/** DataTable `allowAdd` / `allowRemove` default to true (component §6.14) and only hide chrome (§4.4). */
+describe('repeat affordances — DataTable defaults and locks', () => {
+    const table = (props: Record<string, unknown> = {}) => ({
+        component: 'Stack',
+        children: [
+            { component: 'TextInput', bind: 'worked' },
+            { component: 'DataTable', bind: 'jobs', columns: [{ header: 'Employer', bind: 'employer' }], ...props },
+        ],
+    });
+
+    afterEach(() => {
+        document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
+    });
+
+    it('shows Add Row and Remove when allowAdd/allowRemove are omitted', () => {
+        const { element, engine } = render(table());
+        engine.setValue('worked', 'yes');
+        engine.addRepeatInstance('jobs');
+        const add = element.querySelector('.formspec-datatable-add');
+        expect(add).not.toBeNull();
+        expect(isHidden(add)).toBe(true); // at maxRepeat 2
+        expect(element.querySelectorAll('.formspec-datatable-remove')).toHaveLength(2);
+    });
+
+    it('keeps locked rows editable per their Binds: the locks hide chrome only', () => {
+        const { element, engine } = render(table({ allowAdd: false, allowRemove: false }));
+        engine.setValue('worked', 'yes');
+        expect(element.querySelector('.formspec-datatable-add')).toBeNull();
+        expect(element.querySelectorAll('.formspec-datatable-remove')).toHaveLength(0);
+        const cell = element.querySelector<HTMLInputElement>('tbody input[name="jobs[0].employer"]');
+        expect(cell).not.toBeNull();
+        expect(cell!.disabled).toBe(false);
+        cell!.value = 'ACME';
+        cell!.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(engine.signals['jobs[0].employer'].value).toBe('ACME');
+    });
+});

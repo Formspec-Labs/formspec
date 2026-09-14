@@ -3,7 +3,6 @@ import { effect } from '@preact/signals-core';
 import type { AdapterContext } from '../types';
 import type { DisplayComponentBehavior } from '../display-behaviors';
 import type { DataTableBehavior } from '../../behaviors/types';
-import { formatMoney } from '../../format';
 import { watchText } from '../watch-text';
 
 type SelectOption = { value: string; label?: string };
@@ -62,7 +61,6 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
     const showRowNumbers = behavior.showRowNumbers;
     const allowAdd = behavior.allowAdd;
     const allowRemove = behavior.allowRemove;
-    const editableCells = allowAdd || allowRemove;
 
     const groupItem = host.findItemByKey(behavior.bindKey);
     const fieldByKey = new Map<string, any>();
@@ -147,7 +145,7 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
     host.cleanupFns.push(
         effect(() => {
             const count = repeatCount.value;
-            const showRemove = allowRemove && canRemove.value;
+            const showRemove = canRemove.value;
             clearCellEffects();
             tbody.innerHTML = '';
             for (let i = 0; i < count; i++) {
@@ -164,7 +162,8 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                     const sig = host.engine.signals[sigPath];
                     const dataType = fieldByKey.get(col.bind)?.dataType as string | undefined;
 
-                    if (sig && editableCells) {
+                    // Cells stay editable per their Binds: allowAdd/allowRemove lock chrome only (component §4.4).
+                    if (sig) {
                         const fieldDef = fieldByKey.get(col.bind);
                         const prefix = fieldDef?.prefix;
                         const suffix = fieldDef?.suffix;
@@ -273,18 +272,6 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                             inputEl.disabled = readonly;
                         });
                         cellEffectDisposers.push(syncInput);
-                    } else if (sig) {
-                        const valueEl = document.createElement('span');
-                        td.appendChild(valueEl);
-                        const syncText = effect(() => {
-                            const v = sig.value;
-                            if (v !== null && v !== undefined && typeof v === 'object' && 'amount' in v) {
-                                valueEl.textContent = formatMoney(v as any);
-                            } else {
-                                valueEl.textContent = v === null || v === undefined ? '' : String(v);
-                            }
-                        });
-                        cellEffectDisposers.push(syncText);
                     } else {
                         td.textContent = '';
                     }

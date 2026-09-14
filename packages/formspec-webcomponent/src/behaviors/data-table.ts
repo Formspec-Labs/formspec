@@ -9,14 +9,15 @@ export function useDataTable(ctx: BehaviorContext, comp: any): DataTableBehavior
     const fullName = ctx.prefix ? `${ctx.prefix}.${bindKey}` : bindKey;
     const item = ctx.findItemByKey(bindKey);
     const groupLabel = item?.label || bindKey || '';
-    const { count, relevant, canAdd, canRemove } = repeatAffordances(ctx.engine, fullName, item);
 
     const columns = (comp.columns || []) as any[];
     // Locale `$component.<id>.columns[N].header` (Locale §3.1.8), else the authored header.
     const headers = columns.map((column, index) => compText(ctx, comp, `columns[${index}].header`, column?.header ?? ''));
     const showRowNumbers = comp.showRowNumbers === true;
-    const allowAdd = comp.allowAdd === true;
-    const allowRemove = comp.allowRemove === true;
+    // Component §6.14: both default to true; false only hides the affordance (§4.4).
+    const allowAdd = comp.allowAdd !== false;
+    const allowRemove = comp.allowRemove !== false;
+    const { count, relevant, canAdd, canRemove } = repeatAffordances(ctx.engine, fullName, item, { allowAdd, allowRemove });
 
     return {
         comp,

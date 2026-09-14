@@ -206,9 +206,9 @@ export interface DataTableBehavior {
     repeatCount: ReadonlySignal<number>;
     /** False while the bound group is not relevant: hide the whole table. */
     relevant: ReadonlySignal<boolean>;
-    /** False at `maxRepeat`: hide Add; `addInstance` is a no-op. */
+    /** False at `maxRepeat` or when `allowAdd` is false: hide Add; `addInstance` is a no-op. */
     canAdd: ReadonlySignal<boolean>;
-    /** False at or below `minRepeat`: omit Remove; `removeInstance` is a no-op. */
+    /** False at or below `minRepeat` or when `allowRemove` is false: omit Remove; `removeInstance` is a no-op. */
     canRemove: ReadonlySignal<boolean>;
     addInstance(): void;
     removeInstance(index: number): void;

@@ -139,10 +139,10 @@ describe('custom components — DataTable and Summary tab-sync', () => {
         const tbody = el.querySelector('tbody') as HTMLElement;
         const rows = tbody.querySelectorAll('tr');
         expect(rows.length).toBe(1);
-        // First cell contains a span with the desc value (read-only mode)
+        // First cell edits the desc value (rows stay editable per their Binds)
         const firstCell = rows[0].querySelector('td') as HTMLElement;
-        const cellSpan = firstCell.querySelector('span') as HTMLElement;
-        expect(cellSpan.textContent).toBe('Item 1');
+        const cellInput = firstCell.querySelector('input') as HTMLInputElement;
+        expect(cellInput.value).toBe('Item 1');
 
         // Switch to Tab 2 (Review)
         const tabButtons = el.querySelectorAll('.formspec-tab') as NodeListOf<HTMLButtonElement>;
