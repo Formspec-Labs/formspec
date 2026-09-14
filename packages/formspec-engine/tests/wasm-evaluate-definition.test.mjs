@@ -189,3 +189,22 @@ test('wasmTokenizeFEL returns positioned tokens through the JS bridge', () => {
   assert.equal(typeof tokens[0].start, 'number');
   assert.equal(typeof tokens[0].end, 'number');
 });
+
+test('wasmEvaluateDefinition returns itemText only when the context requests it', () => {
+  const definition = {
+    $formspec: '1.0',
+    url: 'http://example.org/wasm-item-text',
+    version: '1.0.0',
+    title: 'WASM Item text',
+    items: [
+      { key: 'qty', type: 'field', dataType: 'integer', label: 'Qty {{$qty}}', hint: 'Plain hint' },
+    ],
+  };
+
+  assert.equal(wasmEvaluateDefinition(definition, { qty: 2 }).itemText, undefined);
+
+  const withText = wasmEvaluateDefinition(definition, { qty: 2 }, {
+    itemText: { localeStrings: { 'qty.hint': 'Indice {{$qty}}' } },
+  });
+  assert.deepEqual(withText.itemText, { qty: { label: 'Qty 2', hint: 'Indice 2' } });
+});

@@ -370,6 +370,8 @@ export function wasmEvaluateDefinition(
         registryDocuments?: unknown[];
         /** Repeat row counts by group base path (authoritative for min/max repeat cardinality). */
         repeatCounts?: Record<string, number>;
+        /** Ask for resolved Item text (Core §4.2.1); `localeStrings` are cascade-resolved Locale strings. */
+        itemText?: { localeStrings?: Record<string, string> };
     },
     extensions?: FelExtensionHost,
 ): {
@@ -380,6 +382,13 @@ export function wasmEvaluateDefinition(
     variables: any;
     required: Record<string, boolean>;
     readonly: Record<string, boolean>;
+    /** Resolved Item text by instance path; present only when `context.itemText` asked for it. */
+    itemText?: Record<string, {
+        label: string;
+        labels?: Record<string, string>;
+        description?: string;
+        hint?: string;
+    }>;
 } {
     const resultJson = wasm().evaluateDefinition(
         JSON.stringify(definition),
