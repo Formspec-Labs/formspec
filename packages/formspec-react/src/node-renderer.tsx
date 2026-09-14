@@ -31,6 +31,7 @@ import { Wizard } from './defaults/layout/wizard';
 import { Tabs } from './defaults/layout/tabs';
 import { DisplayNode } from './node-renderer-display.js';
 import { RepeatGroup, RepeatAccordion } from './node-renderer-repeat.js';
+import { useLocalizedNode } from './use-localized-node';
 import {
     generationNeedAnchors,
     needTraceAttrs,
@@ -59,7 +60,8 @@ const FALLBACK_MAP: Record<string, string> = {
 };
 
 /** Render a single LayoutNode, recursing into children. */
-export function FormspecNode({ node }: { node: LayoutNode }) {
+export function FormspecNode({ node: plannedNode }: { node: LayoutNode }) {
+    const node = useLocalizedNode(plannedNode);
     const renderChild = useCallback((child: LayoutNode) => <FormspecNode node={child} />, []);
 
     if (node.isRepeatTemplate && node.repeatPath) {

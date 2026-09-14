@@ -3,14 +3,14 @@
 /** @filedesc Repeat-group and accordion-repeat layout rendering for FormspecNode. */
 import React, { useMemo, useRef, useCallback, useState } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';
-import { useFormspecContext, findItemByKey } from './context.js';
+import { signal } from '@preact/signals-core';
+import { useFormspecContext } from './context.js';
+import { useSignal } from './use-signal';
 import { useRepeatAffordances } from './use-repeat-affordances';
+import { RepeatInstanceContext } from './use-localized-node';
 import type { NodeRenderer } from './node-renderer-types.js';
 
-function findItemLabel(items: Array<{ key?: string; label?: string; children?: unknown[] }>, key: string): string | undefined {
-    const item = findItemByKey(items, key);
-    return item?.label;
-}
+const NO_LABEL = signal('');
 
 /** Renders a repeat group: stamps template children per instance. */
 export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChild: NodeRenderer }) {
@@ -88,9 +88,11 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
                                 </button>
                             )}
                         </div>
-                        {children.map((child) => (
-                            <React.Fragment key={child.id}>{renderChild(child)}</React.Fragment>
-                        ))}
+                        <RepeatInstanceContext.Provider value={`${repeatPath}[${idx}]`}>
+                            {children.map((child) => (
+                                <React.Fragment key={child.id}>{renderChild(child)}</React.Fragment>
+                            ))}
+                        </RepeatInstanceContext.Provider>
                     </div>
                 ))}
             </div>
@@ -116,7 +118,9 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
     const labels = (node.props?.labels as string[] | undefined) ?? [];
     const allowMultiple = node.props?.allowMultiple === true;
     const defaultOpen = node.props?.defaultOpen as number | undefined;
-    const groupTitle = node.fieldItem?.label || findItemLabel(engine.getDefinition().items ?? [], bindKey) || bindKey;
+    // The repeated group's live label (Locale, label context, `{{}}`), as webcomponent AccordionLayoutBehavior.groupLabel.
+    const groupLabel = useMemo(() => engine.getItemLabelSignal(bindKey) ?? NO_LABEL, [engine, bindKey]);
+    const groupTitle = useSignal(groupLabel) || bindKey;
     const [openIndex, setOpenIndex] = useState<number | null>(
         typeof defaultOpen === 'number' ? defaultOpen : count > 0 ? count - 1 : null,
     );
@@ -207,11 +211,13 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
                                 {labels[i] || `Section ${i + 1}`}
                             </summary>
                             <div className="formspec-accordion-content formspec-accordion-content--repeat">
-                                {node.children.map((child) => (
-                                    <React.Fragment key={`${child.id}-${i}`}>
-                                        {renderChild(rewriteBindPaths(child, bindKey, i))}
-                                    </React.Fragment>
-                                ))}
+                                <RepeatInstanceContext.Provider value={`${bindKey}[${i}]`}>
+                                    {node.children.map((child) => (
+                                        <React.Fragment key={`${child.id}-${i}`}>
+                                            {renderChild(rewriteBindPaths(child, bindKey, i))}
+                                        </React.Fragment>
+                                    ))}
+                                </RepeatInstanceContext.Provider>
                                 {canRemove && (
                                     <button
                                         type="button"
