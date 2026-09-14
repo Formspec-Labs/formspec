@@ -295,6 +295,14 @@ describe('input rendering — TextInput variants', () => {
         expect(input.getAttribute('aria-describedby')).toBe(`${prefix.id} ${suffix.id}`);
     });
 
+    it('applies theme widgetConfig.maxLength to the textarea', () => {
+        const el = renderField({ dataType: 'text' }, undefined, minimalTheme({
+            selectors: [{ match: { dataType: 'text' }, apply: { widget: 'TextInput', widgetConfig: { maxLength: 200 } } }],
+        }));
+        const textarea = el.querySelector('textarea#field-name') as HTMLTextAreaElement;
+        expect(textarea.maxLength).toBe(200);
+    });
+
     it('renders the definition item prefix on text fields', () => {
         const el = renderField({ dataType: 'string', prefix: 'https://' });
         expect(el.querySelector('.formspec-input-prefix')?.textContent).toBe('https://');

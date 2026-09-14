@@ -1,5 +1,5 @@
 /** @filedesc Integration: USWDS field adapters on the real <formspec-render> + engine path. */
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
 import { FormspecRender, globalRegistry } from '@formspec-org/webcomponent';
 import { uswdsAdapter } from '../../src/uswds/index';
@@ -144,6 +144,59 @@ describe('USWDS input prefix and suffix', () => {
         expect(group.querySelector('.usa-input-prefix')?.textContent).toBe('https://');
         el.submit({ emitEvent: false });
         expect(group.classList.contains('usa-input-group--error')).toBe(true);
+    });
+});
+
+describe('USWDS character count (theme widgetConfig.maxLength)', () => {
+    const textTheme = {
+        $formspecTheme: '1.0',
+        version: '1.0.0',
+        targetDefinition: { url: 'urn:test:uswds-fields' },
+        selectors: [{ match: { dataType: 'text' }, apply: { widget: 'TextInput', widgetConfig: { maxLength: 200 } } }],
+    };
+
+    it('limits the textarea and shows characters allowed, then characters left', () => {
+        const el = renderForm(
+            [{ key: 'why', type: 'field', dataType: 'text', label: 'Why not?', hint: 'Explain briefly' }],
+            { theme: textTheme },
+        );
+        const textarea = el.querySelector('textarea#field-why') as HTMLTextAreaElement;
+        expect(textarea.maxLength).toBe(200);
+        expect(textarea.classList.contains('usa-character-count__field')).toBe(true);
+
+        const root = textarea.closest('.usa-character-count') as HTMLElement;
+        expect(root).not.toBeNull();
+        const status = root.querySelector('.usa-character-count__status') as HTMLElement;
+        const message = root.querySelector('.usa-character-count__message') as HTMLElement;
+        expect(status.textContent).toBe('200 characters allowed');
+        expect(status.getAttribute('aria-hidden')).toBe('true');
+        expect(message.textContent).toBe('You can enter up to 200 characters');
+        expect(textarea.getAttribute('aria-describedby')).toBe(`${message.id} field-why-hint`);
+        expect(root.querySelector('.usa-character-count__sr-status')?.getAttribute('aria-live')).toBe('polite');
+
+        const srStatus = root.querySelector('.usa-character-count__sr-status') as HTMLElement;
+        vi.useFakeTimers();
+        try {
+            textarea.value = 'Sick';
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            expect(status.textContent).toBe('196 characters left');
+            // Screen reader status waits for a typing pause (USWDS debounce).
+            expect(srStatus.textContent).toBe('200 characters allowed');
+            vi.advanceTimersByTime(1000);
+            expect(srStatus.textContent).toBe('196 characters left');
+        } finally {
+            vi.useRealTimers();
+        }
+
+        textarea.value = 'x'.repeat(199);
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(status.textContent).toBe('1 character left');
+    });
+
+    it('renders no character count without maxLength', () => {
+        const el = renderForm([{ key: 'why', type: 'field', dataType: 'text', label: 'Why not?' }]);
+        expect(el.querySelector('.usa-character-count')).toBeNull();
+        expect((el.querySelector('#field-why') as HTMLTextAreaElement).hasAttribute('maxlength')).toBe(false);
     });
 });
 

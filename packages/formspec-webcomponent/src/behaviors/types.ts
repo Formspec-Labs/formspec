@@ -112,6 +112,8 @@ export interface TextInputBehavior extends FieldBehavior {
     placeholder?: string;
     inputMode?: string;
     maxLines?: number;
+    /** Theme `widgetConfig.maxLength` (theme §4.2): character limit, rendered with a remaining-count display. */
+    maxLength?: number;
     /** Display-only text before/after the input: component prop, else definition item `prefix`/`suffix`. */
     prefix?: string;
     suffix?: string;

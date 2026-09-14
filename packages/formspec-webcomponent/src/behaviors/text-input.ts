@@ -15,6 +15,10 @@ type TextInputComp = ComponentDescriptor & {
     suffix?: string;
 };
 
+function positiveInteger(value: unknown): number | undefined {
+    return Number.isInteger(value) && (value as number) > 0 ? (value as number) : undefined;
+}
+
 export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInputBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
     const id = comp.id || toFieldId(fieldPath);
@@ -73,6 +77,7 @@ export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInp
         placeholder: comp.placeholder,
         inputMode: comp.inputMode,
         maxLines: comp.maxLines,
+        maxLength: positiveInteger(presentation.widgetConfig?.maxLength),
         prefix: comp.prefix ?? item?.prefix,
         suffix: comp.suffix ?? item?.suffix,
         resolvedInputType,

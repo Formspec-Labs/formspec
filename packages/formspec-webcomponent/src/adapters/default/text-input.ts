@@ -18,6 +18,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
         textarea.rows = behavior.maxLines;
         if (behavior.placeholder) textarea.placeholder = behavior.placeholder;
         textarea.id = behavior.id;
+        if (behavior.maxLength) textarea.maxLength = behavior.maxLength;
         control = textarea;
     } else {
         const input = document.createElement('input');
@@ -32,6 +33,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
             else if (attr === 'maxLength') input.maxLength = Number(val);
             else input.setAttribute(attr, val);
         }
+        if (behavior.maxLength) input.maxLength = behavior.maxLength;
         control = wrapInputAdornments(input, behavior);
     }
 
