@@ -1,7 +1,8 @@
 /** @filedesc Public API barrel for the formspec-assist package. */
 
 export { createAssistProvider } from './provider.js';
-export { ContextResolver, targetDefinitionMatches } from './context-resolver.js';
+export { ContextResolver } from './context-resolver.js';
+export { targetDefinitionMatches } from '@formspec-org/types';
 export { ensureModelContext } from './webmcp-shim.js';
 
 export type {

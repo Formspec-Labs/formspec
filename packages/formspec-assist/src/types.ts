@@ -7,7 +7,8 @@ import type {
 } from '@formspec-org/engine';
 import type {
   ComponentDocument,
-  Generation,
+  Reference,
+  ReferencesDocument,
   RegistryDocument,
   ThemeDocument,
   ValidationReport,
@@ -20,46 +21,14 @@ export interface StorageBackend {
   removeItem(key: string): void;
 }
 
-export interface ReferenceEntry {
-  id?: string;
-  type: string;
-  audience: 'human' | 'agent' | 'both';
-  title?: string;
-  uri?: string;
-  content?: unknown;
-  mediaType?: string;
-  language?: string;
-  description?: string;
-  tags?: string[];
-  priority?: 'primary' | 'supplementary' | 'background';
-  rel?: string;
-  selector?: string;
-  excerpt?: string;
-  target?: string;
-  'x-generation'?: Generation;
-}
+/** The schema-generated References types; resolution lives beside them in `@formspec-org/types`. */
+export type { ReferencesDocument };
 
-export interface ReferenceRef {
-  $ref: string;
-}
+/** One resolved reference, as returned in {@link FieldHelp.references}. */
+export type ReferenceEntry = Reference;
 
-export interface BoundReference extends ReferenceEntry, Partial<ReferenceRef> {
-  target: string;
-}
-
-/** Authored binding before an optional referenceDefs pointer is resolved. */
-export interface BoundReferenceInput
-  extends Partial<ReferenceEntry>, Partial<ReferenceRef> {
-  target: string;
-}
-
-export interface ReferencesDocument {
-  $formspecReferences: '1.0';
-  version: string;
-  targetDefinition: { url: string; compatibleVersions?: string };
-  referenceDefs?: Record<string, ReferenceEntry>;
-  references: BoundReferenceInput[];
-}
+/** A reference still carrying the item path it is bound to. */
+export type BoundReference = Reference & { target: string };
 
 export interface ConceptEquivalent {
   system: string;

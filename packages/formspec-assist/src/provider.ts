@@ -2,14 +2,15 @@
 
 import type { IFormEngine, RegistryEntry } from '@formspec-org/engine';
 import { resolvePageSequence } from '@formspec-org/layout';
-import type {
-  FormDefinition,
-  FormItem,
-  RegistryDocument,
-  ValidationProfile,
-  ValidationResult,
+import {
+  targetDefinitionMatches,
+  type FormDefinition,
+  type FormItem,
+  type RegistryDocument,
+  type ValidationProfile,
+  type ValidationResult,
 } from '@formspec-org/types';
-import { ContextResolver, collectFieldMetadata, normalizeFieldPath, targetDefinitionMatches } from './context-resolver.js';
+import { ContextResolver, collectFieldMetadata, normalizeFieldPath } from './context-resolver.js';
 import { AssistError, isAssistError } from './errors.js';
 import { ProfileMatcher } from './profile-matcher.js';
 import { ProfileStore } from './profile-store.js';
