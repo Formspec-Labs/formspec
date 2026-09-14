@@ -105,7 +105,9 @@ interface ResolvedPresentationString<T extends string | null> {
 // ── Factory ─────────────────────────────────────────────────────────
 
 export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
-    const { rx, localeStore, templatePath, evalFEL } = deps;
+    // Locale §3.1: item strings are keyed `<itemKey>.<property>` by the Item's
+    // definition-unique `key` — never by group path or repeat instance path.
+    const { rx, localeStore, itemKey, evalFEL } = deps;
 
     function resolveLocaleString(
         key: string,
@@ -135,7 +137,7 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
 
         if (context) {
             // Steps 1-2: Locale lookup for key.label@context (cascade walks fr-CA → fr)
-            const contextKey = `${templatePath}.label@${context}`;
+            const contextKey = `${itemKey}.label@${context}`;
             const fromLocale = localeStore.lookupKeyWithMeta(contextKey);
             if (fromLocale.value !== null) {
                 return {
@@ -145,7 +147,7 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
             }
 
             // Steps 3-4: Locale lookup for key.label (no context)
-            const plainKey = `${templatePath}.label`;
+            const plainKey = `${itemKey}.label`;
             const plainFromLocale = localeStore.lookupKeyWithMeta(plainKey);
             if (plainFromLocale.value !== null) {
                 return {
@@ -170,7 +172,7 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         }
 
         // No context: 2-step (locale → inline)
-        const plainKey = `${templatePath}.label`;
+        const plainKey = `${itemKey}.label`;
         const fromLocale = localeStore.lookupKeyWithMeta(plainKey);
         if (fromLocale.value !== null) {
             return {
@@ -189,14 +191,14 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
     // ── Hint: 2-step cascade ──
 
     const hintResolution = rx.computed(() =>
-        resolveLocaleString(`${templatePath}.hint`, deps.getItemHint()));
+        resolveLocaleString(`${itemKey}.hint`, deps.getItemHint()));
     const hint = rx.computed(() => hintResolution.value.value);
     const hintNeedAnchors = rx.computed(() => hintResolution.value.needAnchors);
 
     // ── Description: 2-step cascade ──
 
     const descriptionResolution = rx.computed(() =>
-        resolveLocaleString(`${templatePath}.description`, deps.getItemDescription()));
+        resolveLocaleString(`${itemKey}.description`, deps.getItemDescription()));
     const description = rx.computed(() => descriptionResolution.value.value);
     const descriptionNeedAnchors = rx.computed(() => descriptionResolution.value.needAnchors);
 
@@ -271,20 +273,20 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
     // ── Helpers ──
 
     function resolveValidationMessage(err: any, code: string): string {
-        // Step 1: Per-code key — templatePath.errors.CODE
-        const codeKey = `${templatePath}.errors.${code}`;
+        // Step 1: Per-code key — itemKey.errors.CODE
+        const codeKey = `${itemKey}.errors.${code}`;
         const fromCode = localeStore.lookupKey(codeKey);
         if (fromCode !== null) {
             return interpolateMessage(fromCode, evalFEL).text;
         }
 
-        // Step 2: Per-bind key — templatePath.requiredMessage or templatePath.constraintMessage
+        // Step 2: Per-bind key — itemKey.requiredMessage or itemKey.constraintMessage
         if (err.constraintKind === 'required') {
-            const reqKey = `${templatePath}.requiredMessage`;
+            const reqKey = `${itemKey}.requiredMessage`;
             const fromReq = localeStore.lookupKey(reqKey);
             if (fromReq !== null) return interpolateMessage(fromReq, evalFEL).text;
         } else {
-            const constKey = `${templatePath}.constraintMessage`;
+            const constKey = `${itemKey}.constraintMessage`;
             const fromConst = localeStore.lookupKey(constKey);
             if (fromConst !== null) return interpolateMessage(fromConst, evalFEL).text;
         }
@@ -303,7 +305,7 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         const escapedValue = escapeOptionValue(opt.value);
 
         // Step 1: Field-level locale key
-        const fieldKey = `${templatePath}.options.${escapedValue}.label`;
+        const fieldKey = `${itemKey}.options.${escapedValue}.label`;
         const fromField = localeStore.lookupKeyWithMeta(fieldKey);
         if (fromField.value !== null) {
             return {

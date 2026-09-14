@@ -212,6 +212,103 @@ test('getFieldVM works for nested group fields', () => {
   assert.equal(vm.templatePath, 'address.city');
 });
 
+// ── Locale §3.1: item strings are keyed by Item `key`, not by dotted path ──
+
+/** Every item-scoped Locale key family (§3.1.1–§3.1.4), addressed by bare Item key. */
+const itemKeyedStrings = {
+  'city.label': 'Ville',
+  'city.label@short': 'Ville (court)',
+  'city.hint': 'Nom de la ville',
+  'city.description': 'Ville de résidence',
+  'city.requiredMessage': 'La ville est obligatoire',
+  'zip.constraintMessage': 'Code postal invalide',
+  'country.errors.REQUIRED': 'Le pays est obligatoire',
+  'country.options.us.label': 'États-Unis',
+};
+
+/** Fields exercising label, hint, description, context label, options, and each message family. */
+function localizedChildren() {
+  return [
+    { key: 'city', type: 'field', dataType: 'string', label: 'City', hint: 'City name', description: 'Home city', labels: { short: 'City (short)' } },
+    { key: 'zip', type: 'field', dataType: 'integer', label: 'ZIP' },
+    { key: 'country', type: 'field', dataType: 'choice', label: 'Country', options: [{ value: 'us', label: 'United States' }] },
+  ];
+}
+
+function loadItemKeyedLocale(engine) {
+  engine.loadLocale(makeLocale('fr', itemKeyedStrings));
+  engine.setLocale('fr');
+}
+
+function assertItemKeyedPresentationApplies(engine, prefix) {
+  loadItemKeyedLocale(engine);
+  const city = engine.getFieldVM(`${prefix}city`);
+  assert.equal(city.label.value, 'Ville');
+  assert.equal(city.hint.value, 'Nom de la ville');
+  assert.equal(city.description.value, 'Ville de résidence');
+  engine.setLabelContext('short');
+  assert.equal(city.label.value, 'Ville (court)');
+  engine.setLabelContext(null);
+  assert.equal(engine.getFieldVM(`${prefix}country`).options.value[0].label, 'États-Unis');
+}
+
+function assertItemKeyedMessagesApply(engine, prefix) {
+  loadItemKeyedLocale(engine);
+  assert.equal(engine.getFieldVM(`${prefix}city`).firstError.value, 'La ville est obligatoire');
+  assert.equal(engine.getFieldVM(`${prefix}country`).firstError.value, 'Le pays est obligatoire');
+  engine.setValue(`${prefix}zip`, 0);
+  assert.equal(engine.getFieldVM(`${prefix}zip`).firstError.value, 'Code postal invalide');
+}
+
+function groupEngine() {
+  return new FormEngine(minDef({
+    items: [{ key: 'address', type: 'group', label: 'Address', children: localizedChildren() }],
+    binds: [
+      { path: 'address.city', required: 'true' },
+      { path: 'address.zip', constraint: '$ > 0' },
+      { path: 'address.country', required: 'true' },
+    ],
+  }));
+}
+
+function repeatEngine() {
+  return new FormEngine(minDef({
+    items: [{ key: 'addresses', type: 'group', label: 'Addresses', repeatable: true, minRepeat: 1, children: localizedChildren() }],
+    binds: [
+      { path: 'addresses[*].city', required: 'true' },
+      { path: 'addresses[*].zip', constraint: '$ > 0' },
+      { path: 'addresses[*].country', required: 'true' },
+    ],
+  }));
+}
+
+test('Locale item-key presentation strings apply to fields nested in a group', () => {
+  assertItemKeyedPresentationApplies(groupEngine(), 'address.');
+});
+
+test('Locale item-key validation messages apply to fields nested in a group', () => {
+  assertItemKeyedMessagesApply(groupEngine(), 'address.');
+});
+
+test('Locale item-key presentation strings apply to fields inside a repeatable group', () => {
+  assertItemKeyedPresentationApplies(repeatEngine(), 'addresses[0].');
+});
+
+test('Locale item-key validation messages apply to fields inside a repeatable group', {
+  todo: 'FormEngine._createFieldVM reads validationResults[basePath], but results are keyed by instance path, so repeat-instance VMs never see errors',
+}, () => {
+  assertItemKeyedMessagesApply(repeatEngine(), 'addresses[0].');
+});
+
+test('Locale full dotted-path keys do not address nested items', () => {
+  const engine = new FormEngine(minDef({
+    items: [{ key: 'address', type: 'group', label: 'Address', children: localizedChildren() }],
+  }));
+  engine.loadLocale(makeLocale('fr', { 'address.city.label': 'Ville' }));
+  engine.setLocale('fr');
+  assert.equal(engine.getFieldVM('address.city').label.value, 'City');
+});
+
 // ── Edge cases: FEL interpolation in locale strings ──
 
 test('getFieldVM label interpolates FEL expressions in locale strings', () => {
