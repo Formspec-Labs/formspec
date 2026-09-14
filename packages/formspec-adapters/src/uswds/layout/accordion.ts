@@ -1,6 +1,6 @@
 /** @filedesc USWDS Accordion — `usa-accordion` buttons + regions; repeat-bind mirrors default adapter behavior. */
 import { effect } from '@preact/signals-core';
-import type { AdapterContext, AccordionLayoutBehavior } from '@formspec-org/webcomponent';
+import { watchText, type AdapterContext, type AccordionLayoutBehavior } from '@formspec-org/webcomponent';
 
 function wireAccordionPanel(
     button: HTMLButtonElement,
@@ -40,7 +40,6 @@ export function renderUSWDSAccordion(
     actx.applyStyle(el, comp.style);
 
     const bindKey = comp.bind;
-    const labels: string[] = comp.labels || [];
     const panels: { button: HTMLButtonElement; content: HTMLElement }[] = [];
     let previousCount = 0;
     const idPrefix = comp.id ? `${comp.id}-` : 'acc-';
@@ -95,7 +94,8 @@ export function renderUSWDSAccordion(
                 button.setAttribute('aria-controls', contentId);
                 const shouldOpen = i === expandedIndex || (count > previousCount && i === count - 1);
                 button.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
-                button.textContent = labels[i] || `Section ${i + 1}`;
+                const label = behavior.sectionLabel(i);
+                rows.watch(() => { button.textContent = label.value; });
                 heading.appendChild(button);
 
                 const content = document.createElement('div');
@@ -161,7 +161,7 @@ export function renderUSWDSAccordion(
             button.setAttribute('aria-controls', contentId);
             const shouldOpen = comp.defaultOpen === i;
             button.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
-            button.textContent = labels[i] || `Section ${i + 1}`;
+            watchText(actx, behavior.sectionLabel(i), (text) => { button.textContent = text; });
             heading.appendChild(button);
 
             const content = document.createElement('div');

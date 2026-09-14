@@ -1,26 +1,33 @@
 /** @filedesc Behavior payloads for layout component adapter render functions. */
+import type { ReadonlySignal } from '@preact/signals-core';
 import type { LayoutHostSlice } from './layout-host';
+
+/**
+ * A component string (`$component.<id>.<prop>` Locale string, else the inline prop) that follows the active locale
+ * and `{{}}` values. Write it with `watchText`; `peek()` it only to decide what DOM to build.
+ */
+export type LocalizedText = ReadonlySignal<string>;
 
 export interface SectionLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
-    titleText: string | null;
+    titleText: LocalizedText | null;
     headingLevel: string;
-    descriptionText: string | null;
+    descriptionText: LocalizedText | null;
 }
 
 export interface StackLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
-    titleText: string | null;
-    descriptionText: string | null;
+    titleText: LocalizedText | null;
+    descriptionText: LocalizedText | null;
 }
 
 export interface GridLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
-    titleText: string | null;
-    descriptionText: string | null;
+    titleText: LocalizedText | null;
+    descriptionText: LocalizedText | null;
 }
 
 export interface DividerLayoutBehavior {
@@ -37,28 +44,30 @@ export interface DividerLayoutBehavior {
 export interface CollapsibleLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
-    titleText: string;
-    descriptionText: string | null;
+    titleText: LocalizedText;
+    descriptionText: LocalizedText | null;
 }
 
 export interface PanelLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
-    titleText: string | null;
-    descriptionText: string | null;
+    titleText: LocalizedText | null;
+    descriptionText: LocalizedText | null;
 }
 
 export interface AccordionLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
+    /** Summary text for section `index`: `labels[index]` (Locale `$component.<id>.labels[N]`), else "Section N". */
+    sectionLabel(index: number): LocalizedText;
     /** Current number of repeat instances (only when bound). */
-    repeatCount: import('@preact/signals-core').ReadonlySignal<number>;
+    repeatCount: ReadonlySignal<number>;
     /** The repeated group's live label (Locale `<key>.label`, `{{}}`); read it in effects or `rows.watch`. */
-    groupLabel: import('@preact/signals-core').ReadonlySignal<string>;
+    groupLabel: ReadonlySignal<string>;
     /** False while the bound group is non-relevant: hide the whole repeat container (headings, Add, Remove). */
-    relevant: import('@preact/signals-core').ReadonlySignal<boolean>;
+    relevant: ReadonlySignal<boolean>;
     /** False at `maxRepeat` or when `allowAdd` is false: hide Add. */
-    canAdd: import('@preact/signals-core').ReadonlySignal<boolean>;
+    canAdd: ReadonlySignal<boolean>;
     /**
      * Build the instance rows now and whenever the count or Remove availability changes. Each pass
      * renders untracked into its own scope, disposed before the next pass: render row children with
@@ -85,13 +94,15 @@ export interface AccordionRowsPass {
 export interface ModalLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
-    titleText: string | null;
-    triggerLabelText: string;
+    titleText: LocalizedText | null;
+    triggerLabelText: LocalizedText;
 }
 
 export interface PopoverLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
-    titleResolved: string;
-    triggerLabelFallback: string;
+    /** The popover's accessible name: `title`, else `triggerLabel`, else "Popover". */
+    titleResolved: LocalizedText;
+    /** Trigger text when no `triggerBind` value is shown: `triggerLabel`, else "Open". */
+    triggerLabelFallback: LocalizedText;
 }

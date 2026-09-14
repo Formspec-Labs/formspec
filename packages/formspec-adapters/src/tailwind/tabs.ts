@@ -1,5 +1,5 @@
 /** @filedesc Tailwind adapter for Tabs — styled tab bar with panel switching. */
-import type { TabsBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { watchText, type TabsBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 
 export const renderTabs: AdapterRenderFn<TabsBehavior> = (
     behavior, parent, actx
@@ -56,7 +56,7 @@ export const renderTabs: AdapterRenderFn<TabsBehavior> = (
         btn.setAttribute('aria-controls', `${idBase}-panel-${i}`);
         btn.setAttribute('aria-selected', i === behavior.defaultTab ? 'true' : 'false');
         btn.setAttribute('tabindex', i === behavior.defaultTab ? '0' : '-1');
-        btn.textContent = behavior.tabLabels[i] || `Tab ${i + 1}`;
+        watchText(actx, behavior.tabLabels[i], (text) => { btn.textContent = text; });
         btn.className = i === behavior.defaultTab
             ? 'border-b-2 border-[color:var(--formspec-tw-accent)] px-3 py-2 text-sm font-medium text-[var(--formspec-tw-accent)]'
             : 'border-b-2 border-transparent px-3 py-2 text-sm font-medium text-[var(--formspec-tw-muted)] hover:border-[color:var(--formspec-tw-border)] hover:text-[var(--formspec-tw-text)]';

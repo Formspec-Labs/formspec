@@ -1,5 +1,5 @@
 /** @filedesc USWDS Panel layout — `usa-card` with optional heading and body slot. */
-import type { AdapterContext, PanelLayoutBehavior } from '@formspec-org/webcomponent';
+import { watchText, type AdapterContext, type PanelLayoutBehavior } from '@formspec-org/webcomponent';
 import { applyUSWDSSurfaceProps } from './grid-shared';
 
 export function renderUSWDSPanel(behavior: PanelLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
@@ -21,7 +21,7 @@ export function renderUSWDSPanel(behavior: PanelLayoutBehavior, parent: HTMLElem
         header.className = 'usa-card__header';
         const h = document.createElement('h3');
         h.className = 'usa-card__heading';
-        h.textContent = titleText;
+        watchText(actx, titleText, (text) => { h.textContent = text; });
         header.appendChild(h);
         container.appendChild(header);
     }
@@ -32,7 +32,7 @@ export function renderUSWDSPanel(behavior: PanelLayoutBehavior, parent: HTMLElem
     if (descriptionText) {
         const p = document.createElement('p');
         p.className = 'usa-hint formspec-panel-description';
-        p.textContent = descriptionText;
+        watchText(actx, descriptionText, (text) => { p.textContent = text; });
         body.appendChild(p);
     }
 

@@ -435,3 +435,60 @@ describe('USWDS field text — hints and descriptions', () => {
         expect(input.getAttribute('aria-describedby')).toBeNull();
     });
 });
+
+describe('USWDS $component Locale strings follow a locale switch', () => {
+    it('rewrites layout, display, and array-element strings in place', () => {
+        const el = renderForm(
+            [
+                { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+                { key: 'amount', type: 'field', dataType: 'integer', label: 'Amount' },
+            ],
+            {
+                componentTree: {
+                    component: 'Stack',
+                    children: [
+                        { component: 'Stack', id: 'block', title: 'Block', children: [] },
+                        { component: 'Card', id: 'card', title: 'Card', children: [] },
+                        { component: 'Alert', id: 'note', title: 'Heads up', text: 'Note' },
+                        { component: 'Collapsible', id: 'more', title: 'More', children: [] },
+                        { component: 'Modal', id: 'help', triggerLabel: 'Open help', children: [] },
+                        { component: 'Accordion', id: 'faq', labels: ['FAQ', 'More'], children: [{ component: 'Text', text: 'a' }, { component: 'Text', text: 'b' }] },
+                        {
+                            component: 'Tabs', id: 'mainTabs', tabLabels: ['Personal', 'Money'],
+                            children: [
+                                { component: 'Stack', children: [{ component: 'TextInput', bind: 'name' }] },
+                                { component: 'Stack', children: [{ component: 'NumberInput', bind: 'amount' }] },
+                            ],
+                        },
+                        { component: 'Summary', id: 'recap', items: [{ label: 'Name', bind: 'name' }] },
+                    ],
+                },
+            },
+        );
+        el.localeDocuments = [{
+            $formspecLocale: '2.0', locale: 'fr', version: '1.0.0', target: { kind: 'definition', url: 'urn:test:uswds-fields' },
+            strings: {
+                '$component.block.title': 'Bloc',
+                '$component.card.title': 'Carte',
+                '$component.note.title': 'Attention',
+                '$component.more.title': 'Plus',
+                '$component.help.triggerLabel': "Ouvrir l'aide",
+                '$component.faq.labels[1]': 'Encore',
+                '$component.mainTabs.tabLabels[1]': 'Argent',
+                '$component.recap.items[0].label': 'Nom',
+            },
+        }];
+        const text = (selector: string) => Array.from(el.querySelectorAll(selector), (node: Element) => node.textContent);
+        expect(text('#more .usa-accordion__button')).toEqual(['More']);
+
+        el.locale = 'fr';
+        expect(text('#block > .formspec-layout-title')).toEqual(['Bloc']);
+        expect(text('#card .usa-card__heading')).toEqual(['Carte']);
+        expect(text('#note .usa-alert__heading')).toEqual(['Attention']);
+        expect(text('#more .usa-accordion__button')).toEqual(['Plus']);
+        expect(text('#faq .usa-accordion__button')).toEqual(['FAQ', 'Encore']);
+        expect(text('#mainTabs [role="tab"]')).toEqual(['Personal', 'Argent']);
+        expect(text('#recap dt')).toEqual(['Nom']);
+        expect(Array.from(el.querySelectorAll('button')).some((b: Element) => b.textContent === "Ouvrir l'aide")).toBe(true);
+    });
+});

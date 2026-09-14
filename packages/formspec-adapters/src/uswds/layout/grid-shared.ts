@@ -1,4 +1,5 @@
 /** @filedesc Shared USWDS 12-column row helpers for Grid layout adapters (tablet col span classes). */
+import { watchText, type AdapterContext, type LocalizedText } from '@formspec-org/webcomponent';
 
 /** Equal column counts that map cleanly to USWDS’s 12-column row (12 % n === 0). */
 export const USWDS_EQUAL_COL_COUNTS = new Set([1, 2, 3, 4, 6]);
@@ -77,17 +78,22 @@ export function uswdsGridCellClassForChild(
 }
 
 /** Internal helper to render standard USWDS layout title/description headers. */
-export function renderUSWDSLayoutHeader(el: HTMLElement, titleText: string | null, descriptionText: string | null): void {
+export function renderUSWDSLayoutHeader(
+    el: HTMLElement,
+    titleText: LocalizedText | null,
+    descriptionText: LocalizedText | null,
+    actx: AdapterContext,
+): void {
     if (titleText) {
         const h = document.createElement('h3');
         h.className = 'formspec-layout-title';
-        h.textContent = titleText;
+        watchText(actx, titleText, (text) => { h.textContent = text; });
         el.appendChild(h);
     }
     if (descriptionText) {
         const p = document.createElement('p');
         p.className = 'usa-hint formspec-layout-description';
-        p.textContent = descriptionText;
+        watchText(actx, descriptionText, (text) => { p.textContent = text; });
         el.appendChild(p);
     }
 }

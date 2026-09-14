@@ -1,6 +1,6 @@
 /** @filedesc USWDS Modal — native `<dialog>` with `usa-modal` inner structure (CSS-only; no USWDS modal JS). */
 import { effect } from '@preact/signals-core';
-import type { AdapterContext, ModalLayoutBehavior } from '@formspec-org/webcomponent';
+import { watchText, type AdapterContext, type ModalLayoutBehavior } from '@formspec-org/webcomponent';
 import { focusFirstIn, positionOverlayNearTrigger, type PopupPlacement } from './overlay';
 
 function hideDialog(dialog: HTMLDialogElement): void {
@@ -37,11 +37,11 @@ export function renderUSWDSModal(behavior: ModalLayoutBehavior, parent: HTMLElem
         const titleEl = document.createElement('h2');
         titleEl.className = 'usa-modal__heading';
         titleEl.id = titleId;
-        titleEl.textContent = titleText;
+        watchText(actx, titleText, (text) => { titleEl.textContent = text; });
         main.appendChild(titleEl);
         dialog.setAttribute('aria-labelledby', titleId);
     } else if (comp.triggerLabel) {
-        dialog.setAttribute('aria-label', triggerLabelText);
+        watchText(actx, triggerLabelText, (text) => { dialog.setAttribute('aria-label', text); });
     }
 
     const body = document.createElement('div');
@@ -98,7 +98,7 @@ export function renderUSWDSModal(behavior: ModalLayoutBehavior, parent: HTMLElem
     const triggerBtn = document.createElement('button');
     triggerBtn.type = 'button';
     triggerBtn.className = 'usa-button formspec-focus-ring';
-    triggerBtn.textContent = triggerLabelText;
+    watchText(actx, triggerLabelText, (text) => { triggerBtn.textContent = text; });
 
     const repositionDialog = () => {
         if (dialog.open) positionOverlayNearTrigger(triggerBtn, dialog, placement);

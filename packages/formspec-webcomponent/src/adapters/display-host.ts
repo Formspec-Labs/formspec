@@ -5,19 +5,19 @@ import { Path, type FormItem, type ValidationResult } from '@formspec-org/types'
 import type { IFormEngine } from '@formspec-org/engine/render';
 import type { ComponentDescriptor, TokenResolvable } from '../hub-types.js';
 import type { RenderContext, ValidationTargetMetadata } from '../types';
-import { resolveCompText as resolveComponentText } from '../components/layout-plugin-factory';
+import { compText } from '../components/layout-plugin-factory';
 import { itemLabel } from '../rendering/item-label';
 
 export interface DisplayHostSlice {
     engine: IFormEngine;
     prefix: string;
     cleanupFns: Array<() => void>;
-    resolveCompText(comp: ComponentDescriptor, prop: string, fallback: string): string;
     /**
      * Call `write` with the text for `comp[prop]` now and whenever it changes.
      * A node planned from a display Item shows the Item label: Locale `<key>.label`,
      * else the inline label, FEL `{{}}`-interpolated in the Item's instance scope.
-     * Any other node writes `resolveCompText` once.
+     * Any other node shows its `$component.<id>.<prop>` Locale string (`prop` may address an array element,
+     * `items[0].label`), else `fallback`, following the active locale.
      */
     watchCompText(comp: ComponentDescriptor, prop: string, fallback: string, write: (text: string) => void): void;
     renderComponent(comp: LayoutNode | ComponentDescriptor, parent: HTMLElement, prefix?: string): void;
@@ -85,21 +85,16 @@ function pathInScope(plannedPath: string, prefix: string): string {
 }
 
 export function displayHostSlice(ctx: RenderContext): DisplayHostSlice {
-    const resolveCompText = (comp: ComponentDescriptor, prop: string, fallback: string): string =>
-        resolveComponentText(ctx, comp, prop, fallback);
     return {
         engine: ctx.engine,
         prefix: ctx.prefix,
         cleanupFns: ctx.cleanupFns,
-        resolveCompText,
         watchCompText(comp, prop, fallback, write) {
             const displayItem = prop === 'text' ? resolveDisplayItem(comp, ctx) : null;
-            if (!displayItem) {
-                write(resolveCompText(comp, prop, fallback));
-                return;
-            }
-            const label = itemLabel(ctx.engine, displayItem.item, displayItem.path);
-            ctx.cleanupFns.push(effect(() => write(label.value)));
+            const text = displayItem
+                ? itemLabel(ctx.engine, displayItem.item, displayItem.path)
+                : compText(ctx, comp, prop, fallback);
+            ctx.cleanupFns.push(effect(() => write(text.value)));
         },
         renderComponent: (comp, parent, pfx) => ctx.renderComponent(comp, parent, pfx),
         resolveToken: (val) => ctx.resolveToken(val),

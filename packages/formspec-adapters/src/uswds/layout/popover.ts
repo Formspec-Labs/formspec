@@ -1,6 +1,6 @@
 /** @filedesc USWDS Popover — trigger + floating `usa-card` panel (popover API or hidden fallback). */
 import { effect } from '@preact/signals-core';
-import type { AdapterContext, PopoverLayoutBehavior } from '@formspec-org/webcomponent';
+import { watchText, type AdapterContext, type PopoverLayoutBehavior } from '@formspec-org/webcomponent';
 import { focusFirstIn, positionOverlayNearTrigger, type PopupPlacement } from './overlay';
 
 export function renderUSWDSPopover(behavior: PopoverLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
@@ -28,17 +28,17 @@ export function renderUSWDSPopover(behavior: PopoverLayoutBehavior, parent: HTML
             effect(() => {
                 const val = triggerSignal.value;
                 triggerBtn.textContent =
-                    val === undefined || val === null || val === '' ? triggerLabelFallback : String(val);
+                    val === undefined || val === null || val === '' ? triggerLabelFallback.value : String(val);
             })
         );
     } else {
-        triggerBtn.textContent = triggerLabelFallback;
+        watchText(actx, triggerLabelFallback, (text) => { triggerBtn.textContent = text; });
     }
 
     const card = document.createElement('div');
     card.className = 'usa-card';
     card.setAttribute('role', 'dialog');
-    card.setAttribute('aria-label', titleResolved);
+    watchText(actx, titleResolved, (text) => { card.setAttribute('aria-label', text); });
     if (comp.placement) card.dataset.placement = comp.placement;
 
     const cardContainer = document.createElement('div');

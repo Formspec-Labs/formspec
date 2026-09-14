@@ -81,13 +81,13 @@ export function renderDefaultCard(behavior: DisplayComponentBehavior, parent: HT
     if (comp.title) {
         const h3 = document.createElement('h3');
         h3.className = 'formspec-card-title';
-        h3.textContent = host.resolveCompText(comp, 'title', comp.title);
+        host.watchCompText(comp, 'title', comp.title, (text) => { h3.textContent = text; });
         el.appendChild(h3);
     }
     if (comp.subtitle) {
         const sub = document.createElement('p');
         sub.className = 'formspec-card-subtitle';
-        sub.textContent = host.resolveCompText(comp, 'subtitle', comp.subtitle);
+        host.watchCompText(comp, 'subtitle', comp.subtitle, (text) => { sub.textContent = text; });
         el.appendChild(sub);
     }
     actx.applyCssClass(el, comp);
@@ -166,7 +166,7 @@ export function renderDefaultProgressBar(behavior: DisplayComponentBehavior, par
     const progressEl = document.createElement('progress');
     const maxVal = comp.max || 100;
     progressEl.max = maxVal;
-    if (comp.label) progressEl.setAttribute('aria-label', host.resolveCompText(comp, 'label', comp.label));
+    if (comp.label) host.watchCompText(comp, 'label', comp.label, (text) => { progressEl.setAttribute('aria-label', text); });
 
     if (comp.bind) {
         const fullName = host.prefix ? `${host.prefix}.${comp.bind}` : comp.bind;
@@ -210,9 +210,9 @@ export function renderDefaultSummary(behavior: DisplayComponentBehavior, parent:
     el.className = 'formspec-summary';
 
     if (comp.items) {
-        for (const item of comp.items) {
+        comp.items.forEach((item: any, index: number) => {
             const dt = document.createElement('dt');
-            dt.textContent = item.label || '';
+            host.watchCompText(comp, `items[${index}].label`, item.label || '', (text) => { dt.textContent = text; });
             el.appendChild(dt);
 
             const dd = document.createElement('dd');
@@ -241,7 +241,7 @@ export function renderDefaultSummary(behavior: DisplayComponentBehavior, parent:
                     })
                 );
             }
-        }
+        });
     }
 
     actx.applyCssClass(el, comp);

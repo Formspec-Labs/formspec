@@ -4,6 +4,7 @@ import type { AdapterContext } from '../types';
 import type { DisplayComponentBehavior } from '../display-behaviors';
 import type { DataTableBehavior } from '../../behaviors/types';
 import { formatMoney } from '../../format';
+import { watchText } from '../watch-text';
 
 type SelectOption = { value: string; label?: string };
 
@@ -112,7 +113,7 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
     for (let ci = 0; ci < columns.length; ci++) {
         const col = columns[ci];
         const th = document.createElement('th');
-        th.textContent = col.header;
+        watchText(actx, behavior.headers[ci], (text) => { th.textContent = text; });
         th.setAttribute('scope', 'col');
         th.id = `${comp.id || 'dt'}-col-${ci}`;
         headerRow.appendChild(th);
@@ -157,7 +158,7 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                     td.className = 'formspec-row-number';
                     tr.appendChild(td);
                 }
-                for (const col of columns) {
+                columns.forEach((col, ci) => {
                     const td = document.createElement('td');
                     const sigPath = `${fullName}[${i}].${col.bind}`;
                     const sig = host.engine.signals[sigPath];
@@ -227,7 +228,11 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                             inputEl = input;
                         }
 
-                        inputEl.setAttribute('aria-label', `${col.header}, Row ${i + 1}`);
+                        const cellInput = inputEl;
+                        // Its own effect: the rows effect must not track the header, or a locale switch re-renders every row.
+                        cellEffectDisposers.push(effect(() => {
+                            cellInput.setAttribute('aria-label', `${behavior.headers[ci].value}, Row ${i + 1}`);
+                        }));
 
                         if (prefix || suffix) {
                             const wrap = document.createElement('div');
@@ -284,7 +289,7 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                         td.textContent = '';
                     }
                     tr.appendChild(td);
-                }
+                });
                 if (allowRemove) {
                     // Keep the Actions cell so columns line up; the button appears only above minRepeat.
                     const td = document.createElement('td');

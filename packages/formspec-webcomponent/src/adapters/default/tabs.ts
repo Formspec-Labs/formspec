@@ -1,6 +1,7 @@
 /** @filedesc Default adapter for Tabs — reproduces current DOM structure. */
 import type { TabsBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
+import { watchText } from '../watch-text';
 
 export const renderTabs: AdapterRenderFn<TabsBehavior> = (
     behavior, parent, actx
@@ -51,7 +52,7 @@ export const renderTabs: AdapterRenderFn<TabsBehavior> = (
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'formspec-tab formspec-focus-ring';
-        btn.textContent = behavior.tabLabels[i] || `Tab ${i + 1}`;
+        watchText(actx, behavior.tabLabels[i], (text) => { btn.textContent = text; });
         btn.setAttribute('role', 'tab');
         btn.id = `${idBase}-tab-${i}`;
         btn.setAttribute('aria-controls', `${idBase}-panel-${i}`);

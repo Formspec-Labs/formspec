@@ -8,7 +8,9 @@ import {
 import type { AdapterContext } from '../types';
 import { focusFirstIn } from '../../dom-utils';
 import { renderDividerDOM } from '../divider';
+import { watchText } from '../watch-text';
 import type {
+    LocalizedText,
     SectionLayoutBehavior,
     StackLayoutBehavior,
     GridLayoutBehavior,
@@ -52,17 +54,22 @@ function stackJustifyContent(value: unknown): string | undefined {
 }
 
 /** Internal helper to render standard layout title/description headers. */
-function renderLayoutHeader(el: HTMLElement, titleText: string | null, descriptionText: string | null): void {
+function renderLayoutHeader(
+    el: HTMLElement,
+    titleText: LocalizedText | null,
+    descriptionText: LocalizedText | null,
+    actx: AdapterContext,
+): void {
     if (titleText) {
         const h = document.createElement('h3');
         h.className = 'formspec-layout-title';
-        h.textContent = titleText;
+        watchText(actx, titleText, (text) => { h.textContent = text; });
         el.appendChild(h);
     }
     if (descriptionText) {
         const p = document.createElement('p');
         p.className = 'formspec-layout-description';
-        p.textContent = descriptionText;
+        watchText(actx, descriptionText, (text) => { p.textContent = text; });
         el.appendChild(p);
     }
 }
@@ -78,13 +85,13 @@ export function renderSection(behavior: SectionLayoutBehavior, parent: HTMLEleme
     applySurfaceProps(el, comp, host.resolveToken);
     if (titleText) {
         const h = document.createElement(headingLevel);
-        h.textContent = titleText;
+        watchText(actx, titleText, (text) => { h.textContent = text; });
         el.appendChild(h);
     }
     if (descriptionText) {
         const desc = document.createElement('p');
         desc.className = 'formspec-section-description';
-        desc.textContent = descriptionText;
+        watchText(actx, descriptionText, (text) => { desc.textContent = text; });
         el.appendChild(desc);
     }
     parent.appendChild(el);
@@ -109,7 +116,7 @@ export function renderStack(behavior: StackLayoutBehavior, parent: HTMLElement, 
     actx.applyStyle(el, comp.style);
     applySurfaceProps(el, comp, host.resolveToken);
 
-    renderLayoutHeader(el, titleText, descriptionText);
+    renderLayoutHeader(el, titleText, descriptionText, actx);
 
     parent.appendChild(el);
     for (const child of comp.children || []) {
@@ -141,7 +148,7 @@ export function renderGrid(behavior: GridLayoutBehavior, parent: HTMLElement, ac
     actx.applyStyle(el, comp.style);
     applySurfaceProps(el, comp, host.resolveToken);
 
-    renderLayoutHeader(el, titleText, descriptionText);
+    renderLayoutHeader(el, titleText, descriptionText, actx);
 
     parent.appendChild(el);
     for (const child of comp.children || []) {
@@ -167,7 +174,7 @@ export function renderCollapsible(behavior: CollapsibleLayoutBehavior, parent: H
 
     const summary = document.createElement('summary');
     summary.className = 'formspec-focus-ring';
-    summary.textContent = titleText;
+    watchText(actx, titleText, (text) => { summary.textContent = text; });
     details.appendChild(summary);
 
     const content = document.createElement('div');
@@ -176,7 +183,7 @@ export function renderCollapsible(behavior: CollapsibleLayoutBehavior, parent: H
     if (descriptionText) {
         const p = document.createElement('p');
         p.className = 'formspec-collapsible-description';
-        p.textContent = descriptionText;
+        watchText(actx, descriptionText, (text) => { p.textContent = text; });
         content.appendChild(p);
     }
 
@@ -209,7 +216,7 @@ export function renderPanel(behavior: PanelLayoutBehavior, parent: HTMLElement, 
     if (titleText) {
         const header = document.createElement('div');
         header.className = 'formspec-panel-header';
-        header.textContent = titleText;
+        watchText(actx, titleText, (text) => { header.textContent = text; });
         container.appendChild(header);
     }
 
@@ -219,7 +226,7 @@ export function renderPanel(behavior: PanelLayoutBehavior, parent: HTMLElement, 
     if (descriptionText) {
         const p = document.createElement('p');
         p.className = 'formspec-panel-description';
-        p.textContent = descriptionText;
+        watchText(actx, descriptionText, (text) => { p.textContent = text; });
         body.appendChild(p);
     }
 
@@ -247,7 +254,6 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
     actx.applyStyle(el, comp.style);
 
     const bindKey = comp.bind;
-    const labels: string[] = comp.labels || [];
     const detailsEls: HTMLDetailsElement[] = [];
     let previousCount = 0;
 
@@ -293,7 +299,8 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
 
                 const summary = document.createElement('summary');
                 summary.className = 'formspec-focus-ring';
-                summary.textContent = labels[i] || `Section ${i + 1}`;
+                const label = behavior.sectionLabel(i);
+                rows.watch(() => { summary.textContent = label.value; });
                 details.appendChild(summary);
 
                 const content = document.createElement('div');
@@ -362,7 +369,7 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
 
             const summary = document.createElement('summary');
             summary.className = 'formspec-focus-ring';
-            summary.textContent = labels[i] || `Section ${i + 1}`;
+            watchText(actx, behavior.sectionLabel(i), (text) => { summary.textContent = text; });
             details.appendChild(summary);
 
             const content = document.createElement('div');
@@ -409,11 +416,11 @@ export function renderModal(behavior: ModalLayoutBehavior, parent: HTMLElement, 
         const titleEl = document.createElement(`h${hl}`);
         titleEl.className = 'formspec-modal-title';
         titleEl.id = titleId;
-        titleEl.textContent = titleText;
+        watchText(actx, titleText, (text) => { titleEl.textContent = text; });
         dialog.appendChild(titleEl);
         dialog.setAttribute('aria-labelledby', titleId);
     } else if (comp.triggerLabel) {
-        dialog.setAttribute('aria-label', triggerLabelText);
+        watchText(actx, triggerLabelText, (text) => { dialog.setAttribute('aria-label', text); });
     }
 
     const content = document.createElement('div');
@@ -460,7 +467,7 @@ export function renderModal(behavior: ModalLayoutBehavior, parent: HTMLElement, 
     const triggerBtn = document.createElement('button');
     triggerBtn.type = 'button';
     triggerBtn.className = 'formspec-modal-trigger formspec-focus-ring';
-    triggerBtn.textContent = triggerLabelText;
+    watchText(actx, triggerLabelText, (text) => { triggerBtn.textContent = text; });
 
     const repositionDialog = () => {
         if (!dialog.open) return;
@@ -516,17 +523,17 @@ export function renderPopover(behavior: PopoverLayoutBehavior, parent: HTMLEleme
         host.cleanupFns.push(effect(() => {
             const val = triggerSignal.value;
             triggerBtn.textContent = val === undefined || val === null || val === ''
-                ? triggerLabelFallback
+                ? triggerLabelFallback.value
                 : String(val);
         }));
     } else {
-        triggerBtn.textContent = triggerLabelFallback;
+        watchText(actx, triggerLabelFallback, (text) => { triggerBtn.textContent = text; });
     }
 
     const content = document.createElement('div');
     content.className = 'formspec-popover-content';
     content.setAttribute('role', 'dialog');
-    content.setAttribute('aria-label', titleResolved);
+    watchText(actx, titleResolved, (text) => { content.setAttribute('aria-label', text); });
     if (comp.placement) {
         content.dataset.placement = comp.placement;
     }

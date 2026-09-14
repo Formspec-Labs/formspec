@@ -9,7 +9,6 @@ function mockHost(): DisplayComponentBehavior['host'] {
         engine: {} as any,
         prefix: '',
         cleanupFns: [],
-        resolveCompText: (_c, _p, fb) => fb,
         watchCompText: (_c, _p, fb, write) => write(fb),
         renderComponent: vi.fn(),
         resolveToken: (v) => v,

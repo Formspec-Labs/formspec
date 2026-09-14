@@ -1,5 +1,5 @@
 /** @filedesc USWDS Collapsible — single-panel `usa-accordion` pattern with manual `aria-expanded` / `hidden` (no USWDS JS). */
-import type { AdapterContext, CollapsibleLayoutBehavior } from '@formspec-org/webcomponent';
+import { watchText, type AdapterContext, type CollapsibleLayoutBehavior } from '@formspec-org/webcomponent';
 
 export function renderUSWDSCollapsible(
     behavior: CollapsibleLayoutBehavior,
@@ -23,7 +23,7 @@ export function renderUSWDSCollapsible(
     button.setAttribute('aria-controls', contentId);
     const initiallyOpen = !!comp.defaultOpen;
     button.setAttribute('aria-expanded', initiallyOpen ? 'true' : 'false');
-    button.textContent = titleText;
+    watchText(actx, titleText, (text) => { button.textContent = text; });
 
     const content = document.createElement('div');
     content.id = contentId;

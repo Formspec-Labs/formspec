@@ -62,6 +62,7 @@ export type {
     AccordionRowsPass,
     ModalLayoutBehavior,
     PopoverLayoutBehavior,
+    LocalizedText,
 } from './adapters/layout-behaviors';
 export type { DisplayHostSlice } from './adapters/display-host';
 export type { DisplayComponentBehavior } from './adapters/display-behaviors';
@@ -93,6 +94,7 @@ export {
 export { createSignatureCanvas } from './adapters/signature-canvas';
 export { createCharacterCount } from './adapters/character-count';
 export { renderDividerDOM } from './adapters/divider';
+export { watchText } from './adapters/watch-text';
 export type { DividerClasses } from './adapters/divider';
 export type { CharacterCountConfig, CharacterCountResult } from './adapters/character-count';
 export type { SignatureCanvasConfig, SignatureCanvasResult } from './adapters/signature-canvas';

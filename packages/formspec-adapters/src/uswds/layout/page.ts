@@ -1,5 +1,5 @@
 /** @filedesc USWDS Section layout — `usa-section` + `grid-container` + `usa-prose` for body content. */
-import type { AdapterContext, SectionLayoutBehavior } from '@formspec-org/webcomponent';
+import { watchText, type AdapterContext, type SectionLayoutBehavior } from '@formspec-org/webcomponent';
 import { applyUSWDSSurfaceProps } from './grid-shared';
 
 export function renderUSWDSSection(behavior: SectionLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
@@ -30,13 +30,13 @@ export function renderUSWDSSection(behavior: SectionLayoutBehavior, parent: HTML
 
     if (titleText) {
         const h = document.createElement(headingLevel);
-        h.textContent = titleText;
+        watchText(actx, titleText, (text) => { h.textContent = text; });
         prose.appendChild(h);
     }
     if (descriptionText) {
         const p = document.createElement('p');
         p.className = 'formspec-section-description';
-        p.textContent = descriptionText;
+        watchText(actx, descriptionText, (text) => { p.textContent = text; });
         prose.appendChild(p);
     }
 

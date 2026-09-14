@@ -1,5 +1,6 @@
 /** @filedesc Smoke tests for USWDS-native layout renderers (Section, Stack, Divider, Collapsible, Panel). */
 import { describe, it, expect, vi } from 'vitest';
+import { signal } from '@preact/signals-core';
 import type {
     SectionLayoutBehavior,
     StackLayoutBehavior,
@@ -33,7 +34,7 @@ describe('USWDS layout natives', () => {
         const behavior: SectionLayoutBehavior = {
             comp: { children: [] },
             host: layoutHost(),
-            titleText: 'T',
+            titleText: signal('T'),
             headingLevel: 'h2',
             descriptionText: null,
         };
@@ -67,7 +68,7 @@ describe('USWDS layout natives', () => {
         const behavior: SectionLayoutBehavior = {
             comp: { children: [{ component: 'TextInput', bind: 'firstName' }] },
             host,
-            titleText: 'Step 1',
+            titleText: signal('Step 1'),
             headingLevel: 'h2',
             descriptionText: null,
         };
@@ -216,7 +217,7 @@ describe('USWDS layout natives', () => {
         const behavior: CollapsibleLayoutBehavior = {
             comp: { children: [] },
             host: layoutHost(),
-            titleText: 'More',
+            titleText: signal('More'),
         };
         renderUSWDSCollapsible(behavior, parent, mockAdapterContext());
         expect(parent.querySelector('.usa-accordion .usa-accordion__button')).toBeTruthy();
@@ -228,7 +229,7 @@ describe('USWDS layout natives', () => {
         const behavior: PanelLayoutBehavior = {
             comp: { children: [] },
             host: layoutHost(),
-            titleText: 'Aside',
+            titleText: signal('Aside'),
         };
         renderUSWDSPanel(behavior, parent, mockAdapterContext());
         expect(parent.querySelector('.usa-card .usa-card__container')).toBeTruthy();
@@ -255,8 +256,8 @@ describe('USWDS layout natives', () => {
         const behavior: ModalLayoutBehavior = {
             comp: { children: [], triggerLabel: 'Open details' },
             host: layoutHost(),
-            titleText: 'Details',
-            triggerLabelText: 'Open details',
+            titleText: signal('Details'),
+            triggerLabelText: signal('Open details'),
         };
         renderUSWDSModal(behavior, parent, mockAdapterContext());
         const dialog = parent.querySelector('dialog.usa-modal') as HTMLDialogElement | null;

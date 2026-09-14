@@ -19,7 +19,7 @@ import { useTabs } from '../behaviors/tabs';
 import { applySurfaceProps } from '../adapters/default/layout';
 import { repeatAffordances, renderRepeatRows } from './repeat-affordances';
 import { itemLabel } from './item-label';
-import { resolveCompText } from '../components/layout-plugin-factory';
+import { compText } from '../components/layout-plugin-factory';
 
 export type { RenderHost } from '../hub-types.js';
 
@@ -267,17 +267,14 @@ export function emitNode(
             const heading = document.createElement(`h${Math.min(headingLevel, 6)}`);
             heading.className = 'formspec-group-title';
             // An authored `$component.<id>.title` Locale string wins; the Stack sits in the enclosing scope.
-            const title = resolveCompText({ engine: host.engine, prefix }, node.props, 'title', node.props.title as string);
+            const title = compText({ engine: host.engine, prefix }, node.props, 'title', node.props.title as string);
             const groupItem = host.findItemByKey(Path.parse(nextPrefix).stripIndices());
-            if (groupItem && title === groupItem.label) {
-                // The definition planner titles a group with its inline label: show that label live.
-                const label = itemLabel(host.engine, groupItem, nextPrefix, bindKey);
-                cleanupFns.push(effect(() => {
-                    heading.textContent = label.value;
-                }));
-            } else {
-                heading.textContent = title;
-            }
+            // The definition planner titles a group with its inline label: show that label live.
+            const label = groupItem ? itemLabel(host.engine, groupItem, nextPrefix, bindKey) : null;
+            cleanupFns.push(effect(() => {
+                const authored = title.value;
+                heading.textContent = label && authored === groupItem?.label ? label.value : authored;
+            }));
             el.appendChild(heading);
         }
         const groupFullPath = nextPrefix;

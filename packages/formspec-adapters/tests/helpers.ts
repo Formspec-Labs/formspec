@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { vi } from 'vitest';
+import { signal } from '@preact/signals-core';
 import type {
     FieldBehavior, TextInputBehavior, NumberInputBehavior, RadioGroupBehavior,
     CheckboxGroupBehavior, SelectBehavior, DatePickerBehavior, ToggleBehavior,
@@ -180,7 +181,7 @@ export function mockTabs(overrides?: Partial<TabsBehavior>): TabsBehavior {
     return {
         id: 'tabs-1',
         compOverrides: {},
-        tabLabels: ['Tab A', 'Tab B'],
+        tabLabels: [signal('Tab A'), signal('Tab B')],
         tabCount: 2, placement: 'top', defaultTab: 0,
         activeTab: () => 0, setActiveTab: vi.fn(),
         renderTab: vi.fn(),

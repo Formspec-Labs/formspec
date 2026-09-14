@@ -15,6 +15,7 @@ function repeatBehavior() {
     const removeInstance = vi.fn(() => { count.value -= 1; });
     const behavior: AccordionLayoutBehavior = {
         comp: { bind: 'jobs', children: [] },
+        sectionLabel: (index) => signal(`Section ${index + 1}`),
         host: {
             renderComponent: vi.fn(),
             prefix: '',

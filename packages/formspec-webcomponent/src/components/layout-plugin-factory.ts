@@ -1,4 +1,5 @@
 /** @filedesc Factory and shared helpers for layout component plugins. */
+import { computed, type ReadonlySignal } from '@preact/signals-core';
 import { ComponentPlugin, RenderContext } from '../types';
 import { globalRegistry } from '../registry';
 import { renderWithDisplayItemRelevance } from '../adapters/display-host';
@@ -21,6 +22,23 @@ export function resolveCompText(
     const instance = ctx.prefix.slice(0, ctx.prefix.lastIndexOf(']') + 1);
     const scopePath = instance ? `${instance}.${comp.id}` : '';
     return ctx.engine.resolveLocaleString(`$component.${comp.id}.${prop}`, fallback, scopePath);
+}
+
+/**
+ * {@link resolveCompText} as a signal: it recomputes on a locale switch, a Locale Document load, or a change to a
+ * value its `{{}}` reads. Read it in an effect (adapters: `watchText`), never while rendering rows, so a
+ * string change rewrites text in place instead of re-rendering the list around it.
+ */
+export function compText(
+    ctx: Pick<RenderContext, 'engine' | 'prefix'>,
+    comp: { id?: string },
+    prop: string,
+    fallback: string,
+): ReadonlySignal<string> {
+    return computed(() => {
+        ctx.engine.localeSignal.value;
+        return resolveCompText(ctx, comp, prop, fallback);
+    });
 }
 
 export function runLayoutAdapter<T>(type: string, behavior: T, parent: HTMLElement, ctx: RenderContext): void {

@@ -37,7 +37,7 @@ export function renderUSWDSGrid(behavior: GridLayoutBehavior, parent: HTMLElemen
     actx.applyStyle(row, comp.style);
     applyUSWDSSurfaceProps(row, comp, host.resolveToken);
 
-    renderUSWDSLayoutHeader(row, titleText, descriptionText);
+    renderUSWDSLayoutHeader(row, titleText, descriptionText, actx);
 
     for (const child of comp.children || []) {
         const cell = document.createElement('div');

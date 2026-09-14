@@ -1,6 +1,6 @@
 /** @filedesc Tabs behavior hook — manages tabbed interface state. */
-import { signal } from '@preact/signals-core';
-import { effect } from '@preact/signals-core';
+import { effect, signal } from '@preact/signals-core';
+import { compText } from '../components/layout-plugin-factory';
 import type { ComponentDescriptor } from '../hub-types.js';
 import type { TabsBehavior, TabsRefs, BehaviorContext } from './types';
 
@@ -19,7 +19,9 @@ function normalizeTabsPlacement(value: unknown): TabsPlacement {
 
 export function useTabs(ctx: BehaviorContext, comp: TabsComponentDescriptor): TabsBehavior {
     const children: ComponentDescriptor[] = comp.children || [];
-    const tabLabels: string[] = comp.tabLabels || [];
+    // Locale `$component.<id>.tabLabels[N]` (Locale §3.1.8), else the authored label, else "Tab N".
+    const tabLabels = children.map((_, index) =>
+        compText(ctx, comp, `tabLabels[${index}]`, comp.tabLabels?.[index] || `Tab ${index + 1}`));
     const placement = normalizeTabsPlacement(comp.placement);
     const defaultTab = comp.defaultTab || 0;
     const activeTabSignal = signal(defaultTab);

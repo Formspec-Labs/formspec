@@ -111,7 +111,7 @@ export function renderUSWDSCard(behavior: DisplayComponentBehavior, parent: HTML
         header.className = 'usa-card__header';
         const h = document.createElement('h3');
         h.className = 'usa-card__heading';
-        h.textContent = host.resolveCompText(comp, 'title', comp.title);
+        host.watchCompText(comp, 'title', comp.title, (text) => { h.textContent = text; });
         header.appendChild(h);
         container.appendChild(header);
     }
@@ -119,7 +119,7 @@ export function renderUSWDSCard(behavior: DisplayComponentBehavior, parent: HTML
     body.className = 'usa-card__body';
     if (comp.subtitle) {
         const sub = document.createElement('p');
-        sub.textContent = host.resolveCompText(comp, 'subtitle', comp.subtitle);
+        host.watchCompText(comp, 'subtitle', comp.subtitle, (text) => { sub.textContent = text; });
         body.appendChild(sub);
     }
     container.appendChild(body);
@@ -149,11 +149,10 @@ export function renderUSWDSAlert(behavior: DisplayComponentBehavior, parent: HTM
     const body = document.createElement('div');
     body.className = 'usa-alert__body';
 
-    const titleText = host.resolveCompText(comp, 'title', comp.title || '');
-    if (titleText) {
+    if (comp.title) {
         const h = document.createElement('h3');
         h.className = 'usa-alert__heading';
-        h.textContent = titleText;
+        host.watchCompText(comp, 'title', comp.title, (text) => { h.textContent = text; });
         body.appendChild(h);
     }
 
@@ -221,9 +220,9 @@ export function renderUSWDSSummary(behavior: DisplayComponentBehavior, parent: H
     el.className = 'formspec-summary';
 
     if (comp.items) {
-        for (const item of comp.items) {
+        comp.items.forEach((item: any, index: number) => {
             const dt = document.createElement('dt');
-            dt.textContent = item.label || '';
+            host.watchCompText(comp, `items[${index}].label`, item.label || '', (text) => { dt.textContent = text; });
             el.appendChild(dt);
             const dd = document.createElement('dd');
             el.appendChild(dd);
@@ -250,7 +249,7 @@ export function renderUSWDSSummary(behavior: DisplayComponentBehavior, parent: H
                     })
                 );
             }
-        }
+        });
     }
     prose.appendChild(el);
     actx.applyCssClass(prose, comp);

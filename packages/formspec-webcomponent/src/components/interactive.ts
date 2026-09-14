@@ -1,19 +1,26 @@
 /** @filedesc Interactive component plugins: Tabs and ActionButton. */
-import { effect } from '@preact/signals-core';
+import { computed, effect, type ReadonlySignal } from '@preact/signals-core';
 import { ComponentPlugin, RenderContext } from '../types';
 import { useTabs } from '../behaviors/tabs';
 import { globalRegistry } from '../registry';
-import { resolveCompText } from './layout-plugin-factory';
+import { compText } from './layout-plugin-factory';
 
-/** Resolve ActionButton label wrappers while tolerating legacy string values in tests. */
-function resolveActionButtonText(ctx: RenderContext, comp: any, prop: string, fallback: string): string {
+/**
+ * ActionButton label wrappers (`{ literal }` or a Locale `{ ref }`; plain strings tolerated in tests) as a signal
+ * that follows the active locale.
+ */
+function actionButtonText(ctx: RenderContext, comp: any, prop: string, fallback: string): ReadonlySignal<string> {
     const value = comp[prop];
-    if (value && typeof value === 'object') {
-        if (typeof value.literal === 'string') return resolveCompText(ctx, comp, prop, value.literal);
-        if (typeof value.ref === 'string') return ctx.engine.resolveLocaleString(value.ref, fallback);
+    if (value && typeof value === 'object' && typeof value.ref === 'string') {
+        return computed(() => {
+            ctx.engine.localeSignal.value;
+            return ctx.engine.resolveLocaleString(value.ref, fallback);
+        });
     }
-    if (typeof value === 'string') return resolveCompText(ctx, comp, prop, value);
-    return resolveCompText(ctx, comp, prop, fallback);
+    const inline = value && typeof value === 'object' && typeof value.literal === 'string'
+        ? value.literal
+        : typeof value === 'string' ? value : fallback;
+    return compText(ctx, comp, prop, inline);
 }
 
 function actionRefFor(comp: any): string {
@@ -38,20 +45,20 @@ export const ActionButtonPlugin: ComponentPlugin = {
         const actionResolved = ctx.resolveActionRef(actionRef, comp.id).resolved;
         const adapterFn = globalRegistry.resolveAdapterFn('ActionButton');
         if (adapterFn) {
-            const defaultLabel = resolveActionButtonText(ctx, comp, 'label', 'Submit');
-            const pendingLabel = resolveActionButtonText(ctx, comp, 'pendingLabel', 'Submitting\u2026');
+            const defaultLabel = actionButtonText(ctx, comp, 'label', 'Submit');
+            const pendingLabel = actionButtonText(ctx, comp, 'pendingLabel', 'Submitting\u2026');
             const disableWhenPending = comp.disableWhenPending !== false;
             adapterFn({
                 id: comp.id,
                 compOverrides: comp,
-                defaultLabel,
-                pendingLabel,
+                defaultLabel: defaultLabel.peek(),
+                pendingLabel: pendingLabel.peek(),
                 disableWhenPending,
                 bind: (refs: { root: HTMLButtonElement }) => {
                     const button = refs.root;
                     const disposeEffect = effect(() => {
                         const pending = ctx.submitPendingSignal.value;
-                        button.textContent = pending ? pendingLabel : defaultLabel;
+                        button.textContent = pending ? pendingLabel.value : defaultLabel.value;
                         button.disabled = !actionResolved || (disableWhenPending ? pending : false);
                     });
                     const handleClick = () => {
@@ -71,17 +78,16 @@ export const ActionButtonPlugin: ComponentPlugin = {
         button.type = 'button';
         button.className = 'formspec-action formspec-submit formspec-focus-ring';
         if (comp.id) button.id = comp.id;
-        const defaultLabel = resolveActionButtonText(ctx, comp, 'label', 'Submit');
-        const pendingLabel = resolveActionButtonText(ctx, comp, 'pendingLabel', 'Submitting\u2026');
+        const defaultLabel = actionButtonText(ctx, comp, 'label', 'Submit');
+        const pendingLabel = actionButtonText(ctx, comp, 'pendingLabel', 'Submitting\u2026');
         const disableWhenPending = comp.disableWhenPending !== false;
-        button.textContent = defaultLabel;
         button.disabled = !actionResolved;
         ctx.applyCssClass(button, comp);
         ctx.applyAccessibility(button, comp);
         ctx.applyStyle(button, comp.style);
         ctx.cleanupFns.push(effect(() => {
             const pending = ctx.submitPendingSignal.value;
-            button.textContent = pending ? pendingLabel : defaultLabel;
+            button.textContent = pending ? pendingLabel.value : defaultLabel.value;
             button.disabled = !actionResolved || (disableWhenPending ? pending : false);
         }));
         button.addEventListener('click', () => {

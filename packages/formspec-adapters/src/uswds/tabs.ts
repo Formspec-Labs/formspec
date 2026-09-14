@@ -1,5 +1,5 @@
 /** @filedesc USWDS v3 adapter for Tabs — usa-button-group segmented tab bar. */
-import type { TabsBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { watchText, type TabsBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 
 export const renderTabs: AdapterRenderFn<TabsBehavior> = (
     behavior, parent, actx
@@ -55,7 +55,7 @@ export const renderTabs: AdapterRenderFn<TabsBehavior> = (
         btn.setAttribute('aria-controls', `${idBase}-panel-${i}`);
         btn.setAttribute('aria-selected', i === behavior.defaultTab ? 'true' : 'false');
         btn.setAttribute('tabindex', i === behavior.defaultTab ? '0' : '-1');
-        btn.textContent = behavior.tabLabels[i] || `Tab ${i + 1}`;
+        watchText(actx, behavior.tabLabels[i], (text) => { btn.textContent = text; });
         // Active tab: filled button; inactive: outline
         btn.className = i === behavior.defaultTab
             ? 'usa-button'

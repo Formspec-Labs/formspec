@@ -197,6 +197,8 @@ export interface DataTableBehavior {
     bindKey: string;
     fullName: string;
     columns: ReadonlyArray<{ header: string; bind: string; min?: number; max?: number; step?: number }>;
+    /** One localized header per column: follows the active locale; read it in effects, never while building rows. */
+    headers: ReadonlyArray<import('../adapters/layout-behaviors').LocalizedText>;
     showRowNumbers: boolean;
     allowAdd: boolean;
     allowRemove: boolean;
@@ -276,7 +278,8 @@ export interface TabsRefs {
 export interface TabsBehavior {
     id?: string;
     compOverrides: ComponentPresentationOverrides;
-    tabLabels: string[];
+    /** One label per tab: follows the active locale; write it with `watchText`. */
+    tabLabels: ReadonlyArray<import('../adapters/layout-behaviors').LocalizedText>;
     tabCount: number;
     placement: 'top' | 'bottom' | 'left' | 'right';
     defaultTab: number;
