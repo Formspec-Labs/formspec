@@ -683,6 +683,41 @@ describe('Definition item prefix/suffix (core §4.2.3)', () => {
     });
 });
 
+describe('Theme widgetConfig.maxLength (theme §4.2 TextInput)', () => {
+    const presentation = { widgetConfig: { maxLength: 200 } };
+
+    it('applies maxLength to the textarea', () => {
+        const def = baseDef([{ key: 'bio', type: 'field', dataType: 'text', label: 'Bio' }]);
+        const node: LayoutNode = {
+            id: 'bio-field', component: 'TextInput', category: 'field',
+            props: { maxLines: 3 }, cssClasses: [], children: [], bindPath: 'bio', presentation,
+        };
+        const container = renderField(def, node);
+        expect((container.querySelector('textarea') as HTMLTextAreaElement).maxLength).toBe(200);
+    });
+
+    it('applies maxLength to the text input', () => {
+        const def = baseDef([{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }]);
+        const node: LayoutNode = {
+            id: 'name-field', component: 'TextInput', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'name', presentation,
+        };
+        const container = renderField(def, node);
+        expect((container.querySelector('input') as HTMLInputElement).maxLength).toBe(200);
+    });
+
+    it('ignores a maxLength that is not a positive integer', () => {
+        const def = baseDef([{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }]);
+        const node: LayoutNode = {
+            id: 'name-field', component: 'TextInput', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'name',
+            presentation: { widgetConfig: { maxLength: '12' } },
+        };
+        const container = renderField(def, node);
+        expect((container.querySelector('input') as HTMLInputElement).hasAttribute('maxlength')).toBe(false);
+    });
+});
+
 // ── Toggle role="switch" ───────────────────────────────────────────
 
 describe('Toggle — role switch', () => {

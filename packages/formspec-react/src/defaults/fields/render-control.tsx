@@ -29,6 +29,12 @@ function withAdornments(control: React.ReactElement, id: string, { prefix, suffi
     );
 }
 
+/** Theme `widgetConfig.maxLength` (theme §4.2 TextInput) when it is a positive integer. */
+function widgetMaxLength(node: FieldComponentProps['node']): number | undefined {
+    const value = node.presentation?.widgetConfig?.maxLength;
+    return Number.isInteger(value) && (value as number) > 0 ? (value as number) : undefined;
+}
+
 function adornedDescribedBy(describedBy: string | undefined, id: string, { prefix, suffix }: InputAdornments) {
     return [describedBy, prefix ? `${id}-prefix` : '', suffix ? `${id}-suffix` : ''].filter(Boolean).join(' ') || undefined;
 }
@@ -231,6 +237,8 @@ export function renderControl(
             const placeholder = node.props?.placeholder as string | undefined;
             const inputMode = node.props?.inputMode as string | undefined;
             const isTextarea = dataType === 'text' || maxLines != null;
+            // Native limit, as the default webcomponent adapter: theme widgetConfig wins over registry constraints.
+            const maxLength = widgetMaxLength(node) ?? extensionAttrs.maxLength;
             // Component prop wins; else the definition item's prefix/suffix.
             const adornments: InputAdornments = {
                 prefix: (node.props?.prefix as string | undefined) ?? itemAdornments.prefix,
@@ -249,7 +257,7 @@ export function renderControl(
                     placeholder={resolvePlaceholder(placeholder)}
                     value={value ?? ''}
                     readOnly={isReadonly}
-                    maxLength={extensionAttrs.maxLength}
+                    maxLength={maxLength}
                     onChange={(e) => field.setValue(e.target.value)}
                 />
             ) : (
@@ -260,7 +268,7 @@ export function renderControl(
                     readOnly={isReadonly}
                     placeholder={resolvePlaceholder(placeholder)}
                     inputMode={(extensionAttrs.inputMode || inputMode) as React.HTMLAttributes<HTMLInputElement>['inputMode']}
-                    maxLength={extensionAttrs.maxLength}
+                    maxLength={maxLength}
                     pattern={extensionAttrs.pattern}
                     autoComplete={extensionAttrs.autoComplete || autoComplete}
                     onChange={(e) => field.setValue(e.target.value)}
