@@ -69,7 +69,7 @@ impl ExtensionFunctions for FelExtensionHost {
 }
 
 /// Message of a thrown JavaScript value.
-fn thrown_message(thrown: &JsValue) -> String {
+pub(crate) fn thrown_message(thrown: &JsValue) -> String {
     thrown
         .dyn_ref::<js_sys::Error>()
         .map(|error| String::from(error.message()))

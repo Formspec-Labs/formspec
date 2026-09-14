@@ -14,7 +14,8 @@ mod tests {
     use crate::evaluate::evaluate_definition_inner;
     use crate::fel::{
         eval_fel_inner, eval_fel_with_context_inner, eval_fel_with_context_trace_inner,
-        eval_fel_with_trace_inner, prepare_expression_inner,
+        eval_fel_with_trace_inner, interpolate_fel_template_inner, interpolate_template_inner,
+        prepare_expression_inner,
     };
     #[cfg(feature = "fel-authoring")]
     use crate::fel::{rewrite_fel_for_assembly_inner, tokenize_fel_inner};
@@ -1066,5 +1067,70 @@ mod tests {
             eval_fel_with_context_inner("double($qty)", &context, Some(&registry)).unwrap();
         assert_eq!(fel_eval_value(&result), json!(8));
         assert!(eval_fel_with_context_inner("double($qty)", &context, None).is_err());
+    }
+
+    /// Core §4.2.1: `evaluateDefinition` returns `itemText` only when the context asks for it.
+    #[test]
+    fn evaluate_definition_item_text_on_request() {
+        let def = json!({
+            "items": [
+                { "key": "qty", "type": "field", "dataType": "integer", "label": "Qty {{$qty}}", "hint": "Hint" }
+            ]
+        })
+        .to_string();
+        let data = json!({ "qty": 2 }).to_string();
+
+        let plain: Value =
+            serde_json::from_str(&evaluate_definition_inner(&def, &data, None, None).unwrap())
+                .unwrap();
+        assert!(plain.get("itemText").is_none());
+
+        let context = json!({ "itemText": { "localeStrings": { "qty.hint": "Indice {{$qty}}" } } })
+            .to_string();
+        let with_text: Value = serde_json::from_str(
+            &evaluate_definition_inner(&def, &data, Some(context), None).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            with_text["itemText"]["qty"],
+            json!({ "label": "Qty 2", "hint": "Indice 2" })
+        );
+    }
+
+    /// Locale §3.3.1 in one call per template: escapes, failures, and warnings from Rust.
+    #[test]
+    fn interpolate_fel_template_resolves_in_context() {
+        let context = json!({ "fields": { "qty": 4 } }).to_string();
+        let out: Value = serde_json::from_str(
+            &interpolate_fel_template_inner("{{{{ {{$qty}} {{((}}", &context, None).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(out["text"], json!("{{ 4 {{((}}"));
+        assert_eq!(out["warnings"][0]["expression"], json!("(("));
+    }
+
+    /// A host evaluator (JS callback) keeps Rust's rules: rule 2 via the envelope, rule 3a via the AST.
+    #[test]
+    fn interpolate_template_applies_rules_to_host_values() {
+        let out: Value = serde_json::from_str(
+            &interpolate_template_inner("{{$a}} {{bad}} {{null}} {{err}} {{boom}}", |expression| {
+                match expression {
+                    "$a" => Ok(json!({ "value": 1.5, "hasErrorDiagnostics": false }).to_string()),
+                    "err" => Ok(json!({ "value": 2, "hasErrorDiagnostics": true }).to_string()),
+                    "boom" => Err("thrown".to_string()),
+                    _ => Ok(json!({ "value": null }).to_string()),
+                }
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(out["text"], json!("1.5 {{bad}}  {{err}} {{boom}}"));
+        let failed: Vec<&str> = out["warnings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|w| w["expression"].as_str().unwrap())
+            .collect();
+        assert_eq!(failed, vec!["bad", "err", "boom"]);
     }
 }

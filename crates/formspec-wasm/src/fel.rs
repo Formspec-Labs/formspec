@@ -9,9 +9,9 @@
 
 use fel_core::{
     EvaluatorOptions, ExtensionFunctions, Trace, evaluate, evaluate_with,
-    expr_is_interpolation_static_literal, fel_diagnostics_to_json_value, fel_to_ui_json,
-    field_map_from_json_str, formspec_environment_from_json_map, has_error_diagnostics,
-    host_options_from_json, parse, prepare, reject_undefined_functions,
+    fel_diagnostics_to_json_value, fel_to_ui_json, field_map_from_json_str,
+    formspec_environment_from_json_map, has_error_diagnostics, host_options_from_json, parse,
+    prepare, reject_undefined_functions,
 };
 #[cfg(feature = "fel-authoring")]
 use fel_core::{
@@ -36,17 +36,14 @@ use wasm_bindgen::prelude::*;
 
 use crate::extensions::FelExtensionHost;
 use crate::json_host::{parse_json_as, parse_value_str, to_json_string};
+use fel_core::json_to_fel;
+use formspec_eval::interpolation::{
+    Interpolated, interpolate_fel_template as interpolate_fel_template_core, interpolate_template,
+    interpolation_text,
+};
 
 fn parse_fel_source(expression: &str) -> Result<fel_core::Expr, String> {
     parse(expression).map_err(|e| e.to_string())
-}
-
-/// Whether the expression is an interpolation static literal (locale spec §3.3.1).
-#[wasm_bindgen(js_name = "felExprIsInterpolationStaticLiteral")]
-pub fn fel_expr_is_interpolation_static_literal(expression: &str) -> bool {
-    parse(expression)
-        .map(|ast| expr_is_interpolation_static_literal(&ast))
-        .unwrap_or(false)
 }
 
 /// JSON envelope for `evalFEL` / `evalFELWithContext` (value + error-diagnostics flag).
@@ -196,6 +193,87 @@ pub(crate) fn eval_fel_with_context_inner(
     );
     reject_undefined_functions(&result.diagnostics)?;
     fel_eval_envelope_json(&result.value, &result.diagnostics)
+}
+
+// ── Template interpolation (Locale §3.3.1) ─────────────────────
+
+/// JSON `{ text, warnings: [{ expression, message }] }` for an interpolation result.
+fn interpolated_json(interpolated: &Interpolated) -> Result<String, String> {
+    let warnings: Vec<Value> = interpolated
+        .warnings
+        .iter()
+        .map(|w| serde_json::json!({ "expression": w.expression, "message": w.message }))
+        .collect();
+    to_json_string(&serde_json::json!({ "text": interpolated.text, "warnings": warnings }))
+}
+
+/// Resolve `{{expression}}` sequences in `template` against a FEL context (Locale §3.3.1).
+///
+/// `context_json` has the `evalFELWithContext` shape; `extensions` resolves host
+/// extension functions. Returns JSON `{ text, warnings: [{ expression, message }] }`.
+#[wasm_bindgen(js_name = "interpolateFELTemplate")]
+pub fn interpolate_fel_template(
+    template: &str,
+    context_json: &str,
+    extensions: Option<FelExtensionHost>,
+) -> Result<String, JsError> {
+    interpolate_fel_template_inner(
+        template,
+        context_json,
+        extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
+    )
+    .map_err(|e| JsError::new(&e))
+}
+
+pub(crate) fn interpolate_fel_template_inner(
+    template: &str,
+    context_json: &str,
+    extensions: Option<&dyn ExtensionFunctions>,
+) -> Result<String, String> {
+    if !template.contains("{{") {
+        return interpolated_json(&interpolate_template(template, |_| Ok(String::new())));
+    }
+    let ctx: Value = parse_value_str(context_json, "context JSON")?;
+    let ctx_obj = ctx.as_object().ok_or("context must be a JSON object")?;
+    let env = formspec_environment_from_json_map(ctx_obj);
+    interpolated_json(&interpolate_fel_template_core(template, &env, extensions))
+}
+
+/// Resolve `{{expression}}` sequences with a host evaluator under Rust's template rules.
+///
+/// `evaluate(expression)` returns JSON `{ value, hasErrorDiagnostics? }` or throws; a
+/// throw keeps the expression literal. Returns JSON `{ text, warnings }`.
+#[wasm_bindgen(js_name = "interpolateTemplate")]
+pub fn interpolate_template_wasm(
+    template: &str,
+    evaluate: &js_sys::Function,
+) -> Result<String, JsError> {
+    interpolate_template_inner(template, |expression| {
+        evaluate
+            .call1(&JsValue::NULL, &JsValue::from_str(expression))
+            .map_err(|thrown| crate::extensions::thrown_message(&thrown))?
+            .as_string()
+            .ok_or_else(|| "evaluator must return a JSON string".to_string())
+    })
+    .map_err(|e| JsError::new(&e))
+}
+
+pub(crate) fn interpolate_template_inner(
+    template: &str,
+    mut evaluate: impl FnMut(&str) -> Result<String, String>,
+) -> Result<String, String> {
+    interpolated_json(&interpolate_template(template, |expression| {
+        let envelope: Value = serde_json::from_str(&evaluate(expression)?)
+            .map_err(|e| format!("evaluator result is not JSON: {e}"))?;
+        interpolation_text(
+            expression,
+            &json_to_fel(envelope.get("value").unwrap_or(&Value::Null)),
+            envelope
+                .get("hasErrorDiagnostics")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+        )
+    }))
 }
 
 /// Parse a FEL expression and return whether it's valid.

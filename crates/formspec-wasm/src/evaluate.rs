@@ -5,9 +5,8 @@ use std::collections::HashMap;
 use fel_core::ExtensionFunctions;
 use formspec_core::json_object_to_string_map;
 use formspec_eval::{
-    AnswerInput, AnswerState, EvalContext, EvalOptions, EvalTrigger,
-    eval_host_context_from_json_map, evaluate, evaluate_screener_document,
-    evaluation_result_to_json_value, parse_answer_state,
+    AnswerInput, AnswerState, EvalOptions, eval_host_context_from_json_map, evaluate,
+    evaluate_screener_document, evaluation_result_to_json_value, parse_answer_state,
 };
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -48,33 +47,24 @@ pub(crate) fn evaluate_definition_inner(
 
     let data = json_object_to_string_map(&data_val);
 
-    let (context, trigger, instances, constraints) = match context_json {
+    let options = match context_json {
         Some(context_json) => {
             let ctx: Value = parse_value_str(&context_json, "context JSON")?;
             let ctx_obj = ctx.as_object().ok_or("context must be a JSON object")?;
             let bundle = eval_host_context_from_json_map(ctx_obj)?;
-            (
-                bundle.context,
-                bundle.trigger,
-                bundle.instances,
-                bundle.constraints,
-            )
+            EvalOptions {
+                trigger: bundle.trigger,
+                extension_constraints: bundle.constraints,
+                instances: bundle.instances,
+                context: bundle.context,
+                extensions,
+                item_text: bundle.item_text,
+            }
         }
-        None => (
-            EvalContext::default(),
-            EvalTrigger::Continuous,
-            HashMap::new(),
-            Vec::new(),
-        ),
-    };
-
-    let options = EvalOptions {
-        extensions,
-        ..EvalOptions::default()
-            .trigger(trigger)
-            .extension_constraints(constraints)
-            .instances(instances)
-            .context(context)
+        None => EvalOptions {
+            extensions,
+            ..EvalOptions::default()
+        },
     };
 
     let result = evaluate(&definition, &data, &options);
