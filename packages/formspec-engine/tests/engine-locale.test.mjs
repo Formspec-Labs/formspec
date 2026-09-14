@@ -294,9 +294,7 @@ test('Locale item-key presentation strings apply to fields inside a repeatable g
   assertItemKeyedPresentationApplies(repeatEngine(), 'addresses[0].');
 });
 
-test('Locale item-key validation messages apply to fields inside a repeatable group', {
-  todo: 'FormEngine._createFieldVM reads validationResults[basePath], but results are keyed by instance path, so repeat-instance VMs never see errors',
-}, () => {
+test('Locale item-key validation messages apply to fields inside a repeatable group', () => {
   assertItemKeyedMessagesApply(repeatEngine(), 'addresses[0].');
 });
 
@@ -389,6 +387,28 @@ test('getFieldVM returns VMs for repeat group instances', () => {
   // Both should share the same template path
   assert.equal(vm0.templatePath, 'contacts.email');
   assert.equal(vm1.templatePath, 'contacts.email');
+});
+
+test('getFieldVM errors are scoped to each repeat instance', () => {
+  const engine = new FormEngine(minDef({
+    items: [
+      {
+        key: 'contacts',
+        type: 'group',
+        label: 'Contacts',
+        repeatable: true,
+        minRepeat: 2,
+        children: [
+          { key: 'email', type: 'field', dataType: 'string', label: 'Email' },
+        ],
+      },
+    ],
+    binds: [{ path: 'contacts[*].email', required: 'true' }],
+  }));
+  engine.setValue('contacts[1].email', 'a@example.org');
+  const [row0, row1] = [engine.getFieldVM('contacts[0].email'), engine.getFieldVM('contacts[1].email')];
+  assert.deepEqual(row0.errors.value.map((e) => e.code), ['REQUIRED']);
+  assert.deepEqual(row1.errors.value, []);
 });
 
 test('getFieldVM returns undefined for removed repeat instance path', () => {

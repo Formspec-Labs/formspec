@@ -1713,7 +1713,8 @@ export class FormEngine implements IFormEngine {
             getVisible: () => this.relevantSignals[path] ?? this._rx.signal(true),
             getReadonly: () => this.readonlySignals[path] ?? this._rx.signal(false),
             getDisabledDisplay: () => this.getDisabledDisplay(path),
-            getErrors: () => this.validationResults[basePath] ?? this._rx.signal([]),
+            // Validation results are per instance; options are per template.
+            getErrors: () => this.validationResults[path] ?? this._rx.signal([]),
             getOptions: () => this.optionSignals[basePath] ?? this._rx.signal([]),
             getOptionsState: () => this.optionStateSignals[basePath] ?? this._rx.signal({ loading: false, error: null }),
             getOptionSetName: () => item.optionSet,
