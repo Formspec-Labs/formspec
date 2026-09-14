@@ -341,8 +341,9 @@ When resolving a context label, the cascade is:
 
 ##### Context on other properties
 
-The `@context` suffix MAY be used with any localizable property, not
-only `label`. For properties without a Definition-side context
+The `@context` suffix MAY be used with any localizable Item property
+(§3.1.1), not only `label`. Choice option label keys (§3.1.3) take no
+`@context` suffix. For properties without a Definition-side context
 equivalent (i.e., properties other than `label`), the cascade omits
 the inline context step:
 
@@ -371,9 +372,11 @@ Options are addressed by their `value`:
 <fieldKey>.options.<optionValue>.label
 ```
 
-Only the `label` property of choice options is localizable. The core
-Definition schema defines option objects with `value` and `label`
-only; `value` is a data key and is not subject to localization.
+Only the `label` property of choice options is localizable, and the
+key's final segment is exactly `label` — option label keys take no
+`@context` suffix. The core Definition schema defines option objects
+with `value` and `label` only; `value` is a data key and is not subject
+to localization.
 
 Examples:
 
@@ -423,8 +426,8 @@ Examples:
 
 The `$optionSet` prefix is reserved and cannot collide with item keys
 (item keys exclude the `$` character). Escaping rules for option values
-containing dots or backslashes (§3.1.3) apply identically to
-OptionSet-level keys.
+containing dots or backslashes and the no-`@context` rule (§3.1.3)
+apply identically to OptionSet-level keys.
 
 #### 3.1.4 Validation Messages
 
@@ -437,7 +440,8 @@ constraint code (coarse) and per Bind (fine-grained).
 <itemKey>.errors.<code>
 ```
 
-Where `<code>` matches the `code` property of the ValidationResult.
+Where `<code>` matches the `code` property of the ValidationResult and
+is exactly one key segment.
 The `code` property provides machine-readable identifiers designed for
 localization key lookups. Seven codes are reserved for built-in
 constraints: `REQUIRED`, `TYPE_MISMATCH`, `MIN_REPEAT`, `MAX_REPEAT`,
@@ -1111,7 +1115,7 @@ App Manifest association SHOULD perform the following cross-reference checks:
 | Missing translation | Info | A localizable property in the Definition has no corresponding key in the Locale Document. |
 | Invalid option reference | Warning | An `options.<value>` key references a choice value not present in the field's `choices`. |
 | Invalid shape reference | Warning | A `$shape.<id>` key references a shape ID not present in the Definition. |
-| Invalid property | Error | The property segment of a key is not a recognized localizable property. |
+| Invalid property | Error | The property segments of a key are not a recognized localizable property shape (e.g. `city.options.label` with no option value, `city.errors.A.B`, `city.options.yes.label@short`). |
 | Interpolation parse error | Warning | A `{{...}}` expression fails to parse as valid FEL. |
 | Target mismatch | Error | `target.kind` or `target.url` does not identify the selected loaded Definition or App Manifest. |
 | Version mismatch | Error for App Manifest 2.4 association | The target version does not satisfy `compatibleVersions`. |
@@ -1123,6 +1127,7 @@ App Manifest association SHOULD perform the following cross-reference checks:
 | Orphaned `$component` key | Warning | `$component.<id>` references a node ID not present in the Component Document. |
 | Orphaned `$optionSet` key | Warning | `$optionSet.<setName>` references an OptionSet name not declared in the Definition. |
 | Path-form item key | Error | An item-level key's Item segment is a dotted template path (`address.city.label`) or carries `[index]` / `[*]` bracket notation. Item-level keys MUST use the bare Item key (§3.1). |
+| Ambiguous item key | Error | An item-level key names an Item key the Definition declares more than once (core §4.2.1 uniqueness), so it addresses no single Item. |
 
 ### 7.3 Linter Rules
 
@@ -1131,8 +1136,8 @@ The Rust linter owns the canonical Locale semantic-lint codes:
 | Code | Description |
 |------|-------------|
 | E1400 / W1400 | `target.kind` / `target.url` mismatch or compatible-version mismatch against the paired target. |
-| E1401 | Unknown reserved namespace or unsupported terminal property in a string key. |
-| E1402 | Item string key does not name a Definition Item by bare key: unknown key, dotted template path, or indexed path. Path-form keys are rejected even without a paired Definition. |
+| E1401 | Unknown reserved namespace or malformed property in a string key: unsupported terminal, option key without exactly `options.<value>.label`, or error key without exactly one code segment. |
+| E1402 | Item string key does not name exactly one Definition Item by bare key: unknown key, duplicated key, dotted template path, or indexed path. Path-form keys are rejected even without a paired Definition; with one, a dotted path is recognized only when its segments are Definition Item keys (otherwise the key is E1401). |
 | E1403 | Item option or `$optionSet` string key does not resolve to a Definition option value. |
 | E1404 | `$shape` string key does not resolve to a Definition shape id. |
 | E1405 | `{{ ... }}` interpolation segment is not valid FEL. |

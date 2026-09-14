@@ -770,9 +770,10 @@ label)</li>
 </ol>
 <h5 id="context-on-other-properties">Context on other properties</h5>
 <p>The <code>@context</code> suffix MAY be used with any localizable
-property, not only <code>label</code>. For properties without a
-Definition-side context equivalent (i.e., properties other than
-<code>label</code>), the cascade omits the inline context step:</p>
+Item property (§3.1.1), not only <code>label</code>. Choice option label
+keys (§3.1.3) take no <code>@context</code> suffix. For properties
+without a Definition-side context equivalent (i.e., properties other
+than <code>label</code>), the cascade omits the inline context step:</p>
 <table>
 <thead>
 <tr>
@@ -815,9 +816,11 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="
 be localized. Options are addressed by their <code>value</code>:</p>
 <pre><code>&lt;fieldKey&gt;.options.&lt;optionValue&gt;.label</code></pre>
 <p>Only the <code>label</code> property of choice options is
-localizable. The core Definition schema defines option objects with
-<code>value</code> and <code>label</code> only; <code>value</code> is a
-data key and is not subject to localization.</p>
+localizable, and the key’s final segment is exactly <code>label</code> —
+option label keys take no <code>@context</code> suffix. The core
+Definition schema defines option objects with <code>value</code> and
+<code>label</code> only; <code>value</code> is a data key and is not
+subject to localization.</p>
 <p>Examples:</p>
 <div class="sourceCode" id="cb8"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
@@ -856,18 +859,19 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href=
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The <code>$optionSet</code> prefix is reserved and cannot collide
 with item keys (item keys exclude the <code>$</code> character).
-Escaping rules for option values containing dots or backslashes (§3.1.3)
-apply identically to OptionSet-level keys.</p>
+Escaping rules for option values containing dots or backslashes and the
+no-<code>@context</code> rule (§3.1.3) apply identically to
+OptionSet-level keys.</p>
 <h4 id="validation-messages">3.1.4 Validation Messages</h4>
 <p>Validation messages are addressable at two granularities: per
 constraint code (coarse) and per Bind (fine-grained).</p>
 <h5 id="per-constraint-code">Per constraint code</h5>
 <pre><code>&lt;itemKey&gt;.errors.&lt;code&gt;</code></pre>
 <p>Where <code>&lt;code&gt;</code> matches the <code>code</code>
-property of the ValidationResult. The <code>code</code> property
-provides machine-readable identifiers designed for localization key
-lookups. Seven codes are reserved for built-in constraints:
-<code>REQUIRED</code>, <code>TYPE_MISMATCH</code>,
+property of the ValidationResult and is exactly one key segment. The
+<code>code</code> property provides machine-readable identifiers
+designed for localization key lookups. Seven codes are reserved for
+built-in constraints: <code>REQUIRED</code>, <code>TYPE_MISMATCH</code>,
 <code>MIN_REPEAT</code>, <code>MAX_REPEAT</code>,
 <code>CONSTRAINT_FAILED</code>, <code>SHAPE_FAILED</code>,
 <code>EXTERNAL_FAILED</code>. Shape rules MAY define custom codes (e.g.,
@@ -1760,8 +1764,10 @@ present in the Definition.</td>
 <tr>
 <td>Invalid property</td>
 <td>Error</td>
-<td>The property segment of a key is not a recognized localizable
-property.</td>
+<td>The property segments of a key are not a recognized localizable
+property shape (e.g. <code>city.options.label</code> with no option
+value, <code>city.errors.A.B</code>,
+<code>city.options.yes.label@short</code>).</td>
 </tr>
 <tr>
 <td>Interpolation parse error</td>
@@ -1830,6 +1836,12 @@ not declared in the Definition.</td>
 <code>[*]</code> bracket notation. Item-level keys MUST use the bare
 Item key (§3.1).</td>
 </tr>
+<tr>
+<td>Ambiguous item key</td>
+<td>Error</td>
+<td>An item-level key names an Item key the Definition declares more
+than once (core §4.2.1 uniqueness), so it addresses no single Item.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="linter-rules">7.3 Linter Rules</h3>
@@ -1853,14 +1865,18 @@ compatible-version mismatch against the paired target.</td>
 </tr>
 <tr>
 <td>E1401</td>
-<td>Unknown reserved namespace or unsupported terminal property in a
-string key.</td>
+<td>Unknown reserved namespace or malformed property in a string key:
+unsupported terminal, option key without exactly
+<code>options.&lt;value&gt;.label</code>, or error key without exactly
+one code segment.</td>
 </tr>
 <tr>
 <td>E1402</td>
-<td>Item string key does not name a Definition Item by bare key: unknown
-key, dotted template path, or indexed path. Path-form keys are rejected
-even without a paired Definition.</td>
+<td>Item string key does not name exactly one Definition Item by bare
+key: unknown key, duplicated key, dotted template path, or indexed path.
+Path-form keys are rejected even without a paired Definition; with one,
+a dotted path is recognized only when its segments are Definition Item
+keys (otherwise the key is E1401).</td>
 </tr>
 <tr>
 <td>E1403</td>

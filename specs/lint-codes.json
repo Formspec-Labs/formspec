@@ -33,7 +33,7 @@
       "severity": "error",
       "title": "Duplicate item key",
       "specRef": "specs/core/spec.md#213-item",
-      "suggestedFix": "rename one of the duplicate item keys \u2014 each `key` must be unique within its parent scope",
+      "suggestedFix": "rename one of the duplicate item keys \u2014 each `key` must be unique across the entire Definition",
       "fixtures": [
         "tests/fixtures/lint/E200-duplicate-item-key.json"
       ],
@@ -1053,7 +1053,7 @@
       "severity": "error",
       "title": "Locale item key unresolved",
       "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
-      "suggestedFix": "point the Locale item key at an item path in the paired Definition",
+      "suggestedFix": "key item strings by one bare, unique Item key (`city.label`, not `address.city.label` or `lineItems[0].amount.label`)",
       "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
       "state": "tested"
     },

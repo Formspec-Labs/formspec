@@ -277,12 +277,12 @@ impl<'a> Analyzer<'a> {
     }
 
     fn check_option_set_key(&mut self, parts: &[String], json_path: &str) {
-        if parts.len() != 3 || strip_context(&parts[2]) != "label" {
+        if parts.len() != 3 || parts[2] != "label" {
             self.diagnostics.push(error(
                 crate::LintCode::E1401,
                 PASS,
                 json_path,
-                "Locale $optionSet key must use $optionSet.<setName>.<value>.label",
+                "Locale $optionSet key must use $optionSet.<setName>.<value>.label, with no @context suffix",
             ));
             return;
         }
@@ -383,7 +383,7 @@ impl<'a> Analyzer<'a> {
     /// The first key segment is always the bare Item `key`, resolved anywhere in
     /// the item tree; everything after it is the property. Dotted template paths
     /// and indexed keys never name an Item, so they are E1402 even without a
-    /// paired Definition.
+    /// paired Definition. A malformed property on a real Item is E1401.
     fn check_item_key(&mut self, key: &str, json_path: &str) {
         let parts = split_locale_key(key);
         let Some((item_key, property)) = parts.split_first().filter(|(_, p)| !p.is_empty()) else {
@@ -397,7 +397,7 @@ impl<'a> Analyzer<'a> {
         };
         let kind = classify_item_property(property);
 
-        if let Some(depth) = dotted_template_path_depth(property, &kind) {
+        if let Some(depth) = self.dotted_template_path_depth(property, &kind) {
             let path = parts[..=depth].join(".");
             let bare = format!(
                 "{}.{}",
@@ -430,6 +430,17 @@ impl<'a> Analyzer<'a> {
             && let Some(index) = self.definition_index.as_ref()
         {
             match index.by_key.get(item_key) {
+                // Core §4.2.1 E200: a duplicated key names no single Item.
+                Some(_) if index.ambiguous_keys.contains(item_key) => {
+                    self.diagnostics.push(error(
+                        crate::LintCode::E1402,
+                        PASS,
+                        json_path,
+                        format!(
+                            "Locale item key {item_key:?} matches more than one Definition Item (duplicate key, E200)"
+                        ),
+                    ));
+                }
                 Some(item_ref) => item_path = Some(item_ref.full_path.as_str()),
                 None => self.diagnostics.push(error(
                     crate::LintCode::E1402,
@@ -472,12 +483,56 @@ impl<'a> Analyzer<'a> {
                 json_path,
                 format!("Locale key targets non-presentation property {terminal:?}"),
             )),
-            ItemProperty::Unsupported(terminal) => self.diagnostics.push(error(
-                crate::LintCode::E1401,
-                PASS,
-                json_path,
-                format!("Locale key has unsupported terminal property {terminal:?}"),
-            )),
+            ItemProperty::Unsupported(head) => {
+                let message = match head {
+                    "options" => "Locale option key must use <itemKey>.options.<value>.label, with no @context suffix".to_owned(),
+                    "errors" => "Locale error key must use <itemKey>.errors.<code>, with one code segment".to_owned(),
+                    _ => format!(
+                        "Locale key property {:?} is not a localizable Item property",
+                        property.join(".")
+                    ),
+                };
+                self.diagnostics
+                    .push(error(crate::LintCode::E1401, PASS, json_path, message));
+            }
+        }
+    }
+
+    /// Index into `property` of the last item segment of a dotted template path.
+    ///
+    /// `address.city.label` has property `[city, label]`; that is not a known
+    /// property shape, but `city` is an item segment and `[label]` is, so the key
+    /// is the dotted template path `address.city` and this returns `1`. Returns
+    /// `None` for well-formed keys and for malformed properties (E1401/E1407).
+    ///
+    /// With a paired Definition, item segments must be Definition Item keys, so
+    /// `city.foo.label` is a typo (E1401). Without one, any key-shaped segment
+    /// other than the `options` / `errors` property heads counts.
+    fn dotted_template_path_depth(
+        &self,
+        property: &[String],
+        kind: &ItemProperty<'_>,
+    ) -> Option<usize> {
+        if kind.is_known() {
+            return None;
+        }
+        (1..property.len()).find(|&split| {
+            property[..split]
+                .iter()
+                .all(|segment| self.is_item_path_segment(segment))
+                && classify_item_property(&property[split..]).is_known()
+        })
+    }
+
+    /// Whether `segment` can name an Item inside a dotted template path.
+    fn is_item_path_segment(&self, segment: &str) -> bool {
+        let bare = strip_indices(segment);
+        if !is_bare_item_key(&bare) {
+            return false;
+        }
+        match self.definition_index.as_ref() {
+            Some(index) => index.by_key.contains_key(&bare),
+            None => !matches!(bare.as_str(), "options" | "errors"),
         }
     }
 
@@ -599,20 +654,22 @@ enum ItemProperty<'a> {
     Presentation,
     /// `errors.<CODE>`.
     Errors,
-    /// `options.<value>.label`, carrying the unescaped option value.
+    /// `options.<value>.label` (no `@context`), carrying the option value.
     Option(&'a str),
     /// A data or behavior property Locale must not target (E1407).
     Data(&'a str),
-    /// Anything else (E1401).
+    /// Anything else (E1401), carrying the property's first segment.
     Unsupported(&'a str),
 }
 
 impl ItemProperty<'_> {
-    fn is_addressable(&self) -> bool {
-        matches!(self, Self::Presentation | Self::Errors | Self::Option(_))
+    /// Whether the property has a shape Locale defines, localizable or not.
+    fn is_known(&self) -> bool {
+        !matches!(self, Self::Unsupported(_))
     }
 }
 
+/// Classifies an Item property exactly as processors read it (Locale §3.1.1–§3.1.4).
 fn classify_item_property(property: &[String]) -> ItemProperty<'_> {
     let Some(first) = property.first() else {
         return ItemProperty::Unsupported("");
@@ -620,26 +677,13 @@ fn classify_item_property(property: &[String]) -> ItemProperty<'_> {
     let terminal = strip_context(first);
     match (terminal, property) {
         (t, [_]) if ITEM_PRESENTATION_TERMINALS.contains(&t) => ItemProperty::Presentation,
-        ("errors", [_, _, ..]) => ItemProperty::Errors,
-        ("options", [_, value, label]) if strip_context(label) == "label" => {
+        ("errors", [errors, _]) if errors == "errors" => ItemProperty::Errors,
+        ("options", [options, value, label]) if options == "options" && label == "label" => {
             ItemProperty::Option(value)
         }
         (t, _) if DATA_TERMINALS.contains(&t) => ItemProperty::Data(t),
         (t, _) => ItemProperty::Unsupported(t),
     }
-}
-
-/// Index into the full key parts of the last item segment of a dotted path.
-///
-/// `address.city.label` has property `[city, label]`; that is not addressable,
-/// but its suffix `[label]` is, so the key is the dotted template path
-/// `address.city` and this returns `1`. Returns `None` for well-formed keys
-/// and for keys with no addressable suffix (those get E1401/E1407 instead).
-fn dotted_template_path_depth(property: &[String], kind: &ItemProperty<'_>) -> Option<usize> {
-    if kind.is_addressable() {
-        return None;
-    }
-    (1..property.len()).find(|&split| classify_item_property(&property[split..]).is_addressable())
 }
 
 /// Core §4.2.1: an Item `key` matches `[a-zA-Z][a-zA-Z0-9_]*`.
@@ -1072,6 +1116,7 @@ mod tests {
             "lineItems.description.label",
             "lineItems[*].amount.label",
             "amount[0].label",
+            "address.city.dataType",
         ];
         let strings = Value::Object(
             dotted
@@ -1119,6 +1164,83 @@ mod tests {
         assert_eq!(
             codes_at(&diagnostics, "amount.dataType"),
             vec![crate::LintCode::E1407]
+        );
+    }
+
+    #[test]
+    fn malformed_properties_on_a_known_item_are_e1401_not_dotted_paths() {
+        let strings = json!({
+            "city.options.label": "Option sans valeur",
+            "city.foo.label": "Coquille",
+            "city.errors.REQUIRED.extra": "Code en deux segments",
+            "city.options.ottawa.label@short": "Ottawa"
+        });
+
+        let diagnostics = lint_strings(&strings, Some(nested_definition()));
+
+        for key in [
+            "city.options.label",
+            "city.foo.label",
+            "city.errors.REQUIRED.extra",
+            "city.options.ottawa.label@short",
+        ] {
+            assert_eq!(
+                codes_at(&diagnostics, key),
+                vec![crate::LintCode::E1401],
+                "{key}: {diagnostics:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn option_and_error_shapes_are_e1401_without_a_definition() {
+        let strings = json!({
+            "city.options.label": "Option sans valeur",
+            "city.errors.REQUIRED.extra": "Code en deux segments",
+            "city.options.ottawa.label@short": "Ottawa",
+            "$optionSet.cities.ottawa.label@short": "Ottawa"
+        });
+
+        let diagnostics = lint_strings(&strings, None);
+
+        for key in [
+            "city.options.label",
+            "city.errors.REQUIRED.extra",
+            "city.options.ottawa.label@short",
+            "$optionSet.cities.ottawa.label@short",
+        ] {
+            assert_eq!(
+                codes_at(&diagnostics, key),
+                vec![crate::LintCode::E1401],
+                "{key}: {diagnostics:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn duplicate_definition_item_keys_are_ambiguous_locale_keys() {
+        let definition = json!({
+            "$formspec": "1.0",
+            "url": "https://example.com/forms/nested",
+            "version": "1.0.0",
+            "status": "draft",
+            "title": "Duplicate key locale test",
+            "items": [
+                { "key": "home", "type": "group", "label": "Home", "children": [
+                    { "key": "city", "type": "field", "label": "City", "dataType": "string" }
+                ] },
+                { "key": "work", "type": "group", "label": "Work", "children": [
+                    { "key": "city", "type": "field", "label": "City", "dataType": "string" }
+                ] }
+            ]
+        });
+
+        let diagnostics = lint_strings(&json!({ "city.label": "Ville" }), Some(definition));
+
+        assert_eq!(
+            codes_at(&diagnostics, "city.label"),
+            vec![crate::LintCode::E1402],
+            "{diagnostics:?}"
         );
     }
 
