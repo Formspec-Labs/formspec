@@ -12,17 +12,19 @@
         "MIN_REPEAT",
         "MAX_REPEAT",
         "CONSTRAINT_FAILED",
+        "CONSTRAINT_PARSE_ERROR",
+        "SHAPE_FAILED",
+        "EXTERNAL_FAILED",
         "PATTERN_MISMATCH",
         "MAX_LENGTH_EXCEEDED",
         "RANGE_UNDERFLOW",
         "RANGE_OVERFLOW",
-        "SHAPE_FAILED",
         "UNRESOLVED_EXTENSION",
         "EXTENSION_COMPATIBILITY_MISMATCH",
         "EXTENSION_RETIRED",
         "EXTENSION_DEPRECATED"
       ],
-      "description": "Standard validation result codes that both Python and TypeScript runtimes MUST emit identically. The first seven are reserved built-in codes from validation-result.schema.json. The remaining are registry extension codes. Shape-level and external codes (e.g., 'BUDGET_SUM_MISMATCH', 'EIN_NOT_FOUND') are user-defined and not constrained here."
+      "description": "Standard validation result codes that both Python and TypeScript runtimes MUST emit identically. The leading codes are the RESERVED built-in codes (core spec §2.5.1), as in validation-result.schema.json: REQUIRED, TYPE_MISMATCH, MIN_REPEAT, MAX_REPEAT, CONSTRAINT_FAILED, CONSTRAINT_PARSE_ERROR, SHAPE_FAILED, EXTERNAL_FAILED. The remaining are registry extension codes. Shape-level and external codes (e.g., 'BUDGET_SUM_MISMATCH', 'EIN_NOT_FOUND') are user-defined and not constrained here."
     }
   },
   "type": "object",
