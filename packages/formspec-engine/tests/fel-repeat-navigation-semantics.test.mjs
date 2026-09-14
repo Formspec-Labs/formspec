@@ -139,3 +139,51 @@ test('quantifier predicates support $.field when elements are objects (§3.5.1)'
     1,
   );
 });
+
+test('a repeat row or group path is its own lexical scope for $sibling refs (Core §3.2.1)', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'http://example.org/fel-row-scope',
+    version: '1.0.0',
+    title: 'FEL Row Scope',
+    items: [
+      { key: 'employer', type: 'field', dataType: 'string', label: 'Top-level employer' },
+      {
+        key: 'jobs',
+        type: 'group',
+        label: 'Jobs',
+        repeatable: true,
+        minRepeat: 2,
+        children: [
+          { key: 'employer', type: 'field', dataType: 'string', label: 'Employer' },
+          { key: 'current', type: 'field', dataType: 'boolean', label: 'Current' },
+          { key: 'note', type: 'display', label: 'Note' },
+          {
+            key: 'address',
+            type: 'group',
+            label: 'Address',
+            children: [{ key: 'city', type: 'field', dataType: 'string', label: 'City' }]
+          }
+        ]
+      }
+    ]
+  });
+  engine.setValue('employer', 'Self');
+  engine.setValue('jobs[0].employer', 'Acme');
+  engine.setValue('jobs[1].employer', 'Beta');
+  engine.setValue('jobs[1].current', true);
+  engine.setValue('jobs[1].address.city', 'Oslo');
+
+  assert.equal(engine.compileExpression('$employer', 'jobs[0]')(), 'Acme');
+  assert.equal(engine.compileExpression('$employer', 'jobs[1]')(), 'Beta');
+  assert.equal(engine.compileExpression("$current and $employer = 'Beta'", 'jobs[1]')(), true);
+  assert.equal(engine.compileExpression('$jobs.employer', 'jobs[1]')(), 'Beta');
+  assert.equal(engine.compileExpression('@index', 'jobs[1]')(), 2);
+  assert.equal(engine.compileExpression('$city', 'jobs[1].address')(), 'Oslo');
+  assert.equal(engine.compileExpression('$employer', 'jobs[1].address')(), 'Beta', 'row scope still encloses a nested group');
+
+  assert.equal(engine.compileExpression('$employer', 'jobs[0].note')(), 'Acme', 'display items resolve in their parent row');
+  assert.equal(engine.compileExpression('$employer', 'jobs[1].current')(), 'Beta', 'fields resolve in their parent row');
+  assert.equal(engine.compileExpression('$employer', '')(), 'Self');
+  assert.equal(engine.compileExpression('$employer', 'jobs')(), 'Self', 'the repeat collection path is not a row scope');
+});

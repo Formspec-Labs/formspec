@@ -8,6 +8,7 @@ import type { FormFieldValue } from '../interfaces.js';
 import type { EngineSignal } from '../reactivity/types.js';
 import type { EngineBindConfig } from './helpers.js';
 import {
+    appendPath,
     buildGroupSnapshotForPath,
     buildRepeatCollection,
     cloneValue,
@@ -16,6 +17,7 @@ import {
     parentPathOf,
     setExpressionContextValue,
     snapshotSignals,
+    splitIndexedPath,
     tagFelValueByPath,
     toBasePath,
     toFelIndexedPath,
@@ -185,6 +187,29 @@ export function buildFelRepeatWasmContext(options: {
     return parent;
 }
 
+/**
+ * Lexical scopes enclosing `currentItemPath`, outermost first (Core §3.2.1). A group or repeat-row path
+ * (`jobs[0]`, `jobs[0].address`) is its own innermost scope, so a component `when` on a row sees the row's
+ * fields as `$sibling`; a field path's innermost scope is its parent, matching Rust bind evaluation.
+ */
+export function lexicalScopeChain(
+    currentItemPath: string,
+    fieldDataTypes: Record<string, string | undefined>,
+): string[] {
+    if (!currentItemPath) {
+        return [];
+    }
+    const isField = Object.prototype.hasOwnProperty.call(fieldDataTypes, toBasePath(currentItemPath));
+    const innermost = isField ? parentPathOf(currentItemPath) : currentItemPath;
+    const chain: string[] = [];
+    let current = '';
+    for (const segment of splitIndexedPath(innermost)) {
+        current = current ? appendPath(current, segment) : segment;
+        chain.push(current);
+    }
+    return chain;
+}
+
 export interface WasmFelContextBuildInput {
     currentItemPath: string;
     data: Record<string, any>;
@@ -239,21 +264,15 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
         );
     }
 
-    const scopePath = parentPathOf(options.currentItemPath);
-    if (scopePath) {
-        const prefixA = `${scopePath}.`;
-        const prefixB = `${scopePath}[`;
+    const scopes = lexicalScopeChain(options.currentItemPath, options.fieldDataTypes);
+    // Outermost scope first so the nearest enclosing scope's names win.
+    for (const scope of scopes) {
+        const prefix = `${scope}.`;
         for (const [path, value] of Object.entries(rawFields)) {
-            if (path.startsWith(prefixA)) {
+            if (path.startsWith(prefix)) {
                 setExpressionContextValue(
                     fields,
-                    path.slice(prefixA.length),
-                    toWasmContextValue(tagFelValueByPath(path, value, options.fieldDataTypes)),
-                );
-            } else if (path.startsWith(prefixB)) {
-                setExpressionContextValue(
-                    fields,
-                    path.slice(scopePath.length + 1),
+                    path.slice(prefix.length),
                     toWasmContextValue(tagFelValueByPath(path, value, options.fieldDataTypes)),
                 );
             }
@@ -261,6 +280,7 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
     }
 
     const mipStates: WasmFelContext['mipStates'] = {};
+    const mipStatesByPath = new Map<string, NonNullable<WasmFelContext['mipStates']>[string]>();
     for (const path of Object.keys(options.fieldSignals)) {
         const state = {
             valid: (options.validationResults[path]?.value ?? []).every((r) => r.severity !== 'error'),
@@ -273,13 +293,13 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
         } else {
             mipStates[path] = state;
         }
-        if (scopePath) {
-            const prefixA = `${scopePath}.`;
-            const prefixB = `${scopePath}[`;
-            if (path.startsWith(prefixA)) {
-                mipStates[path.slice(prefixA.length)] = { ...state };
-            } else if (path.startsWith(prefixB)) {
-                mipStates[path.slice(scopePath.length + 1)] = { ...state };
+        mipStatesByPath.set(path, state);
+    }
+    for (const scope of scopes) {
+        const prefix = `${scope}.`;
+        for (const [path, state] of mipStatesByPath) {
+            if (path.startsWith(prefix)) {
+                mipStates[path.slice(prefix.length)] = { ...state };
             }
         }
     }
