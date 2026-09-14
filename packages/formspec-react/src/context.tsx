@@ -373,7 +373,7 @@ export interface FormspecProviderProps {
      * semantic controls. Omit for ordinary human-only rendering.
      */
     semanticControlScope?: SemanticControlScope;
-    /** Initial response data to pre-populate fields (for edit flows). */
+    /** Response `data` to load for edit flows (`engine.loadResponseData`: every saved repeat row is kept). */
     initialData?: Record<string, any>;
     /** Registry entries for extension field validation. */
     registryEntries?: any[];
@@ -525,7 +525,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             issuerOverride,
         });
         if (initialData) {
-            applyInitialData(eng, initialData);
+            eng.loadResponseData(initialData);
         }
         return eng;
     }, [externalEngine, definition, registryEntries, runtimeContext, initialData, issuerFetcher]);
@@ -793,29 +793,6 @@ export function emitThemeTokens(
     const el = target ?? document.documentElement;
     for (const [key, value] of Object.entries(tokens)) {
         el.style.setProperty(`--formspec-${key.replace(/\./g, '-')}`, String(value));
-    }
-}
-
-/** Walk nested initial data and set leaf values on the engine with dotted paths. */
-function applyInitialData(engine: IFormEngine, data: Record<string, any>, prefix = ''): void {
-    for (const [key, value] of Object.entries(data)) {
-        const path = prefix ? `${prefix}.${key}` : key;
-        if (Array.isArray(value)) {
-            // Repeat group: ensure instances exist, then recurse into each
-            const currentCount = engine.repeats[path]?.value ?? 0;
-            for (let i = currentCount; i < value.length; i++) {
-                engine.addRepeatInstance(path);
-            }
-            for (let i = 0; i < value.length; i++) {
-                if (value[i] != null && typeof value[i] === 'object') {
-                    applyInitialData(engine, value[i], `${path}[${i}]`);
-                }
-            }
-        } else if (value !== null && typeof value === 'object') {
-            applyInitialData(engine, value, path);
-        } else {
-            engine.setValue(path, value);
-        }
     }
 }
 

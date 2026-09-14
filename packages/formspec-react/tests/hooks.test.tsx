@@ -492,6 +492,49 @@ describe('FormspecProvider initialData', () => {
         expect(nameResult.current.value).toBe('Bob');
         expect(ageResult.current.value).toBe(25);
     });
+
+    it('keeps saved repeat rows past maxRepeat and reports MAX_REPEAT', () => {
+        const definition = {
+            ...testDefinition,
+            items: [{
+                key: 'jobs',
+                type: 'group',
+                label: 'Jobs',
+                repeatable: true,
+                maxRepeat: 2,
+                children: [{ key: 'employer', type: 'field', dataType: 'string', label: 'Employer' }],
+            }],
+        };
+        const result = { current: null as any };
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+
+        function Inner() {
+            result.current = useFormspecContext().engine;
+            return null;
+        }
+
+        flushSync(() => {
+            root.render(
+                <FormspecProvider
+                    definition={definition}
+                    initialData={{ jobs: [{ employer: 'ACME' }, { employer: 'Globex' }, { employer: 'Initech' }] }}
+                >
+                    <Inner />
+                </FormspecProvider>
+            );
+        });
+
+        const engine = result.current;
+        expect(engine.repeats.jobs.value).toBe(3);
+        expect(engine.getResponse().data.jobs).toEqual([
+            { employer: 'ACME' },
+            { employer: 'Globex' },
+            { employer: 'Initech' },
+        ]);
+        expect(engine.getValidationReport().results.map((r: any) => r.code)).toContain('MAX_REPEAT');
+    });
 });
 
 // ── registryEntries prop ─────────────────────────────────────────
