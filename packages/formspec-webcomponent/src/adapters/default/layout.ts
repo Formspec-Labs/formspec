@@ -263,7 +263,7 @@ export function renderPanel(behavior: PanelLayoutBehavior, parent: HTMLElement, 
 }
 
 export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
-    const { comp, host, repeatCount, groupLabel, addInstance, removeInstance } = behavior;
+    const { comp, host, repeatCount, groupLabel, relevant, canAdd, canRemove, addInstance, removeInstance } = behavior;
     const el = document.createElement('div');
     if (comp.id) el.id = comp.id;
     el.className = 'formspec-accordion';
@@ -292,7 +292,14 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
         liveRegion.className = 'formspec-sr-only';
         liveRegion.setAttribute('aria-live', 'polite');
         host.cleanupFns.push(effect(() => {
+            wrapper.classList.toggle('formspec-hidden', !relevant.value);
+        }));
+        host.cleanupFns.push(effect(() => {
+            addBtn.classList.toggle('formspec-hidden', !canAdd.value);
+        }));
+        host.cleanupFns.push(effect(() => {
             const count = repeatCount.value;
+            const showRemove = canRemove.value;
             const expandedIndex = typeof comp.defaultOpen === 'number'
                 ? comp.defaultOpen
                 : count > 0
@@ -319,26 +326,28 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
                 for (const child of comp.children || []) {
                     host.renderComponent(child, content, instancePrefix);
                 }
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'formspec-repeat-remove formspec-button-danger formspec-focus-ring';
-                removeBtn.textContent = `Remove ${groupLabel}`;
-                removeBtn.setAttribute('aria-label', `Remove ${groupLabel} ${i + 1}`);
-                const idx = i;
-                removeBtn.addEventListener('click', () => {
-                    removeInstance(idx);
-                    const newCount = Math.max(0, count - 1);
-                    liveRegion.textContent = `${groupLabel} ${idx + 1} removed. ${newCount} remaining.`;
-                    queueMicrotask(() => {
-                        if (newCount === 0) {
-                            addBtn.focus();
-                            return;
-                        }
-                        const targetDetails = detailsEls[Math.min(idx, newCount - 1)];
-                        targetDetails?.querySelector<HTMLElement>('input, select, textarea, button')?.focus();
+                if (showRemove) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'formspec-repeat-remove formspec-button-danger formspec-focus-ring';
+                    removeBtn.textContent = `Remove ${groupLabel}`;
+                    removeBtn.setAttribute('aria-label', `Remove ${groupLabel} ${i + 1}`);
+                    const idx = i;
+                    removeBtn.addEventListener('click', () => {
+                        removeInstance(idx);
+                        const newCount = Math.max(0, count - 1);
+                        liveRegion.textContent = `${groupLabel} ${idx + 1} removed. ${newCount} remaining.`;
+                        queueMicrotask(() => {
+                            if (newCount === 0) {
+                                addBtn.focus();
+                                return;
+                            }
+                            const targetDetails = detailsEls[Math.min(idx, newCount - 1)];
+                            targetDetails?.querySelector<HTMLElement>('input, select, textarea, button')?.focus();
+                        });
                     });
-                });
-                content.appendChild(removeBtn);
+                    content.appendChild(removeBtn);
+                }
                 details.appendChild(content);
 
                 details.addEventListener('toggle', () => {
@@ -354,6 +363,7 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
             previousCount = count;
         }));
         addBtn.addEventListener('click', () => {
+            if (!canAdd.value) return;
             addInstance();
             const newCount = repeatCount.value;
             liveRegion.textContent = `${groupLabel} ${newCount} added. ${newCount} total.`;

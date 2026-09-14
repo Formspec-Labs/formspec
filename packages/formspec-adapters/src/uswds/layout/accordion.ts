@@ -31,14 +31,13 @@ export function renderUSWDSAccordion(
     parent: HTMLElement,
     actx: AdapterContext
 ): void {
-    const { comp, host, repeatCount, groupLabel, addInstance, removeInstance } = behavior;
+    const { comp, host, repeatCount, groupLabel, relevant, canAdd, canRemove, addInstance, removeInstance } = behavior;
     const el = document.createElement('div');
     if (comp.id) el.id = comp.id;
     el.className = 'usa-accordion formspec-accordion';
     actx.applyCssClass(el, comp);
     actx.applyAccessibility(el, comp);
     actx.applyStyle(el, comp.style);
-    parent.appendChild(el);
 
     const bindKey = comp.bind;
     const labels: string[] = comp.labels || [];
@@ -47,11 +46,35 @@ export function renderUSWDSAccordion(
     const idPrefix = comp.id ? `${comp.id}-` : 'acc-';
 
     if (bindKey) {
+        // One container holds panels, Add, and the live region so relevance hides all repeat chrome together.
+        const wrapper = document.createElement('div');
+        wrapper.className = 'formspec-repeat formspec-repeat--accordion';
+        wrapper.dataset.bind = bindKey;
+        parent.appendChild(wrapper);
+        wrapper.appendChild(el);
         el.classList.add('formspec-accordion--repeat');
         const fullName = host.prefix ? `${host.prefix}.${bindKey}` : bindKey;
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'usa-button usa-button--outline formspec-repeat-add formspec-focus-ring';
+        addBtn.textContent = `Add ${groupLabel}`;
+        const liveRegion = document.createElement('div');
+        liveRegion.className = 'formspec-sr-only';
+        liveRegion.setAttribute('aria-live', 'polite');
+        const focusPanel = (panel: { content: HTMLElement } | undefined) =>
+            panel?.content.querySelector<HTMLElement>('input, select, textarea, button')?.focus();
+
+        host.cleanupFns.push(effect(() => {
+            wrapper.classList.toggle('formspec-hidden', !relevant.value);
+        }));
+        host.cleanupFns.push(effect(() => {
+            addBtn.classList.toggle('formspec-hidden', !canAdd.value);
+        }));
         host.cleanupFns.push(
             effect(() => {
                 const count = repeatCount.value;
+                const showRemove = canRemove.value;
                 const expandedIndex =
                     typeof comp.defaultOpen === 'number'
                         ? comp.defaultOpen
@@ -85,16 +108,24 @@ export function renderUSWDSAccordion(
                     for (const child of comp.children || []) {
                         host.renderComponent(child, content, instancePrefix);
                     }
-                    const removeBtn = document.createElement('button');
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'usa-button usa-button--unstyled formspec-focus-ring';
-                    removeBtn.textContent = `Remove ${groupLabel}`;
-                    removeBtn.setAttribute('aria-label', `Remove ${groupLabel} ${i + 1}`);
-                    const idx = i;
-                    removeBtn.addEventListener('click', () => {
-                        removeInstance(idx);
-                    });
-                    content.appendChild(removeBtn);
+                    if (showRemove) {
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'usa-button usa-button--unstyled formspec-repeat-remove formspec-focus-ring';
+                        removeBtn.textContent = `Remove ${groupLabel}`;
+                        removeBtn.setAttribute('aria-label', `Remove ${groupLabel} ${i + 1}`);
+                        const idx = i;
+                        removeBtn.addEventListener('click', () => {
+                            removeInstance(idx);
+                            const newCount = Math.max(0, count - 1);
+                            liveRegion.textContent = `${groupLabel} ${idx + 1} removed. ${newCount} remaining.`;
+                            queueMicrotask(() => {
+                                if (newCount === 0) addBtn.focus();
+                                else focusPanel(panels[Math.min(idx, newCount - 1)]);
+                            });
+                        });
+                        content.appendChild(removeBtn);
+                    }
 
                     el.appendChild(heading);
                     el.appendChild(content);
@@ -106,15 +137,17 @@ export function renderUSWDSAccordion(
             })
         );
 
-        const addBtn = document.createElement('button');
-        addBtn.type = 'button';
-        addBtn.className = 'usa-button usa-button--outline formspec-focus-ring';
-        addBtn.textContent = `Add ${groupLabel}`;
         addBtn.addEventListener('click', () => {
+            if (!canAdd.value) return;
             addInstance();
+            const newCount = repeatCount.value;
+            liveRegion.textContent = `${groupLabel} ${newCount} added. ${newCount} total.`;
+            queueMicrotask(() => focusPanel(panels[panels.length - 1]));
         });
-        parent.appendChild(addBtn);
+        wrapper.appendChild(addBtn);
+        wrapper.appendChild(liveRegion);
     } else {
+        parent.appendChild(el);
         const children: any[] = comp.children || [];
         for (let i = 0; i < children.length; i++) {
             const contentId = `${idPrefix}panel-${i}`;

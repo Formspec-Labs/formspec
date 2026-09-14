@@ -16,6 +16,7 @@ import type { ValidationResult } from '@formspec-org/types';
 import { useWizard } from '../behaviors/wizard';
 import { useTabs } from '../behaviors/tabs';
 import { applySurfaceProps } from '../adapters/default/layout';
+import { repeatAffordances } from './repeat-affordances';
 
 export type { RenderHost } from '../hub-types.js';
 
@@ -150,6 +151,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         addBtn.className = 'formspec-repeat-add formspec-focus-ring';
         const item = host.findItemByKey(bindKey);
         const groupLabel = item?.label || bindKey;
+        const { count: repeatCount, relevant, canAdd, canRemove } = repeatAffordances(host.engine, fullRepeatPath, item);
         addBtn.textContent = `Add ${groupLabel}`;
         const liveRegion = document.createElement('div');
         liveRegion.className = 'formspec-sr-only';
@@ -167,7 +169,14 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         };
 
         host.cleanupFns.push(effect(() => {
-            const count = host.engine.repeats[fullRepeatPath]?.value || 0;
+            container.classList.toggle('formspec-hidden', !relevant.value);
+        }));
+        host.cleanupFns.push(effect(() => {
+            addBtn.classList.toggle('formspec-hidden', !canAdd.value);
+        }));
+        host.cleanupFns.push(effect(() => {
+            const count = repeatCount.value;
+            const showRemove = canRemove.value;
             disposeInner();
             list.replaceChildren();
 
@@ -193,6 +202,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
                     emitNode(repeatHost, child, instanceWrapper, instancePrefix, headingLevel);
                 }
 
+                if (!showRemove) continue;
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
                 removeBtn.className = 'formspec-repeat-remove formspec-button-danger formspec-focus-ring';
@@ -222,8 +232,9 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
             disposeInner();
         });
         addBtn.addEventListener('click', () => {
+            if (!canAdd.value) return;
             host.engine.addRepeatInstance(fullRepeatPath);
-            const newCount = (host.engine.repeats[fullRepeatPath]?.value || 0);
+            const newCount = repeatCount.value;
             liveRegion.textContent = `${groupLabel} ${newCount} added. ${newCount} total.`;
             queueMicrotask(() => {
                 const instances = container.querySelectorAll<HTMLElement>('.formspec-repeat-instance');

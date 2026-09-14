@@ -2,6 +2,7 @@
 import type { RenderContext } from '../types';
 import { layoutHostSlice } from '../adapters/layout-host';
 import { resolveCompText } from './layout-plugin-factory';
+import { repeatAffordances } from '../rendering/repeat-affordances';
 import type {
     SectionLayoutBehavior,
     StackLayoutBehavior,
@@ -59,17 +60,20 @@ export function buildPanelBehavior(comp: any, ctx: RenderContext): PanelLayoutBe
 export function buildAccordionBehavior(comp: any, ctx: RenderContext): AccordionLayoutBehavior {
     const bindKey = comp.bind;
     const fullName = ctx.prefix ? `${ctx.prefix}.${bindKey}` : bindKey;
-    const repeatCount = bindKey ? ctx.engine.repeats[fullName] : { value: 0 };
     const item = bindKey ? ctx.findItemByKey(bindKey) : null;
     const groupLabel = item?.label || bindKey || '';
+    const { count, relevant, canAdd, canRemove } = repeatAffordances(ctx.engine, fullName ?? '', item);
 
     return {
         comp,
         host: layoutHostSlice(ctx),
-        repeatCount: repeatCount as any,
+        repeatCount: count,
         groupLabel,
+        relevant,
+        canAdd,
+        canRemove,
         addInstance: () => {
-            if (bindKey) ctx.engine.addRepeatInstance(fullName);
+            if (bindKey && canAdd.value) ctx.engine.addRepeatInstance(fullName);
         },
         removeInstance: (index: number) => {
             if (bindKey) ctx.engine.removeRepeatInstance(fullName, index);

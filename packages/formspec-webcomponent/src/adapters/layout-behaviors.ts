@@ -46,9 +46,15 @@ export interface AccordionLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
     /** Current number of repeat instances (only when bound). */
-    repeatCount: import('@preact/signals-core').Signal<number>;
+    repeatCount: import('@preact/signals-core').ReadonlySignal<number>;
     /** Resolved label for the group/item being repeated. */
     groupLabel: string;
+    /** False while the bound group is non-relevant: hide the whole repeat container (headings, Add, Remove). */
+    relevant: import('@preact/signals-core').ReadonlySignal<boolean>;
+    /** False at `maxRepeat`: hide Add. */
+    canAdd: import('@preact/signals-core').ReadonlySignal<boolean>;
+    /** False at or below `minRepeat`: omit Remove. */
+    canRemove: import('@preact/signals-core').ReadonlySignal<boolean>;
     /** Add a new repeat instance. */
     addInstance(): void;
     /** Remove a repeat instance by index. */
