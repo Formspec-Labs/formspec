@@ -291,7 +291,7 @@
         "Locale Documents are display-only sidecars — they MUST NOT affect data collection, validation logic, or behavioral semantics.",
         "Locale 2.0 targets one exact Definition or App Manifest through target={kind,url,compatibleVersions?}; loaded identity is the complete target-kind, target-URL, normalized-locale tuple.",
         "Resolve localized strings using a deterministic target-bounded cascade: regional locale → explicit or base language locale for the same target → that target's inline or runtime default. Fallback never crosses target identity.",
-        "String keys use dot-delimited paths (itemKey.property) to target specific localizable properties; unmatched keys are silently ignored.",
+        "Item string keys are <itemKey>.<property> with the bare, Definition-unique Item key (never a dotted template or indexed path); keys that match no localizable member of the exact target SHOULD produce a warning.",
         "Surface shell strings use the closed $module.x-formspec-surface.shell.<SurfaceStringKey> family one-for-one with the runtime inventory.",
         "FEL interpolation via {{expression}} syntax is the only authored template language and is evaluated at render time against the key-specific read-only context; broken expressions fall back to the raw template string with a diagnostic."
       ],
