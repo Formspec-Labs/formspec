@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import {
   allDataTypes,
+  bindEntriesFor,
   bindFor,
   browseExtensions,
   componentFor,
@@ -15,6 +16,7 @@ import {
   itemAt,
   itemPaths,
   listRegistries,
+  mergeBindProperties,
   normalizeBinds,
   optionSetUsage,
   resolveExtension,
@@ -53,6 +55,7 @@ describe('package export boundary', () => {
   it('keeps query helpers available through the package root', () => {
     const rootExports = [
       allDataTypes,
+      bindEntriesFor,
       bindFor,
       browseExtensions,
       componentFor,
@@ -64,6 +67,7 @@ describe('package export boundary', () => {
       itemAt,
       itemPaths,
       listRegistries,
+      mergeBindProperties,
       normalizeBinds,
       optionSetUsage,
       resolveExtension,

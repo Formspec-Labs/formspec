@@ -252,9 +252,13 @@ function rewriteAllPathReferences(
   const rewriteExpr = (expr: string) => rewriteFieldRef(expr, oldPath, newPath);
   const rewritePath = (path: string) => rewritePathPrefix(path, oldPath, newPath);
 
-  for (const bind of state.definition.binds ?? []) {
-    bind.path = rewritePath(bind.path);
-    rewriteBindFelExpressions(bind, rewriteExpr);
+  if (state.definition.binds) {
+    for (const bind of state.definition.binds) {
+      bind.path = rewritePath(bind.path);
+      rewriteBindFelExpressions(bind, rewriteExpr);
+    }
+    // Paths changed in place: a new array, so bindIndex never serves the old paths.
+    state.definition.binds = [...state.definition.binds];
   }
 
   for (const shape of state.definition.shapes ?? []) {

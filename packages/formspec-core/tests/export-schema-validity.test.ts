@@ -386,6 +386,22 @@ describe('componentDocumentIsDerived', () => {
     project.dispatch({ type: 'component.setNodeType', payload: { node: { bind: 'f0' }, component: 'Textarea' } });
     expect(time(() => expect(project.export()).toHaveProperty('component'))).toBeLessThan(1000);
   });
+
+  it('bindFor over every field stays linear in the bind count', () => {
+    // Bound: a check that reads each field's merged bind (Form Health coverage) re-runs on
+    // every state change; a scan of every bind per lookup made it O(fields × binds).
+    const items = Array.from({ length: 2000 }, (_, i) => ({ type: 'field', key: `f${i}`, label: `F${i}`, dataType: 'string' }));
+    const binds = items.map(item => ({ path: item.key, required: 'true' }));
+    const project = createRawProject({
+      seed: { definition: { $formspec: '1.0', url: 'urn:perf', version: '1.0.0', status: 'draft', title: 'T', items, binds } as any },
+    });
+    project.bindFor('f0');
+    const start = performance.now();
+    const merged = items.map(item => project.bindFor(item.key));
+    const elapsed = performance.now() - start;
+    expect(merged.every(bind => bind?.required === 'true')).toBe(true);
+    expect(elapsed).toBeLessThan(25);
+  });
 });
 
 // ── Export → import inverts the export bind transform ──────────────

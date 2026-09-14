@@ -5,12 +5,12 @@
  * Every function receives `state: ProjectState` as its first parameter
  * and returns a result with no side effects.
  */
-import type { FormBind, FormItem, FormShape } from '@formspec-org/types';
+import type { FormItem, FormShape } from '@formspec-org/types';
 import { CORE_FIELD_DATA_TYPES, type CoreFieldDataType } from '@formspec-org/types';
 import { itemAtPath, normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
 import { editableComponentTree, walkComponentTree } from '../component-tree.js';
 import { registryEntry } from '../registry-entry.js';
-import { bindEntriesFor, bindTargetKey, mergeBindProperties } from '../definition-binds.js';
+import { bindEntriesFor, mergeBindProperties } from '../definition-binds.js';
 import { resolveThemeCascade, type ThemeCascadeInput } from '../theme-cascade.js';
 import type {
   ProjectState,
@@ -75,17 +75,9 @@ export function itemAt(state: ProjectState, path: string): FormItem | undefined 
  */
 export function responseSchemaRows(state: ProjectState): ResponseSchemaRow[] {
   const rows: ResponseSchemaRow[] = [];
-  const bindsByTarget = new Map<string, FormBind[]>();
-  for (const bind of state.definition.binds ?? []) {
-    if (typeof bind.path !== 'string') continue;
-    const key = bindTargetKey(bind.path);
-    const entries = bindsByTarget.get(key);
-    if (entries) entries.push(bind);
-    else bindsByTarget.set(key, [bind]);
-  }
   const getBindFor = (path: string) => {
-    const entries = bindsByTarget.get(path);
-    return entries ? mergeBindProperties(entries) : undefined;
+    const entries = bindEntriesFor(state.definition.binds, path);
+    return entries.length ? mergeBindProperties(entries) : undefined;
   };
 
   const jsonTypeForItem = (item: FormItem): ResponseSchemaRow['jsonType'] => {

@@ -17,6 +17,7 @@ export { resolveThemeCascade } from './theme-cascade.js';
 export type { ResolvedProperty, ThemeCascadeInput, DefinitionCascadeInput } from './theme-cascade.js';
 export { resolvePageStructure } from './page-resolution.js';
 export { componentDocumentIsDerived } from './component-export.js';
+export { bindEntriesFor, mergeBindProperties } from './definition-binds.js';
 export {
   fieldPaths,
   itemPaths,

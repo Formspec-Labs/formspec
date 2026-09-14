@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeBinds, shapesForPath, bindFor } from '../src/queries/field-queries.js';
 import type { ProjectState } from '../src/types.js';
+import { bindEntriesFor, createRawProject } from '../src/index.js';
 
 function makeState(overrides: {
   definition?: Record<string, unknown>;
@@ -163,5 +164,36 @@ describe('bindFor: multiple entries per path', () => {
       },
     });
     expect(bindFor(state, 'jobs.hours')).toBeUndefined();
+  });
+});
+
+describe('bindFor: indexed lookup', () => {
+  it('reads fresh binds after a dispatch replaces them', () => {
+    const project = createRawProject();
+    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'age' } });
+    project.dispatch({ type: 'definition.setBind', payload: { path: 'age', properties: { required: 'true' } } });
+    expect(project.bindFor('age')).toEqual({ required: 'true' });
+    project.dispatch({ type: 'definition.setBind', payload: { path: 'age', properties: { required: null, readonly: 'true' } } });
+    expect(project.bindFor('age')).toEqual({ readonly: 'true' });
+  });
+
+  it('never serves bind paths a rename rewrote in place within one batch', () => {
+    const seen: number[] = [];
+    const project = createRawProject({
+      handlers: {
+        'test.countBinds': (state, payload) => {
+          seen.push(bindEntriesFor(state.definition.binds, (payload as { path: string }).path).length);
+          return { rebuildComponentTree: false };
+        },
+      },
+    });
+    project.batch([
+      { type: 'definition.addItem', payload: { type: 'field', key: 'age' } },
+      { type: 'definition.setBind', payload: { path: 'age', properties: { required: 'true' } } },
+      { type: 'test.countBinds', payload: { path: 'age' } },
+      { type: 'definition.renameItem', payload: { path: 'age', newKey: 'years' } },
+      { type: 'test.countBinds', payload: { path: 'years' } },
+    ] as any);
+    expect(seen).toEqual([1, 1]);
   });
 });

@@ -25,7 +25,7 @@ export function normalizeBindsFromUnknown(binds: unknown): FormBind[] | undefine
  * node set. Single-repetition selectors (`[@index = N]`) stay distinct.
  */
 export function bindTargetKey(path: string): string {
-  return path.replace(/\[\*\]/g, '');
+  return path.includes('[') ? path.replace(/\[\*\]/g, '') : path;
 }
 
 /** Merge bind property records in document order; later values win (both engines' merge rule). */
@@ -39,9 +39,32 @@ export function mergeBindProperties(entries: Iterable<FormBind>): Record<string,
   return merged;
 }
 
-/** Every bind entry whose target is `path`, in document order. */
-export function bindEntriesFor(binds: readonly FormBind[] | undefined, path: string): FormBind[] {
-  if (!binds) return [];
-  const key = bindTargetKey(path);
-  return binds.filter(b => typeof b.path === 'string' && bindTargetKey(b.path) === key);
+const bindIndexes = new WeakMap<readonly FormBind[], ReadonlyMap<string, readonly FormBind[]>>();
+
+/**
+ * Bind entries grouped by {@link bindTargetKey}, in document order, built once per
+ * `binds` array. Array identity is the version: dispatch edits a structuredClone of
+ * the committed state, and a handler that rewrites bind paths in place swaps in a
+ * new array, so an indexed array's paths never change under the index.
+ */
+export function bindIndex(binds: readonly FormBind[]): ReadonlyMap<string, readonly FormBind[]> {
+  let index = bindIndexes.get(binds);
+  if (!index) {
+    const byKey = new Map<string, FormBind[]>();
+    for (const bind of binds) {
+      if (typeof bind.path !== 'string') continue;
+      const key = bindTargetKey(bind.path);
+      const entries = byKey.get(key);
+      if (entries) entries.push(bind);
+      else byKey.set(key, [bind]);
+    }
+    index = byKey;
+    bindIndexes.set(binds, index);
+  }
+  return index;
+}
+
+/** Every bind entry whose target is `path`, in document order. O(1) after the first lookup on `binds`. */
+export function bindEntriesFor(binds: readonly FormBind[] | undefined, path: string): readonly FormBind[] {
+  return binds ? bindIndex(binds).get(bindTargetKey(path)) ?? [] : [];
 }
