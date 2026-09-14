@@ -581,7 +581,10 @@ mod tests {
         );
         assert_eq!(results.len(), 1, "got {results:?}");
         assert_eq!(results[0].code, "CONSTRAINT_PARSE_ERROR");
-        assert_eq!(results[0].message, "Custom message");
+        assert_eq!(
+            results[0].message,
+            "Constraint expression error: undefined function: bogusFunc"
+        );
         assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
         assert_eq!(diagnostics[0].path, "amount");
         assert_eq!(diagnostics[0].message, "undefined function: bogusFunc");

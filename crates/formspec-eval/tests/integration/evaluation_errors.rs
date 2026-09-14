@@ -88,6 +88,49 @@ fn bind_constraint_undefined_function_fails_and_records_diagnostic() {
     );
 }
 
+/// Core Phase 3 step 1a: a definition error carries a processor-generated message.
+/// The Bind's `constraintMessage` describes a `false` result, so it never labels one.
+#[test]
+fn bind_constraint_definition_error_ignores_constraint_message() {
+    for constraint in ["bogusFunc($name)", "((( broken >>>"] {
+        let def = definition(
+            json!([{
+                "path": "name",
+                "constraint": constraint,
+                "constraintMessage": "Name is not allowed"
+            }]),
+            json!([]),
+        );
+        let result = evaluate(&def, &data(), &EvalOptions::default());
+
+        assert_eq!(result.validations.len(), 1, "{:?}", result.validations);
+        let failure = &result.validations[0];
+        assert_eq!(failure.code, "CONSTRAINT_PARSE_ERROR");
+        assert!(
+            failure.message.starts_with("Constraint expression error: "),
+            "{constraint}: {:?}",
+            failure.message
+        );
+    }
+}
+
+/// A `false` result keeps the author's `constraintMessage`.
+#[test]
+fn bind_constraint_false_uses_constraint_message() {
+    let def = definition(
+        json!([{
+            "path": "name",
+            "constraint": "$name = 'other'",
+            "constraintMessage": "Name is not allowed"
+        }]),
+        json!([]),
+    );
+    let result = evaluate(&def, &data(), &EvalOptions::default());
+
+    let messages: Vec<&str> = result.validations.iter().map(|v| v.message.as_str()).collect();
+    assert_eq!(messages, vec!["Name is not allowed"]);
+}
+
 #[test]
 fn shape_undefined_function_fails_in_every_position() {
     let def = definition(

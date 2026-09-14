@@ -189,7 +189,8 @@ pub(super) fn validate_items(
             );
 
             // Core §3.10.1 definition errors (syntax error, undefined function) share
-            // CONSTRAINT_PARSE_ERROR; only a `false` result is CONSTRAINT_FAILED.
+            // CONSTRAINT_PARSE_ERROR with a processor-generated message (Phase 3 step 1a);
+            // only a `false` result is CONSTRAINT_FAILED, labeled by `constraintMessage`.
             let site = ConstraintSite {
                 path: &item.path,
                 shape_id: None,
@@ -202,20 +203,22 @@ pub(super) fn validate_items(
                 Ok(value) if constraint_passes(&value) => None,
                 Ok(_) => Some((
                     ValidationCode::ConstraintFailed,
-                    format!("Constraint failed: {expr}"),
+                    item.constraint_message
+                        .clone()
+                        .unwrap_or_else(|| format!("Constraint failed: {expr}")),
                 )),
                 Err(detail) => Some((
                     ValidationCode::ConstraintParseError,
                     format!("Constraint expression error: {detail}"),
                 )),
             };
-            if let Some((code, default_message)) = failure {
+            if let Some((code, message)) = failure {
                 results.push(ValidationResult {
                     path: item.path.clone(),
                     severity: Severity::Error,
                     constraint_kind: ConstraintKind::Constraint,
                     code,
-                    message: item.constraint_message.clone().unwrap_or(default_message),
+                    message,
                     constraint: Some(expr.clone()),
                     source: ValidationSource::Bind,
                     shape_id: None,
