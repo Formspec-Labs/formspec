@@ -18,6 +18,8 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     if (behavior.min != null) input.min = String(behavior.min);
     if (behavior.max != null) input.max = String(behavior.max);
 
+    // Prefix/suffix hug the input; stepper buttons sit outside them.
+    const adorned = wrapInputAdornments(input, behavior);
     let control: HTMLElement;
     if (behavior.showStepper) {
         const stepVal = behavior.step ?? 1;
@@ -52,17 +54,13 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
             input.dispatchEvent(new Event('input', { bubbles: true }));
         });
 
-        wrapper.appendChild(decBtn);
-        wrapper.appendChild(input);
-        wrapper.appendChild(incBtn);
+        wrapper.append(decBtn, adorned, incBtn);
         control = wrapper;
-        fieldDOM.root.appendChild(wrapper);
-        applyControlSlotClass(wrapper, behavior, actx);
     } else {
-        control = wrapInputAdornments(input, behavior);
-        fieldDOM.root.appendChild(control);
-        applyControlSlotClass(control, behavior, actx);
+        control = adorned;
     }
+    fieldDOM.root.appendChild(control);
+    applyControlSlotClass(control, behavior, actx);
 
     finalizeFieldDOM(fieldDOM, behavior, actx);
     parent.appendChild(fieldDOM.root);

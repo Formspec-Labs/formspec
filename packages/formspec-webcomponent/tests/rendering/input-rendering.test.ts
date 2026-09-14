@@ -347,6 +347,21 @@ describe('input rendering — NumberInput attributes', () => {
         expect(input.max).toBe('100');
         expect(input.step).toBe('5');
     });
+
+    it('keeps the item prefix/suffix when showStepper is on', () => {
+        const tree = { component: 'NumberInput', bind: 'name', showStepper: true };
+        const el = renderField({ dataType: 'decimal', prefix: '$', suffix: 'per week' }, tree);
+        const stepper = el.querySelector('.formspec-stepper') as HTMLElement;
+        const input = stepper.querySelector('input[type="number"]') as HTMLInputElement;
+        const prefix = stepper.querySelector('.formspec-input-prefix') as HTMLElement;
+        const suffix = stepper.querySelector('.formspec-input-suffix') as HTMLElement;
+        expect(prefix?.textContent).toBe('$');
+        expect(suffix?.textContent).toBe('per week');
+        expect(prefix.nextElementSibling).toBe(input);
+        expect(stepper.firstElementChild?.classList.contains('formspec-stepper-decrement')).toBe(true);
+        expect(stepper.lastElementChild?.classList.contains('formspec-stepper-increment')).toBe(true);
+        expect(input.getAttribute('aria-describedby')).toBe(`${prefix.id} ${suffix.id}`);
+    });
 });
 
 describe('input rendering — compatibility warning', () => {
