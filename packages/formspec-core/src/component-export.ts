@@ -166,8 +166,9 @@ interface BoundBeneath {
  *   nesting still needs. A group given another component inside a wrapper showing the
  *   generated one imports inverted;
  * - binds an unbound node with no bound descendants to the next group, in document
- *   order under the enclosing group, that no node binds into and whose generated
- *   component it shows: an empty group exports as a bare container
+ *   order under the enclosing group, that holds no field or display at any depth, that no
+ *   node binds into, and whose generated component it shows: an empty group exports as a
+ *   bare container
  *   (`{ component: 'Stack', children: [] }`). An empty group whose node carries any
  *   other component cannot be told from an empty layout container of that type, and
  *   imports as one;
@@ -198,6 +199,22 @@ export function importComponentTree(tree: unknown, items: readonly FormItem[]): 
   };
   scan(root, '');
 
+  // Groups holding no field or display at any depth: the only groups an export writes with
+  // no bound node beneath. A group with fields the tree leaves unbound (component-spec §11.1
+  // partial trees) is not one, so an empty layout container is never taken for it.
+  const hollow = new Set<string>();
+  const markHollow = (list: readonly FormItem[], prefix: string): boolean => {
+    let all = true;
+    for (const item of list) {
+      const path = joinPath(prefix, item.key);
+      const isHollow = item.type === 'group' && markHollow(item.children ?? [], path);
+      if (isHollow) hollow.add(path);
+      else all = false;
+    }
+    return all;
+  };
+  markHollow(items, '');
+
   // Per enclosing group and component: how far into its child items claims have reached.
   // A claim takes the first match, so everything before the cursor is taken or ineligible.
   const cursors = new Map<string, number>();
@@ -207,7 +224,8 @@ export function importComponentTree(tree: unknown, items: readonly FormItem[]): 
     const cursorKey = `${String(node.component)}@${group}`;
     for (let i = cursors.get(cursorKey) ?? 0; i < siblings.length; i++) {
       const item = siblings[i];
-      if (item.type !== 'group' || bound.has(joinPath(group, item.key))) continue;
+      const path = joinPath(group, item.key);
+      if (!hollow.has(path) || bound.has(path)) continue;
       if (generatedComponentType(item) !== node.component) continue;
       cursors.set(cursorKey, i + 1);
       return item.key;

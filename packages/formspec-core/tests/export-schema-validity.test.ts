@@ -554,6 +554,29 @@ describe('export → import → export round trip keeps an authored component do
     expect(imported.export().component).toEqual(exported.component);
   });
 
+  function importTree(items: unknown[], tree: unknown) {
+    const project = createRawProject();
+    project.dispatch({
+      type: 'project.import',
+      payload: {
+        definitions: [{ $formspec: '1.0', url: 'urn:keys', version: '1.0.0', status: 'draft', title: 'T', items }],
+        component: { $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: 'urn:keys' }, tree },
+      } as any,
+    });
+    return project;
+  }
+
+  it('an empty layout container stays a wrapper beside a group whose fields the tree does not bind', () => {
+    // component-spec §11.1 allows partial trees: `contact` has a field, so an empty Stack is not its node.
+    const project = importTree([
+      { type: 'field', key: 'name', label: 'Name', dataType: 'string' },
+      { type: 'group', key: 'contact', label: 'C', children: [{ type: 'field', key: 'email', label: 'E', dataType: 'string' }] },
+    ], { component: 'Stack', children: [{ component: 'TextInput', bind: 'name' }, { component: 'Stack', style: { height: '40px' }, children: [] }] });
+    const spacer = (project.state.component.tree as any).children.find((n: any) => n.style?.height === '40px');
+    expect(spacer).toMatchObject({ _layout: true, children: [] });
+    expect(spacer.bind).toBeUndefined();
+  });
+
   it('empty groups round-trip without gaining a wrapper, nested or not', () => {
     const project = createRawProject({
       seed: {
