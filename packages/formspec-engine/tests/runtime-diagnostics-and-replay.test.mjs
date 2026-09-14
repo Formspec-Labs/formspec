@@ -198,7 +198,7 @@ test('an undefined function fails its constraint (Core §3.10.1) and still appea
 
   const snapshot = engine.getDiagnosticsSnapshot();
   const failures = snapshot.validation.results.map(({ path, code, constraintKind }) => ({ path, code, constraintKind }));
-  assert.deepEqual(failures, [{ path: 'qty', code: 'CONSTRAINT_FAILED', constraintKind: 'constraint' }]);
+  assert.deepEqual(failures, [{ path: 'qty', code: 'CONSTRAINT_PARSE_ERROR', constraintKind: 'constraint' }]);
   assert.deepEqual(snapshot.evaluationDiagnostics, [
     { path: 'qty', expression: 'nosuchfn($)', message: 'undefined function: nosuchfn' }
   ]);

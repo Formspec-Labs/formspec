@@ -59,7 +59,8 @@ fn bind_constraint_type_error_passes_and_records_diagnostic() {
     assert!(!diagnostic.message.is_empty());
 }
 
-/// An undefined function is a definition error (§3.10.1), like a syntax error: it fails.
+/// An undefined function is a definition error (§3.10.1), like a syntax error: it
+/// fails with the definition-error code, not the data-rule code.
 #[test]
 fn bind_constraint_undefined_function_fails_and_records_diagnostic() {
     let def = definition(
@@ -73,7 +74,12 @@ fn bind_constraint_undefined_function_fails_and_records_diagnostic() {
         .iter()
         .map(|v| v.code.to_string())
         .collect();
-    assert_eq!(codes, vec!["CONSTRAINT_FAILED"], "{:?}", result.validations);
+    assert_eq!(
+        codes,
+        vec!["CONSTRAINT_PARSE_ERROR"],
+        "{:?}",
+        result.validations
+    );
     assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
     assert!(
         result.diagnostics[0].message.contains("bogusFunc"),

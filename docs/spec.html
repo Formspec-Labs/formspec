@@ -2375,12 +2375,14 @@ This is the minimal recalculation guarantee, borrowed from XForms.</p>
 <code>required</code> / <code>relevant</code> state changed in Phase 2:
 <ol type="a">
 <li>If the field has a <code>constraint</code> Bind, evaluate the
-constraint expression. If the expression fails to parse, record a
+constraint expression. If the expression fails to parse or calls an
+undefined function (both definition errors, §3.10.1), record a
 ValidationResult with severity <code>"error"</code>, code
 <code>CONSTRAINT_PARSE_ERROR</code>, and a processor-generated message
-describing the parse failure. If the result is <code>false</code>,
-record a ValidationResult with severity <code>"error"</code> and the
-Bind’s <code>constraintMessage</code>.</li>
+describing the failure. An evaluation error (§3.10.2) is not a
+definition error: its <code>null</code> result passes. If the result is
+<code>false</code>, record a ValidationResult with severity
+<code>"error"</code> and the Bind’s <code>constraintMessage</code>.</li>
 <li>If the field has a <code>required</code> Bind that evaluated to
 <code>true</code>, and the field’s value is empty (<code>null</code>,
 empty string <code>""</code>, or empty array <code>[]</code>), record a
@@ -2583,7 +2585,8 @@ Shape-level and external codes override the generic defaults.</p>
 <tr>
 <td><code>CONSTRAINT_PARSE_ERROR</code></td>
 <td><code>constraint</code></td>
-<td>Bind <code>constraint</code> expression failed to parse.</td>
+<td>Bind <code>constraint</code> expression has a definition error
+(§3.10.1): it failed to parse or calls an undefined function.</td>
 </tr>
 <tr>
 <td><code>SHAPE_FAILED</code></td>

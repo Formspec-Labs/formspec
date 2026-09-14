@@ -1405,9 +1405,11 @@ recalculation guarantee, borrowed from XForms.
 1. For each relevant field that is in the affected subgraph or whose
    `required` / `relevant` state changed in Phase 2:
    a. If the field has a `constraint` Bind, evaluate the constraint expression.
-      If the expression fails to parse, record a ValidationResult with severity
+      If the expression fails to parse or calls an undefined function (both
+      definition errors, §3.10.1), record a ValidationResult with severity
       `"error"`, code `CONSTRAINT_PARSE_ERROR`, and a processor-generated
-      message describing the parse failure.
+      message describing the failure. An evaluation error (§3.10.2) is not a
+      definition error: its `null` result passes.
       If the result is `false`, record a ValidationResult with severity
       `"error"` and the Bind’s `constraintMessage`.
    b. If the field has a `required` Bind that evaluated to `true`, and the
@@ -1501,7 +1503,7 @@ codes override the generic defaults.
 | `MIN_REPEAT` | `cardinality` | Fewer repeat instances than `minRepeat`. |
 | `MAX_REPEAT` | `cardinality` | More repeat instances than `maxRepeat`. |
 | `CONSTRAINT_FAILED` | `constraint` | Bind `constraint` returned `false`. |
-| `CONSTRAINT_PARSE_ERROR` | `constraint` | Bind `constraint` expression failed to parse. |
+| `CONSTRAINT_PARSE_ERROR` | `constraint` | Bind `constraint` expression has a definition error (§3.10.1): it failed to parse or calls an undefined function. |
 | `SHAPE_FAILED` | `shape` | Shape's constraint returned `false`. |
 | `EXTERNAL_FAILED` | `external` | External validation source reported a failure. |
 

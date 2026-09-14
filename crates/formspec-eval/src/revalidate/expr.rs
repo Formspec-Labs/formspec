@@ -39,22 +39,26 @@ impl ConstraintSite<'_> {
     ) -> Option<Value> {
         let parsed = parse(expression).ok()?;
         self.settle(evaluate(&parsed, env), expression, diagnostics)
+            .ok()
     }
 
     /// Record `result`'s errors for authors, then return its value unless a function is undefined.
     ///
     /// A type error is an evaluation error (§3.10.2): its `null` value stands.
-    /// An undefined function is a definition error (§3.10.1): `None`.
+    /// An undefined function is a definition error (§3.10.1): `Err` naming the functions.
     pub(super) fn settle(
         &self,
         result: EvalResult,
         expression: &str,
         diagnostics: &mut Vec<EvalDiagnostic>,
-    ) -> Option<Value> {
+    ) -> Result<Value, String> {
         self.record_eval_errors(&result, expression, diagnostics);
-        undefined_function_names_from_diagnostics(&result.diagnostics)
-            .is_empty()
-            .then_some(result.value)
+        let undefined = undefined_function_names_from_diagnostics(&result.diagnostics);
+        if undefined.is_empty() {
+            Ok(result.value)
+        } else {
+            Err(format!("undefined function: {}", undefined.join(", ")))
+        }
     }
 
     /// Record `result`'s error-severity diagnostics for authors (Core §3.10.2).

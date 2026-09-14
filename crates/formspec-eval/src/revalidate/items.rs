@@ -188,48 +188,39 @@ pub(super) fn validate_items(
                 json_to_runtime_fel_typed(&val, item.data_type.as_deref()),
             );
 
-            match parse(&normalized_expr) {
-                Ok(parsed) => {
-                    let passes = ConstraintSite {
-                        path: &item.path,
-                        shape_id: None,
-                    }
-                    .settle(evaluate(&parsed, env), expr, diagnostics)
-                    .is_some_and(|value| constraint_passes(&value));
-                    if !passes {
-                        results.push(ValidationResult {
-                            path: item.path.clone(),
-                            severity: Severity::Error,
-                            constraint_kind: ConstraintKind::Constraint,
-                            code: ValidationCode::ConstraintFailed,
-                            message: item
-                                .constraint_message
-                                .clone()
-                                .unwrap_or_else(|| format!("Constraint failed: {expr}")),
-                            constraint: Some(expr.clone()),
-                            source: ValidationSource::Bind,
-                            shape_id: None,
-                            context: None,
-                        });
-                    }
-                }
-                Err(e) => {
-                    // A constraint that cannot parse must not silently pass.
-                    results.push(ValidationResult {
-                        path: item.path.clone(),
-                        severity: Severity::Error,
-                        constraint_kind: ConstraintKind::Constraint,
-                        code: ValidationCode::ConstraintParseError,
-                        message: item
-                            .constraint_message
-                            .clone()
-                            .unwrap_or_else(|| format!("Constraint expression error: {e}")),
-                        constraint: Some(expr.clone()),
-                        source: ValidationSource::Bind,
-                        shape_id: None,
-                        context: None,
-                    });
-                }
+            // Core §3.10.1 definition errors (syntax error, undefined function) share
+            // CONSTRAINT_PARSE_ERROR; only a `false` result is CONSTRAINT_FAILED.
+            let site = ConstraintSite {
+                path: &item.path,
+                shape_id: None,
+            };
+            let outcome = match parse(&normalized_expr) {
+                Ok(parsed) => site.settle(evaluate(&parsed, env), expr, diagnostics),
+                Err(e) => Err(e.to_string()),
+            };
+            let failure = match outcome {
+                Ok(value) if constraint_passes(&value) => None,
+                Ok(_) => Some((
+                    ValidationCode::ConstraintFailed,
+                    format!("Constraint failed: {expr}"),
+                )),
+                Err(detail) => Some((
+                    ValidationCode::ConstraintParseError,
+                    format!("Constraint expression error: {detail}"),
+                )),
+            };
+            if let Some((code, default_message)) = failure {
+                results.push(ValidationResult {
+                    path: item.path.clone(),
+                    severity: Severity::Error,
+                    constraint_kind: ConstraintKind::Constraint,
+                    code,
+                    message: item.constraint_message.clone().unwrap_or(default_message),
+                    constraint: Some(expr.clone()),
+                    source: ValidationSource::Bind,
+                    shape_id: None,
+                    context: None,
+                });
             }
 
             // Restore previous bare $ binding
