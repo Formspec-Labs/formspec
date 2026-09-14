@@ -215,3 +215,42 @@ describe('Text not planned from a display Item', () => {
         expect(texts(container)).toEqual(['42']);
     });
 });
+
+describe('display Items — Divider', () => {
+    it('renders a plain rule while the live label is empty, and labels it once interpolation yields text', () => {
+        const { container, engine } = render(definition([
+            { key: 'employer', type: 'field', dataType: 'string', label: 'Employer' },
+            { key: 'rule', type: 'display', label: '{{$employer}}', presentation: { widgetHint: 'Divider' } },
+        ]));
+        expect(container.querySelector('hr.formspec-divider')).toBeTruthy();
+        expect(container.querySelector('.formspec-divider-label')).toBeNull();
+
+        act(() => engine.setValue('employer', 'ACME'));
+        expect(texts(container, '.formspec-divider--labeled .formspec-divider-label')).toEqual(['ACME']);
+
+        act(() => engine.setValue('employer', ''));
+        expect(container.querySelector('.formspec-divider-label')).toBeNull();
+        expect(container.querySelector('hr.formspec-divider')).toBeTruthy();
+    });
+
+    it('labels an authored Divider whose Locale label is empty at render once interpolation yields text', () => {
+        const { container, engine } = render(
+            definition([{ key: 'employer', type: 'field', dataType: 'string', label: 'Employer' }]),
+            {
+                component: 'Stack',
+                children: [
+                    { component: 'TextInput', bind: 'employer' },
+                    { component: 'Divider', id: 'rule', label: '' },
+                ],
+            },
+        );
+        act(() => {
+            engine.loadLocale(frLocale({ '$component.rule.label': '{{$employer}}' }) as any);
+            engine.setLocale('fr');
+        });
+        expect(container.querySelector('.formspec-divider-label')).toBeNull();
+
+        act(() => engine.setValue('employer', 'ACME'));
+        expect(texts(container, '.formspec-divider-label')).toEqual(['ACME']);
+    });
+});
