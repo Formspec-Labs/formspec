@@ -10,6 +10,7 @@ function mockHost(): DisplayComponentBehavior['host'] {
         prefix: '',
         cleanupFns: [],
         resolveCompText: (_c, _p, fb) => fb,
+        watchCompText: (_c, _p, fb, write) => write(fb),
         renderComponent: vi.fn(),
         resolveToken: (v) => v,
         findItemByKey: () => null,
@@ -76,5 +77,26 @@ describe('USWDS display', () => {
         const tag = parent.querySelector('.usa-tag');
         expect(tag?.textContent).toBe('New');
         expect(tag?.className).toContain('formspec-uswds-tag--success');
+    });
+
+    it.each([
+        ['Text', renderUSWDSText, '.usa-prose p'],
+        ['Heading', renderUSWDSHeading, 'h2'],
+        ['Alert', renderUSWDSAlert, '.usa-alert__text'],
+        ['Badge', renderUSWDSBadge, '.usa-tag'],
+    ] as const)('renderUSWDS%s writes live text from host.watchCompText (display Item Locale/{{}})', (_name, renderFn, selector) => {
+        const parent = document.createElement('div');
+        let writeText: (text: string) => void = () => {};
+        const host = mockHost();
+        host.watchCompText = (_c, prop, fallback, write) => {
+            expect(prop).toBe('text');
+            writeText = write;
+            write(fallback);
+        };
+        renderFn({ comp: { text: 'Hello {{$name}}' }, host }, parent, mockAdapterContext());
+        expect(parent.querySelector(selector)?.textContent).toBe('Hello {{$name}}');
+
+        writeText('Hello Ada');
+        expect(parent.querySelector(selector)?.textContent).toBe('Hello Ada');
     });
 });

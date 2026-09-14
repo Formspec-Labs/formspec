@@ -47,7 +47,9 @@ export function renderUSWDSHeading(behavior: DisplayComponentBehavior, parent: H
             })
         );
     } else {
-        el.textContent = host.resolveCompText(comp, 'text', comp.text || '');
+        host.watchCompText(comp, 'text', comp.text || '', (text) => {
+            el.textContent = text;
+        });
     }
     wrap.appendChild(el);
     actx.applyCssClass(wrap, comp);
@@ -81,10 +83,11 @@ export function renderUSWDSText(behavior: DisplayComponentBehavior, parent: HTML
                 }
             })
         );
-    } else if (isMarkdown && comp.text) {
-        el.innerHTML = renderMarkdown(host.resolveCompText(comp, 'text', comp.text));
     } else {
-        el.textContent = host.resolveCompText(comp, 'text', comp.text || '');
+        host.watchCompText(comp, 'text', comp.text || '', (text) => {
+            if (isMarkdown && text) el.innerHTML = renderMarkdown(text);
+            else el.textContent = text;
+        });
     }
     wrap.appendChild(el);
     actx.applyCssClass(wrap, comp);
@@ -166,7 +169,9 @@ export function renderUSWDSAlert(behavior: DisplayComponentBehavior, parent: HTM
             })
         );
     } else {
-        p.textContent = host.resolveCompText(comp, 'text', comp.text || comp.description || '');
+        host.watchCompText(comp, 'text', comp.text || comp.description || '', (text) => {
+            p.textContent = text;
+        });
     }
     body.appendChild(p);
     root.appendChild(body);
@@ -192,7 +197,9 @@ export function renderUSWDSBadge(behavior: DisplayComponentBehavior, parent: HTM
     if (comp.id) el.id = comp.id;
     const variantCls = badgeVariantClass(comp.variant);
     el.className = ['usa-tag', 'formspec-badge', variantCls].filter(Boolean).join(' ');
-    el.textContent = host.resolveCompText(comp, 'text', comp.text || '');
+    host.watchCompText(comp, 'text', comp.text || '', (text) => {
+        el.textContent = text;
+    });
     actx.applyCssClass(el, comp);
     actx.applyAccessibility(el, comp);
     actx.applyStyle(el, comp.style);
