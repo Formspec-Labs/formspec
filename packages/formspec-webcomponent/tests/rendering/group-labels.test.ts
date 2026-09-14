@@ -97,3 +97,38 @@ describe('group Item labels', () => {
         expect(repeat.querySelector('.formspec-repeat-remove').getAttribute('aria-label')).toBe('Remove Emploi 1');
     });
 });
+
+describe('group-bound Stack titles', () => {
+    function renderTitled(title: string) {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.localeDocuments = { ...french, strings: { '$component.addressBlock.title': 'Adresse postale de {{$name}}' } };
+        el.locale = 'fr';
+        el.initialData = { name: 'Ada' };
+        el.componentDocument = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: 'urn:test:groups' },
+            tree: {
+                component: 'Stack',
+                children: [{
+                    component: 'Stack', id: 'addressBlock', bind: 'address', title,
+                    children: [{ component: 'TextInput', bind: 'city' }],
+                }],
+            },
+        };
+        el.definition = { $formspec: '1.0', url: 'urn:test:groups', version: '1.0.0', title: 'Groups', items };
+        el.render();
+        return el;
+    }
+
+    it('use the $component.<id>.title Locale string (Locale §3.1.8)', () => {
+        const el = renderTitled('Mailing');
+        expect(text(el.querySelector('.formspec-group-title'))).toBe('Adresse postale de Ada');
+    });
+
+    it('prefer the $component string over a title that repeats the group label', () => {
+        const el = renderTitled('Address of {{$name}}');
+        expect(text(el.querySelector('.formspec-group-title'))).toBe('Adresse postale de Ada');
+    });
+});

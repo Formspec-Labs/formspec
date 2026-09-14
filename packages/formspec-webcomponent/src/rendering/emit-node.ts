@@ -19,6 +19,7 @@ import { useTabs } from '../behaviors/tabs';
 import { applySurfaceProps } from '../adapters/default/layout';
 import { repeatAffordances, renderRepeatRows } from './repeat-affordances';
 import { itemLabel } from './item-label';
+import { resolveCompText } from '../components/layout-plugin-factory';
 
 export type { RenderHost } from '../hub-types.js';
 
@@ -261,7 +262,8 @@ export function emitNode(
         if (node.props.title) {
             const heading = document.createElement(`h${Math.min(headingLevel, 6)}`);
             heading.className = 'formspec-group-title';
-            const title = node.props.title as string;
+            // An authored `$component.<id>.title` Locale string wins; the Stack sits in the enclosing scope.
+            const title = resolveCompText({ engine: host.engine, prefix }, node.props, 'title', node.props.title as string);
             const groupItem = host.findItemByKey(Path.parse(nextPrefix).stripIndices());
             if (groupItem && title === groupItem.label) {
                 // The definition planner titles a group with its inline label: show that label live.
