@@ -1,7 +1,6 @@
-/** @filedesc Tailwind adapter for NumberInput — renders styled number input. */
+/** @filedesc Tailwind adapter for NumberInput — renders styled number input with optional prefix/suffix group. */
 import type { NumberInputBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
-import { createInputSkeleton } from '../shared/input-factory.js';
-import { createTailwindFieldDOM, TW, toggleInputError } from './shared';
+import { createTailwindFieldDOM, createTailwindInput, toggleInputError } from './shared';
 
 export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     behavior, parent, actx
@@ -11,11 +10,7 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
 
     if (p.labelPosition === 'start') root.style.display = 'flex';
 
-    const { control, actualInput } = createInputSkeleton(behavior, {
-        type: 'number',
-        inputClass: TW.input,
-        ariaDescribedBy: describedBy,
-    });
+    const { control, actualInput } = createTailwindInput(behavior, { type: 'number', ariaDescribedBy: describedBy });
 
     root.appendChild(control);
     root.appendChild(error);

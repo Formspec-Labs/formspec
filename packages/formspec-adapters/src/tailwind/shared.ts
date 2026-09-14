@@ -5,6 +5,7 @@
 import type { FieldBehavior } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
 import { buildOptionList } from '../shared/option-list.js';
+import { createInputSkeleton, linkInputAdornments, type InputSkeletonOptions, type InputSkeletonResult } from '../shared/input-factory.js';
 
 // ── Semantic Tailwind utility groups — clean and maintainable ──
 // Base styles that can be extended via cssClass or CSS variables.
@@ -33,6 +34,11 @@ export const TW = {
     optionLabelText: 'text-sm font-medium leading-snug text-[var(--formspec-tw-text)]',
     optionLabel: 'text-sm font-medium leading-snug text-[var(--formspec-tw-text)]',
     optionWrapper: 'flex items-start gap-3',
+
+    // Input group adornments (prefix/suffix)
+    inputGroup: 'flex rounded-xl shadow-sm',
+    inputPrefix: 'inline-flex items-center rounded-l-xl border border-r-0 border-[color:var(--formspec-tw-border)] bg-[var(--formspec-tw-surface-muted)] px-3 text-sm text-[var(--formspec-tw-muted)]',
+    inputSuffix: 'inline-flex items-center rounded-r-xl border border-l-0 border-[color:var(--formspec-tw-border)] bg-[var(--formspec-tw-surface-muted)] px-3 text-sm text-[var(--formspec-tw-muted)]',
 
     // Buttons
     button: 'inline-flex items-center justify-center rounded-xl bg-[var(--formspec-tw-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--formspec-tw-accent-fg)] shadow-[var(--formspec-tw-shadow-md)] transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--formspec-tw-accent-ring)]',
@@ -120,6 +126,29 @@ export function toggleInputError(input: HTMLElement, hasError: boolean): void {
         input.classList.remove(...TW.inputError.split(/\s+/));
         input.classList.add(...TW.inputNormal.split(/\s+/));
     }
+}
+
+/**
+ * Styled input/textarea with the behavior's prefix/suffix as a rounded input group. Adornment ids reach
+ * aria-describedby through `data-describedby-base`.
+ */
+export function createTailwindInput(
+    behavior: FieldBehavior & { prefix?: string; suffix?: string },
+    options: InputSkeletonOptions = {},
+): InputSkeletonResult {
+    return linkInputAdornments(behavior.id, createInputSkeleton(behavior, {
+        inputClass: TW.input,
+        groupClass: TW.inputGroup,
+        prefixClass: TW.inputPrefix,
+        prefixTag: 'span',
+        suffixClass: TW.inputSuffix,
+        suffixTag: 'span',
+        ...options,
+        onInputCreated: (input) => {
+            applyAffixRounding(input, !!(options.prefix ?? behavior.prefix), !!(options.suffix ?? behavior.suffix));
+            options.onInputCreated?.(input);
+        },
+    }));
 }
 
 /** Adjusts input rounding classes when prefix/suffix elements are present. */

@@ -128,3 +128,15 @@ export function createInputSkeleton(
 
     return { control: actualInput, actualInput };
 }
+
+/**
+ * Give prefix/suffix elements stable ids (`<behaviorId>-prefix` / `-suffix`) and expose them to
+ * aria-describedby through `data-describedby-base` (read by the webcomponent's shared field effects).
+ */
+export function linkInputAdornments(behaviorId: string, result: InputSkeletonResult): InputSkeletonResult {
+    const adornmentIds: string[] = [];
+    if (result.prefixEl) adornmentIds.push((result.prefixEl.id = `${behaviorId}-prefix`));
+    if (result.suffixEl) adornmentIds.push((result.suffixEl.id = `${behaviorId}-suffix`));
+    if (adornmentIds.length) result.actualInput.setAttribute('data-describedby-base', adornmentIds.join(' '));
+    return result;
+}

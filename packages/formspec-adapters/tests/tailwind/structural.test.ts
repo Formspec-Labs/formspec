@@ -77,6 +77,7 @@ describe('Tailwind TextInput', () => {
     it('renders prefix/suffix with input group', () => {
         const parent = makeParent();
         renderTextInput(mockTextInput({ prefix: '$', suffix: '.00' }), parent, mockAdapterContext());
+        expect(parent.querySelector('input')!.getAttribute('data-describedby-base')).toBe('field-name-prefix field-name-suffix');
         // Prefix and suffix addons use CSS variable classes — select by muted text token
         const texts = Array.from(parent.querySelectorAll('[class*="formspec-tw-muted"]')).map(e => e.textContent);
         expect(texts).toContain('$');
@@ -140,6 +141,24 @@ describe('Tailwind NumberInput', () => {
         hasClasses(input, 'block', 'w-full', 'rounded-xl');
     });
 
+    it('renders the item prefix/suffix as a styled input group like TextInput', () => {
+        const parent = makeParent();
+        renderNumberInput(mockNumberInput({ prefix: '$', suffix: 'USD' }), parent, mockAdapterContext());
+        const input = parent.querySelector('input') as HTMLInputElement;
+        const group = input.parentElement!;
+        hasClasses(group, 'flex', 'rounded-xl');
+        const [prefix, suffix] = [group.firstElementChild!, group.lastElementChild!];
+        expect(prefix.textContent).toBe('$');
+        expect(suffix.textContent).toBe('USD');
+        hasClasses(prefix, 'inline-flex', 'rounded-l-xl', 'border-r-0');
+        hasClasses(suffix, 'inline-flex', 'rounded-r-xl', 'border-l-0');
+        hasClasses(input, 'rounded-none');
+        expect(input.classList.contains('rounded-xl')).toBe(false);
+        expect(input.getAttribute('data-describedby-base')).toBe(`${prefix.id} ${suffix.id}`);
+        expect(prefix.id).toBe('field-age-prefix');
+        expect(suffix.id).toBe('field-age-suffix');
+    });
+
     it('calls bind() and registers dispose', () => {
         const parent = makeParent();
         const actx = mockAdapterContext();
@@ -178,6 +197,16 @@ describe('Tailwind RadioGroup', () => {
         expect(refs.optionControls).toBeTruthy();
         expect(refs.optionControls!.size).toBe(2);
         expect(typeof refs.rebuildOptions).toBe('function');
+    });
+
+    it('keeps group ARIA on the fieldset, not the first radio', () => {
+        const parent = makeParent();
+        const b = mockRadioGroup();
+        renderRadioGroup(b, parent, mockAdapterContext());
+        const refs = captureBindRefs(b);
+        const fieldset = parent.querySelector('fieldset')!;
+        expect(refs.control).toBe(fieldset);
+        expect(refs.skipAriaDescribedBy).toBe(true);
     });
 });
 

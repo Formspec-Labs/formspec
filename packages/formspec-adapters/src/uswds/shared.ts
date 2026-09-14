@@ -2,7 +2,7 @@
 import type { FieldBehavior } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
 import { buildOptionList, clearOptionNodes } from '../shared/option-list.js';
-import { createInputSkeleton, type InputSkeletonOptions, type InputSkeletonResult } from '../shared/input-factory.js';
+import { createInputSkeleton, linkInputAdornments, type InputSkeletonOptions, type InputSkeletonResult } from '../shared/input-factory.js';
 
 export interface USWDSFieldDOM {
     root: HTMLElement;
@@ -85,17 +85,12 @@ export function createUSWDSFieldDOM(
  * Adornment ids reach aria-describedby through `data-describedby-base`.
  */
 export function createUSWDSInput(behavior: FieldBehavior, options: InputSkeletonOptions): InputSkeletonResult {
-    const result = createInputSkeleton(behavior, {
+    return linkInputAdornments(behavior.id, createInputSkeleton(behavior, {
         groupClass: 'usa-input-group',
         prefixClass: 'usa-input-prefix',
         suffixClass: 'usa-input-suffix',
         ...options,
-    });
-    const adornmentIds: string[] = [];
-    if (result.prefixEl) adornmentIds.push((result.prefixEl.id = `${behavior.id}-prefix`));
-    if (result.suffixEl) adornmentIds.push((result.suffixEl.id = `${behavior.id}-suffix`));
-    if (adornmentIds.length) result.actualInput.setAttribute('data-describedby-base', adornmentIds.join(' '));
-    return result;
+    }));
 }
 
 /** Removes previously-rendered option elements (marked with data-option-wrapper). */
