@@ -468,6 +468,8 @@ export interface IFormEngine {
     getDefinition(): FormDefinition;
     setLabelContext(context: string | null): void;
     getLabel(item: FormItem): string;
+    /** Reactive Locale-resolved, `{{}}`-interpolated label of the field, display, or group Item at `path`. */
+    getItemLabelSignal(path: string): ReadonlyEngineSignal<string> | undefined;
 
     loadLocale(doc: LocaleDocument): void;
     setLocale(code: string): void;

@@ -581,3 +581,63 @@ test('getFieldVM id is generated from path', () => {
   const vm = engine.getFieldVM('address.zip');
   assert.equal(vm.id, 'field-address-zip');
 });
+
+// ── getItemLabelSignal: display / group / field labels through one cascade ──
+
+test('getItemLabelSignal resolves display and group labels through the field label cascade, reactively', async () => {
+  const { effect } = await import('@preact/signals-core');
+  const engine = new FormEngine(minDef({
+    items: [
+      {
+        key: 'jobs',
+        type: 'group',
+        label: 'Jobs',
+        labels: { short: 'J' },
+        repeatable: true,
+        minRepeat: 2,
+        children: [
+          { key: 'employer', type: 'field', dataType: 'string', label: 'Employer' },
+          { key: 'note', type: 'display', label: 'Row {{@index}}: {{$employer}}' },
+        ],
+      },
+    ],
+  }));
+  engine.setValue('jobs[1].employer', 'Beta');
+
+  const note = engine.getItemLabelSignal('jobs[1].note');
+  const group = engine.getItemLabelSignal('jobs');
+  assert.equal(note.value, 'Row 2: Beta');
+  assert.equal(group.value, 'Jobs');
+  assert.equal(engine.getItemLabelSignal('jobs[1].employer'), engine.getFieldVM('jobs[1].employer').label);
+  assert.equal(engine.getItemLabelSignal('nope'), undefined);
+
+  const seen = [];
+  const stop = effect(() => { seen.push(note.value); });
+
+  engine.setValue('jobs[1].employer', 'Gamma');
+  engine.setLabelContext('short');
+  assert.equal(group.value, 'J', 'labels[context] applies to groups');
+
+  engine.loadLocale(makeLocale('fr', {
+    'note.label': 'Ligne {{@index}}',
+    'note.label@short': 'L{{@index}} {{$employer}}',
+  }));
+  engine.setLocale('fr');
+  assert.equal(note.value, 'L2 Gamma', 'Locale <key>.label@context wins');
+  engine.setLabelContext(null);
+  assert.equal(note.value, 'Ligne 2');
+  stop();
+
+  assert.deepEqual(seen, ['Row 2: Beta', 'Row 2: Gamma', 'L2 Gamma', 'Ligne 2']);
+});
+
+test('getLabel reads label context reactively', async () => {
+  const { computed } = await import('@preact/signals-core');
+  const engine = new FormEngine(minDef({
+    items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Full Name', labels: { short: 'Name' } }],
+  }));
+  const label = computed(() => engine.getLabel(engine.definition.items[0]));
+  assert.equal(label.value, 'Full Name');
+  engine.setLabelContext('short');
+  assert.equal(label.value, 'Name');
+});

@@ -102,6 +102,38 @@ interface ResolvedPresentationString<T extends string | null> {
     needAnchors: string[];
 }
 
+/** Inputs to the Item label cascade; read inside a computed so every getter is a dependency. */
+export interface ItemLabelSource {
+    localeStore: LocaleStore;
+    itemKey: string;
+    inlineLabel: string | undefined;
+    labels: Record<string, string> | undefined;
+    context: string | null;
+    evalFEL: (expr: string) => import('./wasm-bridge-runtime.js').FelEvalResult | unknown;
+}
+
+/**
+ * Label a respondent sees for any Item (Locale §3.1–3.3): Locale `<key>.label@context` → Locale
+ * `<key>.label` → Definition `labels[context]` → inline `label`, `{{}}` interpolated through `evalFEL`.
+ * Locale lookups walk the fallback cascade (fr-CA → fr).
+ */
+export function resolveItemLabel(source: ItemLabelSource): ResolvedPresentationString<string> {
+    const { localeStore, itemKey, labels, context, evalFEL } = source;
+    localeStore.version.value;
+    const localeKeys = context ? [`${itemKey}.label@${context}`, `${itemKey}.label`] : [`${itemKey}.label`];
+    for (const key of localeKeys) {
+        const fromLocale = localeStore.lookupKeyWithMeta(key);
+        if (fromLocale.value !== null) {
+            return {
+                value: interpolateMessage(fromLocale.value, evalFEL).text,
+                needAnchors: [...(fromLocale.needAnchors ?? [])],
+            };
+        }
+    }
+    const definitionLabel = (context ? labels?.[context] : undefined) || source.inlineLabel || '';
+    return { value: interpolateMessage(definitionLabel, evalFEL).text, needAnchors: [] };
+}
+
 // ── Factory ─────────────────────────────────────────────────────────
 
 export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
@@ -127,64 +159,16 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         };
     }
 
-    // ── Label: 6-step cascade with context ──
+    // ── Label: shared Item label cascade ──
 
-    const labelResolution = rx.computed((): ResolvedPresentationString<string> => {
-        localeStore.version.value;
-        const context = deps.getLabelContext();
-        const labels = deps.getItemLabels();
-        const inlineLabel = deps.getItemLabel();
-
-        if (context) {
-            // Steps 1-2: Locale lookup for key.label@context (cascade walks fr-CA → fr)
-            const contextKey = `${itemKey}.label@${context}`;
-            const fromLocale = localeStore.lookupKeyWithMeta(contextKey);
-            if (fromLocale.value !== null) {
-                return {
-                    value: interpolateMessage(fromLocale.value, evalFEL).text,
-                    needAnchors: [...(fromLocale.needAnchors ?? [])],
-                };
-            }
-
-            // Steps 3-4: Locale lookup for key.label (no context)
-            const plainKey = `${itemKey}.label`;
-            const plainFromLocale = localeStore.lookupKeyWithMeta(plainKey);
-            if (plainFromLocale.value !== null) {
-                return {
-                    value: interpolateMessage(plainFromLocale.value, evalFEL).text,
-                    needAnchors: [...(plainFromLocale.needAnchors ?? [])],
-                };
-            }
-
-            // Step 5: Definition labels[context]
-            if (labels?.[context]) {
-                return {
-                    value: interpolateMessage(labels[context], evalFEL).text,
-                    needAnchors: [],
-                };
-            }
-
-            // Step 6: Definition label
-            return {
-                value: interpolateMessage(inlineLabel, evalFEL).text,
-                needAnchors: [],
-            };
-        }
-
-        // No context: 2-step (locale → inline)
-        const plainKey = `${itemKey}.label`;
-        const fromLocale = localeStore.lookupKeyWithMeta(plainKey);
-        if (fromLocale.value !== null) {
-            return {
-                value: interpolateMessage(fromLocale.value, evalFEL).text,
-                needAnchors: [...(fromLocale.needAnchors ?? [])],
-            };
-        }
-        return {
-            value: interpolateMessage(inlineLabel, evalFEL).text,
-            needAnchors: [],
-        };
-    });
+    const labelResolution = rx.computed(() => resolveItemLabel({
+        localeStore,
+        itemKey,
+        inlineLabel: deps.getItemLabel(),
+        labels: deps.getItemLabels(),
+        context: deps.getLabelContext(),
+        evalFEL,
+    }));
     const label = rx.computed(() => labelResolution.value.value);
     const labelNeedAnchors = rx.computed(() => labelResolution.value.needAnchors);
 

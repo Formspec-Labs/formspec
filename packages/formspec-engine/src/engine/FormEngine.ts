@@ -42,7 +42,7 @@ import { LocaleStore, type LocaleDocument } from '../locale.js';
 import { FetchIssuerFetcher } from '../issuer/IssuerFetcher.js';
 import { IssuerStore } from '../issuer/IssuerStore.js';
 import type { Issuer, IssuerSource, ResolvedIssuer } from '../issuer/types.js';
-import { createFieldViewModel, type FieldViewModel } from '../field-view-model.js';
+import { createFieldViewModel, resolveItemLabel, type FieldViewModel } from '../field-view-model.js';
 import { createFormViewModel, type FormViewModel } from '../form-view-model.js';
 import {
     wasmEvaluateDefinition,
@@ -154,13 +154,13 @@ export class FormEngine implements IFormEngine {
 
     private readonly _localeStore: LocaleStore;
     private readonly _fieldViewModels: Record<string, FieldViewModel> = {};
+    private readonly _itemLabelSignals = new Map<string, ReadonlyEngineSignal<string>>();
     private _formViewModel!: FormViewModel;
     private readonly _labelContextSignal: EngineSignal<string | null>;
 
     private _data: JsonRecord = {};
     private _previousEvalResult: EvalResult | null = null;
     private _fullResult: EvalResult | null = null;
-    private _labelContext: string | null = null;
     private _issuerOverride: IssuerSource | undefined;
     private _resolvedIssuer: ResolvedIssuer | undefined;
     private _issuerResolutionPromise: Promise<ResolvedIssuer> | undefined;
@@ -929,15 +929,47 @@ export class FormEngine implements IFormEngine {
     }
 
     public setLabelContext(context: string | null): void {
-        this._labelContext = context;
         this._labelContextSignal.value = context;
     }
 
+    /** Definition label for the active label context (no Locale, no `{{}}`); reactive to `setLabelContext`. */
     public getLabel(item: FormItem): string {
-        if (this._labelContext && item.labels?.[this._labelContext]) {
-            return item.labels[this._labelContext];
+        const context = this._labelContextSignal.value;
+        if (context && item.labels?.[context]) {
+            return item.labels[context];
         }
         return item.label;
+    }
+
+    /**
+     * Reactive label a respondent sees for the Item at instance `path` — field, display, or group (a repeat row
+     * path such as `jobs[0]` names its group). Same cascade as `FieldViewModel.label` (Locale
+     * `<key>.label@context` → `<key>.label` → `labels[context]` → inline), `{{}}` interpolated in the Item's
+     * scope. `undefined` when no Item has that path.
+     */
+    public getItemLabelSignal(path: string): ReadonlyEngineSignal<string> | undefined {
+        const fieldVM = this._fieldViewModels[path];
+        if (fieldVM) {
+            return fieldVM.label;
+        }
+        const cached = this._itemLabelSignals.get(path);
+        if (cached) {
+            return cached;
+        }
+        const item = path ? this._groupItems.get(path) ?? this._groupItems.get(toBasePath(path)) : undefined;
+        if (!item) {
+            return undefined;
+        }
+        const label = this._rx.computed(() => resolveItemLabel({
+            localeStore: this._localeStore,
+            itemKey: item.key,
+            inlineLabel: item.label,
+            labels: item.labels,
+            context: this._labelContextSignal.value,
+            evalFEL: (expression) => this._evalLocaleFEL(expression, path),
+        }).value);
+        this._itemLabelSignals.set(path, label);
+        return label;
     }
 
     public loadLocale(doc: LocaleDocument): void {
@@ -1749,6 +1781,11 @@ export class FormEngine implements IFormEngine {
         for (const path of Object.keys(this._fieldViewModels)) {
             if (path.startsWith(repeatPrefix)) {
                 delete this._fieldViewModels[path];
+            }
+        }
+        for (const path of this._itemLabelSignals.keys()) {
+            if (path.startsWith(repeatPrefix)) {
+                this._itemLabelSignals.delete(path);
             }
         }
 

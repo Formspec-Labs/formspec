@@ -209,8 +209,12 @@ migrateResponse(responseData: Record<string, any>, fromVersion: string): Record<
 **i18n**
 
 ```typescript
-setLabelContext(context: string | null): void   // e.g. 'es', 'fr'
-getLabel(item: FormspecItem): string             // Returns locale label or item.label
+setLabelContext(context: string | null): void   // label context key, e.g. 'short', 'pdf' (a signal)
+getLabel(item: FormspecItem): string             // labels[context] or item.label; no Locale, no {{}}
+getItemLabelSignal(path: string): ReadonlyEngineSignal<string> | undefined
+// Respondent-visible label of the field, display, or group Item at instance path (`jobs[0].note`,
+// `jobs`, `jobs[0]`): Locale <key>.label@context -> <key>.label -> labels[context] -> label, with {{}}
+// evaluated in the Item's scope. Field paths return FieldViewModel.label; undefined for unknown paths.
 ```
 
 ---
