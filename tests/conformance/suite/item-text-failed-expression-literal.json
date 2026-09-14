@@ -1,0 +1,13 @@
+{
+  "id": "core.item-text-failed-expression-literal",
+  "kind": "ITEM_TEXT",
+  "definitionPath": "tests/conformance/suite/fixtures/item-text.definition.json",
+  "inputData": { "qty": 3 },
+  "expected": {
+    "broken": { "label": "Bad {{$qty +}}, {{noSuchField}}, {{nope(1)}} kept", "hint": "Still 3" }
+  },
+  "legacyCoverage": [
+    { "path": "crates/formspec-eval/tests/integration/shared_suite.rs", "check": "item_text_failed_expression_literal" },
+    { "path": "packages/formspec-engine/tests/shared-suite.test.mjs", "check": "core.item-text-failed-expression-literal" }
+  ]
+}

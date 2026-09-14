@@ -127,7 +127,7 @@ function assertCaseContract(caseDoc, casePath) {
 
   assert.ok(typeof caseDoc.id === 'string' && caseDoc.id.length > 0, 'id must be a non-empty string');
   assert.ok(
-    ['FEL_EVALUATION', 'ENGINE_PROCESSING', 'VALIDATION_REPORT', 'RESPONSE_VALIDATION'].includes(caseDoc.kind),
+    ['FEL_EVALUATION', 'ENGINE_PROCESSING', 'VALIDATION_REPORT', 'RESPONSE_VALIDATION', 'ITEM_TEXT'].includes(caseDoc.kind),
     `unsupported kind ${caseDoc.kind}`
   );
   assert.ok(Array.isArray(caseDoc.legacyCoverage) && caseDoc.legacyCoverage.length > 0, 'legacyCoverage must be non-empty');
@@ -215,9 +215,51 @@ function runProcessingArtifacts(caseDoc) {
   return { report, response };
 }
 
+/**
+ * Core §4.2.1 Item text through the engine's reactive view models: `label` for every Item,
+ * `labels` per Definition/Locale context, and `hint` / `description` where a field view model
+ * exposes them. Compared against the case's paths only.
+ */
+function runItemTextCase(caseDoc) {
+  const definition = normalizeDefinitionForEngine(readJson(path.join(repoRoot, caseDoc.definitionPath)));
+  const engine = new FormEngine(definition);
+  if (caseDoc.localePath) {
+    const locale = readJson(path.join(repoRoot, caseDoc.localePath));
+    engine.loadLocale(locale);
+    engine.setLocale(locale.locale);
+  }
+  engine.loadResponseData(loadInputPayload(caseDoc));
+
+  const actual = {};
+  for (const [itemPath, expected] of Object.entries(caseDoc.expected)) {
+    const resolved = { label: engine.getItemLabelSignal(itemPath).value };
+    if (expected.labels) {
+      resolved.labels = {};
+      for (const context of Object.keys(expected.labels)) {
+        engine.setLabelContext(context);
+        resolved.labels[context] = engine.getItemLabelSignal(itemPath).value;
+      }
+      engine.setLabelContext(null);
+    }
+    const fieldVM = engine.getFieldVM(itemPath);
+    if (fieldVM?.description.value !== null && fieldVM?.description.value !== undefined) {
+      resolved.description = fieldVM.description.value;
+    }
+    if (fieldVM?.hint.value !== null && fieldVM?.hint.value !== undefined) {
+      resolved.hint = fieldVM.hint.value;
+    }
+    actual[itemPath] = resolved;
+  }
+  return actual;
+}
+
 function runCase(caseDoc) {
   if (caseDoc.kind === 'FEL_EVALUATION') {
     return runFelCase(caseDoc);
+  }
+
+  if (caseDoc.kind === 'ITEM_TEXT') {
+    return runItemTextCase(caseDoc);
   }
 
   const { report, response } = runProcessingArtifacts(caseDoc);

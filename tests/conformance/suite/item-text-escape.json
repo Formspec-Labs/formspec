@@ -1,0 +1,13 @@
+{
+  "id": "core.item-text-escape",
+  "kind": "ITEM_TEXT",
+  "definitionPath": "tests/conformance/suite/fixtures/item-text.definition.json",
+  "inputData": { "qty": 3 },
+  "expected": {
+    "escaped": { "label": "Use {{name}} literally", "hint": "Open {{ and 3" }
+  },
+  "legacyCoverage": [
+    { "path": "crates/formspec-eval/tests/integration/shared_suite.rs", "check": "item_text_escape" },
+    { "path": "packages/formspec-engine/tests/shared-suite.test.mjs", "check": "core.item-text-escape" }
+  ]
+}

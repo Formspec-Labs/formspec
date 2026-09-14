@@ -1,0 +1,13 @@
+{
+  "$formspecLocale": "2.0",
+  "version": "1.0.0",
+  "locale": "fr",
+  "target": { "kind": "definition", "url": "https://example.org/forms/shared-suite/item-text" },
+  "strings": {
+    "total.label": "Total : {{$total}}",
+    "total.label@short": "Tot. {{$qty}}",
+    "total.hint": "{{$qty}} articles",
+    "name.label": "Nom {{@index}}",
+    "summary.label": "Ligne {{@index}} : {{$name}}"
+  }
+}

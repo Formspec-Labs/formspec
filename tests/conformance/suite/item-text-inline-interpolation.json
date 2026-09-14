@@ -1,0 +1,20 @@
+{
+  "id": "core.item-text-inline-interpolation",
+  "kind": "ITEM_TEXT",
+  "definitionPath": "tests/conformance/suite/fixtures/item-text.definition.json",
+  "inputData": { "qty": 3 },
+  "expected": {
+    "qty": { "label": "Quantity" },
+    "total": {
+      "label": "Total: 15",
+      "labels": { "short": "Tot 3x" },
+      "hint": "3 items at 5 each",
+      "description": "Computed from 3 items"
+    },
+    "note": { "label": "Summary for 3 items" }
+  },
+  "legacyCoverage": [
+    { "path": "crates/formspec-eval/tests/integration/shared_suite.rs", "check": "item_text_inline_interpolation" },
+    { "path": "packages/formspec-engine/tests/shared-suite.test.mjs", "check": "core.item-text-inline-interpolation" }
+  ]
+}

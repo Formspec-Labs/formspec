@@ -1,11 +1,13 @@
 //! Shared cross-runtime conformance cases (`tests/conformance/suite/`) run through the batch evaluator.
 //!
 //! The TypeScript engine runs every case in `shared-suite.test.mjs`. This runner covers
-//! the listed `VALIDATION_REPORT` cases and compares what both runtimes must agree on:
-//! validity, severity counts, and each result's path, code, severity, and constraint kind.
+//! the listed `VALIDATION_REPORT` cases, comparing what both runtimes must agree on
+//! (validity, severity counts, and each result's path, code, severity, and constraint
+//! kind), and the listed `ITEM_TEXT` cases, comparing resolved Item text exactly.
 
 use formspec_eval::{
-    EvalOptions, EvalTrigger, evaluate, extension_constraints_from_registry_documents,
+    EvalOptions, EvalTrigger, ItemTextRequest, evaluate, evaluation_result_to_json_value,
+    extension_constraints_from_registry_documents,
 };
 use serde_json::Value;
 use std::collections::HashMap;
@@ -43,12 +45,7 @@ fn run_validation_report_case(case_file: &str) {
                 .collect()
         })
         .unwrap_or_default();
-    let data: HashMap<String, Value> = case["inputData"]
-        .as_object()
-        .expect("inline inputData object")
-        .iter()
-        .map(|(key, value)| (key.clone(), value.clone()))
-        .collect();
+    let data = input_data(&case);
     let trigger = match case["mode"].as_str() {
         Some("continuous") => EvalTrigger::Continuous,
         _ => EvalTrigger::Submit,
@@ -111,4 +108,72 @@ fn run_validation_report_case(case_file: &str) {
 #[test]
 fn bind_merge_document_order() {
     run_validation_report_case("bind-merge-document-order.json");
+}
+
+fn input_data(case: &Value) -> HashMap<String, Value> {
+    case["inputData"]
+        .as_object()
+        .expect("inline inputData object")
+        .iter()
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect()
+}
+
+fn run_item_text_case(case_file: &str) {
+    let case = read_json(&format!("tests/conformance/suite/{case_file}"));
+    assert_eq!(case["kind"], "ITEM_TEXT", "{case_file}");
+    let definition = read_json(case["definitionPath"].as_str().expect("definitionPath"));
+    let locale_strings = case["localePath"]
+        .as_str()
+        .map(|path| {
+            read_json(path)["strings"]
+                .as_object()
+                .expect("Locale strings object")
+                .iter()
+                .map(|(key, value)| (key.clone(), value.as_str().expect("string").to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let options = EvalOptions::default().item_text(ItemTextRequest { locale_strings });
+
+    let result =
+        evaluation_result_to_json_value(&evaluate(&definition, &input_data(&case), &options));
+
+    for (path, expected) in case["expected"].as_object().expect("expected object") {
+        assert_eq!(
+            &result["itemText"][path], expected,
+            "{case_file}: {path}; itemText {}",
+            result["itemText"]
+        );
+    }
+}
+
+/// Core §4.2.1: `{{}}` in label, labels, hint, and description resolves inline.
+#[test]
+fn item_text_inline_interpolation() {
+    run_item_text_case("item-text-inline-interpolation.json");
+}
+
+/// Core §4.2.1 / Locale §3.3.2: repeat children interpolate in their instance scope.
+#[test]
+fn item_text_repeat_row_scope() {
+    run_item_text_case("item-text-repeat-row-scope.json");
+}
+
+/// Locale §3.3.1 rule 1: `{{{{` renders a literal `{{`.
+#[test]
+fn item_text_escape() {
+    run_item_text_case("item-text-escape.json");
+}
+
+/// Locale §3.3.1 rules 2 and 3a: a failed expression stays literal; the rest of the text resolves.
+#[test]
+fn item_text_failed_expression_literal() {
+    run_item_text_case("item-text-failed-expression-literal.json");
+}
+
+/// Locale §3.1.1–§3.1.2: Locale strings replace inline text and interpolate in the same scope.
+#[test]
+fn item_text_locale_over_inline() {
+    run_item_text_case("item-text-locale-over-inline.json");
 }
