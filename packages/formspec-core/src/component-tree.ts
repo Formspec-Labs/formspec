@@ -34,3 +34,17 @@ export function walkComponentTree(
     if (node.children?.length) queue.push(...node.children);
   }
 }
+
+/** Auto-incrementing counter for generating unique node IDs within a session. */
+let nodeCounter = 0;
+
+/**
+ * Generate a unique node ID for unbound tree nodes.
+ *
+ * IDs are session-scoped monotonic strings of the form `node_1`, `node_2`, etc.
+ * They provide stable addressing for layout/container nodes that have no
+ * definition-level bind key.
+ */
+export function generateNodeId(): string {
+  return `node_${++nodeCounter}`;
+}

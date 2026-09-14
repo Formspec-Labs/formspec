@@ -10,6 +10,7 @@
 import type { CommandHandler, LocaleState, ProjectBundle } from '../types.js';
 import type { FormItem } from '@formspec-org/types';
 import { normalizeComponentState } from '../component-documents.js';
+import { importComponentTree } from '../component-export.js';
 import { mappingStateFromDocument, themeStateFromDocument } from '../document-envelopes.js';
 import { normalizeBindsFromUnknown } from '../definition-binds.js';
 import { normalizeBcp47 } from '@formspec-org/engine';
@@ -34,6 +35,9 @@ export const projectHandlers = {
     }
     if (p.component) {
       state.component = normalizeComponentState(p.component, state.definition.url);
+      if (state.component.tree) {
+        state.component.tree = importComponentTree(state.component.tree, state.definition.items);
+      }
     } else if (importedDefinition) {
       state.component = normalizeComponentState(state.component, state.definition.url);
     }

@@ -175,6 +175,8 @@ export function reconcileComponentTree(
       existingDisplay.delete(itemPath);
       if (existing) {
         node = { ...existing, bind: item.key, text: item.label ?? '' };
+        // An imported static display has no node ref yet; generation gives it the key.
+        if (!node.nodeId && !calculatedDisplayPaths.has(itemPath)) node.nodeId = item.key;
       } else if (calculatedDisplayPaths.has(itemPath)) {
         const hintComponent = widgetTokenToComponent(item.presentation?.widgetHint);
         node = { component: hintComponent ?? 'Text', bind: item.key, text: item.label ?? '' };
@@ -185,7 +187,8 @@ export function reconcileComponentTree(
       const existing = existingBound.get(itemPath);
       const hintComponent = widgetTokenToComponent(item.presentation?.widgetHint);
       if (existing) {
-        node = { ...existing };
+        // An imported node may bind a dotted path; in memory `bind` is the item key.
+        node = { ...existing, bind: item.key };
         // Update component if widgetHint resolves to a different component
         if (hintComponent && existing.component !== hintComponent) {
           node.component = hintComponent;
@@ -217,9 +220,11 @@ export function reconcileComponentTree(
 
   const builtNodes: TreeNode[] = definition.items.flatMap(item => buildNodes(item));
 
-  // Root is always Stack. Page-mode structure is authored by direct-root Sections
-  // and preserved via the _layout snapshot/restore mechanism above.
-  let newRoot: TreeNode = { component: 'Stack', nodeId: 'root', children: builtNodes };
+  // Root is always Stack, keeping its authored props (gap, style, …). Page-mode
+  // structure is authored by direct-root Sections and preserved via the _layout
+  // snapshot/restore mechanism above.
+  const { children: _previousChildren, ...rootProps } = tree;
+  let newRoot: TreeNode = { ...rootProps, component: 'Stack', nodeId: 'root', children: builtNodes };
 
   // ── Phase 3: Re-insert layout wrappers ──
   /**

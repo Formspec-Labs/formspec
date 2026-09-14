@@ -82,7 +82,7 @@ import {
   resolveExtension as _resolveExtension,
 } from './queries/index.js';
 import { evalFELWithTrace, type FelTraceResult } from '@formspec-org/engine/fel-runtime';
-import { exportComponentTree } from './component-export.js';
+import { exportComponentTree, importComponentTree } from './component-export.js';
 import { indexRegistryPayload } from './registry-index.js';
 import { normalizeBindsFromUnknown } from './definition-binds.js';
 import {
@@ -139,6 +139,8 @@ function createDefaultState(options?: ProjectOptions): ProjectState {
   const definition = { ...rawDefinition, binds: normalizeBindsFromUnknown(rawDefinition.binds) } as FormDefinition;
   const url = definition.url;
   const componentState = normalizeComponentState(options?.seed?.component, url);
+  // A seed may be an exported Component Document (Studio seeds from bundles).
+  if (componentState.tree) componentState.tree = importComponentTree(componentState.tree, definition.items);
 
   // theme-spec §2.2.1: a Theme that declares no `targetDefinition` is BUNDLE-SCOPED —
   // absence is a declaration, not an omission, and minting one silently rewrites the

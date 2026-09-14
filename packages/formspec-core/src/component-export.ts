@@ -1,6 +1,7 @@
-/** @filedesc Component document export: schema-prop filtering, bind path rewriting, derived-default detection. */
+/** @filedesc Component tree export/import: schema-prop filtering, bind path rewriting and its inverse, derived detection. */
 import type { FormItem } from '@formspec-org/types';
 import { COMPONENT_BASE_PROP_NAMES, COMPONENT_SCHEMA_PROPS } from './generated/component-schema-props.js';
+import { generateNodeId } from './component-tree.js';
 import { jsonEqual } from './json-equal.js';
 import { reconcileComponentTree } from './tree-reconciler.js';
 import type { ProjectState } from './types.js';
@@ -140,6 +141,105 @@ function cleanTreeForExport(
 
 function joinPath(prefix: string, key: string): string {
   return prefix ? `${prefix}.${key}` : key;
+}
+
+type TreeRecord = Record<string, unknown> & { children?: TreeRecord[] };
+
+/** `path` relative to the group at `group` (`''` = root), or `undefined` when not under it. */
+function relativePath(path: string, group: string): string | undefined {
+  if (!group) return path;
+  return path.startsWith(`${group}.`) ? path.slice(group.length + 1) : undefined;
+}
+
+/**
+ * Key of the plain group, directly under `group`, that every bound descendant of
+ * `node` sits inside (searching through unbound nodes, stopping at bound ones).
+ * `undefined` when there is none: the node is a layout wrapper.
+ */
+function coveringGroupKey(
+  node: TreeRecord,
+  items: ReadonlyMap<string, FormItem>,
+  base: string,
+  group: string,
+): string | undefined {
+  let key: string | undefined;
+  const pending = [...(node.children ?? [])];
+  while (pending.length > 0) {
+    const child = pending.pop()!;
+    if (typeof child.bind === 'string' && child.bind) {
+      const rel = relativePath(joinPath(base, child.bind), group);
+      const dot = rel?.indexOf('.') ?? -1;
+      if (dot < 0) return undefined;
+      const childKey = rel!.slice(0, dot);
+      if (key !== undefined && childKey !== key) return undefined;
+      key = childKey;
+    } else if (child.children) {
+      pending.push(...child.children);
+    }
+  }
+  return key !== undefined && items.get(joinPath(group, key))?.type === 'group' ? key : undefined;
+}
+
+/**
+ * `base` is the definition path exported binds resolve against (`''`, or the enclosing
+ * bound group — repeat template children restart there); `group` is the definition path
+ * of the enclosing in-memory group node, which in-memory binds are relative to.
+ */
+function importNode(
+  node: TreeRecord,
+  items: ReadonlyMap<string, FormItem>,
+  base: string,
+  group: string,
+): TreeRecord {
+  const out: TreeRecord = { ...node };
+  let childBase = base;
+  let childGroup = group;
+
+  if (typeof node.bind === 'string' && node.bind) {
+    const path = joinPath(base, node.bind);
+    out.bind = relativePath(path, group) ?? node.bind;
+    if (items.get(path)?.type === 'group') childBase = childGroup = path;
+  } else if (node.nodeId === undefined) {
+    const key = node.component === 'Section' ? undefined : coveringGroupKey(node, items, base, group);
+    if (key) {
+      out.bind = key;
+      childGroup = joinPath(group, key);
+    } else {
+      out._layout = true;
+      out.nodeId = generateNodeId();
+    }
+  }
+
+  if (node.children) {
+    out.children = node.children.map(child => importNode(child, items, childBase, childGroup));
+  }
+  return out;
+}
+
+/**
+ * Invert the export bind transform on an incoming tree so its authored nodes match
+ * their items on reconcile. Export drops a layout container's bind to a plain group
+ * (component-spec §4.2: layout components are bind-forbidden) and writes descendants
+ * as dotted paths; repeat template children restart as flat keys (§4.4). Import:
+ *
+ * - rewrites every bind relative to its enclosing group node (the in-memory shape);
+ * - binds an unbound container to the plain group all its bound descendants sit in —
+ *   the outermost such container: export cannot tell a group's Stack from a wrapper
+ *   directly around it, and both shapes re-export identically;
+ * - marks every other unbound node a layout wrapper (`_layout` + `nodeId`), the shape
+ *   the reconciler preserves.
+ *
+ * The root and nodes that already carry `nodeId` are in-memory shape and keep their
+ * identity, so the transform is idempotent on a tree that was never exported.
+ */
+export function importComponentTree(tree: unknown, items: readonly FormItem[]): Record<string, unknown> {
+  const root = tree as TreeRecord;
+  const index = itemsByPath(items);
+  return {
+    ...root,
+    nodeId: root.nodeId ?? 'root',
+    ...(root.children ? { children: root.children.map(child => importNode(child, index, '', '')) } : {}),
+  };
 }
 
 /** Envelope keys `RawProject` stamps on every component document; they carry no authored content. */

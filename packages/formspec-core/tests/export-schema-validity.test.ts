@@ -388,6 +388,105 @@ describe('componentDocumentIsDerived', () => {
   });
 });
 
+// ── Export → import inverts the export bind transform ──────────────
+
+describe('export → import → export round trip keeps an authored component document', () => {
+  const definition = {
+    $formspec: '1.0', url: 'urn:round-trip', version: '1.0.0', status: 'draft', title: 'T',
+    items: [
+      { type: 'display', key: 'intro', label: 'Welcome' },
+      { type: 'field', key: 'name', label: 'Name', dataType: 'string' },
+      {
+        type: 'group', key: 'g', label: 'G',
+        children: [
+          { type: 'field', key: 'c', label: 'C', dataType: 'choice', options: [{ value: 'a', label: 'A' }] },
+          { type: 'display', key: 'note', label: 'Note' },
+          { type: 'group', key: 'h', label: 'H', children: [{ type: 'field', key: 'deep', label: 'Deep', dataType: 'string' }] },
+        ],
+      },
+      {
+        type: 'group', key: 'jobs', label: 'Jobs', repeatable: true,
+        children: [
+          { type: 'field', key: 'title', label: 'Title', dataType: 'string' },
+          { type: 'display', key: 'jobNote', label: 'Job {{$title}}' },
+        ],
+      },
+      {
+        type: 'group', key: 'work', label: 'Work',
+        children: [{
+          type: 'group', key: 'employers', label: 'Employers', repeatable: true,
+          children: [
+            { type: 'field', key: 'payer', label: 'Payer', dataType: 'string' },
+            { type: 'group', key: 'addr', label: 'Address', children: [{ type: 'field', key: 'city', label: 'City', dataType: 'string' }] },
+          ],
+        }],
+      },
+    ],
+  };
+
+  function authoredProject() {
+    const project = createRawProject({ seed: { definition: structuredClone(definition) as any } });
+    project.batch([
+      { type: 'component.setNodeProperty', payload: { node: { nodeId: 'root' }, property: 'gap', value: '$token.space.md' } },
+      { type: 'component.setNodeType', payload: { node: { bind: 'c' }, component: 'RadioGroup' } },
+      { type: 'component.setNodeType', payload: { node: { bind: 'deep' }, component: 'Textarea' } },
+      { type: 'component.setNodeType', payload: { node: { bind: 'title' }, component: 'Textarea' } },
+      { type: 'component.setNodeType', payload: { node: { bind: 'city' }, component: 'Textarea' } },
+      { type: 'component.setNodeProperty', payload: { node: { bind: 'payer' }, property: 'placeholder', value: 'Payer name' } },
+      { type: 'component.wrapNode', payload: { node: { bind: 'name' }, wrapper: { component: 'Card' } } },
+      { type: 'component.wrapNode', payload: { node: { nodeId: 'note' }, wrapper: { component: 'Collapsible', props: { title: 'More' } } } },
+      // A wrapper directly around a group's container: export cannot tell the two apart.
+      { type: 'component.wrapNode', payload: { node: { bind: 'work' }, wrapper: { component: 'Card', props: { title: 'Work' } } } },
+    ] as any);
+    return project;
+  }
+
+  it('import restores the authored nodes inside plain groups, nested groups and repeats', () => {
+    const exported = authoredProject().export();
+    const imported = createRawProject();
+    imported.dispatch({ type: 'project.import', payload: exported });
+
+    expect(imported.componentFor('c')!.component).toBe('RadioGroup');
+    expect(imported.componentFor('deep')!.component).toBe('Textarea');
+    expect(imported.componentFor('title')!.component).toBe('Textarea');
+    expect(imported.componentFor('city')!.component).toBe('Textarea');
+    expect(componentDocumentIsDerived(imported.state)).toBe(false);
+    expect(imported.export().component).toEqual(exported.component);
+  });
+
+  it('a seeded exported component document re-exports unchanged', () => {
+    const exported = authoredProject().export();
+    const seeded = createRawProject({
+      seed: { definition: exported.definitions[0], component: exported.component } as any,
+    });
+    expect(seeded.export().component).toEqual(exported.component);
+  });
+
+  it('a hand-authored dotted bind with no group container re-exports under its group', () => {
+    const imported = createRawProject();
+    imported.dispatch({
+      type: 'project.import',
+      payload: {
+        definitions: [structuredClone(definition)],
+        component: {
+          $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: 'urn:round-trip' },
+          tree: { component: 'Stack', children: [{ component: 'RadioGroup', bind: 'g.c' }] },
+        },
+      } as any,
+    });
+    const tree = imported.export().component!.tree as any;
+    const group = tree.children.find((n: any) => n.children?.some((c: any) => c.bind === 'g.c'));
+    expect(group.children.find((c: any) => c.bind === 'g.c').component).toBe('RadioGroup');
+  });
+
+  it('a re-imported document keeps binding display nodes by nodeId, so Studio can address them', () => {
+    const imported = createRawProject();
+    imported.dispatch({ type: 'project.import', payload: authoredProject().export() });
+    imported.dispatch({ type: 'component.setNodeProperty', payload: { node: { nodeId: 'jobNote' }, property: 'cssClass', value: 'muted' } });
+    expect(JSON.stringify(imported.export().component!.tree)).toContain('"muted"');
+  });
+});
+
 // ── Mappings: schema requires rules minItems 1 ─────────────────────
 
 describe('export: mappings without rules are omitted', () => {

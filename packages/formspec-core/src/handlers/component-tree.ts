@@ -26,23 +26,8 @@
 import type { CommandHandler } from '../types.js';
 import { normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
 import { reconcileComponentTree } from '../tree-reconciler.js';
+import { generateNodeId } from '../component-tree.js';
 import { type TreeNode, ensureTree } from './tree-utils.js';
-
-/** Auto-incrementing counter for generating unique node IDs within a session. */
-let nodeCounter = 0;
-
-/**
- * Generate a unique node ID for unbound tree nodes.
- *
- * IDs are session-scoped monotonic strings of the form `node_1`, `node_2`, etc.
- * They provide stable addressing for layout/container nodes that have no
- * definition-level bind key.
- *
- * @returns A unique node identifier string.
- */
-function generateNodeId(): string {
-  return `node_${++nodeCounter}`;
-}
 
 /**
  * Find a node in the tree by its NodeRef, returning the node together with its
