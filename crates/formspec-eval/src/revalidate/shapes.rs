@@ -11,13 +11,12 @@ use crate::rebuild::{
     expand_wildcard_path, instantiate_wildcard_expr, is_wildcard_bind, wildcard_base,
 };
 use crate::recalculate::eval_bool;
-use crate::recalculate::repeats::data_type_of;
 use crate::types::{
     ConstraintKind, EvalDiagnostic, ItemInfo, Severity, ValidationCode, ValidationResult,
     ValidationSource, find_item_by_path,
 };
 
-use super::env::{bind_sibling_aliases, restore_sibling_aliases};
+use super::env::{SiblingValues, restore_sibling_aliases};
 use super::expr::{
     ConstraintSite, constraint_passes, evaluate_shape_expression, interpolate_message,
 };
@@ -27,7 +26,7 @@ pub(super) fn validate_shape(
     shapes_by_id: &HashMap<String, &JsonValue>,
     env: &mut FormspecEnvironment,
     values: &HashMap<String, JsonValue>,
-    data_types: &HashMap<String, String>,
+    siblings: &SiblingValues<'_>,
     items: &[ItemInfo],
     results: &mut Vec<ValidationResult>,
     diagnostics: &mut Vec<EvalDiagnostic>,
@@ -41,7 +40,7 @@ pub(super) fn validate_shape(
             shapes_by_id,
             env,
             values,
-            data_types,
+            siblings,
             items,
             results,
             diagnostics,
@@ -70,7 +69,7 @@ pub(super) fn validate_shape(
     let saved_aliases = if target.is_empty() || target == "#" {
         HashMap::new()
     } else {
-        bind_sibling_aliases(env, values, data_types, target)
+        siblings.bind(env, target)
     };
     if let Some(active_when) = shape.get("activeWhen").and_then(|v| v.as_str())
         && !eval_bool(active_when, env, true)
@@ -86,7 +85,7 @@ pub(super) fn validate_shape(
     {
         env.data.insert(
             String::new(),
-            json_to_runtime_fel_typed(target_val, data_type_of(data_types, target)),
+            json_to_runtime_fel_typed(target_val, siblings.data_type(target)),
         );
     }
 
@@ -134,7 +133,7 @@ fn validate_wildcard_shape(
     _shapes_by_id: &HashMap<String, &JsonValue>,
     env: &mut FormspecEnvironment,
     values: &HashMap<String, JsonValue>,
-    data_types: &HashMap<String, String>,
+    siblings: &SiblingValues<'_>,
     items: &[ItemInfo],
     results: &mut Vec<ValidationResult>,
     diagnostics: &mut Vec<EvalDiagnostic>,
@@ -176,14 +175,14 @@ fn validate_wildcard_shape(
             None => continue,
         };
 
-        let saved_aliases = bind_sibling_aliases(env, values, data_types, concrete_path);
+        let saved_aliases = siblings.bind(env, concrete_path);
 
         // Build a row-scoped environment: instantiate [*] references in the constraint
         let prev_dollar = env.data.remove("");
         if let Some(val) = values.get(concrete_path.as_str()) {
             env.data.insert(
                 String::new(),
-                json_to_runtime_fel_typed(val, data_type_of(data_types, concrete_path)),
+                json_to_runtime_fel_typed(val, siblings.data_type(concrete_path)),
             );
         }
 

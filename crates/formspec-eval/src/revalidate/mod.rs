@@ -17,7 +17,9 @@ use crate::types::{EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, V
 
 use crate::rebuild::is_wildcard_bind;
 use crate::recalculate::repeats::ResponseIndex;
-use env::{RepeatGroupArrays, apply_excluded_values_to_env, build_validation_env_typed};
+use env::{
+    RepeatGroupArrays, SiblingValues, apply_excluded_values_to_env, build_validation_env_typed,
+};
 use items::validate_items;
 use shapes::validate_shape;
 
@@ -64,6 +66,8 @@ pub fn revalidate(
         })
         .collect();
 
+    let siblings = SiblingValues::new(values, data_types);
+
     // Build extension lookup map
     let ext_by_name: HashMap<&str, &ExtensionConstraint> = extension_constraints
         .iter()
@@ -75,7 +79,7 @@ pub fn revalidate(
         items,
         &mut env,
         values,
-        data_types,
+        &siblings,
         &ext_by_name,
         formspec_version,
         repeat_counts,
@@ -120,7 +124,7 @@ pub fn revalidate(
                 &shapes_by_id,
                 &mut env,
                 values,
-                data_types,
+                &siblings,
                 items,
                 &mut results,
                 &mut diagnostics,

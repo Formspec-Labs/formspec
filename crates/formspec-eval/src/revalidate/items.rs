@@ -21,14 +21,14 @@ use crate::types::{
 
 use crate::value_predicate::{is_empty_for_required_bind, value_skips_optional_bind_checks};
 
-use super::env::{bind_sibling_aliases, restore_sibling_aliases};
+use super::env::{SiblingValues, restore_sibling_aliases};
 use super::expr::{ConstraintSite, constraint_passes};
 
 pub(super) fn validate_items(
     items: &[ItemInfo],
     env: &mut FormspecEnvironment,
     values: &HashMap<String, Value>,
-    data_types: &HashMap<String, String>,
+    siblings: &SiblingValues<'_>,
     ext_by_name: &HashMap<&str, &ExtensionConstraint>,
     formspec_version: &str,
     repeat_counts: Option<&HashMap<String, u64>>,
@@ -180,7 +180,7 @@ pub(super) fn validate_items(
             && let Some(ref expr) = item.constraint
         {
             let normalized_expr = resolve_qualified_repeat_refs(expr, &item.path);
-            let saved_aliases = bind_sibling_aliases(env, values, data_types, &item.path);
+            let saved_aliases = siblings.bind(env, &item.path);
             // Temporarily bind bare $ to this field's value (typed like env fields — S2.1.3)
             let prev_dollar = env.data.remove("");
             env.data.insert(
@@ -276,7 +276,7 @@ pub(super) fn validate_items(
             &item.children,
             env,
             values,
-            data_types,
+            siblings,
             ext_by_name,
             formspec_version,
             repeat_counts,

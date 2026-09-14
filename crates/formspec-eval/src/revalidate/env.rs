@@ -105,30 +105,68 @@ fn collect_repeat_group_arrays(
     }
 }
 
-pub(super) fn bind_sibling_aliases(
-    env: &mut FormspecEnvironment,
-    values: &HashMap<String, Value>,
-    data_types: &HashMap<String, String>,
-    concrete_path: &str,
-) -> HashMap<String, Option<EnvVal>> {
-    let Some((row_prefix, _)) = concrete_path.rsplit_once('.') else {
-        return HashMap::new();
-    };
+/// Response values grouped by parent path, built once per revalidation.
+///
+/// A constraint or shape at `rows[3].qty` binds the bare siblings under `rows[3]`
+/// (`$qty`, `$price`). Reading only that parent's bucket keeps each binding O(row)
+/// instead of scanning every response value per constraint (O(constraints x values)).
+pub(super) struct SiblingValues<'a> {
+    /// Parent path to its direct children: `(alias, full path, value)`.
+    by_parent: HashMap<&'a str, Vec<(&'a str, &'a str, &'a Value)>>,
+    data_types: &'a HashMap<String, String>,
+}
 
-    let mut saved = HashMap::new();
-    let prefix = format!("{row_prefix}.");
-    for (path, value) in values {
-        if let Some(alias) = path.strip_prefix(&prefix)
-            && !alias.contains('.')
-        {
-            saved.insert(alias.to_string(), env.data.get(alias).cloned());
-            env.set_field(
-                alias,
-                json_to_runtime_fel_typed(value, data_type_of(data_types, path)),
-            );
+impl<'a> SiblingValues<'a> {
+    pub(super) fn new(
+        values: &'a HashMap<String, Value>,
+        data_types: &'a HashMap<String, String>,
+    ) -> Self {
+        let mut by_parent: HashMap<&str, Vec<_>> = HashMap::new();
+        for (path, value) in values {
+            if let Some((parent, alias)) = path.rsplit_once('.') {
+                by_parent
+                    .entry(parent)
+                    .or_default()
+                    .push((alias, path.as_str(), value));
+            }
+        }
+        Self {
+            by_parent,
+            data_types,
         }
     }
-    saved
+
+    /// Field `dataType` for a concrete response path.
+    pub(super) fn data_type(&self, path: &str) -> Option<&str> {
+        data_type_of(self.data_types, path)
+    }
+
+    /// Bind `concrete_path`'s bare siblings into `env`, typed by their `dataType`.
+    ///
+    /// Returns the shadowed env values for [`restore_sibling_aliases`].
+    pub(super) fn bind(
+        &self,
+        env: &mut FormspecEnvironment,
+        concrete_path: &str,
+    ) -> HashMap<String, Option<EnvVal>> {
+        let Some(siblings) = concrete_path
+            .rsplit_once('.')
+            .and_then(|(parent, _)| self.by_parent.get(parent))
+        else {
+            return HashMap::new();
+        };
+        siblings
+            .iter()
+            .map(|&(alias, path, value)| {
+                let previous = env.data.get(alias).cloned();
+                env.set_field(
+                    alias,
+                    json_to_runtime_fel_typed(value, self.data_type(path)),
+                );
+                (alias.to_string(), previous)
+            })
+            .collect()
+    }
 }
 
 pub(super) fn restore_sibling_aliases(

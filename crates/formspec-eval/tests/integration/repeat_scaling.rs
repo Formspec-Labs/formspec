@@ -2,6 +2,8 @@
 //!
 //! Run with `cargo nextest run -p formspec-eval --run-ignored only repeat_scaling`.
 //! Per-row work should be O(row), so doubling rows should roughly double time.
+//! `constraint_scaling` puts a Bind constraint on every field of every row, so
+//! per-constraint work that reads every value shows up as O(rows^2).
 
 use formspec_eval::{EvalOptions, evaluate};
 use serde_json::{Value, json};
@@ -53,12 +55,15 @@ fn data(rows: usize) -> HashMap<String, Value> {
 
 /// Best of `runs` evaluations, to damp scheduler noise.
 fn best_time(rows: usize, runs: usize) -> Duration {
-    let def = definition();
+    best_time_for(&definition(), rows, runs)
+}
+
+fn best_time_for(def: &Value, rows: usize, runs: usize) -> Duration {
     let data = data(rows);
     (0..runs)
         .map(|_| {
             let start = Instant::now();
-            let result = evaluate(&def, &data, &EvalOptions::default());
+            let result = evaluate(def, &data, &EvalOptions::default());
             let elapsed = start.elapsed();
             assert!(result.validations.is_empty(), "{:?}", result.validations);
             elapsed
@@ -78,5 +83,31 @@ fn repeat_scaling() {
     assert!(
         ratio < 3.0,
         "200 rows cost {ratio:.2}x 100 rows: superlinear"
+    );
+}
+
+/// [`definition`] plus a constraint on every integer field: constraints grow with rows.
+fn constrained_definition() -> Value {
+    let mut def = definition();
+    let binds = def["binds"].as_array_mut().expect("binds array");
+    for field in 0..FIELDS - 2 {
+        binds.push(
+            json!({ "path": format!("rows[*].f{field}"), "constraint": "$ >= 0 and $f0 >= 0" }),
+        );
+    }
+    def
+}
+
+#[test]
+#[ignore = "timing benchmark; run explicitly with --run-ignored only"]
+fn constraint_scaling() {
+    let def = constrained_definition();
+    let half = best_time_for(&def, 400, 3);
+    let full = best_time_for(&def, 800, 3);
+    let ratio = full.as_secs_f64() / half.as_secs_f64();
+    println!("400 rows: {half:?}; 800 rows: {full:?}; ratio {ratio:.2}");
+    assert!(
+        ratio < 3.0,
+        "800 rows cost {ratio:.2}x 400 rows: superlinear"
     );
 }
