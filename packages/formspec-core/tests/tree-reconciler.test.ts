@@ -604,6 +604,20 @@ describe('reconcileComponentTree', () => {
   });
 });
 
+describe('reconcileComponentTree wrapper parents', () => {
+  it('returns a wrapper to the group it sat in when another group shares that key', () => {
+    const addr = () => ({ key: 'addr', type: 'group', children: [{ key: 'city', type: 'field', dataType: 'string' }] });
+    const definition = { items: [{ key: 'g1', type: 'group', children: [addr()] }, { key: 'g2', type: 'group', children: [addr()] }] } as any;
+    const tree = reconcileComponentTree(definition, undefined) as any;
+    const g1Addr = tree.children[0].children[0];
+    g1Addr.children = [{ component: 'Card', _layout: true, nodeId: 'card', children: g1Addr.children }];
+
+    const rebuilt = reconcileComponentTree(definition, tree) as any;
+    expect(rebuilt.children[0].children[0].children[0]).toMatchObject({ nodeId: 'card', children: [{ definitionItemPath: 'g1.addr.city' }] });
+    expect(rebuilt.children[1].children[0].children).toEqual([expect.objectContaining({ definitionItemPath: 'g2.addr.city' })]);
+  });
+});
+
 describe('reconcileComponentTree cost', () => {
   it('re-inserts layout wrappers without a tree pass per wrapper', () => {
     // Bound: one index over the rebuilt tree. A walk per wrapper and per wrapped child made
