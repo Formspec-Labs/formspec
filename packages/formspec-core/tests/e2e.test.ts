@@ -59,9 +59,9 @@ describe('Formspec Studio Core E2E Validation', { timeout: 60_000 }, () => {
     } else if (fs.existsSync(compPath)) {
       fs.unlinkSync(compPath);
     }
-    // Only write mapping when rules exist (empty rules array fails schema minItems: 1)
+    // export() omits rule-less mappings (schema minItems: 1)
     const defaultMapping = bundle.mappings[Object.keys(bundle.mappings)[0]];
-    if (defaultMapping && (defaultMapping as any).rules?.length > 0) {
+    if (defaultMapping) {
       fs.writeFileSync(mapPath, JSON.stringify(defaultMapping, null, 2));
     } else if (fs.existsSync(mapPath)) {
       fs.unlinkSync(mapPath);

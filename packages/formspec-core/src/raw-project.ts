@@ -468,9 +468,11 @@ export class RawProject implements IProjectCore {
       ? { ...restTheme, targetDefinition: themeTarget }
       : restTheme;
 
+    // mapping.schema.json requires `rules` minItems 1: a rule-less mapping is authoring
+    // scaffolding (the seeded `default`, a freshly created tab), not a document.
     const exportMappings: Record<string, MappingDocument> = {};
     for (const [id, m] of Object.entries(this._state.mappings)) {
-      exportMappings[id] = withMappingEnvelope(m, url);
+      if (m.rules?.length) exportMappings[id] = withMappingEnvelope(m, url);
     }
 
     const bundle: ProjectBundle = {

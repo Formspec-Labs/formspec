@@ -276,6 +276,26 @@ describe('export: repeat template children bind as flat item keys', () => {
   });
 });
 
+// ── Mappings: schema requires rules minItems 1 ─────────────────────
+
+describe('export: mappings without rules are omitted', () => {
+  it('a new project exports no mapping documents', () => {
+    const project = createRawProject();
+    expect(project.export().mappings).toEqual({});
+  });
+
+  it('exports only the mappings that carry rules', () => {
+    const project = createRawProject();
+    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'name', dataType: 'string' } });
+    project.dispatch({ type: 'mapping.create', payload: { id: 'csv' } });
+    project.dispatch({ type: 'mapping.addRule', payload: { mappingId: 'default', sourcePath: 'name', targetPath: 'applicant' } });
+
+    const { mappings } = project.export();
+    expect(Object.keys(mappings)).toEqual(['default']);
+    expect(mappings.default.rules).toHaveLength(1);
+  });
+});
+
 // ── Allowlist: only schema-valid properties survive export ──────────
 
 describe('Export allowlist: only schema-valid properties survive', () => {
