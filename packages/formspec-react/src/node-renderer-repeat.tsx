@@ -4,7 +4,7 @@
 import React, { useMemo, useRef, useCallback, useState } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';
 import { useFormspecContext, findItemByKey } from './context.js';
-import { useRepeatCount } from './use-repeat-count';
+import { useRepeatAffordances } from './use-repeat-affordances';
 import type { NodeRenderer } from './node-renderer-types.js';
 
 function findItemLabel(items: Array<{ key?: string; label?: string; children?: unknown[] }>, key: string): string | undefined {
@@ -16,7 +16,7 @@ function findItemLabel(items: Array<{ key?: string; label?: string; children?: u
 export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChild: NodeRenderer }) {
     const { engine } = useFormspecContext();
     const repeatPath = node.repeatPath!;
-    const count = useRepeatCount(repeatPath);
+    const { count, relevant, canAdd, canRemove } = useRepeatAffordances(repeatPath);
     const title = (node.props?.title as string) || node.repeatGroup || repeatPath;
     const containerRef = useRef<HTMLDivElement>(null);
     const addBtnRef = useRef<HTMLButtonElement>(null);
@@ -40,6 +40,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
     }, [node.children, repeatPath, count]);
 
     const handleAdd = useCallback(() => {
+        if (!canAdd) return;
         engine.addRepeatInstance(repeatPath);
         const newCount = count + 1;
         setAnnouncement(`${title} ${newCount} added. ${newCount} total.`);
@@ -48,7 +49,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
             const last = instanceEls?.[instanceEls.length - 1];
             findRepeatInstanceFocusTarget(last ?? null)?.focus();
         }, 0);
-    }, [count, engine, findRepeatInstanceFocusTarget, repeatPath, title]);
+    }, [canAdd, count, engine, findRepeatInstanceFocusTarget, repeatPath, title]);
 
     const handleRemove = useCallback((idx: number) => {
         engine.removeRepeatInstance(repeatPath, idx);
@@ -65,6 +66,8 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
         }, 0);
     }, [count, engine, findRepeatInstanceFocusTarget, repeatPath, title]);
 
+    if (!relevant) return null;
+
     return (
         <div className="formspec-repeat" data-bind={node.repeatGroup} ref={containerRef}>
             <div className="formspec-repeat-list">
@@ -74,14 +77,16 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
                          aria-label={`${title} ${idx + 1} of ${count}`}>
                         <div className="formspec-repeat-instance-header">
                             <p className="formspec-repeat-instance-label">{`${title} ${idx + 1}`}</p>
-                            <button
-                                type="button"
-                                className="formspec-repeat-remove formspec-button-danger formspec-focus-ring"
-                                aria-label={`Remove ${title} ${idx + 1}`}
-                                onClick={() => handleRemove(idx)}
-                            >
-                                {`Remove ${title}`}
-                            </button>
+                            {canRemove && (
+                                <button
+                                    type="button"
+                                    className="formspec-repeat-remove formspec-button-danger formspec-focus-ring"
+                                    aria-label={`Remove ${title} ${idx + 1}`}
+                                    onClick={() => handleRemove(idx)}
+                                >
+                                    {`Remove ${title}`}
+                                </button>
+                            )}
                         </div>
                         {children.map((child) => (
                             <React.Fragment key={child.id}>{renderChild(child)}</React.Fragment>
@@ -89,14 +94,16 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
                     </div>
                 ))}
             </div>
-            <button
-                type="button"
-                className="formspec-repeat-add formspec-focus-ring"
-                onClick={handleAdd}
-                ref={addBtnRef}
-            >
-                {`Add ${title}`}
-            </button>
+            {canAdd && (
+                <button
+                    type="button"
+                    className="formspec-repeat-add formspec-focus-ring"
+                    onClick={handleAdd}
+                    ref={addBtnRef}
+                >
+                    {`Add ${title}`}
+                </button>
+            )}
             <div aria-live="polite" className="formspec-sr-only">{announcement}</div>
         </div>
     );
@@ -105,7 +112,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
 export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; renderChild: NodeRenderer }) {
     const { engine } = useFormspecContext();
     const bindKey = node.props?.bind as string;
-    const count = useRepeatCount(bindKey);
+    const { count, relevant, canAdd, canRemove } = useRepeatAffordances(bindKey);
     const labels = (node.props?.labels as string[] | undefined) ?? [];
     const allowMultiple = node.props?.allowMultiple === true;
     const defaultOpen = node.props?.defaultOpen as number | undefined;
@@ -155,6 +162,7 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
     }, [allowMultiple]);
 
     const handleAdd = useCallback(() => {
+        if (!canAdd) return;
         engine.addRepeatInstance(bindKey);
         const newCount = count + 1;
         setAnnouncement(`${groupTitle} ${newCount} added. ${newCount} total.`);
@@ -163,7 +171,7 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
             const last = items?.[items.length - 1];
             last?.querySelector<HTMLElement>('input, select, textarea, button')?.focus();
         }, 0);
-    }, [bindKey, count, engine, groupTitle]);
+    }, [bindKey, canAdd, count, engine, groupTitle]);
 
     const handleRemove = useCallback((idx: number) => {
         engine.removeRepeatInstance(bindKey, idx);
@@ -179,6 +187,8 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
             target?.querySelector<HTMLElement>('input, select, textarea, button')?.focus();
         }, 0);
     }, [bindKey, count, engine, groupTitle]);
+
+    if (!relevant) return null;
 
     return (
         <div className="formspec-repeat formspec-repeat--accordion" data-bind={bindKey} ref={containerRef}>
@@ -202,27 +212,31 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
                                         {renderChild(rewriteBindPaths(child, bindKey, i))}
                                     </React.Fragment>
                                 ))}
-                                <button
-                                    type="button"
-                                    className="formspec-repeat-remove formspec-focus-ring"
-                                    aria-label={`Remove ${groupTitle} ${i + 1}`}
-                                    onClick={() => handleRemove(i)}
-                                >
-                                    {`Remove ${groupTitle}`}
-                                </button>
+                                {canRemove && (
+                                    <button
+                                        type="button"
+                                        className="formspec-repeat-remove formspec-focus-ring"
+                                        aria-label={`Remove ${groupTitle} ${i + 1}`}
+                                        onClick={() => handleRemove(i)}
+                                    >
+                                        {`Remove ${groupTitle}`}
+                                    </button>
+                                )}
                             </div>
                         </details>
                     );
                 })}
             </div>
-            <button
-                type="button"
-                className="formspec-repeat-add formspec-focus-ring"
-                onClick={handleAdd}
-                ref={addBtnRef}
-            >
-                {`Add ${groupTitle}`}
-            </button>
+            {canAdd && (
+                <button
+                    type="button"
+                    className="formspec-repeat-add formspec-focus-ring"
+                    onClick={handleAdd}
+                    ref={addBtnRef}
+                >
+                    {`Add ${groupTitle}`}
+                </button>
+            )}
             <div aria-live="polite" className="formspec-sr-only">{announcement}</div>
         </div>
     );
