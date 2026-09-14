@@ -3,7 +3,7 @@ import type { FormItem } from '@formspec-org/types';
 import { COMPONENT_BASE_PROP_NAMES, COMPONENT_SCHEMA_PROPS } from './generated/component-schema-props.js';
 import { generateNodeId } from './component-tree.js';
 import { jsonEqual } from './json-equal.js';
-import { reconcileComponentTree } from './tree-reconciler.js';
+import { generatedComponentType, reconcileComponentTree } from './tree-reconciler.js';
 import type { ProjectState } from './types.js';
 
 /** Components that manage their own group path binding and MUST keep their bind on export. */
@@ -181,42 +181,6 @@ function coveringGroupKey(
 }
 
 /**
- * `base` is the definition path exported binds resolve against (`''`, or the enclosing
- * bound group — repeat template children restart there); `group` is the definition path
- * of the enclosing in-memory group node, which in-memory binds are relative to.
- */
-function importNode(
-  node: TreeRecord,
-  items: ReadonlyMap<string, FormItem>,
-  base: string,
-  group: string,
-): TreeRecord {
-  const out: TreeRecord = { ...node };
-  let childBase = base;
-  let childGroup = group;
-
-  if (typeof node.bind === 'string' && node.bind) {
-    const path = joinPath(base, node.bind);
-    out.bind = relativePath(path, group) ?? node.bind;
-    if (items.get(path)?.type === 'group') childBase = childGroup = path;
-  } else if (node.nodeId === undefined) {
-    const key = node.component === 'Section' ? undefined : coveringGroupKey(node, items, base, group);
-    if (key) {
-      out.bind = key;
-      childGroup = joinPath(group, key);
-    } else {
-      out._layout = true;
-      out.nodeId = generateNodeId();
-    }
-  }
-
-  if (node.children) {
-    out.children = node.children.map(child => importNode(child, items, childBase, childGroup));
-  }
-  return out;
-}
-
-/**
  * Invert the export bind transform on an incoming tree so its authored nodes match
  * their items on reconcile. Export drops a layout container's bind to a plain group
  * (component-spec §4.2: layout components are bind-forbidden) and writes descendants
@@ -226,6 +190,12 @@ function importNode(
  * - binds an unbound container to the plain group all its bound descendants sit in —
  *   the outermost such container: export cannot tell a group's Stack from a wrapper
  *   directly around it, and both shapes re-export identically;
+ * - binds an unbound node with no bound descendants to the next group, in document
+ *   order under the enclosing group, that no node binds into and whose generated
+ *   component it shows: an empty group exports as a bare container
+ *   (`{ component: 'Stack', children: [] }`). An empty group whose node carries any
+ *   other component cannot be told from an empty layout container of that type, and
+ *   imports as one;
  * - marks every other unbound node a layout wrapper (`_layout` + `nodeId`), the shape
  *   the reconciler preserves.
  *
@@ -235,10 +205,79 @@ function importNode(
 export function importComponentTree(tree: unknown, items: readonly FormItem[]): Record<string, unknown> {
   const root = tree as TreeRecord;
   const index = itemsByPath(items);
+
+  // Definition paths at or above a bound node: groups some node binds into.
+  const bound = new Set<string>();
+  const scan = (node: TreeRecord, base: string) => {
+    for (const child of node.children ?? []) {
+      let childBase = base;
+      if (typeof child.bind === 'string' && child.bind) {
+        const path = joinPath(base, child.bind);
+        for (let prefix = path; prefix && !bound.has(prefix); prefix = prefix.slice(0, Math.max(0, prefix.lastIndexOf('.')))) {
+          bound.add(prefix);
+        }
+        if (index.get(path)?.type === 'group') childBase = path;
+      }
+      scan(child, childBase);
+    }
+  };
+  scan(root, '');
+
+  // Per enclosing group and component: how far into its child items claims have reached.
+  // A claim takes the first match, so everything before the cursor is taken or ineligible.
+  const cursors = new Map<string, number>();
+  const claimEmptyGroup = (node: TreeRecord, group: string): string | undefined => {
+    const siblings = group ? index.get(group)?.children : items;
+    if (!siblings) return undefined;
+    const cursorKey = `${group} ${String(node.component)}`;
+    for (let i = cursors.get(cursorKey) ?? 0; i < siblings.length; i++) {
+      const item = siblings[i];
+      if (item.type !== 'group' || bound.has(joinPath(group, item.key))) continue;
+      if (generatedComponentType(item) !== node.component) continue;
+      cursors.set(cursorKey, i + 1);
+      return item.key;
+    }
+    cursors.set(cursorKey, siblings.length);
+    return undefined;
+  };
+
+  /**
+   * `base` is the definition path exported binds resolve against (`''`, or the enclosing
+   * bound group — repeat template children restart there); `group` is the definition path
+   * of the enclosing in-memory group node, which in-memory binds are relative to.
+   */
+  const importNode = (node: TreeRecord, base: string, group: string): TreeRecord => {
+    const out: TreeRecord = { ...node };
+    let childBase = base;
+    let childGroup = group;
+
+    if (typeof node.bind === 'string' && node.bind) {
+      const path = joinPath(base, node.bind);
+      out.bind = relativePath(path, group) ?? node.bind;
+      if (index.get(path)?.type === 'group') childBase = childGroup = path;
+    } else if (node.nodeId === undefined) {
+      const key = node.component === 'Section'
+        ? undefined
+        : coveringGroupKey(node, index, base, group) ?? claimEmptyGroup(node, group);
+      if (key) {
+        out.bind = key;
+        childGroup = joinPath(group, key);
+      } else {
+        out._layout = true;
+        out.nodeId = generateNodeId();
+      }
+    }
+
+    if (node.children) {
+      out.children = node.children.map(child => importNode(child, childBase, childGroup));
+    }
+    return out;
+  };
+
   return {
     ...root,
     nodeId: root.nodeId ?? 'root',
-    ...(root.children ? { children: root.children.map(child => importNode(child, index, '', '')) } : {}),
+    ...(root.children ? { children: root.children.map(child => importNode(child, '', '')) } : {}),
   };
 }
 

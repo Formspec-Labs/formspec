@@ -24,6 +24,16 @@ function exportAuthoredTree(project: ReturnType<typeof createRawProject>): any {
   return project.export().component!.tree;
 }
 
+/** In-memory tree structure Studio shows: component, bind, layout-wrapper flag — no session ids. */
+function treeShape(node: any): unknown {
+  return {
+    component: node.component,
+    ...(node.bind ? { bind: node.bind } : {}),
+    ...(node._layout ? { layout: true } : {}),
+    ...(node.children ? { children: node.children.map(treeShape) } : {}),
+  };
+}
+
 // ── BUG-12: Default definition must include status ─────────────────
 
 describe('BUG-12: definition status field', () => {
@@ -493,6 +503,39 @@ describe('export → import → export round trip keeps an authored component do
     const tree = imported.export().component!.tree as any;
     const group = tree.children.find((n: any) => n.children?.some((c: any) => c.bind === 'g.c'));
     expect(group.children.find((c: any) => c.bind === 'g.c').component).toBe('RadioGroup');
+  });
+
+  it('empty groups round-trip without gaining a wrapper, nested or not', () => {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0', url: 'urn:empty', version: '1.0.0', status: 'draft', title: 'T',
+          items: [
+            { type: 'group', key: 'empty', label: 'Empty' },
+            { type: 'field', key: 'name', label: 'Name', dataType: 'string' },
+            {
+              type: 'group', key: 'g', label: 'G',
+              children: [
+                { type: 'field', key: 'a', label: 'A', dataType: 'string' },
+                { type: 'group', key: 'inner', label: 'Inner', children: [] },
+              ],
+            },
+            // Holds no field or display, only an empty group: nothing in it binds.
+            { type: 'group', key: 'outer', label: 'Outer', children: [{ type: 'group', key: 'hollow', label: 'Hollow' }] },
+          ],
+        } as any,
+      },
+    });
+    project.batch([
+      { type: 'component.setNodeProperty', payload: { node: { nodeId: 'root' }, property: 'gap', value: '$token.space.md' } },
+      { type: 'component.wrapNode', payload: { node: { bind: 'outer' }, wrapper: { component: 'Card', props: { title: 'Outer' } } } },
+    ] as any);
+    const exported = project.export();
+
+    const imported = createRawProject();
+    imported.dispatch({ type: 'project.import', payload: exported });
+    expect(imported.export().component).toEqual(exported.component);
+    expect(treeShape(imported.state.component.tree)).toEqual(treeShape(project.state.component.tree));
   });
 
   it('a re-imported document keeps binding display nodes by nodeId, so Studio can address them', () => {
