@@ -6,6 +6,7 @@ import { interpolateMessage } from '@formspec-org/engine';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import type { ComponentDescriptor, TokenResolvable } from '../hub-types.js';
 import type { RenderContext, ValidationTargetMetadata } from '../types';
+import { resolveCompText as resolveComponentText } from '../components/layout-plugin-factory';
 
 export interface DisplayHostSlice {
     engine: IFormEngine;
@@ -57,10 +58,8 @@ function pathInScope(plannedPath: string, prefix: string): string {
 }
 
 export function displayHostSlice(ctx: RenderContext): DisplayHostSlice {
-    const resolveCompText = (comp: ComponentDescriptor, prop: string, fallback: string): string => {
-        if (!comp?.id) return fallback;
-        return ctx.engine.resolveLocaleString(`$component.${comp.id}.${prop}`, fallback);
-    };
+    const resolveCompText = (comp: ComponentDescriptor, prop: string, fallback: string): string =>
+        resolveComponentText(ctx, comp, prop, fallback);
     return {
         engine: ctx.engine,
         prefix: ctx.prefix,

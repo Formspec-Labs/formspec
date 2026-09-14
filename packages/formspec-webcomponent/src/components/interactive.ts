@@ -3,12 +3,7 @@ import { effect } from '@preact/signals-core';
 import { ComponentPlugin, RenderContext } from '../types';
 import { useTabs } from '../behaviors/tabs';
 import { globalRegistry } from '../registry';
-
-/** Resolve a component string via $component.<id>.<prop> locale key, falling back to inline. */
-function resolveCompText(ctx: RenderContext, comp: any, prop: string, fallback: string): string {
-    if (!comp.id) return fallback;
-    return ctx.engine.resolveLocaleString(`$component.${comp.id}.${prop}`, fallback);
-}
+import { resolveCompText } from './layout-plugin-factory';
 
 /** Resolve ActionButton label wrappers while tolerating legacy string values in tests. */
 function resolveActionButtonText(ctx: RenderContext, comp: any, prop: string, fallback: string): string {
