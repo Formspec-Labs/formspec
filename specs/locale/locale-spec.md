@@ -342,8 +342,8 @@ When resolving a context label, the cascade is:
 ##### Context on other properties
 
 The `@context` suffix MAY be used with any localizable Item property
-(§3.1.1), not only `label`. Choice option label keys (§3.1.3) take no
-`@context` suffix. For properties without a Definition-side context
+(§3.1.1), not only `label`. Choice option label keys (§3.1.3) and
+per-Bind message keys (§3.1.4) take no `@context` suffix. For properties without a Definition-side context
 equivalent (i.e., properties other than `label`), the cascade omits
 the inline context step:
 
@@ -1136,7 +1136,7 @@ The Rust linter owns the canonical Locale semantic-lint codes:
 | Code | Description |
 |------|-------------|
 | E1400 / W1400 | `target.kind` / `target.url` mismatch or compatible-version mismatch against the paired target. |
-| E1401 | Unknown reserved namespace or malformed property in a string key: unsupported terminal, option key without exactly `options.<value>.label`, or error key without exactly one code segment. |
+| E1401 | Unknown reserved namespace or malformed property in a string key: unsupported terminal (any Item terminal outside §3.1.1 and §3.1.4, or `@context` on a §3.1.4 message key), option key without exactly `options.<value>.label`, or error key without exactly one code segment. |
 | E1402 | Item string key does not name exactly one Definition Item by bare key: unknown key, duplicated key, dotted template path, or indexed path. Path-form keys are rejected even without a paired Definition; with one, a dotted path is recognized only when its segments are Definition Item keys (otherwise the key is E1401). |
 | E1403 | Item option or `$optionSet` string key does not resolve to a Definition option value. |
 | E1404 | `$shape` string key does not resolve to a Definition shape id. |

@@ -17,16 +17,10 @@ use crate::types::{LintDiagnostic, LintOptions};
 pub(crate) const PASS: u8 = 9;
 
 const FORM_TERMINALS: &[&str] = &["title", "description"];
-const ITEM_PRESENTATION_TERMINALS: &[&str] = &[
-    "label",
-    "description",
-    "hint",
-    "placeholder",
-    "helpText",
-    "shortLabel",
-    "constraintMessage",
-    "requiredMessage",
-];
+/// Locale §3.1.1 Item properties; each also takes an `@context` suffix.
+const ITEM_CONTEXT_TERMINALS: &[&str] = &["label", "description", "hint"];
+/// Locale §3.1.4 per-Bind message keys; no `@context` suffix.
+const ITEM_MESSAGE_TERMINALS: &[&str] = &["constraintMessage", "requiredMessage"];
 const DATA_TERMINALS: &[&str] = &[
     "type",
     "dataType",
@@ -650,7 +644,8 @@ fn indexed_property_name(part: &str) -> Option<&str> {
 /// The property half of an `<itemKey>.<property>` Locale key.
 #[derive(Debug, PartialEq, Eq)]
 enum ItemProperty<'a> {
-    /// `label`, `hint`, `constraintMessage`, ... with optional `@context`.
+    /// `label` / `description` / `hint` (optional `@context`), or
+    /// `constraintMessage` / `requiredMessage`.
     Presentation,
     /// `errors.<CODE>`.
     Errors,
@@ -676,7 +671,10 @@ fn classify_item_property(property: &[String]) -> ItemProperty<'_> {
     };
     let terminal = strip_context(first);
     match (terminal, property) {
-        (t, [_]) if ITEM_PRESENTATION_TERMINALS.contains(&t) => ItemProperty::Presentation,
+        (t, [_]) if ITEM_CONTEXT_TERMINALS.contains(&t) => ItemProperty::Presentation,
+        (t, [only]) if ITEM_MESSAGE_TERMINALS.contains(&t) && only == t => {
+            ItemProperty::Presentation
+        }
         ("errors", [errors, _]) if errors == "errors" => ItemProperty::Errors,
         ("options", [options, value, label]) if options == "options" && label == "label" => {
             ItemProperty::Option(value)
@@ -1189,6 +1187,40 @@ mod tests {
                 vec![crate::LintCode::E1401],
                 "{key}: {diagnostics:?}"
             );
+        }
+    }
+
+    /// Locale §3.1.1 / §3.1.4 define the only Item terminals processors read;
+    /// `@context` applies to the §3.1.1 properties alone.
+    #[test]
+    fn item_terminals_outside_locale_3_1_are_e1401() {
+        let unread = [
+            "city.placeholder",
+            "city.helpText",
+            "city.shortLabel",
+            "city.constraintMessage@short",
+            "city.requiredMessage@accessibility",
+        ];
+        let strings = Value::Object(
+            unread
+                .iter()
+                .chain(&["city.hint@accessibility", "city.description@pdf"])
+                .map(|key| ((*key).to_owned(), json!("x")))
+                .collect(),
+        );
+
+        for definition in [Some(nested_definition()), None] {
+            let diagnostics = lint_strings(&strings, definition);
+            for key in unread {
+                assert_eq!(
+                    codes_at(&diagnostics, key),
+                    vec![crate::LintCode::E1401],
+                    "{key}: {diagnostics:?}"
+                );
+            }
+            for key in ["city.hint@accessibility", "city.description@pdf"] {
+                assert!(codes_at(&diagnostics, key).is_empty(), "{key}: {diagnostics:?}");
+            }
         }
     }
 
