@@ -1639,6 +1639,38 @@ describe('DefaultField — description and label chrome', () => {
         expect((children[descIdx] as HTMLElement).textContent).toContain('Longer field help');
     });
 
+    it('renders the Locale hint and description, {{}}-interpolated, instead of the raw item strings', () => {
+        const def = baseDef([
+            { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+            { key: 'city', type: 'field', dataType: 'string', label: 'City', hint: 'Raw hint', description: 'Raw description' },
+        ]);
+        const engine = createFormEngine(def);
+        engine.loadLocale({
+            $formspecLocale: '2.0',
+            locale: 'fr',
+            version: '1.0.0',
+            target: { kind: 'definition', url: def.url },
+            strings: { 'city.hint': 'Ville de {{$name}}', 'city.description': 'Description pour {{$name}}' },
+        } as any);
+        engine.setLocale('fr');
+        const node: LayoutNode = {
+            id: 'city-field', component: 'TextInput', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'city',
+        };
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        actSync(() => {
+            createRoot(container).render(
+                <FormspecProvider engine={engine}>
+                    <FormspecNode node={{ id: 'root', component: 'Stack', category: 'layout', props: {}, cssClasses: [], children: [node] }} />
+                </FormspecProvider>,
+            );
+        });
+        actSync(() => engine.setValue('name', 'Ada'));
+        expect(container.querySelector('#field-city-hint')?.textContent).toBe('Ville de Ada');
+        expect(container.querySelector('#field-city-desc')?.textContent).toBe('Description pour Ada');
+    });
+
     it('applies formspec-label to the primary label element', () => {
         const def = baseDef([{ key: 'y', type: 'field', dataType: 'string', label: 'Name' }]);
         const node: LayoutNode = {
