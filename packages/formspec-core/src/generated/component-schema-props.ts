@@ -22,7 +22,7 @@ export const COMPONENT_BASE_PROP_NAMES = [
 ] as const;
 
 export const COMPONENT_SCHEMA_PROPS: Record<string, readonly string[]> = {
-  Accordion: ['allowMultiple', 'defaultOpen', 'labels'],
+  Accordion: ['allowAdd', 'allowMultiple', 'allowRemove', 'defaultOpen', 'labels'],
   ActionButton: ['actionRef', 'disableWhenPending', 'label', 'pendingLabel'],
   Alert: ['dismissible', 'severity', 'text'],
   Badge: ['text', 'variant'],

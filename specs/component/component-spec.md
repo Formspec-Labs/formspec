@@ -740,11 +740,21 @@ The renderer MUST:
    (A repeat template over `employers` binds child `payerName`, not
    `employers.payerName`.)
 3. Provide affordances for adding and removing repeat instances, subject
-   to `minRepeat` and `maxRepeat` constraints from the Definition.
+   to `minRepeat` and `maxRepeat` constraints from the Definition, unless
+   the component's `allowAdd` or `allowRemove` prop is `false`.
 
 Repeatable group binding is available on **DataTable** (§6.14), where each
 repeat instance becomes a table row, and on **Accordion** (§6.3), where
 each repeat instance becomes a collapsible section.
+
+`allowAdd` and `allowRemove` (default `true` on both components) lock the
+add and remove affordances. They are **presentation-only**: they do not
+change the Definition's `minRepeat` / `maxRepeat` cardinality or its
+validation, and processors MUST still load and render every repeat instance
+supplied by data, including instances beyond what the locked affordances
+would have let a user create. Programmatic and data-driven instance changes
+remain valid. Without a Component Document, a Theme sets the same locks
+through `widgetConfig` on the repeatable group item (theme §4.2).
 
 Other layout and container components MUST NOT bind to repeatable groups.
 Processors MUST reject such bindings.
@@ -1887,6 +1897,8 @@ values resolve relative to the repeat context.
 | `allowMultiple` | boolean | `false` | No | Whether multiple sections may be expanded simultaneously. When `false`, expanding one section collapses the others. |
 | `defaultOpen` | integer | `0` | No | Zero-based index of the initially expanded section. |
 | `labels` | string[] | — | No | Section header labels. `labels[i]` is the summary text for `children[i]`. Falls back to `"Section {i+1}"` when absent. |
+| `allowAdd` | boolean | `true` | No | When `bind` is set: whether to show an "Add" control for new repeat instances. Ignored without `bind`. |
+| `allowRemove` | boolean | `true` | No | When `bind` is set: whether to show per-section "Remove" controls. Ignored without `bind`. |
 
 #### Rendering Requirements
 
@@ -1896,6 +1908,12 @@ values resolve relative to the repeat context.
   (only one open at a time).
 - MUST apply appropriate ARIA roles (`role="region"`,
   `aria-expanded`, etc.).
+- When `bind` is set and `allowAdd` is `true`, MUST provide an "Add"
+  affordance, subject to `maxRepeat` constraints.
+- When `bind` is set and `allowRemove` is `true`, MUST provide
+  per-section "Remove" affordances, subject to `minRepeat` constraints.
+- `allowAdd` and `allowRemove` are presentation-only locks with the
+  same meaning as DataTable's (§6.14); see §4.4.
 
 #### Fallback Behavior
 
@@ -1916,6 +1934,21 @@ has `defaultOpen: true`; the rest have `defaultOpen: false`.
     { "component": "Section", "title": "Section B", "children": [
       { "component": "TextInput", "bind": "fieldB" }
     ]}
+  ]
+}
+```
+
+A repeat-bound Accordion that shows every supplied `employers` instance
+but lets the respondent neither add nor remove one:
+
+```json
+{
+  "component": "Accordion",
+  "bind": "employers",
+  "allowAdd": false,
+  "allowRemove": false,
+  "children": [
+    { "component": "TextInput", "bind": "payerName" }
   ]
 }
 ```
@@ -2465,6 +2498,9 @@ MAY use `bind` to reference a repeatable group.
   subject to `maxRepeat` constraints.
 - When `allowRemove` is `true`, MUST provide per-row "Remove"
   affordances, subject to `minRepeat` constraints.
+- `allowAdd` and `allowRemove` are presentation-only locks: setting
+  either to `false` MUST NOT change cardinality validation or drop rows
+  supplied by data (§4.4).
 
 #### Fallback Behavior
 

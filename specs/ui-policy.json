@@ -121,7 +121,7 @@
     "unknownComponentSpecificProps": "drop-with-warning",
     "components": {
       "Tabs": { "fallback": "Stack", "carry": ["children"], "drop": ["placement", "defaultTab"], "translate": { "tabLabels": "insert-heading-before-child" } },
-      "Accordion": { "fallback": "Stack", "carry": ["children"], "drop": ["allowMultiple", "defaultOpen"], "translate": { "labels": "collapsible-title" } },
+      "Accordion": { "fallback": "Stack", "carry": ["children"], "drop": ["allowMultiple", "defaultOpen", "allowAdd", "allowRemove"], "translate": { "labels": "collapsible-title" } },
       "RadioGroup": { "fallback": "Select", "carry": ["bind"], "drop": ["columns", "orientation"], "translate": {} },
       "MoneyInput": { "fallback": "NumberInput", "carry": ["bind", "placeholder", "step", "min", "max"], "drop": ["currency", "showCurrency", "locale"], "translate": { "showCurrency": "bound-item-prefix-hint" } },
       "Slider": { "fallback": "NumberInput", "carry": ["bind", "min", "max", "step"], "drop": ["showTicks", "showValue"], "translate": {} },

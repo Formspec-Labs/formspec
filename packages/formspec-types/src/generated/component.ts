@@ -755,6 +755,14 @@ export interface Accordion extends ComponentBase {
    * Section header labels. labels[i] is the summary text for children[i]. Falls back to 'Section {i+1}' when absent.
    */
   labels?: string[];
+  /**
+   * When bind is set: whether to show an 'Add' control for new repeat instances, subject to maxRepeat. Presentation-only — does not change minRepeat/maxRepeat cardinality, and every instance supplied by data still renders. Ignored without bind.
+   */
+  allowAdd?: boolean;
+  /**
+   * When bind is set: whether to show per-section 'Remove' controls, subject to minRepeat. Presentation-only — does not change minRepeat/maxRepeat cardinality, and every instance supplied by data still renders. Ignored without bind.
+   */
+  allowRemove?: boolean;
   children?: ChildrenArray;
 }
 /**
@@ -1043,11 +1051,11 @@ export interface DataTable extends ComponentBase {
    */
   showRowNumbers?: boolean;
   /**
-   * Whether to show an 'Add row' control.
+   * Whether to show an 'Add row' control, subject to maxRepeat. Presentation-only — does not change minRepeat/maxRepeat cardinality, and every row supplied by data still renders.
    */
   allowAdd?: boolean;
   /**
-   * Whether to show per-row 'Remove' controls.
+   * Whether to show per-row 'Remove' controls, subject to minRepeat. Presentation-only — does not change minRepeat/maxRepeat cardinality, and every row supplied by data still renders.
    */
   allowRemove?: boolean;
 }

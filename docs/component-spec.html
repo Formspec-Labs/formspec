@@ -1629,12 +1629,23 @@ instance. (A repeat template over <code>employers</code> binds child
 <code>payerName</code>, not <code>employers.payerName</code>.)</li>
 <li>Provide affordances for adding and removing repeat instances,
 subject to <code>minRepeat</code> and <code>maxRepeat</code> constraints
-from the Definition.</li>
+from the Definition, unless the component’s <code>allowAdd</code> or
+<code>allowRemove</code> prop is <code>false</code>.</li>
 </ol>
 <p>Repeatable group binding is available on <strong>DataTable</strong>
 (§6.14), where each repeat instance becomes a table row, and on
 <strong>Accordion</strong> (§6.3), where each repeat instance becomes a
 collapsible section.</p>
+<p><code>allowAdd</code> and <code>allowRemove</code> (default
+<code>true</code> on both components) lock the add and remove
+affordances. They are <strong>presentation-only</strong>: they do not
+change the Definition’s <code>minRepeat</code> / <code>maxRepeat</code>
+cardinality or its validation, and processors MUST still load and render
+every repeat instance supplied by data, including instances beyond what
+the locked affordances would have let a user create. Programmatic and
+data-driven instance changes remain valid. Without a Component Document,
+a Theme sets the same locks through <code>widgetConfig</code> on the
+repeatable group item (theme §4.2).</p>
 <p>Other layout and container components MUST NOT bind to repeatable
 groups. Processors MUST reject such bindings.</p>
 <h3 id="unbound-required-items">4.5 Unbound Required Items</h3>
@@ -3507,6 +3518,22 @@ group item. Each repeat instance becomes one accordion section. Child
 for <code>children[i]</code>. Falls back to <code>"Section {i+1}"</code>
 when absent.</td>
 </tr>
+<tr>
+<td><code>allowAdd</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>No</td>
+<td>When <code>bind</code> is set: whether to show an “Add” control for
+new repeat instances. Ignored without <code>bind</code>.</td>
+</tr>
+<tr>
+<td><code>allowRemove</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>No</td>
+<td>When <code>bind</code> is set: whether to show per-section “Remove”
+controls. Ignored without <code>bind</code>.</td>
+</tr>
 </tbody>
 </table>
 <h4 id="rendering-requirements-18">Rendering Requirements</h4>
@@ -3517,6 +3544,15 @@ header.</li>
 mutual exclusion (only one open at a time).</li>
 <li>MUST apply appropriate ARIA roles (<code>role="region"</code>,
 <code>aria-expanded</code>, etc.).</li>
+<li>When <code>bind</code> is set and <code>allowAdd</code> is
+<code>true</code>, MUST provide an “Add” affordance, subject to
+<code>maxRepeat</code> constraints.</li>
+<li>When <code>bind</code> is set and <code>allowRemove</code> is
+<code>true</code>, MUST provide per-section “Remove” affordances,
+subject to <code>minRepeat</code> constraints.</li>
+<li><code>allowAdd</code> and <code>allowRemove</code> are
+presentation-only locks with the same meaning as DataTable’s (§6.14);
+see §4.4.</li>
 </ul>
 <h4 id="fallback-behavior-1">Fallback Behavior</h4>
 <p>Core processors MUST replace Accordion with a <strong>Stack</strong>
@@ -3537,6 +3573,19 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb31-1"><a href=
 <span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">}</span></span>
 <span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
 <span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>A repeat-bound Accordion that shows every supplied
+<code>employers</code> instance but lets the respondent neither add nor
+remove one:</p>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Accordion&quot;</span><span class="fu">,</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;employers&quot;</span><span class="fu">,</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;allowAdd&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;allowRemove&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;payerName&quot;</span> <span class="fu">}</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="radiogroup">6.4 RadioGroup</h3>
 <p><strong>Category:</strong> Input <strong>Level:</strong> Progressive
@@ -3597,13 +3646,13 @@ lists (typically ≤ 7 items).</p>
 The <code>searchable</code> prop defaults to <code>false</code>. The
 <code>columns</code> prop is discarded.</p>
 <h4 id="example-19">Example</h4>
-<div class="sourceCode" id="cb32"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;RadioGroup&quot;</span><span class="fu">,</span></span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;priority&quot;</span><span class="fu">,</span></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;orientation&quot;</span><span class="fu">:</span> <span class="st">&quot;horizontal&quot;</span></span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;RadioGroup&quot;</span><span class="fu">,</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;priority&quot;</span><span class="fu">,</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;orientation&quot;</span><span class="fu">:</span> <span class="st">&quot;horizontal&quot;</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="moneyinput">6.5 MoneyInput</h3>
 <p><strong>Category:</strong> Input <strong>Level:</strong> Progressive
@@ -3684,14 +3733,14 @@ the data.</li>
 a prefix label adjacent to the input if the bound item has a
 <code>prefix</code> presentation hint.</p>
 <h4 id="example-20">Example</h4>
-<div class="sourceCode" id="cb33"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;MoneyInput&quot;</span><span class="fu">,</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;totalBudget&quot;</span><span class="fu">,</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;currency&quot;</span><span class="fu">:</span> <span class="st">&quot;USD&quot;</span><span class="fu">,</span></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;showCurrency&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;placeholder&quot;</span><span class="fu">:</span> <span class="st">&quot;0.00&quot;</span></span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;MoneyInput&quot;</span><span class="fu">,</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;totalBudget&quot;</span><span class="fu">,</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;currency&quot;</span><span class="fu">:</span> <span class="st">&quot;USD&quot;</span><span class="fu">,</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;showCurrency&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;placeholder&quot;</span><span class="fu">:</span> <span class="st">&quot;0.00&quot;</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="slider">6.6 Slider</h3>
 <p><strong>Category:</strong> Input <strong>Level:</strong> Progressive
@@ -3775,15 +3824,15 @@ current value.</li>
 <strong>NumberInput</strong>. The <code>min</code>, <code>max</code>,
 and <code>step</code> props are preserved on the NumberInput.</p>
 <h4 id="example-21">Example</h4>
-<div class="sourceCode" id="cb34"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Slider&quot;</span><span class="fu">,</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;satisfaction&quot;</span><span class="fu">,</span></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;min&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;max&quot;</span><span class="fu">:</span> <span class="dv">10</span><span class="fu">,</span></span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;step&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;showValue&quot;</span><span class="fu">:</span> <span class="kw">true</span></span>
-<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Slider&quot;</span><span class="fu">,</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;satisfaction&quot;</span><span class="fu">,</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;min&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;max&quot;</span><span class="fu">:</span> <span class="dv">10</span><span class="fu">,</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;step&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;showValue&quot;</span><span class="fu">:</span> <span class="kw">true</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="rating">6.7 Rating</h3>
 <p><strong>Category:</strong> Input <strong>Level:</strong> Progressive
@@ -3853,13 +3902,13 @@ additional icons.</td>
 with <code>min: 1</code>, <code>max</code> preserved, and
 <code>step: 1</code>.</p>
 <h4 id="example-22">Example</h4>
-<div class="sourceCode" id="cb35"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Rating&quot;</span><span class="fu">,</span></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;serviceRating&quot;</span><span class="fu">,</span></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;max&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;icon&quot;</span><span class="fu">:</span> <span class="st">&quot;star&quot;</span></span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Rating&quot;</span><span class="fu">,</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;serviceRating&quot;</span><span class="fu">,</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;max&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;icon&quot;</span><span class="fu">:</span> <span class="st">&quot;star&quot;</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="signature">6.8 Signature</h3>
 <p><strong>Category:</strong> Input <strong>Level:</strong> Progressive
@@ -3932,13 +3981,13 @@ attachment.</p>
 <p>Core processors MUST replace Signature with
 <strong>FileUpload</strong> with <code>accept: "image/*"</code>.</p>
 <h4 id="example-23">Example</h4>
-<div class="sourceCode" id="cb36"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Signature&quot;</span><span class="fu">,</span></span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;approverSignature&quot;</span><span class="fu">,</span></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strokeColor&quot;</span><span class="fu">:</span> <span class="st">&quot;#000&quot;</span><span class="fu">,</span></span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;height&quot;</span><span class="fu">:</span> <span class="dv">200</span></span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Signature&quot;</span><span class="fu">,</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;approverSignature&quot;</span><span class="fu">,</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strokeColor&quot;</span><span class="fu">:</span> <span class="st">&quot;#000&quot;</span><span class="fu">,</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;height&quot;</span><span class="fu">:</span> <span class="dv">200</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="alert">6.9 Alert</h3>
 <p><strong>Category:</strong> Display <strong>Level:</strong>
@@ -4004,12 +4053,12 @@ error/warning, <code>role="status"</code> for info/success).</li>
 <code>text</code> prop is prefixed with the severity in brackets: e.g.,
 <code>"[Warning] "</code> - original text.</p>
 <h4 id="example-24">Example</h4>
-<div class="sourceCode" id="cb37"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Alert&quot;</span><span class="fu">,</span></span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;severity&quot;</span><span class="fu">:</span> <span class="st">&quot;warning&quot;</span><span class="fu">,</span></span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget exceeds department limit. Approval required.&quot;</span></span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb38"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Alert&quot;</span><span class="fu">,</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;severity&quot;</span><span class="fu">:</span> <span class="st">&quot;warning&quot;</span><span class="fu">,</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget exceeds department limit. Approval required.&quot;</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="badge">6.10 Badge</h3>
 <p><strong>Category:</strong> Display <strong>Level:</strong>
@@ -4064,8 +4113,8 @@ Forbidden <strong>Fallback:</strong> Text</p>
 <p>Core processors MUST replace Badge with <strong>Text</strong> using
 the same <code>text</code> prop.</p>
 <h4 id="example-25">Example</h4>
-<div class="sourceCode" id="cb38"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Badge&quot;</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Draft&quot;</span><span class="fu">,</span> <span class="dt">&quot;variant&quot;</span><span class="fu">:</span> <span class="st">&quot;warning&quot;</span> <span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb39"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Badge&quot;</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Draft&quot;</span><span class="fu">,</span> <span class="dt">&quot;variant&quot;</span><span class="fu">:</span> <span class="st">&quot;warning&quot;</span> <span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="progressbar">6.11 ProgressBar</h3>
 <p><strong>Category:</strong> Display <strong>Level:</strong>
@@ -4138,13 +4187,13 @@ and <code>aria-valuemax</code>.</li>
 displaying the progress as text, e.g.,
 <code>"75 / 100 (75%)"</code>.</p>
 <h4 id="example-26">Example</h4>
-<div class="sourceCode" id="cb39"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;ProgressBar&quot;</span><span class="fu">,</span></span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;completionScore&quot;</span><span class="fu">,</span></span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;max&quot;</span><span class="fu">:</span> <span class="dv">100</span><span class="fu">,</span></span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Form completion&quot;</span></span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb40"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;ProgressBar&quot;</span><span class="fu">,</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;completionScore&quot;</span><span class="fu">,</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;max&quot;</span><span class="fu">:</span> <span class="dv">100</span><span class="fu">,</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Form completion&quot;</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="summary">6.12 Summary</h3>
 <p><strong>Category:</strong> Display <strong>Level:</strong>
@@ -4242,15 +4291,15 @@ containing one <strong>Text</strong> component per item, with
 <code>text</code> set to
 <code>"&lt;label&gt;: &lt;value&gt;"</code>.</p>
 <h4 id="example-27">Example</h4>
-<div class="sourceCode" id="cb40"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Summary&quot;</span><span class="fu">,</span></span>
-<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Project Name&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;projectName&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Total Budget&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;totalBudget&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Organization Type&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;orgType&quot;</span><span class="fu">,</span> <span class="dt">&quot;optionSet&quot;</span><span class="fu">:</span> <span class="st">&quot;orgTypes&quot;</span> <span class="fu">}</span></span>
-<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb41"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Summary&quot;</span><span class="fu">,</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Project Name&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;projectName&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Total Budget&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;totalBudget&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Organization Type&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;orgType&quot;</span><span class="fu">,</span> <span class="dt">&quot;optionSet&quot;</span><span class="fu">:</span> <span class="st">&quot;orgTypes&quot;</span> <span class="fu">}</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="validationsummary">6.13 ValidationSummary</h3>
 <p><strong>Category:</strong> Display <strong>Level:</strong>
@@ -4354,8 +4403,8 @@ in its effect chain.</p>
 <strong>Alert</strong> components — one per validation finding, using
 the finding’s severity as the Alert <code>variant</code>.</p>
 <h4 id="example-28">Example</h4>
-<div class="sourceCode" id="cb41"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;ValidationSummary&quot;</span><span class="fu">,</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;submit&quot;</span><span class="fu">,</span> <span class="dt">&quot;jumpLinks&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;showFieldErrors&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb42"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;ValidationSummary&quot;</span><span class="fu">,</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;submit&quot;</span><span class="fu">,</span> <span class="dt">&quot;jumpLinks&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;showFieldErrors&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span></span></code></pre></div>
 <h4 id="cross-reference">Cross-Reference</h4>
 <p><code>ValidationSummary.source</code> and <code>mode</code> map to <a
 href="../core/validation-mapping.md#3-validation-profile">Validation
@@ -4440,6 +4489,9 @@ the bound field within that repeat instance.</li>
 <li>When <code>allowRemove</code> is <code>true</code>, MUST provide
 per-row “Remove” affordances, subject to <code>minRepeat</code>
 constraints.</li>
+<li><code>allowAdd</code> and <code>allowRemove</code> are
+presentation-only locks: setting either to <code>false</code> MUST NOT
+change cardinality validation or drop rows supplied by data (§4.4).</li>
 </ul>
 <h4 id="fallback-behavior-12">Fallback Behavior</h4>
 <p>Core processors MUST replace DataTable with a <strong>Stack</strong>
@@ -4447,16 +4499,16 @@ that repeats a <strong>Card</strong> for each repeat instance. Within
 each Card, bound fields are rendered as TextInput or appropriate Core
 components.</p>
 <h4 id="example-29">Example</h4>
-<div class="sourceCode" id="cb42"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;DataTable&quot;</span><span class="fu">,</span></span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;lineItems&quot;</span><span class="fu">,</span></span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Description&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;description&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Amount&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;amount&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Category&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;category&quot;</span> <span class="fu">}</span></span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb43"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;DataTable&quot;</span><span class="fu">,</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;lineItems&quot;</span><span class="fu">,</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Description&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;description&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Amount&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;amount&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Category&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;category&quot;</span> <span class="fu">}</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="panel">6.15 Panel</h3>
 <p><strong>Category:</strong> Container <strong>Level:</strong>
@@ -4554,16 +4606,16 @@ placed according to the <code>placement</code> property.</li>
 <code>title</code> prop is preserved. The <code>placement</code> and
 <code>width</code> props are discarded.</p>
 <h4 id="example-30">Example</h4>
-<div class="sourceCode" id="cb43"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Panel&quot;</span><span class="fu">,</span></span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;placement&quot;</span><span class="fu">:</span> <span class="st">&quot;left&quot;</span><span class="fu">,</span></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Help&quot;</span><span class="fu">,</span></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;width&quot;</span><span class="fu">:</span> <span class="st">&quot;280px&quot;</span><span class="fu">,</span></span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Need help? Contact support.&quot;</span> <span class="fu">}</span></span>
-<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb44"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Panel&quot;</span><span class="fu">,</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;placement&quot;</span><span class="fu">:</span> <span class="st">&quot;left&quot;</span><span class="fu">,</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Help&quot;</span><span class="fu">,</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;width&quot;</span><span class="fu">:</span> <span class="st">&quot;280px&quot;</span><span class="fu">,</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Need help? Contact support.&quot;</span> <span class="fu">}</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="modal">6.16 Modal</h3>
 <p><strong>Category:</strong> Container <strong>Level:</strong>
@@ -4650,16 +4702,16 @@ The <code>title</code> prop is preserved. The modal’s content is
 rendered as the collapsible body, initially collapsed
 (<code>defaultOpen: false</code>).</p>
 <h4 id="example-31">Example</h4>
-<div class="sourceCode" id="cb44"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Modal&quot;</span><span class="fu">,</span></span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Terms and Conditions&quot;</span><span class="fu">,</span></span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;trigger&quot;</span><span class="fu">:</span> <span class="st">&quot;button&quot;</span><span class="fu">,</span></span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;triggerLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;View Terms&quot;</span><span class="fu">,</span></span>
-<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;By submitting this form, you agree to...&quot;</span><span class="fu">,</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;markdown&quot;</span> <span class="fu">}</span></span>
-<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb45"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Modal&quot;</span><span class="fu">,</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Terms and Conditions&quot;</span><span class="fu">,</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;trigger&quot;</span><span class="fu">:</span> <span class="st">&quot;button&quot;</span><span class="fu">,</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;triggerLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;View Terms&quot;</span><span class="fu">,</span></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;By submitting this form, you agree to...&quot;</span><span class="fu">,</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;markdown&quot;</span> <span class="fu">}</span></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="popover">6.17 Popover</h3>
 <p><strong>Category:</strong> Container <strong>Level:</strong>
@@ -4729,16 +4781,16 @@ is unavailable.</li>
 map to Collapsible <code>title</code>. The <code>placement</code>
 property is discarded.</p>
 <h4 id="example-32">Example</h4>
-<div class="sourceCode" id="cb45"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Popover&quot;</span><span class="fu">,</span></span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;triggerBind&quot;</span><span class="fu">:</span> <span class="st">&quot;projectName&quot;</span><span class="fu">,</span></span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;triggerLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Show details&quot;</span><span class="fu">,</span></span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;placement&quot;</span><span class="fu">:</span> <span class="st">&quot;right&quot;</span><span class="fu">,</span></span>
-<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Additional context for this field.&quot;</span> <span class="fu">}</span></span>
-<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb46"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Popover&quot;</span><span class="fu">,</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;triggerBind&quot;</span><span class="fu">:</span> <span class="st">&quot;projectName&quot;</span><span class="fu">,</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;triggerLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Show details&quot;</span><span class="fu">,</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;placement&quot;</span><span class="fu">:</span> <span class="st">&quot;right&quot;</span><span class="fu">,</span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Additional context for this field.&quot;</span> <span class="fu">}</span></span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="fallback-requirements">6.18 Fallback Requirements</h3>
 <p>The normative fallback policy lives in <a
@@ -4809,35 +4861,35 @@ aliases for built-in behavior. Names beginning with <code>x-</code> are
 reserved for custom widget and metadata extensions, not custom
 components (§13.3).</p>
 <p>Example registry:</p>
-<div class="sourceCode" id="cb46"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;components&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;LabeledField&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;field&quot;</span><span class="ot">,</span> <span class="st">&quot;label&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;tree&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Stack&quot;</span><span class="fu">,</span></span>
-<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.sm&quot;</span><span class="fu">,</span></span>
-<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Heading&quot;</span><span class="fu">,</span> <span class="dt">&quot;level&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;{label}&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{field}&quot;</span> <span class="fu">}</span></span>
-<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
-<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
-<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
-<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;AddressBlock&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;prefix&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;tree&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Card&quot;</span><span class="fu">,</span></span>
-<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Address&quot;</span><span class="fu">,</span></span>
-<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}Street&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}City&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}State&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}Zip&quot;</span> <span class="fu">}</span></span>
-<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
-<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
-<span id="cb46-26"><a href="#cb46-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb46-27"><a href="#cb46-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb46-28"><a href="#cb46-28" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb47"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;components&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;LabeledField&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;field&quot;</span><span class="ot">,</span> <span class="st">&quot;label&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;tree&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Stack&quot;</span><span class="fu">,</span></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.sm&quot;</span><span class="fu">,</span></span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Heading&quot;</span><span class="fu">,</span> <span class="dt">&quot;level&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;{label}&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{field}&quot;</span> <span class="fu">}</span></span>
+<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;AddressBlock&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb47-15"><a href="#cb47-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;prefix&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb47-16"><a href="#cb47-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;tree&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb47-17"><a href="#cb47-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Card&quot;</span><span class="fu">,</span></span>
+<span id="cb47-18"><a href="#cb47-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Address&quot;</span><span class="fu">,</span></span>
+<span id="cb47-19"><a href="#cb47-19" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb47-20"><a href="#cb47-20" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}Street&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb47-21"><a href="#cb47-21" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}City&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb47-22"><a href="#cb47-22" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}State&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb47-23"><a href="#cb47-23" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}Zip&quot;</span> <span class="fu">}</span></span>
+<span id="cb47-24"><a href="#cb47-24" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb47-25"><a href="#cb47-25" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb47-26"><a href="#cb47-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb47-27"><a href="#cb47-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb47-28"><a href="#cb47-28" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h3 id="param-interpolation-grammar-abnf">7.2 {param} Interpolation
 Grammar (ABNF)</h3>
 <p>Parameter interpolation uses <code>{paramName}</code> syntax within
@@ -4943,11 +4995,11 @@ etc.)</td>
 <p>A custom component is instantiated by using its registry name as the
 <code>component</code> value and providing parameter values in a
 <code>params</code> object:</p>
-<div class="sourceCode" id="cb48"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;AddressBlock&quot;</span><span class="fu">,</span></span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;prefix&quot;</span><span class="fu">:</span> <span class="st">&quot;home&quot;</span> <span class="fu">}</span></span>
-<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb49"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;AddressBlock&quot;</span><span class="fu">,</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;prefix&quot;</span><span class="fu">:</span> <span class="st">&quot;home&quot;</span> <span class="fu">}</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The processor MUST:</p>
 <ol type="1">
 <li>Look up the component name in the <code>components</code>
@@ -5012,9 +5064,9 @@ children) MUST be hidden.</li>
 <p>Multiple <code>when</code> conditions do NOT chain — each component
 has at most one <code>when</code> expression. To express compound
 conditions, use FEL logical operators within the expression:</p>
-<div class="sourceCode" id="cb49"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;spouseName&quot;</span><span class="fu">,</span></span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;when&quot;</span><span class="fu">:</span> <span class="st">&quot;$maritalStatus = &#39;married&#39; and $age &gt;= 18&quot;</span> <span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb50"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;spouseName&quot;</span><span class="fu">,</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;when&quot;</span><span class="fu">:</span> <span class="st">&quot;$maritalStatus = &#39;married&#39; and $age &gt;= 18&quot;</span> <span class="fu">}</span></span></code></pre></div>
 <h3 id="distinction-from-bind-relevant">8.2 Distinction from Bind
 relevant</h3>
 <p>The <code>when</code> property and the Definition Bind’s
@@ -5115,15 +5167,15 @@ width, enabling adaptive layouts from a single Component Document.</p>
 <p>Breakpoints are declared in the top-level <code>breakpoints</code>
 object. Each key is a breakpoint name; each value is the minimum
 viewport width in pixels at which that breakpoint activates.</p>
-<div class="sourceCode" id="cb50"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;breakpoints&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="dv">576</span><span class="fu">,</span></span>
-<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;md&quot;</span><span class="fu">:</span> <span class="dv">768</span><span class="fu">,</span></span>
-<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lg&quot;</span><span class="fu">:</span> <span class="dv">1024</span><span class="fu">,</span></span>
-<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;xl&quot;</span><span class="fu">:</span> <span class="dv">1280</span></span>
-<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb51"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;breakpoints&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="dv">576</span><span class="fu">,</span></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;md&quot;</span><span class="fu">:</span> <span class="dv">768</span><span class="fu">,</span></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lg&quot;</span><span class="fu">:</span> <span class="dv">1024</span><span class="fu">,</span></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;xl&quot;</span><span class="fu">:</span> <span class="dv">1280</span></span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Breakpoint names MUST be non-empty strings. Values MUST be
 non-negative integers. The same breakpoint format is used in the Theme
 Specification (theme-spec §6.4).</p>
@@ -5136,16 +5188,16 @@ and Theme breakpoints MUST use the same value.</p>
 <p>The <code>responsive</code> property on a component object is a JSON
 object whose keys are breakpoint names and whose values are <strong>prop
 override objects</strong>:</p>
-<div class="sourceCode" id="cb51"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Grid&quot;</span><span class="fu">,</span></span>
-<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
-<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.md&quot;</span><span class="fu">,</span></span>
-<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;responsive&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span> <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.sm&quot;</span> <span class="fu">},</span></span>
-<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;md&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">2</span> <span class="fu">}</span></span>
-<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb52"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Grid&quot;</span><span class="fu">,</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.md&quot;</span><span class="fu">,</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;responsive&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span> <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.sm&quot;</span> <span class="fu">},</span></span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;md&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">2</span> <span class="fu">}</span></span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Override objects contain shallow props allowed by the shared
 responsive policy in <a
 href="../ui-policy.json"><code>specs/ui-policy.json</code></a>. The
@@ -5219,17 +5271,17 @@ in the Theme Specification (theme-spec §3).</p>
 <h3 id="the-tokens-map">10.1 The tokens Map</h3>
 <p>The <code>tokens</code> object is a flat key-value map. Keys are
 dot-delimited names; values are strings or numbers.</p>
-<div class="sourceCode" id="cb53"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tokens&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.primary&quot;</span><span class="fu">:</span> <span class="st">&quot;#0057B7&quot;</span><span class="fu">,</span></span>
-<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.error&quot;</span><span class="fu">:</span> <span class="st">&quot;#D32F2F&quot;</span><span class="fu">,</span></span>
-<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.sm&quot;</span><span class="fu">:</span> <span class="st">&quot;8px&quot;</span><span class="fu">,</span></span>
-<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.md&quot;</span><span class="fu">:</span> <span class="st">&quot;16px&quot;</span><span class="fu">,</span></span>
-<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.lg&quot;</span><span class="fu">:</span> <span class="st">&quot;24px&quot;</span><span class="fu">,</span></span>
-<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;border.radius&quot;</span><span class="fu">:</span> <span class="st">&quot;6px&quot;</span></span>
-<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb54"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tokens&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.primary&quot;</span><span class="fu">:</span> <span class="st">&quot;#0057B7&quot;</span><span class="fu">,</span></span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.error&quot;</span><span class="fu">:</span> <span class="st">&quot;#D32F2F&quot;</span><span class="fu">,</span></span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.sm&quot;</span><span class="fu">:</span> <span class="st">&quot;8px&quot;</span><span class="fu">,</span></span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.md&quot;</span><span class="fu">:</span> <span class="st">&quot;16px&quot;</span><span class="fu">,</span></span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.lg&quot;</span><span class="fu">:</span> <span class="st">&quot;24px&quot;</span><span class="fu">,</span></span>
+<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;border.radius&quot;</span><span class="fu">:</span> <span class="st">&quot;6px&quot;</span></span>
+<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb54-10"><a href="#cb54-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Token keys MUST be non-empty strings. Token values MUST be strings or
 numbers. Tokens MUST NOT contain nested objects, arrays, booleans, or
 null.</p>
@@ -5310,8 +5362,8 @@ convention is:</p>
 <pre><code>--formspec-{token-key-with-dots-replaced-by-hyphens}</code></pre>
 <p>For example, a theme token <code>color.primary</code> with value
 <code>#005ea2</code> SHOULD be emitted as:</p>
-<div class="sourceCode" id="cb56"><pre
-class="sourceCode css"><code class="sourceCode css"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>--formspec-color-primary<span class="in">:</span> <span class="pp">#005ea2</span>;</span></code></pre></div>
+<div class="sourceCode" id="cb57"><pre
+class="sourceCode css"><code class="sourceCode css"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>--formspec-color-primary<span class="in">:</span> <span class="pp">#005ea2</span>;</span></code></pre></div>
 <p>This enables external CSS — including design-system bridge
 stylesheets and author-defined overrides — to reference theme tokens
 without JavaScript coupling. Bridge CSS can use
@@ -5497,22 +5549,22 @@ is:</p>
 </table>
 <p>Graph-wide node identity MUST include enough scope to disambiguate
 multiple Surfaces and multiple Component documents:</p>
-<div class="sourceCode" id="cb57"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;handle&quot;</span><span class="fu">:</span> <span class="st">&quot;reviewRoute&quot;</span><span class="fu">,</span></span>
-<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/apps/workspace/components/review-route&quot;</span><span class="fu">,</span></span>
-<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span></span>
-<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;surface&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/apps/workspace/surfaces/respondent&quot;</span><span class="fu">,</span></span>
-<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span></span>
-<span id="cb57-10"><a href="#cb57-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb57-11"><a href="#cb57-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;route&quot;</span><span class="fu">:</span> <span class="st">&quot;review&quot;</span><span class="fu">,</span></span>
-<span id="cb57-12"><a href="#cb57-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;nodePath&quot;</span><span class="fu">:</span> <span class="st">&quot;/reviewLayout/submit&quot;</span><span class="fu">,</span></span>
-<span id="cb57-13"><a href="#cb57-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;submitButton&quot;</span><span class="fu">,</span></span>
-<span id="cb57-14"><a href="#cb57-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;nodeId&quot;</span><span class="fu">:</span> <span class="st">&quot;submitButton&quot;</span></span>
-<span id="cb57-15"><a href="#cb57-15" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb58"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;handle&quot;</span><span class="fu">:</span> <span class="st">&quot;reviewRoute&quot;</span><span class="fu">,</span></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/apps/workspace/components/review-route&quot;</span><span class="fu">,</span></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span></span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;surface&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/apps/workspace/surfaces/respondent&quot;</span><span class="fu">,</span></span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span></span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;route&quot;</span><span class="fu">:</span> <span class="st">&quot;review&quot;</span><span class="fu">,</span></span>
+<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;nodePath&quot;</span><span class="fu">:</span> <span class="st">&quot;/reviewLayout/submit&quot;</span><span class="fu">,</span></span>
+<span id="cb58-13"><a href="#cb58-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;submitButton&quot;</span><span class="fu">,</span></span>
+<span id="cb58-14"><a href="#cb58-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;nodeId&quot;</span><span class="fu">:</span> <span class="st">&quot;submitButton&quot;</span></span>
+<span id="cb58-15"><a href="#cb58-15" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p><code>nodePath</code> is an absolute route-scoped path. Path segments
 resolve from stable node labels in this order:</p>
 <ol type="1">
@@ -5833,189 +5885,189 @@ budget submission form. It targets a Definition with items for project
 information, budget line items, and approval. Wizard-style navigation is
 controlled by <code>formPresentation.pageMode</code> in the Definition,
 not by the component tree structure.</p>
-<div class="sourceCode" id="cb58"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$formspecComponent&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0&quot;</span><span class="fu">,</span></span>
-<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/budget-2025/components/wizard&quot;</span><span class="fu">,</span></span>
-<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
-<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;budget-wizard&quot;</span><span class="fu">,</span></span>
-<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget Form — Multi-Section Layout&quot;</span><span class="fu">,</span></span>
-<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;A three-step wizard-style layout for the annual budget submission form.&quot;</span><span class="fu">,</span></span>
-<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetDefinition&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/budget-2025&quot;</span><span class="fu">,</span></span>
-<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;compatibleVersions&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;=1.0.0 &lt;2.0.0&quot;</span></span>
-<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;breakpoints&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-13"><a href="#cb58-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="dv">576</span><span class="fu">,</span></span>
-<span id="cb58-14"><a href="#cb58-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;md&quot;</span><span class="fu">:</span> <span class="dv">768</span><span class="fu">,</span></span>
-<span id="cb58-15"><a href="#cb58-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lg&quot;</span><span class="fu">:</span> <span class="dv">1024</span></span>
-<span id="cb58-16"><a href="#cb58-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb58-17"><a href="#cb58-17" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tokens&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-18"><a href="#cb58-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.primary&quot;</span><span class="fu">:</span> <span class="st">&quot;#0057B7&quot;</span><span class="fu">,</span></span>
-<span id="cb58-19"><a href="#cb58-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.error&quot;</span><span class="fu">:</span> <span class="st">&quot;#D32F2F&quot;</span><span class="fu">,</span></span>
-<span id="cb58-20"><a href="#cb58-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.surface&quot;</span><span class="fu">:</span> <span class="st">&quot;#FFFFFF&quot;</span><span class="fu">,</span></span>
-<span id="cb58-21"><a href="#cb58-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.success&quot;</span><span class="fu">:</span> <span class="st">&quot;#2E7D32&quot;</span><span class="fu">,</span></span>
-<span id="cb58-22"><a href="#cb58-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.sm&quot;</span><span class="fu">:</span> <span class="st">&quot;8px&quot;</span><span class="fu">,</span></span>
-<span id="cb58-23"><a href="#cb58-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.md&quot;</span><span class="fu">:</span> <span class="st">&quot;16px&quot;</span><span class="fu">,</span></span>
-<span id="cb58-24"><a href="#cb58-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.lg&quot;</span><span class="fu">:</span> <span class="st">&quot;24px&quot;</span><span class="fu">,</span></span>
-<span id="cb58-25"><a href="#cb58-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;border.radius&quot;</span><span class="fu">:</span> <span class="st">&quot;6px&quot;</span><span class="fu">,</span></span>
-<span id="cb58-26"><a href="#cb58-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;typography.body.family&quot;</span><span class="fu">:</span> <span class="st">&quot;Inter, system-ui, sans-serif&quot;</span></span>
-<span id="cb58-27"><a href="#cb58-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb58-28"><a href="#cb58-28" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;components&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-29"><a href="#cb58-29" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;AddressBlock&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-30"><a href="#cb58-30" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;prefix&quot;</span><span class="ot">,</span> <span class="st">&quot;title&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb58-31"><a href="#cb58-31" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;tree&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-32"><a href="#cb58-32" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Card&quot;</span><span class="fu">,</span></span>
-<span id="cb58-33"><a href="#cb58-33" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;{title}&quot;</span><span class="fu">,</span></span>
-<span id="cb58-34"><a href="#cb58-34" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-35"><a href="#cb58-35" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}Street&quot;</span><span class="fu">,</span></span>
-<span id="cb58-36"><a href="#cb58-36" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;placeholder&quot;</span><span class="fu">:</span> <span class="st">&quot;Street address&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-37"><a href="#cb58-37" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
-<span id="cb58-38"><a href="#cb58-38" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Grid&quot;</span><span class="fu">,</span></span>
-<span id="cb58-39"><a href="#cb58-39" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
-<span id="cb58-40"><a href="#cb58-40" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.md&quot;</span><span class="fu">,</span></span>
-<span id="cb58-41"><a href="#cb58-41" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;responsive&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-42"><a href="#cb58-42" aria-hidden="true" tabindex="-1"></a>              <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">1</span> <span class="fu">}</span></span>
-<span id="cb58-43"><a href="#cb58-43" aria-hidden="true" tabindex="-1"></a>            <span class="fu">},</span></span>
-<span id="cb58-44"><a href="#cb58-44" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-45"><a href="#cb58-45" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}City&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-46"><a href="#cb58-46" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}State&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-47"><a href="#cb58-47" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}Zip&quot;</span> <span class="fu">}</span></span>
-<span id="cb58-48"><a href="#cb58-48" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
-<span id="cb58-49"><a href="#cb58-49" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
-<span id="cb58-50"><a href="#cb58-50" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
-<span id="cb58-51"><a href="#cb58-51" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
-<span id="cb58-52"><a href="#cb58-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb58-53"><a href="#cb58-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb58-54"><a href="#cb58-54" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tree&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-55"><a href="#cb58-55" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Stack&quot;</span><span class="fu">,</span></span>
-<span id="cb58-56"><a href="#cb58-56" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-57"><a href="#cb58-57" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
-<span id="cb58-58"><a href="#cb58-58" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Section&quot;</span><span class="fu">,</span></span>
-<span id="cb58-59"><a href="#cb58-59" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Project Information&quot;</span><span class="fu">,</span></span>
-<span id="cb58-60"><a href="#cb58-60" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Enter basic details about your project.&quot;</span><span class="fu">,</span></span>
-<span id="cb58-61"><a href="#cb58-61" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-62"><a href="#cb58-62" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
-<span id="cb58-63"><a href="#cb58-63" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Grid&quot;</span><span class="fu">,</span></span>
-<span id="cb58-64"><a href="#cb58-64" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
-<span id="cb58-65"><a href="#cb58-65" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.md&quot;</span><span class="fu">,</span></span>
-<span id="cb58-66"><a href="#cb58-66" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;responsive&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-67"><a href="#cb58-67" aria-hidden="true" tabindex="-1"></a>              <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">1</span> <span class="fu">}</span></span>
-<span id="cb58-68"><a href="#cb58-68" aria-hidden="true" tabindex="-1"></a>            <span class="fu">},</span></span>
-<span id="cb58-69"><a href="#cb58-69" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-70"><a href="#cb58-70" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;projectName&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-71"><a href="#cb58-71" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;projectCode&quot;</span> <span class="fu">}</span></span>
-<span id="cb58-72"><a href="#cb58-72" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
-<span id="cb58-73"><a href="#cb58-73" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-74"><a href="#cb58-74" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
-<span id="cb58-75"><a href="#cb58-75" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Grid&quot;</span><span class="fu">,</span></span>
-<span id="cb58-76"><a href="#cb58-76" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
-<span id="cb58-77"><a href="#cb58-77" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.md&quot;</span><span class="fu">,</span></span>
-<span id="cb58-78"><a href="#cb58-78" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;responsive&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-79"><a href="#cb58-79" aria-hidden="true" tabindex="-1"></a>              <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">1</span> <span class="fu">}</span></span>
-<span id="cb58-80"><a href="#cb58-80" aria-hidden="true" tabindex="-1"></a>            <span class="fu">},</span></span>
-<span id="cb58-81"><a href="#cb58-81" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-82"><a href="#cb58-82" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Select&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;department&quot;</span><span class="fu">,</span></span>
-<span id="cb58-83"><a href="#cb58-83" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;searchable&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-84"><a href="#cb58-84" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Select&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;fiscalYear&quot;</span> <span class="fu">}</span></span>
-<span id="cb58-85"><a href="#cb58-85" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
-<span id="cb58-86"><a href="#cb58-86" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-87"><a href="#cb58-87" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;description&quot;</span><span class="fu">,</span></span>
-<span id="cb58-88"><a href="#cb58-88" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;maxLines&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span> <span class="dt">&quot;placeholder&quot;</span><span class="fu">:</span> <span class="st">&quot;Describe the project scope&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-89"><a href="#cb58-89" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
-<span id="cb58-90"><a href="#cb58-90" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;AddressBlock&quot;</span><span class="fu">,</span></span>
-<span id="cb58-91"><a href="#cb58-91" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;prefix&quot;</span><span class="fu">:</span> <span class="st">&quot;project&quot;</span><span class="fu">,</span> <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Project Location&quot;</span> <span class="fu">}</span></span>
-<span id="cb58-92"><a href="#cb58-92" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
-<span id="cb58-93"><a href="#cb58-93" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
-<span id="cb58-94"><a href="#cb58-94" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-95"><a href="#cb58-95" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
-<span id="cb58-96"><a href="#cb58-96" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Section&quot;</span><span class="fu">,</span></span>
-<span id="cb58-97"><a href="#cb58-97" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget Details&quot;</span><span class="fu">,</span></span>
-<span id="cb58-98"><a href="#cb58-98" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Add line items and set the total budget.&quot;</span><span class="fu">,</span></span>
-<span id="cb58-99"><a href="#cb58-99" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-100"><a href="#cb58-100" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
-<span id="cb58-101"><a href="#cb58-101" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;DataTable&quot;</span><span class="fu">,</span></span>
-<span id="cb58-102"><a href="#cb58-102" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;lineItems&quot;</span><span class="fu">,</span></span>
-<span id="cb58-103"><a href="#cb58-103" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-104"><a href="#cb58-104" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Description&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;itemDescription&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-105"><a href="#cb58-105" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Category&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;itemCategory&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-106"><a href="#cb58-106" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Amount&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;itemAmount&quot;</span> <span class="fu">}</span></span>
-<span id="cb58-107"><a href="#cb58-107" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
-<span id="cb58-108"><a href="#cb58-108" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-109"><a href="#cb58-109" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Divider&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-110"><a href="#cb58-110" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
-<span id="cb58-111"><a href="#cb58-111" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Grid&quot;</span><span class="fu">,</span></span>
-<span id="cb58-112"><a href="#cb58-112" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
-<span id="cb58-113"><a href="#cb58-113" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.md&quot;</span><span class="fu">,</span></span>
-<span id="cb58-114"><a href="#cb58-114" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;responsive&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-115"><a href="#cb58-115" aria-hidden="true" tabindex="-1"></a>              <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">1</span> <span class="fu">}</span></span>
-<span id="cb58-116"><a href="#cb58-116" aria-hidden="true" tabindex="-1"></a>            <span class="fu">},</span></span>
-<span id="cb58-117"><a href="#cb58-117" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-118"><a href="#cb58-118" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span></span>
-<span id="cb58-119"><a href="#cb58-119" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;MoneyInput&quot;</span><span class="fu">,</span></span>
-<span id="cb58-120"><a href="#cb58-120" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;totalBudget&quot;</span><span class="fu">,</span></span>
-<span id="cb58-121"><a href="#cb58-121" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;currency&quot;</span><span class="fu">:</span> <span class="st">&quot;USD&quot;</span><span class="fu">,</span></span>
-<span id="cb58-122"><a href="#cb58-122" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;style&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb58-123"><a href="#cb58-123" aria-hidden="true" tabindex="-1"></a>                  <span class="dt">&quot;background&quot;</span><span class="fu">:</span> <span class="st">&quot;#F0F6FF&quot;</span><span class="fu">,</span></span>
-<span id="cb58-124"><a href="#cb58-124" aria-hidden="true" tabindex="-1"></a>                  <span class="dt">&quot;borderColor&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.color.primary&quot;</span><span class="fu">,</span></span>
-<span id="cb58-125"><a href="#cb58-125" aria-hidden="true" tabindex="-1"></a>                  <span class="dt">&quot;borderWidth&quot;</span><span class="fu">:</span> <span class="st">&quot;2px&quot;</span></span>
-<span id="cb58-126"><a href="#cb58-126" aria-hidden="true" tabindex="-1"></a>                <span class="fu">}</span></span>
-<span id="cb58-127"><a href="#cb58-127" aria-hidden="true" tabindex="-1"></a>              <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-128"><a href="#cb58-128" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span></span>
-<span id="cb58-129"><a href="#cb58-129" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;MoneyInput&quot;</span><span class="fu">,</span></span>
-<span id="cb58-130"><a href="#cb58-130" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;contingency&quot;</span><span class="fu">,</span></span>
-<span id="cb58-131"><a href="#cb58-131" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;currency&quot;</span><span class="fu">:</span> <span class="st">&quot;USD&quot;</span></span>
-<span id="cb58-132"><a href="#cb58-132" aria-hidden="true" tabindex="-1"></a>              <span class="fu">}</span></span>
-<span id="cb58-133"><a href="#cb58-133" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
-<span id="cb58-134"><a href="#cb58-134" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-135"><a href="#cb58-135" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
-<span id="cb58-136"><a href="#cb58-136" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Alert&quot;</span><span class="fu">,</span></span>
-<span id="cb58-137"><a href="#cb58-137" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;severity&quot;</span><span class="fu">:</span> <span class="st">&quot;info&quot;</span><span class="fu">,</span></span>
-<span id="cb58-138"><a href="#cb58-138" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Total budget is automatically calculated from line items.&quot;</span><span class="fu">,</span></span>
-<span id="cb58-139"><a href="#cb58-139" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;when&quot;</span><span class="fu">:</span> <span class="st">&quot;$totalBudget &gt; 0&quot;</span></span>
-<span id="cb58-140"><a href="#cb58-140" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
-<span id="cb58-141"><a href="#cb58-141" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
-<span id="cb58-142"><a href="#cb58-142" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-143"><a href="#cb58-143" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
-<span id="cb58-144"><a href="#cb58-144" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Section&quot;</span><span class="fu">,</span></span>
-<span id="cb58-145"><a href="#cb58-145" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Review &amp; Submit&quot;</span><span class="fu">,</span></span>
-<span id="cb58-146"><a href="#cb58-146" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Review your submission before signing.&quot;</span><span class="fu">,</span></span>
-<span id="cb58-147"><a href="#cb58-147" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-148"><a href="#cb58-148" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
-<span id="cb58-149"><a href="#cb58-149" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Summary&quot;</span><span class="fu">,</span></span>
-<span id="cb58-150"><a href="#cb58-150" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-151"><a href="#cb58-151" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Project Name&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;projectName&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-152"><a href="#cb58-152" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Department&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;department&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-153"><a href="#cb58-153" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Fiscal Year&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;fiscalYear&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-154"><a href="#cb58-154" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Total Budget&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;totalBudget&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-155"><a href="#cb58-155" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Contingency&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;contingency&quot;</span> <span class="fu">}</span></span>
-<span id="cb58-156"><a href="#cb58-156" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
-<span id="cb58-157"><a href="#cb58-157" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-158"><a href="#cb58-158" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Divider&quot;</span><span class="fu">,</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Certification&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-159"><a href="#cb58-159" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
-<span id="cb58-160"><a href="#cb58-160" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Toggle&quot;</span><span class="fu">,</span></span>
-<span id="cb58-161"><a href="#cb58-161" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;certify&quot;</span><span class="fu">,</span></span>
-<span id="cb58-162"><a href="#cb58-162" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;onLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;I certify this information is correct&quot;</span><span class="fu">,</span></span>
-<span id="cb58-163"><a href="#cb58-163" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;offLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Not yet certified&quot;</span></span>
-<span id="cb58-164"><a href="#cb58-164" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb58-165"><a href="#cb58-165" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
-<span id="cb58-166"><a href="#cb58-166" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;ConditionalGroup&quot;</span><span class="fu">,</span></span>
-<span id="cb58-167"><a href="#cb58-167" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;when&quot;</span><span class="fu">:</span> <span class="st">&quot;$certify = true&quot;</span><span class="fu">,</span></span>
-<span id="cb58-168"><a href="#cb58-168" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;Please certify the information above to proceed.&quot;</span><span class="fu">,</span></span>
-<span id="cb58-169"><a href="#cb58-169" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb58-170"><a href="#cb58-170" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span></span>
-<span id="cb58-171"><a href="#cb58-171" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Signature&quot;</span><span class="fu">,</span></span>
-<span id="cb58-172"><a href="#cb58-172" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;approverSignature&quot;</span><span class="fu">,</span></span>
-<span id="cb58-173"><a href="#cb58-173" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;strokeColor&quot;</span><span class="fu">:</span> <span class="st">&quot;#000&quot;</span><span class="fu">,</span></span>
-<span id="cb58-174"><a href="#cb58-174" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;height&quot;</span><span class="fu">:</span> <span class="dv">150</span></span>
-<span id="cb58-175"><a href="#cb58-175" aria-hidden="true" tabindex="-1"></a>              <span class="fu">}</span></span>
-<span id="cb58-176"><a href="#cb58-176" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
-<span id="cb58-177"><a href="#cb58-177" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
-<span id="cb58-178"><a href="#cb58-178" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
-<span id="cb58-179"><a href="#cb58-179" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
-<span id="cb58-180"><a href="#cb58-180" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
-<span id="cb58-181"><a href="#cb58-181" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb58-182"><a href="#cb58-182" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb59"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$formspecComponent&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0&quot;</span><span class="fu">,</span></span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/budget-2025/components/wizard&quot;</span><span class="fu">,</span></span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;budget-wizard&quot;</span><span class="fu">,</span></span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget Form — Multi-Section Layout&quot;</span><span class="fu">,</span></span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;A three-step wizard-style layout for the annual budget submission form.&quot;</span><span class="fu">,</span></span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetDefinition&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/budget-2025&quot;</span><span class="fu">,</span></span>
+<span id="cb59-10"><a href="#cb59-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;compatibleVersions&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;=1.0.0 &lt;2.0.0&quot;</span></span>
+<span id="cb59-11"><a href="#cb59-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb59-12"><a href="#cb59-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;breakpoints&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-13"><a href="#cb59-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="dv">576</span><span class="fu">,</span></span>
+<span id="cb59-14"><a href="#cb59-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;md&quot;</span><span class="fu">:</span> <span class="dv">768</span><span class="fu">,</span></span>
+<span id="cb59-15"><a href="#cb59-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lg&quot;</span><span class="fu">:</span> <span class="dv">1024</span></span>
+<span id="cb59-16"><a href="#cb59-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb59-17"><a href="#cb59-17" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tokens&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-18"><a href="#cb59-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.primary&quot;</span><span class="fu">:</span> <span class="st">&quot;#0057B7&quot;</span><span class="fu">,</span></span>
+<span id="cb59-19"><a href="#cb59-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.error&quot;</span><span class="fu">:</span> <span class="st">&quot;#D32F2F&quot;</span><span class="fu">,</span></span>
+<span id="cb59-20"><a href="#cb59-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.surface&quot;</span><span class="fu">:</span> <span class="st">&quot;#FFFFFF&quot;</span><span class="fu">,</span></span>
+<span id="cb59-21"><a href="#cb59-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;color.success&quot;</span><span class="fu">:</span> <span class="st">&quot;#2E7D32&quot;</span><span class="fu">,</span></span>
+<span id="cb59-22"><a href="#cb59-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.sm&quot;</span><span class="fu">:</span> <span class="st">&quot;8px&quot;</span><span class="fu">,</span></span>
+<span id="cb59-23"><a href="#cb59-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.md&quot;</span><span class="fu">:</span> <span class="st">&quot;16px&quot;</span><span class="fu">,</span></span>
+<span id="cb59-24"><a href="#cb59-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;spacing.lg&quot;</span><span class="fu">:</span> <span class="st">&quot;24px&quot;</span><span class="fu">,</span></span>
+<span id="cb59-25"><a href="#cb59-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;border.radius&quot;</span><span class="fu">:</span> <span class="st">&quot;6px&quot;</span><span class="fu">,</span></span>
+<span id="cb59-26"><a href="#cb59-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;typography.body.family&quot;</span><span class="fu">:</span> <span class="st">&quot;Inter, system-ui, sans-serif&quot;</span></span>
+<span id="cb59-27"><a href="#cb59-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb59-28"><a href="#cb59-28" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;components&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-29"><a href="#cb59-29" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;AddressBlock&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-30"><a href="#cb59-30" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;prefix&quot;</span><span class="ot">,</span> <span class="st">&quot;title&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb59-31"><a href="#cb59-31" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;tree&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-32"><a href="#cb59-32" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Card&quot;</span><span class="fu">,</span></span>
+<span id="cb59-33"><a href="#cb59-33" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;{title}&quot;</span><span class="fu">,</span></span>
+<span id="cb59-34"><a href="#cb59-34" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-35"><a href="#cb59-35" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}Street&quot;</span><span class="fu">,</span></span>
+<span id="cb59-36"><a href="#cb59-36" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;placeholder&quot;</span><span class="fu">:</span> <span class="st">&quot;Street address&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-37"><a href="#cb59-37" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb59-38"><a href="#cb59-38" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Grid&quot;</span><span class="fu">,</span></span>
+<span id="cb59-39"><a href="#cb59-39" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
+<span id="cb59-40"><a href="#cb59-40" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.md&quot;</span><span class="fu">,</span></span>
+<span id="cb59-41"><a href="#cb59-41" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;responsive&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-42"><a href="#cb59-42" aria-hidden="true" tabindex="-1"></a>              <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">1</span> <span class="fu">}</span></span>
+<span id="cb59-43"><a href="#cb59-43" aria-hidden="true" tabindex="-1"></a>            <span class="fu">},</span></span>
+<span id="cb59-44"><a href="#cb59-44" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-45"><a href="#cb59-45" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}City&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-46"><a href="#cb59-46" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}State&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-47"><a href="#cb59-47" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;{prefix}Zip&quot;</span> <span class="fu">}</span></span>
+<span id="cb59-48"><a href="#cb59-48" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
+<span id="cb59-49"><a href="#cb59-49" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb59-50"><a href="#cb59-50" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb59-51"><a href="#cb59-51" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb59-52"><a href="#cb59-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb59-53"><a href="#cb59-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb59-54"><a href="#cb59-54" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tree&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-55"><a href="#cb59-55" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Stack&quot;</span><span class="fu">,</span></span>
+<span id="cb59-56"><a href="#cb59-56" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-57"><a href="#cb59-57" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb59-58"><a href="#cb59-58" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Section&quot;</span><span class="fu">,</span></span>
+<span id="cb59-59"><a href="#cb59-59" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Project Information&quot;</span><span class="fu">,</span></span>
+<span id="cb59-60"><a href="#cb59-60" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Enter basic details about your project.&quot;</span><span class="fu">,</span></span>
+<span id="cb59-61"><a href="#cb59-61" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-62"><a href="#cb59-62" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb59-63"><a href="#cb59-63" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Grid&quot;</span><span class="fu">,</span></span>
+<span id="cb59-64"><a href="#cb59-64" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
+<span id="cb59-65"><a href="#cb59-65" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.md&quot;</span><span class="fu">,</span></span>
+<span id="cb59-66"><a href="#cb59-66" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;responsive&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-67"><a href="#cb59-67" aria-hidden="true" tabindex="-1"></a>              <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">1</span> <span class="fu">}</span></span>
+<span id="cb59-68"><a href="#cb59-68" aria-hidden="true" tabindex="-1"></a>            <span class="fu">},</span></span>
+<span id="cb59-69"><a href="#cb59-69" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-70"><a href="#cb59-70" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;projectName&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-71"><a href="#cb59-71" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;projectCode&quot;</span> <span class="fu">}</span></span>
+<span id="cb59-72"><a href="#cb59-72" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
+<span id="cb59-73"><a href="#cb59-73" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-74"><a href="#cb59-74" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb59-75"><a href="#cb59-75" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Grid&quot;</span><span class="fu">,</span></span>
+<span id="cb59-76"><a href="#cb59-76" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
+<span id="cb59-77"><a href="#cb59-77" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.md&quot;</span><span class="fu">,</span></span>
+<span id="cb59-78"><a href="#cb59-78" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;responsive&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-79"><a href="#cb59-79" aria-hidden="true" tabindex="-1"></a>              <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">1</span> <span class="fu">}</span></span>
+<span id="cb59-80"><a href="#cb59-80" aria-hidden="true" tabindex="-1"></a>            <span class="fu">},</span></span>
+<span id="cb59-81"><a href="#cb59-81" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-82"><a href="#cb59-82" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Select&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;department&quot;</span><span class="fu">,</span></span>
+<span id="cb59-83"><a href="#cb59-83" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;searchable&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-84"><a href="#cb59-84" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Select&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;fiscalYear&quot;</span> <span class="fu">}</span></span>
+<span id="cb59-85"><a href="#cb59-85" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
+<span id="cb59-86"><a href="#cb59-86" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-87"><a href="#cb59-87" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;TextInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;description&quot;</span><span class="fu">,</span></span>
+<span id="cb59-88"><a href="#cb59-88" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;maxLines&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span> <span class="dt">&quot;placeholder&quot;</span><span class="fu">:</span> <span class="st">&quot;Describe the project scope&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-89"><a href="#cb59-89" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb59-90"><a href="#cb59-90" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;AddressBlock&quot;</span><span class="fu">,</span></span>
+<span id="cb59-91"><a href="#cb59-91" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;prefix&quot;</span><span class="fu">:</span> <span class="st">&quot;project&quot;</span><span class="fu">,</span> <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Project Location&quot;</span> <span class="fu">}</span></span>
+<span id="cb59-92"><a href="#cb59-92" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb59-93"><a href="#cb59-93" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb59-94"><a href="#cb59-94" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-95"><a href="#cb59-95" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb59-96"><a href="#cb59-96" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Section&quot;</span><span class="fu">,</span></span>
+<span id="cb59-97"><a href="#cb59-97" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget Details&quot;</span><span class="fu">,</span></span>
+<span id="cb59-98"><a href="#cb59-98" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Add line items and set the total budget.&quot;</span><span class="fu">,</span></span>
+<span id="cb59-99"><a href="#cb59-99" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-100"><a href="#cb59-100" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb59-101"><a href="#cb59-101" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;DataTable&quot;</span><span class="fu">,</span></span>
+<span id="cb59-102"><a href="#cb59-102" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;lineItems&quot;</span><span class="fu">,</span></span>
+<span id="cb59-103"><a href="#cb59-103" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-104"><a href="#cb59-104" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Description&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;itemDescription&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-105"><a href="#cb59-105" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Category&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;itemCategory&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-106"><a href="#cb59-106" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="st">&quot;Amount&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;itemAmount&quot;</span> <span class="fu">}</span></span>
+<span id="cb59-107"><a href="#cb59-107" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
+<span id="cb59-108"><a href="#cb59-108" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-109"><a href="#cb59-109" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Divider&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-110"><a href="#cb59-110" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb59-111"><a href="#cb59-111" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Grid&quot;</span><span class="fu">,</span></span>
+<span id="cb59-112"><a href="#cb59-112" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
+<span id="cb59-113"><a href="#cb59-113" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;gap&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.spacing.md&quot;</span><span class="fu">,</span></span>
+<span id="cb59-114"><a href="#cb59-114" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;responsive&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-115"><a href="#cb59-115" aria-hidden="true" tabindex="-1"></a>              <span class="dt">&quot;sm&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">1</span> <span class="fu">}</span></span>
+<span id="cb59-116"><a href="#cb59-116" aria-hidden="true" tabindex="-1"></a>            <span class="fu">},</span></span>
+<span id="cb59-117"><a href="#cb59-117" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-118"><a href="#cb59-118" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span></span>
+<span id="cb59-119"><a href="#cb59-119" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;MoneyInput&quot;</span><span class="fu">,</span></span>
+<span id="cb59-120"><a href="#cb59-120" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;totalBudget&quot;</span><span class="fu">,</span></span>
+<span id="cb59-121"><a href="#cb59-121" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;currency&quot;</span><span class="fu">:</span> <span class="st">&quot;USD&quot;</span><span class="fu">,</span></span>
+<span id="cb59-122"><a href="#cb59-122" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;style&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb59-123"><a href="#cb59-123" aria-hidden="true" tabindex="-1"></a>                  <span class="dt">&quot;background&quot;</span><span class="fu">:</span> <span class="st">&quot;#F0F6FF&quot;</span><span class="fu">,</span></span>
+<span id="cb59-124"><a href="#cb59-124" aria-hidden="true" tabindex="-1"></a>                  <span class="dt">&quot;borderColor&quot;</span><span class="fu">:</span> <span class="st">&quot;$token.color.primary&quot;</span><span class="fu">,</span></span>
+<span id="cb59-125"><a href="#cb59-125" aria-hidden="true" tabindex="-1"></a>                  <span class="dt">&quot;borderWidth&quot;</span><span class="fu">:</span> <span class="st">&quot;2px&quot;</span></span>
+<span id="cb59-126"><a href="#cb59-126" aria-hidden="true" tabindex="-1"></a>                <span class="fu">}</span></span>
+<span id="cb59-127"><a href="#cb59-127" aria-hidden="true" tabindex="-1"></a>              <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-128"><a href="#cb59-128" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span></span>
+<span id="cb59-129"><a href="#cb59-129" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;MoneyInput&quot;</span><span class="fu">,</span></span>
+<span id="cb59-130"><a href="#cb59-130" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;contingency&quot;</span><span class="fu">,</span></span>
+<span id="cb59-131"><a href="#cb59-131" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;currency&quot;</span><span class="fu">:</span> <span class="st">&quot;USD&quot;</span></span>
+<span id="cb59-132"><a href="#cb59-132" aria-hidden="true" tabindex="-1"></a>              <span class="fu">}</span></span>
+<span id="cb59-133"><a href="#cb59-133" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
+<span id="cb59-134"><a href="#cb59-134" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-135"><a href="#cb59-135" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb59-136"><a href="#cb59-136" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Alert&quot;</span><span class="fu">,</span></span>
+<span id="cb59-137"><a href="#cb59-137" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;severity&quot;</span><span class="fu">:</span> <span class="st">&quot;info&quot;</span><span class="fu">,</span></span>
+<span id="cb59-138"><a href="#cb59-138" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Total budget is automatically calculated from line items.&quot;</span><span class="fu">,</span></span>
+<span id="cb59-139"><a href="#cb59-139" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;when&quot;</span><span class="fu">:</span> <span class="st">&quot;$totalBudget &gt; 0&quot;</span></span>
+<span id="cb59-140"><a href="#cb59-140" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb59-141"><a href="#cb59-141" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb59-142"><a href="#cb59-142" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-143"><a href="#cb59-143" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb59-144"><a href="#cb59-144" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Section&quot;</span><span class="fu">,</span></span>
+<span id="cb59-145"><a href="#cb59-145" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Review &amp; Submit&quot;</span><span class="fu">,</span></span>
+<span id="cb59-146"><a href="#cb59-146" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Review your submission before signing.&quot;</span><span class="fu">,</span></span>
+<span id="cb59-147"><a href="#cb59-147" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-148"><a href="#cb59-148" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb59-149"><a href="#cb59-149" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Summary&quot;</span><span class="fu">,</span></span>
+<span id="cb59-150"><a href="#cb59-150" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-151"><a href="#cb59-151" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Project Name&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;projectName&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-152"><a href="#cb59-152" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Department&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;department&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-153"><a href="#cb59-153" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Fiscal Year&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;fiscalYear&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-154"><a href="#cb59-154" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Total Budget&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;totalBudget&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-155"><a href="#cb59-155" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Contingency&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;contingency&quot;</span> <span class="fu">}</span></span>
+<span id="cb59-156"><a href="#cb59-156" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
+<span id="cb59-157"><a href="#cb59-157" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-158"><a href="#cb59-158" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Divider&quot;</span><span class="fu">,</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Certification&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-159"><a href="#cb59-159" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb59-160"><a href="#cb59-160" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Toggle&quot;</span><span class="fu">,</span></span>
+<span id="cb59-161"><a href="#cb59-161" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;certify&quot;</span><span class="fu">,</span></span>
+<span id="cb59-162"><a href="#cb59-162" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;onLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;I certify this information is correct&quot;</span><span class="fu">,</span></span>
+<span id="cb59-163"><a href="#cb59-163" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;offLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Not yet certified&quot;</span></span>
+<span id="cb59-164"><a href="#cb59-164" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb59-165"><a href="#cb59-165" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb59-166"><a href="#cb59-166" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;ConditionalGroup&quot;</span><span class="fu">,</span></span>
+<span id="cb59-167"><a href="#cb59-167" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;when&quot;</span><span class="fu">:</span> <span class="st">&quot;$certify = true&quot;</span><span class="fu">,</span></span>
+<span id="cb59-168"><a href="#cb59-168" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;Please certify the information above to proceed.&quot;</span><span class="fu">,</span></span>
+<span id="cb59-169"><a href="#cb59-169" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;children&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb59-170"><a href="#cb59-170" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span></span>
+<span id="cb59-171"><a href="#cb59-171" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Signature&quot;</span><span class="fu">,</span></span>
+<span id="cb59-172"><a href="#cb59-172" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;approverSignature&quot;</span><span class="fu">,</span></span>
+<span id="cb59-173"><a href="#cb59-173" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;strokeColor&quot;</span><span class="fu">:</span> <span class="st">&quot;#000&quot;</span><span class="fu">,</span></span>
+<span id="cb59-174"><a href="#cb59-174" aria-hidden="true" tabindex="-1"></a>                <span class="dt">&quot;height&quot;</span><span class="fu">:</span> <span class="dv">150</span></span>
+<span id="cb59-175"><a href="#cb59-175" aria-hidden="true" tabindex="-1"></a>              <span class="fu">}</span></span>
+<span id="cb59-176"><a href="#cb59-176" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
+<span id="cb59-177"><a href="#cb59-177" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb59-178"><a href="#cb59-178" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb59-179"><a href="#cb59-179" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb59-180"><a href="#cb59-180" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb59-181"><a href="#cb59-181" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb59-182"><a href="#cb59-182" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>This example demonstrates:</p>
 <ul>
 <li><strong>Stack with three Sections</strong> for multi-page layout

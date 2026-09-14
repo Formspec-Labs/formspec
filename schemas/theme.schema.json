@@ -515,14 +515,15 @@
         "widgetConfig": {
           "type": "object",
           "additionalProperties": true,
-          "description": "Widget-specific configuration. Properties depend on the widget. Renderers MUST ignore unrecognized keys. Theme fallback resolution does NOT carry widgetConfig forward — each fallback widget uses its own default configuration. Component fallback carry/drop/translate policy is defined structurally in specs/ui-policy.json. Well-known configs by widget: TextInput (maxLength, inputMode, placeholder), Text (rows, maxRows, autoResize, placeholder), NumberInput (showStepper, locale, placeholder), DatePicker (format, minDate, maxDate, placeholder), Select (searchable, placeholder), CheckboxGroup (columns, maxVisible), FileUpload (accept, maxSizeMb, preview), MoneyInput (showCurrencySymbol, locale, placeholder), Slider (min, max, step, showTicks, showValue), Toggle (onLabel, offLabel), RadioGroup (direction, columns), Signature (strokeColor, height).",
+          "description": "Widget-specific configuration. Properties depend on the widget. Renderers MUST ignore unrecognized keys. Theme fallback resolution does NOT carry widgetConfig forward — each fallback widget uses its own default configuration. Component fallback carry/drop/translate policy is defined structurally in specs/ui-policy.json. Repeatable group items (any widget): allowAdd and allowRemove (booleans, default true) lock the add/remove affordances when no Component Document binds the group; presentation-only, they do not change minRepeat/maxRepeat cardinality and every instance supplied by data still renders. Well-known configs by widget: TextInput (maxLength, inputMode, placeholder), Text (rows, maxRows, autoResize, placeholder), NumberInput (showStepper, locale, placeholder), DatePicker (format, minDate, maxDate, placeholder), Select (searchable, placeholder), CheckboxGroup (columns, maxVisible), FileUpload (accept, maxSizeMb, preview), MoneyInput (showCurrencySymbol, locale, placeholder), Slider (min, max, step, showTicks, showValue), Toggle (onLabel, offLabel), RadioGroup (direction, columns), Signature (strokeColor, height).",
           "examples": [
             { "showCurrencySymbol": true, "locale": "en-US" },
             { "min": 0, "max": 100, "step": 5, "showTicks": true },
             { "searchable": true, "placeholder": "Select an option..." },
             { "rows": 4, "autoResize": true },
             { "onLabel": "Yes", "offLabel": "No" },
-            { "direction": "horizontal", "columns": 3 }
+            { "direction": "horizontal", "columns": 3 },
+            { "allowAdd": false, "allowRemove": false }
           ]
         },
         "labelPosition": {

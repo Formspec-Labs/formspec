@@ -578,6 +578,37 @@ Other specialized controls are custom widgets and MUST use an `x-`
 prefix, for example `x-rich-text` or `x-password`, with an explicit
 fallback chain.
 
+#### Repeatable Group Items
+
+A `widgetConfig` on a repeatable group item (core §4.2.2, `repeatable:
+true`) MAY lock the add and remove affordances, whichever widget renders
+the group:
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `allowAdd` | boolean | `true` | Whether to show an "Add" control for new repeat instances, subject to `maxRepeat`. |
+| `allowRemove` | boolean | `true` | Whether to show per-instance "Remove" controls, subject to `minRepeat`. |
+
+Renderers MUST apply these keys when no Component Document governs the
+group: none is present, or it does not bind the group (component §11.1).
+When a Component Document binds the group, the binding component's own
+`allowAdd` / `allowRemove` props (component §6.3 Accordion, §6.14
+DataTable) govern instead, with the same meaning.
+
+These keys are presentation-only. They MUST NOT change the Definition's
+`minRepeat` / `maxRepeat` cardinality or its validation, and renderers
+MUST still load and render every repeat instance supplied by data.
+
+```json
+{
+  "items": {
+    "employers": {
+      "widgetConfig": { "allowAdd": false, "allowRemove": false }
+    }
+  }
+}
+```
+
 Container and display widgets (`Section`, `Stack`, `Grid`, `Card`,
 `Accordion`, `Tabs`, `Heading`, `Text`, `Divider`, `Panel`, and related
 display components) have no required `widgetConfig` properties.

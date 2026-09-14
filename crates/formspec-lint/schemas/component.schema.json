@@ -1140,6 +1140,16 @@
           "items": { "type": "string" },
           "description": "Section header labels. labels[i] is the summary text for children[i]. Falls back to 'Section {i+1}' when absent."
         },
+        "allowAdd": {
+          "type": "boolean",
+          "default": true,
+          "description": "When bind is set: whether to show an 'Add' control for new repeat instances, subject to maxRepeat. Presentation-only — does not change minRepeat/maxRepeat cardinality, and every instance supplied by data still renders. Ignored without bind."
+        },
+        "allowRemove": {
+          "type": "boolean",
+          "default": true,
+          "description": "When bind is set: whether to show per-section 'Remove' controls, subject to minRepeat. Presentation-only — does not change minRepeat/maxRepeat cardinality, and every instance supplied by data still renders. Ignored without bind."
+        },
         "children": { "$ref": "#/$defs/ChildrenArray" }
       },
       "unevaluatedProperties": false,
@@ -1150,6 +1160,10 @@
             { "component": "Section", "title": "Section A", "children": [{ "component": "TextInput", "bind": "fieldA" }] },
             { "component": "Section", "title": "Section B", "children": [{ "component": "TextInput", "bind": "fieldB" }] }
           ]
+        },
+        {
+          "component": "Accordion", "bind": "employers", "allowAdd": false, "allowRemove": false,
+          "children": [{ "component": "TextInput", "bind": "payerName" }]
         }
       ]
     },
@@ -1512,8 +1526,8 @@
           }
         },
         "showRowNumbers": { "type": "boolean", "description": "Whether to display row numbers." },
-        "allowAdd": { "type": "boolean", "description": "Whether to show an 'Add row' control." },
-        "allowRemove": { "type": "boolean", "description": "Whether to show per-row 'Remove' controls." }
+        "allowAdd": { "type": "boolean", "default": true, "description": "Whether to show an 'Add row' control, subject to maxRepeat. Presentation-only — does not change minRepeat/maxRepeat cardinality, and every row supplied by data still renders." },
+        "allowRemove": { "type": "boolean", "default": true, "description": "Whether to show per-row 'Remove' controls, subject to minRepeat. Presentation-only — does not change minRepeat/maxRepeat cardinality, and every row supplied by data still renders." }
       },
       "unevaluatedProperties": false,
       "examples": [
