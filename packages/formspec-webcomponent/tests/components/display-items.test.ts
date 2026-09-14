@@ -219,6 +219,22 @@ describe('display Items — relevance', () => {
         expect(notes).toEqual([[], ['Flagged']]);
     });
 
+    it('hides a display Item rendered as a Divider while it is not relevant', () => {
+        const el = render(definition(
+            [
+                yesNo[0],
+                { key: 'rule', type: 'display', label: 'More', presentation: { widgetHint: 'Divider' } },
+            ],
+            { binds: [{ path: 'rule', relevant: "$answer = 'yes'" }] },
+        ));
+        const divider = el.querySelector('.formspec-divider') as HTMLElement;
+        expect(divider).not.toBeNull();
+        expect(divider.closest('.formspec-hidden')).not.toBeNull();
+
+        el.getEngine().setValue('answer', 'yes');
+        expect(divider.closest('.formspec-hidden')).toBeNull();
+    });
+
     it('applies text and relevance to a component-document Text bound to a display Item', () => {
         const el = renderTree(
             {

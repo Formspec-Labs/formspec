@@ -1,6 +1,7 @@
 /** @filedesc Factory and shared helpers for layout component plugins. */
 import { ComponentPlugin, RenderContext } from '../types';
 import { globalRegistry } from '../registry';
+import { renderWithDisplayItemRelevance } from '../adapters/display-host';
 
 export type LayoutBehaviorBuilder = (comp: any, ctx: RenderContext) => unknown;
 
@@ -31,8 +32,9 @@ export function runLayoutAdapter<T>(type: string, behavior: T, parent: HTMLEleme
 export function makeLayoutPlugin(type: string, buildBehavior: LayoutBehaviorBuilder): ComponentPlugin {
     return {
         type,
-        render: (comp: any, parent: HTMLElement, ctx: RenderContext) => {
-            runLayoutAdapter(type, buildBehavior(comp, ctx), parent, ctx);
-        },
+        // Divider is display-category but renders here; a definition display Item can plan to one.
+        render: (comp: any, parent: HTMLElement, ctx: RenderContext) => renderWithDisplayItemRelevance(
+            comp, parent, ctx, () => runLayoutAdapter(type, buildBehavior(comp, ctx), parent, ctx),
+        ),
     };
 }

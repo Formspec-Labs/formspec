@@ -49,6 +49,33 @@ export function resolveDisplayItem(
     return { item, path: pathInScope(comp.bindPath, ctx.prefix) };
 }
 
+/**
+ * Run `render` (which appends to `parent`) and, when `comp` was planned from a display Item, hide what it
+ * appended while that Item is not relevant. Core §4.2.4: a display Item's only Bind property is
+ * `relevant`, hiding its DOM like a field's.
+ */
+export function renderWithDisplayItemRelevance(
+    comp: ComponentDescriptor & { bind?: unknown },
+    parent: HTMLElement,
+    ctx: Pick<RenderContext, 'prefix' | 'findItemByKey' | 'engine' | 'cleanupFns'>,
+    render: () => void,
+): void {
+    const firstNewChild = parent.childElementCount;
+    render();
+    const displayItem = resolveDisplayItem(comp, ctx);
+    const rendered = Array.from(parent.children).slice(firstNewChild);
+    if (!displayItem || rendered.length === 0) return;
+    ctx.cleanupFns.push(effect(() => {
+        const relevant = ctx.engine.relevantSignals[displayItem.path]?.value ?? true;
+        for (const el of rendered) {
+            el.classList.toggle('formspec-hidden', !relevant);
+            if (el instanceof HTMLElement) el.inert = !relevant;
+            if (relevant) el.removeAttribute('aria-hidden');
+            else el.setAttribute('aria-hidden', 'true');
+        }
+    }));
+}
+
 /** Planner paths index repeats as template `[0]`; re-home one onto the render scope (e.g. `rows[2]`). */
 function pathInScope(plannedPath: string, prefix: string): string {
     if (!prefix) return plannedPath;
