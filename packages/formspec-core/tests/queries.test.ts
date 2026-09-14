@@ -1505,36 +1505,48 @@ describe('per-item query cost', () => {
       seed: { definition: { $formspec: '1.0', url: 'urn:perf', version: '1.0.0', status: 'draft', title: 'T', items, binds } as any },
     });
   }
-  const time = (fn: () => void) => { const start = performance.now(); fn(); return performance.now() - start; };
+  /** Fastest of a few runs. Each bound is relative to one pass over the same input, timed under the same load. */
+  const fastest = (fn: () => void) => Math.min(...[0, 1, 2].map(() => {
+    const start = performance.now();
+    fn();
+    return performance.now() - start;
+  }));
 
   it('itemAt and normalizeBinds over every field stay linear in the item count', async () => {
-    // Bound: one path index per item tree. Each call serialized the whole item tree into
-    // WASM (itemAtPath), so reading every field was O(n²): ~1.7 ms per call at this size.
+    // The unit is one serialization of the item tree — what each engine itemAtPath call paid,
+    // so reading every field cost `fields` units (O(n²)). One path index keeps it to a few.
     const { normalizeBinds } = await import('../src/queries/field-queries.js');
     const project = largeProject();
-    project.itemAt('g0.f');
-    const elapsed = time(() => {
+    expect(project.itemAt('g7[0].f')?.initialValue).toBe('v7');
+    expect(normalizeBinds(project.state, 'g7.f')).toMatchObject({ required: 'true', initialValue: 'v7' });
+
+    const unit = fastest(() => JSON.parse(JSON.stringify(project.state.definition.items)));
+    const elapsed = fastest(() => {
       for (let i = 0; i < fields; i++) {
-        expect(project.itemAt(`g${i}[0].f`)?.initialValue).toBe(`v${i}`);
-        expect(normalizeBinds(project.state, `g${i}.f`)).toMatchObject({ required: 'true', initialValue: `v${i}` });
+        project.itemAt(`g${i}[0].f`);
+        normalizeBinds(project.state, `g${i}.f`);
       }
     });
-    expect(elapsed).toBeLessThan(150);
+    expect(elapsed).toBeLessThan(Math.max(fields / 20 * unit, 50));
   });
 
   it('componentFor over every field stays linear in the tree size', () => {
-    // Bound: one bind index per tree. A tree walk per call made it O(n²): 500 ms at this size.
+    // The unit is one walk of the component tree — what each call paid (O(n²) over every field).
     const items = Array.from({ length: 8000 }, (_, i) => ({ type: 'field', key: `f${i}`, label: `F${i}`, dataType: 'string' }));
     const project = createRawProject({
       seed: { definition: { $formspec: '1.0', url: 'urn:perf', version: '1.0.0', status: 'draft', title: 'T', items } as any },
     });
-    project.componentFor('f0');
-    let found = 0;
-    const elapsed = time(() => {
-      for (const item of items) if (project.componentFor(item.key)?.bind === item.key) found++;
+    expect(items.every(item => project.componentFor(item.key)?.bind === item.key)).toBe(true);
+
+    const tree = project.state.component.tree as { children?: unknown[] };
+    const unit = fastest(() => {
+      const queue: any[] = [tree];
+      for (let i = 0; i < queue.length; i++) if (queue[i].children) queue.push(...queue[i].children);
     });
-    expect(found).toBe(items.length);
-    expect(elapsed).toBeLessThan(50);
+    const elapsed = fastest(() => {
+      for (const item of items) project.componentFor(item.key);
+    });
+    expect(elapsed).toBeLessThan(Math.max(items.length / 20 * unit, 20));
   });
 
   it('componentFor sees a node retyped by a later dispatch', () => {

@@ -619,23 +619,34 @@ describe('reconcileComponentTree wrapper parents', () => {
 });
 
 describe('reconcileComponentTree cost', () => {
+  /** Fastest of a few runs: wall-clock checks compare two runs made under the same load. */
+  const fastest = (fn: () => void) => Math.min(...[0, 1, 2].map(() => {
+    const start = performance.now();
+    fn();
+    return performance.now() - start;
+  }));
+
   it('re-inserts layout wrappers without a tree pass per wrapper', () => {
-    // Bound: one index over the rebuilt tree. A walk per wrapper and per wrapped child made
-    // this O(wrappers × nodes): 206 ms at 4000 fields / 1000 wrappers, ~4× per doubling.
+    // Bound: relative to the same tree with no wrappers, so machine load cancels out. A walk
+    // per wrapper and per wrapped child made it O(wrappers × nodes): at this size ~100× the
+    // wrapper-free rebuild (1.2 s); one index keeps it within a small constant.
     const fields = 8000;
     const items = Array.from({ length: fields }, (_, i) => ({ key: `f${i}`, type: 'field', dataType: 'string' }));
-    const children: any[] = items.map(item => ({ component: 'TextInput', bind: item.key, definitionItemPath: item.key }));
-    for (let i = 0; i < fields; i += 4) {
-      children[i] = { component: 'Card', _layout: true, nodeId: `card${i}`, children: [children[i]] };
-    }
-    const tree = { component: 'Stack', nodeId: 'root', children };
+    const leaf = (key: string) => ({ component: 'TextInput', bind: key, definitionItemPath: key });
+    const flat = { component: 'Stack', nodeId: 'root', children: items.map(item => leaf(item.key)) };
+    const wrapped = {
+      component: 'Stack', nodeId: 'root',
+      children: items.map((item, i) => i % 4 === 0
+        ? { component: 'Card', _layout: true, nodeId: `card${i}`, children: [leaf(item.key)] }
+        : leaf(item.key)),
+    };
 
-    const start = performance.now();
-    const rebuilt = reconcileComponentTree({ items } as any, tree);
-    const elapsed = performance.now() - start;
-
+    const rebuilt = reconcileComponentTree({ items } as any, wrapped);
     expect(rebuilt.children).toHaveLength(fields);
     expect(rebuilt.children[4]).toMatchObject({ nodeId: 'card4', children: [{ bind: 'f4' }] });
-    expect(elapsed).toBeLessThan(100);
+
+    const baseline = fastest(() => reconcileComponentTree({ items } as any, flat));
+    const withWrappers = fastest(() => reconcileComponentTree({ items } as any, wrapped));
+    expect(withWrappers).toBeLessThan(Math.max(5 * baseline, 20));
   });
 });

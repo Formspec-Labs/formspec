@@ -398,19 +398,24 @@ describe('componentDocumentIsDerived', () => {
   });
 
   it('bindFor over every field stays linear in the bind count', () => {
-    // Bound: a check that reads each field's merged bind (Form Health coverage) re-runs on
-    // every state change; a scan of every bind per lookup made it O(fields × binds).
+    // A check that reads each field's merged bind (Form Health coverage) re-runs on every state
+    // change. The unit is one scan of every bind — what each lookup paid (O(fields × binds));
+    // timed under the same load as the lookups, so machine load cancels out.
     const items = Array.from({ length: 2000 }, (_, i) => ({ type: 'field', key: `f${i}`, label: `F${i}`, dataType: 'string' }));
     const binds = items.map(item => ({ path: item.key, required: 'true' }));
     const project = createRawProject({
       seed: { definition: { $formspec: '1.0', url: 'urn:perf', version: '1.0.0', status: 'draft', title: 'T', items, binds } as any },
     });
-    project.bindFor('f0');
-    const start = performance.now();
-    const merged = items.map(item => project.bindFor(item.key));
-    const elapsed = performance.now() - start;
-    expect(merged.every(bind => bind?.required === 'true')).toBe(true);
-    expect(elapsed).toBeLessThan(25);
+    expect(items.every(item => project.bindFor(item.key)?.required === 'true')).toBe(true);
+
+    const fastest = (fn: () => void) => Math.min(...[0, 1, 2].map(() => {
+      const start = performance.now();
+      fn();
+      return performance.now() - start;
+    }));
+    const unit = fastest(() => binds.filter(bind => bind.path.replace(/\[\*\]/g, '') === 'f0'));
+    const elapsed = fastest(() => { for (const item of items) project.bindFor(item.key); });
+    expect(elapsed).toBeLessThan(Math.max(items.length / 20 * unit, 10));
   });
 });
 
