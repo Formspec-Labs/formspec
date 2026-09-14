@@ -1,5 +1,5 @@
 /** @filedesc Shared utilities for behavior hooks: path resolution, ID generation, token stripping, shared bind helpers. */
-import { effect, Signal } from '@preact/signals-core';
+import { effect, untracked, Signal } from '@preact/signals-core';
 import { type PresentationBlock, COMPATIBILITY_MATRIX } from '@formspec-org/layout';
 import type { RegistryEntry } from '@formspec-org/types';
 import type { ResolvedPresentationBlock, FieldRefs, BehaviorContext } from './types';
@@ -51,6 +51,22 @@ export function resolveAndStripTokens(
         resolved.labelPosition = comp.labelPosition;
     }
     return resolved;
+}
+
+/**
+ * Initial hint/description text for a field: the view model's Locale-resolved, `{{}}`-interpolated
+ * strings, or the raw item strings when no view model exists. Read untracked: behaviors are created
+ * inside render effects (repeat lists), where a tracked read would re-render the whole list whenever
+ * an interpolated value changed. {@link bindSharedFieldEffects} keeps the DOM text current.
+ */
+export function resolveFieldText(
+    item: { hint?: string | null; description?: string | null } | null | undefined,
+    vm: FieldViewModel | undefined,
+): { hint: string | null; description: string | null } {
+    return untracked(() => ({
+        hint: vm ? vm.hint.value : (item?.hint ?? null),
+        description: vm ? vm.description.value : (item?.description ?? null),
+    }));
 }
 
 /** Warn if the component type is incompatible with the item's dataType. */
@@ -109,6 +125,15 @@ export function bindSharedFieldEffects(
         }
         actualInput.setAttribute('aria-required', String(isRequired));
     }));
+
+    // Hint + description text (Locale changes, `{{}}` interpolation of live values)
+    if (vm) {
+        const descEl = refs.root.querySelector('.formspec-description') as HTMLElement | null;
+        disposers.push(effect(() => {
+            if (refs.hint) refs.hint.textContent = vm.hint.value ?? '';
+            if (descEl) descEl.textContent = vm.description.value ?? '';
+        }));
+    }
 
     // ARIA describedby — supplementary text only (USWDS form templates / file-input pattern).
     // Error text stays in the live role="alert" region; do not reference it here.

@@ -1,6 +1,6 @@
 /** @filedesc Signature behavior hook — extracts reactive state for signature canvas fields. */
 import type { SignatureBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible } from './shared';
 
 export function useSignature(ctx: BehaviorContext, comp: any): SignatureBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
@@ -19,8 +19,7 @@ export function useSignature(ctx: BehaviorContext, comp: any): SignatureBehavior
         fieldPath,
         id,
         label: labelText,
-        hint: comp.hintOverride || item?.hint || null,
-        description: item?.description || null,
+        ...resolveFieldText(item, vm),
         vm,
         presentation,
         widgetClassSlots,

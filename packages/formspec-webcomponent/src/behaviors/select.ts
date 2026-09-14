@@ -1,7 +1,7 @@
 /** @filedesc Select behavior hook — extracts reactive state for dropdown select fields. */
 import { effect } from '@preact/signals-core';
 import type { SelectBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible, readRegistryMetadata } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata } from './shared';
 import { bindSelectCombobox } from './select-combobox-bind';
 
 export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
@@ -52,8 +52,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
         fieldPath,
         id,
         label: labelText,
-        hint: comp.hintOverride || item?.hint || null,
-        description: item?.description || null,
+        ...resolveFieldText(item, vm),
         vm,
         presentation,
         widgetClassSlots,

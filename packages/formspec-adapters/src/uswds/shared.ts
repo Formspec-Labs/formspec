@@ -63,7 +63,7 @@ export function createUSWDSFieldDOM(
         root.appendChild(desc);
     }
 
-    // Hint (from component props override)
+    // Hint (behavior resolves it through the view model: Locale + {{}} interpolation)
     let hint: HTMLElement | undefined;
     if (behavior.hint) {
         const hintId = `${fieldId}-hint`;

@@ -1,7 +1,7 @@
 /** @filedesc CheckboxGroup behavior hook — extracts reactive state for multi-select checkbox groups. */
 import { effect } from '@preact/signals-core';
 import type { CheckboxGroupBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible } from './shared';
 
 export function useCheckboxGroup(ctx: BehaviorContext, comp: any): CheckboxGroupBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
@@ -39,8 +39,7 @@ export function useCheckboxGroup(ctx: BehaviorContext, comp: any): CheckboxGroup
         fieldPath,
         id,
         label: labelText,
-        hint: comp.hintOverride || item?.hint || null,
-        description: item?.description || null,
+        ...resolveFieldText(item, vm),
         vm,
         presentation,
         widgetClassSlots,

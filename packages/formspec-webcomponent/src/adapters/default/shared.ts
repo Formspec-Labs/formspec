@@ -1,5 +1,5 @@
 /** @filedesc Shared DOM construction helpers for the default render adapter. */
-import { effect } from '@preact/signals-core';
+import { effect, untracked } from '@preact/signals-core';
 import type { FieldBehavior } from '../../behaviors/types';
 import type { AdapterContext } from '../types';
 
@@ -38,11 +38,12 @@ export function createFieldDOM(
     const descId = `${fieldId}-desc`;
     const asGroup = options?.asGroup === true;
 
-    // Read from VM signals when available; fall back to static behavior properties.
+    // Initial text only; bindSharedFieldEffects keeps it current. Untracked: adapters run inside
+    // render effects (repeat lists) that must not re-render when a label's interpolated value changes.
     const vm = behavior.vm;
-    const labelText = vm ? vm.label.value : behavior.label;
-    const hintText = vm ? vm.hint.value : behavior.hint;
-    const descText = vm ? vm.description.value : behavior.description;
+    const labelText = vm ? untracked(() => vm.label.value) : behavior.label;
+    const hintText = behavior.hint;
+    const descText = behavior.description;
 
     const root = document.createElement(asGroup ? 'fieldset' : 'div');
     root.className = asGroup ? 'formspec-fieldset' : 'formspec-field';
@@ -109,7 +110,8 @@ export function finalizeFieldDOM(
     behavior: FieldBehavior,
     actx: AdapterContext,
 ): void {
-    const isRequired = behavior.vm ? behavior.vm.required.value : false;
+    const vm = behavior.vm;
+    const isRequired = vm ? untracked(() => vm.required.value) : false;
     if (isRequired && !fieldDOM.label.querySelector('.formspec-required')) {
         const marker = document.createElement('abbr');
         marker.className = 'formspec-required usa-label--required';

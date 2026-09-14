@@ -1,7 +1,7 @@
 /** @filedesc Toggle behavior hook — extracts reactive state for toggle switch fields. */
 import { effect } from '@preact/signals-core';
 import type { ToggleBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible } from './shared';
 
 export function useToggle(ctx: BehaviorContext, comp: any): ToggleBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
@@ -25,8 +25,7 @@ export function useToggle(ctx: BehaviorContext, comp: any): ToggleBehavior {
         fieldPath,
         id,
         label: labelText,
-        hint: comp.hintOverride || item?.hint || null,
-        description: item?.description || null,
+        ...resolveFieldText(item, vm),
         vm,
         presentation,
         widgetClassSlots,

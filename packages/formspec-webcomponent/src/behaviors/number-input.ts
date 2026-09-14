@@ -1,7 +1,7 @@
 /** @filedesc NumberInput behavior hook — extracts reactive state for numeric fields. */
 import { effect } from '@preact/signals-core';
 import type { NumberInputBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible, readRegistryMetadata } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata } from './shared';
 
 export function useNumberInput(ctx: BehaviorContext, comp: any): NumberInputBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
@@ -30,8 +30,7 @@ export function useNumberInput(ctx: BehaviorContext, comp: any): NumberInputBeha
         fieldPath,
         id,
         label: labelText,
-        hint: comp.hintOverride || item?.hint || null,
-        description: item?.description || null,
+        ...resolveFieldText(item, vm),
         vm,
         presentation,
         widgetClassSlots,

@@ -1,7 +1,7 @@
 /** @filedesc Rating behavior hook — extracts reactive state for icon-rating fields. */
 import { effect } from '@preact/signals-core';
 import type { RatingBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible } from './shared';
 
 const RATING_ICON_MAP: Record<string, [string, string]> = {
     star: ['\u2605', '\u2606'],    // ★ filled, ☆ outline
@@ -35,8 +35,7 @@ export function useRating(ctx: BehaviorContext, comp: any): RatingBehavior {
         fieldPath,
         id,
         label: labelText,
-        hint: comp.hintOverride || item?.hint || null,
-        description: item?.description || null,
+        ...resolveFieldText(item, vm),
         vm,
         presentation,
         widgetClassSlots,

@@ -2,13 +2,12 @@
 import { effect } from '@preact/signals-core';
 import type { ComponentDescriptor } from '../hub-types.js';
 import type { TextInputBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible, readRegistryMetadata, readRegistryConstraints } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata, readRegistryConstraints } from './shared';
 
 /** Field bind and TextInput props are spread onto {@link ComponentDescriptor} at render time. */
 type TextInputComp = ComponentDescriptor & {
     bind: string;
     labelOverride?: string;
-    hintOverride?: string;
     placeholder?: string;
     inputMode?: string;
     maxLines?: number;
@@ -60,8 +59,7 @@ export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInp
         fieldPath,
         id,
         label: labelText,
-        hint: comp.hintOverride || item?.hint || null,
-        description: item?.description || null,
+        ...resolveFieldText(item, vm),
         vm,
         presentation,
         widgetClassSlots,

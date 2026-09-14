@@ -60,15 +60,23 @@ describe('useTextInput', () => {
         expect(behavior.label).toBe('Your Name');
     });
 
-    it('extracts hint from comp hintOverride', () => {
-        const items = [{ key: 'name', type: 'field', label: 'Name', dataType: 'string', hint: 'item hint' }];
-        const ctx = makeBehaviorContext(items);
+    it('reads hint and description from the field view model (Locale + {{}} interpolation)', () => {
+        const items = [{ key: 'name', type: 'field', label: 'Name', dataType: 'string', hint: 'raw {{$x}}', description: 'raw desc' }];
+        const ctx = {
+            ...makeBehaviorContext(items),
+            getFieldVM: () => ({
+                label: signal('Nom'),
+                hint: signal('Indice 5'),
+                description: signal('Description FR'),
+            }),
+        };
         const comp = { component: 'TextInput', bind: 'name', hintOverride: 'comp hint' };
         const behavior = useTextInput(ctx, comp);
-        expect(behavior.hint).toBe('comp hint');
+        expect(behavior.hint).toBe('Indice 5');
+        expect(behavior.description).toBe('Description FR');
     });
 
-    it('falls back to item hint when no hintOverride', () => {
+    it('falls back to item hint when no view model exists', () => {
         const items = [{ key: 'name', type: 'field', label: 'Name', dataType: 'string', hint: 'item hint' }];
         const ctx = makeBehaviorContext(items);
         const comp = { component: 'TextInput', bind: 'name' };

@@ -1,7 +1,7 @@
 /** @filedesc MoneyInput behavior hook — extracts reactive state for compound money (amount + currency) fields. */
 import { effect } from '@preact/signals-core';
 import type { MoneyInputBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible, readRegistryMetadata } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata } from './shared';
 
 function toCurrencyDisplay(raw: unknown): string | null {
     if (typeof raw !== 'string') return null;
@@ -66,8 +66,7 @@ export function useMoneyInput(ctx: BehaviorContext, comp: any): MoneyInputBehavi
         fieldPath,
         id,
         label: labelText,
-        hint: comp.hintOverride || item?.hint || null,
-        description: item?.description || null,
+        ...resolveFieldText(item, vm),
         vm,
         presentation,
         widgetClassSlots,

@@ -1,7 +1,7 @@
 /** @filedesc Slider behavior hook — extracts reactive state for range slider fields. */
 import { effect } from '@preact/signals-core';
 import type { SliderBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible } from './shared';
 
 export function useSlider(ctx: BehaviorContext, comp: any): SliderBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
@@ -20,8 +20,7 @@ export function useSlider(ctx: BehaviorContext, comp: any): SliderBehavior {
         fieldPath,
         id,
         label: labelText,
-        hint: comp.hintOverride || item?.hint || null,
-        description: item?.description || null,
+        ...resolveFieldText(item, vm),
         vm,
         presentation,
         widgetClassSlots,

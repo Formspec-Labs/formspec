@@ -1,6 +1,6 @@
 /** @filedesc FileUpload behavior hook — extracts reactive state for file input fields. */
 import type { FileUploadBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible } from './shared';
 import { formatBytes } from '../format';
 
 type FileMeta = { name: string; size: number; type: string };
@@ -51,8 +51,7 @@ export function useFileUpload(ctx: BehaviorContext, comp: any): FileUploadBehavi
         fieldPath,
         id,
         label: labelText,
-        hint: comp.hintOverride || item?.hint || null,
-        description: item?.description || null,
+        ...resolveFieldText(item, vm),
         vm,
         presentation,
         widgetClassSlots,

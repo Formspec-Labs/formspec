@@ -57,6 +57,8 @@ function mockFieldVM(overrides: Partial<{
         },
         // Expose setters for test control
         setLabel: (v: string) => { labelSig.value = v; },
+        setHint: (v: string | null) => { hintSig.value = v; },
+        setDescription: (v: string | null) => { descSig.value = v; },
         setRequired: (v: boolean) => { requiredSig.value = v; },
         setVisible: (v: boolean) => { visibleSig.value = v; },
         setReadonly: (v: boolean) => { readonlySig.value = v; },
@@ -237,6 +239,30 @@ describe('bindSharedFieldEffects with FieldViewModel', () => {
 
         const disposers = bindSharedFieldEffects(ctx, 'choice', vm, 'fallback', refs);
         expect(control.getAttribute('aria-describedby')).toBe('field-choice-hint');
+
+        disposers.forEach(d => d());
+    });
+
+    it('updates hint and description text reactively from VM', () => {
+        const ctx = makeMinimalBehaviorContext();
+        const { vm, setHint, setDescription } = mockFieldVM({ hint: 'Week of 3/23', description: 'About you' });
+        const refs = makeFieldRefs();
+        const desc = document.createElement('div');
+        desc.id = 'field-test-desc';
+        desc.className = 'formspec-description';
+        const hint = document.createElement('span');
+        hint.id = 'field-test-hint';
+        refs.hint = hint;
+        refs.root.append(desc, hint);
+
+        const disposers = bindSharedFieldEffects(ctx, 'test', vm, 'fallback', refs);
+        expect(hint.textContent).toBe('Week of 3/23');
+        expect(desc.textContent).toBe('About you');
+
+        setHint('Week of 3/30');
+        setDescription('À propos de vous');
+        expect(hint.textContent).toBe('Week of 3/30');
+        expect(desc.textContent).toBe('À propos de vous');
 
         disposers.forEach(d => d());
     });
