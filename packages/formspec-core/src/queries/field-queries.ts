@@ -66,10 +66,13 @@ export function itemPaths(state: ProjectState): string[] {
 
 /**
  * Resolve an item by its dot-path within the definition tree (repeat indexes ignored).
- * O(1) after the first lookup on a committed item tree.
+ * Returns a copy, as the engine lookup it replaced did: callers edit what they read, and
+ * an edit to the committed item would rewrite undo history and stale the path index.
+ * The lookup is O(1) after the first on a committed item tree; the copy is the item's size.
  */
 export function itemAt(state: ProjectState, path: string): FormItem | undefined {
-  return itemAtIndexedPath(state.definition.items, path);
+  const item = itemAtIndexedPath(state.definition.items, path);
+  return item && structuredClone(item);
 }
 
 /**
@@ -181,7 +184,7 @@ export function searchItems(state: ProjectState, filter: ItemFilter): ItemSearch
  * Resolve the effective presentation for a field through the theme cascade.
  */
 export function effectivePresentation(state: ProjectState, fieldKey: string): Record<string, unknown> {
-  const item = itemAt(state, fieldKey);
+  const item = itemAtIndexedPath(state.definition.items, fieldKey);
   if (!item) return {};
 
   const resolved = resolveThemeCascade(
@@ -310,7 +313,7 @@ export function normalizeBinds(state: ProjectState, path: string): NormalizedBin
   const result: NormalizedBinds = mergeBindProperties(bindEntriesFor(state.definition.binds, path));
 
   // Overlay from item's prePopulate/initialValue
-  const item = itemAt(state, path);
+  const item = itemAtIndexedPath(state.definition.items, path);
   if (item) {
     if (item.prePopulate !== undefined) result.prePopulate = item.prePopulate;
     if (item.initialValue !== undefined) result.initialValue = item.initialValue;

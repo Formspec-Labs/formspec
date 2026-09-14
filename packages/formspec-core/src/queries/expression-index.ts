@@ -15,7 +15,8 @@ import { forEachBindFelExpression, forEachItemFelExpression } from '../bind-fel.
 import { currentComponentTree } from '../component-tree.js';
 import { registryEntry } from '../registry-entry.js';
 import type { MappingState } from '../types.js';
-import { itemAt, fieldPaths as getFieldPaths } from './field-queries.js';
+import { fieldPaths as getFieldPaths } from './field-queries.js';
+import { itemAtIndexedPath } from '../item-index.js';
 import type {
   ProjectState,
   Diagnostic,
@@ -299,7 +300,7 @@ export function availableReferences(state: ProjectState, context?: string | FELP
     const parts = normalized.split('.').filter(Boolean);
     for (let i = parts.length; i > 0; i--) {
       const candidate = parts.slice(0, i).join('.');
-      const item = itemAt(state, candidate);
+      const item = itemAtIndexedPath(state.definition.items, candidate);
       if (item?.type === 'group' && item.repeatable) {
         contextRefs.push('@current', '@index', '@count');
         innermostRepeatPath = candidate;

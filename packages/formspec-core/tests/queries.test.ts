@@ -1545,3 +1545,16 @@ describe('per-item query cost', () => {
     expect(project.componentFor('bio')!.component).toBe('Textarea');
   });
 });
+
+describe('itemAt returns a copy', () => {
+  it('editing the returned item changes neither the project nor its undo history', () => {
+    const project = createRawProject();
+    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'name', dataType: 'string', label: 'Name' } });
+    project.dispatch({ type: 'definition.setItemProperty', payload: { path: 'name', property: 'label', value: 'Full name' } });
+
+    project.itemAt('name')!.label = 'Edited in place';
+    expect(project.itemAt('name')!.label).toBe('Full name');
+    project.undo();
+    expect(project.itemAt('name')!.label).toBe('Name');
+  });
+});
