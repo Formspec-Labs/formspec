@@ -28,7 +28,9 @@ export function renderDefaultHeading(behavior: DisplayComponentBehavior, parent:
             })
         );
     } else {
-        el.textContent = host.resolveCompText(comp, 'text', comp.text || '');
+        host.watchCompText(comp, 'text', comp.text || '', (text) => {
+            el.textContent = text;
+        });
     }
     actx.applyCssClass(el, comp);
     actx.applyAccessibility(el, comp);
@@ -59,10 +61,11 @@ export function renderDefaultText(behavior: DisplayComponentBehavior, parent: HT
                 }
             })
         );
-    } else if (isMarkdown && comp.text) {
-        el.innerHTML = renderMarkdown(host.resolveCompText(comp, 'text', comp.text));
     } else {
-        el.textContent = host.resolveCompText(comp, 'text', comp.text || '');
+        host.watchCompText(comp, 'text', comp.text || '', (text) => {
+            if (isMarkdown && text) el.innerHTML = renderMarkdown(text);
+            else el.textContent = text;
+        });
     }
     actx.applyCssClass(el, comp);
     actx.applyAccessibility(el, comp);
@@ -129,7 +132,9 @@ export function renderDefaultAlert(behavior: DisplayComponentBehavior, parent: H
             })
         );
     } else {
-        textSpan.textContent = host.resolveCompText(comp, 'text', comp.text || '');
+        host.watchCompText(comp, 'text', comp.text || '', (text) => {
+            textSpan.textContent = text;
+        });
     }
     el.appendChild(textSpan);
     actx.applyCssClass(el, comp);
@@ -143,7 +148,9 @@ export function renderDefaultBadge(behavior: DisplayComponentBehavior, parent: H
     const el = document.createElement('span');
     if (comp.id) el.id = comp.id;
     el.className = `formspec-badge formspec-badge--${comp.variant || 'default'}`;
-    el.textContent = host.resolveCompText(comp, 'text', comp.text || '');
+    host.watchCompText(comp, 'text', comp.text || '', (text) => {
+        el.textContent = text;
+    });
     actx.applyCssClass(el, comp);
     actx.applyAccessibility(el, comp);
     actx.applyStyle(el, comp.style);

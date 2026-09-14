@@ -1,13 +1,32 @@
 /** @filedesc Display component plugins — delegate DOM to the active render adapter (falls back to default). */
+import { effect } from '@preact/signals-core';
 import { ComponentPlugin, RenderContext } from '../types';
 import { globalRegistry } from '../registry';
-import { displayHostSlice } from '../adapters/display-host';
+import { displayHostSlice, resolveDisplayItem } from '../adapters/display-host';
 import type { DisplayComponentBehavior } from '../adapters/display-behaviors';
 
 function runDisplayAdapter(type: string, parent: HTMLElement, ctx: RenderContext, comp: any): void {
     const fn = globalRegistry.resolveAdapterFn(type);
+    if (!fn) return;
+    const firstNewChild = parent.childElementCount;
     const behavior: DisplayComponentBehavior = { comp, host: displayHostSlice(ctx) };
-    if (fn) fn(behavior, parent, ctx.adapterContext);
+    fn(behavior, parent, ctx.adapterContext);
+    hideWhenNotRelevant(comp, Array.from(parent.children).slice(firstNewChild), ctx);
+}
+
+/** Core §4.2.4: a display Item's only Bind property is `relevant`; hide its DOM like a field's. */
+function hideWhenNotRelevant(comp: any, rendered: Element[], ctx: RenderContext): void {
+    const displayItem = resolveDisplayItem(comp, ctx);
+    if (!displayItem || rendered.length === 0) return;
+    ctx.cleanupFns.push(effect(() => {
+        const relevant = ctx.engine.relevantSignals[displayItem.path]?.value ?? true;
+        for (const el of rendered) {
+            el.classList.toggle('formspec-hidden', !relevant);
+            if (el instanceof HTMLElement) el.inert = !relevant;
+            if (relevant) el.removeAttribute('aria-hidden');
+            else el.setAttribute('aria-hidden', 'true');
+        }
+    }));
 }
 
 /** Renders an `<h1>`-`<h6>` heading; reactive when `bind` is set. */
