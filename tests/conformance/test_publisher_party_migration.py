@@ -18,7 +18,7 @@ def _v():
 
 
 BASE = {
-    "$formspecRegistry": "1.0",
+    "$formspecRegistry": "1.1",
     "published": "2026-05-21T00:00:00Z",
     "entries": [],
 }

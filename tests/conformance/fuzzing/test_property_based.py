@@ -555,7 +555,7 @@ def gen_registry_entry(draw):
 @st.composite
 def gen_registry_doc(draw):
     return {
-        "$formspecRegistry": "1.0",
+        "$formspecRegistry": "1.1",
         "publisher": {
             "name": draw(non_empty_str),
             "url": draw(valid_uri),
