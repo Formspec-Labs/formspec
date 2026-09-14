@@ -145,6 +145,35 @@ describe('project.import', () => {
       expect(project.state.selectedMappingId).toBe('default');
     });
 
+    it('a replace import installs the bundle as the whole project, keeping no rule-less tab', () => {
+      const project = createRawProject({ seed: { definition: definition as any } });
+      project.batch([
+        { type: 'mapping.create', payload: { id: 'csv', targetSchema: { format: 'csv' } } },
+        { type: 'mapping.select', payload: { id: 'csv' } },
+        { type: 'locale.load', payload: { document: { $formspecLocale: '2.0', locale: 'fr', version: '1', target: { kind: 'definition', url: 'urn:m' }, strings: { 'name.label': 'Nom' } } } },
+        { type: 'locale.select', payload: { localeId: 'fr' } },
+        { type: 'component.setNodeType', payload: { node: { bind: 'name' }, component: 'Textarea' } },
+        { type: 'theme.setToken', payload: { key: 'color.primary', value: '#000' } },
+      ] as any);
+      project.dispatch({ type: 'project.import', payload: { experience: { $formspecExperience: '1.0' } } as any });
+      const blank = createRawProject({ seed: { definition: definition as any } });
+
+      project.dispatch({ type: 'project.import', payload: { ...blank.export(), replace: true } as any });
+
+      expect(project.state.mappings).toEqual({ default: { rules: [] } });
+      expect(project.state.selectedMappingId).toBe('default');
+      expect(project.state.locales).toEqual({});
+      expect(project.state.selectedLocaleId).toBeUndefined();
+      expect(project.state.experience).toBeNull();
+      expect(project.componentFor('name')!.component).toBe('TextInput');
+      expect(project.export()).toEqual(blank.export());
+    });
+
+    it('a replace import needs a Definition', () => {
+      const project = createRawProject({ seed: { definition: definition as any } });
+      expect(() => project.dispatch({ type: 'project.import', payload: { replace: true } as any })).toThrow(/Definition/);
+    });
+
     it('clears the selection when no mapping is left', () => {
       const project = createRawProject({ seed: { definition: definition as any, mappings: {} } as any });
       project.dispatch({ type: 'mapping.addRule', payload: { sourcePath: 'name', targetPath: 'n' } });

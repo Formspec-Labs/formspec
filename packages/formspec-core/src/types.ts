@@ -189,10 +189,10 @@ export interface Command<T extends string = string, P = unknown> {
   id?: string;
 }
 
-import type { ProjectCommandMap } from './project-commands.js';
+import type { ProjectCommandMap, ProjectImportPayload } from './project-commands.js';
 export type BuiltinCommandType = keyof ProjectCommandMap;
 
-export type { ProjectCommandMap };
+export type { ProjectCommandMap, ProjectImportPayload };
 
 /** A command with any type and payload -- used when the specific command type is not known statically. */
 export type AnyCommand = {

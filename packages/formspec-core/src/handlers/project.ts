@@ -7,9 +7,9 @@
  *
  * @module handlers/project
  */
-import type { CommandHandler, LocaleState, ProjectBundle } from '../types.js';
+import type { CommandHandler, LocaleState, ProjectImportPayload } from '../types.js';
 import type { FormItem } from '@formspec-org/types';
-import { normalizeComponentState } from '../component-documents.js';
+import { createComponentArtifact, normalizeComponentState } from '../component-documents.js';
 import { importComponentTree } from '../component-export.js';
 import { itemsByPath } from '../item-index.js';
 import { generatedWidgetMoves, moveGeneratedWidgets } from '../tree-reconciler.js';
@@ -21,13 +21,14 @@ import { indexRegistryPayload } from '../registry-index.js';
 export const projectHandlers = {
 
   'project.import': (state, payload) => {
-    const p = payload as Partial<ProjectBundle>;
+    const { replace, ...p } = payload as ProjectImportPayload;
 
     // ADR 0150 §5.2 App Manifest reframe: definitions[] is plural; the import
     // handler consumes only the first Definition at P0 (single-definition
     // authoring). Multi-definition import lands at P1+ with the multi-Definition
     // authoring surface.
     const importedDefinition = p.definitions?.[0];
+    if (replace && !importedDefinition) throw new Error('project.import with replace needs a Definition');
     const previousItems = state.definition.items;
     if (importedDefinition) {
       const def = importedDefinition as typeof state.definition;
@@ -41,6 +42,8 @@ export const projectHandlers = {
       if (state.component.tree) {
         state.component.tree = importComponentTree(state.component.tree, state.definition.items);
       }
+    } else if (replace) {
+      state.component = createComponentArtifact(state.definition.url);
     } else if (importedDefinition) {
       state.component = normalizeComponentState(state.component, state.definition.url);
       // The existing tree stays: nodes still showing a widget generated for an item's old
@@ -52,18 +55,24 @@ export const projectHandlers = {
     }
     if (p.theme) {
       state.theme = themeStateFromDocument(p.theme);
+    } else if (replace) {
+      state.theme = { targetDefinition: { url: state.definition.url } };
     }
 
-    if (p.mappings) {
-      // A bundle replaces every mapping that carries rules. It cannot carry a rule-less
-      // one — export omits them (mapping.schema.json: rules minItems 1) — so a rule-less
-      // mapping (an empty tab, its targetSchema) is authoring scaffolding, not a document
-      // the bundle deleted: keep it unless the bundle supplies that id.
+    if (p.mappings || replace) {
       const imported: typeof state.mappings = Object.fromEntries(
-        Object.entries(p.mappings).map(([id, mapping]) => [id, mappingStateFromDocument(mapping)]),
+        Object.entries(p.mappings ?? {}).map(([id, mapping]) => [id, mappingStateFromDocument(mapping)]),
       );
-      for (const [id, mapping] of Object.entries(state.mappings)) {
-        if (!mapping.rules?.length && !imported[id]) imported[id] = mapping;
+      if (replace) {
+        if (Object.keys(imported).length === 0) imported.default = { rules: [] };
+      } else {
+        // A bundle replaces every mapping that carries rules. It cannot carry a rule-less
+        // one — export omits them (mapping.schema.json: rules minItems 1) — so a rule-less
+        // mapping (an empty tab, its targetSchema) is authoring scaffolding, not a document
+        // the bundle deleted: keep it unless the bundle supplies that id.
+        for (const [id, mapping] of Object.entries(state.mappings)) {
+          if (!mapping.rules?.length && !imported[id]) imported[id] = mapping;
+        }
       }
       state.mappings = imported;
     }
@@ -72,6 +81,7 @@ export const projectHandlers = {
     }
 
     // Import locale documents
+    if (replace) state.locales = {};
     if (p.locales && typeof p.locales === 'object') {
       state.locales = {};
       for (const [code, localeData] of Object.entries(p.locales)) {
@@ -87,21 +97,20 @@ export const projectHandlers = {
           },
         };
       }
-
-      // Clear dangling selection if imported locales do not contain it.
-      if (state.selectedLocaleId && !state.locales[state.selectedLocaleId]) {
-        state.selectedLocaleId = undefined;
-      }
+    }
+    // Clear a dangling selection when the imported locales do not contain it.
+    if (state.selectedLocaleId && !state.locales[state.selectedLocaleId]) {
+      state.selectedLocaleId = undefined;
     }
 
     // Import standalone sidecar documents (single emission policy: present iff non-null).
-    if (p.screener !== undefined) {
+    if (p.screener !== undefined || replace) {
       state.screener = p.screener ?? null;
     }
-    if (p.experience !== undefined) {
+    if (p.experience !== undefined || replace) {
       state.experience = p.experience ?? null;
     }
-    if (p.responseActions !== undefined) {
+    if (p.responseActions !== undefined || replace) {
       state.responseActions = p.responseActions ?? null;
     }
 

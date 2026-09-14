@@ -25,6 +25,21 @@ type ComponentMoveProvenanceRef =
   | { route: string; nodePath: string }
   | { route: string; nodePath: string; component: unknown; surface: unknown; id?: string; nodeId?: string };
 
+/** `project.import` payload: a bundle's documents, and what the documents it omits mean. */
+export type ProjectImportPayload = Partial<ProjectBundle> & {
+  /**
+   * `true`: the bundle is the whole project (Studio's New Form). A document it omits
+   * returns to a blank project's: no authored component tree, a Definition-scoped Theme,
+   * only the bundle's mappings (a blank `default` tab when it has none), no locales, no
+   * screener / experience / responseActions. Needs a Definition.
+   *
+   * Absent: a document the bundle omits stays as it is, and so does a rule-less mapping
+   * the bundle does not name — export cannot carry one (mapping.schema.json rules
+   * minItems 1), so its absence is not a deletion.
+   */
+  replace?: boolean;
+};
+
 export interface ProjectCommandMap {
   'theme.setToken': { key: string; value: unknown };
   'theme.setTokens': { tokens: Record<string, unknown> };
@@ -67,7 +82,7 @@ export interface ProjectCommandMap {
   'responseActions.setDocument': ResponseActionsDocument;
   'responseActions.remove': Record<string, unknown>;
   'responseActions.setMetadata': Record<string, unknown>;
-  'project.import': Partial<ProjectBundle>;
+  'project.import': ProjectImportPayload;
   'project.importSubform': { definition: Record<string, unknown>; targetGroupPath?: string; keyPrefix?: string; };
   'project.loadRegistry': { registry: Record<string, unknown> };
   'project.removeRegistry': { url: string };

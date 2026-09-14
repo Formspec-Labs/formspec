@@ -91,6 +91,7 @@ export type {
   InternalCommand,
   InternalCommandType,
   ProjectCommandMap,
+  ProjectImportPayload,
   CommandResult,
   CommandHandler,
   ChangeListener,
