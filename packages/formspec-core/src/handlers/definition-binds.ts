@@ -21,8 +21,7 @@ import type { FormBind, FormItem } from '@formspec-org/types';
 import { normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
 import { setRecordProperty } from '../record-mutate.js';
 import { bindEntriesFor, mergeBindProperties } from '../definition-binds.js';
-import { editableComponentTree, walkComponentTree } from '../component-tree.js';
-import { generatedComponentType } from '../tree-reconciler.js';
+import { generatedComponentType, moveGeneratedWidgets } from '../tree-reconciler.js';
 
 // ── setBind helpers ──────────────────────────────────────────────────
 
@@ -144,29 +143,19 @@ function setNestedProperty(target: Record<string, unknown>, propertyPath: string
 }
 
 /**
- * Run `mutate` on a field or group and keep its generated widget in step. The
- * reconciler keeps an existing node's component, so a node still showing the
- * widget generated for the old shape (dataType, options, repeatable, widgetHint)
- * would otherwise read as authored — a TextInput pinned on a choice field, a Stack
- * bound to a repeatable group (component-spec §4.4). Nodes showing any other
- * widget are authored and stay. Returns whether the generated widget changed.
+ * Run `mutate` on a field or group and keep its generated widget in step
+ * ({@link moveGeneratedWidgets}). Returns whether the generated widget changed.
  */
 function mutateItemShape(state: ProjectState, path: string, item: FormItem, mutate: () => void): boolean {
   if (item.type === 'display') {
     mutate();
     return false;
   }
-  const before = generatedComponentType(item);
+  const from = generatedComponentType(item);
   mutate();
-  const after = generatedComponentType(item);
-  if (before === after) return false;
-  const tree = editableComponentTree(state);
-  if (tree) {
-    const itemPath = normalizeIndexedPath(path);
-    walkComponentTree(tree, node => {
-      if (node.definitionItemPath === itemPath && node.component === before) node.component = after;
-    });
-  }
+  const to = generatedComponentType(item);
+  if (from === to) return false;
+  moveGeneratedWidgets(state.component.tree, new Map([[normalizeIndexedPath(path), { from, to }]]));
   return true;
 }
 

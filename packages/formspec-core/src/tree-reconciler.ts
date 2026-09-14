@@ -71,6 +71,53 @@ export function generatedComponentType(item: FormItem): string {
   return widgetTokenToComponent(item.presentation?.widgetHint) ?? defaultComponentType(item);
 }
 
+/** An item's generated widget before and after its shape changed. */
+export interface GeneratedWidgetMove {
+  from: string;
+  to: string;
+}
+
+/**
+ * Generated widget moves between two versions of an item tree: every field or group path
+ * in both whose generated widget differs. Linear in the item count.
+ */
+export function generatedWidgetMoves(
+  before: ReadonlyMap<string, FormItem>,
+  after: ReadonlyMap<string, FormItem>,
+): Map<string, GeneratedWidgetMove> {
+  const moves = new Map<string, GeneratedWidgetMove>();
+  for (const [path, old] of before) {
+    const next = after.get(path);
+    if (!next || old.type === 'display' || next.type === 'display') continue;
+    const from = generatedComponentType(old);
+    const to = generatedComponentType(next);
+    if (from !== to) moves.set(path, { from, to });
+  }
+  return moves;
+}
+
+/**
+ * The reconciler keeps an existing node's component, so a node still showing the widget
+ * generated for an item's old shape (dataType, options, repeatable, widgetHint) would read
+ * as authored once the shape changes — a TextInput pinned on a choice field, a Stack bound
+ * to a repeatable group (component-spec §4.4). Such nodes take the new generated widget;
+ * nodes showing any other widget are authored and stay. `moves` is keyed by definition
+ * item path (a node's `definitionItemPath`). One walk of the tree.
+ */
+export function moveGeneratedWidgets(
+  tree: unknown | undefined,
+  moves: ReadonlyMap<string, GeneratedWidgetMove>,
+): void {
+  if (!tree || moves.size === 0) return;
+  const queue: TreeNode[] = [tree as TreeNode];
+  for (let i = 0; i < queue.length; i++) {
+    const node = queue[i];
+    const move = typeof node.definitionItemPath === 'string' ? moves.get(node.definitionItemPath) : undefined;
+    if (move && node.component === move.from) node.component = move.to;
+    if (node.children?.length) queue.push(...node.children);
+  }
+}
+
 /**
  * Rebuild the component tree to mirror the definition item hierarchy.
  *

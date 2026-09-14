@@ -11,6 +11,8 @@ import type { CommandHandler, LocaleState, ProjectBundle } from '../types.js';
 import type { FormItem } from '@formspec-org/types';
 import { normalizeComponentState } from '../component-documents.js';
 import { importComponentTree } from '../component-export.js';
+import { itemsByPath } from '../item-index.js';
+import { generatedWidgetMoves, moveGeneratedWidgets } from '../tree-reconciler.js';
 import { mappingStateFromDocument, themeStateFromDocument } from '../document-envelopes.js';
 import { normalizeBindsFromUnknown } from '../definition-binds.js';
 import { normalizeBcp47 } from '@formspec-org/engine';
@@ -26,6 +28,7 @@ export const projectHandlers = {
     // authoring). Multi-definition import lands at P1+ with the multi-Definition
     // authoring surface.
     const importedDefinition = p.definitions?.[0];
+    const previousItems = state.definition.items;
     if (importedDefinition) {
       const def = importedDefinition as typeof state.definition;
       state.definition = {
@@ -40,6 +43,12 @@ export const projectHandlers = {
       }
     } else if (importedDefinition) {
       state.component = normalizeComponentState(state.component, state.definition.url);
+      // The existing tree stays: nodes still showing a widget generated for an item's old
+      // shape follow the imported shape, as they do when a handler edits it.
+      moveGeneratedWidgets(
+        state.component.tree,
+        generatedWidgetMoves(itemsByPath(previousItems), itemsByPath(state.definition.items)),
+      );
     }
     if (p.theme) {
       state.theme = themeStateFromDocument(p.theme);

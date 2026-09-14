@@ -289,4 +289,45 @@ describe('generated widget follows the item shape', () => {
     expect(p.componentFor('f')!.component).toBe('Textarea');
     expect(componentDocumentIsDerived(p.state)).toBe(false);
   });
+
+  it('a Definition imported alone moves generated widgets to the new shapes and keeps authored ones', () => {
+    const p = project([
+      { type: 'field', key: 'f', label: 'F', dataType: 'string' },
+      { type: 'group', key: 'g', label: 'G', children: [{ type: 'field', key: 'n', label: 'N', dataType: 'string' }] },
+      { type: 'field', key: 'kept', label: 'Kept', dataType: 'string' },
+    ]);
+    p.dispatch({ type: 'component.setNodeType', payload: { node: { bind: 'kept' }, component: 'Textarea' } });
+    p.dispatch({
+      type: 'project.import',
+      payload: {
+        definitions: [{
+          $formspec: '1.0', url: 'urn:shape', version: '1.0.0', status: 'draft', title: 'T',
+          items: [
+            { type: 'field', key: 'f', label: 'F', dataType: 'choice', options: choice },
+            { type: 'group', key: 'g', label: 'G', repeatable: true, children: [{ type: 'field', key: 'n', label: 'N', dataType: 'integer' }] },
+            { type: 'field', key: 'kept', label: 'Kept', dataType: 'boolean' },
+          ],
+        }],
+      } as any,
+    });
+    expect(p.componentFor('f')!.component).toBe('Select');
+    expect(p.componentFor('g')!.component).toBe('Accordion');
+    expect(p.componentFor('n')!.component).toBe('NumberInput');
+    expect(p.componentFor('kept')!.component).toBe('Textarea');
+  });
+
+  it('a Definition imported alone onto an unauthored tree leaves the document derived', () => {
+    const p = project([{ type: 'field', key: 'f', label: 'F', dataType: 'string' }]);
+    p.dispatch({
+      type: 'project.import',
+      payload: {
+        definitions: [{
+          $formspec: '1.0', url: 'urn:shape', version: '1.0.0', status: 'draft', title: 'T',
+          items: [{ type: 'field', key: 'f', label: 'F', dataType: 'boolean' }],
+        }],
+      } as any,
+    });
+    expect(componentDocumentIsDerived(p.state)).toBe(true);
+    expect(p.export()).not.toHaveProperty('component');
+  });
 });

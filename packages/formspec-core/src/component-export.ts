@@ -2,6 +2,7 @@
 import type { FormItem } from '@formspec-org/types';
 import { COMPONENT_BASE_PROP_NAMES, COMPONENT_SCHEMA_PROPS } from './generated/component-schema-props.js';
 import { generateNodeId } from './component-tree.js';
+import { itemsByPath } from './item-index.js';
 import { jsonEqual } from './json-equal.js';
 import { generatedComponentType, reconcileComponentTree } from './tree-reconciler.js';
 import type { ProjectState } from './types.js';
@@ -50,26 +51,6 @@ function filterToSchemaProps(
     }
   }
   return filtered;
-}
-
-/**
- * Definition path → item for every item in the tree: one pure walk per export instead
- * of an engine `itemAtPath` per bound node, which serializes the whole item tree into
- * WASM on every call (O(n²) export). Mirrors its first-match rule: a duplicate sibling
- * key resolves to the first item, and the duplicate's subtree is unreachable.
- */
-function itemsByPath(items: readonly FormItem[]): Map<string, FormItem> {
-  const index = new Map<string, FormItem>();
-  const walk = (list: readonly FormItem[], prefix: string) => {
-    for (const item of list) {
-      const path = joinPath(prefix, item.key);
-      if (index.has(path)) continue;
-      index.set(path, item);
-      if (item.children) walk(item.children, path);
-    }
-  };
-  walk(items, '');
-  return index;
 }
 
 /**
