@@ -541,4 +541,14 @@ export interface DefinitionScopedResponseActions {
 }
 export interface ApplicationScopedActions {
   scope: 'app';
+  /**
+   * Application-scoped actions MUST each declare the explicit off/non-blocking/none validation tuple because no Response exists to supply intent defaults, validate, or persist.
+   */
+  actions?: {
+    validation: {
+      profile?: 'off';
+      blocking?: 'non-blocking';
+      persistence?: 'none';
+    };
+  }[];
 }
