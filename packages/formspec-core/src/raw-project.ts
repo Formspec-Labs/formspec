@@ -155,16 +155,23 @@ function filterToSchemaProps(
  *
  * - Only schema-declared properties survive (allowlist per component type).
  * - `nodeId`, `_layout`, and all authoring metadata are implicitly excluded.
+ * - Two prefixes walk down the tree: `lookupPrefix` is the definition path used to
+ *   resolve items; `writePrefix` is what an exported bind is written relative to.
  * - For non-self-managed layout/container nodes bound to a group item: bind is
- *   removed and the group path becomes the prefix for all descendant bind values.
- * - For input/display/self-managed nodes: bind is converted to the full absolute path.
- * - If bind references a path not found in the definition, it is kept as-is at the
- *   absolute path (orphaned binds are preserved rather than silently dropped).
+ *   removed and the group key is appended to both prefixes.
+ * - For self-managed repeat containers (Accordion/DataTable): bind is written
+ *   relative to `writePrefix`, then children restart at write prefix `''` —
+ *   component-spec §4.4: repeat template children are flat item keys resolved
+ *   within the current repeat instance.
+ * - For input/display nodes: bind is written relative to `writePrefix`.
+ * - If bind references a path not found in the definition, it is kept at its
+ *   written path (orphaned binds are preserved rather than silently dropped).
  */
 function cleanTreeForExport(
   node: Record<string, unknown>,
   definition: { items: FormItem[] },
-  prefix: string,
+  lookupPrefix: string,
+  writePrefix: string,
 ): Record<string, unknown> {
   const componentType = (node.component as string) ?? '';
   const bindKey = node.bind;
@@ -174,20 +181,27 @@ function cleanTreeForExport(
   const base = filterToSchemaProps(node, componentType);
 
   let output: Record<string, unknown>;
-  let childPrefix = prefix;
+  let childLookupPrefix = lookupPrefix;
+  let childWritePrefix = writePrefix;
 
   if (bindKey) {
-    const fullPath = prefix ? `${prefix}.${String(bindKey)}` : String(bindKey);
-    const item = itemAtPath(definition.items, fullPath);
+    const key = String(bindKey);
+    const lookupPath = joinPath(lookupPrefix, key);
+    const writePath = joinPath(writePrefix, key);
+    const item = itemAtPath(definition.items, lookupPath);
 
     if (item?.type === 'group' && !SELF_MANAGED_GROUP_BINDS.has(componentType)) {
-      // Non-self-managed group container: omit bind entirely, propagate full path to children
+      // Non-self-managed group container: omit bind entirely, propagate the group to children
       output = { ...base };
-      childPrefix = fullPath;
+      childLookupPrefix = lookupPath;
+      childWritePrefix = writePath;
     } else {
-      // Input, display, or self-managed group component: use absolute path.
-      // Unresolved binds (item not found) are also kept at their absolute path.
-      output = { ...base, bind: fullPath };
+      output = { ...base, bind: writePath };
+      if (item?.type === 'group') {
+        // Self-managed repeat template: children resolve inside the repeat instance
+        childLookupPrefix = lookupPath;
+        childWritePrefix = '';
+      }
     }
   } else {
     output = { ...base };
@@ -195,11 +209,15 @@ function cleanTreeForExport(
 
   if (Array.isArray(children)) {
     output.children = (children as unknown[]).map((child: unknown) =>
-      cleanTreeForExport(child as Record<string, unknown>, definition, childPrefix)
+      cleanTreeForExport(child as Record<string, unknown>, definition, childLookupPrefix, childWritePrefix)
     );
   }
 
   return output;
+}
+
+function joinPath(prefix: string, key: string): string {
+  return prefix ? `${prefix}.${key}` : key;
 }
 
 /**
@@ -443,7 +461,7 @@ export class RawProject implements IProjectCore {
   export(): ProjectBundle {
     const url = this._state.definition.url;
     const { tree, ...restComponent } = this._state.component as Record<string, unknown>;
-    const cleanedTree = tree ? cleanTreeForExport(tree as Record<string, unknown>, this._state.definition, '') : null;
+    const cleanedTree = tree ? cleanTreeForExport(tree as Record<string, unknown>, this._state.definition, '', '') : null;
     const { targetDefinition: themeTarget, ...restTheme } = this._state.theme;
     // theme-spec §2.2.1: preserve absent = bundle scope. Never `themeTarget ?? { url }`.
     const exportTheme: ThemeState = themeTarget

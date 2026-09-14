@@ -205,6 +205,77 @@ describe('BUG-16: repeat group authoring props must not leak to export', () => {
   });
 });
 
+// ── Repeat template binds (component-spec §4.4) ────────────────────
+
+describe('export: repeat template children bind as flat item keys', () => {
+  function exportTree(items: unknown[]): any {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0', url: 'urn:repeat-binds', version: '1.0.0', status: 'draft', title: 'T', items,
+        } as any,
+      },
+    });
+    // An authored override keeps the tree from being the derived default, so it exports.
+    project.dispatch({
+      type: 'component.setNodeProperty',
+      payload: { node: { nodeId: 'root' }, property: 'gap', value: '$token.space.md' },
+    });
+    return project.export().component!.tree;
+  }
+
+  it('repeatable group nested in a plain group binds its children relative to the repeat instance', () => {
+    const tree = exportTree([
+      {
+        type: 'group', key: 'retirement', label: 'Retirement',
+        children: [
+          {
+            type: 'group', key: 'employersOnRecord', label: 'Employers', repeatable: true,
+            children: [
+              { type: 'field', key: 'payerName', label: 'Payer', dataType: 'string' },
+              {
+                type: 'group', key: 'address', label: 'Address',
+                children: [{ type: 'field', key: 'city', label: 'City', dataType: 'string' }],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    // Plain group Stack: bind dropped, children carry the group prefix.
+    const retirement = tree.children[0];
+    expect(retirement.bind).toBeUndefined();
+    const repeat = retirement.children[0];
+    expect(repeat).toMatchObject({ component: 'Accordion', bind: 'retirement.employersOnRecord' });
+    // Renderers resolve these under `retirement.employersOnRecord[i].`.
+    expect(repeat.children[0].bind).toBe('payerName');
+    const address = repeat.children[1];
+    expect(address.bind).toBeUndefined();
+    expect(address.children[0].bind).toBe('address.city');
+  });
+
+  it('repeatable group nested in a repeatable group binds by its own key', () => {
+    const tree = exportTree([
+      {
+        type: 'group', key: 'households', label: 'Households', repeatable: true,
+        children: [
+          {
+            type: 'group', key: 'members', label: 'Members', repeatable: true,
+            children: [{ type: 'field', key: 'name', label: 'Name', dataType: 'string' }],
+          },
+        ],
+      },
+    ]);
+
+    const outer = tree.children[0];
+    expect(outer).toMatchObject({ component: 'Accordion', bind: 'households' });
+    const inner = outer.children[0];
+    expect(inner).toMatchObject({ component: 'Accordion', bind: 'members' });
+    expect(inner.children[0].bind).toBe('name');
+  });
+});
+
 // ── Allowlist: only schema-valid properties survive export ──────────
 
 describe('Export allowlist: only schema-valid properties survive', () => {
