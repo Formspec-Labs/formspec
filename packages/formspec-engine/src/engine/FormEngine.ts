@@ -13,6 +13,7 @@ import type {
 } from '@formspec-org/types';
 import { diffEvalResults, type EvalDiagnostic, type EvalResult, type EvalValidation } from '../diff.js';
 import { interpolateMessage } from '../interpolate-message.js';
+import { FelExtensionFunctions, type FelExtensionFunctionRegistration } from '../extension-functions.js';
 import type {
     AuthoredSignatureInput,
     EngineReplayApplyResult,
@@ -148,6 +149,8 @@ export class FormEngine implements IFormEngine {
     private readonly _prePopulateReadonly = new Set<string>();
     private readonly _calculatedFields = new Set<string>();
     private readonly _registryEntries = new Map<string, RegistryEntry>();
+    /** Host FEL extension functions (Core §3.12), passed to every Rust evaluation. */
+    private readonly _extensionFunctions = new FelExtensionFunctions();
     private _registryDocuments: unknown[] = [];
     private readonly _remoteOptionsTasks: Array<Promise<void>> = [];
     private readonly _instanceSourceTasks: Array<Promise<void>> = [];
@@ -194,6 +197,7 @@ export class FormEngine implements IFormEngine {
             reactiveRuntime = preactReactiveRuntime,
             issuerFetcher,
             issuerOverride,
+            extensionFunctions,
         } = options;
         this._rx = reactiveRuntime;
         this._issuerStore = new IssuerStore(issuerFetcher ?? new FetchIssuerFetcher());
@@ -216,6 +220,9 @@ export class FormEngine implements IFormEngine {
 
         if (runtimeContext) {
             this.setRuntimeContext(runtimeContext);
+        }
+        for (const [name, registration] of Object.entries(extensionFunctions ?? {})) {
+            this._extensionFunctions.register(name, registration);
         }
         if (registryEntries) {
             for (const entry of registryEntries) {
@@ -493,6 +500,7 @@ export class FormEngine implements IFormEngine {
             return wasmEvalFELWithContext(
                 this.normalizeExpressionForWasm(expression, currentItemName),
                 this.felContext(currentItemName),
+                this._extensionFunctions,
             );
         };
     }
@@ -659,6 +667,7 @@ export class FormEngine implements IFormEngine {
             const result = evalFELWithContextTrace(
                 this.normalizeExpressionForWasm(calculate, basePath),
                 this.felContext(basePath),
+                this._extensionFunctions,
             );
             const trace = Array.isArray(result.trace) ? result.trace : [];
             this._derivationTraceCache.set(basePath, {
@@ -1015,6 +1024,11 @@ export class FormEngine implements IFormEngine {
         // No-op — WASM-backed engine has no subscriptions to teardown.
     }
 
+    public registerExtensionFunction(name: string, registration: FelExtensionFunctionRegistration): void {
+        this._extensionFunctions.register(name, registration);
+        this._evaluate();
+    }
+
     public setRegistryEntries(entries: RegistryEntry[]): void {
         this._registryEntries.clear();
         for (const entry of entries) {
@@ -1047,6 +1061,7 @@ export class FormEngine implements IFormEngine {
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'reactiveRuntime')
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'issuerFetcher')
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'issuerOverride')
+            || Object.prototype.hasOwnProperty.call(maybeOptions, 'extensionFunctions')
         );
         if (hasOptionsShape) {
             return {
@@ -1430,6 +1445,7 @@ export class FormEngine implements IFormEngine {
                 dataOverride,
                 scopedVariableOverrides,
             })),
+            this._extensionFunctions,
         );
     }
 
@@ -1665,6 +1681,7 @@ export class FormEngine implements IFormEngine {
                 registryDocuments: this._registryDocuments,
                 repeatCounts: this.repeatCountsSnapshot(),
             }),
+            this._extensionFunctions,
         ) as EvalResult;
         const evalResult = this.shapedEvalResult(baseResult);
 
@@ -1718,6 +1735,7 @@ export class FormEngine implements IFormEngine {
                 registryDocuments: this._registryDocuments,
                 repeatCounts: this.repeatCountsSnapshot(),
             }),
+            this._extensionFunctions,
         ) as EvalResult);
     }
 
@@ -1828,7 +1846,7 @@ export class FormEngine implements IFormEngine {
 
     /** Locale §3.3.2: evaluate a `{{}}` segment in the binding scope of `itemPath` (form scope when empty). */
     private _evalLocaleFEL(expression: string, itemPath = ''): unknown {
-        return wasmEvalFELWithContextEnvelope(expression, this.felContext(itemPath));
+        return wasmEvalFELWithContextEnvelope(expression, this.felContext(itemPath), this._extensionFunctions);
     }
 
     private getDisplayedIssuerPin(): { url: string; version: string } | undefined {

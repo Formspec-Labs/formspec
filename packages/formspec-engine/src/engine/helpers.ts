@@ -25,6 +25,7 @@ import {
     wasmEvalFELWithContext,
     wasmGetFELDependencies,
     wasmNormalizeIndexedPath,
+    type FelExtensionHost,
     type WasmFelContext,
 } from '../wasm-bridge-runtime.js';
 
@@ -682,9 +683,13 @@ export function isEmptyValue(value: unknown): boolean {
     return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
 }
 
-export function safeEvaluateExpression(expression: string, context: WasmFelContext): FormFieldValue {
+export function safeEvaluateExpression(
+    expression: string,
+    context: WasmFelContext,
+    extensions?: FelExtensionHost,
+): FormFieldValue {
     try {
-        return wasmEvalFELWithContext(expression, context);
+        return wasmEvalFELWithContext(expression, context, extensions);
     } catch {
         return null;
     }

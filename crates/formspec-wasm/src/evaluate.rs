@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use fel_core::ExtensionFunctions;
 use formspec_core::json_object_to_string_map;
 use formspec_eval::{
     AnswerInput, AnswerState, EvalContext, EvalOptions, EvalTrigger,
@@ -11,26 +12,36 @@ use formspec_eval::{
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
+use crate::extensions::FelExtensionHost;
 use crate::json_host::{parse_value_str, to_json_string};
 
 // ── Definition Evaluation ───────────────────────────────────────
 
 /// Evaluate a Formspec definition against provided data (4-phase batch processor).
 /// Returns JSON: { values, validations, nonRelevant, variables, required, readonly }
+///
+/// `extensions` resolves Definition calls to host extension functions (Core §3.12).
 #[wasm_bindgen(js_name = "evaluateDefinition")]
 pub fn evaluate_definition_wasm(
     definition_json: &str,
     data_json: &str,
     context_json: Option<String>,
+    extensions: Option<FelExtensionHost>,
 ) -> Result<String, JsError> {
-    evaluate_definition_inner(definition_json, data_json, context_json)
-        .map_err(|e| JsError::new(&e))
+    evaluate_definition_inner(
+        definition_json,
+        data_json,
+        context_json,
+        extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
+    )
+    .map_err(|e| JsError::new(&e))
 }
 
 pub(crate) fn evaluate_definition_inner(
     definition_json: &str,
     data_json: &str,
     context_json: Option<String>,
+    extensions: Option<&dyn ExtensionFunctions>,
 ) -> Result<String, String> {
     let definition: Value = parse_value_str(definition_json, "definition JSON")?;
     let data_val: Value = parse_value_str(data_json, "data JSON")?;
@@ -57,11 +68,14 @@ pub(crate) fn evaluate_definition_inner(
         ),
     };
 
-    let options = EvalOptions::default()
-        .trigger(trigger)
-        .extension_constraints(constraints)
-        .instances(instances)
-        .context(context);
+    let options = EvalOptions {
+        extensions,
+        ..EvalOptions::default()
+            .trigger(trigger)
+            .extension_constraints(constraints)
+            .instances(instances)
+            .context(context)
+    };
 
     let result = evaluate(&definition, &data, &options);
 

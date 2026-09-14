@@ -8,10 +8,10 @@
 //! linking the `wasm-bindgen` runtime. The wrappers only wrap `String` → `JsError`.
 
 use fel_core::{
-    EvaluatorOptions, Trace, evaluate, evaluate_with, expr_is_interpolation_static_literal,
-    fel_diagnostics_to_json_value, fel_to_ui_json, field_map_from_json_str,
-    formspec_environment_from_json_map, has_error_diagnostics, host_options_from_json, parse,
-    prepare, reject_undefined_functions,
+    EvaluatorOptions, ExtensionFunctions, Trace, evaluate, evaluate_with,
+    expr_is_interpolation_static_literal, fel_diagnostics_to_json_value, fel_to_ui_json,
+    field_map_from_json_str, formspec_environment_from_json_map, has_error_diagnostics,
+    host_options_from_json, parse, prepare, reject_undefined_functions,
 };
 #[cfg(feature = "fel-authoring")]
 use fel_core::{
@@ -34,6 +34,7 @@ use formspec_core::{
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
+use crate::extensions::FelExtensionHost;
 use crate::json_host::{parse_json_as, parse_value_str, to_json_string};
 
 fn parse_fel_source(expression: &str) -> Result<fel_core::Expr, String> {
@@ -113,17 +114,26 @@ pub(crate) fn eval_fel_with_trace_inner(
 }
 
 /// Evaluate a FEL expression with full context and trace each evaluation step.
+///
+/// `extensions` resolves calls to host extension functions (Core §3.12).
 #[wasm_bindgen(js_name = "evalFELWithContextTrace")]
 pub fn eval_fel_with_context_trace(
     expression: &str,
     context_json: &str,
+    extensions: Option<FelExtensionHost>,
 ) -> Result<String, JsError> {
-    eval_fel_with_context_trace_inner(expression, context_json).map_err(|e| JsError::new(&e))
+    eval_fel_with_context_trace_inner(
+        expression,
+        context_json,
+        extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
+    )
+    .map_err(|e| JsError::new(&e))
 }
 
 pub(crate) fn eval_fel_with_context_trace_inner(
     expression: &str,
     context_json: &str,
+    extensions: Option<&dyn ExtensionFunctions>,
 ) -> Result<String, String> {
     let expr = parse_fel_source(expression)?;
     let ctx: Value = parse_value_str(context_json, "context JSON")?;
@@ -135,6 +145,7 @@ pub(crate) fn eval_fel_with_context_trace_inner(
         &env,
         EvaluatorOptions {
             trace: Some(&mut trace),
+            extensions,
             ..EvaluatorOptions::default()
         },
     );
@@ -150,20 +161,39 @@ pub(crate) fn eval_fel_with_context_trace_inner(
 
 /// Evaluate a FEL expression with full FormspecEnvironment context.
 /// `context_json` is a JSON object: { fields, variables?, mipStates?, repeatContext? }
+///
+/// `extensions` resolves calls to host extension functions (Core §3.12).
 #[wasm_bindgen(js_name = "evalFELWithContext")]
-pub fn eval_fel_with_context(expression: &str, context_json: &str) -> Result<String, JsError> {
-    eval_fel_with_context_inner(expression, context_json).map_err(|e| JsError::new(&e))
+pub fn eval_fel_with_context(
+    expression: &str,
+    context_json: &str,
+    extensions: Option<FelExtensionHost>,
+) -> Result<String, JsError> {
+    eval_fel_with_context_inner(
+        expression,
+        context_json,
+        extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
+    )
+    .map_err(|e| JsError::new(&e))
 }
 
 pub(crate) fn eval_fel_with_context_inner(
     expression: &str,
     context_json: &str,
+    extensions: Option<&dyn ExtensionFunctions>,
 ) -> Result<String, String> {
     let expr = parse_fel_source(expression)?;
     let ctx: Value = parse_value_str(context_json, "context JSON")?;
     let ctx_obj = ctx.as_object().ok_or("context must be a JSON object")?;
     let env = formspec_environment_from_json_map(ctx_obj);
-    let result = evaluate(&expr, &env);
+    let result = evaluate_with(
+        &expr,
+        &env,
+        EvaluatorOptions {
+            extensions,
+            ..EvaluatorOptions::default()
+        },
+    );
     reject_undefined_functions(&result.diagnostics)?;
     fel_eval_envelope_json(&result.value, &result.diagnostics)
 }

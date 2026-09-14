@@ -13,8 +13,8 @@ mod tests {
     };
     use crate::evaluate::evaluate_definition_inner;
     use crate::fel::{
-        eval_fel_inner, eval_fel_with_context_trace_inner, eval_fel_with_trace_inner,
-        prepare_expression_inner,
+        eval_fel_inner, eval_fel_with_context_inner, eval_fel_with_context_trace_inner,
+        eval_fel_with_trace_inner, prepare_expression_inner,
     };
     #[cfg(feature = "fel-authoring")]
     use crate::fel::{rewrite_fel_for_assembly_inner, tokenize_fel_inner};
@@ -172,7 +172,8 @@ mod tests {
             "variables": { "taxableIncome": 200 }
         })
         .to_string();
-        let result = eval_fel_with_context_trace_inner("@taxableIncome * 0.1", &context).unwrap();
+        let result =
+            eval_fel_with_context_trace_inner("@taxableIncome * 0.1", &context, None).unwrap();
         let val: Value = serde_json::from_str(&result).unwrap();
         assert_eq!(val["value"], json!(20));
         let trace = val["trace"].as_array().unwrap();
@@ -192,7 +193,7 @@ mod tests {
     fn evaluate_definition_inner_output_shape() {
         let def = minimal_definition().to_string();
         let data = json!({"name": "Alice"}).to_string();
-        let result = evaluate_definition_inner(&def, &data, None).unwrap();
+        let result = evaluate_definition_inner(&def, &data, None, None).unwrap();
         let val: Value = serde_json::from_str(&result).unwrap();
 
         // Top-level keys
@@ -236,7 +237,7 @@ mod tests {
         })
         .to_string();
         let data = json!({}).to_string();
-        let result = evaluate_definition_inner(&def, &data, None).unwrap();
+        let result = evaluate_definition_inner(&def, &data, None, None).unwrap();
         let val: Value = serde_json::from_str(&result).unwrap();
 
         let validations = val["validations"].as_array().unwrap();
@@ -265,7 +266,7 @@ mod tests {
     /// Spec: specs/core/spec.md §5.4 — Invalid definition JSON returns error.
     #[test]
     fn evaluate_definition_inner_invalid_json() {
-        let result = evaluate_definition_inner("not json", "{}", None);
+        let result = evaluate_definition_inner("not json", "{}", None, None);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("invalid definition JSON"));
     }
@@ -285,7 +286,7 @@ mod tests {
         let data = json!({}).to_string();
         let context = json!({ "nowIso": "2025-06-15T00:00:00" }).to_string();
 
-        let result = evaluate_definition_inner(&def, &data, Some(context)).unwrap();
+        let result = evaluate_definition_inner(&def, &data, Some(context), None).unwrap();
         let val: Value = serde_json::from_str(&result).unwrap();
         assert_eq!(val["values"]["d"], json!("2025-06-15"));
     }
@@ -307,14 +308,14 @@ mod tests {
         .to_string();
         let data = json!({}).to_string();
 
-        let first_result = evaluate_definition_inner(&def, &data, None).unwrap();
+        let first_result = evaluate_definition_inner(&def, &data, None, None).unwrap();
         let first_val: Value = serde_json::from_str(&first_result).unwrap();
         let context = json!({
             "previousValidations": first_val["validations"]
         })
         .to_string();
 
-        let second_result = evaluate_definition_inner(&def, &data, Some(context)).unwrap();
+        let second_result = evaluate_definition_inner(&def, &data, Some(context), None).unwrap();
         let second_val: Value = serde_json::from_str(&second_result).unwrap();
         assert_eq!(second_val["values"]["ageStatus"], json!("invalid"));
     }
@@ -940,7 +941,7 @@ mod tests {
         })
         .to_string();
 
-        let result = evaluate_definition_inner(&def, &data, Some(context)).unwrap();
+        let result = evaluate_definition_inner(&def, &data, Some(context), None).unwrap();
         let val: Value = serde_json::from_str(&result).unwrap();
         // Instance ref should resolve — rate gets 0.05
         assert_eq!(val["values"]["rate"], json!(0.05));
@@ -984,7 +985,7 @@ mod tests {
         })
         .to_string();
 
-        let result = evaluate_definition_inner(&def, &data, Some(context)).unwrap();
+        let result = evaluate_definition_inner(&def, &data, Some(context), None).unwrap();
         let val: Value = serde_json::from_str(&result).unwrap();
         let validations = val["validations"].as_array().unwrap();
         // Must have PATTERN_MISMATCH from extension constraint, not just UNRESOLVED_EXTENSION
@@ -1008,5 +1009,62 @@ mod tests {
             unresolved.is_empty(),
             "should not have UNRESOLVED_EXTENSION when registry is loaded, got: {validations:?}"
         );
+    }
+
+    /// `double(n)` = `2 * n`, standing in for the JS bridge (Core §3.12).
+    fn double_extension() -> fel_core::ExtensionRegistry {
+        let mut registry = fel_core::ExtensionRegistry::new();
+        registry
+            .register("double", 1, Some(1), |args| match &args[0] {
+                FelVal::Number(n) => FelVal::Number(*n * Decimal::from(2)),
+                _ => FelVal::Null,
+            })
+            .unwrap();
+        registry
+    }
+
+    /// Core §3.12: the batch evaluator resolves host extensions; without them a constraint is a definition error.
+    #[test]
+    fn evaluate_definition_resolves_host_extension_functions() {
+        let def = json!({
+            "items": [
+                { "key": "qty", "type": "field", "dataType": "integer", "label": "Qty" },
+                { "key": "total", "type": "field", "dataType": "integer", "label": "Total" }
+            ],
+            "binds": [
+                { "path": "total", "calculate": "double($qty)" },
+                { "path": "qty", "constraint": "double($qty) < 10" }
+            ]
+        })
+        .to_string();
+        let data = json!({ "qty": 3 }).to_string();
+        let registry = double_extension();
+
+        let with: Value = serde_json::from_str(
+            &evaluate_definition_inner(&def, &data, None, Some(&registry)).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(with["values"]["total"], json!(6));
+        assert_eq!(with["validations"], json!([]));
+
+        let without: Value =
+            serde_json::from_str(&evaluate_definition_inner(&def, &data, None, None).unwrap())
+                .unwrap();
+        assert_eq!(
+            without["validations"][0]["code"],
+            json!("CONSTRAINT_PARSE_ERROR")
+        );
+    }
+
+    /// Ad-hoc reads (`compileExpression`, Locale `{{}}`) reject undefined functions but resolve registered ones.
+    #[test]
+    fn eval_fel_with_context_resolves_host_extension_functions() {
+        let context = json!({ "fields": { "qty": 4 } }).to_string();
+        let registry = double_extension();
+
+        let result =
+            eval_fel_with_context_inner("double($qty)", &context, Some(&registry)).unwrap();
+        assert_eq!(fel_eval_value(&result), json!(8));
+        assert!(eval_fel_with_context_inner("double($qty)", &context, None).is_err());
     }
 }

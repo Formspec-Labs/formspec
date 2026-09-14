@@ -637,6 +637,7 @@ dependencies = [
  "formspec-eval",
  "formspec-lint",
  "getrandom 0.3.4",
+ "js-sys",
  "rust_decimal",
  "serde",
  "serde_json",

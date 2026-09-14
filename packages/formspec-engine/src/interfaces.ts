@@ -245,6 +245,8 @@ export interface FormEngineRuntimeContext {
 export interface FormEngineOptions {
     runtimeContext?: FormEngineRuntimeContext;
     registryEntries?: RegistryEntry[];
+    /** FEL extension functions by name (Core §3.12), registered before the first evaluation. */
+    extensionFunctions?: Record<string, import('./extension-functions.js').FelExtensionFunctionRegistration>;
     reactiveRuntime?: import('./reactivity/types.js').EngineReactiveRuntime;
     issuerFetcher?: IssuerFetcher;
     issuerOverride?: IssuerSource;
@@ -502,6 +504,15 @@ export interface IFormEngine {
     clearExternalValidation?(path?: string): void;
 
     setRegistryEntries?(entries: RegistryEntry[]): void;
+
+    /**
+     * Register a FEL extension function (Core §3.12) and re-evaluate. Throws for a FEL built-in or
+     * reserved word. Unregistered calls stay definition errors (`CONSTRAINT_PARSE_ERROR` on binds).
+     */
+    registerExtensionFunction?(
+        name: string,
+        registration: import('./extension-functions.js').FelExtensionFunctionRegistration,
+    ): void;
 
     migrateResponse(responseData: JsonRecord, fromVersion: string): JsonRecord;
 }

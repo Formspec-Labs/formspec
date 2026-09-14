@@ -7,6 +7,7 @@
 //! ## Layout
 //! - `fel` — eval + analysis + path utils always; `fel-authoring`: tokenize/parse/print/rewrites/catalog
 //! - `evaluate` — batch definition evaluation, screener (always in runtime WASM)
+//! - `extensions` — `FelExtensionHost`: JS-backed FEL extension functions (Core §3.12)
 //! - `definition` — always: option sets + migrations; `definition-assembly`: `assembleDefinition`
 //! - `value_coerce` — `coerceFieldValue` (always)
 //! - `changeset` — changeset dependency analysis (key extraction, connected components)
@@ -25,6 +26,7 @@ mod definition;
 #[cfg(feature = "document-api")]
 mod document;
 mod evaluate;
+mod extensions;
 mod fel;
 mod json_host;
 #[cfg(feature = "mapping-api")]

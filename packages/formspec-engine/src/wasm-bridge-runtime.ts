@@ -149,14 +149,27 @@ export interface WasmFelContext {
 export function wasmEvalFELWithContextEnvelope(
     expression: string,
     context: WasmFelContext,
+    extensions?: FelExtensionHost,
 ): FelEvalResult {
-    const resultJson = wasm().evalFELWithContext(expression, JSON.stringify(context));
+    const resultJson = wasm().evalFELWithContext(expression, JSON.stringify(context), extensions);
     return parseFelEvalEnvelope(resultJson);
 }
 
 /** Evaluate a FEL expression with full FormspecEnvironment context. Returns the value only. */
-export function wasmEvalFELWithContext(expression: string, context: WasmFelContext): any {
-    return wasmEvalFELWithContextEnvelope(expression, context).value;
+export function wasmEvalFELWithContext(
+    expression: string,
+    context: WasmFelContext,
+    extensions?: FelExtensionHost,
+): any {
+    return wasmEvalFELWithContextEnvelope(expression, context, extensions).value;
+}
+
+/** Host extension functions (Core §3.12) handed to evaluating exports; Rust calls `arity` and `invoke`. */
+export type FelExtensionHost = import('../wasm-pkg-runtime/formspec_wasm_runtime.js').FelExtensionHost;
+
+/** Throws when `name` may not be an extension function: a FEL built-in or reserved word (Core §3.12). */
+export function wasmCheckFELExtensionName(name: string): void {
+    wasm().checkFELExtensionName(name);
 }
 
 /**
@@ -245,8 +258,9 @@ export function wasmEvalFELWithTrace(
 export function wasmEvalFELWithContextTrace(
     expression: string,
     context: WasmFelContext,
+    extensions?: FelExtensionHost,
 ): FelTraceResult {
-    const resultJson = wasm().evalFELWithContextTrace(expression, JSON.stringify(context));
+    const resultJson = wasm().evalFELWithContextTrace(expression, JSON.stringify(context), extensions);
     return JSON.parse(resultJson);
 }
 
@@ -336,6 +350,7 @@ export function wasmEvaluateDefinition(
         /** Repeat row counts by group base path (authoritative for min/max repeat cardinality). */
         repeatCounts?: Record<string, number>;
     },
+    extensions?: FelExtensionHost,
 ): {
     values: any;
     validations: any[];
@@ -349,6 +364,7 @@ export function wasmEvaluateDefinition(
         JSON.stringify(definition),
         JSON.stringify(data),
         context ? JSON.stringify(context) : undefined,
+        extensions,
     );
     return JSON.parse(resultJson);
 }

@@ -46,6 +46,7 @@ export type {
     SchemaValidatorSchemas,
 } from './interfaces.js';
 export type { EvalDiagnostic } from './diff.js';
+export type { FelExtensionFunctionRegistration } from './extension-functions.js';
 export type { ValidationProfile } from '@formspec-org/types';
 export type {
     ActionRefFinding,
