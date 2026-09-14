@@ -143,10 +143,16 @@ The earlier engine-level `{ mode: 'continuous' | 'submit' }` option is removed. 
 
 ```typescript
 addRepeatInstance(itemName: string): number | undefined
-// Returns the new 0-based index. Initializes all child signals.
+// Returns the new 0-based index and initializes its child signals. Returns undefined (no row added)
+// when the path is not repeatable or the group already has maxRepeat rows (Core §4.2.2).
 
 removeRepeatInstance(itemName: string, index: number): void
 // Snapshots values, splices the index, rebuilds signals, restores values.
+
+loadResponseData(data: JsonRecord): void
+// Hydrates a saved Response `data` tree in one evaluation. Each repeatable group in `data` gets one row
+// per array entry, even past maxRepeat or below minRepeat, so loaded data reports MAX_REPEAT/MIN_REPEAT
+// instead of dropping rows. Absent keys keep their state; calculated and undeclared keys are ignored.
 ```
 
 **FEL compilation**

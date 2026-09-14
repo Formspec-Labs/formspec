@@ -362,6 +362,7 @@ export class FormEngine implements IFormEngine {
         return visible[name];
     }
 
+    /** Appends a row and returns its index; `undefined` when the path is not repeatable or already at `maxRepeat` (Core §4.2.2). */
     public addRepeatInstance(itemName: string): number | undefined {
         const path = this.resolveRepeatPath(itemName);
         const item = this._groupItems.get(path);
@@ -369,11 +370,10 @@ export class FormEngine implements IFormEngine {
             return undefined;
         }
         const index = this.repeats[path]?.value ?? 0;
-        this._rx.batch(() => {
-            this.repeats[path].value = index + 1;
-            this.registerItemChildren(item.children ?? [], `${path}[${index}]`);
-            this.structureVersion.value += 1;
-        });
+        if (item.maxRepeat !== undefined && index >= item.maxRepeat) {
+            return undefined;
+        }
+        this.appendRepeatRow(path, item);
         this._evaluate();
         return index;
     }
@@ -385,10 +385,67 @@ export class FormEngine implements IFormEngine {
         if (!item?.repeatable || index < 0 || index >= count) {
             return;
         }
+        this.rebuildRepeatRows(path, item, (rows) => rows.filter((_row, current) => current !== index));
+        this._evaluate();
+    }
 
-        const rows: Record<string, unknown>[] = [];
-        for (let current = 0; current < count; current += 1) {
-            rows.push(
+    /**
+     * Loads a Response `data` tree with one evaluation. Definition-directed: a repeatable group present in
+     * `data` gets exactly one row per array entry, past `maxRepeat` or below `minRepeat` included, so loaded
+     * data reports MAX_REPEAT / MIN_REPEAT instead of losing rows. Keys absent from `data` keep their state;
+     * calculated fields and undeclared keys are ignored.
+     */
+    public loadResponseData(data: JsonRecord): void {
+        this.loadItemsData(this.definition.items, data, '');
+        this._evaluate();
+    }
+
+    private loadItemsData(items: FormItem[], data: JsonRecord, prefix: string): void {
+        for (const item of items) {
+            if (!Object.prototype.hasOwnProperty.call(data, item.key)) {
+                continue;
+            }
+            const path = prefix ? `${prefix}.${item.key}` : item.key;
+            const value = data[item.key];
+            if (item.type === 'field') {
+                this.writeFieldData(path, value as FormFieldValue);
+            } else if (item.type === 'group' && item.repeatable && this.repeats[path]) {
+                const rows = Array.isArray(value) ? value : [];
+                if (this.repeats[path].value > rows.length) {
+                    this.rebuildRepeatRows(path, item, (snapshots) => snapshots.slice(0, rows.length));
+                }
+                while (this.repeats[path].value < rows.length) {
+                    this.appendRepeatRow(path, item);
+                }
+                rows.forEach((row, index) => {
+                    if (isJsonRecord(row)) {
+                        this.loadItemsData(item.children ?? [], row, `${path}[${index}]`);
+                    }
+                });
+            } else if (item.type === 'group' && !item.repeatable && isJsonRecord(value)) {
+                this.loadItemsData(item.children ?? [], value, path);
+            }
+        }
+    }
+
+    private appendRepeatRow(path: string, item: FormItem): void {
+        const index = this.repeats[path].value;
+        this._rx.batch(() => {
+            this.repeats[path].value = index + 1;
+            this.registerItemChildren(item.children ?? [], `${path}[${index}]`);
+            this.structureVersion.value += 1;
+        });
+    }
+
+    /** Re-keys repeat `path` to the rows `select` keeps from a snapshot of every current row. O(rows). */
+    private rebuildRepeatRows(
+        path: string,
+        item: FormItem,
+        select: (rows: Record<string, unknown>[]) => Record<string, unknown>[],
+    ): void {
+        const snapshots: Record<string, unknown>[] = [];
+        for (let current = 0; current < this.repeats[path].value; current += 1) {
+            snapshots.push(
                 snapshotRepeatGroupTree(
                     item.children ?? [],
                     `${path}[${current}]`,
@@ -397,7 +454,7 @@ export class FormEngine implements IFormEngine {
                 ),
             );
         }
-        rows.splice(index, 1);
+        const rows = select(snapshots);
 
         this._rx.batch(() => {
             this.clearRepeatSubtree(path);
@@ -419,8 +476,6 @@ export class FormEngine implements IFormEngine {
             }
             this.structureVersion.value += 1;
         });
-
-        this._evaluate();
     }
 
     public compileExpression(expression: string, currentItemName = ''): () => FormFieldValue {
@@ -466,14 +521,21 @@ export class FormEngine implements IFormEngine {
             return;
         }
 
+        if (this.writeFieldData(name, value)) {
+            this._evaluate();
+        }
+    }
+
+    /** Coerces and stores a field value without evaluating; false for calculated or undeclared fields. */
+    private writeFieldData(name: string, value: FormFieldValue): boolean {
         const basePath = toBasePath(name);
         if (this._calculatedFields.has(basePath)) {
-            return;
+            return false;
         }
 
         const item = this._fieldItems.get(basePath);
         if (!item) {
-            return;
+            return false;
         }
 
         const bind = this._bindConfigs[basePath];
@@ -483,7 +545,7 @@ export class FormEngine implements IFormEngine {
         } else {
             this._data[name] = cloneValue(nextValue);
         }
-        this._evaluate();
+        return true;
     }
 
     public getValidationReport(): ValidationReport;

@@ -160,65 +160,6 @@ function loadInputPayload(caseDoc) {
   return payload;
 }
 
-function ensureRepeatCount(engine, repeatPath, desiredCount) {
-  let current = engine.repeats?.[repeatPath]?.value ?? 0;
-  while (current < desiredCount) {
-    engine.addRepeatInstance(repeatPath);
-    current = engine.repeats?.[repeatPath]?.value ?? current + 1;
-  }
-  while (current > desiredCount) {
-    engine.removeRepeatInstance(repeatPath, current - 1);
-    current = engine.repeats?.[repeatPath]?.value ?? current - 1;
-  }
-}
-
-function applyPayloadWithDefinition(engine, items, payload, prefix = '') {
-  if (!isPlainObject(payload)) return;
-
-  for (const item of items || []) {
-    const key = item?.key;
-    if (!key || !Object.hasOwn(payload, key)) continue;
-
-    const value = payload[key];
-    const fullPath = prefix ? `${prefix}.${key}` : key;
-
-    if (item.type === 'group') {
-      if (item.repeatable) {
-        const rows = Array.isArray(value) ? value : [];
-        ensureRepeatCount(engine, fullPath, rows.length);
-        for (let i = 0; i < rows.length; i++) {
-          applyPayloadWithDefinition(engine, item.children || [], rows[i] || {}, `${fullPath}[${i}]`);
-        }
-      } else if (isPlainObject(value)) {
-        applyPayloadWithDefinition(engine, item.children || [], value, fullPath);
-      }
-      continue;
-    }
-
-    const signal = engine.signals?.[fullPath];
-    if (signal && !isWritableSignal(signal)) {
-      continue;
-    }
-
-    try {
-      engine.setValue(fullPath, value);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes('only a getter')) {
-        continue;
-      }
-      throw error;
-    }
-  }
-}
-
-function isWritableSignal(signal) {
-  if (!signal) return false;
-  const proto = Object.getPrototypeOf(signal);
-  if (!proto) return false;
-  const descriptor = Object.getOwnPropertyDescriptor(proto, 'value');
-  return Boolean(descriptor?.set);
-}
 
 function collectRegistryEntries(caseDoc) {
   const entries = [];
@@ -265,7 +206,7 @@ function runProcessingArtifacts(caseDoc) {
   }
 
   const payload = loadInputPayload(caseDoc);
-  applyPayloadWithDefinition(engine, definition.items || [], payload || {});
+  engine.loadResponseData(isPlainObject(payload) ? payload : {});
 
   const mode = caseDoc.mode || 'submit';
   const profile = mode === 'continuous' ? 'live' : mode === 'demand' ? 'on-demand' : 'on-submit';

@@ -110,7 +110,7 @@ test('should preserve remaining row data after a line item is deleted (batch fix
   assert.equal(engineValue(engine, 'budget.lineItems[0].unitCost'), 800);
 });
 
-test('should produce MAX_REPEAT validation error when lineItems exceeds maxRepeat of 20', () => {
+test('should refuse lineItems beyond maxRepeat of 20 and report MAX_REPEAT for loaded over-limit data', () => {
   const engine = createGrantEngine();
   // Add instances until we hit 20 (already have 1)
   for (let i = 1; i < 20; i++) {
@@ -120,8 +120,12 @@ test('should produce MAX_REPEAT validation error when lineItems exceeds maxRepea
   const count = engine.repeats['budget.lineItems']?.value;
   assert.equal(count, 20);
 
-  // Adding one more beyond maxRepeat triggers a validation error
-  addRepeatInstance(engine, 'budget.lineItems');
+  assert.equal(addRepeatInstance(engine, 'budget.lineItems'), undefined);
+  assert.equal(engine.repeats['budget.lineItems'].value, 20);
+  assert.equal(getValidationReport(engine, 'continuous').results.some(r => r.code === 'MAX_REPEAT'), false);
+
+  engine.loadResponseData({ budget: { lineItems: Array.from({ length: 21 }, () => ({})) } });
+  assert.equal(engine.repeats['budget.lineItems'].value, 21);
 
   const report = getValidationReport(engine, 'continuous');
   const maxErr = report.results.find(r => r.code === 'MAX_REPEAT');

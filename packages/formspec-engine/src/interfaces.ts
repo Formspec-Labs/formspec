@@ -432,8 +432,11 @@ export interface IFormEngine {
 
     getVariableValue(name: string, scopePath: string): FormFieldValue;
 
+    /** Appends a row; `undefined` when not repeatable or already at `maxRepeat`. */
     addRepeatInstance(itemName: string): number | undefined;
     removeRepeatInstance(itemName: string, index: number): void;
+    /** Loads Response `data` in one evaluation, one row per loaded array entry regardless of min/maxRepeat. */
+    loadResponseData(data: JsonRecord): void;
 
     compileExpression(expression: string, currentItemName?: string): () => FormFieldValue;
 
