@@ -505,6 +505,55 @@ describe('export → import → export round trip keeps an authored component do
     expect(group.children.find((c: any) => c.bind === 'g.c').component).toBe('RadioGroup');
   });
 
+  it('import rebuilds the in-memory tree Studio authored, wrappers and group nodes alike', () => {
+    const original = authoredProject();
+    const imported = createRawProject();
+    imported.dispatch({ type: 'project.import', payload: original.export() });
+    expect(treeShape(imported.state.component.tree)).toEqual(treeShape(original.state.component.tree));
+  });
+
+  it('a group node wrapping its children in a container keeps the group outermost', () => {
+    const project = createRawProject({ seed: { definition: structuredClone(definition) as any } });
+    project.batch([
+      { type: 'component.setNodeProperty', payload: { node: { nodeId: 'root' }, property: 'gap', value: '$token.space.md' } },
+      { type: 'component.wrapSiblingNodes', payload: { nodes: [{ bind: 'c' }, { nodeId: 'note' }, { bind: 'h' }], wrapper: { component: 'Grid' } } },
+    ] as any);
+    const imported = createRawProject();
+    imported.dispatch({ type: 'project.import', payload: project.export() });
+    expect(treeShape(imported.state.component.tree)).toEqual(treeShape(project.state.component.tree));
+  });
+
+  it('a wrapper and a group node of the same generated shape nest in the order the Definition needs', () => {
+    // Card(wrapper) > Stack(g) > Stack(h) > deep and Card(g) > Stack(h) > deep export differently
+    // (one Stack more); each must import with a node for both groups.
+    const project = createRawProject({ seed: { definition: structuredClone(definition) as any } });
+    project.batch([
+      { type: 'component.setNodeProperty', payload: { node: { nodeId: 'root' }, property: 'gap', value: '$token.space.md' } },
+      { type: 'component.setNodeType', payload: { node: { bind: 'g' }, component: 'Card' } },
+    ] as any);
+    const imported = createRawProject();
+    imported.dispatch({ type: 'project.import', payload: project.export() });
+    expect(treeShape(imported.state.component.tree)).toEqual(treeShape(project.state.component.tree));
+    expect(imported.export().component).toEqual(project.export().component);
+  });
+
+  it('a group node given a non-generated component inside a wrapper of the generated one imports inverted', () => {
+    // Pinned ambiguity: Stack(wrapper) > Card(g) exports exactly like Stack(g) > Card(wrapper),
+    // and import prefers the node showing the group's generated component. Both re-export alike.
+    const project = createRawProject({ seed: { definition: structuredClone(definition) as any } });
+    project.batch([
+      { type: 'component.setNodeProperty', payload: { node: { nodeId: 'root' }, property: 'gap', value: '$token.space.md' } },
+      { type: 'component.setNodeType', payload: { node: { bind: 'g' }, component: 'Card' } },
+      { type: 'component.wrapNode', payload: { node: { bind: 'g' }, wrapper: { component: 'Stack' } } },
+    ] as any);
+    const exported = project.export();
+    const imported = createRawProject();
+    imported.dispatch({ type: 'project.import', payload: exported });
+    const shape = JSON.stringify(treeShape(imported.state.component.tree));
+    expect(shape).toContain('{"component":"Stack","bind":"g","children":[{"component":"Card","layout":true');
+    expect(imported.export().component).toEqual(exported.component);
+  });
+
   it('empty groups round-trip without gaining a wrapper, nested or not', () => {
     const project = createRawProject({
       seed: {

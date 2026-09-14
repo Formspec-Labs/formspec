@@ -151,33 +151,22 @@ function relativePath(path: string, group: string): string | undefined {
   return path.startsWith(`${group}.`) ? path.slice(group.length + 1) : undefined;
 }
 
+function isBound(node: TreeRecord): node is TreeRecord & { bind: string } {
+  return typeof node.bind === 'string' && node.bind !== '';
+}
+
+function segments(path: string): string[] {
+  return path ? path.split('.') : [];
+}
+
 /**
- * Key of the plain group, directly under `group`, that every bound descendant of
- * `node` sits inside (searching through unbound nodes, stopping at bound ones).
- * `undefined` when there is none: the node is a layout wrapper.
+ * The binds of a node's nearest bound descendants (searching through unbound nodes,
+ * stopping at bound ones), relative to the node's export base: the dotted segments they
+ * all share and the fewest segments any has.
  */
-function coveringGroupKey(
-  node: TreeRecord,
-  items: ReadonlyMap<string, FormItem>,
-  base: string,
-  group: string,
-): string | undefined {
-  let key: string | undefined;
-  const pending = [...(node.children ?? [])];
-  while (pending.length > 0) {
-    const child = pending.pop()!;
-    if (typeof child.bind === 'string' && child.bind) {
-      const rel = relativePath(joinPath(base, child.bind), group);
-      const dot = rel?.indexOf('.') ?? -1;
-      if (dot < 0) return undefined;
-      const childKey = rel!.slice(0, dot);
-      if (key !== undefined && childKey !== key) return undefined;
-      key = childKey;
-    } else if (child.children) {
-      pending.push(...child.children);
-    }
-  }
-  return key !== undefined && items.get(joinPath(group, key))?.type === 'group' ? key : undefined;
+interface BoundBeneath {
+  shared: string[];
+  fewest: number;
 }
 
 /**
@@ -187,9 +176,14 @@ function coveringGroupKey(
  * as dotted paths; repeat template children restart as flat keys (§4.4). Import:
  *
  * - rewrites every bind relative to its enclosing group node (the in-memory shape);
- * - binds an unbound container to the plain group all its bound descendants sit in —
- *   the outermost such container: export cannot tell a group's Stack from a wrapper
- *   directly around it, and both shapes re-export identically;
+ * - binds an unbound container to the plain group all its bound descendants sit in.
+ *   Export cannot tell a group's node from a wrapper directly around it or directly
+ *   inside it (both shapes re-export identically), so of the unbound containers nested
+ *   one inside the next around the same bound nodes, the group takes the outermost
+ *   showing its generated component (Stack for a plain group) — the shape Studio's wrap
+ *   commands produce — else the outermost, always leaving one container per group the
+ *   nesting still needs. A group given another component inside a wrapper showing the
+ *   generated one imports inverted;
  * - binds an unbound node with no bound descendants to the next group, in document
  *   order under the enclosing group, that no node binds into and whose generated
  *   component it shows: an empty group exports as a bare container
@@ -211,7 +205,7 @@ export function importComponentTree(tree: unknown, items: readonly FormItem[]): 
   const scan = (node: TreeRecord, base: string) => {
     for (const child of node.children ?? []) {
       let childBase = base;
-      if (typeof child.bind === 'string' && child.bind) {
+      if (isBound(child)) {
         const path = joinPath(base, child.bind);
         for (let prefix = path; prefix && !bound.has(prefix); prefix = prefix.slice(0, Math.max(0, prefix.lastIndexOf('.')))) {
           bound.add(prefix);
@@ -229,7 +223,7 @@ export function importComponentTree(tree: unknown, items: readonly FormItem[]): 
   const claimEmptyGroup = (node: TreeRecord, group: string): string | undefined => {
     const siblings = group ? index.get(group)?.children : items;
     if (!siblings) return undefined;
-    const cursorKey = `${group} ${String(node.component)}`;
+    const cursorKey = `${String(node.component)}@${group}`;
     for (let i = cursors.get(cursorKey) ?? 0; i < siblings.length; i++) {
       const item = siblings[i];
       if (item.type !== 'group' || bound.has(joinPath(group, item.key))) continue;
@@ -239,6 +233,75 @@ export function importComponentTree(tree: unknown, items: readonly FormItem[]): 
     }
     cursors.set(cursorKey, siblings.length);
     return undefined;
+  };
+
+  const beneath = new Map<TreeRecord, BoundBeneath | undefined>();
+  const boundBeneath = (node: TreeRecord): BoundBeneath | undefined => {
+    if (beneath.has(node)) return beneath.get(node);
+    let result: BoundBeneath | undefined;
+    for (const child of node.children ?? []) {
+      const path = isBound(child) ? segments(child.bind) : undefined;
+      const next = path ? { shared: path, fewest: path.length } : boundBeneath(child);
+      if (!next) continue;
+      if (!result) {
+        result = { shared: [...next.shared], fewest: next.fewest };
+        continue;
+      }
+      let common = 0;
+      while (common < result.shared.length && result.shared[common] === next.shared[common]) common++;
+      result.shared.length = common;
+      result.fewest = Math.min(result.fewest, next.fewest);
+    }
+    beneath.set(node, result);
+    return result;
+  };
+
+  /** The unbound container that is `node`'s only child holding bound nodes, if any. */
+  const soleCarrier = (node: TreeRecord): TreeRecord | undefined => {
+    let carrier: TreeRecord | undefined;
+    for (const child of node.children ?? []) {
+      if (!isBound(child) && !boundBeneath(child)) continue;
+      if (carrier) return undefined;
+      carrier = child;
+    }
+    return carrier && !isBound(carrier) && carrier.nodeId === undefined && carrier.component !== 'Section'
+      ? carrier
+      : undefined;
+  };
+
+  /** Key of the group an unbound, id-less node is the node for; `undefined` for a layout wrapper. */
+  const groupNodeKey = (node: TreeRecord, base: string, group: string): string | undefined => {
+    const below = boundBeneath(node);
+    if (!below) return claimEmptyGroup(node, group);
+
+    const baseDepth = segments(base).length;
+    const shared = [...segments(base), ...below.shared];
+    const fewest = baseDepth + below.fewest;
+    const groupSegments = segments(group);
+    const depth = groupSegments.length;
+    // Every bound node beneath must sit strictly inside one group directly under `group`.
+    if (fewest <= depth + 1 || shared.length <= depth || groupSegments.some((segment, i) => shared[i] !== segment)) {
+      return undefined;
+    }
+    const key = shared[depth];
+    const item = index.get(joinPath(group, key));
+    if (item?.type !== 'group') return undefined;
+
+    // Groups nested along the shared path below `key` each need a container on the chain.
+    let groups = 1;
+    while (
+      depth + groups < shared.length && depth + groups + 1 < fewest
+      && index.get(shared.slice(0, depth + groups + 1).join('.'))?.type === 'group'
+    ) groups++;
+
+    const chain = [node];
+    for (let carrier = soleCarrier(node); carrier; carrier = soleCarrier(carrier)) chain.push(carrier);
+    const generated = generatedComponentType(item);
+    const last = Math.max(0, chain.length - groups);
+    for (let i = 0; i <= last; i++) {
+      if (chain[i].component === generated) return i === 0 ? key : undefined;
+    }
+    return key;
   };
 
   /**
@@ -251,14 +314,12 @@ export function importComponentTree(tree: unknown, items: readonly FormItem[]): 
     let childBase = base;
     let childGroup = group;
 
-    if (typeof node.bind === 'string' && node.bind) {
+    if (isBound(node)) {
       const path = joinPath(base, node.bind);
       out.bind = relativePath(path, group) ?? node.bind;
       if (index.get(path)?.type === 'group') childBase = childGroup = path;
     } else if (node.nodeId === undefined) {
-      const key = node.component === 'Section'
-        ? undefined
-        : coveringGroupKey(node, index, base, group) ?? claimEmptyGroup(node, group);
+      const key = node.component === 'Section' ? undefined : groupNodeKey(node, base, group);
       if (key) {
         out.bind = key;
         childGroup = joinPath(group, key);
