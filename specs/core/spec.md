@@ -301,10 +301,11 @@ An Instance mirrors the Item tree according to these rules:
 #### 2.1.3 Item
 
 An **Item** is a node in the Definition’s structural tree. Every Item MUST have
-a `key` property — a stable, machine-readable identifier that is unique among
-its siblings. The `key` is used in Instance paths, Bind targets, Shape targets,
-and FEL field references. A `key` MUST match the regular expression
-`^[a-zA-Z_][a-zA-Z0-9_]*$`.
+a `key` property — a stable, machine-readable identifier that is unique across
+the entire Definition, not merely among its siblings (§4.2.1). The `key` is used
+in Instance paths, Bind targets, Shape targets, FEL field references, and
+Locale string keys. A `key` MUST match the regular expression
+`^[a-zA-Z][a-zA-Z0-9_]*$`.
 
 An Item MUST have a `type` property with one of three values:
 
@@ -2713,6 +2714,20 @@ The following properties are recognized on all Item types:
 | `purpose` | object | **0..1** (OPTIONAL) | Plain-language purpose and citation metadata explaining why this item is asked or shown. `purpose` MAY cite a References entry, PKAF authority chain, rule URI, or implementation-specific authority reference. It MUST NOT replace `accessControl.class` or privacy-profile audience policy. |
 | `consequences` | object | **0..1** (OPTIONAL) | Respondent-facing consequence metadata for this item, including triggered deadlines, lock-in effects, and external actions such as referrals, payments, credit checks, or mandatory reports. A consequence declaration explains and gates the action; it does not itself perform the action. |
 
+**Text interpolation.** An Item's `label`, `labels` values, `description`,
+and `hint` MAY contain `{{expression}}` sequences, where `expression` is a FEL
+expression evaluated in the Item's binding scope — for an Item inside a
+repeatable group, the current repeat instance, so `@index` and `@count`
+resolve and sibling references stay within that instance (§3.2.1). Processors
+MUST resolve these sequences before displaying the text, under the same rules
+as Locale strings ([Locale specification §3.3.1](../locale/locale-spec.md)):
+`{{{{` renders a literal `{{`; an expression that fails to parse or evaluate
+renders as its literal `{{expression}}` text, with a warning, and never fails
+the whole string; results coerce to strings; replacement text is not
+re-scanned. A Locale string that replaces one of these properties is
+interpolated in the same scope. Interpolation affects display only; it never
+changes Instance data or validation.
+
 The retired EXT-1 `privacy` sibling block is not part of the Definition
 schema. Safe-address and other field-level protection semantics use
 `accessControl.class` and the Privacy Profile / Access-Class Registry
@@ -2817,6 +2832,11 @@ the Response data.
   "label": "Complete all fields below. Required fields are marked with an asterisk."
 }
 ```
+
+A Display Item's `label` is its displayed content. It follows §4.2.1 text
+interpolation, so a display Item can show live values
+(`"label": "Estimated total: {{$total}}"`), and a Locale string for the Item's
+`label` replaces it.
 
 Display-specific constraints:
 
@@ -3047,6 +3067,16 @@ and requiredness — without embedding logic in the item tree.
 | `disabledDisplay` | string | **0..1** (OPTIONAL) | Presentation hint for non-relevant items. MUST be one of `"hidden"` or `"protected"`. When `"hidden"`, non-relevant items are removed from the visual layout. When `"protected"`, non-relevant items remain visible but are rendered as disabled/greyed-out. Default: `"hidden"`. (Borrowed from FHIR R5 Questionnaire.) |
 | `x-generation` | [Generation](../../schemas/common.schema.json) | **0..1** (OPTIONAL) | Authoring provenance for this Bind. A strict data-only authoring profile requires a direct current adopted Need anchor. It does not change Bind evaluation. |
 
+**Multiple Binds per target.** A Definition MAY contain more than one Bind
+whose `path` targets the same Item. Processors MUST merge those Binds property
+by property in document order: a property present on a later Bind replaces
+the same property from an earlier one, and properties a later Bind omits keep
+their earlier values. Merging is replacement, not logical combination — two
+`constraint` or `relevant` expressions are not ANDed; author one expression
+when both must hold. The merged Bind is the Item's single effective Bind for
+evaluation and for the inheritance rules of §4.3.2. Authoring tools that edit
+a Bind property SHOULD edit that effective value, not a shadowed earlier copy.
+
 #### 4.3.2 Inheritance Rules
 
 Bind properties interact across the item hierarchy as follows:
@@ -3085,8 +3115,11 @@ forms are defined:
 | `groupA.groupB[*].fieldKey` | Deep nesting across multiple groups | `budget_section.line_items[*].amount` |
 
 The `[*]` wildcard MUST be used when a Bind applies uniformly to all
-repetitions of a repeatable group. Index-based addressing (`[@index = N]`)
-SHOULD be used only in exceptional circumstances (e.g., binding a calculation
+repetitions of a repeatable group. A `[*]` path targets the Item whose
+definition path is the Bind path with every `[*]` removed —
+`line_items[*].amount` targets Item `line_items.amount` in every repetition —
+and Binds targeting that Item merge under §4.3.1 (Multiple Binds per target).
+Index-based addressing (`[@index = N]`) SHOULD be used only in exceptional circumstances (e.g., binding a calculation
 to the first repetition only). FEL expression indexes (`$repeat[n]`, `@index`)
 are **1-based** as defined in the FEL normative grammar (§6.1–6.2). Resolved
 instance paths in ValidationResult entries use **0-based** JSON array indexes

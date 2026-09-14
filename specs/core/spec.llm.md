@@ -51,7 +51,7 @@ A JSON object mirroring the item tree, containing current field values. Rules:
 Supports multiple named instances: `$primary` (default, mutable) and user-defined secondary instances (read-only reference data).
 
 ### 3. Item
-A node in the definition's structural tree. Every item has a `key` (unique among siblings, matches `^[a-zA-Z_][a-zA-Z0-9_]*$`) and a `type`:
+A node in the definition's structural tree. Every item has a `key` (unique across the whole definition, matches `^[a-zA-Z][a-zA-Z0-9_]*$`) and a `type`:
 
 | Type | Purpose | Has value? | Has children? |
 |------|---------|-----------|--------------|
@@ -153,7 +153,7 @@ When host override is active, renderers walk only the host-injected Issuer's `pa
 
 Structured JSON objects, not booleans. Every ValidationResult entry has:
 - `severity` (REQUIRED): `error` | `warning` | `info`
-- `path` (REQUIRED): dot-notation with concrete 1-based indices for repeats (e.g., `lineItems[3].amount`)
+- `path` (REQUIRED): dot-notation with concrete 0-based indices for repeats (e.g., `lineItems[2].amount` is the third instance; FEL `@index` is 1-based)
 - `message` (REQUIRED): human-readable
 - `constraintKind` (REQUIRED): `required` | `type` | `cardinality` | `constraint` | `shape` | `external`
 - `code` (RECOMMENDED): machine-readable identifier
@@ -275,7 +275,7 @@ Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semv
 
 ### Item Properties
 
-**Common** (all types): `key` (REQUIRED, globally unique in definition, `[a-zA-Z][a-zA-Z0-9_]*`), `type` (REQUIRED), `label` (REQUIRED), `description`, `hint`, `labels` (context-keyed alternatives: "short", "pdf", "csv", "accessibility").
+**Common** (all types): `key` (REQUIRED, globally unique in definition, `[a-zA-Z][a-zA-Z0-9_]*`), `type` (REQUIRED), `label` (REQUIRED), `description`, `hint`, `labels` (context-keyed alternatives: "short", "pdf", "csv", "accessibility"). `label`, `labels` values, `description`, `hint` may contain `{{expression}}` FEL interpolation, evaluated in the item's scope (repeat instance inside a repeat) under Locale §3.3.1 rules (`{{{{` = literal `{{`; failed expression stays literal).
 
 **Group-specific**: `children` (REQUIRED), `repeatable` (default false), `minRepeat` (default 0), `maxRepeat` (positive int or absent for unbounded).
 
@@ -285,7 +285,7 @@ Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semv
 
 ### Display Items
 
-Read-only non-data elements (instructions, headings). No children, no dataType. Only `relevant` bind is meaningful; all others ignored.
+Read-only non-data elements (instructions, headings). No children, no dataType. Only `relevant` bind is meaningful; all others ignored. The `label` is the displayed content and supports `{{expression}}` interpolation.
 
 ### Presentation Hints
 
@@ -313,6 +313,8 @@ Tier 1 hints can be overridden by Theme spec (Tier 2) and Component spec (Tier 3
 - `readonly`: OR inheritance (readonly parent → readonly children)
 - `required`: NOT inherited
 - `calculate`, `constraint`: NOT inherited
+
+**Multiple binds per target**: merged property by property in document order; later values replace earlier ones (no AND/OR combination). `group[*].field` targets item `group.field`.
 
 **Path syntax**: `fieldKey`, `group.field`, `group[*].field`, `group[@index = N].field`, deep nesting supported. FieldRef (definition-time, with `[*]`) vs resolved instance path (runtime, with concrete indices).
 

@@ -27,19 +27,19 @@ export type Item = {
    */
   type: 'group' | 'field' | 'display';
   /**
-   * Primary human-readable label. Implementations MUST display this (or a 'labels' alternative) when rendering the Item.
+   * Primary human-readable label. Implementations MUST display this (or a 'labels' alternative) when rendering the Item. MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1).
    */
   label: string;
   /**
-   * Human-readable help text. Implementations SHOULD make this available on demand (e.g., tooltip or help icon).
+   * Human-readable help text. Implementations SHOULD make this available on demand (e.g., tooltip or help icon). MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1).
    */
   description?: string;
   /**
-   * Short instructional text displayed alongside the input (e.g., below the label or as placeholder guidance). Distinct from 'description', which is typically shown on demand.
+   * Short instructional text displayed alongside the input (e.g., below the label or as placeholder guidance). Distinct from 'description', which is typically shown on demand. MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1).
    */
   hint?: string;
   /**
-   * Alternative display labels keyed by context name. Well-known contexts: 'short' (abbreviated), 'pdf' (print layout), 'csv' (column header), 'accessibility' (screen reader). Implementations MAY define additional context names.
+   * Alternative display labels keyed by context name. Well-known contexts: 'short' (abbreviated), 'pdf' (print layout), 'csv' (column header), 'accessibility' (screen reader). Implementations MAY define additional context names. MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1).
    */
   labels?: {
     [k: string]: string;

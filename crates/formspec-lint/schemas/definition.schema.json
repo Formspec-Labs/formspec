@@ -863,15 +863,15 @@
         },
         "label": {
           "type": "string",
-          "description": "Primary human-readable label. Implementations MUST display this (or a 'labels' alternative) when rendering the Item."
+          "description": "Primary human-readable label. Implementations MUST display this (or a 'labels' alternative) when rendering the Item. MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1)."
         },
         "description": {
           "type": "string",
-          "description": "Human-readable help text. Implementations SHOULD make this available on demand (e.g., tooltip or help icon)."
+          "description": "Human-readable help text. Implementations SHOULD make this available on demand (e.g., tooltip or help icon). MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1)."
         },
         "hint": {
           "type": "string",
-          "description": "Short instructional text displayed alongside the input (e.g., below the label or as placeholder guidance). Distinct from 'description', which is typically shown on demand.",
+          "description": "Short instructional text displayed alongside the input (e.g., below the label or as placeholder guidance). Distinct from 'description', which is typically shown on demand. MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1).",
           "examples": [
             "Enter your 9-digit EIN in XX-XXXXXXX format"
           ]
@@ -881,7 +881,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Alternative display labels keyed by context name. Well-known contexts: 'short' (abbreviated), 'pdf' (print layout), 'csv' (column header), 'accessibility' (screen reader). Implementations MAY define additional context names.",
+          "description": "Alternative display labels keyed by context name. Well-known contexts: 'short' (abbreviated), 'pdf' (print layout), 'csv' (column header), 'accessibility' (screen reader). Implementations MAY define additional context names. MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1).",
           "examples": [
             {
               "short": "Budget",
