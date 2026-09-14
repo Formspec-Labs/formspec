@@ -147,6 +147,42 @@ test('FieldViewModel description resolves from locale', () => {
     assert.equal(vm.description.value, 'Courriel professionnel ou personnel');
 });
 
+test('FieldViewModel hint and description resolve @context keys (Locale §3.1.2)', () => {
+    const contextSignal = rt.signal('accessibility');
+    const deps = makeMinimalDeps({ getLabelContext: () => contextSignal.value });
+    const vm = createFieldViewModel(deps);
+
+    deps.localeStore.loadLocale({
+        $formspecLocale: '2.0',
+        locale: 'fr',
+        version: '1.0.0',
+        target: { kind: 'definition', url: '' },
+        strings: {
+            'email.hint': 'Courriel professionnel',
+            'email.hint@accessibility': 'Saisissez votre adresse courriel professionnelle.',
+            'email.description@accessibility': 'Adresse utilisée pour vous joindre.',
+        },
+        stringGeneration: {
+            'email.hint@accessibility': { anchors: ['need:accessible-email-hint@1'] },
+        },
+    });
+    deps.localeStore.setLocale('fr');
+
+    // Step 1: Locale key with context
+    assert.equal(vm.hint.value, 'Saisissez votre adresse courriel professionnelle.');
+    assert.deepEqual(vm.hintNeedAnchors.value, ['need:accessible-email-hint@1']);
+    assert.equal(vm.description.value, 'Adresse utilisée pour vous joindre.');
+
+    // Unknown context: Step 2 Locale key, then Step 4 inline (no Definition context step)
+    contextSignal.value = 'pdf';
+    assert.equal(vm.hint.value, 'Courriel professionnel');
+    assert.equal(vm.description.value, 'Work or personal email');
+
+    contextSignal.value = null;
+    assert.equal(vm.hint.value, 'Courriel professionnel');
+    assert.deepEqual(vm.hintNeedAnchors.value, []);
+});
+
 test('FieldViewModel exposes Need anchors for the exact localized presentation strings', () => {
     const deps = makeMinimalDeps();
     const vm = createFieldViewModel(deps);

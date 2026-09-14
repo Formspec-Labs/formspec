@@ -182,6 +182,25 @@ test('setLabelContext updates FieldViewModel label via context labels', () => {
   assert.equal(vm.label.value, 'Name');
 });
 
+test('setLabelContext resolves Locale hint@context and description@context', () => {
+  const engine = new FormEngine(minDef({
+    items: [{ key: 'email', type: 'field', dataType: 'string', label: 'Email', hint: 'Work email', description: 'Contact address' }],
+  }));
+  engine.loadLocale(makeLocale('fr', {
+    'email.hint': 'Courriel professionnel',
+    'email.hint@accessibility': 'Saisissez votre courriel professionnel.',
+    'email.description@accessibility': 'Adresse pour vous joindre.',
+  }));
+  engine.setLocale('fr');
+  const vm = engine.getFieldVM('email');
+  assert.equal(vm.hint.value, 'Courriel professionnel');
+  assert.equal(vm.description.value, 'Contact address');
+
+  engine.setLabelContext('accessibility');
+  assert.equal(vm.hint.value, 'Saisissez votre courriel professionnel.');
+  assert.equal(vm.description.value, 'Adresse pour vous joindre.');
+});
+
 // ── setRuntimeContext with locale ──
 
 test('setRuntimeContext with locale property sets the active locale', () => {

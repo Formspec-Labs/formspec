@@ -113,15 +113,20 @@ export interface ItemLabelSource {
 }
 
 /**
- * Label a respondent sees for any Item (Locale §3.1–3.3): Locale `<key>.label@context` → Locale
- * `<key>.label` → Definition `labels[context]` → inline `label`, `{{}}` interpolated through `evalFEL`.
- * Locale lookups walk the fallback cascade (fr-CA → fr).
+ * Locale steps of an Item string cascade (Locale §3.1.2): `<key>.<property>@context` → `<key>.<property>`,
+ * `{{}}` interpolated through `evalFEL`; `null` when the Locale has neither. Each lookup walks the locale
+ * fallback cascade (fr-CA → fr). Reads `localeStore.version`, so a computed caller tracks locale changes.
  */
-export function resolveItemLabel(source: ItemLabelSource): ResolvedPresentationString<string> {
-    const { localeStore, itemKey, labels, context, evalFEL } = source;
+function resolveLocaleItemString(
+    localeStore: LocaleStore,
+    itemKey: string,
+    property: 'label' | 'hint' | 'description',
+    context: string | null,
+    evalFEL: ItemLabelSource['evalFEL'],
+): ResolvedPresentationString<string> | null {
     localeStore.version.value;
-    const localeKeys = context ? [`${itemKey}.label@${context}`, `${itemKey}.label`] : [`${itemKey}.label`];
-    for (const key of localeKeys) {
+    const keys = context ? [`${itemKey}.${property}@${context}`, `${itemKey}.${property}`] : [`${itemKey}.${property}`];
+    for (const key of keys) {
         const fromLocale = localeStore.lookupKeyWithMeta(key);
         if (fromLocale.value !== null) {
             return {
@@ -129,6 +134,19 @@ export function resolveItemLabel(source: ItemLabelSource): ResolvedPresentationS
                 needAnchors: [...(fromLocale.needAnchors ?? [])],
             };
         }
+    }
+    return null;
+}
+
+/**
+ * Label a respondent sees for any Item (Locale §3.1–3.3): Locale `<key>.label@context` → Locale
+ * `<key>.label` → Definition `labels[context]` → inline `label`, `{{}}` interpolated through `evalFEL`.
+ */
+export function resolveItemLabel(source: ItemLabelSource): ResolvedPresentationString<string> {
+    const { localeStore, itemKey, labels, context, evalFEL } = source;
+    const fromLocale = resolveLocaleItemString(localeStore, itemKey, 'label', context, evalFEL);
+    if (fromLocale) {
+        return fromLocale;
     }
     const definitionLabel = (context ? labels?.[context] : undefined) || source.inlineLabel || '';
     return { value: interpolateMessage(definitionLabel, evalFEL).text, needAnchors: [] };
@@ -141,22 +159,15 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
     // definition-unique `key` — never by group path or repeat instance path.
     const { rx, localeStore, itemKey, evalFEL } = deps;
 
+    /** Hint / description cascade (Locale §3.1.2): Locale `@context` → Locale → inline; no Definition context step. */
     function resolveLocaleString(
-        key: string,
+        property: 'hint' | 'description',
         fallback: string | null | undefined,
     ): ResolvedPresentationString<string | null> {
-        // Read locale version to trigger re-computation on locale changes
-        localeStore.version.value;
-        const localized = localeStore.lookupKeyWithMeta(key);
-        const raw = localized.value ?? fallback ?? null;
-        if (raw === null) return { value: null, needAnchors: [] };
-        const { text } = interpolateMessage(raw, evalFEL);
-        return {
-            value: text,
-            needAnchors: localized.value !== null
-                ? [...(localized.needAnchors ?? [])]
-                : [],
-        };
+        const fromLocale = resolveLocaleItemString(localeStore, itemKey, property, deps.getLabelContext(), evalFEL);
+        if (fromLocale) return fromLocale;
+        if (fallback === null || fallback === undefined) return { value: null, needAnchors: [] };
+        return { value: interpolateMessage(fallback, evalFEL).text, needAnchors: [] };
     }
 
     // ── Label: shared Item label cascade ──
@@ -172,17 +183,13 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
     const label = rx.computed(() => labelResolution.value.value);
     const labelNeedAnchors = rx.computed(() => labelResolution.value.needAnchors);
 
-    // ── Hint: 2-step cascade ──
+    // ── Hint / description: Locale @context → Locale → inline ──
 
-    const hintResolution = rx.computed(() =>
-        resolveLocaleString(`${itemKey}.hint`, deps.getItemHint()));
+    const hintResolution = rx.computed(() => resolveLocaleString('hint', deps.getItemHint()));
     const hint = rx.computed(() => hintResolution.value.value);
     const hintNeedAnchors = rx.computed(() => hintResolution.value.needAnchors);
 
-    // ── Description: 2-step cascade ──
-
-    const descriptionResolution = rx.computed(() =>
-        resolveLocaleString(`${itemKey}.description`, deps.getItemDescription()));
+    const descriptionResolution = rx.computed(() => resolveLocaleString('description', deps.getItemDescription()));
     const description = rx.computed(() => descriptionResolution.value.value);
     const descriptionNeedAnchors = rx.computed(() => descriptionResolution.value.needAnchors);
 
