@@ -59,6 +59,7 @@ export type {
     CollapsibleLayoutBehavior,
     PanelLayoutBehavior,
     AccordionLayoutBehavior,
+    AccordionRowsPass,
     ModalLayoutBehavior,
     PopoverLayoutBehavior,
 } from './adapters/layout-behaviors';

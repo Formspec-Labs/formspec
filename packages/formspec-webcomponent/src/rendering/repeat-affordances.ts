@@ -1,5 +1,5 @@
-/** @filedesc Reactive repeat chrome state: group relevance plus Add/Remove bounded by minRepeat/maxRepeat. */
-import { computed, type ReadonlySignal } from '@preact/signals-core';
+/** @filedesc Reactive repeat chrome state (relevance, min/maxRepeat Add/Remove) and the scoped row render loop. */
+import { computed, effect, untracked, type ReadonlySignal } from '@preact/signals-core';
 import type { FormItem } from '@formspec-org/types';
 import type { IFormEngine } from '@formspec-org/engine/render';
 
@@ -32,4 +32,38 @@ export function repeatAffordances(
         canAdd: computed(() => maxRepeat === undefined || count.value < maxRepeat),
         canRemove: computed(() => count.value > minRepeat),
     };
+}
+
+/** One render of a repeat's instance rows. */
+export interface RepeatRowsPass {
+    count: number;
+    canRemove: boolean;
+    /** This pass's own disposal list: register every row effect here, never on the host's list. */
+    cleanupFns: Array<() => void>;
+}
+
+/**
+ * Render a repeat's rows now and again whenever `count` or `canRemove` changes.
+ * Each pass disposes the previous pass's row effects first (otherwise every add/remove cycle
+ * strands a full set of field effects), and builds rows untracked: a signal a row reads while
+ * rendering (an interpolated label) updates that text in place, never re-renders every row.
+ */
+export function renderRepeatRows(
+    cleanupFns: Array<() => void>,
+    affordances: Pick<RepeatAffordances, 'count' | 'canRemove'>,
+    build: (pass: RepeatRowsPass) => void,
+): void {
+    const rowCleanupFns: Array<() => void> = [];
+    const disposeRows = () => {
+        for (const cleanup of rowCleanupFns.splice(0)) cleanup();
+    };
+    cleanupFns.push(effect(() => {
+        const count = affordances.count.value;
+        const canRemove = affordances.canRemove.value;
+        untracked(() => {
+            disposeRows();
+            build({ count, canRemove, cleanupFns: rowCleanupFns });
+        });
+    }));
+    cleanupFns.push(disposeRows);
 }

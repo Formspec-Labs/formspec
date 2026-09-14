@@ -16,7 +16,7 @@ import type { ValidationResult } from '@formspec-org/types';
 import { useWizard } from '../behaviors/wizard';
 import { useTabs } from '../behaviors/tabs';
 import { applySurfaceProps } from '../adapters/default/layout';
-import { repeatAffordances } from './repeat-affordances';
+import { repeatAffordances, renderRepeatRows } from './repeat-affordances';
 
 export type { RenderHost } from '../hub-types.js';
 
@@ -94,9 +94,10 @@ function renderActualComponentWithProjectionMetadata(
     comp: ComponentDescriptor,
     parent: HTMLElement,
     prefix: string,
+    cleanupFns: Array<() => void>,
 ): void {
     const firstNewChildIndex = parent.childElementCount;
-    renderActualComponent(host, comp, parent, prefix);
+    renderActualComponent(host, comp, parent, prefix, cleanupFns);
     if (!comp.componentGraphIdentity && !comp.uiGraphRoutePolicy) return;
     const added = Array.from(parent.children).slice(firstNewChildIndex);
     for (const child of added) {
@@ -108,8 +109,16 @@ function renderActualComponentWithProjectionMetadata(
 
 /**
  * Walk a LayoutNode tree from the planner and emit DOM.
+ * Effects register on `cleanupFns`: the host's list, or a repeat row pass's own list.
  */
-export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement, prefix: string, headingLevel = 3): void {
+export function emitNode(
+    host: RenderHost,
+    node: LayoutNode,
+    parent: HTMLElement,
+    prefix: string,
+    headingLevel = 3,
+    cleanupFns: Array<() => void> = host.cleanupFns,
+): void {
     let target = parent;
 
     const modalAutoSkipsWhenWrapper =
@@ -127,7 +136,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
             target.appendChild(fallbackEl);
         }
         const exprFn = host.engine.compileExpression(node.when, prefix);
-        host.cleanupFns.push(effect(() => {
+        cleanupFns.push(effect(() => {
             const visible = !!exprFn();
             wrapper.classList.toggle('formspec-hidden', !visible);
             if (fallbackEl) fallbackEl.classList.toggle('formspec-hidden', visible);
@@ -160,28 +169,15 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
             instance?.querySelector<HTMLElement>(
                 'input:not([type="hidden"]), select, textarea, [contenteditable="true"], button:not(.formspec-repeat-remove)',
             ) ?? instance?.querySelector<HTMLElement>('button, [tabindex]:not([tabindex="-1"])') ?? null;
-        let innerCleanupFns: Array<() => void> = [];
-
-        const disposeInner = () => {
-            for (const cleanup of innerCleanupFns.splice(0)) {
-                cleanup();
-            }
-        };
-
-        host.cleanupFns.push(effect(() => {
+        cleanupFns.push(effect(() => {
             container.classList.toggle('formspec-hidden', !relevant.value);
         }));
-        host.cleanupFns.push(effect(() => {
+        cleanupFns.push(effect(() => {
             addBtn.classList.toggle('formspec-hidden', !canAdd.value);
         }));
-        host.cleanupFns.push(effect(() => {
-            const count = repeatCount.value;
-            const showRemove = canRemove.value;
-            disposeInner();
+        renderRepeatRows(cleanupFns, { count: repeatCount, canRemove }, (rows) => {
+            const { count } = rows;
             list.replaceChildren();
-
-            const nextInnerCleanupFns: Array<() => void> = [];
-            const repeatHost = { ...host, cleanupFns: nextInnerCleanupFns };
             for (let idx = 0; idx < count; idx++) {
                 const instanceWrapper = document.createElement('div');
                 instanceWrapper.className = 'formspec-repeat-instance';
@@ -199,14 +195,14 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
 
                 const instancePrefix = `${fullRepeatPath}[${idx}]`;
                 for (const child of node.children) {
-                    emitNode(repeatHost, child, instanceWrapper, instancePrefix, headingLevel);
+                    emitNode(host, child, instanceWrapper, instancePrefix, headingLevel, rows.cleanupFns);
                 }
 
-                if (!showRemove) continue;
+                if (!rows.canRemove) continue;
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
                 removeBtn.className = 'formspec-repeat-remove formspec-button-danger formspec-focus-ring';
-                removeBtn.textContent = `Remove ${item?.label || bindKey}`;
+                removeBtn.textContent = `Remove ${groupLabel}`;
                 removeBtn.setAttribute('aria-label', `Remove ${groupLabel} ${idx + 1}`);
                 const removeIdx = idx;
                 removeBtn.addEventListener('click', () => {
@@ -225,11 +221,6 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
                 });
                 instanceHeader.appendChild(removeBtn);
             }
-
-            innerCleanupFns = nextInnerCleanupFns;
-        }));
-        host.cleanupFns.push(() => {
-            disposeInner();
         });
         addBtn.addEventListener('click', () => {
             if (!canAdd.value) return;
@@ -265,7 +256,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         }
         const groupFullPath = nextPrefix;
         if (host.engine.relevantSignals[groupFullPath]) {
-            host.cleanupFns.push(effect(() => {
+            cleanupFns.push(effect(() => {
                 const isRelevant = host.engine.relevantSignals[groupFullPath].value;
                 el.classList.toggle('formspec-hidden', !isRelevant);
             }));
@@ -273,7 +264,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         target.appendChild(el);
 
         for (const child of node.children) {
-            emitNode(host, child, el, nextPrefix, Math.min(headingLevel + 1, 6));
+            emitNode(host, child, el, nextPrefix, Math.min(headingLevel + 1, 6), cleanupFns);
         }
         return;
     }
@@ -312,15 +303,21 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         comp.uiGraphRoutePolicy = node.uiGraphRoutePolicy;
     }
 
-    renderActualComponentWithProjectionMetadata(host, comp, target, prefix);
+    renderActualComponentWithProjectionMetadata(host, comp, target, prefix, cleanupFns);
 }
 
 /**
  * Render a component, handling LayoutNode objects by delegating to emitNode.
  */
-export function renderComponent(host: RenderHost, comp: LayoutNode | ComponentDescriptor, parent: HTMLElement, prefix = ''): void {
+export function renderComponent(
+    host: RenderHost,
+    comp: LayoutNode | ComponentDescriptor,
+    parent: HTMLElement,
+    prefix = '',
+    cleanupFns: Array<() => void> = host.cleanupFns,
+): void {
     if (comp && typeof comp === 'object' && 'category' in comp && 'id' in comp) {
-        emitNode(host, comp as LayoutNode, parent, prefix);
+        emitNode(host, comp as LayoutNode, parent, prefix, 3, cleanupFns);
         return;
     }
     console.warn('renderComponent called with non-LayoutNode comp — this should not happen after planner integration', comp);
@@ -329,9 +326,18 @@ export function renderComponent(host: RenderHost, comp: LayoutNode | ComponentDe
 /**
  * Look up a component plugin and invoke its render function with a full RenderContext.
  */
-export function renderActualComponent(host: RenderHost, comp: ComponentDescriptor, parent: HTMLElement, prefix = ''): void {
+export function renderActualComponent(
+    host: RenderHost,
+    comp: ComponentDescriptor,
+    parent: HTMLElement,
+    prefix = '',
+    cleanupFns: Array<() => void> = host.cleanupFns,
+): void {
     const componentType = comp.component;
     const plugin = globalRegistry.get(componentType);
+    // Children render into this component's scope unless a repeat row pass hands them its own list.
+    const renderChild: RenderContext['renderComponent'] = (child, childParent, pfx, scope = cleanupFns) =>
+        renderComponent(host, child, childParent, pfx, scope);
 
     const ctx: RenderContext = {
         engine: host.engine,
@@ -347,13 +353,13 @@ export function renderActualComponent(host: RenderHost, comp: ComponentDescripto
         latestSubmitDetailSignal: host._latestSubmitDetailSignal,
         setSubmitPending: (pending: boolean) => host.setSubmitPending(pending),
         isSubmitPending: () => host.isSubmitPending(),
-        renderComponent: (comp, parent, pfx) => renderComponent(host, comp, parent, pfx),
+        renderComponent: renderChild,
         resolveToken: (val) => host.resolveToken(val),
         applyStyle: (el, style) => host.applyStyle(el, style),
         applyCssClass: (el, comp) => host.applyCssClass(el, comp),
         applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),
         resolveItemPresentation: (itemDesc: ItemDescriptor) => host.resolveItemPresentation(itemDesc),
-        cleanupFns: host.cleanupFns,
+        cleanupFns,
         findItemByKey: (key: string) => host.findItemByKey(key),
         activeBreakpoint: host.activeBreakpoint,
         touchedFields: host.touchedFields,
@@ -362,7 +368,7 @@ export function renderActualComponent(host: RenderHost, comp: ComponentDescripto
             engine: host.engine,
             definition: host._definition,
             prefix,
-            cleanupFns: host.cleanupFns,
+            cleanupFns,
             touchedFields: host.touchedFields,
             touchedVersion: host.touchedVersion,
             latestSubmitDetailSignal: host._latestSubmitDetailSignal,
@@ -370,14 +376,14 @@ export function renderActualComponent(host: RenderHost, comp: ComponentDescripto
             resolveItemPresentation: (item: ItemDescriptor) => host.resolveItemPresentation(item),
             resolveWidgetClassSlots: (p: PresentationBlock) => host.resolveWidgetClassSlots(p),
             findItemByKey: (key: string) => host.findItemByKey(key),
-            renderComponent: (comp, parent, pfx) => renderComponent(host, comp, parent, pfx),
+            renderComponent: renderChild,
             submit: (opts) => host.submit(opts),
             registryEntries: host._registryEntries,
             rerender: () => host.render(),
             getFieldVM: (fieldPath: string) => host.engine.getFieldVM(fieldPath),
         },
         adapterContext: {
-            onDispose: (fn: () => void) => host.cleanupFns.push(fn),
+            onDispose: (fn: () => void) => cleanupFns.push(fn),
             applyCssClass: (el, comp) => host.applyCssClass(el, comp),
             applyStyle: (el, style) => host.applyStyle(el, style),
             applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),

@@ -1,8 +1,10 @@
 /** @filedesc USWDS repeat-bound Accordion honors group relevance, minRepeat/maxRepeat, and announces add/remove. */
-import { describe, it, expect, vi } from 'vitest';
-import { signal, computed } from '@preact/signals-core';
-import type { AccordionLayoutBehavior } from '@formspec-org/webcomponent';
+import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
+import { signal, computed, effect } from '@preact/signals-core';
+import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
+import { FormspecRender, globalRegistry, type AccordionLayoutBehavior } from '@formspec-org/webcomponent';
 import { renderUSWDSAccordion } from '../../src/uswds/layout/accordion';
+import { uswdsAdapter } from '../../src/uswds/index';
 import { mockAdapterContext } from '../helpers';
 
 /** Jobs repeat bounded 1..2; `relevant` starts false like a group behind an unanswered question. */
@@ -25,7 +27,9 @@ function repeatBehavior() {
         groupLabel: 'Job',
         relevant,
         canAdd: computed(() => count.value < 2),
-        canRemove: computed(() => count.value > 1),
+        renderRows: (build) => {
+            effect(() => build({ count: count.value, canRemove: count.value > 1, renderComponent: vi.fn() }));
+        },
         addInstance,
         removeInstance,
     };
@@ -82,5 +86,54 @@ describe('renderUSWDSAccordion — repeat bound', () => {
 
         button('Remove Job')[1].click();
         expect(live!.textContent).toBe('Job 2 removed. 1 remaining.');
+    });
+});
+
+describe('renderUSWDSAccordion — repeat bound, in formspec-render', () => {
+    beforeAll(async () => {
+        await initFormspecEngine();
+        if (!customElements.get('formspec-render')) customElements.define('formspec-render', FormspecRender);
+    });
+
+    afterEach(() => {
+        document.body.querySelectorAll('formspec-render').forEach((e) => e.remove());
+        globalRegistry.setAdapter('default');
+    });
+
+    function render() {
+        globalRegistry.registerAdapter(uswdsAdapter);
+        globalRegistry.setAdapter('uswds');
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.componentDocument = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: 'urn:test:jobs' },
+            tree: { component: 'Accordion', bind: 'jobs', children: [{ component: 'TextInput', bind: 'employer' }] },
+        };
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:jobs',
+            version: '1.0.0',
+            title: 'Jobs',
+            items: [{
+                key: 'jobs', type: 'group', label: 'Job', repeatable: true, minRepeat: 1,
+                children: [{ key: 'employer', type: 'field', dataType: 'string', label: 'Employer' }],
+            }],
+        };
+        el.render();
+        return { el, engine: el.getEngine() };
+    }
+
+    it('disposes the previous rows\' effects on every re-render', () => {
+        const { el, engine } = render();
+        const baseline = el.cleanupFns.length;
+
+        for (let cycle = 0; cycle < 5; cycle++) {
+            engine.addRepeatInstance('jobs');
+            engine.removeRepeatInstance('jobs', 1);
+        }
+
+        expect(el.cleanupFns.length).toBe(baseline);
     });
 });

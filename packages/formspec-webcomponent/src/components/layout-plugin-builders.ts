@@ -2,7 +2,7 @@
 import type { RenderContext } from '../types';
 import { layoutHostSlice } from '../adapters/layout-host';
 import { resolveCompText } from './layout-plugin-factory';
-import { repeatAffordances } from '../rendering/repeat-affordances';
+import { repeatAffordances, renderRepeatRows } from '../rendering/repeat-affordances';
 import type {
     SectionLayoutBehavior,
     StackLayoutBehavior,
@@ -71,7 +71,11 @@ export function buildAccordionBehavior(comp: any, ctx: RenderContext): Accordion
         groupLabel,
         relevant,
         canAdd,
-        canRemove,
+        renderRows: (build) => renderRepeatRows(ctx.cleanupFns, { count, canRemove }, (rows) => build({
+            count: rows.count,
+            canRemove: rows.canRemove,
+            renderComponent: (child, parent, prefix) => ctx.renderComponent(child, parent, prefix, rows.cleanupFns),
+        })),
         addInstance: () => {
             if (bindKey && canAdd.value) ctx.engine.addRepeatInstance(fullName);
         },

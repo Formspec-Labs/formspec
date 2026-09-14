@@ -95,8 +95,16 @@ export interface RenderContext {
     /** Read shared submit pending state. */
     isSubmitPending: () => boolean;
 
-    /** Recursively render a child component descriptor into a parent element. */
-    renderComponent: (comp: LayoutNode | import('./hub-types.js').ComponentDescriptor, parent: HTMLElement, prefix?: string) => void;
+    /**
+     * Recursively render a child component descriptor into a parent element. Its effects register on
+     * `cleanupFns` when given (a repeat row pass's own list), else on this context's {@link cleanupFns}.
+     */
+    renderComponent: (
+        comp: LayoutNode | import('./hub-types.js').ComponentDescriptor,
+        parent: HTMLElement,
+        prefix?: string,
+        cleanupFns?: Array<() => void>,
+    ) => void;
 
     /** Resolve a `$token.xxx` reference against component and theme token maps. Non-token values pass through unchanged. */
     resolveToken: (val: TokenResolvable) => TokenResolvable;

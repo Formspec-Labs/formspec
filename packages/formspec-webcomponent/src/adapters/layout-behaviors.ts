@@ -53,12 +53,25 @@ export interface AccordionLayoutBehavior {
     relevant: import('@preact/signals-core').ReadonlySignal<boolean>;
     /** False at `maxRepeat`: hide Add. */
     canAdd: import('@preact/signals-core').ReadonlySignal<boolean>;
-    /** False at or below `minRepeat`: omit Remove. */
-    canRemove: import('@preact/signals-core').ReadonlySignal<boolean>;
+    /**
+     * Build the instance rows now and whenever the count or Remove availability changes. Each pass
+     * renders untracked into its own scope, disposed before the next pass: render row children with
+     * `rows.renderComponent`, never `host.renderComponent`, or every add/remove strands their effects.
+     */
+    renderRows(build: (rows: AccordionRowsPass) => void): void;
     /** Add a new repeat instance. */
     addInstance(): void;
     /** Remove a repeat instance by index. */
     removeInstance(index: number): void;
+}
+
+/** One render pass of a repeat-bound Accordion's rows. */
+export interface AccordionRowsPass {
+    count: number;
+    /** False at or below `minRepeat`: omit Remove. */
+    canRemove: boolean;
+    /** Render a row child into this pass's scope. */
+    renderComponent(comp: any, parent: HTMLElement, prefix: string): void;
 }
 
 export interface ModalLayoutBehavior {

@@ -31,7 +31,7 @@ export function renderUSWDSAccordion(
     parent: HTMLElement,
     actx: AdapterContext
 ): void {
-    const { comp, host, repeatCount, groupLabel, relevant, canAdd, canRemove, addInstance, removeInstance } = behavior;
+    const { comp, host, repeatCount, groupLabel, relevant, canAdd, addInstance, removeInstance } = behavior;
     const el = document.createElement('div');
     if (comp.id) el.id = comp.id;
     el.className = 'usa-accordion formspec-accordion';
@@ -71,71 +71,68 @@ export function renderUSWDSAccordion(
         host.cleanupFns.push(effect(() => {
             addBtn.classList.toggle('formspec-hidden', !canAdd.value);
         }));
-        host.cleanupFns.push(
-            effect(() => {
-                const count = repeatCount.value;
-                const showRemove = canRemove.value;
-                const expandedIndex =
-                    typeof comp.defaultOpen === 'number'
-                        ? comp.defaultOpen
-                        : count > 0
-                          ? count - 1
-                          : -1;
-                el.replaceChildren();
-                panels.length = 0;
+        behavior.renderRows((rows) => {
+            const { count } = rows;
+            const expandedIndex =
+                typeof comp.defaultOpen === 'number'
+                    ? comp.defaultOpen
+                    : count > 0
+                      ? count - 1
+                      : -1;
+            el.replaceChildren();
+            panels.length = 0;
 
-                for (let i = 0; i < count; i++) {
-                    const contentId = `${idPrefix}panel-${i}`;
-                    const heading = document.createElement('h4');
-                    heading.className = 'usa-accordion__heading';
+            for (let i = 0; i < count; i++) {
+                const contentId = `${idPrefix}panel-${i}`;
+                const heading = document.createElement('h4');
+                heading.className = 'usa-accordion__heading';
 
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'usa-accordion__button formspec-focus-ring';
-                    button.setAttribute('aria-controls', contentId);
-                    const shouldOpen = i === expandedIndex || (count > previousCount && i === count - 1);
-                    button.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
-                    button.textContent = labels[i] || `Section ${i + 1}`;
-                    heading.appendChild(button);
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'usa-accordion__button formspec-focus-ring';
+                button.setAttribute('aria-controls', contentId);
+                const shouldOpen = i === expandedIndex || (count > previousCount && i === count - 1);
+                button.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+                button.textContent = labels[i] || `Section ${i + 1}`;
+                heading.appendChild(button);
 
-                    const content = document.createElement('div');
-                    content.id = contentId;
-                    content.className =
-                        'usa-accordion__content usa-prose formspec-accordion-content formspec-accordion-content--repeat';
-                    content.hidden = !shouldOpen;
+                const content = document.createElement('div');
+                content.id = contentId;
+                content.className =
+                    'usa-accordion__content usa-prose formspec-accordion-content formspec-accordion-content--repeat';
+                content.hidden = !shouldOpen;
 
-                    const instancePrefix = `${fullName}[${i}]`;
-                    for (const child of comp.children || []) {
-                        host.renderComponent(child, content, instancePrefix);
-                    }
-                    if (showRemove) {
-                        const removeBtn = document.createElement('button');
-                        removeBtn.type = 'button';
-                        removeBtn.className = 'usa-button usa-button--unstyled formspec-repeat-remove formspec-focus-ring';
-                        removeBtn.textContent = `Remove ${groupLabel}`;
-                        removeBtn.setAttribute('aria-label', `Remove ${groupLabel} ${i + 1}`);
-                        const idx = i;
-                        removeBtn.addEventListener('click', () => {
-                            removeInstance(idx);
-                            const newCount = Math.max(0, count - 1);
-                            liveRegion.textContent = `${groupLabel} ${idx + 1} removed. ${newCount} remaining.`;
-                            queueMicrotask(() => {
-                                if (newCount === 0) addBtn.focus();
-                                else focusPanel(panels[Math.min(idx, newCount - 1)]);
-                            });
+                const instancePrefix = `${fullName}[${i}]`;
+                for (const child of comp.children || []) {
+                    rows.renderComponent(child, content, instancePrefix);
+                }
+                if (rows.canRemove) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'usa-button usa-button--unstyled formspec-repeat-remove formspec-focus-ring';
+                    removeBtn.textContent = `Remove ${groupLabel}`;
+                    removeBtn.setAttribute('aria-label', `Remove ${groupLabel} ${i + 1}`);
+                    const idx = i;
+                    removeBtn.addEventListener('click', () => {
+                        removeInstance(idx);
+                        const newCount = Math.max(0, count - 1);
+                        liveRegion.textContent = `${groupLabel} ${idx + 1} removed. ${newCount} remaining.`;
+                        queueMicrotask(() => {
+                            if (newCount === 0) addBtn.focus();
+                            else focusPanel(panels[Math.min(idx, newCount - 1)]);
                         });
-                        content.appendChild(removeBtn);
-                    }
-
-                    el.appendChild(heading);
-                    el.appendChild(content);
-                    panels.push({ button, content });
-                    wireAccordionPanel(button, content, panels, comp.allowMultiple);
+                    });
+                    content.appendChild(removeBtn);
                 }
 
-                previousCount = count;
-            })
-        );
+                el.appendChild(heading);
+                el.appendChild(content);
+                panels.push({ button, content });
+                wireAccordionPanel(button, content, panels, comp.allowMultiple);
+            }
+
+            previousCount = count;
+        });
 
         addBtn.addEventListener('click', () => {
             if (!canAdd.value) return;

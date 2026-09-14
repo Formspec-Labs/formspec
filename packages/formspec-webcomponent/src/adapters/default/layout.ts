@@ -263,7 +263,7 @@ export function renderPanel(behavior: PanelLayoutBehavior, parent: HTMLElement, 
 }
 
 export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
-    const { comp, host, repeatCount, groupLabel, relevant, canAdd, canRemove, addInstance, removeInstance } = behavior;
+    const { comp, host, repeatCount, groupLabel, relevant, canAdd, addInstance, removeInstance } = behavior;
     const el = document.createElement('div');
     if (comp.id) el.id = comp.id;
     el.className = 'formspec-accordion';
@@ -297,9 +297,8 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
         host.cleanupFns.push(effect(() => {
             addBtn.classList.toggle('formspec-hidden', !canAdd.value);
         }));
-        host.cleanupFns.push(effect(() => {
-            const count = repeatCount.value;
-            const showRemove = canRemove.value;
+        behavior.renderRows((rows) => {
+            const { count } = rows;
             const expandedIndex = typeof comp.defaultOpen === 'number'
                 ? comp.defaultOpen
                 : count > 0
@@ -324,9 +323,9 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
                 content.className = 'formspec-accordion-content formspec-accordion-content--repeat';
                 const instancePrefix = `${fullName}[${i}]`;
                 for (const child of comp.children || []) {
-                    host.renderComponent(child, content, instancePrefix);
+                    rows.renderComponent(child, content, instancePrefix);
                 }
-                if (showRemove) {
+                if (rows.canRemove) {
                     const removeBtn = document.createElement('button');
                     removeBtn.type = 'button';
                     removeBtn.className = 'formspec-repeat-remove formspec-button-danger formspec-focus-ring';
@@ -361,7 +360,7 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
             }
 
             previousCount = count;
-        }));
+        });
         addBtn.addEventListener('click', () => {
             if (!canAdd.value) return;
             addInstance();
