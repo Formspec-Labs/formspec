@@ -10,6 +10,12 @@
   "strings": {
     "$form.title": "Formulaire",
     "name.label": "Nom",
+    "address.label": "Adresse",
+    "city.label": "Ville",
+    "city.options.ottawa.label": "Ottawa",
+    "lineItems.label": "Poste {{@index}}",
+    "amount.label": "Montant",
+    "amount.errors.REQUIRED": "Le montant est obligatoire",
     "choice.options.yes.label": "Oui",
     "$optionSet.yesNo.no.label": "Non",
     "$shape.shape-ok.message": "Obligatoire",
@@ -24,7 +30,15 @@
     "title": "Valid locale fixture definition",
     "items": [
       { "key": "name", "type": "field", "label": "Name", "dataType": "string" },
-      { "key": "choice", "type": "field", "label": "Choice", "dataType": "string", "optionSet": "yesNo" }
+      { "key": "choice", "type": "field", "label": "Choice", "dataType": "string", "optionSet": "yesNo" },
+      { "key": "address", "type": "group", "label": "Address", "children": [
+        { "key": "city", "type": "field", "label": "City", "dataType": "string", "options": [
+          { "value": "ottawa", "label": "Ottawa" }
+        ] }
+      ] },
+      { "key": "lineItems", "type": "group", "label": "Line items", "repeatable": true, "children": [
+        { "key": "amount", "type": "field", "label": "Amount", "dataType": "decimal" }
+      ] }
     ],
     "optionSets": {
       "yesNo": {

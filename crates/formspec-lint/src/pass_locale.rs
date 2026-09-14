@@ -9,7 +9,7 @@ use serde_json::Value;
 use crate::semantic_helpers::{
     compatible_version_satisfied, component_node_ids, definition_shape_ids, definition_url,
     definition_version, error, item_option_values, json_path_member, option_set_values,
-    resolve_item_path, scan_interpolations, theme_page_ids, warning,
+    scan_interpolations, theme_page_ids, warning,
 };
 use crate::tree;
 use crate::types::{LintDiagnostic, LintOptions};
@@ -378,104 +378,107 @@ impl<'a> Analyzer<'a> {
         }
     }
 
+    /// Checks an `<itemKey>.<property>` string key (Locale §3.1).
+    ///
+    /// The first key segment is always the bare Item `key`, resolved anywhere in
+    /// the item tree; everything after it is the property. Dotted template paths
+    /// and indexed keys never name an Item, so they are E1402 even without a
+    /// paired Definition.
     fn check_item_key(&mut self, key: &str, json_path: &str) {
         let parts = split_locale_key(key);
-        let Some((item_path_parts, terminal_parts)) = split_item_key_parts(&parts) else {
+        let Some((item_key, property)) = parts.split_first().filter(|(_, p)| !p.is_empty()) else {
             self.diagnostics.push(error(
                 crate::LintCode::E1401,
                 PASS,
                 json_path,
-                "Locale item key must target a supported presentation property",
+                "Locale item key must use <itemKey>.<property>",
             ));
             return;
         };
-        let item_path = item_path_parts.join(".");
-        let mut item_known = false;
-        if self.options.definition_document.is_some()
+        let kind = classify_item_property(property);
+
+        if let Some(depth) = dotted_template_path_depth(property, &kind) {
+            let path = parts[..=depth].join(".");
+            let bare = format!(
+                "{}.{}",
+                strip_indices(&parts[depth]),
+                parts[depth + 1..].join(".")
+            );
+            self.diagnostics.push(error(
+                crate::LintCode::E1402,
+                PASS,
+                json_path,
+                format!(
+                    "Locale item key uses dotted template path {path:?}; address the Item by its bare key, e.g. {bare:?}"
+                ),
+            ));
+            return;
+        }
+
+        let mut item_path = None;
+        if !is_bare_item_key(item_key) {
+            self.diagnostics.push(error(
+                crate::LintCode::E1402,
+                PASS,
+                json_path,
+                format!(
+                    "Locale item key {item_key:?} is not a bare Item key; drop repeat indices, e.g. {:?}",
+                    strip_indices(item_key)
+                ),
+            ));
+        } else if self.options.definition_document.is_some()
             && let Some(index) = self.definition_index.as_ref()
         {
-            match resolve_item_path(&item_path, index, false) {
-                Ok(Some(_)) => item_known = true,
-                Ok(None) => self.diagnostics.push(error(
+            match index.by_key.get(item_key) {
+                Some(item_ref) => item_path = Some(item_ref.full_path.as_str()),
+                None => self.diagnostics.push(error(
                     crate::LintCode::E1402,
                     PASS,
                     json_path,
-                    format!(
-                        "Locale item key references unknown Definition item path {item_path:?}"
-                    ),
+                    format!("Locale item key references unknown Definition Item key {item_key:?}"),
                 )),
-                Err(err) => {
-                    self.diagnostics
-                        .push(error(crate::LintCode::E1402, PASS, json_path, err))
-                }
             }
         }
 
-        self.check_item_terminal(&item_path, terminal_parts, json_path, item_known);
-    }
-
-    fn check_item_terminal(
-        &mut self,
-        item_path: &str,
-        terminal_parts: &[String],
-        json_path: &str,
-        item_known: bool,
-    ) {
-        let terminal = terminal_parts
-            .first()
-            .map(|part| strip_context(part))
-            .unwrap_or("");
-        if ITEM_PRESENTATION_TERMINALS.contains(&terminal) {
-            if terminal_parts.len() == 1 {
-                return;
-            }
-        } else if terminal == "errors" {
-            if terminal_parts.len() >= 2 {
-                return;
-            }
-        } else if terminal == "options" {
-            if terminal_parts.len() == 3 && strip_context(&terminal_parts[2]) == "label" {
-                if self.options.definition_document.is_some() && item_known {
-                    match self.item_values.get(item_path) {
-                        Some(values) if values.contains(&terminal_parts[1]) => {}
-                        Some(_) => self.diagnostics.push(error(
-                            crate::LintCode::E1403,
-                            PASS,
-                            json_path,
-                            format!(
-                                "Locale option key references unknown option value {:?} on item {item_path:?}",
-                                terminal_parts[1]
-                            ),
-                        )),
-                        None => self.diagnostics.push(error(
-                            crate::LintCode::E1403,
-                            PASS,
-                            json_path,
-                            format!(
-                                "Locale option key references option value {:?} on item {item_path:?}, but the item has no option values",
-                                terminal_parts[1]
-                            ),
-                        )),
-                    }
+        match kind {
+            ItemProperty::Presentation | ItemProperty::Errors => {}
+            ItemProperty::Option(value) => {
+                let Some(item_path) = item_path else {
+                    return;
+                };
+                match self.item_values.get(item_path) {
+                    Some(values) if values.contains(value) => {}
+                    Some(_) => self.diagnostics.push(error(
+                        crate::LintCode::E1403,
+                        PASS,
+                        json_path,
+                        format!(
+                            "Locale option key references unknown option value {value:?} on item {item_key:?}"
+                        ),
+                    )),
+                    None => self.diagnostics.push(error(
+                        crate::LintCode::E1403,
+                        PASS,
+                        json_path,
+                        format!(
+                            "Locale option key references option value {value:?} on item {item_key:?}, but the item has no option values"
+                        ),
+                    )),
                 }
-                return;
             }
-        } else if DATA_TERMINALS.contains(&terminal) {
-            self.diagnostics.push(error(
+            ItemProperty::Data(terminal) => self.diagnostics.push(error(
                 crate::LintCode::E1407,
                 PASS,
                 json_path,
                 format!("Locale key targets non-presentation property {terminal:?}"),
-            ));
-            return;
+            )),
+            ItemProperty::Unsupported(terminal) => self.diagnostics.push(error(
+                crate::LintCode::E1401,
+                PASS,
+                json_path,
+                format!("Locale key has unsupported terminal property {terminal:?}"),
+            )),
         }
-
-        self.diagnostics.push(error(
-            crate::LintCode::E1401,
-            PASS,
-            json_path,
-            format!("Locale key has unsupported terminal property {terminal:?}"),
-        ));
     }
 
     fn check_fallbacks(&mut self) {
@@ -589,21 +592,76 @@ fn indexed_property_name(part: &str) -> Option<&str> {
     Some(name)
 }
 
-fn split_item_key_parts(parts: &[String]) -> Option<(&[String], &[String])> {
-    for (i, part) in parts.iter().enumerate() {
-        let terminal = strip_context(part);
-        if ITEM_PRESENTATION_TERMINALS.contains(&terminal)
-            || DATA_TERMINALS.contains(&terminal)
-            || terminal == "errors"
-            || terminal == "options"
-        {
-            if i == 0 {
-                return None;
-            }
-            return Some((&parts[..i], &parts[i..]));
+/// The property half of an `<itemKey>.<property>` Locale key.
+#[derive(Debug, PartialEq, Eq)]
+enum ItemProperty<'a> {
+    /// `label`, `hint`, `constraintMessage`, ... with optional `@context`.
+    Presentation,
+    /// `errors.<CODE>`.
+    Errors,
+    /// `options.<value>.label`, carrying the unescaped option value.
+    Option(&'a str),
+    /// A data or behavior property Locale must not target (E1407).
+    Data(&'a str),
+    /// Anything else (E1401).
+    Unsupported(&'a str),
+}
+
+impl ItemProperty<'_> {
+    fn is_addressable(&self) -> bool {
+        matches!(self, Self::Presentation | Self::Errors | Self::Option(_))
+    }
+}
+
+fn classify_item_property(property: &[String]) -> ItemProperty<'_> {
+    let Some(first) = property.first() else {
+        return ItemProperty::Unsupported("");
+    };
+    let terminal = strip_context(first);
+    match (terminal, property) {
+        (t, [_]) if ITEM_PRESENTATION_TERMINALS.contains(&t) => ItemProperty::Presentation,
+        ("errors", [_, _, ..]) => ItemProperty::Errors,
+        ("options", [_, value, label]) if strip_context(label) == "label" => {
+            ItemProperty::Option(value)
+        }
+        (t, _) if DATA_TERMINALS.contains(&t) => ItemProperty::Data(t),
+        (t, _) => ItemProperty::Unsupported(t),
+    }
+}
+
+/// Index into the full key parts of the last item segment of a dotted path.
+///
+/// `address.city.label` has property `[city, label]`; that is not addressable,
+/// but its suffix `[label]` is, so the key is the dotted template path
+/// `address.city` and this returns `1`. Returns `None` for well-formed keys
+/// and for keys with no addressable suffix (those get E1401/E1407 instead).
+fn dotted_template_path_depth(property: &[String], kind: &ItemProperty<'_>) -> Option<usize> {
+    if kind.is_addressable() {
+        return None;
+    }
+    (1..property.len()).find(|&split| classify_item_property(&property[split..]).is_addressable())
+}
+
+/// Core §4.2.1: an Item `key` matches `[a-zA-Z][a-zA-Z0-9_]*`.
+fn is_bare_item_key(segment: &str) -> bool {
+    let mut chars = segment.chars();
+    chars.next().is_some_and(|ch| ch.is_ascii_alphabetic())
+        && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+}
+
+/// Drops `[...]` repeat index or wildcard groups from a key segment.
+fn strip_indices(segment: &str) -> String {
+    let mut out = String::with_capacity(segment.len());
+    let mut depth = 0_usize;
+    for ch in segment.chars() {
+        match ch {
+            '[' => depth += 1,
+            ']' => depth = depth.saturating_sub(1),
+            _ if depth == 0 => out.push(ch),
+            _ => {}
         }
     }
-    None
+    out
 }
 
 fn strip_context(part: &str) -> &str {
@@ -928,6 +986,182 @@ mod tests {
             !isolated
                 .iter()
                 .any(|diag| diag.code == crate::LintCode::E1406)
+        );
+    }
+
+    /// Definition with a top-level field, a group child, and repeat children.
+    ///
+    /// `description` doubles as a presentation terminal name, so it pins that
+    /// the item segment is always the first key segment.
+    fn nested_definition() -> Value {
+        json!({
+            "$formspec": "1.0",
+            "url": "https://example.com/forms/nested",
+            "version": "1.0.0",
+            "status": "draft",
+            "title": "Nested locale test",
+            "items": [
+                { "key": "name", "type": "field", "label": "Name", "dataType": "string" },
+                { "key": "address", "type": "group", "label": "Address", "children": [
+                    { "key": "city", "type": "field", "label": "City", "dataType": "string", "options": [
+                        { "value": "ottawa", "label": "Ottawa" }
+                    ] }
+                ] },
+                { "key": "lineItems", "type": "group", "label": "Line items", "repeatable": true, "children": [
+                    { "key": "amount", "type": "field", "label": "Amount", "dataType": "decimal" },
+                    { "key": "description", "type": "field", "label": "Description", "dataType": "string" }
+                ] }
+            ]
+        })
+    }
+
+    fn lint_strings(strings: &Value, definition: Option<Value>) -> Vec<LintDiagnostic> {
+        let mut locale =
+            locale_document("definition", "https://example.com/forms/nested", "fr", None);
+        locale["strings"] = strings.clone();
+        lint_locale(
+            &locale,
+            &LintOptions {
+                definition_document: definition,
+                no_fel: true,
+                ..Default::default()
+            },
+        )
+    }
+
+    fn codes_at(diagnostics: &[LintDiagnostic], key: &str) -> Vec<crate::LintCode> {
+        let json_path = json_path_member("$.strings", key);
+        diagnostics
+            .iter()
+            .filter(|diag| diag.path == json_path)
+            .map(|diag| diag.code)
+            .collect()
+    }
+
+    #[test]
+    fn item_keys_resolve_by_bare_key_at_any_depth() {
+        let strings = json!({
+            "name.label": "Nom",
+            "address.label": "Adresse",
+            "city.label": "Ville",
+            "city.label@short": "Ville",
+            "city.hint": "Ville de résidence",
+            "city.options.ottawa.label": "Ottawa",
+            "city.errors.REQUIRED": "La ville est obligatoire",
+            "lineItems.label": "Poste {{@index}}",
+            "amount.label": "Montant",
+            "amount.constraintMessage": "Montant invalide",
+            "description.label": "Description du poste"
+        });
+
+        let diagnostics = lint_strings(&strings, Some(nested_definition()));
+
+        assert!(
+            diagnostics.is_empty(),
+            "bare Item keys must resolve at any depth: {diagnostics:?}"
+        );
+    }
+
+    #[test]
+    fn dotted_template_paths_are_rejected_as_item_keys() {
+        let dotted = [
+            "address.city.label",
+            "address.city.options.ottawa.label",
+            "address.city.errors.REQUIRED",
+            "lineItems.amount.label",
+            "lineItems.description.label",
+            "lineItems[*].amount.label",
+            "amount[0].label",
+        ];
+        let strings = Value::Object(
+            dotted
+                .iter()
+                .map(|key| ((*key).to_owned(), json!("x")))
+                .collect(),
+        );
+
+        for definition in [Some(nested_definition()), None] {
+            let with_definition = definition.is_some();
+            let diagnostics = lint_strings(&strings, definition);
+            for key in dotted {
+                assert_eq!(
+                    codes_at(&diagnostics, key),
+                    vec![crate::LintCode::E1402],
+                    "{key} (definition supplied: {with_definition}) must be rejected once as E1402: {diagnostics:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn nested_item_option_and_unknown_keys_still_report() {
+        let strings = json!({
+            "city.options.toronto.label": "Toronto",
+            "amount.options.one.label": "Un",
+            "ghost.label": "Fantôme",
+            "amount.dataType": "decimal"
+        });
+
+        let diagnostics = lint_strings(&strings, Some(nested_definition()));
+
+        assert_eq!(
+            codes_at(&diagnostics, "city.options.toronto.label"),
+            vec![crate::LintCode::E1403]
+        );
+        assert_eq!(
+            codes_at(&diagnostics, "amount.options.one.label"),
+            vec![crate::LintCode::E1403]
+        );
+        assert_eq!(
+            codes_at(&diagnostics, "ghost.label"),
+            vec![crate::LintCode::E1402]
+        );
+        assert_eq!(
+            codes_at(&diagnostics, "amount.dataType"),
+            vec![crate::LintCode::E1407]
+        );
+    }
+
+    /// Lints a fixture carrying `_pairedDefinition` / `_themeDocument` /
+    /// `_componentDocuments` lint context beside the Locale document.
+    fn lint_fixture(fixture: &str) -> Vec<LintDiagnostic> {
+        let mut locale: Value = serde_json::from_str(fixture).expect("fixture is valid JSON");
+        let root = locale.as_object_mut().expect("fixture root is an object");
+        let definition = root.remove("_pairedDefinition");
+        let theme = root.remove("_themeDocument");
+        let components = root
+            .remove("_componentDocuments")
+            .and_then(|docs| docs.as_array().cloned())
+            .unwrap_or_default();
+        lint_locale(
+            &locale,
+            &LintOptions {
+                definition_document: definition,
+                theme_document: theme,
+                component_documents: components,
+                ..Default::default()
+            },
+        )
+    }
+
+    #[test]
+    fn valid_semantic_fixture_is_clean() {
+        let diagnostics = lint_fixture(include_str!(
+            "../../../tests/fixtures/lint/valid-locale-semantic.json"
+        ));
+
+        assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    }
+
+    #[test]
+    fn invalid_semantic_fixture_rejects_dotted_item_path() {
+        let diagnostics = lint_fixture(include_str!(
+            "../../../tests/fixtures/lint/E1400-locale-semantic-invalid.json"
+        ));
+
+        assert_eq!(
+            codes_at(&diagnostics, "contact.phone.label"),
+            vec![crate::LintCode::E1402]
         );
     }
 

@@ -11,6 +11,7 @@
   "strings": {
     "$unknown.title": "Unknown namespace",
     "ghost.label": "Fantome",
+    "contact.phone.label": "Telephone",
     "name.options.yes.label": "Oui",
     "choice.options.maybe.label": "Peut-etre",
     "$optionSet.yesNo.maybe.label": "Peut-etre",
@@ -30,7 +31,10 @@
     "title": "Locale fixture definition",
     "items": [
       { "key": "name", "type": "field", "label": "Name", "dataType": "string" },
-      { "key": "choice", "type": "field", "label": "Choice", "dataType": "string", "optionSet": "yesNo" }
+      { "key": "choice", "type": "field", "label": "Choice", "dataType": "string", "optionSet": "yesNo" },
+      { "key": "contact", "type": "group", "label": "Contact", "children": [
+        { "key": "phone", "type": "field", "label": "Phone", "dataType": "string" }
+      ] }
     ],
     "optionSets": {
       "yesNo": {
