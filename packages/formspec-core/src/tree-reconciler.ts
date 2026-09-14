@@ -21,7 +21,7 @@ type TreeNode = {
 /** Snapshot of a layout wrapper and its position before rebuild. */
 interface WrapperSnapshot {
   wrapper: TreeNode;
-  parentRef: { bind?: string; nodeId?: string };
+  parentRef: { bind?: string; nodeId?: string; definitionItemPath?: string };
   position: number;
   wasLast: boolean;
 }
@@ -148,7 +148,12 @@ export function reconcileComponentTree(
       if (isLayoutWrapper(child)) {
         wrapperSnapshots.push({
           wrapper: structuredClone(child),
-          parentRef: parent.bind ? { bind: parent.bind } : { nodeId: parent.nodeId! },
+          parentRef: parent.bind
+            ? {
+              bind: parent.bind,
+              ...(typeof parent.definitionItemPath === 'string' ? { definitionItemPath: parent.definitionItemPath } : {}),
+            }
+            : { nodeId: parent.nodeId! },
           position: i,
           wasLast: i === children.length - 1,
         });
@@ -270,123 +275,108 @@ export function reconcileComponentTree(
   let newRoot: TreeNode = { ...rootProps, component: 'Stack', nodeId: 'root', children: builtNodes };
 
   // ── Phase 3: Re-insert layout wrappers ──
+  // One index over `newRoot`, kept current as nodes move, instead of a tree walk per
+  // wrapper and per wrapped child (O(wrappers × nodes)): each node's parent, the node for
+  // each definition path, nodes by bind / nodeId in document order, and the queues below.
+  // What remains per move is a native splice within one sibling list.
+  const parentOf = new Map<TreeNode, TreeNode>();
+  const byItemPath = new Map<string, TreeNode>();
+  const byBind = new Map<string, TreeNode[]>();
+  const byNodeId = new Map<string, TreeNode[]>();
   /**
-   * DFS queues of definition-bound nodes on `newRoot`, in visit order. Used when a
-   * layout-wrapper clone still has leaf `bind` / `nodeId` but no `definitionItemPath`
-   * (e.g. first reconcile after import): consume the next queue entry so duplicate
-   * keys map to the same order as the rebuilt flat tree.
+   * Document-order queues of definition-bound leaf-like nodes, for a wrapper child that
+   * carries `bind` / `nodeId` but no `definitionItemPath` (e.g. first reconcile after
+   * import): it takes the next node still outside every wrapper, so duplicate keys map in
+   * the rebuilt tree's order. Schema containers (groups) do not take part. A display node
+   * carries both `bind` and `nodeId` and queues under both: a saved wrapper child may
+   * reference it by either.
    */
-  function buildExtractionQueues(root: TreeNode): {
-    byBind: Map<string, TreeNode[]>;
-    byNodeId: Map<string, TreeNode[]>;
-  } {
-    const byBind = new Map<string, TreeNode[]>();
-    const byNodeId = new Map<string, TreeNode[]>();
-    const push = (map: Map<string, TreeNode[]>, key: string, node: TreeNode) => {
-      const arr = map.get(key) ?? [];
-      arr.push(node);
-      map.set(key, arr);
-    };
-    /** Do not queue nodes already sitting under a layout wrapper (they were extracted). */
-    const walk = (n: TreeNode, underLayoutWrapper: boolean) => {
-      for (const c of n.children ?? []) {
-        const nextUnderLayout = underLayoutWrapper || isLayoutWrapper(c);
-        if (!nextUnderLayout) {
-          // Skip schema containers (groups, etc.): only leaf-like definition nodes participate
-          // in duplicate-key disambiguation for wrapper extraction. A display node carries
-          // both `bind` and `nodeId`, so it queues under both: a saved wrapper child may
-          // reference it by either.
-          if (
-            !isLayoutWrapper(c) &&
-            typeof c.definitionItemPath === 'string' &&
-            !CONTAINER_COMPONENTS.has(c.component)
-          ) {
-            if (c.bind) push(byBind, c.bind, c);
-            if (c.nodeId) push(byNodeId, c.nodeId, c);
-          }
-        }
-        if (c.children) walk(c, nextUnderLayout);
+  const queueByBind = new Map<string, { nodes: TreeNode[]; head: number }>();
+  const queueByNodeId = new Map<string, { nodes: TreeNode[]; head: number }>();
+  const push = (map: Map<string, TreeNode[]>, key: string, node: TreeNode) => {
+    const list = map.get(key);
+    if (list) list.push(node);
+    else map.set(key, [node]);
+  };
+  const enqueue = (map: Map<string, { nodes: TreeNode[]; head: number }>, key: string, node: TreeNode) => {
+    const queue = map.get(key);
+    if (queue) queue.nodes.push(node);
+    else map.set(key, { nodes: [node], head: 0 });
+  };
+  const indexTree = (node: TreeNode) => {
+    for (const child of node.children ?? []) {
+      parentOf.set(child, node);
+      const itemPath = typeof child.definitionItemPath === 'string' ? child.definitionItemPath : undefined;
+      if (itemPath !== undefined && !byItemPath.has(itemPath)) byItemPath.set(itemPath, child);
+      if (child.bind) push(byBind, child.bind, child);
+      if (child.nodeId) push(byNodeId, child.nodeId, child);
+      if (itemPath !== undefined && !CONTAINER_COMPONENTS.has(child.component)) {
+        if (child.bind) enqueue(queueByBind, child.bind, child);
+        if (child.nodeId) enqueue(queueByNodeId, child.nodeId, child);
       }
-    };
-    walk(root, false);
-    return { byBind, byNodeId };
-  }
+      indexTree(child);
+    }
+  };
+  // The rebuilt tree holds no layout wrapper yet, so every indexed node starts outside one.
+  indexTree(newRoot);
 
-  const matchesRef = (n: TreeNode, ref: { bind?: string; nodeId?: string; definitionItemPath?: string }): boolean => {
-    if (ref.nodeId && n.nodeId === ref.nodeId) {
-      if (!ref.definitionItemPath || n.definitionItemPath === ref.definitionItemPath) return true;
-      return false;
+  /** Where a node sits now: in `newRoot` outside every layout wrapper, inside one, or not in `newRoot`. */
+  const placement = (node: TreeNode): 'free' | 'wrapped' | 'detached' => {
+    let wrapped = false;
+    for (let current: TreeNode | undefined = node; current; current = parentOf.get(current)) {
+      if (current === newRoot) return wrapped ? 'wrapped' : 'free';
+      if (current !== node && isLayoutWrapper(current)) wrapped = true;
     }
-    if (ref.bind && n.bind === ref.bind) {
-      if (!ref.definitionItemPath || n.definitionItemPath === ref.definitionItemPath) return true;
-    }
-    return false;
+    return 'detached';
   };
 
-  const findInTree = (
-    root: TreeNode,
-    ref: { bind?: string; nodeId?: string; definitionItemPath?: string },
-  ): { parent: TreeNode; index: number; node: TreeNode } | undefined => {
-    if (ref.nodeId && root.nodeId === ref.nodeId) {
-      if (matchesRef(root, ref)) return { parent: root, index: -1, node: root };
-    }
-    if (ref.bind && root.bind === ref.bind) {
-      if (matchesRef(root, ref)) return { parent: root, index: -1, node: root };
-    }
-    const stack: TreeNode[] = [root];
-    while (stack.length) {
-      const p = stack.pop()!;
-      for (let i = 0; i < (p.children?.length ?? 0); i++) {
-        const c = p.children![i];
-        if (ref.nodeId && c.nodeId === ref.nodeId) {
-          if (matchesRef(c, ref)) return { parent: p, index: i, node: c };
-        } else if (ref.bind && c.bind === ref.bind) {
-          if (matchesRef(c, ref)) return { parent: p, index: i, node: c };
-        }
-        stack.push(c);
-      }
+  const nextFree = (queue: { nodes: TreeNode[]; head: number } | undefined): TreeNode | undefined => {
+    if (!queue) return undefined;
+    while (queue.head < queue.nodes.length) {
+      const node = queue.nodes[queue.head++];
+      if (placement(node) === 'free') return node;
     }
     return undefined;
   };
 
-  const updateWrapperChildren = (
-    wrapperNode: TreeNode,
-    queues: ReturnType<typeof buildExtractionQueues>,
-  ): void => {
+  /** The node in `newRoot` a reference names — by definition path when known, else the first in document order. */
+  const findAttached = (
+    ref: { bind?: string; nodeId?: string },
+    itemPath: string | undefined,
+  ): TreeNode | undefined => {
+    if (ref.nodeId && ref.nodeId === newRoot.nodeId) return newRoot;
+    if (itemPath !== undefined) {
+      const node = byItemPath.get(itemPath);
+      const named = node && (ref.nodeId ? node.nodeId === ref.nodeId : node.bind === ref.bind);
+      return named && placement(node) !== 'detached' ? node : undefined;
+    }
+    const candidates = ref.nodeId ? byNodeId.get(ref.nodeId) : ref.bind ? byBind.get(ref.bind) : undefined;
+    return candidates?.find(node => placement(node) !== 'detached');
+  };
+
+  const updateWrapperChildren = (wrapperNode: TreeNode): void => {
     if (!wrapperNode.children) return;
     const updatedChildren: TreeNode[] = [];
     for (const child of wrapperNode.children) {
+      let node: TreeNode | undefined;
       if (isLayoutWrapper(child)) {
-        updateWrapperChildren(child, queues);
-        updatedChildren.push(child);
-      } else if (child.bind) {
-        let itemPath: string | undefined =
-          typeof child.definitionItemPath === 'string' ? child.definitionItemPath : undefined;
-        if (!itemPath) {
-          const next = queues.byBind.get(child.bind)?.shift();
-          itemPath = typeof next?.definitionItemPath === 'string' ? next.definitionItemPath : undefined;
+        updateWrapperChildren(child);
+        node = child;
+      } else if (child.bind || child.nodeId) {
+        const ref = child.bind ? { bind: child.bind } : { nodeId: child.nodeId };
+        const itemPath = typeof child.definitionItemPath === 'string'
+          ? child.definitionItemPath
+          : nextFree(child.bind ? queueByBind.get(child.bind) : queueByNodeId.get(child.nodeId!))?.definitionItemPath as string | undefined;
+        node = findAttached(ref, itemPath);
+        if (node === newRoot) node = undefined;
+        if (node) {
+          const siblings = parentOf.get(node)!.children!;
+          siblings.splice(siblings.indexOf(node), 1);
         }
-        const found = itemPath
-          ? findInTree(newRoot, { bind: child.bind, definitionItemPath: itemPath })
-          : findInTree(newRoot, { bind: child.bind });
-        if (found && found.index !== -1) {
-          const [extracted] = found.parent.children!.splice(found.index, 1);
-          updatedChildren.push(extracted);
-        }
-      } else if (child.nodeId) {
-        let itemPath: string | undefined =
-          typeof child.definitionItemPath === 'string' ? child.definitionItemPath : undefined;
-        if (!itemPath) {
-          const next = queues.byNodeId.get(child.nodeId)?.shift();
-          itemPath = typeof next?.definitionItemPath === 'string' ? next.definitionItemPath : undefined;
-        }
-        const found = itemPath
-          ? findInTree(newRoot, { nodeId: child.nodeId, definitionItemPath: itemPath })
-          : findInTree(newRoot, { nodeId: child.nodeId });
-        if (found && found.index !== -1) {
-          const [extracted] = found.parent.children!.splice(found.index, 1);
-          updatedChildren.push(extracted);
-        }
+      }
+      if (node) {
+        parentOf.set(node, wrapperNode);
+        updatedChildren.push(node);
       }
     }
     wrapperNode.children = updatedChildren;
@@ -394,15 +384,18 @@ export function reconcileComponentTree(
 
   for (const snap of wrapperSnapshots) {
     const wrapperNode = snap.wrapper;
-    const queues = buildExtractionQueues(newRoot);
-    updateWrapperChildren(wrapperNode, queues);
+    updateWrapperChildren(wrapperNode);
 
-    const parentResult = findInTree(newRoot, snap.parentRef);
-    const parentNode = parentResult ? parentResult.node : newRoot;
+    // The parent's definition path disambiguates duplicate group keys; a group that moved
+    // since the snapshot is still found by key.
+    const parentNode = findAttached(snap.parentRef, snap.parentRef.definitionItemPath)
+      ?? findAttached(snap.parentRef, undefined)
+      ?? newRoot;
     if (!parentNode.children) parentNode.children = [];
 
     const idx = snap.wasLast ? parentNode.children.length : Math.min(snap.position, parentNode.children.length);
     parentNode.children.splice(idx, 0, wrapperNode);
+    parentOf.set(wrapperNode, parentNode);
   }
 
   return newRoot;

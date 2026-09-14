@@ -603,3 +603,25 @@ describe('reconcileComponentTree', () => {
     expect(byCardId('cardB')?.children?.[0]).toMatchObject({ bind: 'note', definitionItemPath: 'g2.note' });
   });
 });
+
+describe('reconcileComponentTree cost', () => {
+  it('re-inserts layout wrappers without a tree pass per wrapper', () => {
+    // Bound: one index over the rebuilt tree. A walk per wrapper and per wrapped child made
+    // this O(wrappers × nodes): 206 ms at 4000 fields / 1000 wrappers, ~4× per doubling.
+    const fields = 8000;
+    const items = Array.from({ length: fields }, (_, i) => ({ key: `f${i}`, type: 'field', dataType: 'string' }));
+    const children: any[] = items.map(item => ({ component: 'TextInput', bind: item.key, definitionItemPath: item.key }));
+    for (let i = 0; i < fields; i += 4) {
+      children[i] = { component: 'Card', _layout: true, nodeId: `card${i}`, children: [children[i]] };
+    }
+    const tree = { component: 'Stack', nodeId: 'root', children };
+
+    const start = performance.now();
+    const rebuilt = reconcileComponentTree({ items } as any, tree);
+    const elapsed = performance.now() - start;
+
+    expect(rebuilt.children).toHaveLength(fields);
+    expect(rebuilt.children[4]).toMatchObject({ nodeId: 'card4', children: [{ bind: 'f4' }] });
+    expect(elapsed).toBeLessThan(100);
+  });
+});
