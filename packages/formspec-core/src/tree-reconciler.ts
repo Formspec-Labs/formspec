@@ -1,6 +1,7 @@
 /** @filedesc Rebuilds the component tree to mirror the definition item hierarchy. */
 import type { FormDefinition, FormItem } from '@formspec-org/types';
 import { widgetTokenToComponent } from '@formspec-org/types';
+import { bindTargetKey, normalizeBindsFromUnknown } from './definition-binds.js';
 
 /** Component tree node shape used in generated layout documents. */
 type TreeNode = {
@@ -192,16 +193,11 @@ export function reconcileComponentTree(
   };
   collectExisting(tree);
 
-  // ── Collect display paths with calculate binds ──
+  // ── Collect item paths with calculate binds (`jobs[*].total` targets `jobs.total`) ──
   const calculatedDisplayPaths = new Set<string>();
-  const bindsArray: Array<{ path?: string; calculate?: string }> = Array.isArray(definition.binds)
-    ? definition.binds
-    : definition.binds && typeof definition.binds === 'object'
-      ? Object.entries(definition.binds as Record<string, unknown>).map(([path, value]) => ({ path, ...(value as object) }))
-      : [];
-  for (const bind of bindsArray) {
-    if (bind.calculate && bind.path) {
-      calculatedDisplayPaths.add(bind.path);
+  for (const bind of normalizeBindsFromUnknown(definition.binds) ?? []) {
+    if (bind.calculate && typeof bind.path === 'string') {
+      calculatedDisplayPaths.add(bindTargetKey(bind.path));
     }
   }
 

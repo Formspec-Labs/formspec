@@ -530,6 +530,23 @@ describe('reconcileComponentTree', () => {
     expect(tree.children[0].bind).toBe('total_heading');
   });
 
+  it('recognizes a calculated display inside a repeat by its [*] bind path', () => {
+    // core §4.3.3: `jobs[*].total` applies to every repetition of `jobs.total`.
+    const definition = {
+      items: [{
+        key: 'jobs', type: 'group', repeatable: true, children: [
+          { key: 'hours', type: 'field', dataType: 'integer' },
+          { key: 'total', type: 'display', label: 'Total', presentation: { widgetHint: 'Heading' } },
+        ],
+      }],
+      binds: [{ path: 'jobs[*].total', calculate: '$hours * 2' }],
+    } as any;
+
+    const total = reconcileComponentTree(definition, undefined).children[0].children[1];
+    expect(total).toMatchObject({ component: 'Heading', bind: 'total', definitionItemPath: 'jobs.total' });
+    expect(total.nodeId).toBeUndefined();
+  });
+
   it('maps duplicate leaf binds into sibling layout wrappers when clones lack definitionItemPath', () => {
     const definition = {
       items: [
