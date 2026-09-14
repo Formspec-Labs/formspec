@@ -101,6 +101,7 @@ def test_run_task_writes_result_with_all_required_keys(tmp_path, fake_score_dirt
             max_rounds=1,
             run_root=tmp_path,
             registry=Path("/tmp/registry.json"),
+            mcp_config=tmp_path / "mcp.json",
         )
 
     missing = RESULT_KEYS - set(result.keys())
@@ -135,6 +136,7 @@ def test_run_task_breaks_early_when_clean(tmp_path, fake_score_clean_on_round_tw
             max_rounds=5,
             run_root=tmp_path,
             registry=Path("/tmp/registry.json"),
+            mcp_config=tmp_path / "mcp.json",
         )
 
     assert result["rounds"] == 2, "loop should terminate as soon as validates=True"
@@ -158,6 +160,7 @@ def test_run_task_runs_exactly_max_rounds_when_never_clean(tmp_path, fake_score_
             max_rounds=3,
             run_root=tmp_path,
             registry=Path("/tmp/registry.json"),
+            mcp_config=tmp_path / "mcp.json",
         )
 
     assert result["rounds"] == 3
@@ -185,6 +188,7 @@ def test_followup_prompt_includes_diagnostics(tmp_path, fake_score_dirty):
             max_rounds=2,
             run_root=tmp_path,
             registry=Path("/tmp/registry.json"),
+            mcp_config=tmp_path / "mcp.json",
         )
 
     assert len(captured_prompts) == 2
@@ -200,8 +204,8 @@ def test_summary_aggregates_all_task_model_pairs(tmp_path, fake_score_dirty):
                       side_effect=lambda *a, **kw: (_populate_candidate(kw["candidate_dir"]), _fake_transcript())[1]), \
          patch.object(run_mcp_loop, "score_task", side_effect=fake_score_dirty):
         results = [
-            run_mcp_loop.run_task("invoice", "sonnet", 1, tmp_path, Path("/tmp/r.json")),
-            run_mcp_loop.run_task("grant-application", "sonnet", 1, tmp_path, Path("/tmp/r.json")),
+            run_mcp_loop.run_task("invoice", "sonnet", 1, tmp_path, Path("/tmp/r.json"), tmp_path / "mcp.json"),
+            run_mcp_loop.run_task("grant-application", "sonnet", 1, tmp_path, Path("/tmp/r.json"), tmp_path / "mcp.json"),
         ]
 
     summary_path = run_mcp_loop.write_summary(tmp_path, results)
@@ -211,3 +215,44 @@ def test_summary_aggregates_all_task_model_pairs(tmp_path, fake_score_dirty):
     ids = {(r["taskId"], r["model"]) for r in summary["results"]}
     assert ("invoice", "sonnet") in ids
     assert ("grant-application", "sonnet") in ids
+
+
+def test_main_requires_an_explicit_mcp_config(capsys):
+    """No repo-local default: the Forms-MCP config lives beside the package in formspec-studio."""
+    with pytest.raises(SystemExit) as exit_info:
+        run_mcp_loop.main(["invoice", "--model", "sonnet"])
+    assert exit_info.value.code == 2
+    assert "--mcp-config" in capsys.readouterr().err
+
+
+def test_main_rejects_a_missing_mcp_config(tmp_path, capsys):
+    missing = tmp_path / "absent.mcp.json"
+    with pytest.raises(SystemExit) as exit_info:
+        run_mcp_loop.main(["invoice", "--model", "sonnet", "--mcp-config", str(missing)])
+    assert exit_info.value.code == 2
+    assert "does not exist" in capsys.readouterr().err
+
+
+def test_main_hands_the_agent_an_absolute_mcp_config(tmp_path, monkeypatch):
+    """The agent runs with cwd=REPO_ROOT, so a caller-relative config path must be resolved first."""
+    (tmp_path / "studio.mcp.json").write_text('{"mcpServers": {}}')
+    monkeypatch.chdir(tmp_path)
+    seen: dict[str, Path] = {}
+
+    def _run_task(**kwargs):
+        seen["mcp_config"] = kwargs["mcp_config"]
+        return {
+            "taskId": kwargs["task_id"], "model": kwargs["model"], "rounds": 1, "score": 1.0,
+            "validates": True, "firstRoundDiags": [], "lastRoundDiags": [],
+            "totalErrorsFirst": 0, "totalErrorsLast": 0, "wallTimeSec": 0,
+        }
+
+    with patch.object(run_mcp_loop, "run_task", side_effect=_run_task), \
+         patch.object(run_mcp_loop, "write_summary", return_value=None, create=True):
+        run_mcp_loop.main([
+            "invoice", "--model", "sonnet",
+            "--mcp-config", "studio.mcp.json",
+            "--runs-dir", str(tmp_path / "runs"),
+        ])
+
+    assert seen["mcp_config"] == tmp_path.resolve() / "studio.mcp.json"

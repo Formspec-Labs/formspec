@@ -23,7 +23,7 @@ Transcript is captured as JSON. The exact command shape:
         --print \\
         --output-format json \\
         --model <model> \\
-        --mcp-config <repo>/.mcp.json \\
+        --mcp-config <absolute path to a Forms-MCP .mcp.json> \\
         --allowedTools "mcp__formspec-mcp__formspec_create \\
                         mcp__formspec-mcp__formspec_audit \\
                         mcp__formspec-mcp__formspec_publish \\
@@ -54,7 +54,6 @@ BENCHMARKS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = BENCHMARKS_DIR.parent
 TASKS_DIR = BENCHMARKS_DIR / "tasks"
 DEFAULT_RUNS_DIR = BENCHMARKS_DIR / "runs"
-DEFAULT_MCP_CONFIG = REPO_ROOT / ".mcp.json"
 
 # Reuse the existing scoring harness without modifying it.
 sys.path.insert(0, str(BENCHMARKS_DIR))
@@ -196,7 +195,7 @@ def run_task(
     max_rounds: int,
     run_root: Path,
     registry: Path,
-    mcp_config: Path = DEFAULT_MCP_CONFIG,
+    mcp_config: Path,
 ) -> dict[str, Any]:
     """Drive one (task, model) pair through up to `max_rounds` iterations.
 
@@ -320,10 +319,14 @@ def main(argv: list[str] | None = None) -> int:
         help=f"Registry JSON path (default: {DEFAULT_REGISTRY}).",
     )
     parser.add_argument(
-        "--mcp-config", type=Path, default=DEFAULT_MCP_CONFIG,
-        help=f"MCP config path (default: {DEFAULT_MCP_CONFIG}).",
+        "--mcp-config", type=Path, required=True,
+        help="MCP config that launches Forms-MCP (it lives in formspec-studio); no repo-local default.",
     )
     args = parser.parse_args(argv)
+    if not args.mcp_config.is_file():
+        parser.error(f"--mcp-config {args.mcp_config} does not exist")
+    # The agent runs with cwd=REPO_ROOT, so pin the caller's path before dispatch.
+    args.mcp_config = args.mcp_config.resolve()
 
     known = iter_task_ids()
     if args.all:
