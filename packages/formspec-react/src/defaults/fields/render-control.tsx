@@ -9,6 +9,7 @@ import { SliderControl } from './controls/slider';
 import { RatingControl } from './controls/rating';
 import { SignatureControl } from './controls/signature';
 import { FileUploadControl } from './controls/file-upload';
+import { CharacterCount, characterCountInfoId } from './controls/character-count';
 import { needTraceAttrs } from '../../projection-metadata.js';
 
 /** Display-only text before/after an input (definition item `prefix`/`suffix`, core §4.2.3). */
@@ -240,8 +241,10 @@ export function renderControl(
             const placeholder = node.props?.placeholder as string | undefined;
             const inputMode = node.props?.inputMode as string | undefined;
             const isTextarea = dataType === 'text' || maxLines != null;
-            // Native limit, as the default webcomponent adapter: theme widgetConfig wins over registry constraints.
-            const maxLength = widgetMaxLength(node) ?? extensionAttrs.maxLength;
+            // Theme widgetConfig.maxLength is a count display, not a cap; a registry constraint stays a native cap.
+            const countLimit = widgetMaxLength(node);
+            const maxLength = countLimit === undefined ? extensionAttrs.maxLength : undefined;
+            const length = String(value ?? '').length;
             // Component prop wins; else the definition item's prefix/suffix.
             const adornments: InputAdornments = {
                 prefix: (node.props?.prefix as string | undefined) ?? itemAdornments.prefix,
@@ -250,7 +253,13 @@ export function renderControl(
 
             const controlProps = {
                 ...common,
-                'aria-describedby': adornedDescribedBy(describedBy, id, adornments),
+                'aria-describedby': adornedDescribedBy(
+                    [countLimit !== undefined ? characterCountInfoId(id) : '', describedBy].filter(Boolean).join(' ') || undefined,
+                    id,
+                    adornments,
+                ),
+                // Invalid while Formspec validation shows an error or the text is over the count limit.
+                'aria-invalid': common['aria-invalid'] || (countLimit !== undefined && length > countLimit),
             };
 
             const control = isTextarea ? (
@@ -278,7 +287,14 @@ export function renderControl(
                 />
             );
 
-            return withAdornments(control, id, adornments);
+            const adorned = withAdornments(control, id, adornments);
+            if (countLimit === undefined) return adorned;
+            return (
+                <>
+                    {adorned}
+                    <CharacterCount fieldId={id} length={length} maxLength={countLimit} />
+                </>
+            );
         }
     }
 }

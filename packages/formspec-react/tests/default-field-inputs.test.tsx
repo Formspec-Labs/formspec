@@ -1,5 +1,5 @@
 /** @filedesc Tests for DefaultField input sub-features and new input types. */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -705,26 +705,76 @@ describe('Definition item prefix/suffix (core §4.2.3)', () => {
 });
 
 describe('Theme widgetConfig.maxLength (theme §4.2 TextInput)', () => {
-    const presentation = { widgetConfig: { maxLength: 200 } };
+    /** Type through React's onChange: native value setter, then a bubbling input event. */
+    function type(control: HTMLInputElement | HTMLTextAreaElement, value: string) {
+        const proto = control instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        actSync(() => {
+            Object.getOwnPropertyDescriptor(proto, 'value')!.set!.call(control, value);
+            control.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    }
 
-    it('applies maxLength to the textarea', () => {
-        const def = baseDef([{ key: 'bio', type: 'field', dataType: 'text', label: 'Bio' }]);
+    it('renders an accessible character count instead of a native maxlength cap', () => {
+        const def = baseDef([{ key: 'bio', type: 'field', dataType: 'text', label: 'Bio', hint: 'Explain briefly' }]);
         const node: LayoutNode = {
             id: 'bio-field', component: 'TextInput', category: 'field',
-            props: { maxLines: 3 }, cssClasses: [], children: [], bindPath: 'bio', presentation,
+            props: { maxLines: 3 }, cssClasses: [], children: [], bindPath: 'bio',
+            presentation: { widgetConfig: { maxLength: 10 } },
         };
         const container = renderField(def, node);
-        expect((container.querySelector('textarea') as HTMLTextAreaElement).maxLength).toBe(200);
+        const textarea = container.querySelector('textarea#field-bio') as HTMLTextAreaElement;
+        // A count, not a hard cap: native maxlength would silently truncate pasted text.
+        expect(textarea.hasAttribute('maxlength')).toBe(false);
+
+        const info = container.querySelector('#field-bio-count-info') as HTMLElement;
+        expect(info.textContent).toBe('You can enter up to 10 characters');
+        expect(info.classList.contains('formspec-sr-only')).toBe(true);
+        expect(textarea.getAttribute('aria-describedby')).toBe('field-bio-count-info field-bio-hint');
+
+        const status = container.querySelector('.formspec-character-count') as HTMLElement;
+        expect(status.getAttribute('aria-hidden')).toBe('true');
+        expect(status.textContent).toBe('10 characters allowed');
+        const srStatus = container.querySelector('.formspec-character-count-sr-status') as HTMLElement;
+        expect(srStatus.getAttribute('aria-live')).toBe('polite');
+
+        vi.useFakeTimers();
+        try {
+            type(textarea, 'abc');
+            expect(status.textContent).toBe('7 characters left');
+            expect(srStatus.textContent).toBe('10 characters allowed');
+            act(() => { vi.advanceTimersByTime(1000); });
+            expect(srStatus.textContent).toBe('7 characters left');
+        } finally {
+            vi.useRealTimers();
+        }
+
+        type(textarea, 'x'.repeat(11));
+        expect(status.textContent).toBe('1 character over limit');
+        expect(status.classList.contains('formspec-character-count--over-limit')).toBe(true);
+        expect(textarea.getAttribute('aria-invalid')).toBe('true');
+        // Touch re-runs Formspec validation (no error); the over-limit state survives it.
+        actSync(() => { textarea.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+        expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+        type(textarea, 'x'.repeat(10));
+        expect(status.textContent).toBe('0 characters left');
+        expect(status.classList.contains('formspec-character-count--over-limit')).toBe(false);
+        expect(textarea.getAttribute('aria-invalid')).toBe('false');
     });
 
-    it('applies maxLength to the text input', () => {
+    it('renders the count on a single-line text input', () => {
         const def = baseDef([{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }]);
         const node: LayoutNode = {
             id: 'name-field', component: 'TextInput', category: 'field',
-            props: {}, cssClasses: [], children: [], bindPath: 'name', presentation,
+            props: {}, cssClasses: [], children: [], bindPath: 'name',
+            presentation: { widgetConfig: { maxLength: 5 } },
         };
         const container = renderField(def, node);
-        expect((container.querySelector('input') as HTMLInputElement).maxLength).toBe(200);
+        const input = container.querySelector('input#field-name') as HTMLInputElement;
+        expect(input.hasAttribute('maxlength')).toBe(false);
+        expect(input.getAttribute('aria-describedby')).toBe('field-name-count-info');
+        type(input, 'ab');
+        expect(container.querySelector('.formspec-character-count')?.textContent).toBe('3 characters left');
     });
 
     it('ignores a maxLength that is not a positive integer', () => {
@@ -735,7 +785,7 @@ describe('Theme widgetConfig.maxLength (theme §4.2 TextInput)', () => {
             presentation: { widgetConfig: { maxLength: '12' } },
         };
         const container = renderField(def, node);
-        expect((container.querySelector('input') as HTMLInputElement).hasAttribute('maxlength')).toBe(false);
+        expect(container.querySelector('.formspec-character-count')).toBeNull();
     });
 });
 
