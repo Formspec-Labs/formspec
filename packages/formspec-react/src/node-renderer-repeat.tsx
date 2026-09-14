@@ -229,16 +229,20 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
 }
 
 /**
- * Deep-clone a LayoutNode tree, rewriting `bindPath` from template `[0]` to `[instanceIdx]`.
+ * Deep-clone a LayoutNode tree, rewriting `bindPath` onto instance `[instanceIdx]`.
+ * Repeat templates plan children under `repeatPath[0]`; a bound Accordion plans them under `repeatPath.`.
  */
 export function rewriteBindPaths(node: LayoutNode, repeatPath: string, instanceIdx: number): LayoutNode {
     const templatePrefix = `${repeatPath}[0]`;
+    const groupScopePrefix = `${repeatPath}.`;
     const instancePrefix = `${repeatPath}[${instanceIdx}]`;
 
     const rewritten: LayoutNode = { ...node };
 
     if (rewritten.bindPath?.startsWith(templatePrefix)) {
         rewritten.bindPath = instancePrefix + rewritten.bindPath.slice(templatePrefix.length);
+    } else if (rewritten.bindPath?.startsWith(groupScopePrefix)) {
+        rewritten.bindPath = `${instancePrefix}.${rewritten.bindPath.slice(groupScopePrefix.length)}`;
     }
 
     rewritten.id = `${node.id}-${instanceIdx}`;

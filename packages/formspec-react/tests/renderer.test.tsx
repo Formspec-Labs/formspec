@@ -2178,6 +2178,31 @@ describe('repeat group rendering', () => {
         expect(repeatContainer.querySelector('.formspec-sr-only[aria-live="polite"]')).toBeTruthy();
     });
 
+    it('stamps planned Accordion repeat children at each instance path', () => {
+        // The planner scopes an Accordion's children under the group path (`members.memberName`),
+        // not the repeat template path (`members[0].memberName`) a repeat template uses.
+        const engine = createFormEngine(repeatDefinition);
+        engine.addRepeatInstance('members');
+        const container = renderInto(
+            <FormspecForm
+                engine={engine}
+                componentDocument={{
+                    $formspecComponent: '1.0',
+                    version: '1.0.0',
+                    targetDefinition: { url: repeatDefinition.url },
+                    tree: {
+                        component: 'Accordion',
+                        bind: 'members',
+                        children: [{ component: 'TextInput', bind: 'memberName' }],
+                    },
+                }}
+            />,
+        );
+
+        const paths = Array.from(container.querySelectorAll('[data-name]'), (el) => el.getAttribute('data-name'));
+        expect(paths).toEqual(['members[0].memberName', 'members[1].memberName']);
+    });
+
     it('renders a visible instance header that keeps remove actions attached to each row', () => {
         const container = renderInto(
             <FormspecForm definition={repeatDefinition} />
