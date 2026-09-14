@@ -109,6 +109,25 @@ describe('display Items — text', () => {
         expect(container.querySelector('.formspec-text--markdown b')).toBeNull();
     });
 
+    it('follows the engine label context: Locale `<key>.label@context`, reactively', () => {
+        const { container, engine } = render(definition([
+            { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+            { key: 'note', type: 'display', label: 'A longer note for {{$name}}' },
+        ]));
+        act(() => {
+            engine.loadLocale(frLocale({ 'note.label@short': 'Note {{$name}}' }) as any);
+            engine.setLocale('fr');
+            engine.setValue('name', 'Ada');
+        });
+        expect(texts(container)).toEqual(['A longer note for Ada']);
+
+        act(() => engine.setLabelContext('short'));
+        expect(texts(container)).toEqual(['Note Ada']);
+
+        act(() => engine.setLabelContext(null));
+        expect(texts(container)).toEqual(['A longer note for Ada']);
+    });
+
     it('resolves Heading display Items the same way', () => {
         const { container, engine } = render(definition([
             { key: 'name', type: 'field', dataType: 'string', label: 'Name' },

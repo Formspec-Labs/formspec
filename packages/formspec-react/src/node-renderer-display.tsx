@@ -3,7 +3,6 @@
 /** @filedesc Display-category LayoutNode rendering (Text, DataTable, Summary, etc.). */
 import React, { useCallback, useMemo, useState } from 'react';
 import { computed, signal as createSignal } from '@preact/signals-core';
-import { interpolateMessage } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
 import type { FormItem } from '@formspec-org/types';
 import { useFormspecContext, findItemByKey } from './context.js';
@@ -50,9 +49,9 @@ const NO_TEXT = createSignal<string | null>(null);
 /**
  * Live text and Bind relevance for a node planned from a display Item. The planner links it by
  * `bindPath` (an instance path once repeats are stamped) and drops the value `bind`; a Text with
- * `bind` shows a field value instead. Text is the Locale `<itemKey>.label` string, else the inline
- * label, FEL `{{}}`-interpolated in the Item's instance scope. Same rule as webcomponent display-host
- * `watchCompText` / display `hideWhenNotRelevant`.
+ * `bind` shows a field value instead. Text is `engine.getItemLabelSignal` (Locale `<key>.label@context`
+ * → `<key>.label` → `labels[context]` → inline, `{{}}` in the Item's instance scope). Same rule as
+ * webcomponent display-host `watchCompText` / `renderWithDisplayItemRelevance`.
  */
 function useDisplayItem(node: LayoutNode): { text: string | null; relevant: boolean } {
     const { engine } = useFormspecContext();
@@ -61,14 +60,8 @@ function useDisplayItem(node: LayoutNode): { text: string | null; relevant: bool
     const item: FormItem | null = found?.type === 'display' ? found : null;
     const textSignal = useMemo(() => {
         if (!item || !path) return NO_TEXT;
-        return computed(() => {
-            engine.localeSignal.value;
-            const inline = interpolateMessage(
-                engine.getLabel(item),
-                (expr) => engine.compileExpression(expr, path)(),
-            ).text;
-            return engine.resolveLocaleString(`${item.key}.label`, inline, path);
-        });
+        const label = engine.getItemLabelSignal(path);
+        return label ?? computed(() => engine.getLabel(item));
     }, [engine, item, path]);
     const text = useSignal(textSignal);
     const relevant = useSignal((item && path && engine.relevantSignals[path]) || ALWAYS_RELEVANT);
