@@ -81,6 +81,6 @@ describe('Layout chrome parity', () => {
         expect(extractRuleProp(layoutCSS, '.formspec-repeat-remove', 'box-shadow')).toContain('var(--formspec-default-danger-fill)');
         expect(extractRuleProp(layoutCSS, '.formspec-repeat-instance-header', 'justify-content')).toBe('space-between');
         expect(extractRuleProp(layoutCSS, '.formspec-repeat-instance-label', 'color')).toBe('var(--formspec-default-text-strong)');
-        expect(extractRuleProp(layoutCSS, '.formspec-repeat-instance > .formspec-repeat-remove', 'margin-top')).toBe('0');
+        expect(extractRuleProp(layoutCSS, '.formspec-repeat-instance-header > .formspec-repeat-remove', 'margin-block')).toBe('0');
     });
 });
