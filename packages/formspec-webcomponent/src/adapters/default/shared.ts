@@ -13,7 +13,7 @@ export interface FieldDOMOptions {
 export interface FieldDOM {
     root: HTMLElement;
     label: HTMLElement;
-    hint: HTMLElement | undefined;
+    hint: HTMLElement;
     error: HTMLElement;
 }
 
@@ -74,23 +74,22 @@ export function createFieldDOM(
 
     root.appendChild(label);
 
-    if (descText) {
-        const desc = document.createElement('div');
-        desc.className = 'formspec-description';
-        desc.id = descId;
-        desc.textContent = descText;
-        root.appendChild(desc);
-    }
+    // Always rendered, hidden while empty: interpolated text can arrive after render, and
+    // bindSharedFieldEffects keeps text, visibility, and aria-describedby current.
+    const desc = document.createElement('div');
+    desc.className = 'formspec-description';
+    desc.id = descId;
+    desc.textContent = descText ?? '';
+    desc.hidden = !descText;
+    root.appendChild(desc);
 
-    let hint: HTMLElement | undefined;
-    if (hintText) {
-        hint = document.createElement('p');
-        hint.className = 'formspec-hint';
-        hint.id = hintId;
-        hint.textContent = hintText;
-        if (slots.hint) actx.applyClassValue(hint, slots.hint);
-        root.appendChild(hint);
-    }
+    const hint = document.createElement('p');
+    hint.className = 'formspec-hint';
+    hint.id = hintId;
+    hint.textContent = hintText ?? '';
+    hint.hidden = !hintText;
+    if (slots.hint) actx.applyClassValue(hint, slots.hint);
+    root.appendChild(hint);
 
     const error = document.createElement('p');
     error.className = 'formspec-error';

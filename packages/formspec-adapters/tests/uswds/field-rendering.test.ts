@@ -319,4 +319,39 @@ describe('USWDS field text — hints and descriptions', () => {
         el.getEngine().setValue('limit', 12);
         expect(el.querySelector('#field-story-hint')?.textContent).toBe('Use at most 12 words.');
     });
+
+    it('keeps the date format hint visible and described when the item has no hint', () => {
+        const el = renderForm([{ key: 'start', type: 'field', dataType: 'date', label: 'Start date' }]);
+        const input = el.querySelector('#field-start') as HTMLInputElement;
+        const format = el.querySelector('#field-start-format') as HTMLElement;
+        expect(format.textContent).toBe('MM/DD/YYYY');
+        expect(format.hidden).toBe(false);
+        expect(input.getAttribute('aria-describedby')).toBe('field-start-format');
+    });
+
+    it('shows a hint and description that start empty once they get text, and hides them again', () => {
+        const el = renderForm([
+            { key: 'note', type: 'field', dataType: 'string', label: 'Note' },
+            { key: 'story', type: 'field', dataType: 'string', label: 'Story', hint: '{{$note}}', description: '{{$note}}' },
+        ]);
+        const input = el.querySelector('#field-story') as HTMLInputElement;
+        const hint = el.querySelector('#field-story-hint') as HTMLElement;
+        const desc = el.querySelector('#field-story-desc') as HTMLElement;
+        expect(hint).not.toBeNull();
+        expect(desc).not.toBeNull();
+        expect(hint.hidden).toBe(true);
+        expect(desc.hidden).toBe(true);
+        expect(input.getAttribute('aria-describedby')).toBeNull();
+
+        el.getEngine().setValue('note', 'Plain words');
+        expect(hint.textContent).toBe('Plain words');
+        expect(hint.hidden).toBe(false);
+        expect(desc.hidden).toBe(false);
+        expect(input.getAttribute('aria-describedby')).toBe('field-story-desc field-story-hint');
+
+        el.getEngine().setValue('note', '');
+        expect(hint.hidden).toBe(true);
+        expect(desc.hidden).toBe(true);
+        expect(input.getAttribute('aria-describedby')).toBeNull();
+    });
 });

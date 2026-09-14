@@ -69,6 +69,13 @@ export function resolveFieldText(
     }));
 }
 
+/** Set a hint/description element's text, hiding it while empty. */
+function showFieldText(el: HTMLElement | null | undefined, text: string | null | undefined): void {
+    if (!el) return;
+    el.textContent = text ?? '';
+    el.hidden = !text;
+}
+
 /** Warn if the component type is incompatible with the item's dataType. */
 export function warnIfIncompatible(
     componentType: string,
@@ -126,22 +133,16 @@ export function bindSharedFieldEffects(
         actualInput.setAttribute('aria-required', String(isRequired));
     }));
 
-    // Hint + description text (Locale changes, `{{}}` interpolation of live values)
-    if (vm) {
-        const descEl = refs.root.querySelector('.formspec-description') as HTMLElement | null;
-        disposers.push(effect(() => {
-            if (refs.hint) refs.hint.textContent = vm.hint.value ?? '';
-            if (descEl) descEl.textContent = vm.description.value ?? '';
-        }));
-    }
-
-    // ARIA describedby: supplementary text ids, plus the error message id while an error is shown
-    // (USWDS validation pattern: the input's aria-describedby names its usa-error-message).
+    // ARIA describedby: supplementary text ids (description and hint only while shown), plus the error
+    // message id while an error is shown (USWDS validation pattern: the input's aria-describedby names its
+    // usa-error-message).
     const ariaTarget = refs.skipAriaDescribedBy ? refs.control : actualInput;
-    const supplementaryIds = [
+    const descEl = refs.root.querySelector('.formspec-description') as HTMLElement | null;
+    const shownTextId = (el: HTMLElement | null | undefined) => (el && !el.hidden ? el.id : undefined);
+    const supplementaryIds = () => [
         ...(ariaTarget.getAttribute('data-describedby-base')?.split(/\s+/) ?? []),
-        refs.root.querySelector('.formspec-description[id]')?.id,
-        refs.hint?.id,
+        shownTextId(descEl),
+        shownTextId(refs.hint),
         ...Array.from(
             refs.control.querySelectorAll('.formspec-prefix[id], .formspec-suffix[id], .formspec-input-prefix[id], .formspec-input-suffix[id]'),
             (el) => el.id,
@@ -149,11 +150,23 @@ export function bindSharedFieldEffects(
         refs.control.querySelector('.formspec-money-currency[id]')?.id,
         refs.control.querySelector('.formspec-toggle-on[id]')?.id,
     ];
-    const syncDescribedBy = (errorShown: boolean) => {
-        const ids = [...new Set([...supplementaryIds, errorShown ? refs.error?.id : undefined].filter(Boolean))].join(' ');
+    let lastErrorShown = false;
+    const syncDescribedBy = (errorShown = lastErrorShown) => {
+        lastErrorShown = errorShown;
+        const ids = [...new Set([...supplementaryIds(), errorShown ? refs.error?.id : undefined].filter(Boolean))].join(' ');
         if (ids) ariaTarget.setAttribute('aria-describedby', ids);
         else ariaTarget.removeAttribute('aria-describedby');
     };
+
+    // Hint + description text (Locale changes, `{{}}` interpolation of live values). Adapters render both,
+    // hidden while empty; text that appears or clears later toggles visibility and aria-describedby.
+    if (vm) {
+        disposers.push(effect(() => {
+            showFieldText(refs.hint, vm.hint.value);
+            showFieldText(descEl, vm.description.value);
+            syncDescribedBy();
+        }));
+    }
 
     // Validation display
     disposers.push(effect(() => {

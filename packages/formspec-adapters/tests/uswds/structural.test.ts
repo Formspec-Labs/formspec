@@ -179,7 +179,7 @@ describe('USWDS DatePicker', () => {
         const input = parent.querySelector('input.usa-input') as HTMLInputElement;
         expect(input).toBeTruthy();
         expect(input.type).toBe('text');
-        const hint = parent.querySelector('.usa-hint');
+        const hint = parent.querySelector('.usa-hint:not([hidden])');
         expect(hint?.textContent).toContain('MM/DD/YYYY');
     });
 });
@@ -272,7 +272,7 @@ describe('USWDS FileUpload', () => {
     it('renders accepted file types as usa-hint text when accept is set', () => {
         const parent = makeParent();
         renderFileUpload(mockFileUpload({ accept: '.pdf,.doc,.docx' }), parent, mockAdapterContext());
-        const hint = parent.querySelector('.usa-hint');
+        const hint = parent.querySelector('.usa-hint:not([hidden])');
         expect(hint).toBeTruthy();
         expect(hint!.textContent).toContain('.pdf,.doc,.docx');
     });

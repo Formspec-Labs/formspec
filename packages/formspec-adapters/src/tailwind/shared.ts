@@ -59,7 +59,7 @@ export const TW_CARD_OPTION =
 export interface TailwindFieldDOM {
     root: HTMLElement;
     label: HTMLElement;
-    hint: HTMLElement | undefined;
+    hint: HTMLElement;
     error: HTMLElement;
     describedBy: string;
 }
@@ -88,21 +88,27 @@ export function createTailwindFieldDOM(
     label.textContent = behavior.label;
     root.appendChild(label);
 
-    // Hint
-    let hint: HTMLElement | undefined;
-    if (behavior.hint) {
-        const hintId = `${behavior.id}-hint`;
-        hint = el('p', { class: TW.hint, id: hintId });
-        hint.textContent = behavior.hint;
-        root.appendChild(hint);
-    }
+    const hint = createTailwindHint(behavior);
+    root.appendChild(hint);
 
     // Error (not appended — adapter places it after control)
     const error = createTailwindError(behavior.id);
 
-    const describedBy = hint ? `${behavior.id}-hint` : '';
+    const describedBy = behavior.hint ? hint.id : '';
 
     return { root, label, hint, error, describedBy };
+}
+
+/**
+ * Hint element (`<behaviorId>-hint`), always rendered and hidden while empty: interpolated hint text can
+ * arrive after render, and the webcomponent's shared field effects keep text, visibility, and
+ * aria-describedby current.
+ */
+export function createTailwindHint(behavior: Pick<FieldBehavior, 'id' | 'hint'>): HTMLElement {
+    const hint = el('p', { class: TW.hint, id: `${behavior.id}-hint` });
+    hint.textContent = behavior.hint ?? '';
+    hint.hidden = !behavior.hint;
+    return hint;
 }
 
 export function setTwAriaDescribedBy(el: HTMLElement, describedBy: string): void {

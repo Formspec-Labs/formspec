@@ -7,7 +7,7 @@ import { createInputSkeleton, linkInputAdornments, type InputSkeletonOptions, ty
 export interface USWDSFieldDOM {
     root: HTMLElement;
     label: HTMLElement;
-    hint: HTMLElement | undefined;
+    hint: HTMLElement;
     error: HTMLElement;
 }
 
@@ -20,9 +20,9 @@ export interface USWDSFieldOptions {
 
 /**
  * Create the common USWDS field wrapper: usa-form-group (or usa-fieldset) root,
- * usa-label (or usa-legend), optional description, usa-hint (if present), then usa-error-message.
+ * usa-label (or usa-legend), description, usa-hint (both hidden while empty), then usa-error-message.
  *
- * Order in `root` is label → description (optional) → hint (optional) → error; adapters append the control after.
+ * Order in `root` is label → description → hint → error; adapters append the control after.
  */
 export function createUSWDSFieldDOM(
     behavior: FieldBehavior,
@@ -56,22 +56,18 @@ export function createUSWDSFieldDOM(
     label.textContent = behavior.label;
     root.appendChild(label);
 
-    // Description (from item definition)
-    if (behavior.description) {
-        const descId = `${fieldId}-desc`;
-        const desc = el('div', { class: 'usa-hint formspec-description', id: descId });
-        desc.textContent = behavior.description;
-        root.appendChild(desc);
-    }
+    // Description and hint (behavior resolves them through the view model: Locale + {{}} interpolation).
+    // Always rendered, hidden while empty: interpolated text can arrive after render, and
+    // bindSharedFieldEffects keeps text, visibility, and aria-describedby current.
+    const desc = el('div', { class: 'usa-hint formspec-description', id: `${fieldId}-desc` });
+    desc.textContent = behavior.description ?? '';
+    desc.hidden = !behavior.description;
+    root.appendChild(desc);
 
-    // Hint (behavior resolves it through the view model: Locale + {{}} interpolation)
-    let hint: HTMLElement | undefined;
-    if (behavior.hint) {
-        const hintId = `${fieldId}-hint`;
-        hint = el('span', { class: 'usa-hint', id: hintId });
-        hint.textContent = behavior.hint;
-        root.appendChild(hint);
-    }
+    const hint = el('span', { class: 'usa-hint', id: `${fieldId}-hint` });
+    hint.textContent = behavior.hint ?? '';
+    hint.hidden = !behavior.hint;
+    root.appendChild(hint);
 
     // Error (bindSharedFieldEffects adds its id to aria-describedby while an error is shown)
     const error = createUSWDSError(fieldId);

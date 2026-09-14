@@ -67,6 +67,24 @@ describe('Tailwind TextInput', () => {
         expect(error.className).toContain('var(--formspec-tw-danger)');
     });
 
+    it('renders the hint hidden while empty so later text can appear', () => {
+        for (const render of [
+            () => { const p = makeParent(); renderTextInput(mockTextInput(), p, mockAdapterContext()); return p; },
+            () => { const p = makeParent(); renderRadioGroup(mockRadioGroup(), p, mockAdapterContext()); return p; },
+            () => { const p = makeParent(); renderCheckboxGroup(mockCheckboxGroup(), p, mockAdapterContext()); return p; },
+            () => { const p = makeParent(); renderToggle(mockToggle(), p, mockAdapterContext()); return p; },
+        ]) {
+            const hint = render().querySelector('[id$="-hint"]') as HTMLElement;
+            expect(hint).not.toBeNull();
+            expect(hint.hidden).toBe(true);
+        }
+        const parent = makeParent();
+        renderTextInput(mockTextInput({ hint: 'Legal name' }), parent, mockAdapterContext());
+        const hint = parent.querySelector('#field-name-hint') as HTMLElement;
+        expect(hint.hidden).toBe(false);
+        expect(hint.textContent).toBe('Legal name');
+    });
+
     it('renders textarea when maxLines > 1', () => {
         const parent = makeParent();
         renderTextInput(mockTextInput({ maxLines: 5 }), parent, mockAdapterContext());

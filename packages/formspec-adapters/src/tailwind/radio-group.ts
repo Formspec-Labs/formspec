@@ -1,7 +1,7 @@
 /** @filedesc Tailwind adapter for RadioGroup — card-style option grid. */
 import type { RadioGroupBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
-import { createTailwindError, TW, applyErrorStyling, buildTailwindGroupOptions } from './shared';
+import { createTailwindError, TW, applyErrorStyling, buildTailwindGroupOptions, createTailwindHint } from './shared';
 
 export const renderRadioGroup: AdapterRenderFn<RadioGroupBehavior> = (
     behavior, parent, actx
@@ -18,13 +18,8 @@ export const renderRadioGroup: AdapterRenderFn<RadioGroupBehavior> = (
     legend.textContent = behavior.label;
     fieldset.appendChild(legend);
 
-    let hint: HTMLElement | undefined;
-    if (behavior.hint) {
-        const hintId = `${behavior.id}-hint`;
-        hint = el('p', { class: TW.hint, id: hintId });
-        hint.textContent = behavior.hint;
-        fieldset.appendChild(hint);
-    }
+    const hint = createTailwindHint(behavior);
+    fieldset.appendChild(hint);
 
     const optionContainer = el('div', { class: 'grid gap-3 mt-3 sm:grid-cols-2' });
     const initialControls = buildTailwindGroupOptions(

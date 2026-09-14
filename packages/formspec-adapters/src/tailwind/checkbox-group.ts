@@ -1,7 +1,7 @@
 /** @filedesc Tailwind adapter for CheckboxGroup — card-style multi-select grid. */
 import type { CheckboxGroupBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
-import { createTailwindError, TW, applyErrorStyling, buildTailwindGroupOptions } from './shared';
+import { createTailwindError, TW, applyErrorStyling, buildTailwindGroupOptions, createTailwindHint } from './shared';
 
 function optionGridClass(columns?: number): string {
     if (columns === 3) return 'grid gap-3 mt-3 sm:grid-cols-2 lg:grid-cols-3';
@@ -24,13 +24,8 @@ export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
     legend.textContent = behavior.label;
     fieldset.appendChild(legend);
 
-    let hint: HTMLElement | undefined;
-    if (behavior.hint) {
-        const hintId = `${behavior.id}-hint`;
-        hint = el('p', { class: TW.hint, id: hintId });
-        hint.textContent = behavior.hint;
-        fieldset.appendChild(hint);
-    }
+    const hint = createTailwindHint(behavior);
+    fieldset.appendChild(hint);
 
     // Select All — compact row above the grid
     if (behavior.selectAll && behavior.options().length > 0) {

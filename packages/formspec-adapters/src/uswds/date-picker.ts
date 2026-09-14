@@ -9,15 +9,16 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
     behavior, parent, actx
 ) => {
     const p = behavior.presentation;
-    const { root, label, hint: hintFromDef, error } = createUSWDSFieldDOM(behavior);
+    const { root, label, hint, error } = createUSWDSFieldDOM(behavior);
 
     if (p.labelPosition === 'start') root.style.display = 'flex';
 
-    let hint = hintFromDef;
-    if (!hint) {
-        hint = el('span', { class: 'usa-hint', id: `${behavior.id}-hint` });
-        hint.textContent = 'MM/DD/YYYY';
-        root.appendChild(hint);
+    // Format hint when the item has none. Static and separate from `hint`, whose text the view model owns.
+    let formatHint: HTMLElement | undefined;
+    if (!behavior.hint) {
+        formatHint = el('span', { class: 'usa-hint', id: `${behavior.id}-format` });
+        formatHint.textContent = 'MM/DD/YYYY';
+        root.appendChild(formatHint);
     }
 
     const useTextDate = behavior.inputType === 'date';
@@ -32,6 +33,8 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
             }
         },
     });
+
+    if (formatHint) actualInput.setAttribute('data-describedby-base', formatHint.id);
 
     // Special case: for usa-date-picker, the prefix/suffix logic is NOT used,
     // we just need the shell. createInputSkeleton handles groupClass if prefix/suffix present.

@@ -1,7 +1,7 @@
 /** @filedesc Tailwind adapter for Toggle — switch with correct peer ordering for knob motion. */
 import type { ToggleBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
-import { createTailwindError, TW, applyErrorStyling } from './shared';
+import { createTailwindError, TW, applyErrorStyling, createTailwindHint } from './shared';
 
 export const renderToggle: AdapterRenderFn<ToggleBehavior> = (
     behavior, parent, actx
@@ -55,13 +55,8 @@ export const renderToggle: AdapterRenderFn<ToggleBehavior> = (
     row.appendChild(track);
     root.appendChild(row);
 
-    let hint: HTMLElement | undefined;
-    if (behavior.hint) {
-        const hintId = `${behavior.id}-hint`;
-        hint = el('p', { class: TW.hint, id: hintId });
-        hint.textContent = behavior.hint;
-        root.appendChild(hint);
-    }
+    const hint = createTailwindHint(behavior);
+    root.appendChild(hint);
 
     const error = createTailwindError(behavior.id);
     root.appendChild(error);

@@ -59,10 +59,12 @@ describe('createUSWDSFieldDOM', () => {
         expect(dom.hint!.id).toBe(`${b.id}-hint`);
     });
 
-    it('hint is undefined when behavior.hint is null', () => {
-        const b = mockTextInput({ hint: null });
+    it('renders a hidden hint and description when behavior text is null (text may arrive later)', () => {
+        const b = mockTextInput({ hint: null, description: null });
         const dom = createUSWDSFieldDOM(b);
-        expect(dom.hint).toBeUndefined();
+        expect(dom.hint.id).toBe(`${b.id}-hint`);
+        expect(dom.hint.hidden).toBe(true);
+        expect(dom.root.querySelector(`#${b.id}-desc`)?.hasAttribute('hidden')).toBe(true);
     });
 
     it('hint is appended to root', () => {
