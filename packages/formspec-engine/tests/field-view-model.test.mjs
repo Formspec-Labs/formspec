@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { preactReactiveRuntime as rt } from '../dist/reactivity/preact-runtime.js';
 import { LocaleStore } from '../dist/locale.js';
 import { createFieldViewModel } from '../dist/field-view-model.js';
+import { interpolateMessage } from '../dist/interpolate-message.js';
 
 function makeMinimalDeps(overrides = {}) {
     const localeStore = new LocaleStore(rt);
@@ -35,7 +36,7 @@ function makeMinimalDeps(overrides = {}) {
         getOptionsState: () => rt.signal({ loading: false, error: null }),
         getOptionSetName: () => undefined,
         setFieldValue: (_v) => {},
-        evalFEL: (expr) => `[${expr}]`,
+        interpolate: (template) => interpolateMessage(template, (expr) => `[${expr}]`).text,
         ...overrides,
     };
 }
@@ -65,7 +66,7 @@ test('FieldViewModel label resolves from locale store', () => {
 
 test('FieldViewModel label with FEL interpolation', () => {
     const deps = makeMinimalDeps({
-        evalFEL: (expr) => expr === '$count' ? 42 : expr,
+        interpolate: (template) => interpolateMessage(template, (expr) => expr === '$count' ? 42 : expr).text,
     });
     const vm = createFieldViewModel(deps);
 

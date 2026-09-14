@@ -264,9 +264,30 @@ export function wasmEvalFELWithContextTrace(
     return JSON.parse(resultJson);
 }
 
-/** Locale §3.3.1 — true if the expression AST is only literals and unary `not` / `!` / `-`. */
-export function wasmFelExprIsInterpolationStaticLiteral(expression: string): boolean {
-    return wasm().felExprIsInterpolationStaticLiteral(expression);
+/** Interpolation result from Rust: resolved text plus one warning per expression left literal. */
+export interface WasmInterpolated {
+    text: string;
+    warnings: Array<{ expression: string; message: string }>;
+}
+
+/** Locale §3.3.1: resolve every `{{expression}}` in `template` against a FEL context, in one call. */
+export function wasmInterpolateFELTemplate(
+    template: string,
+    context: WasmFelContext,
+    extensions?: FelExtensionHost,
+): WasmInterpolated {
+    return JSON.parse(wasm().interpolateFELTemplate(template, JSON.stringify(context), extensions));
+}
+
+/**
+ * Locale §3.3.1 with a host evaluator: Rust scans the template and applies the escape, failure,
+ * and coercion rules; `evaluate(expression)` returns JSON `{ value, hasErrorDiagnostics? }` or throws.
+ */
+export function wasmInterpolateTemplate(
+    template: string,
+    evaluate: (expression: string) => string,
+): WasmInterpolated {
+    return JSON.parse(wasm().interpolateTemplate(template, evaluate));
 }
 
 /** Normalize FEL source before evaluation (bare `$`, repeat qualifiers, repeat aliases). */

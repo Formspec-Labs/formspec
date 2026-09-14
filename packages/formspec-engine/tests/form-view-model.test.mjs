@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { preactReactiveRuntime } from '../dist/reactivity/preact-runtime.js';
 import { LocaleStore } from '../dist/locale.js';
 import { createFormViewModel } from '../dist/form-view-model.js';
+import { interpolateMessage } from '../dist/interpolate-message.js';
 
 /**
  * Build a FormViewModel with sensible defaults.
@@ -21,7 +22,7 @@ function buildVM(overrides = {}) {
     getDefinitionDescription: () => 'A test form',
     getPageTitle: () => undefined,
     getPageDescription: () => undefined,
-    evalFEL: () => undefined,
+    interpolate: (template) => template,
     getValidationCounts: () => ({ errors: 0, warnings: 0, infos: 0 }),
     getIsValid: () => true,
   };
@@ -218,7 +219,7 @@ test('validationSummary reflects getValidationCounts callback', () => {
 
 // ── FEL interpolation in title ──
 
-test('title interpolates {{expr}} using evalFEL', () => {
+test('title interpolates {{expr}} through the interpolate dep', () => {
   const rx = preactReactiveRuntime;
   const localeStore = new LocaleStore(rx);
   localeStore.loadLocale({
@@ -236,10 +237,10 @@ test('title interpolates {{expr}} using evalFEL', () => {
     rx,
     localeStore,
     getDefinitionTitle: () => 'Totals',
-    evalFEL: (expr) => {
+    interpolate: (template) => interpolateMessage(template, (expr) => {
       if (expr === '$count') return countSignal.value;
       return undefined;
-    },
+    }).text,
   });
 
   assert.equal(vm.title.value, 'Total: 5');
@@ -256,10 +257,10 @@ test('title interpolates {{expr}} in definition fallback too', () => {
   const { vm } = buildVM({
     rx,
     getDefinitionTitle: () => 'Items: {{$count}}',
-    evalFEL: (expr) => {
+    interpolate: (template) => interpolateMessage(template, (expr) => {
       if (expr === '$count') return countSignal.value;
       return undefined;
-    },
+    }).text,
   });
 
   assert.equal(vm.title.value, 'Items: 3');

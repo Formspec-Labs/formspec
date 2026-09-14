@@ -12,7 +12,7 @@ import type {
     ValidationProfile,
 } from '@formspec-org/types';
 import { diffEvalResults, type EvalDiagnostic, type EvalResult, type EvalValidation } from '../diff.js';
-import { interpolateMessage } from '../interpolate-message.js';
+import { interpolateFELTemplate } from '../interpolate-message.js';
 import { FelExtensionFunctions, type FelExtensionFunctionRegistration } from '../extension-functions.js';
 import type {
     AuthoredSignatureInput,
@@ -48,7 +48,6 @@ import { createFormViewModel, type FormViewModel } from '../form-view-model.js';
 import {
     wasmEvaluateDefinition,
     wasmEvalFELWithContext,
-    wasmEvalFELWithContextEnvelope,
 } from '../wasm-bridge-runtime.js';
 import {
     resolveOptionSetsOnDefinition,
@@ -253,7 +252,7 @@ export class FormEngine implements IFormEngine {
             getDefinitionDescription: () => this.definition.description ?? '',
             getPageTitle: () => undefined,
             getPageDescription: () => undefined,
-            evalFEL: (expr) => this._evalLocaleFEL(expr),
+            interpolate: (template) => this._interpolate(template),
             getValidationCounts: () => {
                 const report = this.getValidationReport();
                 return {
@@ -945,7 +944,7 @@ export class FormEngine implements IFormEngine {
             inlineLabel: item.label,
             labels: item.labels,
             context: this._labelContextSignal.value,
-            evalFEL: (expression) => this._evalLocaleFEL(expression, path),
+            interpolate: (template) => this._interpolate(template, path),
         }).value);
         this._itemLabelSignals.set(path, label);
         return label;
@@ -982,7 +981,7 @@ export class FormEngine implements IFormEngine {
     public resolveLocaleString(key: string, fallback: string, itemPath = ''): string {
         const localized = this._localeStore.lookupKey(key);
         if (localized !== null) {
-            return interpolateMessage(localized, (expr: string) => this._evalLocaleFEL(expr, itemPath)).text;
+            return this._interpolate(localized, itemPath);
         }
         return fallback;
     }
@@ -1839,14 +1838,20 @@ export class FormEngine implements IFormEngine {
             getOptionsState: () => this.optionStateSignals[basePath] ?? this._rx.signal({ loading: false, error: null }),
             getOptionSetName: () => item.optionSet,
             setFieldValue: (value) => this.setValue(path, value),
-            evalFEL: (expr) => this._evalLocaleFEL(expr, path),
+            interpolate: (template) => this._interpolate(template, path),
         });
         this._fieldViewModels[path] = vm;
     }
 
-    /** Locale §3.3.2: evaluate a `{{}}` segment in the binding scope of `itemPath` (form scope when empty). */
-    private _evalLocaleFEL(expression: string, itemPath = ''): unknown {
-        return wasmEvalFELWithContextEnvelope(expression, this.felContext(itemPath), this._extensionFunctions);
+    /**
+     * Locale §3.3.2: resolve `{{}}` in `template` in the binding scope of `itemPath` (form scope when empty),
+     * one WASM call per template. Plain text skips the FEL context, so it tracks no evaluation signals.
+     */
+    private _interpolate(template: string, itemPath = ''): string {
+        if (!template.includes('{{')) {
+            return template;
+        }
+        return interpolateFELTemplate(template, this.felContext(itemPath), this._extensionFunctions).text;
     }
 
     private getDisplayedIssuerPin(): { url: string; version: string } | undefined {

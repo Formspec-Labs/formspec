@@ -2,7 +2,6 @@
 
 import type { EngineReactiveRuntime, ReadonlyEngineSignal } from './reactivity/types.js';
 import type { LocaleStore } from './locale.js';
-import { interpolateMessage } from './interpolate-message.js';
 
 export interface FormViewModel {
   readonly title: ReadonlyEngineSignal<string>;
@@ -28,8 +27,8 @@ export interface FormViewModelDeps {
   getPageTitle: (pageId: string) => string | undefined;
   /** Returns page description from theme pages */
   getPageDescription: (pageId: string) => string | undefined;
-  /** Evaluates a FEL expression in the form-level (global) context */
-  evalFEL: (expr: string) => import('./wasm-bridge-runtime.js').FelEvalResult | unknown;
+  /** Resolves `{{expression}}` in the form-level (global) context (Locale §3.3.1) */
+  interpolate: (template: string) => string;
   /** Returns total validation error/warning/info counts */
   getValidationCounts: () => { errors: number; warnings: number; infos: number };
   /** Returns whether form is valid (no errors) */
@@ -44,7 +43,7 @@ export function createFormViewModel(deps: FormViewModelDeps): FormViewModel {
     getDefinitionDescription,
     getPageTitle,
     getPageDescription,
-    evalFEL,
+    interpolate,
     getValidationCounts,
     getIsValid,
   } = deps;
@@ -52,25 +51,19 @@ export function createFormViewModel(deps: FormViewModelDeps): FormViewModel {
   const pageTitleCache = new Map<string, ReadonlyEngineSignal<string>>();
   const pageDescCache = new Map<string, ReadonlyEngineSignal<string>>();
 
-  function resolveString(
-    key: string,
-    fallback: string | undefined,
-    evaluate: (expr: string) => unknown,
-  ): string {
+  function resolveString(key: string, fallback: string | undefined): string {
     // Read version to subscribe to locale changes
     localeStore.version.value;
     const localized = localeStore.lookupKey(key);
-    const raw = localized ?? fallback ?? '';
-    const { text } = interpolateMessage(raw, evaluate);
-    return text;
+    return interpolate(localized ?? fallback ?? '');
   }
 
   const title = rx.computed(() =>
-    resolveString('$form.title', getDefinitionTitle(), evalFEL),
+    resolveString('$form.title', getDefinitionTitle()),
   );
 
   const description = rx.computed(() =>
-    resolveString('$form.description', getDefinitionDescription(), evalFEL),
+    resolveString('$form.description', getDefinitionDescription()),
   );
 
   const isValid = rx.computed(() => getIsValid());
@@ -84,7 +77,7 @@ export function createFormViewModel(deps: FormViewModelDeps): FormViewModel {
       let sig = pageTitleCache.get(pageId);
       if (!sig) {
         sig = rx.computed(() =>
-          resolveString(`$page.${pageId}.title`, getPageTitle(pageId), evalFEL),
+          resolveString(`$page.${pageId}.title`, getPageTitle(pageId)),
         );
         pageTitleCache.set(pageId, sig);
       }
@@ -95,11 +88,7 @@ export function createFormViewModel(deps: FormViewModelDeps): FormViewModel {
       let sig = pageDescCache.get(pageId);
       if (!sig) {
         sig = rx.computed(() =>
-          resolveString(
-            `$page.${pageId}.description`,
-            getPageDescription(pageId),
-            evalFEL,
-          ),
+          resolveString(`$page.${pageId}.description`, getPageDescription(pageId)),
         );
         pageDescCache.set(pageId, sig);
       }
