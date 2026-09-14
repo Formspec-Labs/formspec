@@ -1913,6 +1913,29 @@ describe('planDefinitionFallback', () => {
         expect(nodes[0].repeatGroup).toBe('lineItems');
         expect(nodes[0].isRepeatTemplate).toBe(true);
         expect(nodes[0].children[0].bindPath).toBe('lineItems[0].desc');
+        expect(nodes[0].props).not.toHaveProperty('allowAdd');
+        expect(nodes[0].props).not.toHaveProperty('allowRemove');
+    });
+
+    it('passes theme widgetConfig allowAdd/allowRemove on a repeatable group to its repeat template (theme §4.2)', () => {
+        const items = [
+            {
+                key: 'employersOnRecord', type: 'group', label: 'Employer', repeatable: true,
+                children: [{ key: 'payerName', type: 'field', dataType: 'string', label: 'Payer' }],
+            },
+            {
+                key: 'dependents', type: 'group', label: 'Dependent', repeatable: true,
+                children: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+            },
+        ];
+        const theme = {
+            selectors: [{ match: { type: 'group' }, apply: { widgetConfig: { allowRemove: false } } }],
+            items: { employersOnRecord: { widgetConfig: { allowAdd: false } } },
+        } as PlanContext['theme'];
+        const nodes = planDefinitionFallback(items, makeCtx({ items, findItem: (k) => findItems(items, k), theme }));
+        expect(nodes[0].props).toMatchObject({ allowAdd: false, allowRemove: false });
+        expect(nodes[1].props).toMatchObject({ allowRemove: false });
+        expect(nodes[1].props).not.toHaveProperty('allowAdd');
     });
 
     it('plans display items', () => {

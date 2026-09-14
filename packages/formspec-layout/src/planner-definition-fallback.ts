@@ -83,6 +83,11 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
             groupNode.repeatGroup = key;
             groupNode.repeatPath = fullPath;
             groupNode.isRepeatTemplate = true;
+            // Theme §4.2: with no Component Document binding the group, widgetConfig may lock Add/Remove.
+            for (const lock of ['allowAdd', 'allowRemove'] as const) {
+                const value = presentation.widgetConfig?.[lock];
+                if (typeof value === 'boolean') groupNode.props[lock] = value;
+            }
         }
 
         const childPrefix = isRepeat ? `${fullPath}[0]` : fullPath;
