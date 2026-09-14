@@ -13,12 +13,11 @@ use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
 
-use crate::types::{
-    EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult,
-    collect_data_types,
-};
+use crate::types::{EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult};
 
-use env::{apply_excluded_values_to_env, build_validation_env_typed};
+use crate::rebuild::is_wildcard_bind;
+use crate::recalculate::repeats::ResponseIndex;
+use env::{RepeatGroupArrays, apply_excluded_values_to_env, build_validation_env_typed};
 use items::validate_items;
 use shapes::validate_shape;
 
@@ -47,8 +46,9 @@ pub fn revalidate(
         return (results, diagnostics);
     }
 
-    let data_types = collect_data_types(items);
-    let mut env = build_validation_env_typed(values, variables, now_iso, instances, &data_types);
+    let index = ResponseIndex::new(items, values);
+    let data_types = &index.data_types;
+    let mut env = build_validation_env_typed(values, variables, now_iso, instances, data_types);
 
     // 9a: Apply excludedValue — non-relevant fields with excludedValue="null" appear as null in FEL
     apply_excluded_values_to_env(items, &mut env);
@@ -75,7 +75,7 @@ pub fn revalidate(
         items,
         &mut env,
         values,
-        &data_types,
+        data_types,
         &ext_by_name,
         formspec_version,
         repeat_counts,
@@ -83,8 +83,10 @@ pub fn revalidate(
         &mut diagnostics,
     );
 
-    // Shape rules — filtered by timing
+    // Shape rules — filtered by timing. Non-wildcard shapes read `$group` row
+    // arrays; wildcard shapes resolve rows through flat indexed keys.
     if let Some(shapes) = shapes {
+        let mut repeat_arrays = RepeatGroupArrays::new(items, values, &index);
         for shape in shapes {
             let timing = shape
                 .get("timing")
@@ -108,16 +110,24 @@ pub fn revalidate(
                     }
                 }
             }
+            let target = shape.get("target").and_then(|v| v.as_str()).unwrap_or("");
+            let with_arrays = !is_wildcard_bind(target);
+            if with_arrays {
+                repeat_arrays.swap(&mut env);
+            }
             validate_shape(
                 shape,
                 &shapes_by_id,
                 &mut env,
                 values,
-                &data_types,
+                data_types,
                 items,
                 &mut results,
                 &mut diagnostics,
             );
+            if with_arrays {
+                repeat_arrays.swap(&mut env);
+            }
         }
     }
 

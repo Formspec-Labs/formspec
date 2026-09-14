@@ -16,7 +16,7 @@ use fel_core::{FormspecEnvironment, Value as FelValue};
 use serde_json::Value;
 
 use crate::rebuild::parse_variables;
-use crate::types::{ItemInfo, collect_data_types};
+use crate::types::ItemInfo;
 
 pub use variables::topo_sort_variables;
 
@@ -48,13 +48,13 @@ pub fn recalculate(
     }
     let mut values = data.clone();
 
-    // Build path→dataType map for type-aware coercion (spec S2.1.3: date strings → Date)
-    let data_types = collect_data_types(items);
+    // Path→dataType map (Core §2.1.3: date strings → Date) and repeat row index.
+    let index = repeats::ResponseIndex::new(items, &values);
 
     for (k, v) in &values {
         env.set_field(
             k,
-            json_fel::json_to_runtime_fel_typed(v, data_types.get(k).map(|s| s.as_str())),
+            json_fel::json_to_runtime_fel_typed(v, index.data_type(k)),
         );
     }
 
@@ -63,10 +63,10 @@ pub fn recalculate(
     for (k, v) in &values {
         env.set_field(
             k,
-            json_fel::json_to_runtime_fel_typed(v, data_types.get(k).map(|s| s.as_str())),
+            json_fel::json_to_runtime_fel_typed(v, index.data_type(k)),
         );
     }
-    repeats::populate_repeat_group_arrays(items, &values, &data_types, &mut env);
+    repeats::populate_repeat_group_arrays(items, &values, &index, &mut env);
 
     let var_defs = parse_variables(definition);
     let (initial_var_values, scoped_var_values, cycle_err) =
@@ -91,7 +91,7 @@ pub fn recalculate(
             items,
             &mut env,
             &mut values,
-            &data_types,
+            &index,
             true,
             false,
             &scoped_var_values,
@@ -102,7 +102,7 @@ pub fn recalculate(
             items,
             &mut env,
             &mut values,
-            &data_types,
+            &index,
             true,
             false,
             &invalid_paths,
@@ -113,10 +113,10 @@ pub fn recalculate(
         items,
         &mut env,
         &mut values,
-        &data_types,
+        &index,
         has_scoped.then_some(&scoped_var_values),
     );
-    repeats::populate_repeat_group_arrays(items, &values, &data_types, &mut env);
+    repeats::populate_repeat_group_arrays(items, &values, &index, &mut env);
 
     let (mut final_var_values, final_scoped_var_values, _) =
         variables::evaluate_variables_scoped(&var_defs, &mut env);
@@ -126,10 +126,10 @@ pub fn recalculate(
         items,
         &mut env,
         &mut values,
-        &data_types,
+        &index,
         has_scoped.then_some(&final_scoped_var_values),
     );
-    repeats::populate_repeat_group_arrays(items, &values, &data_types, &mut env);
+    repeats::populate_repeat_group_arrays(items, &values, &index, &mut env);
 
     (final_var_values, _, _) = variables::evaluate_variables_scoped(&var_defs, &mut env);
     env.variables.extend(final_var_values.clone());

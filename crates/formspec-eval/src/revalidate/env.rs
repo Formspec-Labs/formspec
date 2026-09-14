@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::fel_json::json_to_runtime_fel_typed;
 use crate::rebuild::is_repeat_group_array;
-use crate::recalculate::repeats::{data_type_of, repeat_group_fel_array};
+use crate::recalculate::repeats::{ResponseIndex, data_type_of};
 use crate::types::ItemInfo;
 
 /// Apply excludedValue="null" to the FEL environment for non-relevant items (9a).
@@ -56,41 +56,52 @@ pub(crate) fn build_validation_env_typed(
     env
 }
 
-pub(super) fn bind_repeat_group_arrays(
-    env: &mut FormspecEnvironment,
-    items: &[ItemInfo],
-    values: &HashMap<String, Value>,
-    data_types: &HashMap<String, String>,
-) -> HashMap<String, Option<EnvVal>> {
-    let mut saved = HashMap::new();
-    for item in items {
-        if item.repeatable
-            && let Some(array) = repeat_group_fel_array(&item.path, values, data_types)
-        {
-            saved.insert(item.path.clone(), env.data.get(&item.path).cloned());
-            env.set_field(&item.path, array);
-        }
-        saved.extend(bind_repeat_group_arrays(
-            env,
-            &item.children,
-            values,
-            data_types,
-        ));
-    }
-    saved
+/// `$group` row arrays for every repeatable item, built once and swapped in per shape.
+///
+/// Values do not change during revalidation, so the arrays are too; swapping moves
+/// them between this set and the env instead of rebuilding them for every shape.
+pub(super) struct RepeatGroupArrays {
+    /// Group path and the value on the other side of the swap (`None`: absent).
+    slots: Vec<(String, Option<EnvVal>)>,
 }
 
-pub(super) fn restore_repeat_group_arrays(
-    env: &mut FormspecEnvironment,
-    saved_arrays: HashMap<String, Option<EnvVal>>,
-) {
-    for (path, previous) in saved_arrays {
-        match previous {
-            Some(value) => env.set_field(&path, value),
-            None => {
-                env.data.remove(&path);
-            }
+impl RepeatGroupArrays {
+    pub(super) fn new(
+        items: &[ItemInfo],
+        values: &HashMap<String, Value>,
+        index: &ResponseIndex,
+    ) -> Self {
+        let mut slots = Vec::new();
+        collect_repeat_group_arrays(items, values, index, &mut slots);
+        Self { slots }
+    }
+
+    /// Exchange the arrays with the env's values at those paths; a second call restores.
+    pub(super) fn swap(&mut self, env: &mut FormspecEnvironment) {
+        for (path, slot) in &mut self.slots {
+            *slot = match slot.take() {
+                Some(value) => env.data.insert(path.clone(), value),
+                None => env.data.remove(path.as_str()),
+            };
         }
+    }
+}
+
+fn collect_repeat_group_arrays(
+    items: &[ItemInfo],
+    values: &HashMap<String, Value>,
+    index: &ResponseIndex,
+    slots: &mut Vec<(String, Option<EnvVal>)>,
+) {
+    for item in items {
+        if item.repeatable
+            && let Some(array) = index
+                .repeats
+                .fel_array(&item.path, values, &index.data_types)
+        {
+            slots.push((item.path.clone(), Some(array)));
+        }
+        collect_repeat_group_arrays(&item.children, values, index, slots);
     }
 }
 

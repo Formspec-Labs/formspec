@@ -17,10 +17,7 @@ use crate::types::{
     ValidationSource, find_item_by_path,
 };
 
-use super::env::{
-    bind_repeat_group_arrays, bind_sibling_aliases, restore_repeat_group_arrays,
-    restore_sibling_aliases,
-};
+use super::env::{bind_sibling_aliases, restore_sibling_aliases};
 use super::expr::{
     ConstraintSite, constraint_passes, evaluate_shape_expression, interpolate_message,
 };
@@ -70,7 +67,6 @@ pub(super) fn validate_shape(
         .unwrap_or("Shape constraint failed");
 
     // Check activeWhen
-    let saved_repeat_arrays = bind_repeat_group_arrays(env, items, values, data_types);
     let saved_aliases = if target.is_empty() || target == "#" {
         HashMap::new()
     } else {
@@ -80,7 +76,6 @@ pub(super) fn validate_shape(
         && !eval_bool(active_when, env, true)
     {
         restore_sibling_aliases(env, saved_aliases);
-        restore_repeat_group_arrays(env, saved_repeat_arrays);
         return;
     }
 
@@ -126,7 +121,6 @@ pub(super) fn validate_shape(
     }
 
     restore_sibling_aliases(env, saved_aliases);
-    restore_repeat_group_arrays(env, saved_repeat_arrays);
     // Restore previous bare $ binding
     env.data.remove("");
     if let Some(prev) = prev_dollar {
