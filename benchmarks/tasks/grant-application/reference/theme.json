@@ -100,9 +100,9 @@
     {
       "match": { "type": "field", "dataType": "attachment" },
       "apply": {
-        "widget": "FileUpload",
+        "widget": "x-camera",
         "labelPosition": "hidden",
-        "fallback": ["camera", "fileUpload"],
+        "fallback": ["FileUpload"],
         "cssClass": "attachment-field",
         "accessibility": {
           "liveRegion": "polite"
