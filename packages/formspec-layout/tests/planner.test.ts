@@ -1928,6 +1928,18 @@ describe('planDefinitionFallback', () => {
         expect(nodes[0].props.text).toBe('Please read carefully.');
     });
 
+    it('plans a Divider display item with its label as the Divider `label` prop (component §5.15)', () => {
+        const items = [
+            { key: 'rule', type: 'display', label: 'Section break', presentation: { widgetHint: 'Divider' } },
+        ];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+
+        const [node] = planDefinitionFallback(items, ctx);
+        expect(node.component).toBe('Divider');
+        expect(node.props.label).toBe('Section break');
+        expect(node.props.text).toBeUndefined();
+    });
+
     it('links display items to their Definition path so renderers resolve Locale, {{}} and relevance', () => {
         const items = [
             { key: 'info', type: 'display', label: 'Week of {{$week}}' },

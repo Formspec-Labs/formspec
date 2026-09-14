@@ -13,7 +13,7 @@ export function renderUSWDSDivider(behavior: DividerLayoutBehavior, parent: HTML
 
         const labelEl = document.createElement('span');
         labelEl.className = 'usa-hint';
-        labelEl.textContent = labelText;
+        behavior.watchLabel((text) => { labelEl.textContent = text; });
 
         const lineAfter = document.createElement('hr');
         lineAfter.className = 'formspec-uswds-divider__line';

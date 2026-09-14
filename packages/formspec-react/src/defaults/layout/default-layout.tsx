@@ -238,15 +238,19 @@ function CardLayout({ node, children, themeClass, style }: LayoutProps) {
 
 // ── Divider ───────────────────────────────────────────────────────
 
-function DividerLayout({ node, themeClass, style }: Omit<LayoutProps, 'children'>) {
-    const label = node.props?.label as string | undefined;
-
+/** Divider (component §5.15): a rule, or `label` centered between two rules. `label` overrides `node.props.label`. */
+export function DividerLayout({
+    node,
+    themeClass,
+    style,
+    label = node.props?.label as string | undefined,
+}: Omit<LayoutProps, 'children'> & { label?: string }) {
     if (label) {
         return (
             <div className={mergeClasses('formspec-divider formspec-divider--labeled', themeClass)} style={style} {...projectionMetadataAttrs(node)}>
-                <hr />
-                <span>{label}</span>
-                <hr />
+                <hr className="formspec-divider-line" />
+                <span className="formspec-divider-label">{label}</span>
+                <hr className="formspec-divider-line" />
             </div>
         );
     }

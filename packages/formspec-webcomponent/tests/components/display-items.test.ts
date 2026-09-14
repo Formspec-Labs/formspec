@@ -219,6 +219,15 @@ describe('display Items — relevance', () => {
         expect(notes).toEqual([[], ['Flagged']]);
     });
 
+    it('labels a Divider display Item with its live label', () => {
+        const el = render(definition([
+            yesNo[0],
+            { key: 'rule', type: 'display', label: 'About {{$answer}}', presentation: { widgetHint: 'Divider' } },
+        ]));
+        el.getEngine().setValue('answer', 'pets');
+        expect(el.querySelector('.formspec-divider-label')?.textContent).toBe('About pets');
+    });
+
     it('hides a display Item rendered as a Divider while it is not relevant', () => {
         const el = render(definition(
             [

@@ -160,7 +160,7 @@ export function renderDivider(behavior: DividerLayoutBehavior, parent: HTMLEleme
 
         const labelEl = document.createElement('span');
         labelEl.className = 'formspec-divider-label';
-        labelEl.textContent = labelText;
+        behavior.watchLabel((text) => { labelEl.textContent = text; });
 
         const lineAfter = document.createElement('hr');
         lineAfter.className = 'formspec-divider-line';

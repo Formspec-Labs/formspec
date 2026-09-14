@@ -169,9 +169,23 @@ describe('USWDS layout natives', () => {
 
     it('renderUSWDSDivider renders hr.formspec-uswds-divider', () => {
         const parent = document.createElement('div');
-        const behavior: DividerLayoutBehavior = { comp: {}, labelText: null };
+        const behavior: DividerLayoutBehavior = { comp: {}, labelText: null, watchLabel: () => {} };
         renderUSWDSDivider(behavior, parent, mockAdapterContext());
         expect(parent.querySelector('hr.formspec-uswds-divider')).toBeTruthy();
+    });
+
+    it('renderUSWDSDivider writes the live label between two rules', () => {
+        const parent = document.createElement('div');
+        let write: (text: string) => void = () => {};
+        const behavior: DividerLayoutBehavior = {
+            comp: {},
+            labelText: 'Job',
+            watchLabel: (fn) => { write = fn; fn('Job'); },
+        };
+        renderUSWDSDivider(behavior, parent, mockAdapterContext());
+        write('Job 2');
+        expect(parent.querySelectorAll('hr.formspec-uswds-divider__line')).toHaveLength(2);
+        expect(parent.querySelector('.formspec-uswds-divider--labeled .usa-hint')?.textContent).toBe('Job 2');
     });
 
     it('renderUSWDSCollapsible uses usa-accordion button and content', () => {

@@ -9,6 +9,7 @@ import { useFormspecContext, findItemByKey } from './context.js';
 import { useSignal } from './use-signal';
 import { useRepeatCount } from './use-repeat-count';
 import { ValidationSummary } from './validation-summary';
+import { DividerLayout } from './defaults/layout/default-layout';
 import {
     generationNeedAnchors,
     needTraceAttrs,
@@ -73,7 +74,9 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
     const { components } = useFormspecContext();
     const displayItem = useDisplayItem(node);
     if (!displayItem.relevant) return null;
-    const text = displayItem.text ?? ((node.props?.text as string) || node.fieldItem?.label || '');
+    // A Divider's text prop is `label` (component §5.15); every other display component's is `text`.
+    const textProp = node.component === 'Divider' ? 'label' : 'text';
+    const text = displayItem.text ?? ((node.props?.[textProp] as string) || node.fieldItem?.label || '');
 
     const Override = components.display?.[node.component];
     if (Override) {
@@ -92,7 +95,7 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
         }
 
         case 'Divider':
-            return <hr className={cssClass || 'formspec-divider'} style={style} {...graphAttrs} />;
+            return <DividerLayout node={node} themeClass={cssClass ?? ''} style={style} label={text} />;
 
         case 'Alert': {
             const severity = (node.props?.severity as string) || 'info';

@@ -149,13 +149,14 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
         (displayPresentation as { widgetHint?: string } | undefined)?.widgetHint,
     ) ?? 'Text';
     const { widgetHint: _wh, cssClass: _dc, labelPosition: _dl, ...displayPresentationProps } = displayPresentation ?? {};
-    // `text` is the static inline label; `bindPath` lets renderers resolve the live
-    // label (Locale `<key>.label`, FEL `{{}}`) and Bind relevance for this Item.
+    // The static inline label goes in the component's text prop (Divider's is `label`, component §5.15);
+    // `bindPath` lets renderers resolve the live label (Locale, FEL `{{}}`) and Bind relevance for this Item.
+    const textProp = displayWidget === 'Divider' ? 'label' : 'text';
     return {
         id: planCtx.nextId('display'),
         component: displayWidget,
         category: 'display',
-        props: { text: item.label || '', ...displayPresentationProps },
+        props: { [textProp]: item.label || '', ...displayPresentationProps },
         style: gridPlacementStyleFromLayout((displayPresentation as { layout?: unknown } | undefined)?.layout),
         cssClasses: normalizeCssClass(presentation.cssClass),
         children: [],

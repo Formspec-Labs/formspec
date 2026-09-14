@@ -25,7 +25,10 @@ export interface GridLayoutBehavior {
 
 export interface DividerLayoutBehavior {
     comp: any;
+    /** Label at render time (component §5.15 `label`); null renders a plain rule. */
     labelText: string | null;
+    /** Write the label now and whenever it changes: a Divider planned from a display Item follows its live label. */
+    watchLabel(write: (text: string) => void): void;
 }
 
 export interface CollapsibleLayoutBehavior {

@@ -2,9 +2,10 @@
 import type { RenderContext } from '../types';
 import { layoutHostSlice } from '../adapters/layout-host';
 import { resolveCompText } from './layout-plugin-factory';
-import { effect } from '@preact/signals-core';
+import { computed, effect } from '@preact/signals-core';
 import { repeatAffordances, renderRepeatRows } from '../rendering/repeat-affordances';
 import { itemLabel } from '../rendering/item-label';
+import { resolveDisplayItem } from '../adapters/display-host';
 import type {
     SectionLayoutBehavior,
     StackLayoutBehavior,
@@ -42,9 +43,16 @@ export function buildGridBehavior(comp: any, ctx: RenderContext): GridLayoutBeha
 }
 
 export function buildDividerBehavior(comp: any, ctx: RenderContext): DividerLayoutBehavior {
+    const displayItem = resolveDisplayItem(comp, ctx);
+    const label = displayItem
+        ? itemLabel(ctx.engine, displayItem.item, displayItem.path, comp.label || '')
+        : computed(() => (comp.label ? resolveCompText(ctx, comp, 'label', comp.label) : ''));
     return {
         comp,
-        labelText: comp.label ? resolveCompText(ctx, comp, 'label', comp.label) : null,
+        labelText: label.peek() || null,
+        watchLabel: (write) => {
+            ctx.cleanupFns.push(effect(() => write(label.value)));
+        },
     };
 }
 
