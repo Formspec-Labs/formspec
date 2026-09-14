@@ -2,6 +2,7 @@
 import type { FieldBehavior } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
 import { buildOptionList, clearOptionNodes } from '../shared/option-list.js';
+import { createInputSkeleton, type InputSkeletonOptions, type InputSkeletonResult } from '../shared/input-factory.js';
 
 export interface USWDSFieldDOM {
     root: HTMLElement;
@@ -77,6 +78,24 @@ export function createUSWDSFieldDOM(
     root.appendChild(error);
 
     return { root, label, hint, error };
+}
+
+/**
+ * Input/textarea with USWDS prefix/suffix markup (`usa-input-group`, `usa-input-prefix`, `usa-input-suffix`).
+ * Adornment ids reach aria-describedby through `data-describedby-base`.
+ */
+export function createUSWDSInput(behavior: FieldBehavior, options: InputSkeletonOptions): InputSkeletonResult {
+    const result = createInputSkeleton(behavior, {
+        groupClass: 'usa-input-group',
+        prefixClass: 'usa-input-prefix',
+        suffixClass: 'usa-input-suffix',
+        ...options,
+    });
+    const adornmentIds: string[] = [];
+    if (result.prefixEl) adornmentIds.push((result.prefixEl.id = `${behavior.id}-prefix`));
+    if (result.suffixEl) adornmentIds.push((result.suffixEl.id = `${behavior.id}-suffix`));
+    if (adornmentIds.length) result.actualInput.setAttribute('data-describedby-base', adornmentIds.join(' '));
+    return result;
 }
 
 /** Removes previously-rendered option elements (marked with data-option-wrapper). */
@@ -184,4 +203,7 @@ export function applyUSWDSValidationState(
     root.classList.toggle('usa-form-group--error', hasError);
     label.classList.toggle('usa-label--error', hasError);
     if (control) control.classList.toggle('usa-input--error', hasError);
+    // Prefix/suffix inputs are borderless inside the group; the group carries the error border.
+    const inputGroup = control?.parentElement;
+    if (inputGroup?.classList.contains('usa-input-group')) inputGroup.classList.toggle('usa-input-group--error', hasError);
 }

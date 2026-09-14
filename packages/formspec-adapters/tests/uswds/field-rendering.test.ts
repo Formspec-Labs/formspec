@@ -120,6 +120,33 @@ describe('USWDS submit with errors — focus', () => {
     });
 });
 
+describe('USWDS input prefix and suffix', () => {
+    it('renders the item prefix/suffix as a usa-input-group on number fields', () => {
+        const el = renderForm([
+            { key: 'earnings', type: 'field', dataType: 'decimal', label: 'Gross earnings', prefix: '$', suffix: 'USD' },
+        ]);
+        const input = el.querySelector('#field-earnings') as HTMLInputElement;
+        const group = input.parentElement as HTMLElement;
+        expect(group.classList.contains('usa-input-group')).toBe(true);
+        const prefix = group.querySelector('.usa-input-prefix') as HTMLElement;
+        const suffix = group.querySelector('.usa-input-suffix') as HTMLElement;
+        expect(prefix.textContent).toBe('$');
+        expect(suffix.textContent).toBe('USD');
+        expect(input.getAttribute('aria-describedby')).toBe(`${prefix.id} ${suffix.id}`);
+    });
+
+    it('renders the item prefix on text fields and marks the group invalid with the field', () => {
+        const el = renderForm(
+            [{ key: 'site', type: 'field', dataType: 'string', label: 'Website', prefix: 'https://' }],
+            { binds: [{ path: 'site', required: 'true' }] },
+        );
+        const group = el.querySelector('#field-site')!.parentElement as HTMLElement;
+        expect(group.querySelector('.usa-input-prefix')?.textContent).toBe('https://');
+        el.submit({ emitEvent: false });
+        expect(group.classList.contains('usa-input-group--error')).toBe(true);
+    });
+});
+
 describe('USWDS field text — hints and descriptions', () => {
     it('renders the Locale hint and description instead of the raw item strings', () => {
         const el = renderForm(

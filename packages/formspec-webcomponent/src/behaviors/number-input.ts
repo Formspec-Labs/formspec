@@ -47,6 +47,8 @@ export function useNumberInput(ctx: BehaviorContext, comp: any): NumberInputBeha
         showStepper: !!comp.showStepper,
         dataType: item?.dataType || 'decimal',
         placeholder: comp.placeholder || extensionPlaceholder,
+        prefix: item?.prefix,
+        suffix: item?.suffix,
 
         setValue(val: any): void {
             ctx.engine.setValue(fieldPath, val);

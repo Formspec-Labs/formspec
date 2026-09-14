@@ -155,6 +155,30 @@ export function finalizeFieldDOM(
 }
 
 /**
+ * Wrap `input` with display-only prefix/suffix spans (matches .formspec-input-adornment in React).
+ * Returns `input` unchanged when neither is set. Span ids feed aria-describedby via bindSharedFieldEffects.
+ */
+export function wrapInputAdornments(
+    input: HTMLInputElement,
+    behavior: { id: string; prefix?: string; suffix?: string },
+): HTMLElement {
+    if (!behavior.prefix && !behavior.suffix) return input;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'formspec-input-adornment';
+    const adornment = (kind: 'prefix' | 'suffix', text: string) => {
+        const span = document.createElement('span');
+        span.className = `formspec-${kind} formspec-input-${kind}`;
+        span.id = `${behavior.id}-${kind}`;
+        span.textContent = text;
+        return span;
+    };
+    if (behavior.prefix) wrapper.appendChild(adornment('prefix', behavior.prefix));
+    wrapper.appendChild(input);
+    if (behavior.suffix) wrapper.appendChild(adornment('suffix', behavior.suffix));
+    return wrapper;
+}
+
+/**
  * Apply widgetClassSlots.control to the actual input element(s).
  * For radio/checkbox groups, applies to each input. For others, applies to the control.
  */

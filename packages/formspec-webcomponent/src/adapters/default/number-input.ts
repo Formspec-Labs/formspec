@@ -1,7 +1,7 @@
 /** @filedesc Default adapter for NumberInput — renders a numeric input element, with optional stepper buttons. */
 import type { NumberInputBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
-import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass } from './shared';
+import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, wrapInputAdornments } from './shared';
 
 export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     behavior, parent, actx
@@ -18,6 +18,7 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     if (behavior.min != null) input.min = String(behavior.min);
     if (behavior.max != null) input.max = String(behavior.max);
 
+    let control: HTMLElement;
     if (behavior.showStepper) {
         const stepVal = behavior.step ?? 1;
         const wrapper = document.createElement('div');
@@ -54,11 +55,13 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
         wrapper.appendChild(decBtn);
         wrapper.appendChild(input);
         wrapper.appendChild(incBtn);
+        control = wrapper;
         fieldDOM.root.appendChild(wrapper);
         applyControlSlotClass(wrapper, behavior, actx);
     } else {
-        fieldDOM.root.appendChild(input);
-        applyControlSlotClass(input, behavior, actx);
+        control = wrapInputAdornments(input, behavior);
+        fieldDOM.root.appendChild(control);
+        applyControlSlotClass(control, behavior, actx);
     }
 
     finalizeFieldDOM(fieldDOM, behavior, actx);
@@ -67,9 +70,7 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     const dispose = behavior.bind({
         root: fieldDOM.root,
         label: fieldDOM.label,
-        control: behavior.showStepper
-            ? fieldDOM.root.querySelector('.formspec-stepper')! as HTMLElement
-            : input,
+        control,
         hint: fieldDOM.hint,
         error: fieldDOM.error,
     });

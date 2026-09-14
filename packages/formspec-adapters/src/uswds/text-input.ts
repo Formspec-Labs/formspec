@@ -1,9 +1,7 @@
 /** @filedesc USWDS v3 adapter for TextInput — renders usa-input or usa-textarea markup. */
 import type { TextInputBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
-import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
-
-import { createInputSkeleton } from '../shared/input-factory.js';
+import { applyUSWDSValidationState, createUSWDSFieldDOM, createUSWDSInput } from './shared';
 
 export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     behavior, parent, actx
@@ -13,11 +11,8 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
 
     if (p.labelPosition === 'start') root.style.display = 'flex';
 
-    const { control, actualInput } = createInputSkeleton(behavior, {
+    const { control, actualInput } = createUSWDSInput(behavior, {
         inputClass: behavior.maxLines != null && behavior.maxLines > 1 ? 'usa-textarea' : 'usa-input',
-        groupClass: 'usa-input-group',
-        prefixClass: 'usa-input-prefix',
-        suffixClass: 'usa-input-suffix',
     });
 
     if (!control.parentElement) root.appendChild(control);

@@ -112,6 +112,7 @@ export interface TextInputBehavior extends FieldBehavior {
     placeholder?: string;
     inputMode?: string;
     maxLines?: number;
+    /** Display-only text before/after the input: component prop, else definition item `prefix`/`suffix`. */
     prefix?: string;
     suffix?: string;
     resolvedInputType?: string;
@@ -125,6 +126,9 @@ export interface NumberInputBehavior extends FieldBehavior {
     showStepper: boolean;
     dataType: string;
     placeholder?: string;
+    /** Display-only text before/after the input (definition item `prefix`/`suffix`, core §4.2.3). */
+    prefix?: string;
+    suffix?: string;
 }
 
 export interface DatePickerBehavior extends FieldBehavior {

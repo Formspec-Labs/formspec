@@ -282,6 +282,23 @@ describe('input rendering — TextInput variants', () => {
         expect(describedBy).toContain(prefix.id);
         expect(describedBy).toContain(suffix.id);
     });
+
+    it('renders the definition item prefix/suffix on number fields', () => {
+        const el = renderField({ dataType: 'decimal', prefix: '$', suffix: 'per week' });
+        const input = el.querySelector('input#field-name') as HTMLInputElement;
+        expect(input.type).toBe('number');
+        const prefix = el.querySelector('.formspec-input-prefix') as HTMLElement;
+        const suffix = el.querySelector('.formspec-input-suffix') as HTMLElement;
+        expect(prefix?.textContent).toBe('$');
+        expect(suffix?.textContent).toBe('per week');
+        expect(prefix.nextElementSibling).toBe(input);
+        expect(input.getAttribute('aria-describedby')).toBe(`${prefix.id} ${suffix.id}`);
+    });
+
+    it('renders the definition item prefix on text fields', () => {
+        const el = renderField({ dataType: 'string', prefix: 'https://' });
+        expect(el.querySelector('.formspec-input-prefix')?.textContent).toBe('https://');
+    });
 });
 
 describe('input rendering — Select clearable', () => {

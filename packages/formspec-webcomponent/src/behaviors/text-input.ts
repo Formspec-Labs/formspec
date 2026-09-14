@@ -73,8 +73,8 @@ export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInp
         placeholder: comp.placeholder,
         inputMode: comp.inputMode,
         maxLines: comp.maxLines,
-        prefix: comp.prefix,
-        suffix: comp.suffix,
+        prefix: comp.prefix ?? item?.prefix,
+        suffix: comp.suffix ?? item?.suffix,
         resolvedInputType,
         extensionAttrs,
 
