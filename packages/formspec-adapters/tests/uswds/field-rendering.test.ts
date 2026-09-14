@@ -200,6 +200,21 @@ describe('USWDS character count (theme widgetConfig.maxLength)', () => {
     });
 });
 
+describe('USWDS read-only values', () => {
+    it('keeps a readonly Bind value as a labelled, focusable readonly usa-input', () => {
+        const el = renderForm(
+            [{ key: 'employer', type: 'field', dataType: 'string', label: 'Employer', initialValue: 'ACME CORP' }],
+            { binds: [{ path: 'employer', readonly: 'true' }] },
+        );
+        const input = el.querySelector('#field-employer') as HTMLInputElement;
+        expect(input.classList.contains('usa-input')).toBe(true);
+        expect(input.readOnly).toBe(true);
+        expect(input.tabIndex).toBe(0);
+        expect(input.value).toBe('ACME CORP');
+        expect(el.querySelector('label[for="field-employer"]')?.textContent).toBe('Employer');
+    });
+});
+
 describe('USWDS field text — hints and descriptions', () => {
     it('renders the Locale hint and description instead of the raw item strings', () => {
         const el = renderForm(

@@ -130,6 +130,18 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   flex: 1;
 }
 
+// Read-only values (Bind `readonly`, e.g. record data pre-filled by the agency) stay native `readonly`
+// controls — labelled, announced as read-only, reachable by Tab, and still referenced by hints and
+// errors — but lose the editable-box affordance: no border, filled background.
+.usa-input[readonly],
+.usa-textarea[readonly],
+.usa-input-group:has(> .usa-input[readonly]) {
+  background-color: color('base-lightest');
+  border-color: transparent;
+  color: color('ink');
+  cursor: default;
+}
+
 // Group fields (RadioGroup, CheckboxGroup) take the error state on the fieldset root itself rather than a
 // wrapping usa-form-group; `.usa-fieldset { border: none; padding: 0 }` would otherwise erase the error bar.
 .usa-fieldset.usa-form-group--error {
