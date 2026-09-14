@@ -72,7 +72,7 @@ export function createUSWDSFieldDOM(
         root.appendChild(hint);
     }
 
-    // Error (live region — not included in aria-describedby; bindSharedFieldEffects owns that)
+    // Error (bindSharedFieldEffects adds its id to aria-describedby while an error is shown)
     const error = createUSWDSError(fieldId);
     root.appendChild(error);
 
@@ -166,7 +166,7 @@ export function renderUSWDSBooleanControl(
     actx.onDispose(dispose);
 }
 
-/** Create a USWDS error message element with correct ARIA live-region attributes. */
+/** Create the USWDS error message element (`usa-error-message`, id `<behaviorId>-error`). */
 export function createUSWDSError(behaviorId: string): HTMLElement {
     return el('span', {
         class: 'usa-error-message',

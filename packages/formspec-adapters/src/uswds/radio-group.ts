@@ -17,6 +17,7 @@ export const renderRadioGroup: AdapterRenderFn<RadioGroupBehavior> = (
         root,
         label,
         control: root,
+        skipAriaDescribedBy: true,
         hint,
         error,
         optionControls: initialControls,

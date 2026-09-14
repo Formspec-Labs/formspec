@@ -135,33 +135,25 @@ export function bindSharedFieldEffects(
         }));
     }
 
-    // ARIA describedby — supplementary text only (USWDS form templates / file-input pattern).
-    // Error text stays in the live role="alert" region; do not reference it here.
-    disposers.push(effect(() => {
-        const ariaTarget = refs.skipAriaDescribedBy ? refs.control : actualInput;
-
-        const ids: string[] = [];
-        const existing = ariaTarget.getAttribute('data-describedby-base');
-        if (existing) ids.push(...existing.split(/\s+/).filter(Boolean));
-
-        const descEl = refs.root.querySelector('.formspec-description[id]') as HTMLElement | null;
-        if (descEl?.id) ids.push(descEl.id);
-
-        if (refs.hint?.id) ids.push(refs.hint.id);
-
-        refs.control.querySelectorAll('.formspec-prefix[id], .formspec-suffix[id], .formspec-input-prefix[id], .formspec-input-suffix[id]').forEach((el) => {
-            if (el.id) ids.push(el.id);
-        });
-        const currencyBadge = refs.control.querySelector('.formspec-money-currency[id]') as HTMLElement | null;
-        if (currencyBadge?.id) ids.push(currencyBadge.id);
-
-        const toggleOn = refs.control.querySelector('.formspec-toggle-on[id]') as HTMLElement | null;
-        if (toggleOn?.id) ids.push(toggleOn.id);
-
-        const finalIds = [...new Set(ids.filter(Boolean))].join(' ');
-        if (finalIds) ariaTarget.setAttribute('aria-describedby', finalIds);
+    // ARIA describedby: supplementary text ids, plus the error message id while an error is shown
+    // (USWDS validation pattern: the input's aria-describedby names its usa-error-message).
+    const ariaTarget = refs.skipAriaDescribedBy ? refs.control : actualInput;
+    const supplementaryIds = [
+        ...(ariaTarget.getAttribute('data-describedby-base')?.split(/\s+/) ?? []),
+        refs.root.querySelector('.formspec-description[id]')?.id,
+        refs.hint?.id,
+        ...Array.from(
+            refs.control.querySelectorAll('.formspec-prefix[id], .formspec-suffix[id], .formspec-input-prefix[id], .formspec-input-suffix[id]'),
+            (el) => el.id,
+        ),
+        refs.control.querySelector('.formspec-money-currency[id]')?.id,
+        refs.control.querySelector('.formspec-toggle-on[id]')?.id,
+    ];
+    const syncDescribedBy = (errorShown: boolean) => {
+        const ids = [...new Set([...supplementaryIds, errorShown ? refs.error?.id : undefined].filter(Boolean))].join(' ');
+        if (ids) ariaTarget.setAttribute('aria-describedby', ids);
         else ariaTarget.removeAttribute('aria-describedby');
-    }));
+    };
 
     // Validation display
     disposers.push(effect(() => {
@@ -186,6 +178,7 @@ export function bindSharedFieldEffects(
         const showError = shouldShowError ? (effectiveError || '') : '';
         if (refs.error) refs.error.textContent = showError;
         actualInput.setAttribute('aria-invalid', String(!!showError));
+        syncDescribedBy(!!showError);
         if (refs.onValidationChange) refs.onValidationChange(!!showError, showError);
     }));
 

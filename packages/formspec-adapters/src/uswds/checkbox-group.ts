@@ -42,6 +42,7 @@ export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
         root,
         label,
         control: root,
+        skipAriaDescribedBy: true,
         hint,
         error,
         optionControls: optionControlsRef,

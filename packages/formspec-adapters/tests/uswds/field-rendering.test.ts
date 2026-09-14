@@ -41,6 +41,47 @@ function renderForm(
     return el;
 }
 
+describe('USWDS error messages — aria-describedby', () => {
+    const requiredBind = (path: string) => ({ path, required: 'true' });
+    const radioTheme = {
+        $formspecTheme: '1.0',
+        version: '1.0.0',
+        targetDefinition: { url: 'urn:test:uswds-fields' },
+        selectors: [{ match: { dataType: 'choice' }, apply: { widget: 'RadioGroup' } }],
+    };
+
+    it('links the error message to the input while the error is shown', () => {
+        const el = renderForm(
+            [{ key: 'name', type: 'field', dataType: 'string', label: 'Name', hint: 'Legal name' }],
+            { binds: [requiredBind('name')] },
+        );
+        const input = el.querySelector('#field-name') as HTMLInputElement;
+        expect(input.getAttribute('aria-describedby')).toBe('field-name-hint');
+
+        el.submit({ emitEvent: false });
+        expect(el.querySelector('#field-name-error')?.textContent).not.toBe('');
+        expect(input.getAttribute('aria-describedby')).toBe('field-name-hint field-name-error');
+
+        el.getEngine().setValue('name', 'Ada');
+        expect(input.getAttribute('aria-describedby')).toBe('field-name-hint');
+    });
+
+    it('links a radio group error to the fieldset, not the first radio', () => {
+        const el = renderForm(
+            [{
+                key: 'able', type: 'field', dataType: 'choice', label: 'Able to work?',
+                options: [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }],
+            }],
+            { binds: [requiredBind('able')], theme: radioTheme },
+        );
+        const fieldset = el.querySelector('fieldset[data-name="able"]') as HTMLElement;
+        expect(fieldset).not.toBeNull();
+        el.submit({ emitEvent: false });
+        expect(fieldset.getAttribute('aria-describedby')).toBe('field-able-error');
+        expect(el.querySelector('input[type="radio"]')?.getAttribute('aria-describedby')).toBeNull();
+    });
+});
+
 describe('USWDS field text — hints and descriptions', () => {
     it('renders the Locale hint and description instead of the raw item strings', () => {
         const el = renderForm(

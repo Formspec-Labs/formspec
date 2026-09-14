@@ -267,6 +267,29 @@ describe('bindSharedFieldEffects with FieldViewModel', () => {
         disposers.forEach(d => d());
     });
 
+    it('references the error message in aria-describedby only while the error is shown', () => {
+        const ctx = makeMinimalBehaviorContext();
+        const { vm, setFirstError } = mockFieldVM({ hint: 'Helper text' });
+        const refs = makeFieldRefs();
+        const hint = document.createElement('span');
+        hint.id = 'field-test-hint';
+        refs.hint = hint;
+        refs.error.id = 'field-test-error';
+        refs.root.append(hint, refs.error);
+        ctx.touchedFields.add('test');
+
+        const disposers = bindSharedFieldEffects(ctx, 'test', vm, 'fallback', refs);
+        expect(refs.control.getAttribute('aria-describedby')).toBe('field-test-hint');
+
+        setFirstError('Enter a name');
+        expect(refs.control.getAttribute('aria-describedby')).toBe('field-test-hint field-test-error');
+
+        setFirstError(null);
+        expect(refs.control.getAttribute('aria-describedby')).toBe('field-test-hint');
+
+        disposers.forEach(d => d());
+    });
+
     it('syncs aria-describedby from hint id without static initialDescribedBy', () => {
         const ctx = makeMinimalBehaviorContext();
         const { vm, setLabel } = mockFieldVM({ label: 'Name', hint: 'Helper text' });

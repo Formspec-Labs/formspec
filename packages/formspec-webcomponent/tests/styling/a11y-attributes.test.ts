@@ -52,7 +52,7 @@ describe('a11y attributes — label/describedby', () => {
         expect(input).not.toBeNull();
         const describedBy = input.getAttribute('aria-describedby') || '';
         expect(describedBy).toContain('field-age-hint');
-        // Error ID is handled by role="alert" / aria-live, not linked via describedby in modern USWDS patterns
+        // No error shown yet: the error id joins aria-describedby only while a message is visible
         expect(describedBy).not.toContain('field-age-error');
 
         const hint = el.querySelector('#field-age-hint') as HTMLElement;
