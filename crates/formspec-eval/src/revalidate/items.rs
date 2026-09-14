@@ -190,13 +190,13 @@ pub(super) fn validate_items(
 
             match parse(&normalized_expr) {
                 Ok(parsed) => {
-                    let result = evaluate(&parsed, env);
-                    ConstraintSite {
+                    let passes = ConstraintSite {
                         path: &item.path,
                         shape_id: None,
                     }
-                    .record_eval_errors(&result, expr, diagnostics);
-                    if !constraint_passes(&result.value) {
+                    .settle(evaluate(&parsed, env), expr, diagnostics)
+                    .is_some_and(|value| constraint_passes(&value));
+                    if !passes {
                         results.push(ValidationResult {
                             path: item.path.clone(),
                             severity: Severity::Error,

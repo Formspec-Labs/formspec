@@ -510,11 +510,10 @@ mod tests {
         );
     }
 
-    /// BUG-3 author signal, reshaped by Core §3.8.1 / §3.10.2: a constraint calling an
-    /// undefined function evaluates to null and passes; the error reaches authors as a
-    /// diagnostic, never as a validation result.
+    /// BUG-3: an undefined function is a definition error (Core §3.10.1), so the
+    /// constraint fails like a syntax error; authors also get the diagnostic.
     #[test]
-    fn constraint_with_undefined_function_passes_with_diagnostic() {
+    fn constraint_with_undefined_function_fails_with_diagnostic() {
         let items = vec![ItemInfo {
             key: "amount".to_string(),
             path: "amount".to_string(),
@@ -566,15 +565,17 @@ mod tests {
             None,
             &HashMap::new(),
         );
-        assert!(results.is_empty(), "got {results:?}");
+        assert_eq!(results.len(), 1, "got {results:?}");
+        assert_eq!(results[0].code, "CONSTRAINT_FAILED");
+        assert_eq!(results[0].message, "Custom message");
         assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
         assert_eq!(diagnostics[0].path, "amount");
         assert_eq!(diagnostics[0].message, "undefined function: bogusFunc");
     }
 
-    /// BUG-3 author signal for shapes: pass, plus a diagnostic naming the shape.
+    /// BUG-3 for shapes: fail (Core §3.10.1), plus a diagnostic naming the expression.
     #[test]
-    fn shape_with_undefined_function_passes_with_diagnostic() {
+    fn shape_with_undefined_function_fails_with_diagnostic() {
         let items = vec![ItemInfo {
             key: "amount".to_string(),
             path: "amount".to_string(),
@@ -633,7 +634,8 @@ mod tests {
             None,
             &HashMap::new(),
         );
-        assert!(results.is_empty(), "got {results:?}");
+        assert_eq!(results.len(), 1, "got {results:?}");
+        assert_eq!(results[0].message, "Amount must pass bogus check");
         assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
         assert_eq!(diagnostics[0].expression, "bogusFunc($amount) > 0");
     }

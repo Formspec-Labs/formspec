@@ -4,6 +4,7 @@
 use fel_core::error::{Diagnostic, Severity};
 use fel_core::{
     EvalResult, FormspecEnvironment, Value, evaluate, expr_is_interpolation_static_literal, parse,
+    undefined_function_names_from_diagnostics,
 };
 
 use crate::types::EvalDiagnostic;
@@ -28,8 +29,8 @@ pub(super) struct ConstraintSite<'a> {
 impl ConstraintSite<'_> {
     /// Parse and evaluate a constraint-position `expression` at this site.
     ///
-    /// Returns `None` for a syntax error: that is a definition error (§3.10.1),
-    /// which callers treat as failing rather than as a passing `null`.
+    /// Returns `None` for a definition error (§3.10.1): a syntax error or an
+    /// undefined function. Callers treat it as failing rather than as a passing `null`.
     pub(super) fn evaluate(
         &self,
         expression: &str,
@@ -37,13 +38,27 @@ impl ConstraintSite<'_> {
         diagnostics: &mut Vec<EvalDiagnostic>,
     ) -> Option<Value> {
         let parsed = parse(expression).ok()?;
-        let result = evaluate(&parsed, env);
+        self.settle(evaluate(&parsed, env), expression, diagnostics)
+    }
+
+    /// Record `result`'s errors for authors, then return its value unless a function is undefined.
+    ///
+    /// A type error is an evaluation error (§3.10.2): its `null` value stands.
+    /// An undefined function is a definition error (§3.10.1): `None`.
+    pub(super) fn settle(
+        &self,
+        result: EvalResult,
+        expression: &str,
+        diagnostics: &mut Vec<EvalDiagnostic>,
+    ) -> Option<Value> {
         self.record_eval_errors(&result, expression, diagnostics);
-        Some(result.value)
+        undefined_function_names_from_diagnostics(&result.diagnostics)
+            .is_empty()
+            .then_some(result.value)
     }
 
     /// Record `result`'s error-severity diagnostics for authors (Core §3.10.2).
-    pub(super) fn record_eval_errors(
+    fn record_eval_errors(
         &self,
         result: &EvalResult,
         expression: &str,

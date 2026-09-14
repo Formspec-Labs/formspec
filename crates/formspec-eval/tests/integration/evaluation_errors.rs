@@ -59,21 +59,55 @@ fn bind_constraint_type_error_passes_and_records_diagnostic() {
     assert!(!diagnostic.message.is_empty());
 }
 
+/// An undefined function is a definition error (§3.10.1), like a syntax error: it fails.
 #[test]
-fn bind_constraint_undefined_function_passes_and_records_diagnostic() {
+fn bind_constraint_undefined_function_fails_and_records_diagnostic() {
     let def = definition(
         json!([{ "path": "name", "constraint": "bogusFunc($name)" }]),
         json!([]),
     );
     let result = evaluate(&def, &data(), &EvalOptions::default());
 
-    assert!(result.validations.is_empty(), "{:?}", result.validations);
+    let codes: Vec<String> = result
+        .validations
+        .iter()
+        .map(|v| v.code.to_string())
+        .collect();
+    assert_eq!(codes, vec!["CONSTRAINT_FAILED"], "{:?}", result.validations);
     assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
     assert!(
         result.diagnostics[0].message.contains("bogusFunc"),
         "{:?}",
         result.diagnostics
     );
+}
+
+#[test]
+fn shape_undefined_function_fails_in_every_position() {
+    let def = definition(
+        json!([]),
+        json!([
+            { "id": "constraintCheck", "target": "name", "constraint": "bogusFunc($name)", "message": "c" },
+            { "id": "notCheck", "target": "#", "not": "bogusFunc($name)", "message": "n" },
+            { "id": "rowCheck", "target": "rows[*].note", "constraint": "bogusFunc($note)", "message": "r" }
+        ]),
+    );
+    let result = evaluate(&def, &data(), &EvalOptions::default());
+
+    let failed: Vec<(&str, Option<&str>)> = result
+        .validations
+        .iter()
+        .map(|v| (v.path.as_str(), v.shape_id.as_deref()))
+        .collect();
+    assert_eq!(
+        failed,
+        vec![
+            ("name", Some("constraintCheck")),
+            ("#", Some("notCheck")),
+            ("rows[0].note", Some("rowCheck")),
+        ]
+    );
+    assert_eq!(result.diagnostics.len(), 3, "{:?}", result.diagnostics);
 }
 
 #[test]
