@@ -1,8 +1,9 @@
 'use client';
 
 /** @filedesc Display-category LayoutNode rendering (Text, DataTable, Summary, etc.). */
-import React, { useCallback, useState } from 'react';
-import { signal as createSignal } from '@preact/signals-core';
+import React, { useCallback, useMemo, useState } from 'react';
+import { computed, signal as createSignal } from '@preact/signals-core';
+import { interpolateMessage } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
 import type { FormItem } from '@formspec-org/types';
 import { useFormspecContext, findItemByKey } from './context.js';
@@ -43,11 +44,43 @@ function simpleMarkdown(text: string): string {
 
 const NO_VALUE = createSignal(null);
 const NO_READONLY = createSignal(false);
+const ALWAYS_RELEVANT = createSignal(true);
+const NO_TEXT = createSignal<string | null>(null);
+
+/**
+ * Live text and Bind relevance for a node planned from a display Item. The planner links it by
+ * `bindPath` (an instance path once repeats are stamped) and drops the value `bind`; a Text with
+ * `bind` shows a field value instead. Text is the Locale `<itemKey>.label` string, else the inline
+ * label, FEL `{{}}`-interpolated in the Item's instance scope. Same rule as webcomponent display-host
+ * `watchCompText` / display `hideWhenNotRelevant`.
+ */
+function useDisplayItem(node: LayoutNode): { text: string | null; relevant: boolean } {
+    const { engine } = useFormspecContext();
+    const path = !node.props?.bind && typeof node.bindPath === 'string' ? node.bindPath : null;
+    const found = path ? findItemByKey(engine.getDefinition().items ?? [], path) : null;
+    const item: FormItem | null = found?.type === 'display' ? found : null;
+    const textSignal = useMemo(() => {
+        if (!item || !path) return NO_TEXT;
+        return computed(() => {
+            engine.localeSignal.value;
+            const inline = interpolateMessage(
+                engine.getLabel(item),
+                (expr) => engine.compileExpression(expr, path)(),
+            ).text;
+            return engine.resolveLocaleString(`${item.key}.label`, inline, path);
+        });
+    }, [engine, item, path]);
+    const text = useSignal(textSignal);
+    const relevant = useSignal((item && path && engine.relevantSignals[path]) || ALWAYS_RELEVANT);
+    return { text, relevant };
+}
 
 /** Renders a display node — checks for user override before built-in rendering. */
 export function DisplayNode({ node }: { node: LayoutNode }) {
     const { components } = useFormspecContext();
-    const text = (node.props?.text as string) || node.fieldItem?.label || '';
+    const displayItem = useDisplayItem(node);
+    if (!displayItem.relevant) return null;
+    const text = displayItem.text ?? ((node.props?.text as string) || node.fieldItem?.label || '');
 
     const Override = components.display?.[node.component];
     if (Override) {
