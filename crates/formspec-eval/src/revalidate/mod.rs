@@ -68,6 +68,7 @@ pub fn revalidate(
         items,
         &mut env,
         values,
+        &data_types,
         &ext_by_name,
         formspec_version,
         repeat_counts,
@@ -99,7 +100,15 @@ pub fn revalidate(
                     }
                 }
             }
-            validate_shape(shape, &shapes_by_id, &mut env, values, items, &mut results);
+            validate_shape(
+                shape,
+                &shapes_by_id,
+                &mut env,
+                values,
+                &data_types,
+                items,
+                &mut results,
+            );
         }
     }
 

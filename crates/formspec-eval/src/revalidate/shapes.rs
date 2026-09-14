@@ -11,6 +11,7 @@ use crate::rebuild::{
     expand_wildcard_path, instantiate_wildcard_expr, is_wildcard_bind, wildcard_base,
 };
 use crate::recalculate::eval_bool;
+use crate::recalculate::repeats::data_type_of;
 use crate::types::{
     ConstraintKind, ItemInfo, Severity, ValidationCode, ValidationResult, ValidationSource,
     find_item_by_path,
@@ -29,6 +30,7 @@ pub(super) fn validate_shape(
     shapes_by_id: &HashMap<String, &JsonValue>,
     env: &mut FormspecEnvironment,
     values: &HashMap<String, JsonValue>,
+    data_types: &HashMap<String, String>,
     items: &[ItemInfo],
     results: &mut Vec<ValidationResult>,
 ) {
@@ -36,7 +38,7 @@ pub(super) fn validate_shape(
 
     // Wildcard shape target: expand and evaluate per-instance
     if is_wildcard_bind(target) {
-        validate_wildcard_shape(shape, shapes_by_id, env, values, items, results);
+        validate_wildcard_shape(shape, shapes_by_id, env, values, data_types, items, results);
         return;
     }
 
@@ -58,11 +60,11 @@ pub(super) fn validate_shape(
         .unwrap_or("Shape constraint failed");
 
     // Check activeWhen
-    let saved_repeat_arrays = bind_repeat_group_arrays(env, items, values);
+    let saved_repeat_arrays = bind_repeat_group_arrays(env, items, values, data_types);
     let saved_aliases = if target.is_empty() || target == "#" {
         HashMap::new()
     } else {
-        bind_sibling_aliases(env, values, target)
+        bind_sibling_aliases(env, values, data_types, target)
     };
     if let Some(active_when) = shape.get("activeWhen").and_then(|v| v.as_str())
         && !eval_bool(active_when, env, true)
@@ -77,10 +79,9 @@ pub(super) fn validate_shape(
     if !target.is_empty()
         && let Some(target_val) = values.get(target)
     {
-        let data_type = find_item_by_path(items, target).and_then(|i| i.data_type.as_deref());
         env.data.insert(
             String::new(),
-            json_to_runtime_fel_typed(target_val, data_type),
+            json_to_runtime_fel_typed(target_val, data_type_of(data_types, target)),
         );
     }
 
@@ -123,6 +124,7 @@ fn validate_wildcard_shape(
     _shapes_by_id: &HashMap<String, &JsonValue>,
     env: &mut FormspecEnvironment,
     values: &HashMap<String, JsonValue>,
+    data_types: &HashMap<String, String>,
     items: &[ItemInfo],
     results: &mut Vec<ValidationResult>,
 ) {
@@ -163,15 +165,15 @@ fn validate_wildcard_shape(
             None => continue,
         };
 
-        let saved_aliases = bind_sibling_aliases(env, values, concrete_path);
+        let saved_aliases = bind_sibling_aliases(env, values, data_types, concrete_path);
 
         // Build a row-scoped environment: instantiate [*] references in the constraint
         let prev_dollar = env.data.remove("");
         if let Some(val) = values.get(concrete_path.as_str()) {
-            let data_type = find_item_by_path(items, concrete_path.as_str())
-                .and_then(|i| i.data_type.as_deref());
-            env.data
-                .insert(String::new(), json_to_runtime_fel_typed(val, data_type));
+            env.data.insert(
+                String::new(),
+                json_to_runtime_fel_typed(val, data_type_of(data_types, concrete_path)),
+            );
         }
 
         let active = shape

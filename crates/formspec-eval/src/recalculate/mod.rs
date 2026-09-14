@@ -63,7 +63,7 @@ pub fn recalculate(
             json_fel::json_to_runtime_fel_typed(v, data_types.get(k).map(|s| s.as_str())),
         );
     }
-    repeats::populate_repeat_group_arrays(items, &values, &mut env);
+    repeats::populate_repeat_group_arrays(items, &values, &data_types, &mut env);
 
     let var_defs = parse_variables(definition);
     let (initial_var_values, scoped_var_values, cycle_err) =
@@ -90,6 +90,7 @@ pub fn recalculate(
             items,
             &mut env,
             &mut values,
+            &data_types,
             true,
             false,
             &scoped_var_values,
@@ -100,6 +101,7 @@ pub fn recalculate(
             items,
             &mut env,
             &mut values,
+            &data_types,
             true,
             false,
             &invalid_paths,
@@ -110,9 +112,10 @@ pub fn recalculate(
         items,
         &mut env,
         &mut values,
+        &data_types,
         has_scoped.then_some(&scoped_var_values),
     );
-    repeats::populate_repeat_group_arrays(items, &values, &mut env);
+    repeats::populate_repeat_group_arrays(items, &values, &data_types, &mut env);
 
     let (mut final_var_values, final_scoped_var_values, _) =
         variables::evaluate_variables_scoped(&var_defs, &mut env);
@@ -124,9 +127,10 @@ pub fn recalculate(
         items,
         &mut env,
         &mut values,
+        &data_types,
         has_scoped.then_some(&final_scoped_var_values),
     );
-    repeats::populate_repeat_group_arrays(items, &values, &mut env);
+    repeats::populate_repeat_group_arrays(items, &values, &data_types, &mut env);
 
     (final_var_values, _, _) = variables::evaluate_variables_scoped(&var_defs, &mut env);
     for (name, val) in &final_var_values {

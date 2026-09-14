@@ -6,9 +6,9 @@ use std::collections::HashMap;
 use fel_core::{FormspecEnvironment, Value as EnvVal, json_to_fel};
 use serde_json::Value;
 
-use crate::fel_json::json_to_runtime_fel;
+use crate::fel_json::{json_to_runtime_fel, json_to_runtime_fel_typed};
 use crate::rebuild::is_repeat_group_array;
-use crate::recalculate::repeats::build_repeat_group_array;
+use crate::recalculate::repeats::{data_type_of, repeat_group_fel_array};
 use crate::types::ItemInfo;
 
 /// Apply excludedValue="null" to the FEL environment for non-relevant items (9a).
@@ -46,13 +46,7 @@ pub(crate) fn build_validation_env_typed(
         // Skip repeat group arrays — flat indexed keys exist and FEL should
         // use those instead (array path resolution uses 1-based indexing).
         if !is_repeat_group_array(v) {
-            env.set_field(
-                k,
-                crate::fel_json::json_to_runtime_fel_typed(
-                    v,
-                    data_types.get(k).map(|s| s.as_str()),
-                ),
-            );
+            env.set_field(k, json_to_runtime_fel_typed(v, data_type_of(data_types, k)));
         }
     }
     for (name, value) in variables {
@@ -68,16 +62,22 @@ pub(super) fn bind_repeat_group_arrays(
     env: &mut FormspecEnvironment,
     items: &[ItemInfo],
     values: &HashMap<String, Value>,
+    data_types: &HashMap<String, String>,
 ) -> HashMap<String, Option<EnvVal>> {
     let mut saved = HashMap::new();
     for item in items {
         if item.repeatable
-            && let Some(array) = build_repeat_group_array(&item.path, values)
+            && let Some(array) = repeat_group_fel_array(&item.path, values, data_types)
         {
             saved.insert(item.path.clone(), env.data.get(&item.path).cloned());
-            env.set_field(&item.path, json_to_runtime_fel(&array));
+            env.set_field(&item.path, array);
         }
-        saved.extend(bind_repeat_group_arrays(env, &item.children, values));
+        saved.extend(bind_repeat_group_arrays(
+            env,
+            &item.children,
+            values,
+            data_types,
+        ));
     }
     saved
 }
@@ -99,6 +99,7 @@ pub(super) fn restore_repeat_group_arrays(
 pub(super) fn bind_sibling_aliases(
     env: &mut FormspecEnvironment,
     values: &HashMap<String, Value>,
+    data_types: &HashMap<String, String>,
     concrete_path: &str,
 ) -> HashMap<String, Option<EnvVal>> {
     let Some((row_prefix, _)) = concrete_path.rsplit_once('.') else {
@@ -112,7 +113,10 @@ pub(super) fn bind_sibling_aliases(
             && !alias.contains('.')
         {
             saved.insert(alias.to_string(), env.data.get(alias).cloned());
-            env.set_field(alias, json_to_runtime_fel(value));
+            env.set_field(
+                alias,
+                json_to_runtime_fel_typed(value, data_type_of(data_types, path)),
+            );
         }
     }
     saved

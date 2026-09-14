@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use fel_core::{FormspecEnvironment, Value as EnvVal, evaluate, fel_to_ui_json, parse};
 use serde_json::Value;
 
-use super::json_fel::{coerce_calculated_value, json_to_runtime_fel};
+use super::json_fel::{coerce_calculated_value, json_to_runtime_fel, json_to_runtime_fel_typed};
 use super::repeats::{
     apply_instance_aliases, push_repeat_context_for_instance, refresh_nested_group_aliases,
     restore_instance_aliases,
@@ -17,12 +17,15 @@ pub(super) fn settle_calculated_values(
     items: &mut [ItemInfo],
     env: &mut FormspecEnvironment,
     values: &mut HashMap<String, Value>,
+    data_types: &HashMap<String, String>,
     scoped_vars: Option<&HashMap<String, Value>>,
 ) {
     for _ in 0..100 {
         let changed = match scoped_vars {
-            Some(scoped_vars) => calculate_pass_items_scoped(items, env, values, scoped_vars),
-            None => calculate_pass_items(items, env, values),
+            Some(scoped_vars) => {
+                calculate_pass_items_scoped(items, env, values, data_types, scoped_vars)
+            }
+            None => calculate_pass_items(items, env, values, data_types),
         };
         if !changed {
             break;
@@ -34,6 +37,7 @@ fn calculate_pass_items(
     items: &mut [ItemInfo],
     env: &mut FormspecEnvironment,
     values: &mut HashMap<String, Value>,
+    data_types: &HashMap<String, String>,
 ) -> bool {
     let mut changed = false;
 
@@ -41,10 +45,15 @@ fn calculate_pass_items(
         changed |= evaluate_calculate_only(item, env, values);
 
         if item.repeatable && !item.children.is_empty() {
-            changed |=
-                calculate_pass_repeat_children_with_aliases(&mut item.children, env, values, None);
+            changed |= calculate_pass_repeat_children_with_aliases(
+                &mut item.children,
+                env,
+                values,
+                data_types,
+                None,
+            );
         } else {
-            changed |= calculate_pass_items(&mut item.children, env, values);
+            changed |= calculate_pass_items(&mut item.children, env, values, data_types);
         }
     }
 
@@ -55,6 +64,7 @@ fn calculate_pass_items_scoped(
     items: &mut [ItemInfo],
     env: &mut FormspecEnvironment,
     values: &mut HashMap<String, Value>,
+    data_types: &HashMap<String, String>,
     scoped_vars: &HashMap<String, Value>,
 ) -> bool {
     let mut changed = false;
@@ -73,10 +83,17 @@ fn calculate_pass_items_scoped(
                 &mut item.children,
                 env,
                 values,
+                data_types,
                 Some(scoped_vars),
             );
         } else {
-            changed |= calculate_pass_items_scoped(&mut item.children, env, values, scoped_vars);
+            changed |= calculate_pass_items_scoped(
+                &mut item.children,
+                env,
+                values,
+                data_types,
+                scoped_vars,
+            );
         }
     }
 
@@ -87,6 +104,7 @@ fn calculate_pass_repeat_children_with_aliases(
     children: &mut [ItemInfo],
     env: &mut FormspecEnvironment,
     values: &mut HashMap<String, Value>,
+    data_types: &HashMap<String, String>,
     scoped_vars: Option<&HashMap<String, Value>>,
 ) -> bool {
     let mut changed = false;
@@ -107,11 +125,17 @@ fn calculate_pass_repeat_children_with_aliases(
             alias_names.clear();
             nested_groups.clear();
             current_instance = Some(instance_prefix.clone());
-            let (next_aliases, next_nested_groups) =
-                apply_instance_aliases(&instance_prefix, env, values, &mut saved_values);
+            let (next_aliases, next_nested_groups) = apply_instance_aliases(
+                &instance_prefix,
+                env,
+                values,
+                data_types,
+                &mut saved_values,
+            );
             alias_names = next_aliases;
             nested_groups = next_nested_groups;
-            repeat_context_active = push_repeat_context_for_instance(&instance_prefix, env, values);
+            repeat_context_active =
+                push_repeat_context_for_instance(&instance_prefix, env, values, data_types);
         }
 
         if let Some(scoped_vars) = scoped_vars {
@@ -127,8 +151,11 @@ fn calculate_pass_repeat_children_with_aliases(
         if item.calculate.is_some()
             && let Some(val) = values.get(&item.path)
         {
-            env.set_field(&item.key, json_to_runtime_fel(val));
-            refresh_nested_group_aliases(&instance_prefix, &nested_groups, env, values);
+            env.set_field(
+                &item.key,
+                json_to_runtime_fel_typed(val, item.data_type.as_deref()),
+            );
+            refresh_nested_group_aliases(&instance_prefix, &nested_groups, env, values, data_types);
         }
 
         if item.repeatable && !item.children.is_empty() {
@@ -136,12 +163,19 @@ fn calculate_pass_repeat_children_with_aliases(
                 &mut item.children,
                 env,
                 values,
+                data_types,
                 scoped_vars,
             );
         } else if let Some(scoped_vars) = scoped_vars {
-            changed |= calculate_pass_items_scoped(&mut item.children, env, values, scoped_vars);
+            changed |= calculate_pass_items_scoped(
+                &mut item.children,
+                env,
+                values,
+                data_types,
+                scoped_vars,
+            );
         } else {
-            changed |= calculate_pass_items(&mut item.children, env, values);
+            changed |= calculate_pass_items(&mut item.children, env, values, data_types);
         }
     }
 

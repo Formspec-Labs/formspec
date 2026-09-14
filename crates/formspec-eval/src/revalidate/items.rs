@@ -28,6 +28,7 @@ pub(super) fn validate_items(
     items: &[ItemInfo],
     env: &mut FormspecEnvironment,
     values: &HashMap<String, Value>,
+    data_types: &HashMap<String, String>,
     ext_by_name: &HashMap<&str, &ExtensionConstraint>,
     formspec_version: &str,
     repeat_counts: Option<&HashMap<String, u64>>,
@@ -178,7 +179,7 @@ pub(super) fn validate_items(
             && let Some(ref expr) = item.constraint
         {
             let normalized_expr = resolve_qualified_repeat_refs(expr, &item.path);
-            let saved_aliases = bind_sibling_aliases(env, values, &item.path);
+            let saved_aliases = bind_sibling_aliases(env, values, data_types, &item.path);
             // Temporarily bind bare $ to this field's value (typed like env fields — S2.1.3)
             let prev_dollar = env.data.remove("");
             env.data.insert(
@@ -278,6 +279,7 @@ pub(super) fn validate_items(
             &item.children,
             env,
             values,
+            data_types,
             ext_by_name,
             formspec_version,
             repeat_counts,

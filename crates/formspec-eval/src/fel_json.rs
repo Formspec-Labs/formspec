@@ -5,8 +5,8 @@
 //! values, not raw JSON strings.
 #![allow(clippy::missing_docs_in_private_items)]
 
-use fel_core::{Value, json_to_fel, parse_date_literal, parse_datetime_literal};
-use serde_json::Value as JsonValue;
+use fel_core::{Value, json_to_fel};
+use serde_json::{Value as JsonValue, json};
 
 fn normalize_money_like_json(value: &JsonValue) -> JsonValue {
     match value {
@@ -35,32 +35,64 @@ pub(crate) fn json_to_runtime_fel(value: &JsonValue) -> Value {
     json_to_fel(&normalize_money_like_json(value))
 }
 
-/// Convert response JSON to a FEL [`Value`] with type-aware coercion.
+/// Tag a response leaf with its field `dataType` so [`json_to_fel`] decodes the spec FEL type.
 ///
-/// When `data_type` is `"date"` or `"dateTime"`, ISO date strings are coerced
-/// to `Value::Date` at context entry (spec S2.1.3). This keeps the FEL
-/// evaluator type-strict while ensuring date comparisons work correctly.
-pub(crate) fn json_to_runtime_fel_typed(value: &JsonValue, data_type: Option<&str>) -> Value {
-    match data_type {
-        Some("date") => {
-            if let Some(s) = value.as_str() {
-                if let Some(date) = parse_date_literal(&format!("@{s}")) {
-                    return Value::Date(date);
-                }
-            }
+/// Core §2.1.3 maps `date` and `dateTime` to FEL `date`. Strings for those types
+/// become fel-core's `{"$type": "date", "value": ...}` envelope, so fel-core owns
+/// the ISO parse (unparsable text decodes to `null`). The engine's ad-hoc FEL
+/// context uses the same envelope. Other values pass through unchanged.
+pub(crate) fn typed_json_leaf(value: &JsonValue, data_type: Option<&str>) -> JsonValue {
+    match (data_type, value) {
+        (Some("date" | "dateTime"), JsonValue::String(text)) => {
+            json!({ "$type": "date", "value": text })
         }
-        Some("dateTime") => {
-            if let Some(s) = value.as_str() {
-                if let Some(dt) = parse_datetime_literal(&format!("@{s}")) {
-                    return Value::Date(dt);
-                }
-                // Fall back to date-only parse for dateTime fields with date-only strings
-                if let Some(date) = parse_date_literal(&format!("@{s}")) {
-                    return Value::Date(date);
-                }
-            }
-        }
-        _ => {}
+        _ => value.clone(),
     }
-    json_to_runtime_fel(value)
+}
+
+/// Convert a response leaf of field type `data_type` to a FEL [`Value`] (Core §2.1.3).
+pub(crate) fn json_to_runtime_fel_typed(value: &JsonValue, data_type: Option<&str>) -> Value {
+    json_to_runtime_fel(&typed_json_leaf(value, data_type))
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::missing_docs_in_private_items)]
+    use super::*;
+
+    #[test]
+    fn date_and_datetime_strings_decode_as_fel_dates() {
+        for (data_type, text) in [
+            ("date", "2025-03-01"),
+            ("dateTime", "2025-03-01T10:30:00"),
+            ("dateTime", "2025-03-01"),
+        ] {
+            let value = json_to_runtime_fel_typed(&json!(text), Some(data_type));
+            assert!(
+                matches!(value, Value::Date(_)),
+                "{data_type} {text:?} -> {value:?}"
+            );
+        }
+    }
+
+    /// fel-core's date envelope owns the parse: text that is not a date is `null`, not a string.
+    #[test]
+    fn unparsable_date_text_decodes_as_null() {
+        assert_eq!(
+            json_to_runtime_fel_typed(&json!("not-a-date"), Some("date")),
+            Value::Null
+        );
+    }
+
+    #[test]
+    fn untyped_and_non_string_leaves_pass_through() {
+        assert_eq!(
+            json_to_runtime_fel_typed(&json!("2025-03-01"), Some("string")),
+            Value::String("2025-03-01".to_string())
+        );
+        assert_eq!(
+            json_to_runtime_fel_typed(&json!(null), Some("date")),
+            Value::Null
+        );
+    }
 }

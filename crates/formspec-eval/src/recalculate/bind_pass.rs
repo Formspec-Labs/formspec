@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use fel_core::{FormspecEnvironment, MipState, Value, evaluate, fel_to_ui_json, parse};
 use serde_json::Value as JsonValue;
 
-use super::json_fel::{coerce_calculated_value, json_to_runtime_fel};
+use super::json_fel::{coerce_calculated_value, json_to_runtime_fel, json_to_runtime_fel_typed};
 use super::repeats::{
     apply_instance_aliases, push_repeat_context_for_instance, refresh_nested_group_aliases,
     restore_instance_aliases,
@@ -85,7 +85,7 @@ pub(crate) fn evaluate_single_item(
                     env.set_field(&item.path, coerced);
                 }
             } else if let Some(ref default_val) = item.default_value {
-                let fel = json_to_runtime_fel(default_val);
+                let fel = json_to_runtime_fel_typed(default_val, item.data_type.as_deref());
                 let coerced = coerce_calculated_value(item, fel);
                 let json_val = fel_to_ui_json(&coerced);
                 values.insert(item.path.clone(), json_val.clone());
@@ -146,6 +146,7 @@ pub(crate) fn evaluate_items_with_inheritance(
     items: &mut [ItemInfo],
     env: &mut FormspecEnvironment,
     values: &mut HashMap<String, JsonValue>,
+    data_types: &HashMap<String, String>,
     parent_relevant: bool,
     parent_readonly: bool,
     invalid_paths: &HashSet<String>,
@@ -165,6 +166,7 @@ pub(crate) fn evaluate_items_with_inheritance(
                 &mut item.children,
                 env,
                 values,
+                data_types,
                 item.relevant,
                 item.readonly,
                 None,
@@ -175,6 +177,7 @@ pub(crate) fn evaluate_items_with_inheritance(
                 &mut item.children,
                 env,
                 values,
+                data_types,
                 item.relevant,
                 item.readonly,
                 invalid_paths,
@@ -187,6 +190,7 @@ fn evaluate_repeat_children_with_aliases(
     children: &mut [ItemInfo],
     env: &mut FormspecEnvironment,
     values: &mut HashMap<String, JsonValue>,
+    data_types: &HashMap<String, String>,
     parent_relevant: bool,
     parent_readonly: bool,
     scoped_vars: Option<&HashMap<String, JsonValue>>,
@@ -209,11 +213,17 @@ fn evaluate_repeat_children_with_aliases(
             alias_names.clear();
             nested_groups.clear();
             current_instance = Some(instance_prefix.clone());
-            let (next_aliases, next_nested_groups) =
-                apply_instance_aliases(&instance_prefix, env, values, &mut saved_values);
+            let (next_aliases, next_nested_groups) = apply_instance_aliases(
+                &instance_prefix,
+                env,
+                values,
+                data_types,
+                &mut saved_values,
+            );
             alias_names = next_aliases;
             nested_groups = next_nested_groups;
-            repeat_context_active = push_repeat_context_for_instance(&instance_prefix, env, values);
+            repeat_context_active =
+                push_repeat_context_for_instance(&instance_prefix, env, values, data_types);
         }
 
         if let Some(sv) = scoped_vars {
@@ -236,8 +246,11 @@ fn evaluate_repeat_children_with_aliases(
         if item.calculate.is_some()
             && let Some(val) = values.get(&item.path)
         {
-            env.set_field(&item.key, json_to_runtime_fel(val));
-            refresh_nested_group_aliases(&instance_prefix, &nested_groups, env, values);
+            env.set_field(
+                &item.key,
+                json_to_runtime_fel_typed(val, item.data_type.as_deref()),
+            );
+            refresh_nested_group_aliases(&instance_prefix, &nested_groups, env, values, data_types);
         }
 
         if item.repeatable && !item.children.is_empty() {
@@ -245,6 +258,7 @@ fn evaluate_repeat_children_with_aliases(
                 &mut item.children,
                 env,
                 values,
+                data_types,
                 item.relevant,
                 item.readonly,
                 scoped_vars,
@@ -255,6 +269,7 @@ fn evaluate_repeat_children_with_aliases(
                 &mut item.children,
                 env,
                 values,
+                data_types,
                 item.relevant,
                 item.readonly,
                 sv,
@@ -265,6 +280,7 @@ fn evaluate_repeat_children_with_aliases(
                 &mut item.children,
                 env,
                 values,
+                data_types,
                 item.relevant,
                 item.readonly,
                 invalid_paths,
@@ -282,6 +298,7 @@ pub(crate) fn evaluate_items_with_inheritance_scoped(
     items: &mut [ItemInfo],
     env: &mut FormspecEnvironment,
     values: &mut HashMap<String, JsonValue>,
+    data_types: &HashMap<String, String>,
     parent_relevant: bool,
     parent_readonly: bool,
     scoped_vars: &HashMap<String, JsonValue>,
@@ -308,6 +325,7 @@ pub(crate) fn evaluate_items_with_inheritance_scoped(
                 &mut item.children,
                 env,
                 values,
+                data_types,
                 item.relevant,
                 item.readonly,
                 Some(scoped_vars),
@@ -318,6 +336,7 @@ pub(crate) fn evaluate_items_with_inheritance_scoped(
                 &mut item.children,
                 env,
                 values,
+                data_types,
                 item.relevant,
                 item.readonly,
                 scoped_vars,

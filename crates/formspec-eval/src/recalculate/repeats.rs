@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use fel_core::{FormspecEnvironment, Value};
 use serde_json::Value as JsonValue;
 
-use super::json_fel::json_to_runtime_fel;
+use super::json_fel::{json_to_runtime_fel, json_to_runtime_fel_typed};
+use crate::fel_json::typed_json_leaf;
 use crate::types::ItemInfo;
 
 use formspec_core::path_utils::{Path, PathSegment};
@@ -29,6 +30,7 @@ pub(crate) fn apply_instance_aliases(
     instance_prefix: &str,
     env: &mut FormspecEnvironment,
     values: &HashMap<String, JsonValue>,
+    data_types: &HashMap<String, String>,
     saved_values: &mut HashMap<String, Option<Value>>,
 ) -> (Vec<String>, Vec<String>) {
     let mut alias_names = Vec::new();
@@ -42,7 +44,10 @@ pub(crate) fn apply_instance_aliases(
         };
         if !relative.contains('.') {
             saved_values.insert(relative.to_string(), env.data.get(relative).cloned());
-            env.set_field(relative, json_to_runtime_fel(v));
+            env.set_field(
+                relative,
+                json_to_runtime_fel_typed(v, data_type_of(data_types, k)),
+            );
             alias_names.push(relative.to_string());
             continue;
         }
@@ -56,11 +61,11 @@ pub(crate) fn apply_instance_aliases(
                 if !group_name.contains('.') && seen_groups.insert(group_name.to_string()) {
                     saved_values.insert(group_name.to_string(), env.data.get(group_name).cloned());
                     let group_path = format!("{instance_prefix}.{group_name}");
-                    if let Some(array) = build_repeat_group_array(&group_path, values) {
-                        env.set_field(group_name, json_to_runtime_fel(&array));
-                    } else {
-                        env.data.remove(group_name);
-                    }
+                    set_or_remove_group_field(
+                        env,
+                        group_name,
+                        repeat_group_fel_array(&group_path, values, data_types),
+                    );
                     alias_names.push(group_name.to_string());
                     nested_groups.push(group_name.to_string());
                 }
@@ -76,13 +81,23 @@ pub(crate) fn refresh_nested_group_aliases(
     nested_groups: &[String],
     env: &mut FormspecEnvironment,
     values: &HashMap<String, JsonValue>,
+    data_types: &HashMap<String, String>,
 ) {
     for group_name in nested_groups {
         let group_path = format!("{instance_prefix}.{group_name}");
-        if let Some(array) = build_repeat_group_array(&group_path, values) {
-            env.set_field(group_name, json_to_runtime_fel(&array));
-        } else {
-            env.data.remove(group_name);
+        set_or_remove_group_field(
+            env,
+            group_name,
+            repeat_group_fel_array(&group_path, values, data_types),
+        );
+    }
+}
+
+fn set_or_remove_group_field(env: &mut FormspecEnvironment, name: &str, array: Option<Value>) {
+    match array {
+        Some(array) => env.set_field(name, array),
+        None => {
+            env.data.remove(name);
         }
     }
 }
@@ -110,51 +125,57 @@ pub(crate) fn push_repeat_context_for_instance(
     instance_prefix: &str,
     env: &mut FormspecEnvironment,
     values: &HashMap<String, JsonValue>,
+    data_types: &HashMap<String, String>,
 ) -> bool {
     let Some((group_path, index)) = parse_repeat_instance_prefix(instance_prefix) else {
         return false;
     };
-    let Some(array) = build_repeat_group_array(&group_path, values).and_then(|value| match value {
-        JsonValue::Array(entries) => Some(entries),
-        _ => None,
-    }) else {
+    let Some(Value::Array(collection)) = repeat_group_fel_array(&group_path, values, data_types)
+    else {
         return false;
     };
-    let Some(current) = array.get(index).cloned() else {
+    let Some(current) = collection.get(index).cloned() else {
         return false;
     };
-    let collection = array
-        .iter()
-        .map(json_to_runtime_fel)
-        .collect::<Vec<Value>>();
-    env.push_repeat(
-        json_to_runtime_fel(&current),
-        index + 1,
-        array.len(),
-        collection,
-    );
+    let count = collection.len();
+    env.push_repeat(current, index + 1, count, collection);
     true
 }
 
 pub(crate) fn populate_repeat_group_arrays(
     items: &[ItemInfo],
     values: &HashMap<String, JsonValue>,
+    data_types: &HashMap<String, String>,
     env: &mut FormspecEnvironment,
 ) {
     for item in items {
         if item.repeatable
-            && let Some(array) = build_repeat_group_array(&item.path, values)
+            && let Some(array) = repeat_group_fel_array(&item.path, values, data_types)
         {
-            env.set_field(&item.path, json_to_runtime_fel(&array));
+            env.set_field(&item.path, array);
         }
-        populate_repeat_group_arrays(&item.children, values, env);
+        populate_repeat_group_arrays(&item.children, values, data_types, env);
     }
 }
 
-pub(crate) fn build_repeat_group_array(
+/// Field `dataType` for a concrete response path, if the path names a typed field.
+pub(crate) fn data_type_of<'a>(
+    data_types: &'a HashMap<String, String>,
+    path: &str,
+) -> Option<&'a str> {
+    data_types.get(path).map(String::as_str)
+}
+
+/// Build the FEL row array for repeat group `group_path` from flat `values`.
+///
+/// Rows come from `group_path[i].*` keys. Each leaf is typed by its field
+/// `dataType` (Core §2.1.3), so a `date` leaf reads as FEL `date` through
+/// `$group`, `@current`, and nested-group aliases alike.
+pub(crate) fn repeat_group_fel_array(
     group_path: &str,
     values: &HashMap<String, JsonValue>,
-) -> Option<JsonValue> {
+    data_types: &HashMap<String, String>,
+) -> Option<Value> {
     let count = crate::rebuild::detect_repeat_count(group_path, values);
     if count == 0 {
         return None;
@@ -164,21 +185,19 @@ pub(crate) fn build_repeat_group_array(
     for index in 0..count {
         let prefix = format!("{group_path}[{index}].");
         let mut row = JsonValue::Object(serde_json::Map::new());
-        let mut has_values = false;
         for (path, value) in values {
             if let Some(relative) = path.strip_prefix(&prefix) {
-                set_nested_json_path(&mut row, relative, value.clone());
-                has_values = true;
+                set_nested_json_path(
+                    &mut row,
+                    relative,
+                    typed_json_leaf(value, data_type_of(data_types, path)),
+                );
             }
         }
-        rows.push(if has_values {
-            row
-        } else {
-            JsonValue::Object(serde_json::Map::new())
-        });
+        rows.push(row);
     }
 
-    Some(JsonValue::Array(rows))
+    Some(json_to_runtime_fel(&JsonValue::Array(rows)))
 }
 
 /// Build the nested-object path under `target` and write `value` at the leaf.
