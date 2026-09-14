@@ -1218,7 +1218,10 @@ mod tests {
                 );
             }
             for key in ["city.hint@accessibility", "city.description@pdf"] {
-                assert!(codes_at(&diagnostics, key).is_empty(), "{key}: {diagnostics:?}");
+                assert!(
+                    codes_at(&diagnostics, key).is_empty(),
+                    "{key}: {diagnostics:?}"
+                );
             }
         }
     }
