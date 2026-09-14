@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
 import { FormspecRender, globalRegistry } from '@formspec-org/webcomponent';
 import { uswdsAdapter } from '../../src/uswds/index';
+import { readUswdsIntegrationCss } from '../helpers';
 
 beforeAll(async () => {
     await initFormspecEngine();
@@ -251,6 +252,42 @@ describe('USWDS read-only values', () => {
         expect(input.tabIndex).toBe(0);
         expect(input.value).toBe('ACME CORP');
         expect(el.querySelector('label[for="field-employer"]')?.textContent).toBe('Employer');
+    });
+
+    it('keeps the red error border on an invalid read-only calculated field', () => {
+        const style = document.createElement('style');
+        style.textContent = readUswdsIntegrationCss();
+        document.head.appendChild(style);
+        try {
+            const el = renderForm(
+                [
+                    { key: 'hours', type: 'field', dataType: 'integer', label: 'Hours' },
+                    { key: 'pay', type: 'field', dataType: 'integer', label: 'Pay' },
+                    { key: 'fee', type: 'field', dataType: 'integer', label: 'Fee', prefix: '$' },
+                ],
+                {
+                    binds: [
+                        { path: 'pay', calculate: '$hours * 2', readonly: 'true', constraint: '$ <= 10' },
+                        { path: 'fee', calculate: '$hours * 3', readonly: 'true', constraint: '$ <= 10' },
+                    ],
+                },
+            );
+            el.getEngine().setValue('hours', 20);
+            const pay = el.querySelector('#field-pay') as HTMLInputElement;
+            expect(pay.readOnly).toBe(true);
+            // Before the error shows, the read-only value has no editable-box border.
+            expect(getComputedStyle(pay).borderColor).toBe('rgba(0, 0, 0, 0)');
+
+            el.submit({ emitEvent: false });
+            expect(pay.classList.contains('usa-input--error')).toBe(true);
+            expect(getComputedStyle(pay).borderColor).toBe('#b50909');
+
+            const feeGroup = el.querySelector('#field-fee')!.parentElement as HTMLElement;
+            expect(feeGroup.classList.contains('usa-input-group--error')).toBe(true);
+            expect(getComputedStyle(feeGroup).borderColor).toBe('#b50909');
+        } finally {
+            style.remove();
+        }
     });
 });
 

@@ -132,14 +132,20 @@ $fs-trailing-checkbox-size: 1.25rem !default;
 
 // Read-only values (Bind `readonly`, e.g. record data pre-filled by the agency) stay native `readonly`
 // controls — labelled, announced as read-only, reachable by Tab, and still referenced by hints and
-// errors — but lose the editable-box affordance: no border, filled background.
+// errors — but lose the editable-box affordance: no border, filled background. An invalid read-only value
+// (e.g. a calculated total that breaks a constraint) keeps the USWDS error border.
 .usa-input[readonly],
 .usa-textarea[readonly],
 .usa-input-group:has(> .usa-input[readonly]) {
   background-color: color('base-lightest');
-  border-color: transparent;
   color: color('ink');
   cursor: default;
+}
+
+.usa-input[readonly]:not(.usa-input--error),
+.usa-textarea[readonly]:not(.usa-input--error),
+.usa-input-group:has(> .usa-input[readonly]):not(.usa-input-group--error) {
+  border-color: transparent;
 }
 
 // Group fields (RadioGroup, CheckboxGroup) take the error state on the fieldset root itself rather than a
