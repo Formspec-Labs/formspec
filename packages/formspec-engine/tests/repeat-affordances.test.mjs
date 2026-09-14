@@ -71,3 +71,20 @@ test('a reactive caller tracks count and relevance', () => {
     assert.ok(seen.length >= 3, `expected re-reads on relevance and count, saw ${seen.length}`);
     assert.equal(seen[0].relevant, false);
 });
+
+test('allowAdd / allowRemove false lock Add and Remove whatever the bounds (component §4.4 presentation-only locks)', () => {
+    const item = { minRepeat: 0, maxRepeat: 5 };
+    const engine = engineWith(item);
+    engine.setValue('show', true);
+    engine.addRepeatInstance('rows');
+    engine.addRepeatInstance('rows');
+
+    assert.deepEqual(readRepeatAffordances(engine, 'rows', item, { allowAdd: false, allowRemove: false }), {
+        count: 2, relevant: true, canAdd: false, canRemove: false,
+    });
+    assert.deepEqual(readRepeatAffordances(engine, 'rows', item, { allowAdd: true }), {
+        count: 2, relevant: true, canAdd: true, canRemove: true,
+    });
+    // A lock never lifts a bound: allowAdd true at maxRepeat still cannot add.
+    assert.equal(readRepeatAffordances(engine, 'rows', { maxRepeat: 2 }, { allowAdd: true }).canAdd, false);
+});

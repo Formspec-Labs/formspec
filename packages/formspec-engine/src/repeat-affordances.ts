@@ -1,4 +1,4 @@
-/** @filedesc Repeat chrome rule shared by renderers: group relevance plus Add/Remove bounded by minRepeat/maxRepeat. */
+/** @filedesc Repeat chrome rule shared by renderers: relevance, Add/Remove bounded by min/maxRepeat and allowAdd/allowRemove locks. */
 import type { FormItem } from '@formspec-org/types';
 import type { IFormEngine } from './interfaces.js';
 
@@ -7,10 +7,20 @@ export interface RepeatAffordanceState {
     count: number;
     /** False while the repeatable group is non-relevant (core Bind `relevant` hides the node and its descendants). */
     relevant: boolean;
-    /** False once count reaches `maxRepeat` (core §4.2.2: implementations MUST prevent adding beyond it). */
+    /** False once count reaches `maxRepeat` (core §4.2.2: implementations MUST prevent adding beyond it), or when Add is locked. */
     canAdd: boolean;
-    /** False while count is at or below `minRepeat` (component §4.4: remove affordances are subject to it). */
+    /** False while count is at or below `minRepeat` (component §4.4: remove affordances are subject to it), or when Remove is locked. */
     canRemove: boolean;
+}
+
+/**
+ * Presentation-only Add/Remove locks (component §4.4): an Accordion's or DataTable's `allowAdd` / `allowRemove`
+ * props, or a theme `widgetConfig` on a repeatable group rendered without a Component Document (theme §4.2).
+ * Only `false` locks; cardinality validation and data-supplied instances are unaffected.
+ */
+export interface RepeatAffordanceLocks {
+    allowAdd?: boolean;
+    allowRemove?: boolean;
 }
 
 /**
@@ -22,13 +32,14 @@ export function readRepeatAffordances(
     engine: Pick<IFormEngine, 'repeats' | 'relevantSignals'>,
     repeatPath: string,
     item: Pick<FormItem, 'minRepeat' | 'maxRepeat'> | null | undefined,
+    locks: RepeatAffordanceLocks = {},
 ): RepeatAffordanceState {
     const count = engine.repeats[repeatPath]?.value ?? 0;
     const maxRepeat = item?.maxRepeat;
     return {
         count,
         relevant: engine.relevantSignals[repeatPath]?.value ?? true,
-        canAdd: maxRepeat === undefined || count < maxRepeat,
-        canRemove: count > (item?.minRepeat ?? 0),
+        canAdd: locks.allowAdd !== false && (maxRepeat === undefined || count < maxRepeat),
+        canRemove: locks.allowRemove !== false && count > (item?.minRepeat ?? 0),
     };
 }
