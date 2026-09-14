@@ -23,6 +23,7 @@ import { useSignal } from './use-signal';
 import { useField } from './use-field';
 import { useForm } from './use-form';
 import { useWhen } from './use-when';
+import { focusFirstInvalidField } from './use-focus-field';
 import type { FieldComponentProps, LayoutComponentProps } from './component-map';
 import { DefaultField } from './defaults/fields/default-field';
 import { DefaultLayout } from './defaults/layout/default-layout';
@@ -173,6 +174,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     const actionNeedAnchors = generationNeedAnchors(resolution.action);
     const needAttrs = needTraceAttrs([...(node.needAnchors ?? []), ...actionNeedAnchors]);
     const statusId = useId();
+    const controlRef = useRef<HTMLDivElement>(null);
     const inFlightRef = useRef<Promise<ResponseActionInvocationResult<SubmitResult>> | null>(null);
     const [feedback, setFeedback] = useState<ActionFeedback>({ phase: 'idle', message: '' });
 
@@ -186,13 +188,20 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         invocationContext?: ResponseActionInvocationContext,
     ): Promise<ResponseActionInvocationResult<SubmitResult>> => {
         const ports: ResponseActionInvocationPorts<SubmitResult> = {
-            submit: ({ profile, validationTuple }) => form.submit({
-                profile,
-                validationTuple,
-                ...(semanticControlScope
-                    ? { id: semanticControlScope.responseId }
-                    : {}),
-            }),
+            submit: ({ profile, validationTuple }) => {
+                const result = form.submit({
+                    profile,
+                    validationTuple,
+                    ...(semanticControlScope
+                        ? { id: semanticControlScope.responseId }
+                        : {}),
+                });
+                // Move focus to the first invalid field in this provider's form, as the webcomponent submit does.
+                const report = result.validationReport;
+                const scope = controlRef.current?.closest<HTMLElement>('.formspec-theme-scope');
+                if (scope && report && !report.valid) focusFirstInvalidField(scope, report.results);
+                return result;
+            },
             dispatchHostEvent: (eventName, detail, action) => {
                 onHostEvent?.(eventName, detail, action);
                 if (eventName === 'formspec-submit') {
@@ -357,7 +366,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     const pending = feedback.phase === 'pending';
 
     return (
-        <div className="formspec-action-control" {...needAttrs}>
+        <div ref={controlRef} className="formspec-action-control" {...needAttrs}>
             <button
                 // type="button" mirrors the webcomponent's ActionButton renderer
                 // (packages/formspec-webcomponent/src/components/interactive.ts):
