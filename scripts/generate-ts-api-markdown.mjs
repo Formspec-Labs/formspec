@@ -6,14 +6,11 @@
  *
  * Usage: node scripts/generate-ts-api-markdown.mjs
  *
- * Produces:
- *   - packages/formspec-engine/API.llm.md
- *   - packages/formspec-layout/API.llm.md
- *   - packages/formspec-webcomponent/API.llm.md
- *   - packages/formspec-core/API.llm.md
- *   - packages/formspec-chat/API.llm.md
- *   - packages/formspec-mcp/API.llm.md
- *   - packages/formspec-studio-core/API.llm.md
+ * Produces `API.llm.md` beside each package in API_MARKDOWN_PACKAGES: the
+ * formspec packages here, and formspec-chat, formspec-mcp, and
+ * formspec-studio-core in the sibling formspec-studio repo, which has no
+ * generator of its own. Packages whose dist/ is absent (including a sibling
+ * repo that is not checked out) are skipped.
  */
 
 import ts from 'typescript';
@@ -23,6 +20,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
+export const STUDIO_ROOT = resolve(ROOT, '../formspec-studio');
 
 // No shared output dir needed — each package writes to its own folder.
 
@@ -342,125 +340,138 @@ function writeConst(lines, c) {
 
 // ── Packages ─────────────────────────────────────────────────────────────
 
-const packages = [
+export const API_MARKDOWN_PACKAGES = [
   {
     name: '@formspec/engine',
     title: '@formspec/engine — API Reference',
     description: 'Core form state management engine. Parses a FormspecDefinition and builds a reactive signal network for field values, relevance, validation, repeat groups, computed variables, and response serialization. Includes FEL expression compilation, definition assembly, and bidirectional runtime mapping.',
+    root: ROOT,
     dir: 'packages/formspec-engine',
   },
   {
     name: '@formspec/layout',
     title: '@formspec/layout — API Reference',
     description: 'Layout planning engine. Resolves theme tokens, computes responsive breakpoints, and produces a flat layout plan (widths, order, visibility) from a component tree and theme definition.',
+    root: ROOT,
     dir: 'packages/formspec-layout',
   },
   {
     name: '@formspec/webcomponent',
     title: '@formspec/webcomponent — API Reference',
     description: '`<formspec-render>` custom element that binds a FormEngine to the DOM. Provides a component registry, styling pipeline, navigation (wizard/field focus), and accessibility attributes.',
+    root: ROOT,
     dir: 'packages/formspec-webcomponent',
   },
   {
     name: '@formspec/core',
     title: '@formspec/core — API Reference',
     description: 'Raw form project state management: command dispatch, handler pipeline, undo/redo, and the IProjectCore abstraction. Framework-independent foundation for Formspec authoring tools.',
+    root: ROOT,
     dir: 'packages/formspec-core',
   },
   {
     name: '@formspec/chat',
     title: '@formspec/chat — API Reference',
     description: 'Conversational form builder core. AI adapter interfaces, session management, template library, source tracing, issue queue, and scaffold/refinement workflows. No React/DOM dependencies.',
+    root: STUDIO_ROOT,
     dir: 'packages/formspec-chat',
   },
   {
     name: '@formspec/mcp',
     title: '@formspec/mcp — API Reference',
     description: 'Model Context Protocol server for AI-driven Formspec form authoring. Exposes form creation, editing, preview, and validation as MCP tools.',
+    root: STUDIO_ROOT,
     dir: 'packages/formspec-mcp',
   },
   {
     name: '@formspec/studio-core',
     title: '@formspec/studio-core — API Reference',
     description: 'Pure TypeScript library for creating and editing Formspec artifact bundles. Every edit is a serializable Command dispatched against a Project. No framework dependencies, no singletons, no side effects.',
+    root: STUDIO_ROOT,
     dir: 'packages/formspec-studio-core',
   },
 ];
 
-for (const pkg of packages) {
-  const distDir = resolve(ROOT, pkg.distDir ?? `${pkg.dir}/dist`);
-  if (!directoryExists(distDir)) {
-    console.warn(`  SKIP ${pkg.name}: declaration directory not found at ${distDir}`);
-    continue;
+export function generate(packages) {
+  for (const pkg of packages) {
+    const distDir = resolve(pkg.root, pkg.distDir ?? `${pkg.dir}/dist`);
+    if (!directoryExists(distDir)) {
+      console.warn(`  SKIP ${pkg.name}: declaration directory not found at ${distDir}`);
+      continue;
+    }
+    const allDts = collectDtsFiles(distDir);
+    if (allDts.length === 0) {
+      console.warn(`  SKIP ${pkg.name}: no .d.ts files in ${distDir}`);
+      continue;
+    }
+
+    // Process index.d.ts first (if it exists), then everything else.
+    const entrypoint = resolve(distDir, 'index.d.ts');
+    const files = allDts.filter(f => f === entrypoint);
+    for (const f of allDts) {
+      if (f !== entrypoint) files.push(f);
+    }
+
+    const lines = [];
+    lines.push(`# ${pkg.title}\n`);
+    lines.push(`*Auto-generated from TypeScript declarations — do not hand-edit.*\n`);
+    lines.push(`${pkg.description}\n`);
+
+    const seen = new Set();
+
+    for (const absPath of files) {
+      const sourceFile = ts.createSourceFile(
+        absPath,
+        readFileSync(absPath, 'utf8'),
+        ts.ScriptTarget.Latest,
+        /* setParentNodes */ true,
+      );
+
+      const decls = extractDeclarations(sourceFile);
+
+      if (decls.moduleDoc) {
+        lines.push(`${decls.moduleDoc}\n`);
+      }
+
+      for (const f of decls.functions) {
+        if (seen.has(`fn:${f.name}`)) continue;
+        seen.add(`fn:${f.name}`);
+        writeFunction(lines, f);
+      }
+
+      for (const c of decls.constDecls) {
+        if (seen.has(`const:${c.name}`)) continue;
+        seen.add(`const:${c.name}`);
+        writeConst(lines, c);
+      }
+
+      for (const iface of decls.interfaces) {
+        if (seen.has(`iface:${iface.name}`)) continue;
+        seen.add(`iface:${iface.name}`);
+        writeInterface(lines, iface);
+      }
+
+      for (const alias of decls.typeAliases) {
+        if (seen.has(`type:${alias.name}`)) continue;
+        seen.add(`type:${alias.name}`);
+        writeTypeAlias(lines, alias);
+      }
+
+      for (const cls of decls.classes) {
+        if (seen.has(`class:${cls.name}`)) continue;
+        seen.add(`class:${cls.name}`);
+        writeClass(lines, cls);
+      }
+    }
+
+    const outPath = resolve(pkg.root, pkg.dir, 'API.llm.md');
+    writeFileSync(outPath, lines.join('\n') + '\n');
+    console.log(`  ${outPath}`);
   }
-  const allDts = collectDtsFiles(distDir);
-  if (allDts.length === 0) {
-    console.warn(`  SKIP ${pkg.name}: no .d.ts files in ${distDir}`);
-    continue;
-  }
 
-  // Process index.d.ts first (if it exists), then everything else.
-  const entrypoint = resolve(distDir, 'index.d.ts');
-  const files = allDts.filter(f => f === entrypoint);
-  for (const f of allDts) {
-    if (f !== entrypoint) files.push(f);
-  }
-
-  const lines = [];
-  lines.push(`# ${pkg.title}\n`);
-  lines.push(`*Auto-generated from TypeScript declarations — do not hand-edit.*\n`);
-  lines.push(`${pkg.description}\n`);
-
-  const seen = new Set();
-
-  for (const absPath of files) {
-    const sourceFile = ts.createSourceFile(
-      absPath,
-      readFileSync(absPath, 'utf8'),
-      ts.ScriptTarget.Latest,
-      /* setParentNodes */ true,
-    );
-
-    const decls = extractDeclarations(sourceFile);
-
-    if (decls.moduleDoc) {
-      lines.push(`${decls.moduleDoc}\n`);
-    }
-
-    for (const f of decls.functions) {
-      if (seen.has(`fn:${f.name}`)) continue;
-      seen.add(`fn:${f.name}`);
-      writeFunction(lines, f);
-    }
-
-    for (const c of decls.constDecls) {
-      if (seen.has(`const:${c.name}`)) continue;
-      seen.add(`const:${c.name}`);
-      writeConst(lines, c);
-    }
-
-    for (const iface of decls.interfaces) {
-      if (seen.has(`iface:${iface.name}`)) continue;
-      seen.add(`iface:${iface.name}`);
-      writeInterface(lines, iface);
-    }
-
-    for (const alias of decls.typeAliases) {
-      if (seen.has(`type:${alias.name}`)) continue;
-      seen.add(`type:${alias.name}`);
-      writeTypeAlias(lines, alias);
-    }
-
-    for (const cls of decls.classes) {
-      if (seen.has(`class:${cls.name}`)) continue;
-      seen.add(`class:${cls.name}`);
-      writeClass(lines, cls);
-    }
-  }
-
-  const outPath = resolve(ROOT, pkg.dir, 'API.llm.md');
-  writeFileSync(outPath, lines.join('\n') + '\n');
-  console.log(`  ${outPath}`);
+  console.log(`Generated ${packages.length} TypeScript API markdown files.`);
 }
 
-console.log(`Generated ${packages.length} TypeScript API markdown files.`);
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  generate(API_MARKDOWN_PACKAGES);
+}
