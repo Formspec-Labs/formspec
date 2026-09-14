@@ -137,8 +137,8 @@ Four-Phase Cycle</a></li>
 id="toc-validation-message-localization">8.2 Validation Message
 Localization</a></li>
 <li><a href="#reactivity" id="toc-reactivity">8.3 Reactivity</a></li>
-<li><a href="#repeat-group-paths" id="toc-repeat-group-paths">8.4 Repeat
-Group Paths</a></li>
+<li><a href="#repeat-group-items" id="toc-repeat-group-items">8.4 Repeat
+Group Items</a></li>
 </ul></li>
 <li><a href="#security-considerations"
 id="toc-security-considerations">9. Security Considerations</a>
@@ -211,6 +211,10 @@ object. <code>target</code> names a <code>definition</code> or
 <li>Loaded Locale identity is
 <code>(target kind, target URL, normalized locale)</code>.
 Regional-to-base fallback stays within that exact target.</li>
+<li>Item strings use <code>&lt;itemKey&gt;.&lt;property&gt;</code> with
+the bare Item key at any depth (<code>amount.label</code> for
+<code>lineItems[*].amount</code>); dotted template paths such as
+<code>lineItems.amount.label</code> are not valid keys.</li>
 <li>App-targeted Locale documents may use the closed
 <code>$module.x-formspec-surface.shell.*</code> key family. Every
 dynamic string uses FEL <code>{{expression}}</code> interpolation;
@@ -239,8 +243,8 @@ Definition or App Manifest target. A Locale Document:</p>
 <ul>
 <li>References its target by kind and URL and may declare compatible
 versions.</li>
-<li>Maps item paths to localized strings via a flat key-value
-structure.</li>
+<li>Maps Item keys (and reserved <code>$</code> prefixes) to localized
+strings via a flat key-value structure.</li>
 <li>Supports FEL interpolation for dynamic string content.</li>
 <li>Composes via a fallback cascade that never crosses target
 identity.</li>
@@ -370,7 +374,8 @@ artifact.</p>
 </tr>
 <tr>
 <td><strong>String key</strong></td>
-<td>A dot-delimited path identifying a localizable string (§3.1).</td>
+<td>A dot-delimited key identifying a localizable string,
+e.g. <code>&lt;itemKey&gt;.&lt;property&gt;</code> (§3.1).</td>
 </tr>
 <tr>
 <td><strong>Cascade</strong></td>
@@ -671,12 +676,32 @@ codes to lowercase language with title-case region (e.g.,
 <code>fr-CA</code>, not <code>FR-CA</code> or <code>fr-ca</code>).</p>
 <h2 id="string-keys-and-values">3. String Keys and Values</h2>
 <h3 id="string-key-format">3.1 String Key Format</h3>
-<p>String keys use dot-delimited paths that address localizable
-properties of Items in the target Definition. The general format is:</p>
+<p>String keys are dot-delimited and address localizable properties of
+Items in the target Definition. The general format is:</p>
 <pre><code>&lt;itemKey&gt;.&lt;property&gt;</code></pre>
-<p>Where <code>&lt;itemKey&gt;</code> is the <code>key</code> of an Item
-in the Definition, and <code>&lt;property&gt;</code> identifies which
-string property to localize.</p>
+<p>Where <code>&lt;itemKey&gt;</code> is the bare <code>key</code> of an
+Item in the Definition (core spec §4.2.1), and
+<code>&lt;property&gt;</code> identifies which string property to
+localize. The first key segment is always the Item key; every segment
+after it belongs to the property (e.g.,
+<code>options.&lt;value&gt;.label</code>,
+<code>errors.&lt;code&gt;</code>,
+<code>label@&lt;context&gt;</code>).</p>
+<p>Item keys are unique across the entire Definition, so a bare key
+names exactly one Item wherever it sits — top level, inside a group, or
+inside a repeatable group. A field <code>city</code> nested in group
+<code>address</code> uses <code>city.label</code>; a field
+<code>amount</code> in repeatable group <code>lineItems</code> uses
+<code>amount.label</code>. Moving an Item between groups does not change
+its string keys. Theme <code>items</code> overrides address Items the
+same way (theme spec §5.4).</p>
+<p>Dotted template paths and indexed paths are <strong>not</strong>
+valid item-level keys: <code>address.city.label</code>,
+<code>lineItems.amount.label</code>, and
+<code>lineItems[*].amount.label</code> do not address <code>city</code>
+or <code>amount</code>. Processors MUST NOT resolve item strings by
+path; validators report such keys as path-form item keys (§7.2; lint
+code E1402, §7.3).</p>
 <p>When a Definition uses modular composition via <code>$ref</code> with
 <code>keyPrefix</code> (core spec §6.6), string keys MUST use the
 <strong>post-assembly</strong> key (i.e., after the prefix has been
@@ -1387,14 +1412,15 @@ depends on the string key’s prefix:</p>
 </tr>
 </tbody>
 </table>
-<p>For item-level keys inside repeat groups, the locale key uses the
-<strong>template path</strong> (indices stripped), but
-<code>{{expression}}</code> is evaluated in the <strong>instance
-context</strong> — <code>@index</code> resolves to the actual instance
-index. This enables per-instance labels:</p>
+<p>For Items inside repeat groups, the locale key uses the bare Item key
+(§3.1) — one key for every instance — but <code>{{expression}}</code> is
+evaluated in the <strong>instance context</strong>: <code>@index</code>
+resolves to the actual 1-based instance index. This enables per-instance
+labels, here on the repeat child <code>amount</code> of
+<code>lineItems</code>:</p>
 <div class="sourceCode" id="cb25"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Poste budgétaire {{@index + 1}}&quot;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant du poste {{@index}}&quot;</span></span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h2 id="fallback-cascade">4. Fallback Cascade</h2>
 <p>When the engine resolves a localized string, it walks a fallback
@@ -1654,7 +1680,10 @@ mechanism as field value changes.</li>
 optional context.</p>
 <ul>
 <li><code>path</code> — the item path (e.g., <code>"projectName"</code>,
-<code>"budget[0].amount"</code>).</li>
+<code>"budget[0].amount"</code>). Lookup uses the Item key of the path’s
+last item segment (<code>budget[0].amount</code> →
+<code>amount.&lt;property&gt;</code>), never the path itself
+(§3.1).</li>
 <li><code>property</code> — the string property (e.g.,
 <code>"label"</code>, <code>"hint"</code>,
 <code>"description"</code>).</li>
@@ -1707,7 +1736,7 @@ cross-reference checks:</p>
 <tr>
 <td>Orphaned key</td>
 <td>Warning</td>
-<td>String key references an item key not present in the
+<td>String key references an Item key not present in the
 Definition.</td>
 </tr>
 <tr>
@@ -1794,10 +1823,12 @@ in the Component Document.</td>
 not declared in the Definition.</td>
 </tr>
 <tr>
-<td>Brackets in item key</td>
-<td>Warning</td>
-<td>A non-<code>$component</code> key contains <code>[index]</code>
-bracket notation. Item-level keys MUST use template paths.</td>
+<td>Path-form item key</td>
+<td>Error</td>
+<td>An item-level key’s Item segment is a dotted template path
+(<code>address.city.label</code>) or carries <code>[index]</code> /
+<code>[*]</code> bracket notation. Item-level keys MUST use the bare
+Item key (§3.1).</td>
 </tr>
 </tbody>
 </table>
@@ -1827,7 +1858,9 @@ string key.</td>
 </tr>
 <tr>
 <td>E1402</td>
-<td>Item string key does not resolve to a Definition item path.</td>
+<td>Item string key does not name a Definition Item by bare key: unknown
+key, dotted template path, or indexed path. Path-form keys are rejected
+even without a paired Definition.</td>
 </tr>
 <tr>
 <td>E1403</td>
@@ -1874,7 +1907,8 @@ checks presentation-key semantics. It parses FEL inside interpolation
 segments but does not evaluate localized strings and does not alter
 runtime string lookup.</p>
 <p>Definition-aware checks run only when lint receives
-<code>definition_document</code>. Theme-aware <code>$page.*</code>
+<code>definition_document</code>; the path-form item-key check (E1402)
+is structural and runs without it. Theme-aware <code>$page.*</code>
 checks run only when <code>theme_document</code> is supplied.
 Component-aware <code>$component.*</code> checks run only when
 <code>component_documents</code> are supplied. Fallback-cycle checks
@@ -1943,21 +1977,29 @@ presentation-layer events, not core data events.</p>
 <p>Implementations using signals SHOULD create a computed signal for
 each resolved string that depends on the active locale signal and any
 field value signals referenced by interpolation expressions.</p>
-<h3 id="repeat-group-paths">8.4 Repeat Group Paths</h3>
-<p>For items inside repeat groups, the string key uses the
-<strong>template path</strong> (without instance indices):</p>
+<h3 id="repeat-group-items">8.4 Repeat Group Items</h3>
+<p>Items inside repeat groups use their bare Item key (§3.1), exactly
+like top-level Items. For a repeatable group <code>lineItems</code> with
+children <code>amount</code> and <code>description</code> (instance
+paths <code>lineItems[0].amount</code>, …):</p>
 <div class="sourceCode" id="cb33"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span><span class="fu">,</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Postes budgétaires&quot;</span><span class="fu">,</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span><span class="fu">,</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><code>lineItems.amount.label</code> and
+<code>lineItems[*].amount.label</code> are not valid keys for
+<code>amount</code> (§3.1). A processor resolving a string for instance
+path <code>lineItems[2].amount</code> looks up
+<code>amount.label</code>.</p>
 <p>The same localized string applies to all instances of the repeated
 item. Per-instance string customization is not supported — use FEL
 interpolation with the <code>@index</code> repeat context variable (core
 spec §3.2.2) if instance-specific text is needed:</p>
 <div class="sourceCode" id="cb34"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Poste {{@index}}&quot;</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant du poste {{@index}}&quot;</span></span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The <code>@index</code> variable is 1-based, so the above produces
 “Poste 1”, “Poste 2”, etc.</p>
@@ -2100,9 +2142,9 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb35-1"><a href=
 <span id="cb35-47"><a href="#cb35-47" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetRemaining.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Il vous reste {{formatNumber($remaining)}} $&quot;</span><span class="fu">,</span></span>
 <span id="cb35-48"><a href="#cb35-48" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-49"><a href="#cb35-49" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Repeat</span> <span class="er">group</span> <span class="er">with</span> <span class="er">@index</span> <span class="er">(§8.4)</span></span>
-<span id="cb35-50"><a href="#cb35-50" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Poste budgétaire {{@index}}&quot;</span><span class="fu">,</span></span>
-<span id="cb35-51"><a href="#cb35-51" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span><span class="fu">,</span></span>
-<span id="cb35-52"><a href="#cb35-52" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span><span class="fu">,</span></span>
+<span id="cb35-50"><a href="#cb35-50" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Postes budgétaires&quot;</span><span class="fu">,</span></span>
+<span id="cb35-51"><a href="#cb35-51" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant du poste {{@index}}&quot;</span><span class="fu">,</span></span>
+<span id="cb35-52"><a href="#cb35-52" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span><span class="fu">,</span></span>
 <span id="cb35-53"><a href="#cb35-53" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-54"><a href="#cb35-54" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Page</span> <span class="er">titles</span> <span class="er">(§3.1.7)</span></span>
 <span id="cb35-55"><a href="#cb35-55" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$page.info.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Informations du projet&quot;</span><span class="fu">,</span></span>

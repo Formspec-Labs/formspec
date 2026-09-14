@@ -176,7 +176,7 @@
             }
           }
         ],
-        "description": "String keys use dot-delimited paths. The $module.x-formspec-surface.shell.<SurfaceStringKey> family is closed to the exact SurfaceShellStringKey enum. Other module keys retain $module.<modId>.<nodeId>.<prop> addressing."
+        "description": "String keys are dot-delimited. Item strings use <itemKey>.<property>, where <itemKey> is the bare Item key at any depth (amount.label for lineItems[*].amount); dotted template paths such as lineItems.amount.label are not valid item keys. The $module.x-formspec-surface.shell.<SurfaceStringKey> family is closed to the exact SurfaceShellStringKey enum. Other module keys retain $module.<modId>.<nodeId>.<prop> addressing."
       },
       "description": "Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification.",
       "examples": [

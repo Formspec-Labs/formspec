@@ -48,6 +48,7 @@ document unless explicitly redefined.
 - This document defines Locale 2.0, a sidecar JSON artifact for internationalizing one exact Formspec Definition or App Manifest target.
 - A valid Locale 2.0 document requires `$formspecLocale: "2.0"`, `version`, `locale`, `target`, and a `strings` object. `target` names a `definition` or `app` by canonical URL.
 - Loaded Locale identity is `(target kind, target URL, normalized locale)`. Regional-to-base fallback stays within that exact target.
+- Item strings use `<itemKey>.<property>` with the bare Item key at any depth (`amount.label` for `lineItems[*].amount`); dotted template paths such as `lineItems.amount.label` are not valid keys.
 - App-targeted Locale documents may use the closed `$module.x-formspec-surface.shell.*` key family. Every dynamic string uses FEL `{{expression}}` interpolation; processors do not apply a separate `{name}` parser.
 - This BLUF is governed by `schemas/locale.schema.json`; generated references expose the canonical schema-defined structure.
 <!-- bluf:end -->
@@ -75,7 +76,8 @@ Manifest target.
 A Locale Document:
 
 - References its target by kind and URL and may declare compatible versions.
-- Maps item paths to localized strings via a flat key-value structure.
+- Maps Item keys (and reserved `$` prefixes) to localized strings via a
+  flat key-value structure.
 - Supports FEL interpolation for dynamic string content.
 - Composes via a fallback cascade that never crosses target identity.
 - Supports contextual variants (short, accessibility, pdf).
@@ -148,7 +150,7 @@ Locale Documents MAY target the same artifact.
 | **Definition** | A Formspec Definition document (core spec §4). |
 | **Locale Document** | A JSON document conforming to this specification. |
 | **Locale code** | A BCP 47 language tag (e.g., `en`, `fr-CA`, `zh-Hans`). |
-| **String key** | A dot-delimited path identifying a localizable string (§3.1). |
+| **String key** | A dot-delimited key identifying a localizable string, e.g. `<itemKey>.<property>` (§3.1). |
 | **Cascade** | The fallback chain that determines the resolved string for a given key (§4). |
 | **Interpolation** | Embedding FEL expressions in string values via `{{expression}}` syntax (§3.3). |
 
@@ -254,15 +256,32 @@ locale codes to lowercase language with title-case region
 
 ### 3.1 String Key Format
 
-String keys use dot-delimited paths that address localizable properties
-of Items in the target Definition. The general format is:
+String keys are dot-delimited and address localizable properties of
+Items in the target Definition. The general format is:
 
 ```
 <itemKey>.<property>
 ```
 
-Where `<itemKey>` is the `key` of an Item in the Definition, and
-`<property>` identifies which string property to localize.
+Where `<itemKey>` is the bare `key` of an Item in the Definition (core
+spec §4.2.1), and `<property>` identifies which string property to
+localize. The first key segment is always the Item key; every segment
+after it belongs to the property (e.g., `options.<value>.label`,
+`errors.<code>`, `label@<context>`).
+
+Item keys are unique across the entire Definition, so a bare key names
+exactly one Item wherever it sits — top level, inside a group, or inside
+a repeatable group. A field `city` nested in group `address` uses
+`city.label`; a field `amount` in repeatable group `lineItems` uses
+`amount.label`. Moving an Item between groups does not change its
+string keys. Theme `items` overrides address Items the same way (theme
+spec §5.4).
+
+Dotted template paths and indexed paths are **not** valid item-level
+keys: `address.city.label`, `lineItems.amount.label`, and
+`lineItems[*].amount.label` do not address `city` or `amount`.
+Processors MUST NOT resolve item strings by path; validators report
+such keys as path-form item keys (§7.2; lint code E1402, §7.3).
 
 When a Definition uses modular composition via `$ref` with `keyPrefix`
 (core spec §6.6), string keys MUST use the **post-assembly** key
@@ -781,14 +800,15 @@ the string key's prefix:
 | `$component.<id>.*` (inside repeat template) | Repeat instance scope | Yes | `$fieldRef` within repeat scope + parent scopes |
 | `$module.x-formspec-surface.shell.*` | Read-only shell string context | No | Only the key-specific references in §3.1.9 |
 
-For item-level keys inside repeat groups, the locale key uses the
-**template path** (indices stripped), but `{{expression}}` is evaluated
-in the **instance context** — `@index` resolves to the actual instance
-index. This enables per-instance labels:
+For Items inside repeat groups, the locale key uses the bare Item key
+(§3.1) — one key for every instance — but `{{expression}}` is evaluated
+in the **instance context**: `@index` resolves to the actual 1-based
+instance index. This enables per-instance labels, here on the repeat
+child `amount` of `lineItems`:
 
 ```json
 {
-  "lineItems.label": "Poste budgétaire {{@index + 1}}"
+  "amount.label": "Montant du poste {{@index}}"
 }
 ```
 
@@ -1047,6 +1067,9 @@ Resolve a single localized string for a given item, property, and
 optional context.
 
 - `path` — the item path (e.g., `"projectName"`, `"budget[0].amount"`).
+  Lookup uses the Item key of the path's last item segment
+  (`budget[0].amount` → `amount.<property>`), never the path itself
+  (§3.1).
 - `property` — the string property (e.g., `"label"`, `"hint"`,
   `"description"`).
 - `context` — optional context name for alternative labels
@@ -1084,7 +1107,7 @@ App Manifest association SHOULD perform the following cross-reference checks:
 
 | Check | Severity | Description |
 |-------|----------|-------------|
-| Orphaned key | Warning | String key references an item key not present in the Definition. |
+| Orphaned key | Warning | String key references an Item key not present in the Definition. |
 | Missing translation | Info | A localizable property in the Definition has no corresponding key in the Locale Document. |
 | Invalid option reference | Warning | An `options.<value>` key references a choice value not present in the field's `choices`. |
 | Invalid shape reference | Warning | A `$shape.<id>` key references a shape ID not present in the Definition. |
@@ -1099,7 +1122,7 @@ App Manifest association SHOULD perform the following cross-reference checks:
 | Orphaned `$page` key | Warning | `$page.<id>` references a page ID not present in the Theme Document. |
 | Orphaned `$component` key | Warning | `$component.<id>` references a node ID not present in the Component Document. |
 | Orphaned `$optionSet` key | Warning | `$optionSet.<setName>` references an OptionSet name not declared in the Definition. |
-| Brackets in item key | Warning | A non-`$component` key contains `[index]` bracket notation. Item-level keys MUST use template paths. |
+| Path-form item key | Error | An item-level key's Item segment is a dotted template path (`address.city.label`) or carries `[index]` / `[*]` bracket notation. Item-level keys MUST use the bare Item key (§3.1). |
 
 ### 7.3 Linter Rules
 
@@ -1109,7 +1132,7 @@ The Rust linter owns the canonical Locale semantic-lint codes:
 |------|-------------|
 | E1400 / W1400 | `target.kind` / `target.url` mismatch or compatible-version mismatch against the paired target. |
 | E1401 | Unknown reserved namespace or unsupported terminal property in a string key. |
-| E1402 | Item string key does not resolve to a Definition item path. |
+| E1402 | Item string key does not name a Definition Item by bare key: unknown key, dotted template path, or indexed path. Path-form keys are rejected even without a paired Definition. |
 | E1403 | Item option or `$optionSet` string key does not resolve to a Definition option value. |
 | E1404 | `$shape` string key does not resolve to a Definition shape id. |
 | E1405 | `{{ ... }}` interpolation segment is not valid FEL. |
@@ -1126,7 +1149,8 @@ Static semantic lint then checks presentation-key semantics. It parses FEL
 inside interpolation segments but does not evaluate localized strings and does
 not alter runtime string lookup.
 
-Definition-aware checks run only when lint receives `definition_document`.
+Definition-aware checks run only when lint receives `definition_document`;
+the path-form item-key check (E1402) is structural and runs without it.
 Theme-aware `$page.*` checks run only when `theme_document` is supplied.
 Component-aware `$component.*` checks run only when `component_documents` are
 supplied. Fallback-cycle checks inspect the current Locale plus
@@ -1196,17 +1220,23 @@ Implementations using signals SHOULD create a computed signal for each
 resolved string that depends on the active locale signal and any field
 value signals referenced by interpolation expressions.
 
-### 8.4 Repeat Group Paths
+### 8.4 Repeat Group Items
 
-For items inside repeat groups, the string key uses the **template
-path** (without instance indices):
+Items inside repeat groups use their bare Item key (§3.1), exactly like
+top-level Items. For a repeatable group `lineItems` with children
+`amount` and `description` (instance paths `lineItems[0].amount`, …):
 
 ```json
 {
-  "lineItems.amount.label": "Montant",
-  "lineItems.description.label": "Description du poste"
+  "lineItems.label": "Postes budgétaires",
+  "amount.label": "Montant",
+  "description.label": "Description du poste"
 }
 ```
+
+`lineItems.amount.label` and `lineItems[*].amount.label` are not valid
+keys for `amount` (§3.1). A processor resolving a string for instance
+path `lineItems[2].amount` looks up `amount.label`.
 
 The same localized string applies to all instances of the repeated
 item. Per-instance string customization is not supported — use FEL
@@ -1215,7 +1245,7 @@ interpolation with the `@index` repeat context variable (core spec
 
 ```json
 {
-  "lineItems.label": "Poste {{@index}}"
+  "amount.label": "Montant du poste {{@index}}"
 }
 ```
 
@@ -1347,9 +1377,9 @@ demonstrating all key patterns defined in this specification.
     "budgetRemaining.hint": "Il vous reste {{formatNumber($remaining)}} $",
 
     // Repeat group with @index (§8.4)
-    "lineItems.label": "Poste budgétaire {{@index}}",
-    "lineItems.amount.label": "Montant",
-    "lineItems.description.label": "Description du poste",
+    "lineItems.label": "Postes budgétaires",
+    "amount.label": "Montant du poste {{@index}}",
+    "description.label": "Description du poste",
 
     // Page titles (§3.1.7)
     "$page.info.title": "Informations du projet",
