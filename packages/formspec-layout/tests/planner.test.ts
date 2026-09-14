@@ -80,6 +80,16 @@ function findItemByPath(items: any[], path: string): any | null {
 // ── planComponentTree ────────────────────────────────────────────────
 
 describe('planComponentTree', () => {
+    it('sizes a text TextInput from theme widgetConfig.rows, defaulting to 3 lines', () => {
+        const items = [{ key: 'notes', type: 'field', dataType: 'text', label: 'Notes' }];
+        const tree = { component: 'Stack', children: [{ component: 'TextInput', bind: 'notes' }] };
+        const plan = (theme?: any) =>
+            planComponentTree(tree, makeCtx({ items, theme, findItem: (k) => findItems(items, k) })).children[0];
+
+        expect(plan().props.maxLines).toBe(3);
+        expect(plan({ items: { notes: { widgetConfig: { rows: 5 } } } }).props.maxLines).toBe(5);
+    });
+
     it('plans a display component bound to a display Item as that Item (label text, path link, no value bind)', () => {
         const items = [
             {
@@ -1790,6 +1800,15 @@ describe('planComponentTree', () => {
 // ── planDefinitionFallback ───────────────────────────────────────────
 
 describe('planDefinitionFallback', () => {
+    it('sizes a text field textarea from theme widgetConfig.rows, defaulting to 3 lines', () => {
+        const items = [{ key: 'notes', type: 'field', dataType: 'text', label: 'Notes' }];
+        const plan = (theme?: any) =>
+            planDefinitionFallback(items, makeCtx({ items, theme, findItem: (k) => findItems(items, k) }))[0];
+
+        expect(plan().props.maxLines).toBe(3);
+        expect(plan({ items: { notes: { widgetConfig: { rows: 5 } } } }).props.maxLines).toBe(5);
+    });
+
     it('plans a simple field with default component', () => {
         const items = [
             { key: 'name', type: 'field', dataType: 'string', label: 'Full Name', hint: 'Enter your name' },

@@ -116,8 +116,8 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
 
         const { widgetHint: _, cssClass: _c, labelPosition: _l, ...presentationProps } = fieldItem.presentation ?? {};
         const fieldProps: Record<string, unknown> = { bind: key, ...presentationProps };
-        if (widget === 'TextInput' && fieldItem.dataType === 'text' && !fieldProps.maxLines) {
-            fieldProps.maxLines = 3;
+        if (widget === 'TextInput' && fieldItem.dataType === 'text') {
+            fieldProps.maxLines ??= presentation.widgetConfig?.rows ?? 3;
         }
 
         return {

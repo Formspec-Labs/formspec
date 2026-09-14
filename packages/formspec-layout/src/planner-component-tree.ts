@@ -103,10 +103,6 @@ export function planComponentTree(
 
     const props = extractProps(comp);
 
-    if (componentType === 'TextInput' && item?.type === 'field' && (item as { dataType?: string }).dataType === 'text' && props.maxLines == null) {
-        props.maxLines = 3;
-    }
-
     for (const prop of ['gap', 'rowGap', 'padding', 'background', 'border', 'radius', 'elevation']) {
         if (props[prop] !== undefined) props[prop] = resolveTokenInContext(props[prop], planCtx);
     }
@@ -170,6 +166,9 @@ export function planComponentTree(
         const presentation = resolvePresentation(planCtx.theme, itemDesc, tier1);
         node.presentation = presentation;
         node.labelPosition = presentation.labelPosition ?? 'top';
+        if (componentType === 'TextInput' && fieldItem.dataType === 'text') {
+            props.maxLines ??= presentation.widgetConfig?.rows ?? 3;
+        }
 
         const presClasses = normalizeCssClass(presentation.cssClass);
         if (presClasses.length > 0) {
