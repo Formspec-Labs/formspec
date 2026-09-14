@@ -193,6 +193,11 @@ function normalizeSegment(segment: string): string {
   return segment.replace(/\[(?:\d+|\*)\]/g, '');
 }
 
+/** A bind/shape path as its item path: every bracket selector (`[*]`, `[2]`, `[@index = 1]`) removed. */
+function stripRepeatSelectors(path: string): string {
+  return path.replace(/\[[^\]]*\]/g, '');
+}
+
 /** Rewrite a path only when it matches the renamed item path as a normalized prefix. */
 function rewritePathPrefix(path: string, oldPath: string, newPath: string): string {
   const rawParts = splitPath(path);
@@ -359,8 +364,9 @@ export const definitionItemsHandlers = {
    *
    * **Side effects** (cascading cleanup):
    * - Removes the item from its parent's children array.
-   * - Filters out any `binds` entries whose `path` matches a deleted path.
-   * - Filters out any `shapes` entries whose `target` matches a deleted path.
+   * - Filters out `binds` and `shapes` whose `path` / `target` addresses the deleted
+   *   item or a descendant, whatever repeat selectors they carry (`jobs[*].hours`,
+   *   `jobs[@index = 1].hours`).
    * - Deletes matching keys from `theme.items` per-item overrides.
    *
    * @throws If `path` cannot be resolved in the item tree.
@@ -370,52 +376,27 @@ export const definitionItemsHandlers = {
     const loc = resolveItemLocation(state, path);
     if (!loc) throw new Error(`Item not found: ${path}`);
 
-    // Collect all keys to clean up binds
-    const deletedKeys = collectKeys(loc.item);
-    const deletedPaths = new Set<string>();
-    // Build full paths for each deleted key
-    const pathPrefix = path.includes('.') ? path.slice(0, path.lastIndexOf('.') + 1) : '';
-    for (const key of deletedKeys) {
-      // For the item itself, use the full path. For children, approximate.
-      deletedPaths.add(path);
-    }
-    // Also collect nested paths
-    function collectPaths(item: FormItem, prefix: string) {
-      deletedPaths.add(prefix + item.key);
-      if (item.children) {
-        for (const child of item.children) {
-          collectPaths(child, prefix + item.key + '.');
-        }
-      }
-    }
-    const parentPrefix = path.includes('.') ? path.slice(0, path.lastIndexOf('.') + 1) : '';
-    collectPaths(loc.item, parentPrefix);
-
     // Remove the item
     loc.parent.splice(loc.index, 1);
 
-    // Clean up binds targeting deleted paths
+    const deletedPath = stripRepeatSelectors(path);
+    const addressesDeleted = (target: unknown) => {
+      if (typeof target !== 'string') return false;
+      const itemPath = stripRepeatSelectors(target);
+      return itemPath === deletedPath || itemPath.startsWith(`${deletedPath}.`);
+    };
+
     if (state.definition.binds) {
-      state.definition.binds = state.definition.binds.filter(
-        b => !deletedPaths.has(b.path),
-      );
+      state.definition.binds = state.definition.binds.filter(b => !addressesDeleted(b.path));
     }
-
-    // Clean up shapes targeting deleted paths
     if (state.definition.shapes) {
-      state.definition.shapes = state.definition.shapes.filter(
-        s => !deletedPaths.has(s.target),
-      );
+      state.definition.shapes = state.definition.shapes.filter(s => !addressesDeleted(s.target));
     }
 
-    // Clean up theme per-item overrides
+    // Clean up theme per-item overrides (keyed by item key, not path)
     const themeItems = state.theme.items as Record<string, unknown> | undefined;
     if (themeItems) {
-      for (const key of deletedPaths) {
-        // The key in theme.items is the item key, not the full path
-        const itemKey = key.includes('.') ? key.slice(key.lastIndexOf('.') + 1) : key;
-        delete themeItems[itemKey];
-      }
+      for (const key of collectKeys(loc.item)) delete themeItems[key];
     }
 
     // Section child nodes referencing deleted items are cleaned up by the

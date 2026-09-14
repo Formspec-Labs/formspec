@@ -145,6 +145,60 @@ describe('definition.deleteItem', () => {
     expect(project.definition.binds ?? []).toHaveLength(0);
   });
 
+  it('cleans up [*] binds and shapes under a deleted repeat group, keeping look-alike paths', () => {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0', url: 'urn:del', version: '1.0.0', status: 'draft', title: 'T',
+          items: [
+            {
+              type: 'group', key: 'jobs', label: 'Jobs', repeatable: true,
+              children: [{ type: 'field', key: 'hours', label: 'H', dataType: 'integer' }],
+            },
+            { type: 'field', key: 'jobsTotal', label: 'Total', dataType: 'integer' },
+          ],
+          binds: [
+            { path: 'jobs[*].hours', required: 'true' },
+            { path: 'jobs[@index = 1].hours', readonly: 'true' },
+            { path: 'jobs', relevant: 'true' },
+            { path: 'jobsTotal', calculate: '1' },
+          ],
+          shapes: [
+            { id: 's1', target: 'jobs[*].hours', constraint: '$hours > 0', message: 'M' },
+            { id: 's2', target: 'jobsTotal', constraint: '$jobsTotal > 0', message: 'M' },
+          ],
+        } as any,
+      },
+    });
+
+    project.dispatch({ type: 'definition.deleteItem', payload: { path: 'jobs' } });
+
+    expect(project.definition.binds!.map(b => b.path)).toEqual(['jobsTotal']);
+    expect(project.definition.shapes!.map(s => s.id)).toEqual(['s2']);
+  });
+
+  it('cleans up the [*] bind of a deleted field inside a repeat group', () => {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0', url: 'urn:del', version: '1.0.0', status: 'draft', title: 'T',
+          items: [{
+            type: 'group', key: 'jobs', label: 'Jobs', repeatable: true,
+            children: [
+              { type: 'field', key: 'hours', label: 'H', dataType: 'integer' },
+              { type: 'field', key: 'rate', label: 'R', dataType: 'decimal' },
+            ],
+          }],
+          binds: [{ path: 'jobs[*].hours', required: 'true' }, { path: 'jobs[*].rate', required: 'true' }],
+        } as any,
+      },
+    });
+
+    project.dispatch({ type: 'definition.deleteItem', payload: { path: 'jobs.hours' } });
+
+    expect(project.definition.binds!.map(b => b.path)).toEqual(['jobs[*].rate']);
+  });
+
   it('signals rebuildComponentTree', () => {
     const project = createRawProject();
     project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'x' } });
