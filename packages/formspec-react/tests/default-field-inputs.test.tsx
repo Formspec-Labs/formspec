@@ -662,6 +662,27 @@ describe('Definition item prefix/suffix (core §4.2.3)', () => {
         expect(input.getAttribute('aria-describedby')).toBe(`${prefix.id} ${suffix.id}`);
     });
 
+    it('keeps the item prefix/suffix inside the stepper when showStepper is on', () => {
+        const def = baseDef([
+            { key: 'hours', type: 'field', dataType: 'decimal', label: 'Hours', prefix: '$', suffix: 'per week' },
+        ]);
+        const node: LayoutNode = {
+            id: 'hours-field', component: 'NumberInput', category: 'field',
+            props: { showStepper: true }, cssClasses: [], children: [], bindPath: 'hours',
+        };
+        const container = renderField(def, node);
+        const stepper = container.querySelector('.formspec-stepper') as HTMLElement;
+        const input = stepper.querySelector('input[type="number"]') as HTMLInputElement;
+        const prefix = stepper.querySelector('.formspec-input-prefix') as HTMLElement;
+        const suffix = stepper.querySelector('.formspec-input-suffix') as HTMLElement;
+        expect(prefix?.textContent).toBe('$');
+        expect(suffix?.textContent).toBe('per week');
+        expect(prefix.nextElementSibling).toBe(input);
+        expect(stepper.firstElementChild?.classList.contains('formspec-stepper-decrement')).toBe(true);
+        expect(stepper.lastElementChild?.classList.contains('formspec-stepper-increment')).toBe(true);
+        expect(input.getAttribute('aria-describedby')).toBe(`${prefix.id} ${suffix.id}`);
+    });
+
     it('renders the item prefix on text fields', () => {
         const def = baseDef([{ key: 'site', type: 'field', dataType: 'string', label: 'Website', prefix: 'https://' }]);
         const node: LayoutNode = {

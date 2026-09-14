@@ -149,10 +149,11 @@ export function renderControl(
             const showStepper = node.props?.showStepper as boolean | undefined;
             const placeholder = resolvePlaceholder(node.props?.placeholder as string | undefined);
 
-            const numberInput = (
+            // Prefix/suffix hug the input; stepper buttons sit outside them.
+            const numberInput = withAdornments(
                 <input
                     {...common}
-                    aria-describedby={showStepper ? describedBy : adornedDescribedBy(describedBy, id, itemAdornments)}
+                    aria-describedby={adornedDescribedBy(describedBy, id, itemAdornments)}
                     type="number"
                     value={value ?? ''}
                     readOnly={isReadonly}
@@ -165,7 +166,9 @@ export function renderControl(
                             ? undefined
                             : (e) => field.setValue(e.target.value === '' ? null : Number(e.target.value))
                     }
-                />
+                />,
+                id,
+                itemAdornments,
             );
 
             if (showStepper) {
@@ -198,7 +201,7 @@ export function renderControl(
                 );
             }
 
-            return withAdornments(numberInput, id, itemAdornments);
+            return numberInput;
         }
 
         case 'FileUpload':
