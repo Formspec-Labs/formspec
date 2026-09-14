@@ -295,12 +295,51 @@ describe('input rendering — TextInput variants', () => {
         expect(input.getAttribute('aria-describedby')).toBe(`${prefix.id} ${suffix.id}`);
     });
 
-    it('applies theme widgetConfig.maxLength to the textarea', () => {
-        const el = renderField({ dataType: 'text' }, undefined, minimalTheme({
-            selectors: [{ match: { dataType: 'text' }, apply: { widget: 'TextInput', widgetConfig: { maxLength: 200 } } }],
+    it('renders an accessible character count for theme widgetConfig.maxLength', () => {
+        const el = renderField({ dataType: 'text', hint: 'Explain briefly' }, undefined, minimalTheme({
+            selectors: [{ match: { dataType: 'text' }, apply: { widget: 'TextInput', widgetConfig: { maxLength: 10 } } }],
         }));
         const textarea = el.querySelector('textarea#field-name') as HTMLTextAreaElement;
-        expect(textarea.maxLength).toBe(200);
+        // A count, not a hard cap: native maxlength would silently truncate pasted text.
+        expect(textarea.hasAttribute('maxlength')).toBe(false);
+
+        const info = el.querySelector('#field-name-count-info') as HTMLElement;
+        expect(info.textContent).toBe('You can enter up to 10 characters');
+        expect(info.classList.contains('formspec-sr-only')).toBe(true);
+        expect(textarea.getAttribute('aria-describedby')).toBe('field-name-count-info field-name-hint');
+
+        const status = el.querySelector('.formspec-character-count') as HTMLElement;
+        expect(status.getAttribute('aria-hidden')).toBe('true');
+        expect(status.textContent).toBe('10 characters allowed');
+        const srStatus = el.querySelector('.formspec-character-count-sr-status') as HTMLElement;
+        expect(srStatus.getAttribute('aria-live')).toBe('polite');
+
+        const type = (value: string) => {
+            textarea.value = value;
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        vi.useFakeTimers();
+        try {
+            type('abc');
+            expect(status.textContent).toBe('7 characters left');
+            vi.advanceTimersByTime(1000);
+            expect(srStatus.textContent).toBe('7 characters left');
+        } finally {
+            vi.useRealTimers();
+        }
+
+        type('x'.repeat(11));
+        expect(status.textContent).toBe('1 character over limit');
+        expect(status.classList.contains('formspec-character-count--over-limit')).toBe(true);
+        expect(textarea.getAttribute('aria-invalid')).toBe('true');
+        // Touch re-runs Formspec validation (no error); the over-limit state survives it.
+        textarea.dispatchEvent(new Event('focusout', { bubbles: true }));
+        expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+        type('x'.repeat(10));
+        expect(status.textContent).toBe('0 characters left');
+        expect(status.classList.contains('formspec-character-count--over-limit')).toBe(false);
+        expect(textarea.getAttribute('aria-invalid')).toBe('false');
     });
 
     it('renders the definition item prefix on text fields', () => {
