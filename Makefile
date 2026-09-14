@@ -116,7 +116,6 @@ api-docs:
 	npx typedoc --entryPoints packages/formspec-assist/src/index.ts --tsconfig packages/formspec-assist/tsconfig.json --out $(DOCS_DIR)/api/formspec-assist
 	npx typedoc --entryPoints packages/formspec-react/src/index.ts --tsconfig packages/formspec-react/tsconfig.json --out $(DOCS_DIR)/api/formspec-react
 	npx typedoc --entryPoints packages/formspec-core/src/index.ts --tsconfig packages/formspec-core/tsconfig.json --out $(DOCS_DIR)/api/formspec-core
-	npx typedoc --entryPoints packages/formspec-chat/src/index.ts --tsconfig packages/formspec-chat/tsconfig.json --out $(DOCS_DIR)/api/formspec-chat
 	cargo doc --workspace --no-deps
 	rm -rf $(DOCS_DIR)/api/rust && cp -r target/doc $(DOCS_DIR)/api/rust
 	PYTHONPATH=src python3 scripts/generate-api-markdown.py src/formspec/API.llm.md
@@ -195,7 +194,6 @@ clean:
 	      packages/formspec-layout/API.llm.md \
 	      packages/formspec-webcomponent/API.llm.md \
 	      packages/formspec-core/API.llm.md \
-	      packages/formspec-chat/API.llm.md \
 	      packages/formspec-react/API.llm.md
 
 .PHONY: all spec-artifacts docs-check check docs html-docs api-docs build build-rust build-js build-python rebuild-python build-wasm test test-unit test-engine-isolation test-python test-rust test-scripts test-e2e setup serve clean
