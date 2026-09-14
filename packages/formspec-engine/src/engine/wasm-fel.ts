@@ -16,7 +16,7 @@ import {
     parentPathOf,
     setExpressionContextValue,
     snapshotSignals,
-    tagMoneyByPath,
+    tagFelValueByPath,
     toBasePath,
     toFelIndexedPath,
     toWasmContextValue,
@@ -146,6 +146,7 @@ export function buildFelRepeatWasmContext(options: {
     currentItemPath: string;
     repeats: Record<string, EngineSignal<number>>;
     fieldSignals: Record<string, EngineSignal<any>>;
+    fieldDataTypes: Record<string, string | undefined>;
 }): WasmFelContext['repeatContext'] | undefined {
     const repeatAncestors = getRepeatAncestors(options.currentItemPath, options.repeats);
     if (repeatAncestors.length === 0) {
@@ -154,7 +155,12 @@ export function buildFelRepeatWasmContext(options: {
 
     let parent: WasmFelContext['repeatContext'] | undefined;
     for (const entry of repeatAncestors) {
-        const collection = buildRepeatCollection(entry.groupPath, entry.count, options.fieldSignals);
+        const collection = buildRepeatCollection(
+            entry.groupPath,
+            entry.count,
+            options.fieldSignals,
+            options.fieldDataTypes,
+        );
         parent = {
             current: collection[entry.index] ?? null,
             index: entry.index + 1,
@@ -166,11 +172,12 @@ export function buildFelRepeatWasmContext(options: {
 
     const outerParentPath = parentPathOf(repeatAncestors[repeatAncestors.length - 1].groupPath);
     if (parent && outerParentPath) {
+        const outer = () => buildGroupSnapshotForPath(outerParentPath, options.fieldSignals, options.fieldDataTypes);
         parent.parent = {
-            current: buildGroupSnapshotForPath(outerParentPath, options.fieldSignals),
+            current: outer(),
             index: 1,
             count: 1,
-            collection: [buildGroupSnapshotForPath(outerParentPath, options.fieldSignals)],
+            collection: [outer()],
             parent: parent.parent,
         };
     }
@@ -224,10 +231,9 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
         setExpressionContextValue(
             fields,
             path,
-            toWasmContextValue(tagMoneyByPath(
+            toWasmContextValue(tagFelValueByPath(
                 path,
                 resolveFelFieldValueForWasm(path, value, options.bindConfigs, irrelevant),
-                options.bindConfigs,
                 options.fieldDataTypes,
             )),
         );
@@ -242,13 +248,13 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
                 setExpressionContextValue(
                     fields,
                     path.slice(prefixA.length),
-                    toWasmContextValue(tagMoneyByPath(path, value, options.bindConfigs, options.fieldDataTypes)),
+                    toWasmContextValue(tagFelValueByPath(path, value, options.fieldDataTypes)),
                 );
             } else if (path.startsWith(prefixB)) {
                 setExpressionContextValue(
                     fields,
                     path.slice(scopePath.length + 1),
-                    toWasmContextValue(tagMoneyByPath(path, value, options.bindConfigs, options.fieldDataTypes)),
+                    toWasmContextValue(tagFelValueByPath(path, value, options.fieldDataTypes)),
                 );
             }
         }
@@ -295,6 +301,7 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
             currentItemPath: options.currentItemPath,
             repeats: options.repeats,
             fieldSignals: options.fieldSignals,
+            fieldDataTypes: options.fieldDataTypes,
         }),
         instances: cloneValue(options.instanceData),
         nowIso: options.nowIso,

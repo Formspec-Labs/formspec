@@ -227,18 +227,29 @@ export function normalizeWasmValue<T>(value: T): T {
     return cloneValue(value);
 }
 
-export function tagMoneyByPath(
+/**
+ * Encode a field value in the FEL type envelope its `dataType` declares (Core §2.1.3).
+ *
+ * `money` objects become `{ $type: 'money', amount, currency }`; `date` and
+ * `dateTime` strings become `{ $type: 'date', value }`. WASM (fel-core) decodes
+ * both, including the ISO date parse; this only tags the declared type.
+ */
+export function tagFelValueByPath(
     path: string,
     value: FormFieldValue,
-    bindConfigs: Record<string, EngineBindConfig>,
-    fieldDataTypes: Record<string, string | undefined> = {},
+    fieldDataTypes: Record<string, string | undefined>,
 ): FormFieldValue {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
-    const record = value as Record<string, unknown>;
-    if (record.$type === 'money') return value;
-    const bind = bindConfigs[toBasePath(path)];
+    const isString = typeof value === 'string';
+    const isRecord = !!value && typeof value === 'object' && !Array.isArray(value);
+    if (!isString && !isRecord) return value;
     const dataType = fieldDataTypes[toBasePath(path)];
-    if (dataType === 'money' && 'amount' in record && 'currency' in record) {
+    if (isString) {
+        return dataType === 'date' || dataType === 'dateTime'
+            ? { $type: 'date', value }
+            : value;
+    }
+    const record = value as Record<string, unknown>;
+    if (record.$type === undefined && dataType === 'money' && 'amount' in record && 'currency' in record) {
         return {
             $type: 'money',
             amount: record.amount as JsonValue,
@@ -594,9 +605,11 @@ export function flattenObject(value: JsonValue, prefix = '', output: JsonRecord 
     return output;
 }
 
+/** FEL context snapshot of the non-repeat fields under `prefix`, leaves tagged by `dataType`. */
 export function buildGroupSnapshotForPath(
     prefix: string,
     signals: Record<string, EngineSignal<FormFieldValue>>,
+    fieldDataTypes: Record<string, string | undefined>,
 ): JsonRecord {
     const snapshot: JsonRecord = {};
     for (const [path, signalRef] of Object.entries(signals)) {
@@ -607,15 +620,17 @@ export function buildGroupSnapshotForPath(
         if (!relative || relative.includes('[')) {
             continue;
         }
-        setNestedPathValue(snapshot, relative, cloneValue(signalRef.value));
+        setNestedPathValue(snapshot, relative, tagFelValueByPath(path, cloneValue(signalRef.value), fieldDataTypes));
     }
     return snapshot;
 }
 
+/** FEL context rows of repeat group `groupPath`, leaves tagged by `dataType`. */
 export function buildRepeatCollection(
     groupPath: string,
     count: number,
     signals: Record<string, EngineSignal<FormFieldValue>>,
+    fieldDataTypes: Record<string, string | undefined>,
 ): JsonValue[] {
     const rows: JsonValue[] = [];
     for (let index = 0; index < count; index += 1) {
@@ -626,7 +641,7 @@ export function buildRepeatCollection(
                 continue;
             }
             const relative = path.slice(prefix.length + 1);
-            setResponsePathValue(row, relative, cloneValue(signalRef.value));
+            setResponsePathValue(row, relative, tagFelValueByPath(path, cloneValue(signalRef.value), fieldDataTypes));
         }
         rows.push(row);
     }
