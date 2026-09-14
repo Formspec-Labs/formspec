@@ -31,7 +31,8 @@ export type ProjectImportPayload = Partial<ProjectBundle> & {
    * `true`: the bundle is the whole project (Studio's New Form). A document it omits
    * returns to a blank project's: no authored component tree, a Definition-scoped Theme,
    * only the bundle's mappings (a blank `default` tab when it has none), no locales, no
-   * screener / experience / responseActions. Needs a Definition.
+   * screener / experience / responseActions, and versioning restarts (the Definition is the
+   * baseline, no releases). Loaded registries stay. Needs a Definition.
    *
    * Absent: a document the bundle omits stays as it is, and so does a rule-less mapping
    * the bundle does not name — export cannot carry one (mapping.schema.json rules

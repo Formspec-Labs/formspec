@@ -156,6 +156,7 @@ describe('project.import', () => {
         { type: 'theme.setToken', payload: { key: 'color.primary', value: '#000' } },
       ] as any);
       project.dispatch({ type: 'project.import', payload: { experience: { $formspecExperience: '1.0' } } as any });
+      project.dispatch({ type: 'project.publish', payload: { version: '2.0.0' } });
       const blank = createRawProject({ seed: { definition: definition as any } });
 
       project.dispatch({ type: 'project.import', payload: { ...blank.export(), replace: true } as any });
@@ -165,6 +166,8 @@ describe('project.import', () => {
       expect(project.state.locales).toEqual({});
       expect(project.state.selectedLocaleId).toBeUndefined();
       expect(project.state.experience).toBeNull();
+      // Versions and the changelog baseline belong to the form being replaced.
+      expect(project.state.versioning).toEqual({ baseline: project.state.definition, releases: [] });
       expect(project.componentFor('name')!.component).toBe('TextInput');
       expect(project.export()).toEqual(blank.export());
     });

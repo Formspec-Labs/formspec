@@ -114,6 +114,12 @@ export const projectHandlers = {
       state.responseActions = p.responseActions ?? null;
     }
 
+    // A replaced project starts its own history of versions: the changelog baseline and
+    // releases described the form it replaced. Loaded registries are workspace setup and stay.
+    if (replace) {
+      state.versioning = { baseline: structuredClone(state.definition), releases: [] };
+    }
+
     // Sync targetDefinition URLs.
     //
     // Component's schema still REQUIRES targetDefinition, so an imported Component
