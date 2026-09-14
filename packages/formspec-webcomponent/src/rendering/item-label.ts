@@ -1,14 +1,13 @@
-/** @filedesc Live label of a display or group Item: Locale `<key>.label`, else the inline label, `{{}}` in Item scope. */
+/** @filedesc Live label of a display or group Item from the engine's Item label cascade. */
 import { computed, type ReadonlySignal } from '@preact/signals-core';
-import { interpolateMessage } from '@formspec-org/engine';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import type { FormItem } from '@formspec-org/types';
 
 /**
- * The label a respondent sees for the display or group Item at instance `path`: the Locale
- * `<key>.label` string, else the inline label, FEL `{{}}`-interpolated in the Item's scope
- * (Locale §3.3.2). Field labels come from the field view model instead. Recomputes when the locale
- * or an interpolated value changes; `fallback` stands in for a missing Item or an empty label.
+ * The label a respondent sees for the display or group Item at instance `path`, from
+ * `engine.getItemLabelSignal` (Locale `<key>.label@context` → `<key>.label` → `labels[context]` → inline,
+ * `{{}}` in the Item's scope). Recomputes on locale, label context, or interpolated value changes;
+ * `fallback` stands in for a missing Item or an empty label.
  */
 export function itemLabel(
     engine: IFormEngine,
@@ -16,13 +15,9 @@ export function itemLabel(
     path: string,
     fallback = '',
 ): ReadonlySignal<string> {
+    const label = item ? engine.getItemLabelSignal(path) : undefined;
     return computed(() => {
         if (!item) return fallback;
-        engine.localeSignal.value;
-        const inline = interpolateMessage(
-            engine.getLabel(item),
-            (expr) => engine.compileExpression(expr, path)(),
-        ).text;
-        return engine.resolveLocaleString(`${item.key}.label`, inline, path) || fallback;
+        return (label ? label.value : engine.getLabel(item)) || fallback;
     });
 }
