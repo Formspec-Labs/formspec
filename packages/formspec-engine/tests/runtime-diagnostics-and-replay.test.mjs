@@ -143,7 +143,7 @@ test('should return replay errors and stop when configured', () => {
   assert.match(hardError.errors[0].error, /null/);
 });
 
-test('diagnostics snapshot carries author-facing expression errors per validation profile', () => {
+test('diagnostics snapshot carries author-facing evaluation errors (Core §3.10.2) per validation profile', () => {
   const engine = new FormEngine({
     $formspec: '1.0',
     url: 'http://example.org/eval-diagnostics',
@@ -159,8 +159,8 @@ test('diagnostics snapshot carries author-facing expression errors per validatio
         children: [{ key: 'qty', type: 'field', dataType: 'integer', label: 'Qty' }]
       }
     ],
-    binds: [{ path: 'rows[*].qty', constraint: 'nosuchfn($)' }],
-    shapes: [{ id: 'submitOnly', target: '#', timing: 'submit', constraint: 'unknownfn(1)', message: 'Never shown' }]
+    binds: [{ path: 'rows[*].qty', constraint: "$ + 'x' > 0" }],
+    shapes: [{ id: 'submitOnly', target: '#', timing: 'submit', constraint: "1 / 'a' > 0", message: 'Never shown' }]
   });
 
   engine.setValue('rows[0].qty', 1);
@@ -168,17 +168,17 @@ test('diagnostics snapshot carries author-facing expression errors per validatio
 
   const byPath = (diagnostics) => [...diagnostics].sort((a, b) => a.path.localeCompare(b.path));
   const bindDiagnostics = [
-    { path: 'rows[0].qty', expression: 'nosuchfn($)', message: 'undefined function: nosuchfn' },
-    { path: 'rows[1].qty', expression: 'nosuchfn($)', message: 'undefined function: nosuchfn' }
+    { path: 'rows[0].qty', expression: "$ + 'x' > 0", message: "cannot apply '+' to number and string" },
+    { path: 'rows[1].qty', expression: "$ + 'x' > 0", message: "cannot apply '+' to number and string" }
   ];
 
   const live = engine.getDiagnosticsSnapshot();
   assert.deepEqual(byPath(live.evaluationDiagnostics), bindDiagnostics);
-  assert.equal(live.validation.valid, true, 'expression errors never become validation results');
+  assert.equal(live.validation.valid, true, 'evaluation errors pass as null, never validation results');
 
   const submit = engine.getDiagnosticsSnapshot({ profile: 'on-submit' });
   assert.deepEqual(byPath(submit.evaluationDiagnostics), [
-    { path: '#', expression: 'unknownfn(1)', shapeId: 'submitOnly', message: 'undefined function: unknownfn' },
+    { path: '#', expression: "1 / 'a' > 0", shapeId: 'submitOnly', message: 'cannot divide number by string' },
     ...bindDiagnostics
   ]);
 
