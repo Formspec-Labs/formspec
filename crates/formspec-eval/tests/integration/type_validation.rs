@@ -209,6 +209,16 @@ fn datetime_accepts_valid_iso_datetimes() {
     assert_valid("dateTime", json!("2025-03-31T14:30:00-04:00"));
 }
 
+/// ISO 8601 allows `HH:MM`; HTML `datetime-local` inputs emit `2025-03-01T10:30`.
+#[test]
+fn datetime_accepts_minutes_without_seconds() {
+    assert_valid("dateTime", json!("2025-03-01T10:30"));
+    assert_valid("dateTime", json!("2025-03-01T10:30Z"));
+    assert_valid("dateTime", json!("2025-03-01T10:30+05:00"));
+    assert_invalid("dateTime", json!("2025-03-01T10"));
+    assert_invalid("dateTime", json!("2025-03-01T10:60"));
+}
+
 #[test]
 fn datetime_rejects_non_strings() {
     assert_invalid("dateTime", json!(1711843200));

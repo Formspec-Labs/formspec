@@ -304,13 +304,21 @@ fn is_valid_date(s: &str) -> bool {
 }
 
 /// ISO 8601 date-time — must have T separator, valid date, valid time, optional timezone.
+///
+/// Seconds are optional: `datetime-local` inputs emit `YYYY-MM-DDThh:mm`.
 fn is_valid_datetime(s: &str) -> bool {
     // Try RFC 3339 (strict ISO 8601 profile with timezone)
     if chrono::DateTime::parse_from_rfc3339(s).is_ok() {
         return true;
     }
-    // Also accept without timezone: YYYY-MM-DDThh:mm:ss[.fff]
-    chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.f").is_ok()
+    [
+        "%Y-%m-%dT%H:%M:%S%.f",
+        "%Y-%m-%dT%H:%M",
+        "%Y-%m-%dT%H:%MZ",
+        "%Y-%m-%dT%H:%M%:z",
+    ]
+    .iter()
+    .any(|format| chrono::NaiveDateTime::parse_from_str(s, format).is_ok())
 }
 
 /// HH:MM or HH:MM:SS with valid ranges — parsed by chrono.
