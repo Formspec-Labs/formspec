@@ -91,6 +91,7 @@ describe('custom components — DataTable and Summary tab-sync', () => {
                 key: 'lineItems',
                 type: 'group',
                 repeatable: true,
+                minRepeat: 1,
                 label: 'Line Items',
                 children: [
                     { key: 'desc', type: 'field', dataType: 'string', label: 'Description' },
@@ -130,7 +131,7 @@ describe('custom components — DataTable and Summary tab-sync', () => {
 
         const engine = el.getEngine();
 
-        // Engine initializes repeatable groups with 1 instance by default
+        // minRepeat: 1 gives the repeat one starting row
         engine.setValue('lineItems[0].desc', 'Item 1');
         engine.setValue('lineItems[0].amount', 100);
 

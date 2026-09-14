@@ -11,12 +11,17 @@ beforeAll(async () => {
     }
 });
 
-function renderFormspec() {
+/** Renders the repeat with `rows` added instances; minRepeat is absent, so it starts empty (Core §4.2.2). */
+function renderFormspec(rows = 1) {
     const el = document.createElement('formspec-render') as any;
     document.body.appendChild(el);
     el.definition = repeatGroupDef();
     el.render();
-    return { element: el, engine: el.getEngine() };
+    const engine = el.getEngine();
+    for (let row = 0; row < rows; row += 1) {
+        engine.addRepeatInstance('items');
+    }
+    return { element: el, engine };
 }
 
 describe('repeat instance accessibility and styling parity', () => {
@@ -25,10 +30,7 @@ describe('repeat instance accessibility and styling parity', () => {
     });
 
     it('each repeat instance has role="group" and aria-label with index', () => {
-        const { element, engine } = renderFormspec();
-
-        engine.addRepeatInstance('items');
-        engine.addRepeatInstance('items');
+        const { element } = renderFormspec(3);
 
         const instances = element.querySelectorAll('.formspec-repeat-instance');
         expect(instances).toHaveLength(3);
@@ -65,10 +67,7 @@ describe('repeat DOM re-keying after non-tail deletion', () => {
     });
 
     it('rebuilds surviving instances so shifted values stay aligned', () => {
-        const { element, engine } = renderFormspec();
-
-        engine.addRepeatInstance('items');
-        engine.addRepeatInstance('items');
+        const { element, engine } = renderFormspec(3);
 
         engine.setValue('items[0].name', 'Alice');
         engine.setValue('items[1].name', 'Bob');
