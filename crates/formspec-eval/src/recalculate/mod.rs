@@ -44,7 +44,7 @@ pub fn recalculate(
     HashMap<String, FelValue>,
     Option<String>,
 ) {
-    let fel = Fel::default();
+    let fel = Fel::new(options.extensions);
     let mut env = FormspecEnvironment::new();
     if let Some(now_iso) = options.context.now_iso.as_deref() {
         env.set_now_from_iso(now_iso);

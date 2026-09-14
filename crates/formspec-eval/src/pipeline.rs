@@ -30,7 +30,7 @@ pub fn evaluate(
         &items,
         &mut seeded_data,
         context.now_iso.as_deref(),
-        Fel::default(),
+        Fel::new(options.extensions),
     );
 
     expand_repeat_instances(&mut items, &seeded_data);

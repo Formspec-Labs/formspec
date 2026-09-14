@@ -16,7 +16,12 @@ pub(crate) struct Fel<'a> {
     extensions: Option<&'a dyn ExtensionFunctions>,
 }
 
-impl Fel<'_> {
+impl<'a> Fel<'a> {
+    /// Evaluator resolving unknown function names through `extensions`.
+    pub(crate) fn new(extensions: Option<&'a dyn ExtensionFunctions>) -> Self {
+        Self { extensions }
+    }
+
     /// Evaluates parsed `expr` in `env`.
     pub(crate) fn evaluate(self, expr: &Expr, env: &FormspecEnvironment) -> EvalResult {
         evaluate_with(

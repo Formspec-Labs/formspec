@@ -1,14 +1,16 @@
 //! Evaluation options for [`crate::pipeline::evaluate`].
 
 use std::collections::HashMap;
+use std::fmt;
 
+use fel_core::ExtensionFunctions;
 use serde_json::Value;
 
 use crate::types::{EvalContext, EvalTrigger, ExtensionConstraint};
 
 /// Options for a single definition evaluation ([`crate::pipeline::evaluate`]).
-#[derive(Debug, Clone)]
-pub struct EvalOptions {
+#[derive(Clone)]
+pub struct EvalOptions<'a> {
     /// When to evaluate shape rules.
     pub trigger: EvalTrigger,
     /// Extension constraints resolved from registry documents.
@@ -17,20 +19,41 @@ pub struct EvalOptions {
     pub instances: HashMap<String, Value>,
     /// Runtime context (now, prior validations, repeat counts).
     pub context: EvalContext,
+    /// Host extension functions (Core §3.12) for every Definition expression.
+    ///
+    /// Without them, a call to an extension function is a definition error
+    /// (Core §3.10.1).
+    pub extensions: Option<&'a dyn ExtensionFunctions>,
 }
 
-impl Default for EvalOptions {
+impl Default for EvalOptions<'_> {
     fn default() -> Self {
         Self {
             trigger: EvalTrigger::Continuous,
             extension_constraints: Vec::new(),
             instances: HashMap::new(),
             context: EvalContext::default(),
+            extensions: None,
         }
     }
 }
 
-impl EvalOptions {
+impl fmt::Debug for EvalOptions<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EvalOptions")
+            .field("trigger", &self.trigger)
+            .field("extension_constraints", &self.extension_constraints)
+            .field("instances", &self.instances)
+            .field("context", &self.context)
+            .field(
+                "extensions",
+                &self.extensions.map(|_| "<host extension functions>"),
+            )
+            .finish()
+    }
+}
+
+impl<'a> EvalOptions<'a> {
     /// Create options with defaults (continuous trigger, empty instances/constraints).
     pub fn new() -> Self {
         Self::default()
@@ -57,6 +80,12 @@ impl EvalOptions {
     /// Set runtime evaluation context.
     pub fn context(mut self, context: EvalContext) -> Self {
         self.context = context;
+        self
+    }
+
+    /// Resolve extension function calls through the host's `extensions` (Core §3.12).
+    pub fn extensions(mut self, extensions: &'a dyn ExtensionFunctions) -> Self {
+        self.extensions = Some(extensions);
         self
     }
 }

@@ -84,7 +84,7 @@ pub fn revalidate(
             .and_then(Value::as_str)
             .unwrap_or("1.0.0"),
         repeat_counts: options.context.repeat_counts.as_ref(),
-        fel: Fel::default(),
+        fel: Fel::new(options.extensions),
     };
 
     // Bind constraints + extension constraints
