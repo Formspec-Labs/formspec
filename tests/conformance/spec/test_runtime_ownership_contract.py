@@ -48,7 +48,7 @@ def test_response_actions_owns_invocation_effect_state_only() -> None:
 
     assert "Response Actions owns action invocation state" in content
     assert "Invocation state is not route state, session state, or Response identity" in content
-    assert "Core Response processors own data/status mutation only through the resolved VM persistence policy" in content
+    assert "Core Response processors mutate data or status only through the resolved VM persistence policy" in content
     assert "MUST NOT infer the Response instance from Definition URL alone" in content
 
 
