@@ -56,6 +56,11 @@ import {
   type WidgetDataInputPlan,
 } from './data-source-loader.js';
 import { generationNeedAnchors } from './need-trace.js';
+import {
+  planDefinitionFormInitialData,
+  type DefinitionFormInitialDataPlan,
+  type MappingDocumentHandle,
+} from './definition-form-initial-data.js';
 
 export type SurfaceSlot = SurfaceRoute['slots'][number];
 
@@ -76,6 +81,8 @@ export type SlotPlan<TComponent> = SlotPlanBase &
         slotType: 'definition-form';
         definitionRef: string;
         presentation?: string;
+        /** Qualified Data Source plan used before the form engine mounts. */
+        initialData?: DefinitionFormInitialDataPlan;
         definition?: FormDefinition;
         registryEntries: readonly RegistryEntry[];
         status: 'ready' | 'unresolved';
@@ -130,6 +137,8 @@ export interface SlotPlanContext<TComponent> {
   widgets: WidgetRegistry<TComponent>;
   /** Exact manifested Data Sources catalog handles. */
   dataSources?: readonly DataSourceCatalogHandle[] | undefined;
+  /** Manifested Mapping documents keyed by their App Manifest handles. */
+  mappings?: readonly MappingDocumentHandle[] | undefined;
   /** Manifest URL of `handle.surface`, required by Surface/route/slot availability. */
   surfaceRef?: string | undefined;
   /** Loaded Response Actions documents used to resolve bound widget action metadata. */
@@ -244,7 +253,34 @@ function planSlot<TComponent>(
         status: definition === undefined ? 'unresolved' : 'ready',
       };
       if (typeof binding.presentation === 'string') plan.presentation = binding.presentation;
-      if (definition !== undefined) plan.definition = definition;
+      if (definition !== undefined) {
+        plan.definition = definition;
+        if (binding.initialData !== undefined) {
+          const initialData = planDefinitionFormInitialData({
+            binding: binding.initialData,
+            definition,
+            definitionRef,
+            catalogs: context.dataSources ?? [],
+            mappings: context.mappings ?? [],
+            context: {
+              surfaceRef: context.surfaceRef,
+              routeId: context.handle.routeId,
+              slotId: slot.id,
+            },
+          });
+          plan.initialData = initialData;
+          if (initialData.status !== 'ready') {
+            diagnostics.push(
+              surfaceDiagnostic(
+                'DEFINITION-FORM-DATA-UNAVAILABLE',
+                `The form in slot "${slot.id}" cannot resolve its initial data: ${initialData.reason}`,
+                site,
+                { reason: initialData.status },
+              ),
+            );
+          }
+        }
+      }
       return plan;
     }
 

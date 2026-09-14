@@ -30,9 +30,11 @@
   "dependencies": {
     "@formspec-org/app-graph": "*",
     "@formspec-org/layout": "*",
-    "@formspec-org/types": "*"
+    "@formspec-org/types": "*",
+    "semver": "^7.8.1"
   },
   "devDependencies": {
+    "@types/semver": "^7.7.1",
     "typescript": "^5.0.0",
     "vitest": "^4.1.2"
   }

@@ -27,6 +27,7 @@ import type { SurfaceApp, SurfaceRouteHandle } from './composition.js';
 import type { SurfaceDiagnostic } from './diagnostics.js';
 import type { WidgetRegistry } from './registry.js';
 import type { DataSourceCatalogHandle } from './data-source-loader.js';
+import type { MappingDocumentHandle } from './definition-form-initial-data.js';
 import type { ExperienceDocumentHandle } from './experience-unit.js';
 import { planRoute, type SlotPlan } from './slot-plan.js';
 import type { HeadingLevel, SurfaceStaticAssetResolver } from './static-content.js';
@@ -52,6 +53,7 @@ export interface SurfaceRoutePlanInput<TComponent> {
   registryEntries: readonly RegistryEntry[];
   widgets: WidgetRegistry<TComponent>;
   dataSources?: readonly DataSourceCatalogHandle[] | undefined;
+  mappings?: readonly MappingDocumentHandle[] | undefined;
   /** Exact manifest URL for the matched Surface document. */
   surfaceRef?: string | undefined;
   responseActions?: readonly ResponseActionsDocumentLike[] | undefined;
@@ -104,6 +106,7 @@ export function planMatchedRoute<TComponent>(
     registryEntries: input.registryEntries,
     widgets: input.widgets,
     dataSources: input.dataSources,
+    mappings: input.mappings,
     surfaceRef: input.surfaceRef,
     responseActions: input.responseActions,
     headingBaseLevel,

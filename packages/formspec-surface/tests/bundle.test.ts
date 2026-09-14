@@ -179,6 +179,41 @@ describe('dereferenceBundleExport', () => {
     expect(resolved.diagnostics).toEqual([]);
   });
 
+  it('pairs Mapping documents with their exact App Manifest handles', () => {
+    const mapping = {
+      $formspecMapping: '1.0',
+      version: '1.0.0',
+      definitionRef: 'https://example.test/def',
+      definitionVersion: '1.0.0',
+      targetSchema: { format: 'json' },
+      rules: [{
+        sourcePath: 'name',
+        targetPath: 'display_name',
+        transform: 'preserve',
+      }],
+    };
+    const bundle = bundleExport({
+      mappings: [{
+        url: 'https://example.test/mappings/profile',
+        version: '1.0.0',
+        handle: 'profileRecord',
+      }],
+    });
+    const resolved = dereferenceBundleExport({
+      ...bundle,
+      documents: {
+        ...bundle.documents,
+        'https://example.test/mappings/profile': mapping,
+      },
+    });
+
+    expect(resolved.mappings).toEqual([{
+      mappingRef: 'profileRecord',
+      artifactRef: 'https://example.test/mappings/profile',
+      document: mapping,
+    }]);
+  });
+
   it('reads the singular `experience` slot the App Manifest actually ships', () => {
     const withExperience = bundleExport({ experience: { url: 'exp:1' } });
     const experience = { $formspecExperience: '1.0', version: '1.0.0', units: [] };

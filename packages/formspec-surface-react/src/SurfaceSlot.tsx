@@ -35,7 +35,11 @@ import {
   targetDefinitionMatches,
   type ReferenceEntry,
 } from '@formspec-org/assist';
-import { createFormEngine } from '@formspec-org/engine';
+import {
+  createFormEngine,
+  createMappingEngine,
+  type IFormEngine,
+} from '@formspec-org/engine';
 import { FormspecForm } from '@formspec-org/react';
 import type {
   ResponseAction,
@@ -56,11 +60,14 @@ import type {
 } from '@formspec-org/types';
 import {
   loadWidgetDataInputs,
+  loadDefinitionFormInitialData,
   responseActionsDocumentForDefinition,
   surfaceDiagnostic,
   type DataSourceAuthorizer,
   type DataSourceLoader,
   type DataSourcePayloadValidator,
+  type DefinitionFormInitialDataDelivery,
+  type DefinitionFormInitialDataPlan,
   type PlannedTransition,
   type SlotPlan,
   type StaticContentPlan,
@@ -118,6 +125,11 @@ export interface SurfaceDefinitionFormRenderInput {
   responseActionsDocument: ReactResponseActionsDocument | undefined;
   referencesDocuments: readonly ReferencesDocument[];
   ontologyDocuments: readonly OntologyDocument[];
+  /**
+   * Data Source payload admitted before mount. Record identity, route/session
+   * generation, and owner revision remain separate from Definition field data.
+   */
+  initialData?: SurfaceDefinitionFormInitialData | undefined;
   /** Exact runtime identity for generic semantic-control lookup, when admitted. */
   semanticControlScope?: SemanticControlScope | undefined;
   /** Receives every terminal from the mounted Definition Action control. */
@@ -137,6 +149,14 @@ export interface SurfaceDefinitionFormRenderInput {
         result: ResponseActionInvocationResult<SubmitResult>,
       ) => void)
     | undefined;
+}
+
+export interface SurfaceDefinitionFormInitialData {
+  data: Readonly<Record<string, unknown>>;
+  freshness: 'fresh' | 'stale';
+  recordId?: string | undefined;
+  generation?: string | number | undefined;
+  revision?: string | number | undefined;
 }
 
 export type SurfaceDefinitionFormRenderer = (
@@ -484,6 +504,31 @@ export function SurfaceSlot({
       if (semanticControlScope) {
         renderInput.semanticControlScope = semanticControlScope;
       }
+      if (plan.initialData && plan.initialData.status !== 'ready') {
+        return (
+          <UnavailableSlot>
+            {strings('slotUnavailableWidgetData')}
+          </UnavailableSlot>
+        );
+      }
+      if (plan.initialData?.status === 'ready') {
+        return (
+          <DefinitionFormDataSlot
+            input={renderInput}
+            initialDataPlan={plan.initialData}
+            strings={strings}
+            dataSourceLoader={dataSourceLoader}
+            authorizeDataSource={authorizeDataSource}
+            validateDataSourcePayload={validateDataSourcePayload}
+            runtimeGeneration={
+              runtimeGeneration ?? `${route.surfaceId}/${route.routeId}`
+            }
+            onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+            renderDefinitionForm={renderDefinitionForm}
+            semanticOutputScope={slotSemanticOutputScope}
+          />
+        );
+      }
       return renderDefinitionForm
         ? renderDefinitionForm(renderInput)
         : (
@@ -725,6 +770,7 @@ export function renderDefaultDefinitionForm({
   plan,
   grant,
   route,
+  initialData,
   referencesDocuments,
   ontologyDocuments,
   responseActionsDocument,
@@ -738,6 +784,7 @@ export function renderDefaultDefinitionForm({
       plan={plan}
       grant={grant}
       route={route}
+      initialData={initialData}
       referencesDocuments={referencesDocuments}
       ontologyDocuments={ontologyDocuments}
       responseActionsDocument={responseActionsDocument}
@@ -746,6 +793,200 @@ export function renderDefaultDefinitionForm({
       onActionCompleted={onActionCompleted}
       responseActionInvoker={responseActionInvoker}
     />
+  );
+}
+
+type ReadyDefinitionFormInitialDataPlan = Extract<
+  DefinitionFormInitialDataPlan,
+  { status: 'ready' }
+>;
+
+type DefinitionFormDataState =
+  | { status: 'loading' }
+  | DefinitionFormInitialDataDelivery;
+
+function executeDefinitionFormMapping({
+  mapping,
+  value,
+}: {
+  mapping: import('@formspec-org/types').MappingDocument;
+  definition: FormDefinition;
+  value: unknown;
+}) {
+  const result = createMappingEngine(mapping).reverse(
+    value as Parameters<ReturnType<typeof createMappingEngine>['reverse']>[0],
+  );
+  if (result.diagnostics.length > 0) {
+    const codes = result.diagnostics.map((diagnostic) => diagnostic.errorCode);
+    return {
+      status: 'unavailable' as const,
+      reason: `Mapping DSL execution reported ${codes.join(', ')}.`,
+    };
+  }
+  return { status: 'mapped' as const, data: result.output };
+}
+
+/**
+ * Load before first mount. A later generation may refresh a clean form, but a
+ * bubbled form edit permanently protects the mounted engine from late data.
+ */
+function DefinitionFormDataSlot({
+  input,
+  initialDataPlan,
+  strings,
+  dataSourceLoader,
+  authorizeDataSource,
+  validateDataSourcePayload,
+  runtimeGeneration,
+  onRuntimeDiagnosticsChange,
+  renderDefinitionForm,
+  semanticOutputScope,
+}: {
+  input: SurfaceDefinitionFormRenderInput;
+  initialDataPlan: ReadyDefinitionFormInitialDataPlan;
+  strings: SurfaceStrings;
+  dataSourceLoader?: DataSourceLoader | undefined;
+  authorizeDataSource?: DataSourceAuthorizer | undefined;
+  validateDataSourcePayload?: DataSourcePayloadValidator | undefined;
+  runtimeGeneration: string;
+  onRuntimeDiagnosticsChange?:
+    | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
+    | undefined;
+  renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
+  semanticOutputScope: SurfaceSemanticOutputPublisherScope | undefined;
+}): ReactNode {
+  const [delivery, setDelivery] = useState<DefinitionFormDataState>({
+    status: 'loading',
+  });
+  const dirty = useRef(false);
+  const activeGeneration = useRef(runtimeGeneration);
+  activeGeneration.current = runtimeGeneration;
+  const diagnosticScope = `definition-form-data:${runtimeGeneration}:${input.plan.slotId}`;
+
+  useEffect(() => {
+    let current = true;
+    const requestedGeneration = runtimeGeneration;
+    setDelivery((previous) =>
+      previous.status === 'ready' ? previous : { status: 'loading' },
+    );
+    onRuntimeDiagnosticsChange?.(diagnosticScope, []);
+
+    void loadDefinitionFormInitialData({
+      plan: initialDataPlan,
+      definition: input.plan.definition,
+      definitionRef: input.plan.definitionRef,
+      context: {
+        surfaceId: input.route.surfaceId,
+        surfaceRef: input.route.surfaceRef,
+        routeId: input.route.routeId,
+        slotId: input.plan.slotId,
+        definitionRef: input.plan.definitionRef,
+        params: input.route.params,
+        sessionGeneration: requestedGeneration,
+      },
+      loader: dataSourceLoader,
+      authorize: authorizeDataSource,
+      validatePayload: validateDataSourcePayload,
+      map: executeDefinitionFormMapping,
+      site: {
+        surfaceId: input.route.surfaceId,
+        routeId: input.route.routeId,
+        slotId: input.plan.slotId,
+      },
+    }).then((result) => {
+      if (
+        !current ||
+        activeGeneration.current !== requestedGeneration
+      ) {
+        return;
+      }
+      onRuntimeDiagnosticsChange?.(diagnosticScope, result.diagnostics);
+      setDelivery((previous) => {
+        // A delayed refresh cannot replace a form after the person edits it.
+        if (previous.status === 'ready' && dirty.current) return previous;
+        if (result.status === 'ready') dirty.current = false;
+        return result;
+      });
+    });
+
+    return () => {
+      current = false;
+      onRuntimeDiagnosticsChange?.(diagnosticScope, []);
+    };
+  }, [
+    authorizeDataSource,
+    dataSourceLoader,
+    diagnosticScope,
+    initialDataPlan,
+    input.plan.definition,
+    input.plan.definitionRef,
+    input.plan.slotId,
+    input.route.params,
+    input.route.routeId,
+    input.route.surfaceId,
+    input.route.surfaceRef,
+    onRuntimeDiagnosticsChange,
+    runtimeGeneration,
+    validateDataSourcePayload,
+  ]);
+
+  if (delivery.status === 'loading') {
+    return (
+      <p
+        className="fs-surface-loading"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        data-probe="definition-form-loading"
+      >
+        {strings('transitionPending')}
+      </p>
+    );
+  }
+  if (delivery.status === 'unavailable') {
+    return (
+      <UnavailableSlot>
+        {strings('slotUnavailableWidgetData')}
+      </UnavailableSlot>
+    );
+  }
+
+  const initialData: SurfaceDefinitionFormInitialData = {
+    data: delivery.data,
+    freshness: delivery.freshness,
+    ...(delivery.recordId === undefined
+      ? {}
+      : { recordId: delivery.recordId }),
+    ...(delivery.generation === undefined
+      ? {}
+      : { generation: delivery.generation }),
+    ...(delivery.revision === undefined
+      ? {}
+      : { revision: delivery.revision }),
+  };
+  const hydratedInput: SurfaceDefinitionFormRenderInput = {
+    ...input,
+    initialData,
+  };
+  return (
+    <div
+      data-probe="definition-form-ready"
+      onInputCapture={() => {
+        dirty.current = true;
+      }}
+      onChangeCapture={() => {
+        dirty.current = true;
+      }}
+    >
+      {renderDefinitionForm
+        ? renderDefinitionForm(hydratedInput)
+        : (
+            <DefaultDefinitionFormSlot
+              input={hydratedInput}
+              semanticOutputScope={semanticOutputScope}
+            />
+          )}
+    </div>
   );
 }
 
@@ -765,9 +1006,57 @@ function DefaultDefinitionFormSlot({
   return renderDefaultDefinitionForm(input);
 }
 
+/** Apply admitted object data before any field component subscribes. */
+function hydrateDefinitionFormEngine(
+  engine: IFormEngine,
+  data: Readonly<Record<string, unknown>>,
+  prefix = '',
+): void {
+  for (const [key, value] of Object.entries(data)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    const signal = engine.signals[path];
+    if (
+      signal &&
+      Object.getOwnPropertyDescriptor(Object.getPrototypeOf(signal), 'value')
+        ?.set
+    ) {
+      engine.setValue(
+        path,
+        value as Parameters<IFormEngine['setValue']>[1],
+      );
+      continue;
+    }
+    if (Array.isArray(value) && engine.repeats[path] !== undefined) {
+      const currentCount = engine.repeats[path]?.value ?? 0;
+      for (let index = currentCount; index < value.length; index += 1) {
+        engine.addRepeatInstance(path);
+      }
+      for (let index = 0; index < value.length; index += 1) {
+        const member = value[index];
+        if (member !== null && typeof member === 'object' && !Array.isArray(member)) {
+          hydrateDefinitionFormEngine(
+            engine,
+            member as Readonly<Record<string, unknown>>,
+            `${path}[${index}]`,
+          );
+        }
+      }
+      continue;
+    }
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      hydrateDefinitionFormEngine(
+        engine,
+        value as Readonly<Record<string, unknown>>,
+        path,
+      );
+    }
+  }
+}
+
 function DefaultSurfaceDefinitionForm({
   plan,
   grant,
+  initialData,
   referencesDocuments,
   ontologyDocuments,
   responseActionsDocument,
@@ -776,10 +1065,13 @@ function DefaultSurfaceDefinitionForm({
   onActionCompleted,
   responseActionInvoker,
 }: SurfaceDefinitionFormRenderInput): ReactNode {
-  const engine = useMemo(
-    () => createFormEngine(plan.definition),
-    [plan.definition],
-  );
+  const engine = useMemo(() => {
+    const created = createFormEngine(plan.definition);
+    if (initialData) {
+      hydrateDefinitionFormEngine(created, initialData.data);
+    }
+    return created;
+  }, [initialData?.data, plan.definition]);
   useEffect(() => () => engine.dispose(), [engine]);
 
   const contextResolver = useMemo(() => {

@@ -313,6 +313,30 @@ export interface WidgetDataBinding {
 }
 /**
  * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * via the `definition` "DefinitionFormInitialDataBinding".
+ */
+export interface DefinitionFormInitialDataBinding {
+  /**
+   * Canonical Data Sources URL. App-graph and runtime resolution require an exact match to one App Manifest dataSources[].url.
+   */
+  catalogRef: string;
+  /**
+   * Data Sources 1.0 source id resolved only within catalogRef; unqualified source lookup is forbidden. A direct definition-response source delivers Response.data, not the enclosing Form Response.
+   */
+  sourceRef: string;
+  /**
+   * Optional App Manifest mappings[].handle. Use only when the delivered source value does not already match the Definition; the existing Mapping DSL executes in reverse. Mapping rules cannot be inlined here.
+   */
+  mappingRef?: string;
+  'x-generation'?: Generation;
+  /**
+   * This interface was referenced by `DefinitionFormInitialDataBinding`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: `x-${string}`]: unknown;
+}
+/**
+ * This interface was referenced by `SurfaceDocument`'s JSON-Schema
  * via the `definition` "WidgetActionBindings".
  */
 export interface WidgetActionBindings {

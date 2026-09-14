@@ -569,6 +569,22 @@ The slot renders the bound Definition as a live form.
   Formspec renderer, handing it the resolved Theme document for this route (§4)
   and the bundle's flattened Registry entries. `binding.presentation` is a
   renderer-defined hint at v0.2 and carries no normative vocabulary.
+- **Initial data.** When `binding.initialData` is present, the shell resolves
+  exactly `(catalogRef, sourceRef)`, rechecks Definition/Surface/route/slot
+  availability, obtains host authorization, loads, and validates the source in
+  Data Sources 1.0 order. The shell SHOULD finish this work before mounting the
+  form engine and MUST expose a perceivable, live loading status while no form
+  is mounted. A direct `definition-response` binding hydrates from
+  `Response.data`, never from the enclosing Form Response. When `mappingRef` is
+  present, the shell resolves that exact App Manifest Mapping handle and runs
+  the existing Mapping DSL in reverse; it MUST NOT interpret inline field maps.
+  The mapped result is Definition field data.
+- **Refresh safety.** The shell keeps loaded `recordId`, route/session
+  generation, and owner revision as separate metadata. A result from an
+  obsolete generation MUST NOT mount or replace a form. Once a person has
+  changed a mounted form, a later load or refresh MUST NOT reset that form.
+  Navigating away may unmount it; revisiting repeats the qualified load and
+  restores whatever the source currently selects.
 - **Response identity.** A route MAY carry more than one `definition-form` slot.
   Each live form instance is a separate Response instance owned by the Core
   Response contract ([surface-spec](surface-spec.md) §5.1). A
@@ -1428,6 +1444,7 @@ app-construction diagnostics delivers the minority of them.
 | `EMBED-ROUTE-CYCLE` | `error` | An `embed-route` chain revisited a route already on the chain. |
 | `SLOT-TYPE-UNKNOWN` | `error` | Malformed runtime input contains a `slotType` outside the closed Surface vocabulary. |
 | `SLOT-BINDING-INCOMPLETE` | `error` | A slot binding lacks a field its `slotType` requires. |
+| `DEFINITION-FORM-DATA-UNAVAILABLE` | `error` | A `definition-form` initial-data binding cannot resolve, authorize, load, validate, or map its exact Data Source (§3.1). |
 | `EXPERIENCE-UNIT-UNRESOLVED` | `error` | An `experience-unit` binding names no unit in the resolved Experience. |
 | `WIDGET-UNDECLARED` | `error` | A `module-widget` binding names a widget no Registry in the bundle declares. |
 | `WIDGET-UNIMPLEMENTED` | `error` | The Registry declares the widget; nothing the host registered implements it. |

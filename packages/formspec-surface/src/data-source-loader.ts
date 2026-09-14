@@ -48,8 +48,12 @@ export interface DataSourceActiveContext {
   surfaceRef?: string | undefined;
   routeId: string;
   slotId: string;
-  moduleId: string;
-  widgetName: string;
+  /** Present for a `definition-form` consumer; exact loaded Definition URL. */
+  definitionRef?: string | undefined;
+  /** Present for a module-widget consumer. */
+  moduleId?: string | undefined;
+  /** Present for a module-widget consumer. */
+  widgetName?: string | undefined;
   params: Readonly<Record<string, string>>;
   sessionGeneration?: string | number | undefined;
 }
@@ -70,6 +74,8 @@ export type DataSourceLoadResult =
        * record identity. A consumer must never infer this from its request.
        */
       recordId?: string | undefined;
+      /** Owner-produced record revision, kept separate from data and identity. */
+      revision?: string | number | undefined;
     }
   | {
       status: Extract<DataSourceLoadState, "unavailable">;

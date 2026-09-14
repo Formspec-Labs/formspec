@@ -447,6 +447,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
       registryEntries: model.registryEntries,
       widgets: model.widgets,
       dataSources: bundle.dataSources,
+      mappings: bundle.mappings,
       surfaceRef: bundle.surfaceRefs?.get(resolution.match.handle.surface),
       responseActions: bundle.responseActions,
       themeAuthority: model.themeAuthority,

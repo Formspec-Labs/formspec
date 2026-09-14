@@ -43,6 +43,7 @@ import type {
   DataSourcesDocument,
   ExperienceDocument,
   FormDefinition,
+  MappingDocument,
   OntologyDocument,
   ReferencesDocument,
   RegistryDocument,
@@ -51,12 +52,18 @@ import type {
   ThemeDocument,
 } from '@formspec-org/types';
 import type { DataSourceCatalogHandle } from './data-source-loader.js';
+import type { MappingDocumentHandle } from './definition-form-initial-data.js';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 import type { ExperienceDocumentHandle } from './experience-unit.js';
 
 export interface BundleArtifactRef {
   url: string;
   version?: string;
+}
+
+export interface BundleMappingArtifactRef extends BundleArtifactRef {
+  /** Author-chosen App Manifest handle used by Mapping consumers. */
+  handle: string;
 }
 
 export interface BundleManifest {
@@ -83,6 +90,7 @@ export interface BundleManifest {
   /** Ordered Response Actions associations. Legacy responseActions loads first when both exist. */
   responseActionDocuments?: readonly BundleArtifactRef[];
   dataSources?: readonly BundleArtifactRef[];
+  mappings?: readonly BundleMappingArtifactRef[];
   surfaces?: readonly BundleArtifactRef[];
   entrySurface?: string;
   modules?: readonly { id: string; version: string }[];
@@ -141,6 +149,8 @@ export interface ResolvedBundle {
   responseActions: readonly ResponseActionsDocument[];
   /** Exact manifested catalog handles; source ids are never resolved globally. */
   dataSources?: readonly DataSourceCatalogHandle[] | undefined;
+  /** Loaded Mapping documents paired with their exact App Manifest handles. */
+  mappings?: readonly MappingDocumentHandle[] | undefined;
   /** Definitions keyed by the URL a `definition-form` binding names. */
   definitions: ReadonlyMap<string, FormDefinition>;
   diagnostics: readonly SurfaceDiagnostic[];
@@ -303,6 +313,12 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
     const document = lookup<DataSourcesDocument>(ref, 'Data Sources catalog');
     return document === undefined ? [] : [{ catalogRef: ref.url, document }];
   });
+  const mappings = (bundle.manifest.mappings ?? []).flatMap((ref) => {
+    const document = lookup<MappingDocument>(ref, 'Mapping document');
+    return document === undefined
+      ? []
+      : [{ mappingRef: ref.handle, artifactRef: ref.url, document }];
+  });
 
   const definitions = new Map<string, FormDefinition>();
   for (const ref of bundle.manifest.definitions ?? []) {
@@ -324,6 +340,7 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
     registries,
     responseActions,
     dataSources,
+    mappings,
     definitions,
     diagnostics,
   };

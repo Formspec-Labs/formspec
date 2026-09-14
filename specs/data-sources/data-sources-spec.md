@@ -370,8 +370,10 @@ is:
 - the exact manifested catalog URL;
 - the exact source id within that catalog;
 - the loaded catalog and source declarations; and
-- the active Surface URL/id, route id, slot id, module id, widget name, route
-  parameters, and opaque route/session generation.
+- the active Surface URL/id, route id, slot id, route parameters, and opaque
+  route/session generation; plus the exact Definition URL for a
+  `definition-form` consumer or module id and widget name for a module-widget
+  consumer.
 
 The source identity is always `(catalogRef, sourceRef)`. The runtime MUST resolve
 the catalog and source exactly once before calling the loader. It MUST NOT pass
@@ -380,8 +382,9 @@ unqualified source lookup, or use widget configuration as payload.
 
 The loader returns either:
 
-- `loaded`, with a value, explicit `fresh` or `stale` status, and an optional
-  owner-produced `recordId` when the source has record identity; or
+- `loaded`, with a value, explicit `fresh` or `stale` status, an optional
+  owner-produced `recordId` when the source has record identity, and an
+  optional owner-produced `revision`; or
 - `unavailable`, with a reason.
 
 **Normative rule `loader.qualified-result`.** Each loader result MUST identify
@@ -397,6 +400,13 @@ or report the source unavailable, and a loaded result MUST set `recordId` to
 that selected Response's exact `id`. A generic host MUST NOT invent a meaning
 for “latest completed,” and a consumer MUST NOT derive `recordId` from an
 expectation, request, or prior action.
+
+A loaded result MAY also carry an owner-produced `revision` as a string or
+number. Consumers MUST preserve `recordId`, the active request's opaque
+route/session generation, and `revision` as separate metadata. They MUST NOT
+place any of them inside the delivered value, derive one from another, or treat
+the generation as record identity. A late result whose request generation is no
+longer active MUST be ignored.
 
 The loader does not make an authorization decision and does not validate its own
 payload. Keeping those decisions outside the load port prevents an HTTP client
@@ -435,6 +445,15 @@ For Surface module widgets:
   posture; and
 - `stale-ok` admits a loader result explicitly marked `stale`. Every other
   failure mode rejects stale data.
+
+For a Surface `definition-form` initial-data binding, the same ordered checks
+run before engine hydration. The runtime delivers one object shaped as the
+bound Definition's `Response.data`. When the source value already has that
+shape, the Surface binding omits `mappingRef`; otherwise it names one existing
+Mapping DSL document by App Manifest handle and the runtime applies that
+Mapping in reverse. The form SHOULD mount only after successful delivery. A
+late generation MUST NOT replace current data, and no refresh may reset a form
+after person-originated edits.
 
 Full snapshot expiration, subscription lifetime, draft synchronization, and
 cross-process cache coordination remain outside this MVP. A loader MUST still

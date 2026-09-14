@@ -318,6 +318,36 @@ Cross-document slot bindings, such as `definition-form.binding.definitionRef`
 and `experience-unit.binding.unitRef`, are resolved by the app/bundle graph and
 are outside this Surface-local rule.
 
+### Definition-form initial data
+
+A `definition-form` binding MAY declare:
+
+```json
+{
+  "definitionRef": "https://example.gov/definitions/profile",
+  "initialData": {
+    "catalogRef": "https://example.gov/data-sources/profiles",
+    "sourceRef": "response:profile",
+    "mappingRef": "profileRecord"
+  }
+}
+```
+
+`catalogRef` MUST exactly match one App Manifest `dataSources[].url`, and
+`sourceRef` MUST exactly match one source id in that catalog. The source
+identity is the pair `(catalogRef, sourceRef)`; catalog order, filenames,
+Definition URLs, and unqualified source ids are not fallbacks.
+
+`mappingRef` MUST be omitted when the delivered source value already has the
+bound Definition's `Response.data` shape. It MAY be present only when that
+value needs transformation, and then MUST exactly match one App Manifest
+`mappings[].handle` whose Mapping document targets the bound Definition and
+whose `definitionVersion` admits the bound Definition version, and admits
+reverse execution. Mapping rules, field maps, and literal initial data MUST NOT
+be inlined in the Surface binding. A direct `definition-response` binding
+consumes the selected Response's `data` member; Response identity and revision
+metadata remain outside Definition field data.
+
 ### Static-content image alternative text
 
 A `static-content` binding with `kind: "image"` MUST carry `alt`. The value is

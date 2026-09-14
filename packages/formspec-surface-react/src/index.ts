@@ -40,6 +40,7 @@ export {
   rendersOwnHeading,
   type ResolvedDefinitionFormPlan,
   type SurfaceDefinitionFormRenderer,
+  type SurfaceDefinitionFormInitialData,
   type SurfaceDefinitionFormRenderInput,
   type SurfaceSemanticControlScopeRequest,
   type SurfaceSemanticControlScopeResolver,

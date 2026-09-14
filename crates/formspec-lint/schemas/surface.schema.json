@@ -233,6 +233,10 @@
                   "presentation": {
                     "type": "string",
                     "description": "OPTIONAL presentation hint (e.g. 'inline', 'wizard', 'modal'). Renderer-defined vocabulary at v0.2."
+                  },
+                  "initialData": {
+                    "$ref": "#/$defs/DefinitionFormInitialDataBinding",
+                    "description": "OPTIONAL qualified Data Sources binding used to hydrate this form before it mounts. The source identity is the exact (catalogRef, sourceRef) pair. Omit mappingRef when the delivered value already has the Definition's Response.data shape; otherwise mappingRef names one App Manifest mappings[].handle and the Mapping DSL runs in reverse. Inline field maps and literal initial data are not admitted."
                   }
                 }
               }
@@ -460,6 +464,36 @@
       "patternProperties": {
         "^[A-Za-z][A-Za-z0-9_-]*$": {
           "$ref": "#/$defs/WidgetDataBinding"
+        }
+      }
+    },
+    "DefinitionFormInitialDataBinding": {
+      "type": "object",
+      "required": ["catalogRef", "sourceRef"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "catalogRef": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
+          "description": "Canonical Data Sources URL. App-graph and runtime resolution require an exact match to one App Manifest dataSources[].url."
+        },
+        "sourceRef": {
+          "type": "string",
+          "pattern": "^(host|response|resource|query|conversation|route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$",
+          "description": "Data Sources 1.0 source id resolved only within catalogRef; unqualified source lookup is forbidden. A direct definition-response source delivers Response.data, not the enclosing Form Response."
+        },
+        "mappingRef": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
+          "description": "Optional App Manifest mappings[].handle. Use only when the delivered source value does not already match the Definition; the existing Mapping DSL executes in reverse. Mapping rules cannot be inlined here."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this initial-data binding."
         }
       }
     },

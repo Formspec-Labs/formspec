@@ -175,6 +175,21 @@ export {
 } from './definition-response-store.js';
 
 export {
+  dataSourceAvailableToDefinitionForm,
+  loadDefinitionFormInitialData,
+  planDefinitionFormInitialData,
+  type DefinitionFormInitialDataBinding,
+  type DefinitionFormInitialDataDelivery,
+  type DefinitionFormInitialDataFailureReason,
+  type DefinitionFormInitialDataMapper,
+  type DefinitionFormInitialDataMappingResult,
+  type DefinitionFormInitialDataPlan,
+  type LoadDefinitionFormInitialDataInput,
+  type MappingDocumentHandle,
+  type PlanDefinitionFormInitialDataInput,
+} from './definition-form-initial-data.js';
+
+export {
   createSurfaceSemanticOutputRegistry,
   type AmbiguousSurfaceSemanticOutput,
   type MissingSurfaceSemanticOutput,
@@ -221,6 +236,7 @@ export {
   type BundleArtifactRef,
   type BundleExport,
   type BundleManifest,
+  type BundleMappingArtifactRef,
   type ResolvedBundle,
 } from './bundle.js';
 

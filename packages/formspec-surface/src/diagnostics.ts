@@ -67,6 +67,8 @@ export const SURFACE_DIAGNOSTIC_CODES = [
   'SLOT-TYPE-UNKNOWN',
   /** A slot binding is missing the field its slotType requires. */
   'SLOT-BINDING-INCOMPLETE',
+  /** A definition-form's exact initial Data Source cannot be resolved or delivered. */
+  'DEFINITION-FORM-DATA-UNAVAILABLE',
   /** An `experience-unit` binding names no unit in the resolved Experience. */
   'EXPERIENCE-UNIT-UNRESOLVED',
   /** A `module-widget` binding names a widget no Registry in the bundle declares. */
@@ -138,6 +140,7 @@ export const SURFACE_DIAGNOSTIC_SEVERITY = {
   'EMBED-ROUTE-CYCLE': 'error',
   'SLOT-TYPE-UNKNOWN': 'error',
   'SLOT-BINDING-INCOMPLETE': 'error',
+  'DEFINITION-FORM-DATA-UNAVAILABLE': 'error',
   'EXPERIENCE-UNIT-UNRESOLVED': 'error',
   'WIDGET-UNDECLARED': 'error',
   'WIDGET-UNIMPLEMENTED': 'error',

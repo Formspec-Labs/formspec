@@ -286,6 +286,9 @@ describe('generated types — tightness against permissive intersections', () =>
     expect(surfaceSrc).toMatch(
       /export interface WidgetActionBinding \{[\s\S]*?'x-generation'\?: Generation;[\s\S]*?\n\}/m,
     );
+    expect(surfaceSrc).toMatch(
+      /export interface DefinitionFormInitialDataBinding \{[\s\S]*?'x-generation'\?: Generation;[\s\S]*?\n\}/m,
+    );
     expect(dataSourcesSrc).toMatch(
       /export type DataSource = \{[\s\S]*?'x-generation'\?: Generation;[\s\S]*?\n\};/m,
     );
@@ -298,7 +301,9 @@ describe('generated types — tightness against permissive intersections', () =>
     expect(scenarioSrc).toMatch(
       /export interface SurfaceScenarioActionOutcome \{[\s\S]*?'x-generation'\?: Generation;/m,
     );
-    expect(indexSrc).toContain('WidgetDataBinding, WidgetActionBindings, WidgetActionBinding');
+    expect(indexSrc).toContain(
+      'WidgetDataBinding, DefinitionFormInitialDataBinding, WidgetActionBindings, WidgetActionBinding',
+    );
   });
 
   it('Reference and BoundReference expose direct common Generation provenance', () => {
