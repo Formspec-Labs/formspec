@@ -504,11 +504,37 @@ Renderers MUST support these widgets.
 
 | Property | Type | Description |
 |---|---|---|
-| `maxLength` | integer | Maximum character count display. |
+| `maxLength` | integer | Character limit shown to the respondent (for example a "42 / 200" count). Display-only; see below. |
 | `inputMode` | string | Input hint: `"text"`, `"email"`, `"tel"`, `"url"`. |
 | `rows` | integer | Visible text rows. |
 | `maxRows` | integer | Maximum rows before scroll. |
 | `autoResize` | boolean | Auto-resize to content. |
+
+`widgetConfig.maxLength` is a presentation hint: renderers SHOULD display
+the character count against it, but it MUST NOT block input or submission
+and MUST NOT produce a ValidationResult. A theme cannot enforce data rules
+(§1.2). To enforce a limit, the Definition declares a Bind `constraint`;
+the theme hint and the constraint then agree:
+
+```json
+{
+  "binds": [
+    {
+      "path": "summary",
+      "constraint": "length($) <= 200",
+      "constraintMessage": "Keep the summary to 200 characters or fewer."
+    }
+  ]
+}
+```
+
+```json
+{
+  "items": {
+    "summary": { "widget": "TextInput", "widgetConfig": { "maxLength": 200 } }
+  }
+}
+```
 
 **`NumberInput`** (integer, decimal)
 
