@@ -130,6 +130,11 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
         else if (count > 0) initial.add(count - 1);
         return initial;
     });
+    // Rebuild row nodes only when rows change: fresh node objects on every toggle would re-derive each row's localized props.
+    const rows = useMemo(
+        () => Array.from({ length: count }, (_, i) => node.children.map((child) => rewriteBindPaths(child, bindKey, i))),
+        [node.children, bindKey, count],
+    );
     const previousCountRef = useRef(count);
     const containerRef = useRef<HTMLDivElement>(null);
     const addBtnRef = useRef<HTMLButtonElement>(null);
@@ -212,10 +217,8 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
                             </summary>
                             <div className="formspec-accordion-content formspec-accordion-content--repeat">
                                 <RepeatInstanceContext.Provider value={`${bindKey}[${i}]`}>
-                                    {node.children.map((child) => (
-                                        <React.Fragment key={`${child.id}-${i}`}>
-                                            {renderChild(rewriteBindPaths(child, bindKey, i))}
-                                        </React.Fragment>
+                                    {rows[i].map((child) => (
+                                        <React.Fragment key={child.id}>{renderChild(child)}</React.Fragment>
                                     ))}
                                 </RepeatInstanceContext.Provider>
                                 {canRemove && (
