@@ -125,6 +125,13 @@ widget never receives the action id, route table, executor, or navigation
 function. `StructuredPanel` can use the returned lifecycle handle for traced
 pending, success, and failure feedback.
 
+A `StructuredPanel` table row action may declare a traced `confirmation`
+object. The first activation renders its heading, explanation, confirm label,
+and cancel label without emitting the action. Confirm emits the selected row
+payload once; cancel returns to the row action. The Registry must list the
+confirmation in `renderedConfigNodes` and validate it through
+`widgetShape.props`, so destructive copy cannot bypass schema or Needs review.
+
 Hosts that need their existing draft/submit runtime use
 `renderDefinitionForm`. Its single input contains the resolved form slot plan,
 route theme grant, route context, and the one Response Actions document

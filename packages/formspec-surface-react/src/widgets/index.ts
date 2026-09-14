@@ -52,6 +52,7 @@ export type {
   StructuredKeyValueItemConfig,
   StructuredListBlockConfig,
   StructuredMetricBlockConfig,
+  StructuredActionConfirmationConfig,
   StructuredActionPayloadConfig,
   StructuredActionPayloadSelector,
   StructuredPanelActionConfig,
@@ -99,6 +100,10 @@ export const STRUCTURED_PANEL_RENDERED_CONFIG_NODES = [
   { pointerPattern: '/blocks/*/items/*', kind: 'structured-panel-field' },
   { pointerPattern: '/blocks/*/columns/*', kind: 'structured-panel-column' },
   { pointerPattern: '/blocks/*/rowAction', kind: 'structured-panel-row-action' },
+  {
+    pointerPattern: '/blocks/*/rowAction/confirmation',
+    kind: 'structured-panel-action-confirmation',
+  },
   { pointerPattern: '/actions/*', kind: 'structured-panel-action' },
   ...MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES,
 ] as const;

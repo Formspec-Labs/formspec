@@ -420,6 +420,14 @@ Response Actions intent, or generic host command. App-graph validation MUST
 reject an undeclared output, unresolved action, duplicate mapping, or ambiguous
 transition target.
 
+A widget MAY require a second, explicit activation before emitting an action.
+The confirmation UI MUST come from `binding.config`, validate against
+`widgetShape.props`, appear in `renderedConfigNodes`, and carry its own Need
+trace. Opening or canceling the confirmation MUST NOT emit the action. The
+confirm control MUST emit the same admitted output and detached input at most
+once per activation. Processors MUST NOT use implicit browser dialogs or
+product-specific host logic as a substitute for this structured state.
+
 ### Transition trigger semantics
 
 Per `schemas/surface.schema.json:$defs.Transition.trigger`, a transition's

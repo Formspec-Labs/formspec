@@ -133,6 +133,7 @@ export {
   type StructuredKeyValueItemConfig,
   type StructuredListBlockConfig,
   type StructuredMetricBlockConfig,
+  type StructuredActionConfirmationConfig,
   type StructuredActionPayloadConfig,
   type StructuredActionPayloadSelector,
   type StructuredPanelActionConfig,

@@ -758,6 +758,27 @@
   opacity: 0.58;
 }
 
+.fs-structured-panel__confirmation {
+  display: grid;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+  min-width: min(24rem, 78vw);
+  padding: var(--formspec-spacing-md, 0.75rem);
+  border: 1px solid var(--fs-surface-line-strong);
+  border-radius: var(--formspec-radius-md, 6px);
+  background: var(--fs-surface-panel);
+  text-align: start;
+}
+
+.fs-structured-panel__confirmation p {
+  margin: 0;
+}
+
+.fs-structured-panel__confirmation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
 .fs-surface-widget-state {
   display: grid;
   gap: var(--formspec-spacing-sm, 0.5rem);

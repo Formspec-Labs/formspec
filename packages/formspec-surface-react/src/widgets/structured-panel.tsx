@@ -14,7 +14,7 @@
  * its own anchor. Parent anchors never authorize untraced child content.
  * Invalid or absent anchors never become DOM claims.
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type {
   SurfaceSemanticOutputDeclaration,
   SurfaceSemanticValue,
@@ -135,6 +135,15 @@ export interface StructuredTableRowActionConfig extends GeneratedFromNeeds {
   pendingLabel?: string;
   successMessage?: string;
   failureMessage?: string;
+  confirmation?: StructuredActionConfirmationConfig;
+}
+
+/** Explicit two-step confirmation for a destructive authored action. */
+export interface StructuredActionConfirmationConfig extends GeneratedFromNeeds {
+  heading: string;
+  body: string;
+  confirmLabel: string;
+  cancelLabel: string;
 }
 
 export interface StructuredPanelConfig extends GeneratedFromNeeds {
@@ -294,6 +303,13 @@ interface StructuredActionButtonProps {
   pendingLabel?: string | undefined;
   successMessage?: string | undefined;
   failureMessage?: string | undefined;
+  confirmation?: Readonly<{
+    heading: string;
+    body: string;
+    confirmLabel: string;
+    cancelLabel: string;
+    anchors: readonly string[];
+  }> | undefined;
 }
 
 function StructuredActionButton({
@@ -307,10 +323,25 @@ function StructuredActionButton({
   pendingLabel,
   successMessage,
   failureMessage,
+  confirmation,
 }: StructuredActionButtonProps): ReactNode {
+  const confirmationHeadingId = useId();
+  const actionButton = useRef<HTMLButtonElement>(null);
+  const confirmButton = useRef<HTMLButtonElement>(null);
+  const restoreActionFocus = useRef(false);
   const [status, setStatus] = useState<
-    'idle' | 'pending' | 'completed' | 'failed'
+    'idle' | 'confirming' | 'pending' | 'completed' | 'failed'
   >('idle');
+  useEffect(() => {
+    if (status === 'confirming') {
+      confirmButton.current?.focus();
+      return;
+    }
+    if (status === 'idle' && restoreActionFocus.current) {
+      restoreActionFocus.current = false;
+      actionButton.current?.focus();
+    }
+  }, [status]);
   const visibleLabel =
     status === 'pending'
       ? pendingLabel ?? label
@@ -319,8 +350,65 @@ function StructuredActionButton({
         : status === 'failed'
           ? failureMessage ?? label
           : label;
+  const invoke = () => {
+    const emission = input === undefined
+      ? emitAction(action.outputName)
+      : emitAction(action.outputName, input);
+    if (!emission) return;
+    setStatus('pending');
+    void emission.completion.then((feedback) => {
+      setStatus(
+        feedback.status === 'completed'
+          ? 'completed'
+          : feedback.status === 'obsolete'
+            ? 'idle'
+            : 'failed',
+      );
+    }).catch(() => setStatus('failed'));
+  };
+
+  if (status === 'confirming' && confirmation) {
+    return (
+      <div
+        className="fs-structured-panel__confirmation"
+        role="group"
+        aria-labelledby={confirmationHeadingId}
+        data-action-confirmation=""
+        {...traceAttributes(confirmation.anchors)}
+      >
+        <strong id={confirmationHeadingId}>{confirmation.heading}</strong>
+        <p>{confirmation.body}</p>
+        <div className="fs-structured-panel__confirmation-actions">
+          <button
+            ref={confirmButton}
+            className="fs-structured-panel__action"
+            type="button"
+            data-emphasis="danger"
+            onClick={invoke}
+            {...traceAttributes(confirmation.anchors)}
+          >
+            {confirmation.confirmLabel}
+          </button>
+          <button
+            className="fs-structured-panel__action"
+            type="button"
+            data-emphasis="secondary"
+            onClick={() => {
+              restoreActionFocus.current = true;
+              setStatus('idle');
+            }}
+            {...traceAttributes(confirmation.anchors)}
+          >
+            {confirmation.cancelLabel}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <button
+      ref={actionButton}
       className="fs-structured-panel__action"
       type="button"
       data-row-action={rowAction ? '' : undefined}
@@ -332,20 +420,11 @@ function StructuredActionButton({
       aria-busy={status === 'pending' ? 'true' : undefined}
       disabled={status === 'pending'}
       onClick={() => {
-        const emission = input === undefined
-          ? emitAction(action.outputName)
-          : emitAction(action.outputName, input);
-        if (!emission) return;
-        setStatus('pending');
-        void emission.completion.then((feedback) => {
-          setStatus(
-            feedback.status === 'completed'
-              ? 'completed'
-              : feedback.status === 'obsolete'
-                ? 'idle'
-                : 'failed',
-          );
-        }).catch(() => setStatus('failed'));
+        if (confirmation) {
+          setStatus('confirming');
+          return;
+        }
+        invoke();
       }}
       {...traceAttributes(anchors)}
     >
@@ -580,6 +659,32 @@ function renderTable(
       rowActionConfig?.emphasis === 'danger'
         ? rowActionConfig.emphasis
         : 'secondary';
+    const confirmationConfig = record(rowActionConfig?.confirmation);
+    const confirmationAnchors = confirmationConfig
+      ? needAnchors(confirmationConfig)
+      : [];
+    const confirmation = confirmationAnchors.length > 0
+      ? {
+          heading: nonEmptyString(confirmationConfig?.heading),
+          body: nonEmptyString(confirmationConfig?.body),
+          confirmLabel: nonEmptyString(confirmationConfig?.confirmLabel),
+          cancelLabel: nonEmptyString(confirmationConfig?.cancelLabel),
+          anchors: confirmationAnchors,
+        }
+      : undefined;
+    const admittedConfirmation = confirmation
+      && confirmation.heading
+      && confirmation.body
+      && confirmation.confirmLabel
+      && confirmation.cancelLabel
+      ? {
+          heading: confirmation.heading,
+          body: confirmation.body,
+          confirmLabel: confirmation.confirmLabel,
+          cancelLabel: confirmation.cancelLabel,
+          anchors: confirmation.anchors,
+        }
+      : undefined;
     const rendersRowAction =
       rowAction !== undefined &&
       rowActionLabel !== undefined &&
@@ -662,6 +767,7 @@ function renderTable(
                           pendingLabel={nonEmptyString(rowActionConfig?.pendingLabel)}
                           successMessage={nonEmptyString(rowActionConfig?.successMessage)}
                           failureMessage={nonEmptyString(rowActionConfig?.failureMessage)}
+                          confirmation={admittedConfirmation}
                         />
                       )}
                   </td>

@@ -330,6 +330,78 @@ describe('StructuredPanel', () => {
     });
   });
 
+  it('requires an authored, Need-traced confirmation before a destructive row action', () => {
+    const emitAction = vi.fn();
+    const container = render(
+      <StructuredPanel
+        {...props({
+          config: {
+            ...trace,
+            blocks: [{
+              id: 'versions',
+              type: 'table',
+              path: 'versions',
+              columns: [{ id: 'version', label: 'Version', path: 'version', ...trace }],
+              rowAction: {
+                outputName: 'retire',
+                columnLabel: 'Action',
+                emphasis: 'danger',
+                payload: { formVersionId: { path: 'id' } },
+                confirmation: {
+                  heading: 'Retire this version?',
+                  body: 'Existing records remain pinned to it.',
+                  confirmLabel: 'Retire version',
+                  cancelLabel: 'Keep version',
+                  'x-generation': { anchors: ['need:protect-version@3'] },
+                },
+                ...trace,
+              },
+              ...trace,
+            }],
+          },
+          data: { versions: [{ id: 'version-7', version: '1.0.0' }] },
+          actions: [{
+            outputName: 'retire',
+            actionRef: 'retireVersion',
+            intent: 'submit',
+            label: { literal: 'Retire' },
+          }],
+          emitAction,
+        })}
+      />,
+    );
+
+    act(() => {
+      container.querySelector<HTMLButtonElement>('[data-row-action]')?.click();
+    });
+    const confirmation = container.querySelector('[data-action-confirmation]');
+    expect(emitAction).not.toHaveBeenCalled();
+    expect(confirmation?.getAttribute('role')).toBe('group');
+    expect(confirmation?.getAttribute('data-need-anchors')).toBe('need:protect-version@3');
+    expect(confirmation?.textContent).toContain('Existing records remain pinned to it.');
+    expect(document.activeElement?.textContent).toBe('Retire version');
+
+    act(() => {
+      [...container.querySelectorAll<HTMLButtonElement>('[data-action-confirmation] button')]
+        .find((button) => button.textContent === 'Keep version')
+        ?.click();
+    });
+    expect(container.querySelector('[data-action-confirmation]')).toBeNull();
+    expect(emitAction).not.toHaveBeenCalled();
+    expect(document.activeElement?.getAttribute('data-row-action')).not.toBeNull();
+
+    act(() => {
+      container.querySelector<HTMLButtonElement>('[data-row-action]')?.click();
+    });
+    act(() => {
+      [...container.querySelectorAll<HTMLButtonElement>('[data-action-confirmation] button')]
+        .find((button) => button.textContent === 'Retire version')
+        ?.click();
+    });
+    expect(emitAction).toHaveBeenCalledOnce();
+    expect(emitAction).toHaveBeenCalledWith('retire', { formVersionId: 'version-7' });
+  });
+
   it('renders authored pending, failure, and success action feedback', async () => {
     let finish:
       | ((feedback: { status: 'completed' | 'failed' }) => void)
