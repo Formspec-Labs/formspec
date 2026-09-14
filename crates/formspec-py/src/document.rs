@@ -175,7 +175,8 @@ pub fn lint_document(
 ///     context: Optional dict with now_iso / previous_validations / repeat_counts (snake or camel keys)
 ///
 /// Returns:
-///     A dict with: values, validations, nonRelevant, variables, required, readonly (camelCase validation fields).
+///     A dict with: values, validations, diagnostics, nonRelevant, variables, required, readonly
+///     (camelCase validation and diagnostic fields).
 #[pyfunction(signature = (definition, data, trigger=None, registry_documents=None, instances=None, context=None))]
 pub fn evaluate_def(
     py: Python,

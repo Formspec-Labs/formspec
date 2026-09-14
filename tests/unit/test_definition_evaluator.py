@@ -19,8 +19,32 @@ class TestProcessingResult:
         result = evaluate_definition({}, {})
         assert result.valid is True
         assert result.results == []
+        assert result.diagnostics == []
         assert isinstance(result.data, dict)
         assert isinstance(result.variables, dict)
+
+    def test_type_error_is_a_diagnostic_not_a_result(self):
+        """Core §3.10.2: a type error yields null (passes) and an author diagnostic."""
+        defn = {'shapes': [{
+            'id': 'typeError', 'target': '#', 'severity': 'error',
+            'message': 'Fail', 'constraint': '$x + 5 > 0',
+        }]}
+        result = evaluate_definition(defn, {'x': 'abc'})
+        assert result.results == []
+        assert [(d['path'], d['expression'], d['shapeId']) for d in result.diagnostics] == [
+            ('#', '$x + 5 > 0', 'typeError'),
+        ]
+        assert result.diagnostics[0]['message']
+
+    def test_undefined_function_fails_and_is_a_diagnostic(self):
+        """Core §3.10.1: an undefined function is a definition error, so the shape fails."""
+        defn = {'shapes': [{
+            'id': 'bogus', 'target': '#', 'severity': 'error',
+            'message': 'Fail', 'constraint': 'bogusFunc($x)',
+        }]}
+        result = evaluate_definition(defn, {'x': 1})
+        assert [r['message'] for r in result.results] == ['Fail']
+        assert [d['shapeId'] for d in result.diagnostics] == ['bogus']
 
     def test_validate_wraps_process(self):
         """results list contains validation failures."""

@@ -143,6 +143,9 @@ class ProcessingResult(msgspec.Struct, frozen=True):
     data: dict
     variables: dict
     non_relevant: list[str]
+    # Author-facing evaluation errors from constraint and shape expressions (Core §3.10.2):
+    # dicts with path, expression, message, and shapeId for shapes. Never validation results.
+    diagnostics: list[dict] = msgspec.field(default_factory=list)
 
 
 class MappingDiagnostic(msgspec.Struct, frozen=True):
@@ -575,6 +578,7 @@ def evaluate_definition(
         data=raw.get("values", {}),
         variables=raw.get("variables", {}),
         non_relevant=raw.get("nonRelevant", raw.get("non_relevant", [])),
+        diagnostics=raw.get("diagnostics", []),
     )
 
 
