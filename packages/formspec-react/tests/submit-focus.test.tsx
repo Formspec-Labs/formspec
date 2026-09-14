@@ -71,6 +71,39 @@ describe('submit focus', () => {
         expect(document.activeElement).toBe(container.querySelector('input[name="second"]'));
     });
 
+    it('focuses the invalid repeat row, not its neighbour (0-based result paths)', () => {
+        const rowsDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:submit-focus-rows',
+            version: '1.0.0',
+            title: 'Rows',
+            items: [{
+                key: 'jobs',
+                type: 'group',
+                label: 'Job',
+                repeatable: true,
+                minRepeat: 3,
+                children: [{ key: 'employer', type: 'field', dataType: 'string', label: 'Employer' }],
+            }],
+            binds: [{ path: 'jobs[*].employer', required: 'true' }],
+        };
+        const engine = createFormEngine(rowsDefinition);
+        act(() => {
+            engine.setValue('jobs[0].employer', 'a');
+            engine.setValue('jobs[2].employer', 'c');
+        });
+        const container = actRender(
+            <FormspecForm
+                engine={engine}
+                responseActionsDocument={createDemoSubmitResponseActions({ definitionUrl: rowsDefinition.url })}
+                onSubmit={() => {}}
+            />,
+        );
+        clickSubmit(container);
+        expect(document.activeElement).toBe(container.querySelector('input[name="jobs[1].employer"]'));
+        expect(container.querySelector('input[name="jobs[1].employer"]')?.getAttribute('aria-invalid')).toBe('true');
+    });
+
     it('leaves focus on the submit control when the form is valid', () => {
         const { container, engine } = renderForm();
         act(() => {

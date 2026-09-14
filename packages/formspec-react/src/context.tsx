@@ -656,17 +656,17 @@ export function FormspecProvider(props: FormspecProviderProps) {
         }
     }, [touchedVersionSignal]);
 
+    // Every rendered instance path the engine validates (repeat rows included, e.g. `rows[1].name`),
+    // not Definition template paths. Same key set as webcomponent submit touchAllFields.
     const touchAllFields = useCallback(() => {
-        const def = engine.getDefinition();
-        const walk = (items: any[], prefix: string) => {
-            for (const item of items) {
-                const path = prefix ? `${prefix}.${item.key}` : item.key;
-                if (item.type === 'field') touchField(path);
-                if (item.children) walk(item.children, path);
-            }
-        };
-        walk(def.items || [], '');
-    }, [engine, touchField]);
+        let touchedAny = false;
+        for (const path of [...Object.keys(engine.errorSignals), ...Object.keys(engine.validationResults)]) {
+            if (touchedFieldsRef.current.has(path)) continue;
+            touchedFieldsRef.current.add(path);
+            touchedAny = true;
+        }
+        if (touchedAny) touchedVersionSignal.value += 1;
+    }, [engine, touchedVersionSignal]);
 
     const isTouched = useCallback((path: string) => {
         return touchedFieldsRef.current.has(path);
