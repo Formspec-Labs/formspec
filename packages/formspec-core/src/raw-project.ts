@@ -50,10 +50,6 @@ import { HistoryManager } from './history.js';
 import { reconcileComponentTree } from './tree-reconciler.js';
 import { normalizeState } from './state-normalizer.js';
 import {
-  COMPONENT_BASE_PROP_NAMES,
-  COMPONENT_SCHEMA_PROPS,
-} from './generated/component-schema-props.js';
-import {
   fieldPaths as _fieldPaths,
   itemPaths as _itemPaths,
   itemAt as _itemAt,
@@ -85,7 +81,8 @@ import {
   browseExtensions as _browseExtensions,
   resolveExtension as _resolveExtension,
 } from './queries/index.js';
-import { itemAtPath, evalFELWithTrace, type FelTraceResult } from '@formspec-org/engine/fel-runtime';
+import { evalFELWithTrace, type FelTraceResult } from '@formspec-org/engine/fel-runtime';
+import { exportComponentTree } from './component-export.js';
 import { indexRegistryPayload } from './registry-index.js';
 import { normalizeBindsFromUnknown } from './definition-binds.js';
 import {
@@ -94,131 +91,6 @@ import {
   withThemeEnvelope,
   viewThemeDocument,
 } from './document-envelopes.js';
-
-/** Components that manage their own group path binding and MUST keep their bind on export. */
-const SELF_MANAGED_GROUP_BINDS = new Set(['Accordion', 'DataTable']);
-
-/**
- * Schema-derived allowlist of valid properties per component type (generated from
- * schemas/component.schema.json). `bind` and `children` are structural — handled
- * by export logic, not listed in per-type prop sets.
- */
-const COMPONENT_BASE_PROPS: Set<string> = new Set(COMPONENT_BASE_PROP_NAMES);
-
-const COMPONENT_SCHEMA_PROP_SETS: Record<string, Set<string>> = Object.fromEntries(
-  Object.entries(COMPONENT_SCHEMA_PROPS).map(([type, props]) => [type, new Set(props)]),
-);
-
-/**
- * Get the set of schema-valid property names for a component type.
- * For unknown/custom component types, returns ComponentBase props + `params`.
- */
-function allowedPropsFor(componentType: string): Set<string> {
-  const typeProps = COMPONENT_SCHEMA_PROP_SETS[componentType];
-  if (typeProps) {
-    const merged = new Set<string>(COMPONENT_BASE_PROPS);
-    for (const p of typeProps) merged.add(p);
-    return merged;
-  }
-  // Custom component or unrecognized: allow base props + params (CustomComponentRef)
-  const custom = new Set<string>(COMPONENT_BASE_PROPS);
-  custom.add('params');
-  return custom;
-}
-
-/**
- * Filter a tree node to only schema-valid properties for its component type.
- *
- * Strips all authoring-time metadata (nodeId, _layout, widgetHint, repeatable,
- * displayMode, addLabel, removeLabel, dataTableConfig, etc.) by emitting ONLY
- * properties that the component schema declares for the node's component type.
- *
- * `bind` and `children` are structural and handled separately by the caller.
- */
-function filterToSchemaProps(
-  base: Record<string, unknown>,
-  componentType: string,
-): Record<string, unknown> {
-  const allowed = allowedPropsFor(componentType);
-  const filtered: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(base)) {
-    if (allowed.has(key)) {
-      filtered[key] = value;
-    }
-  }
-  return filtered;
-}
-
-/**
- * Clean a component tree node for export, applying schema-valid property
- * filtering and bind path normalization.
- *
- * - Only schema-declared properties survive (allowlist per component type).
- * - `nodeId`, `_layout`, and all authoring metadata are implicitly excluded.
- * - Two prefixes walk down the tree: `lookupPrefix` is the definition path used to
- *   resolve items; `writePrefix` is what an exported bind is written relative to.
- * - For non-self-managed layout/container nodes bound to a group item: bind is
- *   removed and the group key is appended to both prefixes.
- * - For self-managed repeat containers (Accordion/DataTable): bind is written
- *   relative to `writePrefix`, then children restart at write prefix `''` —
- *   component-spec §4.4: repeat template children are flat item keys resolved
- *   within the current repeat instance.
- * - For input/display nodes: bind is written relative to `writePrefix`.
- * - If bind references a path not found in the definition, it is kept at its
- *   written path (orphaned binds are preserved rather than silently dropped).
- */
-function cleanTreeForExport(
-  node: Record<string, unknown>,
-  definition: { items: FormItem[] },
-  lookupPrefix: string,
-  writePrefix: string,
-): Record<string, unknown> {
-  const componentType = (node.component as string) ?? '';
-  const bindKey = node.bind;
-  const children = node.children;
-
-  // Filter to schema-valid properties only (excludes bind and children — handled below)
-  const base = filterToSchemaProps(node, componentType);
-
-  let output: Record<string, unknown>;
-  let childLookupPrefix = lookupPrefix;
-  let childWritePrefix = writePrefix;
-
-  if (bindKey) {
-    const key = String(bindKey);
-    const lookupPath = joinPath(lookupPrefix, key);
-    const writePath = joinPath(writePrefix, key);
-    const item = itemAtPath(definition.items, lookupPath);
-
-    if (item?.type === 'group' && !SELF_MANAGED_GROUP_BINDS.has(componentType)) {
-      // Non-self-managed group container: omit bind entirely, propagate the group to children
-      output = { ...base };
-      childLookupPrefix = lookupPath;
-      childWritePrefix = writePath;
-    } else {
-      output = { ...base, bind: writePath };
-      if (item?.type === 'group') {
-        // Self-managed repeat template: children resolve inside the repeat instance
-        childLookupPrefix = lookupPath;
-        childWritePrefix = '';
-      }
-    }
-  } else {
-    output = { ...base };
-  }
-
-  if (Array.isArray(children)) {
-    output.children = (children as unknown[]).map((child: unknown) =>
-      cleanTreeForExport(child as Record<string, unknown>, definition, childLookupPrefix, childWritePrefix)
-    );
-  }
-
-  return output;
-}
-
-function joinPath(prefix: string, key: string): string {
-  return prefix ? `${prefix}.${key}` : key;
-}
 
 /**
  * Recursively freeze a value and everything reachable from it.
@@ -461,7 +333,7 @@ export class RawProject implements IProjectCore {
   export(): ProjectBundle {
     const url = this._state.definition.url;
     const { tree, ...restComponent } = this._state.component as Record<string, unknown>;
-    const cleanedTree = tree ? cleanTreeForExport(tree as Record<string, unknown>, this._state.definition, '', '') : null;
+    const cleanedTree = tree ? exportComponentTree(tree, this._state.definition) : null;
     const { targetDefinition: themeTarget, ...restTheme } = this._state.theme;
     // theme-spec §2.2.1: preserve absent = bundle scope. Never `themeTarget ?? { url }`.
     const exportTheme: ThemeState = themeTarget

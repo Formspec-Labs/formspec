@@ -9,7 +9,7 @@
  * - BUG-16: Authoring-only repeat props leaking onto exported tree nodes
  */
 import { describe, it, expect } from 'vitest';
-import { createRawProject } from '../src/index.js';
+import { createRawProject, componentDocumentIsDerived } from '../src/index.js';
 import { widgetTokenToComponent, KNOWN_COMPONENT_TYPES, COMPATIBILITY_MATRIX } from '@formspec-org/types';
 
 // ── BUG-12: Default definition must include status ─────────────────
@@ -273,6 +273,66 @@ describe('export: repeat template children bind as flat item keys', () => {
     const inner = outer.children[0];
     expect(inner).toMatchObject({ component: 'Accordion', bind: 'members' });
     expect(inner.children[0].bind).toBe('name');
+  });
+});
+
+// ── Derived component document (component-spec §1.2: Tier 3 overrides the theme) ──
+
+describe('componentDocumentIsDerived', () => {
+  function projectWithItems() {
+    return createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0', url: 'urn:derived', version: '1.0.0', status: 'draft', title: 'T',
+          items: [
+            { type: 'field', key: 'color', label: 'Color', dataType: 'choice', options: [{ value: 'r', label: 'Red' }] },
+            { type: 'field', key: 'agree', label: 'Agree', dataType: 'boolean' },
+            {
+              type: 'group', key: 'jobs', label: 'Jobs', repeatable: true,
+              children: [{ type: 'field', key: 'hours', label: 'Hours', dataType: 'integer' }],
+            },
+          ],
+        } as any,
+      },
+    });
+  }
+
+  it('is true for a blank project and for the tree generated from the definition', () => {
+    expect(componentDocumentIsDerived(createRawProject().state)).toBe(true);
+    const project = projectWithItems();
+    expect(project.state.component.tree).toBeDefined();
+    expect(componentDocumentIsDerived(project.state)).toBe(true);
+  });
+
+  it('stays true through definition edits that only regenerate the tree', () => {
+    const project = projectWithItems();
+    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'notes', dataType: 'text' } });
+    project.dispatch({ type: 'definition.setItemProperty', payload: { path: 'color', property: 'label', value: 'Colour' } });
+    expect(componentDocumentIsDerived(project.state)).toBe(true);
+  });
+
+  it('is false once a widget is chosen in the component tree', () => {
+    const project = projectWithItems();
+    project.dispatch({ type: 'component.setNodeType', payload: { node: { bind: 'color' }, component: 'RadioGroup' } });
+    expect(componentDocumentIsDerived(project.state)).toBe(false);
+  });
+
+  it('is false once a schema property is authored on a node', () => {
+    const project = projectWithItems();
+    project.dispatch({ type: 'component.setNodeProperty', payload: { node: { bind: 'agree' }, property: 'onLabel', value: 'Yes' } });
+    expect(componentDocumentIsDerived(project.state)).toBe(false);
+  });
+
+  it('is false once a layout container is added', () => {
+    const project = projectWithItems();
+    project.dispatch({ type: 'component.addNode', payload: { parent: { nodeId: 'root' }, component: 'Card' } });
+    expect(componentDocumentIsDerived(project.state)).toBe(false);
+  });
+
+  it('is false once document-level content is authored', () => {
+    const project = projectWithItems();
+    project.dispatch({ type: 'component.setToken', payload: { key: 'space.md', value: '12px' } });
+    expect(componentDocumentIsDerived(project.state)).toBe(false);
   });
 });
 

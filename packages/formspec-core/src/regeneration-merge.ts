@@ -19,6 +19,8 @@
  * No mutation: every input is read-only and both outputs are fresh documents.
  */
 
+import { jsonEqual } from './json-equal.js';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Report shape — `schemas/regeneration-merge-report.schema.json` v1.0
 // ─────────────────────────────────────────────────────────────────────────────
@@ -144,20 +146,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function deepEqual(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((item, i) => deepEqual(item, b[i]));
-  }
-  if (isPlainObject(a) && isPlainObject(b)) {
-    const ak = Object.keys(a);
-    const bk = Object.keys(b);
-    return ak.length === bk.length
-      && ak.every(k => Object.prototype.hasOwnProperty.call(b, k) && deepEqual(a[k], b[k]));
-  }
-  return false;
-}
-
 function clone<T>(value: T): T {
   return value === undefined ? value : (JSON.parse(JSON.stringify(value)) as T);
 }
@@ -218,7 +206,7 @@ function writePointer(node: MergeNode, pointer: string, slot: Slot): void {
 }
 
 function slotEqual(a: Slot, b: Slot): boolean {
-  return a.present === b.present && deepEqual(a.value, b.value);
+  return a.present === b.present && jsonEqual(a.value, b.value);
 }
 
 /**
@@ -244,7 +232,7 @@ function collectPointerDiffs(
       collectPointerDiffs(av, bv, pointer, skipTopLevel, out);
       continue;
     }
-    if (!deepEqual(av, bv)) out.add(pointer);
+    if (!jsonEqual(av, bv)) out.add(pointer);
   }
 }
 
@@ -632,7 +620,7 @@ export function regenerationMergeWithAdapter<TDoc>(
     const emit: Array<Omit<PendingEntry, 'target'>> = [];
     const anchors = newNode.anchors;
 
-    if (typeKey !== undefined && !deepEqual(oldNode.node[typeKey], designerNode.node[typeKey])) {
+    if (typeKey !== undefined && !jsonEqual(oldNode.node[typeKey], designerNode.node[typeKey])) {
       // §6.5 — a widget swap changes the node's property vocabulary, so a
       // property-by-property overlay across two different widgets is not
       // meaningful. The designer node wins whole and the swap is the finding.
