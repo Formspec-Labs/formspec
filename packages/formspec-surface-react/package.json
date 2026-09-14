@@ -33,7 +33,6 @@
   },
   "peerDependencies": {
     "@formspec-org/app-graph": "^0.1.0",
-    "@formspec-org/assist": "^0.1.0",
     "@formspec-org/engine": "^1.0.0",
     "@formspec-org/layout": "^1.0.0",
     "@formspec-org/react": "^1.0.0",
@@ -43,7 +42,6 @@
   },
   "devDependencies": {
     "@formspec-org/app-graph": "*",
-    "@formspec-org/assist": "*",
     "@formspec-org/engine": "*",
     "@formspec-org/layout": "*",
     "@formspec-org/react": "*",

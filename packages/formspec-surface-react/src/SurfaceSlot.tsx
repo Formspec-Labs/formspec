@@ -31,11 +31,6 @@ import {
   type ReactNode,
 } from 'react';
 import {
-  ContextResolver,
-  targetDefinitionMatches,
-  type ReferenceEntry,
-} from '@formspec-org/assist';
-import {
   createFormEngine,
   createMappingEngine,
   type IFormEngine,
@@ -52,11 +47,13 @@ import type {
   SemanticResponseBinding,
   SubmitResult,
 } from '@formspec-org/react';
-import type {
-  FormDefinition,
-  OntologyDocument,
-  ReferencesDocument,
-  ResponseActionsDocument as GeneratedResponseActionsDocument,
+import {
+  resolveFieldReferences,
+  targetDefinitionMatches,
+  type FormDefinition,
+  type OntologyDocument,
+  type ReferencesDocument,
+  type ResponseActionsDocument as GeneratedResponseActionsDocument,
 } from '@formspec-org/types';
 import {
   loadWidgetDataInputs,
@@ -1011,7 +1008,6 @@ function DefaultSurfaceDefinitionForm({
   grant,
   initialData,
   referencesDocuments,
-  ontologyDocuments,
   responseActionsDocument,
   semanticControlScope,
   onDefinitionActionResult,
@@ -1030,36 +1026,19 @@ function DefaultSurfaceDefinitionForm({
   }, [initialData?.data, plan.definition]);
   useEffect(() => () => engine.dispose(), [engine]);
 
-  const contextResolver = useMemo(() => {
-    const references = referencesDocuments.filter((document) =>
-      targetDefinitionMatches(document.targetDefinition, plan.definition));
-    const ontologies = ontologyDocuments.filter((document) =>
-      targetDefinitionMatches(document.targetDefinition, plan.definition));
-    try {
-      return new ContextResolver(
-        engine,
-        [...references],
-        [...ontologies],
-        [...plan.registryEntries],
-      );
-    } catch {
-      return undefined;
-    }
-  }, [
-    engine,
-    ontologyDocuments,
-    plan.definition,
-    plan.registryEntries,
-    referencesDocuments,
-  ]);
+  // Human help is References-spec resolution alone: this form never renders
+  // agent-audience entries or Ontology concepts.
+  const references = useMemo(
+    () => referencesDocuments.filter((document) =>
+      targetDefinitionMatches(document.targetDefinition, plan.definition)),
+    [plan.definition, referencesDocuments],
+  );
 
   const resolveFieldHelp = useCallback(
     (path: string) => {
-      if (!contextResolver) return [];
       try {
-        const help = contextResolver.resolve(path, 'human');
-        return Object.values(help.references).flatMap((entries) =>
-          (entries ?? []).flatMap((reference: ReferenceEntry) =>
+        return Object.values(resolveFieldReferences(references, path, 'human')).flatMap((entries) =>
+          (entries ?? []).flatMap((reference) =>
             reference.title
               ? [{
                   ...(reference.id ? { id: reference.id } : {}),
@@ -1081,10 +1060,11 @@ function DefaultSurfaceDefinitionForm({
           ),
         );
       } catch {
+        // An unresolvable `$ref` in any document fails closed to no help.
         return [];
       }
     },
-    [contextResolver],
+    [references],
   );
 
   return (

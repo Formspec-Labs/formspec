@@ -374,4 +374,37 @@ describe('renderDefinitionForm', () => {
     expect(container.querySelector('a[href^="vectorstore:"]')).toBeNull();
     expect(container.innerHTML).not.toContain('ontology.example.test');
   });
+
+  it('shows help only from References bound to this Definition and fails closed on a broken $ref', () => {
+    const helpFor = (url: string, extra: ReferencesDocument['references'] = []) => ({
+      $formspecReferences: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url },
+      references: [
+        { target: '#', type: 'documentation', audience: 'human', title: `Help from ${url}`, content: 'Read me.' },
+        ...extra,
+      ],
+    }) as ReferencesDocument;
+    const renderWith = (references: ReferencesDocument[]) => {
+      const bundle = fixture();
+      bundle.definitions.get(DEFINITION_REF)!.items = [
+        { key: 'email', type: 'field', label: 'Contact email', dataType: 'string' },
+      ];
+      bundle.references = references;
+      return render(
+        <SurfaceApp bundle={bundle} location="/apply" onNavigate={() => {}} setDocumentTitle={false} />,
+      );
+    };
+
+    const scoped = renderWith([helpFor(DEFINITION_REF), helpFor('https://example.test/definitions/other')]);
+    expect(scoped.textContent).toContain(`Help from ${DEFINITION_REF}`);
+    expect(scoped.textContent).not.toContain('definitions/other');
+
+    const broken = renderWith([
+      helpFor(DEFINITION_REF),
+      helpFor(DEFINITION_REF, [{ target: '#', $ref: '#/referenceDefs/missing' }]),
+    ]);
+    expect(broken.querySelector('.formspec-field-help')).toBeNull();
+    expect(broken.querySelector('input')).not.toBeNull();
+  });
 });

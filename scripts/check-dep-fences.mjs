@@ -105,10 +105,65 @@ for (const dir of dirs) {
   }
 }
 
+// --- License fence: an openly licensed package never reaches a source-available one ---
+//
+// Layers alone allow it: `assist` (BUSL-1.1, layer 2) sits below
+// `surface-react` (Apache-2.0, layer 3), and that import is what stopped
+// Apache-2.0 hosts from vendoring the binding. A capability both need moves
+// to an openly licensed lower layer; host-specific behavior enters through a
+// port. Checks every manifest field plus source imports, so a hoisted
+// workspace symlink cannot hide an undeclared import.
+
+const SOURCE_AVAILABLE_LICENSES = new Set(['BUSL-1.1']);
+const SOURCE_EXTENSIONS = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
+
+const manifests = new Map();
+for (const dir of dirs) {
+  try {
+    const pkg = JSON.parse(readFileSync(join(PACKAGES_DIR, dir, 'package.json'), 'utf8'));
+    manifests.set(pkg.name, { dir, pkg });
+  } catch { /* not a package */ }
+}
+const restricted = [...manifests.entries()]
+  .filter(([, { pkg }]) => SOURCE_AVAILABLE_LICENSES.has(pkg.license))
+  .map(([name]) => name);
+
+for (const [name, { dir, pkg }] of manifests) {
+  if (SOURCE_AVAILABLE_LICENSES.has(pkg.license)) continue;
+  const license = pkg.license ?? 'unlicensed';
+
+  for (const field of ['dependencies', 'peerDependencies', 'devDependencies', 'optionalDependencies']) {
+    for (const dep of Object.keys(pkg[field] ?? {})) {
+      if (!restricted.includes(dep)) continue;
+      console.error(
+        `✗  ${name} (${license}) lists ${dep} (${manifests.get(dep).pkg.license}) in ${field} — ` +
+        `openly licensed packages must not depend on source-available ones`,
+      );
+      violations++;
+    }
+  }
+
+  const srcDir = join(PACKAGES_DIR, dir, 'src');
+  if (!existsSync(srcDir)) continue;
+  for (const file of readdirSync(srcDir, { recursive: true })) {
+    if (!SOURCE_EXTENSIONS.test(file)) continue;
+    const text = readFileSync(join(srcDir, file), 'utf8');
+    for (const dep of restricted) {
+      const specifier = new RegExp(`['"]${dep.replace('/', '\\/')}(?:\\/[^'"]*)?['"]`);
+      if (!specifier.test(text)) continue;
+      console.error(
+        `✗  ${name} (${license}) imports ${dep} (${manifests.get(dep).pkg.license}) in src/${file} — ` +
+        `openly licensed packages must not import source-available ones`,
+      );
+      violations++;
+    }
+  }
+}
+
 // --- summary ---
 
 if (violations === 0) {
-  console.log(`✓  All ${checked} packages respect dependency fences (including WASM exclusivity)`);
+  console.log(`✓  All ${checked} packages respect dependency fences (including WASM exclusivity and license fences)`);
   process.exit(0);
 } else {
   console.error(`\n✗  ${violations} violation(s) found`);
