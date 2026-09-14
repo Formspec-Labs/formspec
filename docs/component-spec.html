@@ -1543,9 +1543,11 @@ for the bound key MUST be displayed adjacent to this component.</td>
 <tr>
 <td><strong>Display</strong></td>
 <td>OPTIONAL</td>
-<td>When present, the component displays the bound item’s current value
-as read-only content. When absent, the component renders its static
-<code>text</code> prop.</td>
+<td>Bound to a field Item, the component displays the Item’s current
+value as read-only content. Bound to a display Item (core §4.2.4), which
+has no value, it renders that Item’s resolved <code>label</code> and
+follows the Item’s Bind relevance (§5.14). When absent, the component
+renders its static <code>text</code> prop.</td>
 </tr>
 <tr>
 <td><strong>Layout</strong></td>
@@ -1619,8 +1621,12 @@ component acts as a <strong>repeat template</strong>.</p>
 <li>Render one instance of the component (and its children) for each
 repeat instance in the data.</li>
 <li>Within each repeat instance, resolve child <code>bind</code> values
-relative to the repeat context. Child keys are still flat item keys, but
-they resolve within the current repeat instance.</li>
+relative to the repeat context. A child <code>bind</code> is the Item’s
+path relative to the repeatable group — a flat item key for a direct
+child, a dotted path through nested non-repeatable groups — never the
+group’s own path or an index, and it resolves within the current repeat
+instance. (A repeat template over <code>employers</code> binds child
+<code>payerName</code>, not <code>employers.payerName</code>.)</li>
 <li>Provide affordances for adding and removing repeat instances,
 subject to <code>minRepeat</code> and <code>maxRepeat</code> constraints
 from the Definition.</li>
@@ -2844,10 +2850,11 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb22-1"><a href=
 <strong>Accepts children:</strong> No <strong>Bind:</strong>
 Optional</p>
 <h4 id="description-11">Description</h4>
-<p>A block of static or data-bound text. When <code>bind</code> is
-present, displays the bound item’s current value as read-only text. When
-<code>bind</code> is absent, displays the static <code>text</code>
-prop.</p>
+<p>A block of static or data-bound text. When <code>bind</code> names a
+field Item, displays that Item’s current value as read-only text. When
+<code>bind</code> names a display Item (core §4.2.4), displays that
+Item’s resolved <code>label</code>. When <code>bind</code> is absent,
+displays the static <code>text</code> prop.</p>
 <h4 id="props-11">Props</h4>
 <table>
 <colgroup>
@@ -2888,10 +2895,19 @@ render basic Markdown formatting (bold, italic, links, lists).</td>
 <h4 id="rendering-requirements-11">Rendering Requirements</h4>
 <ul>
 <li>MUST render as a paragraph or inline text element.</li>
-<li>When <code>bind</code> is present, MUST display the bound item’s
-formatted value. The renderer SHOULD apply appropriate formatting based
-on the item’s <code>dataType</code> (e.g., date formatting, number
+<li>When <code>bind</code> names a field Item, MUST display the bound
+Item’s formatted value. The renderer SHOULD apply appropriate formatting
+based on the Item’s <code>dataType</code> (e.g., date formatting, number
 formatting).</li>
+<li>When <code>bind</code> names a display Item, MUST display the Item’s
+resolved <code>label</code>: the active Locale
+<code>&lt;itemKey&gt;.label</code> string if present, else the inline
+<code>label</code>, with <code>{{expression}}</code> interpolation
+applied in the Item’s scope (core §4.2.1; per repeat instance inside a
+repeat template). The text MUST update when referenced values or the
+active locale change. When the Item’s Bind <code>relevant</code>
+evaluates to <code>false</code>, the renderer MUST hide the
+component.</li>
 <li>When <code>format</code> is <code>"markdown"</code>, MUST render
 basic Markdown. Renderers MUST sanitize Markdown output to prevent
 script injection.</li>
@@ -2901,8 +2917,11 @@ script injection.</li>
 class="sourceCode json"><code class="sourceCode json"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="er">//</span> <span class="er">Static</span> <span class="er">text</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span><span class="fu">,</span> <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;Please review before submitting.&quot;</span><span class="fu">,</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;markdown&quot;</span> <span class="fu">}</span></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="er">//</span> <span class="er">Bound</span> <span class="er">text</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;totalBudget&quot;</span> <span class="fu">}</span></span></code></pre></div>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="er">//</span> <span class="er">Bound</span> <span class="er">text</span> <span class="er">—</span> <span class="er">field</span> <span class="er">Item</span> <span class="er">value</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;totalBudget&quot;</span> <span class="fu">}</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="er">//</span> <span class="er">Bound</span> <span class="er">text</span> <span class="er">—</span> <span class="er">display</span> <span class="er">Item</span> <span class="er">label,</span> <span class="er">e.g.</span> <span class="st">&quot;Estimated total: {{$totalBudget}}&quot;</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span><span class="fu">,</span> <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="st">&quot;budgetSummary&quot;</span> <span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="divider">5.15 Divider</h3>
 <p><strong>Category:</strong> Display <strong>Level:</strong> Core

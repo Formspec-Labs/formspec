@@ -675,7 +675,7 @@ The meaning and requirement of `bind` varies by component category:
 | Category | `bind` | Behavior |
 |----------|--------|----------|
 | **Input** | REQUIRED | The component reads and writes the bound item's value. The renderer MUST propagate the item's `required`, `readOnly`, and `relevant` state to the input control. Validation errors for the bound key MUST be displayed adjacent to this component. |
-| **Display** | OPTIONAL | When present, the component displays the bound item's current value as read-only content. When absent, the component renders its static `text` prop. |
+| **Display** | OPTIONAL | Bound to a field Item, the component displays the Item's current value as read-only content. Bound to a display Item (core §4.2.4), which has no value, it renders that Item's resolved `label` and follows the Item's Bind relevance (§5.14). When absent, the component renders its static `text` prop. |
 | **Layout** | FORBIDDEN | Layout components MUST NOT have a `bind` property. If present, processors MUST ignore it and emit a warning. |
 | **Container** | FORBIDDEN | Container components MUST NOT have a `bind` property, with the exceptions of **DataTable** (§6.14) and **Accordion** (§6.3), which MAY bind to a repeatable group. |
 
@@ -733,8 +733,12 @@ The renderer MUST:
 1. Render one instance of the component (and its children) for each
    repeat instance in the data.
 2. Within each repeat instance, resolve child `bind` values relative
-   to the repeat context. Child keys are still flat item keys, but they
-   resolve within the current repeat instance.
+   to the repeat context. A child `bind` is the Item's path relative to
+   the repeatable group — a flat item key for a direct child, a dotted
+   path through nested non-repeatable groups — never the group's own
+   path or an index, and it resolves within the current repeat instance.
+   (A repeat template over `employers` binds child `payerName`, not
+   `employers.payerName`.)
 3. Provide affordances for adding and removing repeat instances, subject
    to `minRepeat` and `maxRepeat` constraints from the Definition.
 
@@ -1452,9 +1456,10 @@ the form. Heading is purely presentational and does not bind to data.
 
 #### Description
 
-A block of static or data-bound text. When `bind` is present, displays
-the bound item's current value as read-only text. When `bind` is
-absent, displays the static `text` prop.
+A block of static or data-bound text. When `bind` names a field Item,
+displays that Item's current value as read-only text. When `bind` names
+a display Item (core §4.2.4), displays that Item's resolved `label`.
+When `bind` is absent, displays the static `text` prop.
 
 #### Props
 
@@ -1466,9 +1471,16 @@ absent, displays the static `text` prop.
 #### Rendering Requirements
 
 - MUST render as a paragraph or inline text element.
-- When `bind` is present, MUST display the bound item's formatted
+- When `bind` names a field Item, MUST display the bound Item's formatted
   value. The renderer SHOULD apply appropriate formatting based on
-  the item's `dataType` (e.g., date formatting, number formatting).
+  the Item's `dataType` (e.g., date formatting, number formatting).
+- When `bind` names a display Item, MUST display the Item's resolved
+  `label`: the active Locale `<itemKey>.label` string if present, else
+  the inline `label`, with `{{expression}}` interpolation applied in the
+  Item's scope (core §4.2.1; per repeat instance inside a repeat
+  template). The text MUST update when referenced values or the active
+  locale change. When the Item's Bind `relevant` evaluates to `false`,
+  the renderer MUST hide the component.
 - When `format` is `"markdown"`, MUST render basic Markdown. Renderers
   MUST sanitize Markdown output to prevent script injection.
 
@@ -1478,8 +1490,11 @@ absent, displays the static `text` prop.
 // Static text
 { "component": "Text", "text": "Please review before submitting.", "format": "markdown" }
 
-// Bound text
+// Bound text — field Item value
 { "component": "Text", "bind": "totalBudget" }
+
+// Bound text — display Item label, e.g. "Estimated total: {{$totalBudget}}"
+{ "component": "Text", "bind": "budgetSummary" }
 ```
 
 ---

@@ -550,12 +550,12 @@ export interface Heading extends ComponentBase {
   text: string;
 }
 /**
- * Static or data-bound text block. When bind is present, displays the bound item's current value as read-only. When absent, displays the static text prop.
+ * Static or data-bound text block. Bound to a field Item, displays its current value as read-only; bound to a display Item, displays the Item's resolved label (Locale, then {{expression}} interpolation) and follows its Bind relevance. When absent, displays the static text prop.
  */
 export interface Text extends ComponentBase {
   component: 'Text';
   /**
-   * Item key. When present, displays the bound item's formatted value (read-only).
+   * Item key. A field Item shows its formatted value (read-only); a display Item shows its resolved label.
    */
   bind?: string;
   /**
