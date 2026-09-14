@@ -276,14 +276,16 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
             const reqKey = `${itemKey}.requiredMessage`;
             const fromReq = localeStore.lookupKey(reqKey);
             if (fromReq !== null) return interpolateMessage(fromReq, evalFEL).text;
-        } else {
+        } else if (code === 'CONSTRAINT_FAILED') {
+            // Core Phase 3 step 1a: `constraintMessage` labels a `false` result only; a
+            // CONSTRAINT_PARSE_ERROR (definition error) keeps its processor-generated message.
             const constKey = `${itemKey}.constraintMessage`;
             const fromConst = localeStore.lookupKey(constKey);
             if (fromConst !== null) return interpolateMessage(fromConst, evalFEL).text;
-        }
 
-        // Step 3: Inline bind constraintMessage
-        if (err.constraintMessage) return interpolateMessage(err.constraintMessage, evalFEL).text;
+            // Step 3: Inline bind constraintMessage
+            if (err.constraintMessage) return interpolateMessage(err.constraintMessage, evalFEL).text;
+        }
 
         // Step 4: Processor default
         return err.message ?? 'Validation error';
