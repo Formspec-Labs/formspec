@@ -134,7 +134,10 @@ fn evaluate_inner(
         .unwrap_or("remove");
     apply_nrb(&mut values, &items, default_nrb);
 
-    let variables = var_values;
+    let variables = var_values
+        .iter()
+        .map(|(name, value)| (name.clone(), fel_core::fel_to_json(value)))
+        .collect();
 
     EvaluationResult {
         values,

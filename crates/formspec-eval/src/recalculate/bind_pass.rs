@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use fel_core::{FormspecEnvironment, MipState, Value, evaluate, fel_to_ui_json, parse};
 use serde_json::Value as JsonValue;
 
-use super::json_fel::{coerce_calculated_value, json_to_runtime_fel, json_to_runtime_fel_typed};
+use super::json_fel::{coerce_calculated_value, json_to_runtime_fel_typed};
 use super::repeats::{
     apply_instance_aliases, push_repeat_context_for_instance, refresh_nested_group_aliases,
     restore_instance_aliases,
@@ -201,7 +201,7 @@ fn evaluate_repeat_children_with_aliases(
     data_types: &HashMap<String, String>,
     parent_relevant: bool,
     parent_readonly: bool,
-    scoped_vars: Option<&HashMap<String, JsonValue>>,
+    scoped_vars: Option<&HashMap<String, Value>>,
     invalid_paths: &HashSet<String>,
 ) {
     let mut current_instance: Option<String> = None;
@@ -235,11 +235,7 @@ fn evaluate_repeat_children_with_aliases(
         }
 
         if let Some(sv) = scoped_vars {
-            let visible = visible_variables(sv, &item.path);
-            env.variables.clear();
-            for (name, val) in &visible {
-                env.set_variable(name, json_to_runtime_fel(val));
-            }
+            env.variables = visible_variables(sv, &item.path);
         }
 
         evaluate_single_item(
@@ -309,15 +305,11 @@ pub(crate) fn evaluate_items_with_inheritance_scoped(
     data_types: &HashMap<String, String>,
     parent_relevant: bool,
     parent_readonly: bool,
-    scoped_vars: &HashMap<String, JsonValue>,
+    scoped_vars: &HashMap<String, Value>,
     invalid_paths: &HashSet<String>,
 ) {
     for item in items.iter_mut() {
-        let visible = visible_variables(scoped_vars, &item.path);
-        env.variables.clear();
-        for (name, val) in &visible {
-            env.set_variable(name, json_to_runtime_fel(val));
-        }
+        env.variables = visible_variables(scoped_vars, &item.path);
 
         evaluate_single_item(
             item,

@@ -31,7 +31,7 @@ use shapes::validate_shape;
 pub fn revalidate(
     items: &[ItemInfo],
     values: &HashMap<String, Value>,
-    variables: &HashMap<String, Value>,
+    variables: &HashMap<String, fel_core::Value>,
     shapes: Option<&[Value]>,
     trigger: EvalTrigger,
     extension_constraints: &[ExtensionConstraint],

@@ -2,12 +2,8 @@
 
 use std::collections::{HashMap, HashSet};
 
-use fel_core::{
-    FormspecEnvironment, Value as EnvVal, evaluate, extract_dependencies, fel_to_json, parse,
-};
-use serde_json::Value;
+use fel_core::{FormspecEnvironment, Value, evaluate, extract_dependencies, parse};
 
-use super::json_fel::json_to_runtime_fel;
 use crate::types::{VariableDef, strip_indices};
 
 /// Topologically sort variables by their dependencies.
@@ -65,6 +61,9 @@ pub(crate) fn variable_deps(expr: &str, known_vars: &HashSet<&str>) -> Vec<Strin
 }
 
 /// Visible variables for a given item path (scope-qualified keys in `all_vars`).
+///
+/// Values stay FEL values: a variable's type is its expression's result (Core §4.5),
+/// which JSON would flatten (a `date` becomes a string).
 pub(crate) fn visible_variables(
     all_vars: &HashMap<String, Value>,
     item_path: &str,
@@ -112,14 +111,14 @@ fn visible_variables_for_scope(
 fn bind_scope_field_aliases(
     env: &mut FormspecEnvironment,
     scope: &str,
-) -> HashMap<String, Option<EnvVal>> {
+) -> HashMap<String, Option<Value>> {
     if scope == "#" {
         return HashMap::new();
     }
 
     let mut saved = HashMap::new();
     let prefix = format!("{scope}.");
-    let entries: Vec<(String, EnvVal)> = env
+    let entries: Vec<(String, Value)> = env
         .data
         .iter()
         .map(|(key, value)| (key.clone(), value.clone()))
@@ -139,7 +138,7 @@ fn bind_scope_field_aliases(
 
 fn restore_scope_field_aliases(
     env: &mut FormspecEnvironment,
-    saved_aliases: HashMap<String, Option<EnvVal>>,
+    saved_aliases: HashMap<String, Option<Value>>,
 ) {
     for (alias, previous) in saved_aliases {
         match previous {
@@ -176,20 +175,14 @@ pub(crate) fn evaluate_variables_scoped(
         for var in matching {
             let scope = var.scope.as_deref().unwrap_or("#");
             let saved_aliases = bind_scope_field_aliases(env, scope);
-            let saved_variables = env.variables.clone();
-            env.variables.clear();
-            for (visible_name, visible_value) in visible_variables_for_scope(&scoped_values, scope)
-            {
-                env.set_variable(&visible_name, json_to_runtime_fel(&visible_value));
-            }
+            let saved_variables = std::mem::replace(
+                &mut env.variables,
+                visible_variables_for_scope(&scoped_values, scope),
+            );
             if let Ok(parsed) = parse(&var.expression) {
-                let result = evaluate(&parsed, env);
-                let json_val = fel_to_json(&result.value);
-                env.set_variable(name, result.value);
-                var_values.insert(name.clone(), json_val.clone());
-
-                let scoped_key = format!("{scope}:{name}");
-                scoped_values.insert(scoped_key, json_val);
+                let value = evaluate(&parsed, env).value;
+                var_values.insert(name.clone(), value.clone());
+                scoped_values.insert(format!("{scope}:{name}"), value);
             }
             env.variables = saved_variables;
             restore_scope_field_aliases(env, saved_aliases);
@@ -203,7 +196,6 @@ pub(crate) fn evaluate_variables_scoped(
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_topo_sort_correct_order() {
@@ -309,17 +301,17 @@ mod tests {
     #[test]
     fn visible_variables_unit_test() {
         let mut all_vars = HashMap::new();
-        all_vars.insert("#:global_var".to_string(), json!(1));
-        all_vars.insert("section:local_var".to_string(), json!(2));
-        all_vars.insert("other:other_var".to_string(), json!(3));
+        all_vars.insert("#:global_var".to_string(), Value::Boolean(true));
+        all_vars.insert("section:local_var".to_string(), Value::Null);
+        all_vars.insert("other:other_var".to_string(), Value::Boolean(false));
 
         let visible = visible_variables(&all_vars, "section.field");
-        assert_eq!(visible.get("global_var"), Some(&json!(1)));
-        assert_eq!(visible.get("local_var"), Some(&json!(2)));
+        assert_eq!(visible.get("global_var"), Some(&Value::Boolean(true)));
+        assert_eq!(visible.get("local_var"), Some(&Value::Null));
         assert_eq!(visible.get("other_var"), None);
 
         let visible_top = visible_variables(&all_vars, "top");
-        assert_eq!(visible_top.get("global_var"), Some(&json!(1)));
+        assert_eq!(visible_top.get("global_var"), Some(&Value::Boolean(true)));
         assert_eq!(visible_top.get("local_var"), None);
     }
 }

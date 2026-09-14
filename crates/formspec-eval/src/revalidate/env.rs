@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use fel_core::{FormspecEnvironment, Value as EnvVal, json_to_fel};
 use serde_json::Value;
 
-use crate::fel_json::{json_to_runtime_fel, json_to_runtime_fel_typed};
+use crate::fel_json::json_to_runtime_fel_typed;
 use crate::rebuild::is_repeat_group_array;
 use crate::recalculate::repeats::{data_type_of, repeat_group_fel_array};
 use crate::types::ItemInfo;
@@ -24,7 +24,7 @@ pub(super) fn apply_excluded_values_to_env(items: &[ItemInfo], env: &mut Formspe
 #[cfg(test)]
 pub(crate) fn build_validation_env(
     values: &HashMap<String, Value>,
-    variables: &HashMap<String, Value>,
+    variables: &HashMap<String, EnvVal>,
     now_iso: Option<&str>,
     instances: &HashMap<String, Value>,
 ) -> FormspecEnvironment {
@@ -33,7 +33,7 @@ pub(crate) fn build_validation_env(
 
 pub(crate) fn build_validation_env_typed(
     values: &HashMap<String, Value>,
-    variables: &HashMap<String, Value>,
+    variables: &HashMap<String, EnvVal>,
     now_iso: Option<&str>,
     instances: &HashMap<String, Value>,
     data_types: &HashMap<String, String>,
@@ -49,9 +49,7 @@ pub(crate) fn build_validation_env_typed(
             env.set_field(k, json_to_runtime_fel_typed(v, data_type_of(data_types, k)));
         }
     }
-    for (name, value) in variables {
-        env.set_variable(name, json_to_runtime_fel(value));
-    }
+    env.variables.clone_from(variables);
     for (name, value) in instances {
         env.set_instance(name, json_to_fel(value));
     }

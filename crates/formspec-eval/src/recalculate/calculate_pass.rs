@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use fel_core::{FormspecEnvironment, Value as EnvVal, evaluate, fel_to_ui_json, parse};
 use serde_json::Value;
 
-use super::json_fel::{coerce_calculated_value, json_to_runtime_fel, json_to_runtime_fel_typed};
+use super::json_fel::{coerce_calculated_value, json_to_runtime_fel_typed};
 use super::repeats::{
     apply_instance_aliases, push_repeat_context_for_instance, refresh_nested_group_aliases,
     restore_instance_aliases,
@@ -18,7 +18,7 @@ pub(super) fn settle_calculated_values(
     env: &mut FormspecEnvironment,
     values: &mut HashMap<String, Value>,
     data_types: &HashMap<String, String>,
-    scoped_vars: Option<&HashMap<String, Value>>,
+    scoped_vars: Option<&HashMap<String, EnvVal>>,
 ) {
     for _ in 0..100 {
         let changed = match scoped_vars {
@@ -65,16 +65,12 @@ fn calculate_pass_items_scoped(
     env: &mut FormspecEnvironment,
     values: &mut HashMap<String, Value>,
     data_types: &HashMap<String, String>,
-    scoped_vars: &HashMap<String, Value>,
+    scoped_vars: &HashMap<String, EnvVal>,
 ) -> bool {
     let mut changed = false;
 
     for item in items.iter_mut() {
-        let visible = visible_variables(scoped_vars, &item.path);
-        env.variables.clear();
-        for (name, val) in &visible {
-            env.set_variable(name, json_to_runtime_fel(val));
-        }
+        env.variables = visible_variables(scoped_vars, &item.path);
 
         changed |= evaluate_calculate_only(item, env, values);
 
@@ -105,7 +101,7 @@ fn calculate_pass_repeat_children_with_aliases(
     env: &mut FormspecEnvironment,
     values: &mut HashMap<String, Value>,
     data_types: &HashMap<String, String>,
-    scoped_vars: Option<&HashMap<String, Value>>,
+    scoped_vars: Option<&HashMap<String, EnvVal>>,
 ) -> bool {
     let mut changed = false;
     let mut current_instance: Option<String> = None;
@@ -139,11 +135,7 @@ fn calculate_pass_repeat_children_with_aliases(
         }
 
         if let Some(scoped_vars) = scoped_vars {
-            let visible = visible_variables(scoped_vars, &item.path);
-            env.variables.clear();
-            for (name, val) in &visible {
-                env.set_variable(name, json_to_runtime_fel(val));
-            }
+            env.variables = visible_variables(scoped_vars, &item.path);
         }
 
         changed |= evaluate_calculate_only(item, env, values);

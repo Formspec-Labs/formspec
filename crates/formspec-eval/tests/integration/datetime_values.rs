@@ -74,3 +74,61 @@ fn datetime_without_seconds_is_valid_and_reads_as_fel_date() {
     assert_eq!(result.values.get("when"), Some(&json!("2025-03-01T10:30")));
     assert_eq!(result.values.get("late"), Some(&json!(true)));
 }
+
+/// A variable's type is its expression's FEL value (Core §4.5): `@deadline = $d` is a `date`
+/// everywhere it is read, not the string its JSON output renders.
+#[test]
+fn date_valued_variables_stay_fel_dates() {
+    let def = json!({
+        "$formspec": "1.0",
+        "url": "test",
+        "version": "1.0.0",
+        "title": "T",
+        "items": [
+            { "key": "d", "type": "field", "dataType": "date", "label": "D" },
+            { "key": "d2", "type": "field", "dataType": "date", "label": "D2" },
+            { "key": "kind", "type": "field", "dataType": "string", "label": "Kind" },
+            { "key": "later", "type": "field", "dataType": "boolean", "label": "Later" },
+            {
+                "key": "g",
+                "type": "group",
+                "label": "G",
+                "children": [
+                    { "key": "gd", "type": "field", "dataType": "date", "label": "GD" },
+                    { "key": "gkind", "type": "field", "dataType": "string", "label": "GKind" }
+                ]
+            }
+        ],
+        "variables": [
+            { "name": "deadline", "expression": "$d" },
+            { "name": "groupDeadline", "expression": "$gd", "scope": "g" }
+        ],
+        "binds": [
+            { "path": "kind", "calculate": "typeOf(@deadline)" },
+            { "path": "later", "calculate": "@deadline > $d2" },
+            { "path": "d2", "constraint": "$d2 <= @deadline" },
+            { "path": "g.gkind", "calculate": "typeOf(@groupDeadline)" }
+        ],
+        "shapes": [
+            { "id": "early", "target": "#", "constraint": "@deadline >= date('2025-06-01')", "message": "early" }
+        ]
+    });
+    let data = HashMap::from([
+        ("d".to_string(), json!("2025-03-01")),
+        ("d2".to_string(), json!("2025-02-01")),
+        ("g.gd".to_string(), json!("2025-04-01")),
+    ]);
+    let result = evaluate(&def, &data, &EvalOptions::default());
+
+    assert_eq!(result.values.get("kind"), Some(&json!("date")));
+    assert_eq!(result.values.get("later"), Some(&json!(true)));
+    assert_eq!(result.values.get("g.gkind"), Some(&json!("date")));
+    let shape_ids: Vec<Option<&str>> = result
+        .validations
+        .iter()
+        .map(|v| v.shape_id.as_deref())
+        .collect();
+    assert_eq!(shape_ids, vec![Some("early")], "{:?}", result.validations);
+    assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+    assert_eq!(result.variables.get("deadline"), Some(&json!("2025-03-01")));
+}

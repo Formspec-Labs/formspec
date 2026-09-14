@@ -12,7 +12,7 @@ mod variables;
 
 use std::collections::{HashMap, HashSet};
 
-use fel_core::FormspecEnvironment;
+use fel_core::{FormspecEnvironment, Value as FelValue};
 use serde_json::Value;
 
 use crate::rebuild::parse_variables;
@@ -23,6 +23,9 @@ pub use variables::topo_sort_variables;
 pub(crate) use bind_pass::eval_bool;
 
 /// Recalculate all computed values with full processing model.
+///
+/// Returns response values, variable values, and a variable cycle error. Variables
+/// stay FEL values so a `date`-valued variable reads as a date downstream (Core §4.5).
 pub fn recalculate(
     items: &mut [ItemInfo],
     data: &HashMap<String, Value>,
@@ -32,7 +35,7 @@ pub fn recalculate(
     instances: &HashMap<String, Value>,
 ) -> (
     HashMap<String, Value>,
-    HashMap<String, Value>,
+    HashMap<String, FelValue>,
     Option<String>,
 ) {
     let mut env = FormspecEnvironment::new();
@@ -69,9 +72,7 @@ pub fn recalculate(
     let (initial_var_values, scoped_var_values, cycle_err) =
         variables::evaluate_variables_scoped(&var_defs, &mut env);
 
-    for (name, val) in &initial_var_values {
-        env.set_variable(name, json_fel::json_to_runtime_fel(val));
-    }
+    env.variables.extend(initial_var_values.clone());
 
     let has_scoped = var_defs
         .iter()
@@ -119,9 +120,7 @@ pub fn recalculate(
 
     let (mut final_var_values, final_scoped_var_values, _) =
         variables::evaluate_variables_scoped(&var_defs, &mut env);
-    for (name, val) in &final_var_values {
-        env.set_variable(name, json_fel::json_to_runtime_fel(val));
-    }
+    env.variables.extend(final_var_values.clone());
 
     calculate_pass::settle_calculated_values(
         items,
@@ -133,9 +132,7 @@ pub fn recalculate(
     repeats::populate_repeat_group_arrays(items, &values, &data_types, &mut env);
 
     (final_var_values, _, _) = variables::evaluate_variables_scoped(&var_defs, &mut env);
-    for (name, val) in &final_var_values {
-        env.set_variable(name, json_fel::json_to_runtime_fel(val));
-    }
+    env.variables.extend(final_var_values.clone());
 
     // Re-evaluate required expressions now that all calculated values and
     // variables have settled. The initial bind pass evaluated required before
