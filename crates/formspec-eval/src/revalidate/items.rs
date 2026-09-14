@@ -15,14 +15,14 @@ use crate::convert::resolve_value_by_path;
 use crate::fel_json::json_to_runtime_fel_typed;
 use crate::rebuild::detect_repeat_count;
 use crate::types::{
-    ConstraintKind, ExtensionConstraint, ItemInfo, Severity, ValidationCode, ValidationResult,
-    ValidationSource, resolve_qualified_repeat_refs,
+    ConstraintKind, EvalDiagnostic, ExtensionConstraint, ItemInfo, Severity, ValidationCode,
+    ValidationResult, ValidationSource, resolve_qualified_repeat_refs,
 };
 
 use crate::value_predicate::{is_empty_for_required_bind, value_skips_optional_bind_checks};
 
 use super::env::{bind_sibling_aliases, restore_sibling_aliases};
-use super::expr::constraint_passes;
+use super::expr::{ConstraintSite, constraint_passes};
 
 pub(super) fn validate_items(
     items: &[ItemInfo],
@@ -33,6 +33,7 @@ pub(super) fn validate_items(
     formspec_version: &str,
     repeat_counts: Option<&HashMap<String, u64>>,
     results: &mut Vec<ValidationResult>,
+    diagnostics: &mut Vec<EvalDiagnostic>,
 ) {
     for item in items {
         // Skip non-relevant items (validation suppressed per S5.6)
@@ -190,7 +191,12 @@ pub(super) fn validate_items(
             match parse(&normalized_expr) {
                 Ok(parsed) => {
                     let result = evaluate(&parsed, env);
-                    if !constraint_passes(&result) {
+                    ConstraintSite {
+                        path: &item.path,
+                        shape_id: None,
+                    }
+                    .record_eval_errors(&result, expr, diagnostics);
+                    if !constraint_passes(&result.value) {
                         results.push(ValidationResult {
                             path: item.path.clone(),
                             severity: Severity::Error,
@@ -284,6 +290,7 @@ pub(super) fn validate_items(
             formspec_version,
             repeat_counts,
             results,
+            diagnostics,
         );
     }
 }

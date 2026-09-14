@@ -13,8 +13,8 @@ use formspec_core::wire_keys::evaluation_batch_keys;
 
 use crate::extension_constraints_from_registry_documents;
 use crate::types::{
-    ConstraintKind, EvalContext, EvalTrigger, EvaluationResult, ExtensionConstraint, Severity,
-    ValidationCode, ValidationResult, ValidationSource,
+    ConstraintKind, EvalContext, EvalDiagnostic, EvalTrigger, EvaluationResult,
+    ExtensionConstraint, Severity, ValidationCode, ValidationResult, ValidationSource,
 };
 
 /// Full batch evaluation output as JSON (matches `evaluateDefinition` WASM shape, camelCase).
@@ -38,6 +38,16 @@ pub fn evaluation_result_to_json_value_styled(
     let mut root = Map::new();
     root.insert("values".into(), json!(result.values));
     root.insert("validations".into(), Value::Array(validations));
+    root.insert(
+        "diagnostics".into(),
+        Value::Array(
+            result
+                .diagnostics
+                .iter()
+                .map(|d| eval_diagnostic_to_json_object(d, sid_key))
+                .collect(),
+        ),
+    );
     root.insert(nr_key.into(), json!(result.non_relevant));
     root.insert("variables".into(), json!(result.variables));
     root.insert("required".into(), json!(result.required));
@@ -68,6 +78,17 @@ fn validation_result_to_json_object(
     }
     if let Some(ref ctx) = v.context {
         m.insert("context".into(), json!(ctx));
+    }
+    Value::Object(m)
+}
+
+fn eval_diagnostic_to_json_object(d: &EvalDiagnostic, shape_id_key: &str) -> Value {
+    let mut m = Map::new();
+    m.insert("path".into(), json!(d.path));
+    m.insert("expression".into(), json!(d.expression));
+    m.insert("message".into(), json!(d.message));
+    if let Some(ref sid) = d.shape_id {
+        m.insert(shape_id_key.into(), json!(sid));
     }
     Value::Object(m)
 }

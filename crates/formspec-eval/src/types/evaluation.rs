@@ -27,6 +27,24 @@ pub struct ValidationResult {
     pub context: Option<HashMap<String, Value>>,
 }
 
+/// Evaluation error from a constraint or shape expression (Core §3.10.2).
+///
+/// The expression evaluated to `null`, so the constraint passed (§3.8.1). The
+/// diagnostic is for Definition authors (debug consoles, previews) and MUST NOT
+/// be shown to end users as a validation error, so it never enters
+/// [`EvaluationResult::validations`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EvalDiagnostic {
+    /// Resolved path of the bind or shape target (`#` for form-level shapes).
+    pub path: String,
+    /// FEL expression that raised the error, as evaluated.
+    pub expression: String,
+    /// Shape ID when a shape expression raised the error.
+    pub shape_id: Option<String>,
+    /// fel-core diagnostic message.
+    pub message: String,
+}
+
 /// When to evaluate shape rules.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EvalTrigger {
@@ -73,6 +91,8 @@ pub struct EvaluationResult {
     pub values: HashMap<String, Value>,
     /// Validation results.
     pub validations: Vec<ValidationResult>,
+    /// Author-facing evaluation errors from constraint and shape expressions.
+    pub diagnostics: Vec<EvalDiagnostic>,
     /// Fields marked non-relevant.
     pub non_relevant: Vec<String>,
     /// Evaluated variable values.

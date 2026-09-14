@@ -50,7 +50,8 @@ pub use registry_constraints::extension_constraints_from_registry_documents;
 pub use revalidate::revalidate;
 pub use screener_eval::evaluate_screener_document;
 pub use types::{
-    AnswerInput, AnswerState, DeterminationRecord, EvalContext, EvalTrigger, EvaluationResult,
-    ExtensionConstraint, InputEntry, ItemInfo, NrbMode, OverrideBlock, PhaseResult, RouteResult,
-    ScreenerRef, ValidationResult, ValidityBlock, VariableDef, WhitespaceMode, parse_answer_state,
+    AnswerInput, AnswerState, DeterminationRecord, EvalContext, EvalDiagnostic, EvalTrigger,
+    EvaluationResult, ExtensionConstraint, InputEntry, ItemInfo, NrbMode, OverrideBlock,
+    PhaseResult, RouteResult, ScreenerRef, ValidationResult, ValidityBlock, VariableDef,
+    WhitespaceMode, parse_answer_state,
 };

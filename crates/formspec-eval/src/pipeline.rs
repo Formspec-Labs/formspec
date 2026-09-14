@@ -69,7 +69,7 @@ fn evaluate_inner(
         .get("$formspec")
         .and_then(|v| v.as_str())
         .unwrap_or("1.0.0");
-    let mut validations = revalidate(
+    let (mut validations, mut diagnostics) = revalidate(
         &items,
         &values,
         &var_values,
@@ -93,7 +93,7 @@ fn evaluate_inner(
     if next_values != values || next_var_values != var_values {
         values = next_values;
         var_values = next_var_values;
-        validations = revalidate(
+        (validations, diagnostics) = revalidate(
             &items,
             &values,
             &var_values,
@@ -139,6 +139,7 @@ fn evaluate_inner(
     EvaluationResult {
         values,
         validations,
+        diagnostics,
         non_relevant,
         variables,
         required,

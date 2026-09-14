@@ -15,7 +15,9 @@ pub use determination::{
     InputEntry, OverrideBlock, PhaseResult, PhaseStatus, PhaseStrategy, RouteResult, ScreenerRef,
     ValidityBlock, parse_answer_state,
 };
-pub use evaluation::{EvalContext, EvalTrigger, EvaluationResult, ValidationResult};
+pub use evaluation::{
+    EvalContext, EvalDiagnostic, EvalTrigger, EvaluationResult, ValidationResult,
+};
 pub use extensions::ExtensionConstraint;
 pub use item_tree::ItemInfo;
 pub use modes::{ExcludedValueMode, NrbMode, WhitespaceMode};

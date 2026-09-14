@@ -9,12 +9,13 @@ mod shapes;
 /// Shared FEL evaluation for screener route conditions (see `screener_eval`).
 pub(crate) use expr::{evaluate_shape_expression, result_has_eval_errors};
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
 
 use crate::types::{
-    EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult, collect_data_types,
+    EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult,
+    collect_data_types,
 };
 
 use env::{apply_excluded_values_to_env, build_validation_env_typed};
@@ -22,6 +23,11 @@ use items::validate_items;
 use shapes::validate_shape;
 
 /// Validate all constraints and shapes.
+///
+/// Returns validation results and, separately, author diagnostics for
+/// constraint and shape expressions that hit evaluation errors (Core §3.10.2).
+/// Those expressions evaluate to `null` and pass (§3.8.1), so they never
+/// appear among the validation results.
 pub fn revalidate(
     items: &[ItemInfo],
     values: &HashMap<String, Value>,
@@ -33,11 +39,12 @@ pub fn revalidate(
     now_iso: Option<&str>,
     repeat_counts: Option<&HashMap<String, u64>>,
     instances: &HashMap<String, Value>,
-) -> Vec<ValidationResult> {
+) -> (Vec<ValidationResult>, Vec<EvalDiagnostic>) {
     let mut results = Vec::new();
+    let mut diagnostics = Vec::new();
 
     if trigger == EvalTrigger::Disabled {
-        return results;
+        return (results, diagnostics);
     }
 
     let data_types = collect_data_types(items);
@@ -73,6 +80,7 @@ pub fn revalidate(
         formspec_version,
         repeat_counts,
         &mut results,
+        &mut diagnostics,
     );
 
     // Shape rules — filtered by timing
@@ -108,11 +116,16 @@ pub fn revalidate(
                 &data_types,
                 items,
                 &mut results,
+                &mut diagnostics,
             );
         }
     }
 
-    results
+    // A shape referenced from a composition is evaluated again there; keep one copy.
+    let mut seen = HashSet::new();
+    diagnostics.retain(|d| seen.insert(d.clone()));
+
+    (results, diagnostics)
 }
 
 #[cfg(test)]
@@ -161,7 +174,7 @@ mod tests {
         }];
 
         let values: HashMap<String, Value> = HashMap::new();
-        let results = revalidate(
+        let (results, _) = revalidate(
             &items,
             &values,
             &HashMap::new(),
@@ -218,7 +231,7 @@ mod tests {
         }];
 
         let values: HashMap<String, Value> = HashMap::new();
-        let results = revalidate(
+        let (results, _) = revalidate(
             &items,
             &values,
             &HashMap::new(),
@@ -277,7 +290,7 @@ mod tests {
         let mut values = HashMap::new();
         values.insert("age".to_string(), json!(25));
 
-        let results = revalidate(
+        let (results, _) = revalidate(
             &items,
             &values,
             &HashMap::new(),
@@ -352,7 +365,7 @@ mod tests {
         // Empty string value — constraint must not fire
         let mut values: HashMap<String, Value> = HashMap::new();
         values.insert("email".to_string(), json!(""));
-        let results = revalidate(
+        let (results, _) = revalidate(
             &items,
             &values,
             &HashMap::new(),
@@ -413,7 +426,7 @@ mod tests {
         }];
 
         let values: HashMap<String, Value> = HashMap::new();
-        let results = revalidate(
+        let (results, _) = revalidate(
             &items,
             &values,
             &HashMap::new(),
@@ -475,7 +488,7 @@ mod tests {
 
         let mut values: HashMap<String, Value> = HashMap::new();
         values.insert("tags".to_string(), json!([]));
-        let results = revalidate(
+        let (results, _) = revalidate(
             &items,
             &values,
             &HashMap::new(),
@@ -497,10 +510,11 @@ mod tests {
         );
     }
 
-    /// BUG-3: A constraint calling an undefined function currently produces Null,
-    /// which constraint_passes treats as "pass." This should emit a validation error.
+    /// BUG-3 author signal, reshaped by Core §3.8.1 / §3.10.2: a constraint calling an
+    /// undefined function evaluates to null and passes; the error reaches authors as a
+    /// diagnostic, never as a validation result.
     #[test]
-    fn constraint_with_undefined_function_should_fail() {
+    fn constraint_with_undefined_function_passes_with_diagnostic() {
         let items = vec![ItemInfo {
             key: "amount".to_string(),
             path: "amount".to_string(),
@@ -540,7 +554,7 @@ mod tests {
         let mut values = HashMap::new();
         values.insert("amount".to_string(), json!(100));
 
-        let results = revalidate(
+        let (results, diagnostics) = revalidate(
             &items,
             &values,
             &HashMap::new(),
@@ -552,19 +566,15 @@ mod tests {
             None,
             &HashMap::new(),
         );
-        let constraint_errors: Vec<_> = results
-            .iter()
-            .filter(|r| r.code == "CONSTRAINT_FAILED")
-            .collect();
-        assert!(
-            !constraint_errors.is_empty(),
-            "constraint using undefined function should produce a validation error, got none"
-        );
+        assert!(results.is_empty(), "got {results:?}");
+        assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+        assert_eq!(diagnostics[0].path, "amount");
+        assert_eq!(diagnostics[0].message, "undefined function: bogusFunc");
     }
 
-    /// BUG-3: Shape constraint with undefined function should also fail.
+    /// BUG-3 author signal for shapes: pass, plus a diagnostic naming the shape.
     #[test]
-    fn shape_with_undefined_function_should_fail() {
+    fn shape_with_undefined_function_passes_with_diagnostic() {
         let items = vec![ItemInfo {
             key: "amount".to_string(),
             path: "amount".to_string(),
@@ -611,7 +621,7 @@ mod tests {
             "severity": "error"
         })];
 
-        let results = revalidate(
+        let (results, diagnostics) = revalidate(
             &items,
             &values,
             &HashMap::new(),
@@ -623,13 +633,8 @@ mod tests {
             None,
             &HashMap::new(),
         );
-        let shape_errors: Vec<_> = results
-            .iter()
-            .filter(|r| r.code == "SHAPE_FAILED")
-            .collect();
-        assert!(
-            !shape_errors.is_empty(),
-            "shape using undefined function should produce a validation error, got none"
-        );
+        assert!(results.is_empty(), "got {results:?}");
+        assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+        assert_eq!(diagnostics[0].expression, "bogusFunc($amount) > 0");
     }
 }
