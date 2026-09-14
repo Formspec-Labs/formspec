@@ -103,11 +103,12 @@ pub(crate) fn evaluate_single_item(
         env.set_field(&item.path, Value::Null);
     }
 
+    // Core §4.3.1: a `calculate` Bind is implicitly readonly unless `readonly` is set explicitly.
     let own_readonly = if let Some(ref expr) = item.readonly_expr {
         let normalized_expr = normalize_expr(expr);
         eval_bool(&normalized_expr, env, false)
     } else {
-        false
+        item.calculate.is_some()
     };
     item.readonly = own_readonly || parent_readonly;
 

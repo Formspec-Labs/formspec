@@ -112,3 +112,35 @@ test('should return the configured disabledDisplay mode when querying field disp
   assert.equal(engine.getDisabledDisplay('fieldA'), 'protected');
   assert.equal(engine.getDisabledDisplay('fieldB'), 'hidden');
 });
+
+test('a calculate Bind makes its field readonly unless readonly is explicit (Core §4.3.1)', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'http://example.org/calculate-readonly',
+    version: '1.0.0',
+    title: 'Calculate Readonly',
+    items: [
+      { key: 'qty', type: 'field', dataType: 'integer', label: 'Qty' },
+      { key: 'total', type: 'field', dataType: 'integer', label: 'Total' },
+      { key: 'override', type: 'field', dataType: 'integer', label: 'Override' },
+      {
+        key: 'rows', type: 'group', label: 'Rows', repeatable: true, minRepeat: 1,
+        children: [{ key: 'double', type: 'field', dataType: 'integer', label: 'Double' }]
+      }
+    ],
+    binds: [
+      { path: 'total', calculate: '$qty * 2' },
+      { path: 'override', calculate: '$qty * 3', readonly: 'false' },
+      { path: 'rows[*].double', calculate: '$qty * 2' }
+    ]
+  });
+
+  assert.equal(engine.readonlySignals.qty.value, false);
+  assert.equal(engine.readonlySignals.total.value, true);
+  assert.equal(engine.readonlySignals.override.value, false);
+  assert.equal(engine.readonlySignals['rows[0].double'].value, true);
+  assert.equal(engine.getFieldVM('total').readonly.value, true, 'renderers read readonly from the field view model');
+
+  assert.equal(engine.addRepeatInstance('rows'), 1);
+  assert.equal(engine.readonlySignals['rows[1].double'].value, true, 'new repeat rows inherit calculated readonly');
+});

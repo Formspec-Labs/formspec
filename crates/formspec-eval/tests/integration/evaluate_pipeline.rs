@@ -1601,6 +1601,38 @@ fn eval_result_includes_readonly_state() {
     assert_eq!(result.readonly.get("name"), Some(&true));
 }
 
+/// Core §4.3.1: a `calculate` Bind makes its node readonly unless `readonly` is set explicitly.
+#[test]
+fn calculated_field_is_readonly_unless_readonly_is_explicit() {
+    let def = json!({
+        "$formspec": "1.0",
+        "url": "test",
+        "version": "1.0.0",
+        "title": "T",
+        "items": [
+            { "key": "qty", "type": "field", "dataType": "integer", "label": "Qty" },
+            { "key": "total", "type": "field", "dataType": "integer", "label": "Total" },
+            { "key": "override", "type": "field", "dataType": "integer", "label": "Override" },
+            {
+                "key": "rows", "type": "group", "label": "Rows", "repeatable": true, "minRepeat": 1,
+                "children": [{ "key": "double", "type": "field", "dataType": "integer", "label": "Double" }]
+            }
+        ],
+        "binds": [
+            { "path": "total", "calculate": "$qty * 2" },
+            { "path": "override", "calculate": "$qty * 3", "readonly": "false" },
+            { "path": "rows[*].double", "calculate": "$qty * 2" }
+        ],
+    });
+
+    let data = HashMap::from([("qty".to_string(), json!(2))]);
+    let result = evaluate(&def, &data, &EvalOptions::default());
+    assert_eq!(result.readonly.get("qty"), Some(&false));
+    assert_eq!(result.readonly.get("total"), Some(&true));
+    assert_eq!(result.readonly.get("override"), Some(&false));
+    assert_eq!(result.readonly.get("rows[0].double"), Some(&true));
+}
+
 #[test]
 fn eval_with_runtime_context_uses_injected_now() {
     let def = json!({
