@@ -9,7 +9,7 @@ import type { FormItem, FormShape } from '@formspec-org/types';
 import { CORE_FIELD_DATA_TYPES, type CoreFieldDataType } from '@formspec-org/types';
 import { normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
 import { itemAtIndexedPath } from '../item-index.js';
-import { editableComponentTree, walkComponentTree } from '../component-tree.js';
+import { componentNodesByBind, editableComponentTree, walkComponentTree } from '../component-tree.js';
 import { registryEntry } from '../registry-entry.js';
 import { bindEntriesFor, mergeBindProperties } from '../definition-binds.js';
 import { resolveThemeCascade, type ThemeCascadeInput } from '../theme-cascade.js';
@@ -206,16 +206,12 @@ export function bindFor(state: ProjectState, path: string): Record<string, unkno
 }
 
 /**
- * Find the component tree node bound to a field key.
+ * Find the component tree node bound to a field key (the first, breadth-first).
+ * O(1) after the first lookup on a committed tree.
  */
 export function componentFor(state: ProjectState, fieldKey: string): Record<string, unknown> | undefined {
   const tree = editableComponentTree(state);
-  if (!tree) return undefined;
-  let found: Record<string, unknown> | undefined;
-  walkComponentTree(tree, node => {
-    if (!found && node.bind === fieldKey) found = node;
-  });
-  return found;
+  return tree ? componentNodesByBind(tree).get(fieldKey) : undefined;
 }
 
 /**

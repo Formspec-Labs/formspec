@@ -1521,4 +1521,27 @@ describe('per-item query cost', () => {
     });
     expect(elapsed).toBeLessThan(150);
   });
+
+  it('componentFor over every field stays linear in the tree size', () => {
+    // Bound: one bind index per tree. A tree walk per call made it O(n²): 500 ms at this size.
+    const items = Array.from({ length: 8000 }, (_, i) => ({ type: 'field', key: `f${i}`, label: `F${i}`, dataType: 'string' }));
+    const project = createRawProject({
+      seed: { definition: { $formspec: '1.0', url: 'urn:perf', version: '1.0.0', status: 'draft', title: 'T', items } as any },
+    });
+    project.componentFor('f0');
+    let found = 0;
+    const elapsed = time(() => {
+      for (const item of items) if (project.componentFor(item.key)?.bind === item.key) found++;
+    });
+    expect(found).toBe(items.length);
+    expect(elapsed).toBeLessThan(50);
+  });
+
+  it('componentFor sees a node retyped by a later dispatch', () => {
+    const project = createRawProject();
+    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'bio', dataType: 'string' } });
+    expect(project.componentFor('bio')!.component).toBe('TextInput');
+    project.dispatch({ type: 'component.setNodeType', payload: { node: { bind: 'bio' }, component: 'Textarea' } });
+    expect(project.componentFor('bio')!.component).toBe('Textarea');
+  });
 });

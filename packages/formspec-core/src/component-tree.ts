@@ -35,6 +35,27 @@ export function walkComponentTree(
   }
 }
 
+const bindIndexes = new WeakMap<EditableComponentNode, ReadonlyMap<string, EditableComponentNode>>();
+
+/**
+ * The first node, in {@link walkComponentTree} order, bound to each `bind` value — built
+ * once per tree root. Root identity is the version: dispatch edits a structuredClone and a
+ * rebuild installs a new root, so a committed tree never changes under its index. Use it
+ * for queries over committed state, never over a tree a handler is still mutating.
+ */
+export function componentNodesByBind(root: EditableComponentNode): ReadonlyMap<string, EditableComponentNode> {
+  let index = bindIndexes.get(root);
+  if (!index) {
+    const byBind = new Map<string, EditableComponentNode>();
+    walkComponentTree(root, node => {
+      if (node.bind && !byBind.has(node.bind)) byBind.set(node.bind, node);
+    });
+    index = byBind;
+    bindIndexes.set(root, index);
+  }
+  return index;
+}
+
 /** Auto-incrementing counter for generating unique node IDs within a session. */
 let nodeCounter = 0;
 
