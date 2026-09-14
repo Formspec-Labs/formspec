@@ -88,7 +88,7 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
         case 'Heading': {
             const level = (node.props?.level as number) || 2;
             const Tag = `h${Math.min(6, Math.max(1, level))}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-            return <Tag className={cssClass || 'formspec-heading'} style={style} {...graphAttrs}>{text}</Tag>;
+            return <Tag className={`formspec-heading${cssClass ? ` ${cssClass}` : ''}`} style={style} {...graphAttrs}>{text}</Tag>;
         }
 
         case 'Divider':
