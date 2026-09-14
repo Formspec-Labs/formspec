@@ -44,12 +44,14 @@ export function buildGridBehavior(comp: any, ctx: RenderContext): GridLayoutBeha
 
 export function buildDividerBehavior(comp: any, ctx: RenderContext): DividerLayoutBehavior {
     const displayItem = resolveDisplayItem(comp, ctx);
+    const hasLabel = !!displayItem || typeof comp.label === 'string';
+    // No fallback to the inline label: an Item label whose `{{}}` is still empty shows as a plain rule, not raw text.
     const label = displayItem
-        ? itemLabel(ctx.engine, displayItem.item, displayItem.path, comp.label || '')
-        : computed(() => (comp.label ? resolveCompText(ctx, comp, 'label', comp.label) : ''));
+        ? itemLabel(ctx.engine, displayItem.item, displayItem.path)
+        : computed(() => (hasLabel ? resolveCompText(ctx, comp, 'label', comp.label) : ''));
     return {
         comp,
-        labelText: label.peek() || null,
+        labelText: hasLabel ? label.peek() : null,
         watchLabel: (write) => {
             ctx.cleanupFns.push(effect(() => write(label.value)));
         },

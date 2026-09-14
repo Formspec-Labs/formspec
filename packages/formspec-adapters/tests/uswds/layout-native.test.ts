@@ -188,6 +188,29 @@ describe('USWDS layout natives', () => {
         expect(parent.querySelector('.formspec-uswds-divider--labeled .usa-hint')?.textContent).toBe('Job 2');
     });
 
+    it('renderUSWDSDivider shows a plain rule while the live label is empty and labels it once text arrives', () => {
+        const parent = document.createElement('div');
+        let write: (text: string) => void = () => {};
+        const behavior: DividerLayoutBehavior = {
+            comp: { id: 'rule' },
+            labelText: '',
+            watchLabel: (fn) => { write = fn; fn(''); },
+        };
+        renderUSWDSDivider(behavior, parent, mockAdapterContext());
+        const shownRules = () => Array.from(parent.querySelectorAll('hr')).filter((hr) => !hr.hidden);
+        expect(parent.querySelector('.formspec-uswds-divider--labeled')).toBeNull();
+        expect(shownRules().map((hr) => hr.className)).toEqual(['formspec-uswds-divider']);
+
+        write('Job 2');
+        const row = parent.querySelector('#rule.formspec-uswds-divider--labeled') as HTMLElement;
+        expect(row.querySelector('.usa-hint')?.textContent).toBe('Job 2');
+        expect(shownRules().map((hr) => hr.className)).toEqual(['formspec-uswds-divider__line', 'formspec-uswds-divider__line']);
+
+        write('');
+        expect(parent.querySelector('.formspec-uswds-divider--labeled')).toBeNull();
+        expect(shownRules()).toHaveLength(1);
+    });
+
     it('renderUSWDSCollapsible uses usa-accordion button and content', () => {
         const parent = document.createElement('div');
         const behavior: CollapsibleLayoutBehavior = {

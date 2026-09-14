@@ -25,9 +25,12 @@ export interface GridLayoutBehavior {
 
 export interface DividerLayoutBehavior {
     comp: any;
-    /** Label at render time (component §5.15 `label`); null renders a plain rule. */
+    /**
+     * Label at render time (component §5.15 `label`), possibly empty while a `{{}}` value is unanswered; null when
+     * the Divider has no label source and is only ever a plain rule.
+     */
     labelText: string | null;
-    /** Write the label now and whenever it changes: a Divider planned from a display Item follows its live label. */
+    /** Write the label now and whenever it changes (display Item label, Locale, `{{}}`); '' means show a plain rule. */
     watchLabel(write: (text: string) => void): void;
 }
 

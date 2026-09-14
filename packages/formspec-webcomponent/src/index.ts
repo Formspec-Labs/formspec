@@ -92,6 +92,8 @@ export {
 } from './adapters/default/layout';
 export { createSignatureCanvas } from './adapters/signature-canvas';
 export { createCharacterCount } from './adapters/character-count';
+export { renderDividerDOM } from './adapters/divider';
+export type { DividerClasses } from './adapters/divider';
 export type { CharacterCountConfig, CharacterCountResult } from './adapters/character-count';
 export type { SignatureCanvasConfig, SignatureCanvasResult } from './adapters/signature-canvas';
 export type {

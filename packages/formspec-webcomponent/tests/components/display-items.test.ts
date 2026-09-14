@@ -285,3 +285,48 @@ describe('Text not planned from a display Item', () => {
     });
 
 });
+
+describe('Divider — label empty at render', () => {
+    /** The Divider label a respondent sees, or null while the Divider shows as a plain rule. */
+    const shownLabel = (el: HTMLElement): string | null => {
+        const label = el.querySelector<HTMLElement>('.formspec-divider-label');
+        return label && !label.hidden && label.closest('.formspec-divider--labeled') ? label.textContent : null;
+    };
+    const plainRules = (el: HTMLElement) =>
+        Array.from(el.querySelectorAll('hr')).filter((hr) => !hr.hidden && !hr.closest('.formspec-divider--labeled'));
+
+    it('gains its label when a display Item label interpolates to text, and loses it again', () => {
+        const el = render(definition([
+            { key: 'employer', type: 'field', dataType: 'string', label: 'Employer' },
+            { key: 'rule', type: 'display', label: '{{$employer}}', presentation: { widgetHint: 'Divider' } },
+        ]));
+        expect(shownLabel(el)).toBeNull();
+        expect(plainRules(el)).toHaveLength(1);
+
+        el.getEngine().setValue('employer', 'ACME');
+        expect(shownLabel(el)).toBe('ACME');
+        expect(plainRules(el)).toHaveLength(0);
+
+        el.getEngine().setValue('employer', '');
+        expect(shownLabel(el)).toBeNull();
+        expect(plainRules(el)).toHaveLength(1);
+    });
+
+    it('gains its label when an authored Divider Locale label interpolates to text', () => {
+        const el = renderTree(
+            { component: 'Stack', children: [{ component: 'TextInput', bind: 'employer' }, { component: 'Divider', id: 'rule', label: '' }] },
+            [{ key: 'employer', type: 'field', dataType: 'string', label: 'Employer' }],
+        );
+        const engine = el.getEngine();
+        engine.loadLocale({
+            $formspecLocale: '2.0', locale: 'fr', version: '1.0.0',
+            target: { kind: 'definition', url: 'urn:test:form' },
+            strings: { '$component.rule.label': '{{$employer}}' },
+        });
+        engine.setLocale('fr');
+        expect(shownLabel(el)).toBeNull();
+
+        engine.setValue('employer', 'ACME');
+        expect(shownLabel(el)).toBe('ACME');
+    });
+});

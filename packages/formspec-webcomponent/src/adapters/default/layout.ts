@@ -7,6 +7,7 @@ import {
 } from '@formspec-org/layout';
 import type { AdapterContext } from '../types';
 import { focusFirstIn } from '../../dom-utils';
+import { renderDividerDOM } from '../divider';
 import type {
     SectionLayoutBehavior,
     StackLayoutBehavior,
@@ -149,38 +150,12 @@ export function renderGrid(behavior: GridLayoutBehavior, parent: HTMLElement, ac
 }
 
 export function renderDivider(behavior: DividerLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
-    const { comp, labelText } = behavior;
-    if (labelText) {
-        const wrapper = document.createElement('div');
-        if (comp.id) wrapper.id = comp.id;
-        wrapper.className = 'formspec-divider formspec-divider--labeled';
-
-        const lineBefore = document.createElement('hr');
-        lineBefore.className = 'formspec-divider-line';
-
-        const labelEl = document.createElement('span');
-        labelEl.className = 'formspec-divider-label';
-        behavior.watchLabel((text) => { labelEl.textContent = text; });
-
-        const lineAfter = document.createElement('hr');
-        lineAfter.className = 'formspec-divider-line';
-
-        wrapper.appendChild(lineBefore);
-        wrapper.appendChild(labelEl);
-        wrapper.appendChild(lineAfter);
-        actx.applyCssClass(wrapper, comp);
-        actx.applyAccessibility(wrapper, comp);
-        actx.applyStyle(wrapper, comp.style);
-        parent.appendChild(wrapper);
-    } else {
-        const hr = document.createElement('hr');
-        if (comp.id) hr.id = comp.id;
-        hr.className = 'formspec-divider';
-        actx.applyCssClass(hr, comp);
-        actx.applyAccessibility(hr, comp);
-        actx.applyStyle(hr, comp.style);
-        parent.appendChild(hr);
-    }
+    renderDividerDOM(behavior, parent, actx, {
+        rule: 'formspec-divider',
+        labeled: 'formspec-divider formspec-divider--labeled',
+        line: 'formspec-divider-line',
+        label: 'formspec-divider-label',
+    });
 }
 
 export function renderCollapsible(behavior: CollapsibleLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
