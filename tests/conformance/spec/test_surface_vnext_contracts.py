@@ -207,7 +207,7 @@ def test_normative_prose_pins_cross_artifact_rules_without_a_test_validator() ->
     locale_words = " ".join(locale.split())
 
     assert "Definition-only availability does not" in surface_words
-    assert "The widget receives one capability: `emitAction(outputName)`" in shell_words
+    assert "The widget receives one capability: `emitAction(outputName, input?)`" in shell_words
     assert "APP-ENTRY-AMBIGUOUS" in manifest_words
     assert "APP-ENTRY-SURFACE-UNRESOLVED" in manifest_words
     assert "MUST NOT move from an app to a Definition" in locale_words
