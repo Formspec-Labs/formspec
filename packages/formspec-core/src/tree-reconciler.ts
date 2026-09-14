@@ -158,25 +158,20 @@ export function reconcileComponentTree(
     let node: TreeNode;
 
     if (item.type === 'display') {
-      const hasCalculate = calculatedDisplayPaths.has(itemPath);
-      if (hasCalculate) {
-        // Bind the display node so the webcomponent subscribes to the engine signal
-        const existing = existingBound.get(itemPath);
-        if (existing) {
-          node = { ...existing, text: item.label ?? '' };
-          existingBound.delete(itemPath);
-        } else {
-          const hintComponent = widgetTokenToComponent(item.presentation?.widgetHint);
-          node = { component: hintComponent ?? 'Text', bind: item.key, text: item.label ?? '' };
-        }
+      // Every display node binds its Item: renderers resolve the live label (Locale,
+      // `{{}}` interpolation) and Bind relevance through `bind`. Static displays also
+      // keep `nodeId` — the node ref Studio addresses them by. Nodes from trees saved
+      // before displays were bound sit in `existingDisplay` and are upgraded in place.
+      const existing = existingBound.get(itemPath) ?? existingDisplay.get(itemPath);
+      existingBound.delete(itemPath);
+      existingDisplay.delete(itemPath);
+      if (existing) {
+        node = { ...existing, bind: item.key, text: item.label ?? '' };
+      } else if (calculatedDisplayPaths.has(itemPath)) {
+        const hintComponent = widgetTokenToComponent(item.presentation?.widgetHint);
+        node = { component: hintComponent ?? 'Text', bind: item.key, text: item.label ?? '' };
       } else {
-        const existing = existingDisplay.get(itemPath);
-        if (existing) {
-          node = { ...existing, text: item.label ?? '' };
-          existingDisplay.delete(itemPath);
-        } else {
-          node = { component: 'Text', nodeId: item.key, text: item.label ?? '' };
-        }
+        node = { component: 'Text', bind: item.key, nodeId: item.key, text: item.label ?? '' };
       }
     } else {
       const existing = existingBound.get(itemPath);
@@ -241,23 +236,17 @@ export function reconcileComponentTree(
       for (const c of n.children ?? []) {
         const nextUnderLayout = underLayoutWrapper || isLayoutWrapper(c);
         if (!nextUnderLayout) {
-          // Skip schema containers (groups, etc.): only leaf-like bound nodes participate
-          // in duplicate-bind disambiguation for wrapper extraction.
+          // Skip schema containers (groups, etc.): only leaf-like definition nodes participate
+          // in duplicate-key disambiguation for wrapper extraction. A display node carries
+          // both `bind` and `nodeId`, so it queues under both: a saved wrapper child may
+          // reference it by either.
           if (
-            c.bind &&
             !isLayoutWrapper(c) &&
             typeof c.definitionItemPath === 'string' &&
             !CONTAINER_COMPONENTS.has(c.component)
           ) {
-            push(byBind, c.bind, c);
-          } else if (
-            c.nodeId &&
-            !c._layout &&
-            !c.bind &&
-            typeof c.definitionItemPath === 'string' &&
-            !CONTAINER_COMPONENTS.has(c.component)
-          ) {
-            push(byNodeId, c.nodeId, c);
+            if (c.bind) push(byBind, c.bind, c);
+            if (c.nodeId) push(byNodeId, c.nodeId, c);
           }
         }
         if (c.children) walk(c, nextUnderLayout);

@@ -240,6 +240,7 @@ describe('reconcileComponentTree', () => {
     expect(tree.children[0].component).toBe('Text');
     expect(tree.children[0].nodeId).toBe('heading');
     expect(tree.children[0].text).toBe('Hello World');
+    expect(tree.children[0].bind).toBe('heading');
   });
 
   it('builds group nodes with children', () => {
@@ -474,7 +475,8 @@ describe('reconcileComponentTree', () => {
     expect(summaryNode.nodeId).toBeUndefined();
   });
 
-  it('keeps nodeId on display item without calculate bind', () => {
+  it('binds a display item without calculate bind, keeping nodeId as its node ref', () => {
+    // Renderers resolve Locale label, `{{}}` interpolation and Bind relevance through `bind`.
     const definition = {
       items: [
         { key: 'heading', type: 'display', label: 'Static heading' },
@@ -482,8 +484,35 @@ describe('reconcileComponentTree', () => {
     } as any;
 
     const tree = reconcileComponentTree(definition, undefined);
-    expect(tree.children[0].nodeId).toBe('heading');
-    expect(tree.children[0].bind).toBeUndefined();
+    expect(tree.children[0]).toMatchObject({ component: 'Text', bind: 'heading', nodeId: 'heading', text: 'Static heading' });
+  });
+
+  it('binds display items by leaf key inside groups and repeats', () => {
+    const definition = {
+      items: [{
+        key: 'jobs', type: 'group', repeatable: true, children: [
+          { key: 'note', type: 'display', label: 'Per-job note' },
+        ],
+      }],
+    } as any;
+
+    const tree = reconcileComponentTree(definition, undefined);
+    expect(tree.children[0].children[0]).toMatchObject({ bind: 'note', definitionItemPath: 'jobs.note' });
+  });
+
+  it('upgrades an existing unbound display node in place, keeping its authored props', () => {
+    const definition = {
+      items: [{ key: 'heading', type: 'display', label: 'Hello' }],
+    } as any;
+    const existing = {
+      component: 'Stack', nodeId: 'root', children: [
+        { component: 'Text', nodeId: 'heading', text: 'Old', format: 'markdown' },
+      ],
+    };
+
+    const tree = reconcileComponentTree(definition, existing);
+    expect(tree.children).toHaveLength(1);
+    expect(tree.children[0]).toMatchObject({ component: 'Text', bind: 'heading', nodeId: 'heading', text: 'Hello', format: 'markdown' });
   });
 
   it('respects widgetHint on calculated display item', () => {
@@ -533,5 +562,27 @@ describe('reconcileComponentTree', () => {
     const byCardId = (id: string) => cards.find((c: any) => c.nodeId === id);
     expect(byCardId('cardA')?.children?.[0]?.definitionItemPath).toBe('g1.title');
     expect(byCardId('cardB')?.children?.[0]?.definitionItemPath).toBe('g2.title');
+  });
+
+  it('maps duplicate display keys saved as unbound nodes into sibling layout wrappers in order', () => {
+    const definition = {
+      items: [
+        { key: 'g1', type: 'group', children: [{ key: 'note', type: 'display', label: 'One' }] },
+        { key: 'g2', type: 'group', children: [{ key: 'note', type: 'display', label: 'Two' }] },
+      ],
+    } as any;
+    const existing = {
+      component: 'Stack',
+      nodeId: 'root',
+      children: [
+        { component: 'Card', _layout: true, nodeId: 'cardA', children: [{ component: 'Text', nodeId: 'note' }] },
+        { component: 'Card', _layout: true, nodeId: 'cardB', children: [{ component: 'Text', nodeId: 'note' }] },
+      ],
+    };
+
+    const tree = reconcileComponentTree(definition, existing);
+    const byCardId = (id: string) => tree.children.find((c: any) => c.nodeId === id);
+    expect(byCardId('cardA')?.children?.[0]).toMatchObject({ bind: 'note', definitionItemPath: 'g1.note' });
+    expect(byCardId('cardB')?.children?.[0]).toMatchObject({ bind: 'note', definitionItemPath: 'g2.note' });
   });
 });

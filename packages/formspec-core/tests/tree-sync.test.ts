@@ -117,23 +117,19 @@ describe('component tree sync', () => {
     expect(hasDivider).toBe(true);
   });
 
-  it('creates Text nodes for display items using text, not bind', () => {
+  it('creates Text nodes bound to their display items', () => {
     const project = createRawProject();
     project.dispatch({
       type: 'definition.addItem',
       payload: { type: 'display', key: 'header', label: 'Welcome' },
     });
 
-    // Display items use text prop (not bind) — they have no field signals to subscribe to
+    // `bind` links the node to its Item (Locale label, `{{}}` interpolation, Bind relevance);
+    // `text` mirrors the inline label and `nodeId` stays the Studio node ref.
     const tree = project.component.tree as any;
     const node = tree.children?.find((c: any) => c.nodeId === 'header');
-    expect(node).toBeDefined();
-    expect(node!.component).toBe('Text');
-    expect(node!.text).toBe('Welcome');
-    expect(node!.bind).toBeUndefined();
-    expect(node!.nodeId).toBe('header');
-    // componentFor searches by bind; display items have no bind
-    expect(project.componentFor('header')).toBeUndefined();
+    expect(node).toMatchObject({ component: 'Text', text: 'Welcome', bind: 'header', nodeId: 'header' });
+    expect(project.componentFor('header')).toBe(node);
   });
 
   it('preserves display node overrides through tree rebuild', () => {

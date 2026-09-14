@@ -229,10 +229,12 @@ describe('export: repeat template children bind as flat item keys', () => {
       {
         type: 'group', key: 'retirement', label: 'Retirement',
         children: [
+          { type: 'display', key: 'intro', label: 'About retirement' },
           {
             type: 'group', key: 'employersOnRecord', label: 'Employers', repeatable: true,
             children: [
               { type: 'field', key: 'payerName', label: 'Payer', dataType: 'string' },
+              { type: 'display', key: 'payerNote', label: 'Payer {{$payerName}}' },
               {
                 type: 'group', key: 'address', label: 'Address',
                 children: [{ type: 'field', key: 'city', label: 'City', dataType: 'string' }],
@@ -246,11 +248,14 @@ describe('export: repeat template children bind as flat item keys', () => {
     // Plain group Stack: bind dropped, children carry the group prefix.
     const retirement = tree.children[0];
     expect(retirement.bind).toBeUndefined();
-    const repeat = retirement.children[0];
+    expect(retirement.children[0]).toMatchObject({ component: 'Text', bind: 'retirement.intro' });
+    expect(retirement.children[0]).not.toHaveProperty('nodeId');
+    const repeat = retirement.children[1];
     expect(repeat).toMatchObject({ component: 'Accordion', bind: 'retirement.employersOnRecord' });
     // Renderers resolve these under `retirement.employersOnRecord[i].`.
     expect(repeat.children[0].bind).toBe('payerName');
-    const address = repeat.children[1];
+    expect(repeat.children[1]).toMatchObject({ component: 'Text', bind: 'payerNote' });
+    const address = repeat.children[2];
     expect(address.bind).toBeUndefined();
     expect(address.children[0].bind).toBe('address.city');
   });
@@ -287,6 +292,7 @@ describe('componentDocumentIsDerived', () => {
           items: [
             { type: 'field', key: 'color', label: 'Color', dataType: 'choice', options: [{ value: 'r', label: 'Red' }] },
             { type: 'field', key: 'agree', label: 'Agree', dataType: 'boolean' },
+            { type: 'display', key: 'intro', label: 'Welcome' },
             {
               type: 'group', key: 'jobs', label: 'Jobs', repeatable: true,
               children: [{ type: 'field', key: 'hours', label: 'Hours', dataType: 'integer' }],
@@ -301,6 +307,21 @@ describe('componentDocumentIsDerived', () => {
     expect(componentDocumentIsDerived(createRawProject().state)).toBe(true);
     const project = projectWithItems();
     expect(project.state.component.tree).toBeDefined();
+    expect(componentDocumentIsDerived(project.state)).toBe(true);
+  });
+
+  it('is true for a saved tree whose display nodes predate display binds', () => {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0', url: 'urn:legacy', version: '1.0.0', status: 'draft', title: 'T',
+          items: [{ type: 'display', key: 'intro', label: 'Welcome' }],
+        } as any,
+        component: {
+          tree: { component: 'Stack', nodeId: 'root', children: [{ component: 'Text', nodeId: 'intro', text: 'Welcome' }] },
+        } as any,
+      },
+    });
     expect(componentDocumentIsDerived(project.state)).toBe(true);
   });
 
