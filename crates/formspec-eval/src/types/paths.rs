@@ -17,21 +17,6 @@ pub(crate) fn find_item_by_path<'a>(items: &'a [ItemInfo], path: &str) -> Option
     None
 }
 
-pub(crate) fn find_item_by_path_mut<'a>(
-    items: &'a mut [ItemInfo],
-    path: &str,
-) -> Option<&'a mut ItemInfo> {
-    for item in items.iter_mut() {
-        if item.path == path {
-            return Some(item);
-        }
-        if let Some(found) = find_item_by_path_mut(&mut item.children, path) {
-            return Some(found);
-        }
-    }
-    None
-}
-
 pub(crate) fn strip_indices(path: &str) -> String {
     Path::parse(path).strip_indices()
 }

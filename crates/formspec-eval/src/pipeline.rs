@@ -49,7 +49,7 @@ fn evaluate_inner(
     expand_repeat_instances(&mut items, &seeded_data);
 
     let binds = definition.get("binds");
-    rebuild::apply_wildcard_binds(&mut items, binds, &seeded_data);
+    rebuild::apply_wildcard_binds(&mut items, binds);
 
     if let Some(ref prev_nr) = context.previous_non_relevant {
         apply_previous_non_relevant(&mut items, prev_nr);

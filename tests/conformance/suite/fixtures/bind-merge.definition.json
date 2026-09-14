@@ -1,0 +1,31 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.org/forms/shared-suite/bind-merge",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Bind merge across path spellings",
+  "description": "Core §4.3.1/§4.3.3: Binds for one Item merge property by property in document order, and a [*] path targets the Item path with [*] removed.",
+  "items": [
+    {
+      "key": "jobs",
+      "type": "group",
+      "label": "Jobs",
+      "repeatable": true,
+      "children": [
+        { "key": "hours", "type": "field", "dataType": "decimal", "label": "Hours" },
+        { "key": "rate", "type": "field", "dataType": "decimal", "label": "Rate" },
+        { "key": "pay", "type": "field", "dataType": "decimal", "label": "Pay" },
+        { "key": "note", "type": "field", "dataType": "string", "label": "Note" }
+      ]
+    }
+  ],
+  "binds": [
+    { "path": "jobs[*].hours", "required": "true" },
+    { "path": "jobs.hours", "required": "false" },
+    { "path": "jobs.note", "required": "false" },
+    { "path": "jobs[*].note", "required": "true" },
+    { "path": "jobs.pay", "calculate": "$rate * 1.26" },
+    { "path": "jobs[*].pay", "precision": 0 },
+    { "path": "jobs[*].rate", "constraint": "$pay = 13", "constraintMessage": "Pay rounds to whole units" }
+  ]
+}

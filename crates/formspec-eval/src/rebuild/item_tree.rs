@@ -30,6 +30,7 @@ use formspec_core::{
 };
 use serde_json::Value;
 
+use super::bind_targets::BindTargets;
 use crate::types::{ExcludedValueMode, ItemInfo, NrbMode, VariableDef, WhitespaceMode};
 
 pub(super) fn bool_or_string_expr(value: &Value) -> Option<String> {
@@ -43,14 +44,14 @@ pub(super) fn bool_or_string_expr(value: &Value) -> Option<String> {
 /// Build the item tree from a definition JSON.
 pub fn rebuild_item_tree(definition: &Value) -> Vec<ItemInfo> {
     let items = definition.get("items").and_then(|v| v.as_array());
-    let binds = definition.get("binds");
+    let binds = BindTargets::new(definition.get("binds"));
     let default_currency = definition
         .get("formPresentation")
         .and_then(|v| v.get("defaultCurrency"))
         .and_then(|v| v.as_str());
 
     match items {
-        Some(items) => rebuild_items_slice(items, binds, None, default_currency, "$.items"),
+        Some(items) => rebuild_items_slice(items, &binds, None, default_currency, "$.items"),
         None => vec![],
     }
 }
@@ -79,7 +80,7 @@ pub fn parse_variables(definition: &Value) -> Vec<VariableDef> {
 
 fn rebuild_items_slice(
     items: &[Value],
-    binds: Option<&Value>,
+    binds: &BindTargets<'_>,
     parent_dotted: Option<&str>,
     default_currency: Option<&str>,
     json_array_parent: &str,
@@ -97,35 +98,9 @@ fn rebuild_items_slice(
     out
 }
 
-fn resolve_bind<'a>(binds: Option<&'a Value>, key: &str) -> Option<serde_json::Map<String, Value>> {
-    let binds = binds?;
-    // Support both object-style and array-style binds
-    match binds {
-        Value::Object(map) => map.get(key)?.as_object().cloned(),
-        Value::Array(arr) => {
-            let mut merged = serde_json::Map::new();
-            for bind in arr {
-                if bind.get("path").and_then(|v| v.as_str()) == Some(key) {
-                    if let Some(bind_obj) = bind.as_object() {
-                        for (field, value) in bind_obj {
-                            merged.insert(field.clone(), value.clone());
-                        }
-                    }
-                }
-            }
-            if merged.is_empty() {
-                None
-            } else {
-                Some(merged)
-            }
-        }
-        _ => None,
-    }
-}
-
 fn build_item_info_from_ctx(
     ctx: &DefinitionItemVisitCtx<'_>,
-    binds: Option<&Value>,
+    binds: &BindTargets<'_>,
     default_currency: Option<&str>,
 ) -> ItemInfo {
     let item = ctx.item;
@@ -153,10 +128,10 @@ fn build_item_info_from_ctx(
         .or(default_currency)
         .map(String::from);
 
-    // Look up bind for this path
-    let mut bind = resolve_bind(binds, &path)
-        .or_else(|| resolve_bind(binds, &key))
-        .unwrap_or_default();
+    // Inline Item properties first, then every Bind targeting the Item in document
+    // order, later values winning (Core §4.3.1). A Definition with no Bind for the
+    // full path falls back to Binds addressed by the bare key.
+    let mut bind = serde_json::Map::new();
     for field in [
         "calculate",
         "constraint",
@@ -180,6 +155,12 @@ fn build_item_info_from_ctx(
     {
         bind.insert("relevant".to_string(), value.clone());
     }
+    let target = if binds.entries(&path).is_empty() {
+        key.as_str()
+    } else {
+        path.as_str()
+    };
+    bind.extend(binds.merged(target));
 
     let children = item
         .get("children")
