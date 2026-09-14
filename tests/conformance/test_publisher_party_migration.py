@@ -3,7 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
 from jsonschema import Draft202012Validator
 
 from tests.unit.support.schema_fixtures import build_schema_registry
@@ -64,5 +63,8 @@ def test_publisher_with_langmap_name():
 
 
 def test_publisher_requires_name():
-    with pytest.raises(Exception):
-        _v().validate({**BASE, "publisher": {"homepage": "https://acme"}})
+    errors = list(_v().iter_errors({**BASE, "publisher": {"homepage": "https://acme"}}))
+    assert errors, "publisher without name must be rejected"
+    assert all(
+        e.validator == "required" and "'name'" in e.message for e in errors
+    ), [e.message for e in errors]
