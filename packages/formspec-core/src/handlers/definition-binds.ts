@@ -19,6 +19,7 @@ import type { CommandHandler } from '../types.js';
 import { resolveItemLocation } from './helpers.js';
 import type { FormBind, FormItem } from '@formspec-org/types';
 import { setRecordProperty } from '../record-mutate.js';
+import { bindEntriesFor, mergeBindProperties } from '../definition-binds.js';
 
 // ── setBind helpers ──────────────────────────────────────────────────
 
@@ -149,24 +150,24 @@ export const definitionBindsHandlers = {
       properties: Record<string, unknown>;
     };
 
-    const binds = (state.definition.binds ??= []);
-
-    let bind = binds.find(b => b.path === path);
-    if (!bind) {
-      bind = { path };
-      binds.push(bind);
-    }
+    // Several entries may target one path (engines merge them in order). Fold them
+    // into the first entry — keeping its position and authored path spelling — so a
+    // property set or cleared here is the path's effective value, not a shadowed copy.
+    const targets = new Set(bindEntriesFor(state.definition.binds, path));
+    const [first] = targets;
+    const bind: FormBind = first
+      ? Object.assign(first, mergeBindProperties(targets), { path: first.path })
+      : { path };
 
     // Apply properties — null removes
     for (const [key, value] of Object.entries(properties)) {
       setRecordProperty(bind as Record<string, unknown>, key, value);
     }
 
-    // If only 'path' remains, remove the bind entry
-    const keys = Object.keys(bind).filter(k => k !== 'path');
-    if (keys.length === 0) {
-      state.definition.binds = binds.filter((b: FormBind) => b !== bind);
-    }
+    const keep = Object.keys(bind).some(k => k !== 'path');
+    const binds = (state.definition.binds ?? []).filter(b => !targets.has(b) || (b === bind && keep));
+    if (!first && keep) binds.push(bind);
+    state.definition.binds = binds;
 
     return { rebuildComponentTree: false };
   },

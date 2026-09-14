@@ -192,6 +192,78 @@ describe('definition.setBind', () => {
   });
 });
 
+describe('definition.setBind: multiple entries per path', () => {
+  function projectWithBinds(binds: Array<Record<string, unknown>>) {
+    return createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0', url: 'urn:binds', version: '1.0.0', status: 'draft', title: 'T',
+          items: [
+            { type: 'field', key: 'age', label: 'Age', dataType: 'integer' },
+            { type: 'field', key: 'name', label: 'Name', dataType: 'string' },
+            {
+              type: 'group', key: 'jobs', label: 'Jobs', repeatable: true,
+              children: [{ type: 'field', key: 'hours', label: 'Hours', dataType: 'integer' }],
+            },
+          ],
+          binds,
+        } as any,
+      },
+    });
+  }
+
+  it('clearing a property removes it from every entry for the path', () => {
+    const project = projectWithBinds([
+      { path: 'age', required: 'true' },
+      { path: 'name', required: 'true' },
+      { path: 'age', constraint: '$age > 0', constraintMessage: 'Positive' },
+    ]);
+
+    project.dispatch({
+      type: 'definition.setBind',
+      payload: { path: 'age', properties: { constraint: null, constraintMessage: null } },
+    });
+
+    expect(project.bindFor('age')).toEqual({ required: 'true' });
+    expect(project.definition.binds).toEqual([
+      { path: 'age', required: 'true' },
+      { path: 'name', required: 'true' },
+    ]);
+  });
+
+  it('folds entries into one, preserving merge order, before applying properties', () => {
+    const project = projectWithBinds([
+      { path: 'age', required: 'false', readonly: 'true' },
+      { path: 'age', required: 'true' },
+    ]);
+
+    project.dispatch({ type: 'definition.setBind', payload: { path: 'age', properties: { relevant: '$name != null' } } });
+
+    expect(project.definition.binds).toEqual([
+      { path: 'age', required: 'true', readonly: 'true', relevant: '$name != null' },
+    ]);
+  });
+
+  it('removes the folded entry when every property is cleared', () => {
+    const project = projectWithBinds([
+      { path: 'age', required: 'true' },
+      { path: 'age', constraint: '$age > 0' },
+    ]);
+
+    project.dispatch({ type: 'definition.setBind', payload: { path: 'age', properties: { required: null, constraint: null } } });
+
+    expect(project.definition.binds ?? []).toEqual([]);
+  });
+
+  it('edits a [*] wildcard bind addressed by the item path, keeping the authored path', () => {
+    const project = projectWithBinds([{ path: 'jobs[*].hours', constraint: '$ >= 0' }]);
+
+    project.dispatch({ type: 'definition.setBind', payload: { path: 'jobs.hours', properties: { constraint: null, required: 'true' } } });
+
+    expect(project.definition.binds).toEqual([{ path: 'jobs[*].hours', required: 'true' }]);
+  });
+});
+
 describe('definition.setItemExtension', () => {
   it('sets an extension property', () => {
     const project = createRawProject();

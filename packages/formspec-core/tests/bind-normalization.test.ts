@@ -120,3 +120,48 @@ describe('bindFor (existing)', () => {
     expect(result).not.toHaveProperty('path');
   });
 });
+
+describe('bindFor: multiple entries per path', () => {
+  it('merges every entry for the path in document order, later values winning', () => {
+    const state = makeState({
+      definition: {
+        items: [],
+        binds: [
+          { path: 'age', required: 'true', constraint: '$age > 0' },
+          { path: 'other', readonly: 'true' },
+          { path: 'age', constraint: '$age < 130', constraintMessage: 'Too old' },
+        ],
+      },
+    });
+    expect(bindFor(state, 'age')).toEqual({
+      required: 'true',
+      constraint: '$age < 130',
+      constraintMessage: 'Too old',
+    });
+  });
+
+  it('matches a [*] wildcard bind path to the item path and vice versa', () => {
+    const state = makeState({
+      definition: {
+        items: [],
+        binds: [
+          { path: 'work.jobs[*].hours', required: 'true' },
+          { path: 'work.jobs.hours', constraint: '$ >= 0' },
+        ],
+      },
+    });
+    const merged = { required: 'true', constraint: '$ >= 0' };
+    expect(bindFor(state, 'work.jobs.hours')).toEqual(merged);
+    expect(bindFor(state, 'work.jobs[*].hours')).toEqual(merged);
+  });
+
+  it('does not treat a single-repetition bind as the item-wide bind', () => {
+    const state = makeState({
+      definition: {
+        items: [],
+        binds: [{ path: 'jobs[@index = 1].hours', calculate: '40' }],
+      },
+    });
+    expect(bindFor(state, 'jobs.hours')).toBeUndefined();
+  });
+});

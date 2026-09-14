@@ -10,6 +10,7 @@ import { CORE_FIELD_DATA_TYPES, type CoreFieldDataType } from '@formspec-org/typ
 import { itemAtPath, normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
 import { editableComponentTree, walkComponentTree } from '../component-tree.js';
 import { registryEntry } from '../registry-entry.js';
+import { bindEntriesFor, bindTargetKey, mergeBindProperties } from '../definition-binds.js';
 import { resolveThemeCascade, type ThemeCascadeInput } from '../theme-cascade.js';
 import type {
   ProjectState,
@@ -74,9 +75,18 @@ export function itemAt(state: ProjectState, path: string): FormItem | undefined 
  */
 export function responseSchemaRows(state: ProjectState): ResponseSchemaRow[] {
   const rows: ResponseSchemaRow[] = [];
-  const binds = state.definition.binds ?? [];
-
-  const getBindFor = (path: string) => binds.find(b => b.path === path);
+  const bindsByTarget = new Map<string, FormBind[]>();
+  for (const bind of state.definition.binds ?? []) {
+    if (typeof bind.path !== 'string') continue;
+    const key = bindTargetKey(bind.path);
+    const entries = bindsByTarget.get(key);
+    if (entries) entries.push(bind);
+    else bindsByTarget.set(key, [bind]);
+  }
+  const getBindFor = (path: string) => {
+    const entries = bindsByTarget.get(path);
+    return entries ? mergeBindProperties(entries) : undefined;
+  };
 
   const jsonTypeForItem = (item: FormItem): ResponseSchemaRow['jsonType'] => {
     if (item.type === 'group') {
@@ -192,14 +202,12 @@ export function effectivePresentation(state: ProjectState, fieldKey: string): Re
 }
 
 /**
- * Get the effective bind properties for a field path.
+ * Get the effective bind properties for a field path: every bind entry targeting
+ * the path (`[*]` wildcards match the item path), merged in document order with
+ * later values winning — the same merge both engines apply.
  */
 export function bindFor(state: ProjectState, path: string): Record<string, unknown> | undefined {
-  const binds = state.definition.binds;
-  if (!binds) return undefined;
-  const bind = binds.find(b => b.path === path);
-  if (!bind) return undefined;
-  const { path: _path, ...props } = bind;
+  const props = mergeBindProperties(bindEntriesFor(state.definition.binds, path));
   return Object.keys(props).length > 0 ? props : undefined;
 }
 
@@ -309,17 +317,7 @@ export interface NormalizedBinds {
  * from the item definition into a flat record of constraints.
  */
 export function normalizeBinds(state: ProjectState, path: string): NormalizedBinds {
-  const result: NormalizedBinds = {};
-
-  // Collect from binds
-  const binds = state.definition.binds ?? [];
-  for (const bind of binds) {
-    if (bind.path !== path) continue;
-    for (const [key, val] of Object.entries(bind)) {
-      if (key === 'path') continue;
-      result[key] = val;
-    }
-  }
+  const result: NormalizedBinds = mergeBindProperties(bindEntriesFor(state.definition.binds, path));
 
   // Overlay from item's prePopulate/initialValue
   const item = itemAt(state, path);
