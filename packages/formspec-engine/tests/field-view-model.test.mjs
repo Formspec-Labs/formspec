@@ -271,6 +271,35 @@ test('FieldViewModel errors with locale-resolved messages', () => {
     assert.equal(vm.firstError.value, 'Ce champ est obligatoire');
 });
 
+test('FieldViewModel per-Bind constraintMessage labels only CONSTRAINT_FAILED', () => {
+    // Core Phase 3 step 1a: a definition error keeps its processor-generated message.
+    const errorsSig = rt.signal([
+        {
+            path: 'email', severity: 'error', constraintKind: 'constraint', code: 'CONSTRAINT_PARSE_ERROR',
+            message: 'Constraint expression error: undefined function: bogus', constraintMessage: 'Bad email',
+        },
+        {
+            path: 'email', severity: 'error', constraintKind: 'constraint', code: 'CONSTRAINT_FAILED',
+            message: 'Bad email', constraintMessage: 'Bad email',
+        },
+    ]);
+    const deps = makeMinimalDeps({ getErrors: () => errorsSig });
+    const vm = createFieldViewModel(deps);
+    deps.localeStore.loadLocale({
+        $formspecLocale: '2.0',
+        locale: 'fr',
+        version: '1.0.0',
+        target: { kind: 'definition', url: '' },
+        strings: { 'email.constraintMessage': 'Courriel invalide' },
+    });
+    deps.localeStore.setLocale('fr');
+
+    assert.deepEqual(vm.errors.value.map((e) => e.message), [
+        'Constraint expression error: undefined function: bogus',
+        'Courriel invalide',
+    ]);
+});
+
 test('FieldViewModel option labels resolve from locale', () => {
     const optSig = rt.signal([
         { value: 'yes', label: 'Yes' },
