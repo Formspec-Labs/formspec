@@ -14,6 +14,16 @@ export const renderRepeatCards: AdapterRenderFn<RepeatGroupLayoutBehavior> = (be
     container.dataset.bind = behavior.bindKey;
     parent.appendChild(container);
 
+    if (behavior.titleText) {
+        const heading = document.createElement(behavior.headingLevel);
+        // A hidden title stays in the accessible markup and leaves the page (theme §5.2), same as a group's.
+        heading.className = behavior.titleHidden
+            ? 'formspec-group-title formspec-sr-only'
+            : 'formspec-group-title';
+        watchText(actx, behavior.titleText, (text) => { heading.textContent = text; });
+        container.appendChild(heading);
+    }
+
     const list = document.createElement('div');
     list.className = 'formspec-repeat-list';
     container.appendChild(list);

@@ -18,7 +18,13 @@ function hostSlice() {
 }
 
 /** Jobs 1..n, two rows, with the row heading and Remove availability under the test's control. */
-function mountCards(options: { canRemove?: boolean; rowLabel?: string } = {}) {
+function mountCards(options: {
+    canRemove?: boolean;
+    rowLabel?: string;
+    title?: string | null;
+    titleHidden?: boolean;
+    headingLevel?: string;
+} = {}) {
     const count = signal(2);
     const addInstance = vi.fn(() => { count.value += 1; });
     const removeInstance = vi.fn(() => { count.value -= 1; });
@@ -26,7 +32,9 @@ function mountCards(options: { canRemove?: boolean; rowLabel?: string } = {}) {
         comp: { cssClasses: [], props: {}, style: undefined, accessibility: undefined },
         host: hostSlice() as never,
         bindKey: 'jobs',
-        headingLevel: 'h3',
+        titleText: options.title == null ? null : signal(options.title),
+        titleHidden: options.titleHidden ?? false,
+        headingLevel: options.headingLevel ?? 'h3',
         addLabel: signal('Add another job'),
         renderRows: (build) => {
             effect(() => build({
@@ -120,6 +128,38 @@ describe('USWDS RepeatCards', () => {
 
         expect(parent.querySelector('fieldset')).toBeNull();
         expect(parent.querySelector('.formspec-repeat-instance')).toBeNull();
+    });
+
+    it("wraps the cards and Add in one fieldset when the group has a title, the shape a titled group takes", () => {
+        const { parent } = mountCards({ title: 'Jobs on record' });
+        const container = parent.querySelector('[data-bind="jobs"]') as HTMLElement;
+        const formGroup = container.querySelector('.usa-form-group') as HTMLElement;
+        expect(formGroup).not.toBeNull();
+        expect(container.firstElementChild).toBe(formGroup);
+        const fieldset = formGroup.querySelector('fieldset.usa-fieldset') as HTMLElement;
+        expect(fieldset).not.toBeNull();
+        expect(formGroup.firstElementChild).toBe(fieldset);
+        const legend = fieldset.querySelector('legend') as HTMLElement;
+        expect(legend.className).toBe('usa-legend formspec-group-title usa-legend--large');
+        expect(legend.textContent).toBe('Jobs on record');
+        expect(fieldset.firstElementChild).toBe(legend);
+        expect(fieldset.querySelectorAll('div.usa-card')).toHaveLength(2);
+        // Add is the fieldset's last child — it follows the cards, same order as an untitled repeat.
+        expect(fieldset.lastElementChild?.classList.contains('formspec-repeat-add')).toBe(true);
+        // The announcer stays outside the fieldset — a direct child of the outer container.
+        expect(container.lastElementChild?.getAttribute('aria-live')).toBe('polite');
+    });
+
+    it('keeps a hidden repeat title in the accessible markup as an sr-only legend (theme §5.2)', () => {
+        const { parent } = mountCards({ title: 'Jobs on record', titleHidden: true });
+        const legend = parent.querySelector('legend.formspec-group-title') as HTMLElement;
+        expect(legend.className).toBe('usa-legend formspec-group-title usa-sr-only');
+    });
+
+    it('wraps nothing extra when the group has no title — same markup as before this fix', () => {
+        const { parent } = mountCards();
+        expect(parent.querySelector('.usa-form-group')).toBeNull();
+        expect(parent.querySelector('legend.formspec-group-title')).toBeNull();
     });
 });
 

@@ -163,6 +163,13 @@ export interface RepeatGroupLayoutBehavior {
     host: LayoutHostSlice;
     /** The repeated group's key, as authored. */
     bindKey: string;
+    /** The group's own live title (Locale, `{{}}`, definition label), or null when it has none. */
+    titleText: LocalizedText | null;
+    /**
+     * `labelPosition: 'hidden'` (theme §5.2): draw the title for assistive technology only — it stays in
+     * the accessible markup (a legend keeps naming the fieldset) and leaves the page.
+     */
+    titleHidden: boolean;
     /** Heading tag for a row heading at this depth: `'h3'`…`'h6'`. */
     headingLevel: string;
     /** "Add Employer" — Locale `<key>.addLabel`, else derived from the group label. */

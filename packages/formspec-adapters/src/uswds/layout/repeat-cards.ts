@@ -4,6 +4,7 @@ import {
     type AdapterContext,
     type RepeatGroupLayoutBehavior,
 } from '@formspec-org/webcomponent';
+import { SECTION_HEADING_LEVELS } from './group';
 
 /**
  * A repeatable group as USWDS cards (theme §4.2 `RepeatCards`): each instance is a `usa-card` headed by the
@@ -27,9 +28,31 @@ export function renderUSWDSRepeatCards(
     actx.applyStyle(container, comp.style);
     parent.appendChild(container);
 
+    // A titled repeat takes the same shape a titled group takes: the rows and Add sit inside one
+    // fieldset, named by the group's own legend, so a repeatable group's own title finally renders.
+    let content: HTMLElement = container;
+    if (behavior.titleText) {
+        const formGroup = document.createElement('div');
+        formGroup.className = 'usa-form-group';
+        container.appendChild(formGroup);
+
+        content = document.createElement('fieldset');
+        content.className = 'usa-fieldset';
+        formGroup.appendChild(content);
+
+        const legend = document.createElement('legend');
+        legend.className = behavior.titleHidden
+            ? 'usa-legend formspec-group-title usa-sr-only'
+            : SECTION_HEADING_LEVELS.has(behavior.headingLevel)
+                ? 'usa-legend formspec-group-title usa-legend--large'
+                : 'usa-legend formspec-group-title';
+        watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
+        content.appendChild(legend);
+    }
+
     const list = document.createElement('div');
     list.className = 'formspec-stack';
-    container.appendChild(list);
+    content.appendChild(list);
 
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
@@ -95,7 +118,7 @@ export function renderUSWDSRepeatCards(
         }
     });
 
-    container.appendChild(addBtn);
+    content.appendChild(addBtn);
     container.appendChild(announcer);
     actx.onDispose(behavior.bind({ root: container, list, addButton: addBtn, announcer }));
 }

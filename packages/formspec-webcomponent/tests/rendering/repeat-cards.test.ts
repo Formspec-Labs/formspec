@@ -72,6 +72,19 @@ describe('RepeatCards — default adapter', () => {
         expect(cards(el)[1].querySelector('.formspec-card-title')?.textContent).toBe('Job 2');
     });
 
+    it("draws the group's own title above the cards, distinct from each card's row title", () => {
+        const { el } = render({ jobs: { widget: 'RepeatCards' } });
+        const container = el.querySelector('.formspec-repeat[data-bind="jobs"]') as HTMLElement;
+        const title = container.querySelector('.formspec-group-title') as HTMLElement;
+
+        expect(title).not.toBeNull();
+        expect(title.textContent).toBe('Job');
+        // The group's own title sits above the list, never inside a card — a card's row heading is
+        // `.formspec-card-title`, a separate element naming that one instance.
+        expect(container.firstElementChild).toBe(title);
+        expect(title.closest('.formspec-card')).toBeNull();
+    });
+
     it('names each card for assistive technology even when the heading is suppressed', () => {
         const { el } = render({ jobs: { widget: 'RepeatCards' } }, { 'jobs.rowLabel': '' });
         const card = cards(el)[0];

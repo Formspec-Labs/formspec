@@ -139,3 +139,44 @@ describe('group title and hint', () => {
         expect(el.querySelector('.formspec-group > .formspec-hint')).toBeNull();
     });
 });
+
+/** A repeatable group's own title, above its rows — the same cascade and markup a non-repeat group takes. */
+describe('repeat group title', () => {
+    function employersGroup(overrides: Record<string, unknown> = {}) {
+        return {
+            key: 'employersOnRecord',
+            type: 'group',
+            label: 'Your employers on record',
+            repeatable: true,
+            minRepeat: 1,
+            children: [{ key: 'payerName', type: 'field', dataType: 'string', label: 'Payer' }],
+            ...overrides,
+        };
+    }
+
+    it("renders the group's own title above its rows, from the group label", () => {
+        const { el } = render(employersGroup());
+        const repeat = el.querySelector('.formspec-repeat[data-bind="employersOnRecord"]') as HTMLElement;
+        const title = repeat.querySelector('.formspec-group-title') as HTMLElement;
+
+        expect(title).not.toBeNull();
+        expect(title.textContent).toBe('Your employers on record');
+        // The title sits above the row list, not inside it.
+        expect(title.nextElementSibling?.classList.contains('formspec-repeat-list')).toBe(true);
+    });
+
+    it('keeps a hidden repeat title in the accessible markup and off the page (theme §5.2)', () => {
+        const { el } = render(employersGroup(), { employersOnRecord: { labelPosition: 'hidden' } });
+        const title = el.querySelector('.formspec-repeat .formspec-group-title') as HTMLElement;
+
+        expect(title.textContent).toBe('Your employers on record');
+        expect(title.classList.contains('formspec-sr-only')).toBe(true);
+    });
+
+    it('draws no title at all for an authored empty group label', () => {
+        const { el } = render(employersGroup({ label: '' }));
+
+        expect(el.querySelector('.formspec-repeat .formspec-group-title')).toBeNull();
+        expect(el.querySelector('input')).not.toBeNull();
+    });
+});

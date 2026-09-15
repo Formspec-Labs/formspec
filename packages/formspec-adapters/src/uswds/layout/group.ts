@@ -9,8 +9,9 @@ import {
 /**
  * Heading depths that read as a form section rather than a question group. The renderer starts groups at
  * `h3`; the shallower tags are covered so a change of starting depth cannot silently flatten every legend.
+ * Shared with the RepeatCards render, so a titled repeat's legend follows the same size rule.
  */
-const SECTION_HEADING_LEVELS = new Set(['h1', 'h2', 'h3']);
+export const SECTION_HEADING_LEVELS = new Set(['h1', 'h2', 'h3']);
 
 /** Classes and inline presentation the theme cascade resolved onto the planner node. */
 function applyNodePresentation(el: HTMLElement, comp: any, actx: AdapterContext): void {
@@ -39,11 +40,13 @@ export function renderUSWDSGroup(
         // A section's legend is USWDS's large legend; a nested group takes the plain one — the size a
         // question's own legend uses. USWDS has no middle size, so depth beyond that changes nothing.
         // A hidden title keeps naming the fieldset and leaves the page: `usa-sr-only`, never `display:none`.
+        // `formspec-group-title` names the role structurally (default adapter's group title carries the
+        // same class) so an adapter variant can target a group's legend without also catching a question's.
         legend.className = behavior.titleHidden
-            ? 'usa-legend usa-sr-only'
+            ? 'usa-legend formspec-group-title usa-sr-only'
             : SECTION_HEADING_LEVELS.has(behavior.headingLevel)
-                ? 'usa-legend usa-legend--large'
-                : 'usa-legend';
+                ? 'usa-legend formspec-group-title usa-legend--large'
+                : 'usa-legend formspec-group-title';
         watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
         content.appendChild(legend);
 
@@ -73,9 +76,31 @@ export function renderUSWDSRepeatGroup(
     applyNodePresentation(container, behavior.comp, actx);
     parent.appendChild(container);
 
+    // A titled repeat takes the same shape a titled group takes: the rows and Add sit inside one
+    // fieldset, named by the group's own legend, so a repeatable group's own title finally renders.
+    let content: HTMLElement = container;
+    if (behavior.titleText) {
+        const formGroup = document.createElement('div');
+        formGroup.className = 'usa-form-group';
+        container.appendChild(formGroup);
+
+        content = document.createElement('fieldset');
+        content.className = 'usa-fieldset';
+        formGroup.appendChild(content);
+
+        const legend = document.createElement('legend');
+        legend.className = behavior.titleHidden
+            ? 'usa-legend formspec-group-title usa-sr-only'
+            : SECTION_HEADING_LEVELS.has(behavior.headingLevel)
+                ? 'usa-legend formspec-group-title usa-legend--large'
+                : 'usa-legend formspec-group-title';
+        watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
+        content.appendChild(legend);
+    }
+
     const list = document.createElement('div');
     list.className = 'formspec-stack';
-    container.appendChild(list);
+    content.appendChild(list);
 
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
@@ -122,7 +147,7 @@ export function renderUSWDSRepeatGroup(
         }
     });
 
-    container.appendChild(addBtn);
+    content.appendChild(addBtn);
     container.appendChild(announcer);
     actx.onDispose(behavior.bind({ root: container, list, addButton: addBtn, announcer }));
 }

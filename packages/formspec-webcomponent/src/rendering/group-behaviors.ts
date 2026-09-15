@@ -6,6 +6,7 @@ import type { RenderHost } from '../hub-types.js';
 import type {
     GroupLayoutBehavior,
     GroupRefs,
+    LocalizedText,
     RepeatGroupLayoutBehavior,
     RepeatGroupRefs,
     RepeatGroupRowsPass,
@@ -121,6 +122,17 @@ export function buildRepeatGroupBehavior(
     const groupLabel = itemLabel(host.engine, item, path, bindKey);
     // A row's heading sits at this level; what a row contains is one deeper, as in a plain group.
     const childHeadingLevel = Math.min(headingLevel + 1, 6);
+
+    // The group's own title, same cascade as a non-repeat group (`buildGroupBehavior`): an authored
+    // `$component.<id>.title` Locale string wins over the planner's inline label, which is otherwise
+    // this group's live label (Locale, `{{}}`).
+    let titleText: LocalizedText | null = null;
+    if (node.props.title) {
+        const authored = compText({ engine: host.engine, prefix }, node.props, 'title', node.props.title as string);
+        titleText = computed(() => (
+            item && authored.value === item.label ? groupLabel.value : authored.value
+        ));
+    }
     // Theme widgetConfig Add/Remove locks, planned onto the template's props (theme §4.2).
     const { count, relevant, canAdd, canRemove } = repeatAffordances(host.engine, path, item, {
         allowAdd: node.props.allowAdd as boolean | undefined,
@@ -165,6 +177,8 @@ export function buildRepeatGroupBehavior(
         host: groupHostSlice(host, path, cleanupFns, (child, parent, pfx) =>
             emitChild(child as LayoutNode, parent, pfx ?? path, childHeadingLevel, cleanupFns)),
         bindKey,
+        titleText,
+        titleHidden: node.labelPosition === 'hidden',
         headingLevel: `h${Math.min(headingLevel, 6)}`,
         addLabel: computed(() => localeText('addLabel', path).value ?? `Add ${groupLabel.value}`),
 

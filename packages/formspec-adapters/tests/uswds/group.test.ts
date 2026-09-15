@@ -41,7 +41,12 @@ function mountGroup(
 }
 
 /** Employers bounded 1..3, with Add and Remove both available. */
-function mountRepeat(options: { canRemove?: boolean } = {}) {
+function mountRepeat(options: {
+    canRemove?: boolean;
+    title?: string | null;
+    titleHidden?: boolean;
+    headingLevel?: string;
+} = {}) {
     const count = signal(2);
     const addInstance = vi.fn(() => { count.value += 1; });
     const removeInstance = vi.fn(() => { count.value -= 1; });
@@ -49,7 +54,9 @@ function mountRepeat(options: { canRemove?: boolean } = {}) {
         comp: { cssClasses: [], props: {}, style: undefined, accessibility: undefined },
         host: hostSlice() as never,
         bindKey: 'employers',
-        headingLevel: 'h3',
+        titleText: options.title == null ? null : signal(options.title),
+        titleHidden: options.titleHidden ?? false,
+        headingLevel: options.headingLevel ?? 'h3',
         addLabel: signal('Add Employer on record'),
         renderRows: (build) => {
             effect(() => build({
@@ -88,19 +95,21 @@ describe('USWDS bound group', () => {
     it('gives a section-level group the large legend, so it reads as a heading not a question', () => {
         const { parent } = mountGroup('Eligibility Questions');
         const legend = parent.querySelector('legend');
-        expect(legend!.className).toBe('usa-legend usa-legend--large');
+        expect(legend!.className).toBe('usa-legend formspec-group-title usa-legend--large');
     });
 
     it('keeps a nested group on the plain legend — USWDS has no middle size', () => {
         const { parent } = mountGroup('Mailing address', 'h4');
         const legend = parent.querySelector('legend');
-        expect(legend!.className).toBe('usa-legend');
+        expect(legend!.className).toBe('usa-legend formspec-group-title');
     });
 
-    it('emits no Formspec default group chrome', () => {
+    it('emits no Formspec default group wrapper, but names the legend structurally like the default adapter does', () => {
         const { parent } = mountGroup('Mailing address');
         expect(parent.querySelector('.formspec-group')).toBeNull();
-        expect(parent.querySelector('.formspec-group-title')).toBeNull();
+        // ADR 0064: `formspec-group-title` is structure, not skin — it lets a variant target a group's
+        // title without also catching a question's legend, which shares every other USWDS class.
+        expect(parent.querySelector('legend.formspec-group-title')).not.toBeNull();
     });
 
     it('renders an untitled group as a plain scope wrapper, never an unnamed fieldset', () => {
@@ -116,7 +125,7 @@ describe('USWDS bound group', () => {
 
         // Present and named for assistive technology; off the page for everyone else.
         expect(legend.textContent).toBe('Work this week');
-        expect(legend.className).toBe('usa-legend usa-sr-only');
+        expect(legend.className).toBe('usa-legend formspec-group-title usa-sr-only');
         expect(parent.querySelector('fieldset.usa-fieldset')).not.toBeNull();
     });
 
@@ -149,6 +158,45 @@ describe('USWDS repeatable group', () => {
         expect(rows[1].querySelector('legend.usa-legend')?.textContent).toBe('Employer on record 2');
         // Rows are peers inside one section: the fieldset boundary carries the grouping, not a heading size.
         expect(rows[0].querySelector('legend')!.className).toBe('usa-legend');
+    });
+
+    it("wraps the rows and Add in one fieldset when the group has a title, the shape a titled group takes", () => {
+        const { parent } = mountRepeat({ title: 'Employers on record' });
+        const container = parent.querySelector('[data-bind="employers"]') as HTMLElement;
+        const formGroup = container.querySelector('.usa-form-group') as HTMLElement;
+        expect(formGroup).not.toBeNull();
+        expect(container.firstElementChild).toBe(formGroup);
+        const fieldset = formGroup.querySelector('fieldset.usa-fieldset') as HTMLElement;
+        expect(fieldset).not.toBeNull();
+        expect(formGroup.firstElementChild).toBe(fieldset);
+        const legend = fieldset.querySelector('legend') as HTMLElement;
+        expect(legend.className).toBe('usa-legend formspec-group-title usa-legend--large');
+        expect(legend.textContent).toBe('Employers on record');
+        expect(fieldset.firstElementChild).toBe(legend);
+        // The rows (their own fieldsets) and Add sit inside the group's fieldset now.
+        expect(fieldset.querySelectorAll('fieldset.usa-fieldset')).toHaveLength(2);
+        expect(fieldset.querySelector('button.usa-button--outline')).not.toBeNull();
+        // The announcer stays outside the fieldset — a direct child of the outer container.
+        expect(container.lastElementChild?.getAttribute('aria-live')).toBe('polite');
+    });
+
+    it('keeps a hidden repeat title in the accessible markup as an sr-only legend (theme §5.2)', () => {
+        const { parent } = mountRepeat({ title: 'Employers on record', titleHidden: true });
+        const legend = parent.querySelector('legend.formspec-group-title') as HTMLElement;
+        expect(legend.className).toBe('usa-legend formspec-group-title usa-sr-only');
+    });
+
+    it('keeps a nested repeat on the plain legend — same size rule as a titled group', () => {
+        const { parent } = mountRepeat({ title: 'Employers on record', headingLevel: 'h4' });
+        const legend = parent.querySelector('legend.formspec-group-title') as HTMLElement;
+        expect(legend.className).toBe('usa-legend formspec-group-title');
+    });
+
+    it('wraps nothing extra when the group has no title — same markup as before this fix', () => {
+        const { parent } = mountRepeat();
+        expect(parent.querySelector('.usa-form-group')).toBeNull();
+        expect(parent.querySelector('legend.formspec-group-title')).toBeNull();
+        expect(parent.querySelectorAll('fieldset.usa-fieldset')).toHaveLength(2); // rows only
     });
 
     it('renders Add as an outline usa-button', () => {
