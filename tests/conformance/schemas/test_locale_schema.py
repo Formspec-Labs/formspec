@@ -129,6 +129,38 @@ class TestLocaleSchema:
             doc["strings"] = {key: "Texte {{locale()}}"}
             _validate(doc)
 
+    def test_ui_chrome_key_is_valid_on_a_definition_target(self) -> None:
+        doc = _minimal_locale()
+        doc["strings"] = {"$ui.repeat.add": "Ajouter {{$label}}"}
+
+        _validate(doc)
+
+    def test_unknown_ui_chrome_key_is_rejected(self) -> None:
+        doc = _minimal_locale()
+        doc["strings"] = {"$ui.select.futureAlias": "Not admitted"}
+
+        with pytest.raises(ValidationError):
+            _validate(doc)
+
+    def test_ui_chrome_key_requires_definition_target(self) -> None:
+        doc = _minimal_locale()
+        doc["target"] = {
+            "kind": "app",
+            "url": "https://example.gov/apps/intake",
+        }
+        doc["strings"] = {"$ui.repeat.add": "Ajouter {{$label}}"}
+
+        with pytest.raises(ValidationError):
+            _validate(doc)
+
+    def test_every_closed_chrome_string_key_is_schema_valid(self) -> None:
+        chrome_keys = LOCALE_SCHEMA["$defs"]["ChromeStringKey"]["enum"]
+        assert chrome_keys and len(chrome_keys) == len(set(chrome_keys))
+        for key in chrome_keys:
+            doc = _minimal_locale()
+            doc["strings"] = {key: "Texte {{$label}}"}
+            _validate(doc)
+
 
 class TestLocaleFormats:
     """Locale §2.4: `formats.date` maps formatDate style names to patterns."""

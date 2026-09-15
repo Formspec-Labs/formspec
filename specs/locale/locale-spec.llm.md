@@ -12,6 +12,7 @@ Source schema: `schemas/locale.schema.json`
 - Loaded Locale identity is `(target kind, target URL, normalized locale)`. Regional-to-base fallback stays within that exact target.
 - Item strings use `<itemKey>.<property>` with the bare Item key at any depth (`amount.label` for `lineItems[*].amount`); dotted template paths such as `lineItems.amount.label` are not valid keys.
 - App-targeted Locale documents may use the closed `$module.x-formspec-surface.shell.*` key family. Every dynamic string uses FEL `{{expression}}` interpolation; processors do not apply a separate `{name}` parser.
+- Definition-targeted Locale documents may retune renderer chrome (Select, wizard, character count, etc.) through the closed `$ui.<ChromeStringKey>` family (§3.1.10). Its `{{$param}}` placeholders are literal, renderer-supplied values, never FEL.
 - This BLUF is governed by `schemas/locale.schema.json`; generated references expose the canonical schema-defined structure.
 
 ## Critical Schema Fields

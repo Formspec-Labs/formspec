@@ -44,6 +44,38 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "strings": {
+            "not": {
+              "propertyNames": {
+                "not": {
+                  "pattern": "^\\$ui\\."
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "strings"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "properties": {
+              "kind": {
+                "const": "definition"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      }
     }
   ],
   "properties": {
@@ -211,7 +243,7 @@
         "type": "string"
       },
       "propertyNames": {
-        "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$",
+        "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|\\$ui\\.|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$",
         "allOf": [
           {
             "if": {
@@ -220,9 +252,17 @@
             "then": {
               "$ref": "#/$defs/SurfaceShellStringKey"
             }
+          },
+          {
+            "if": {
+              "pattern": "^\\$ui\\."
+            },
+            "then": {
+              "$ref": "#/$defs/ChromeStringKey"
+            }
           }
         ],
-        "description": "String keys are dot-delimited. Item strings use <itemKey>.<property>, where <itemKey> is the bare Item key at any depth (amount.label for lineItems[*].amount); dotted template paths such as lineItems.amount.label are not valid item keys. The $module.x-formspec-surface.shell.<SurfaceStringKey> family is closed to the exact SurfaceShellStringKey enum. Other module keys retain $module.<modId>.<nodeId>.<prop> addressing."
+        "description": "String keys are dot-delimited. Item strings use <itemKey>.<property>, where <itemKey> is the bare Item key at any depth (amount.label for lineItems[*].amount); dotted template paths such as lineItems.amount.label are not valid item keys. The $module.x-formspec-surface.shell.<SurfaceStringKey> family is closed to the exact SurfaceShellStringKey enum. The $ui.<ChromeStringKey> family (target.kind: definition) is closed to the exact ChromeStringKey enum — renderer chrome strings, {{$param}} filled literally, never FEL. Other module keys retain $module.<modId>.<nodeId>.<prop> addressing."
       },
       "description": "Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification.",
       "examples": [
@@ -259,7 +299,7 @@
         "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation"
       },
       "propertyNames": {
-        "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$"
+        "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|\\$ui\\.|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$"
       },
       "description": "Generation provenance keyed exactly like strings. Strict data-only authoring profiles require every authored localized string to have a same-key direct current adopted Need anchor."
     },
@@ -342,6 +382,51 @@
         "$module.x-formspec-surface.shell.transitionFireable"
       ],
       "description": "Closed one-to-one mapping to SurfaceStringKey. A new shell string requires a Locale schema revision."
+    },
+    "ChromeStringKey": {
+      "type": "string",
+      "enum": [
+        "$ui.select.placeholder",
+        "$ui.select.clear",
+        "$ui.select.clearSelection",
+        "$ui.select.selectedValues",
+        "$ui.select.selectAll",
+        "$ui.repeat.add",
+        "$ui.repeat.remove",
+        "$ui.repeat.row",
+        "$ui.repeat.rowOf",
+        "$ui.wizard.next",
+        "$ui.wizard.nextStep",
+        "$ui.wizard.previous",
+        "$ui.wizard.previousStep",
+        "$ui.wizard.skip",
+        "$ui.wizard.skipStep",
+        "$ui.wizard.submit",
+        "$ui.wizard.submitForm",
+        "$ui.wizard.steps",
+        "$ui.wizard.progress",
+        "$ui.wizard.step",
+        "$ui.wizard.collapseNavigation",
+        "$ui.modal.close",
+        "$ui.alert.dismiss",
+        "$ui.validationSummary.heading",
+        "$ui.date.format",
+        "$ui.characterCount.limit",
+        "$ui.characterCount.allowed",
+        "$ui.characterCount.left",
+        "$ui.characterCount.leftOne",
+        "$ui.characterCount.over",
+        "$ui.characterCount.overOne",
+        "$ui.signature.clear",
+        "$ui.signature.canvas",
+        "$ui.money.amount",
+        "$ui.money.currency",
+        "$ui.fieldHelp.label",
+        "$ui.screener.continue",
+        "$ui.screener.required",
+        "$ui.screener.back"
+      ],
+      "description": "Closed one-to-one mapping to the renderer chrome string inventory (Locale spec §3.1.10, packages/formspec-layout/src/ui-strings.ts). A new chrome string requires a Locale schema revision."
     }
   }
 }

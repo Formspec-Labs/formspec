@@ -50,6 +50,7 @@ document unless explicitly redefined.
 - Loaded Locale identity is `(target kind, target URL, normalized locale)`. Regional-to-base fallback stays within that exact target.
 - Item strings use `<itemKey>.<property>` with the bare Item key at any depth (`amount.label` for `lineItems[*].amount`); dotted template paths such as `lineItems.amount.label` are not valid keys.
 - App-targeted Locale documents may use the closed `$module.x-formspec-surface.shell.*` key family. Every dynamic string uses FEL `{{expression}}` interpolation; processors do not apply a separate `{name}` parser.
+- Definition-targeted Locale documents may retune renderer chrome (Select, wizard, character count, etc.) through the closed `$ui.<ChromeStringKey>` family (§3.1.10). Its `{{$param}}` placeholders are literal, renderer-supplied values, never FEL.
 - This BLUF is governed by `schemas/locale.schema.json`; generated references expose the canonical schema-defined structure.
 <!-- bluf:end -->
 
@@ -789,6 +790,83 @@ These keys are valid only for `target.kind: "app"` and the
 `x-formspec-surface` module. A processor MUST reject an unknown shell suffix and
 MUST NOT translate a shorter host key or legacy Surface string name into this
 family.
+
+#### 3.1.10 Renderer Chrome Strings
+
+Reference runtimes hardcode a small vocabulary of English UI chrome — Select
+placeholders, wizard Next/Previous/Skip/Submit, the character-count status, the
+signature Clear control, and similar controls the Definition never authors.
+Locale 2.0 gives a Locale Document a closed family to retune this chrome for
+`target.kind: "definition"`:
+
+```
+$ui.<ChromeStringKey>
+```
+
+`<ChromeStringKey>` is closed. The Locale schema and every conforming
+renderer's chrome inventory MUST contain these exact suffixes one-for-one
+(source of truth: `packages/formspec-layout/src/ui-strings.ts`, kept in parity
+with the schema by test):
+
+| Key suffix | English default | Parameters |
+|---|---|---|
+| `select.placeholder` | `Select…` | none |
+| `select.clear` | `Clear` | none |
+| `select.clearSelection` | `Clear selection` | none |
+| `select.selectedValues` | `Selected values` | none |
+| `select.selectAll` | `Select All` | none |
+| `repeat.add` | `Add {{$label}}` | `$label` |
+| `repeat.remove` | `Remove {{$label}}` | `$label` |
+| `repeat.row` | `{{$label}} {{$index}}` | `$label`, `$index` |
+| `repeat.rowOf` | `{{$label}} {{$index}} of {{$total}}` | `$label`, `$index`, `$total` |
+| `wizard.next` | `Next` | none |
+| `wizard.nextStep` | `Next step` | none |
+| `wizard.previous` | `Previous` | none |
+| `wizard.previousStep` | `Previous step` | none |
+| `wizard.skip` | `Skip` | none |
+| `wizard.skipStep` | `Skip this step` | none |
+| `wizard.submit` | `Submit` | none |
+| `wizard.submitForm` | `Submit form` | none |
+| `wizard.steps` | `Form steps` | none |
+| `wizard.progress` | `Form progress` | none |
+| `wizard.step` | `Step` | none |
+| `wizard.collapseNavigation` | `Collapse navigation` | none |
+| `modal.close` | `Close` | none |
+| `alert.dismiss` | `Dismiss` | none |
+| `validationSummary.heading` | `Please correct the following` | none |
+| `date.format` | `MM/DD/YYYY` | none |
+| `characterCount.limit` | `You can enter up to {{$max}} characters` | `$max` |
+| `characterCount.allowed` | `{{$max}} characters allowed` | `$max` |
+| `characterCount.left` | `{{$count}} characters left` | `$count` |
+| `characterCount.leftOne` | `1 character left` | none |
+| `characterCount.over` | `{{$count}} characters over limit` | `$count` |
+| `characterCount.overOne` | `1 character over limit` | none |
+| `signature.clear` | `Clear` | none |
+| `signature.canvas` | `Signature canvas. Use the Clear button to reset.` | none |
+| `money.amount` | `Amount` | none |
+| `money.currency` | `Currency code` | none |
+| `fieldHelp.label` | `Help me answer this question` | none |
+| `screener.continue` | `Continue` | none |
+| `screener.required` | `Required` | none |
+| `screener.back` | `Back to screening` | none |
+
+Parameters are renderer-supplied, read-only values (a repeat's group label,
+row index, row total, character count, character max) written `{{$name}}` and
+substituted **literally** into the template. A chrome string carries no other
+FEL: it never evaluates against the form scope, and it is the one respect in
+which this family differs from §3.1.9 — Surface shell references are FEL,
+`$ui` parameters are not. A processor MUST NOT parse `{{$name}}` here as an
+expression.
+
+An unknown `$ui` suffix is rejected by the closed schema and by lint code
+E1401, exactly as an unknown Surface shell suffix (§3.1.9) is — the family
+admits no per-site or per-Definition keys.
+
+A design-system adapter with its own English default for one of these
+controls (USWDS's `- Select -` placeholder, for example) resolves the key with
+that default as the fallback argument: an unauthored Locale keeps the
+adapter's own default, and one authored `$ui.select.placeholder` retunes every
+adapter's placeholder through the same key.
 
 ### 3.2 Key Resolution Rules
 

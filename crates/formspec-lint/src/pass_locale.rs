@@ -55,6 +55,24 @@ fn surface_shell_string_keys() -> &'static HashSet<String> {
     })
 }
 
+/// Locale §3.1.10 `ChromeStringKey` suffixes (renderer chrome, `packages/formspec-layout/src/ui-strings.ts`),
+/// read from the embedded Locale schema enum so the lint never carries a second copy of the closed set.
+fn chrome_string_keys() -> &'static HashSet<String> {
+    const UI_PREFIX: &str = "$ui.";
+    static KEYS: OnceLock<HashSet<String>> = OnceLock::new();
+    KEYS.get_or_init(|| {
+        let schema: Value = serde_json::from_str(include_str!("../schemas/locale.schema.json"))
+            .expect("embedded Locale schema is valid JSON");
+        schema["$defs"]["ChromeStringKey"]["enum"]
+            .as_array()
+            .expect("Locale schema declares the ChromeStringKey enum")
+            .iter()
+            .filter_map(|key| key.as_str()?.strip_prefix(UI_PREFIX))
+            .map(str::to_owned)
+            .collect()
+    })
+}
+
 pub(crate) fn lint_locale(locale: &Value, options: &LintOptions) -> Vec<LintDiagnostic> {
     let mut analyzer = Analyzer {
         locale,
@@ -195,6 +213,7 @@ impl<'a> Analyzer<'a> {
             "page" => self.check_page_key(&parts[1..], json_path),
             "component" => self.check_component_key(&parts[1..], json_path),
             "module" => self.check_module_key(&parts[1..], json_path),
+            "ui" => self.check_ui_key(&parts[1..], json_path),
             other => self.diagnostics.push(error(
                 crate::LintCode::E1401,
                 PASS,
@@ -227,6 +246,22 @@ impl<'a> Analyzer<'a> {
                     "Locale Surface shell key references unknown SurfaceStringKey {:?}",
                     strip_context(&parts[2])
                 ),
+            ));
+        }
+    }
+
+    /// Checks a `$ui.<ChromeStringKey>` key (Locale §3.1.10): a closed, two-segment suffix
+    /// (`<namespace>.<name>`, e.g. `select.placeholder`) admitted one-for-one against the schema's
+    /// `ChromeStringKey` enum. No `@context` suffix — chrome strings carry no FEL, only literal
+    /// `{{$param}}` substitution.
+    fn check_ui_key(&mut self, parts: &[String], json_path: &str) {
+        let suffix = parts.join(".");
+        if parts.len() != 2 || !chrome_string_keys().contains(&suffix) {
+            self.diagnostics.push(error(
+                crate::LintCode::E1401,
+                PASS,
+                json_path,
+                format!("Locale $ui key references unknown ChromeStringKey {suffix:?}"),
             ));
         }
     }
@@ -913,6 +948,46 @@ mod tests {
             !app_diagnostics
                 .iter()
                 .any(|diag| diag.code == crate::LintCode::E1400)
+        );
+    }
+
+    #[test]
+    fn ui_keys_admit_only_known_chrome_string_keys() {
+        let mut locale = locale_document("definition", "https://example.com/forms/other", "en", None);
+        locale["strings"] = json!({
+            "$ui.select.placeholder": "Seleccione\u{2026}",
+            "$ui.repeat.add": "Agregar {{$label}}",
+            "$ui.notAKey": "Unknown",
+            "$ui.select": "Unknown shape"
+        });
+
+        let diagnostics = lint_locale(
+            &locale,
+            &LintOptions {
+                no_fel: true,
+                ..Default::default()
+            },
+        );
+
+        assert!(
+            !diagnostics.iter().any(|diag| {
+                diag.code == crate::LintCode::E1401
+                    && (diag.path.contains("select.placeholder") || diag.path.contains("repeat.add"))
+            }),
+            "known $ui keys must not be flagged: {diagnostics:?}"
+        );
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diag| diag.code == crate::LintCode::E1401 && diag.path.contains("notAKey")),
+            "unknown $ui suffix must be E1401: {diagnostics:?}"
+        );
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diag| diag.code == crate::LintCode::E1401
+                    && diag.path.contains("$ui.select\"")),
+            "a single-segment $ui key (no <namespace>.<name>) must be E1401: {diagnostics:?}"
         );
     }
 
