@@ -295,6 +295,22 @@ export function wasmPrepareFelExpression(optionsJson: string): string {
     return wasm().prepareFelExpression(optionsJson);
 }
 
+/**
+ * One form's FEL state, resident in WASM across ad-hoc reads.
+ *
+ * `load` replaces the form-scope snapshot; each read names only its expression and Item path, so its cost is
+ * the scope it resolves against, not the size of the form. Call `free()` when the owning engine is disposed.
+ */
+export type WasmFelContextHandle = import('../wasm-pkg-runtime/formspec_wasm_runtime.js').FelContext;
+
+/** Creates a resident FEL context from a Definition's leaf typing and `excludedValue: "null"` binds. */
+export function wasmCreateFelContext(schema: {
+    dataTypes: Record<string, string>;
+    excludedValueNull: string[];
+}): WasmFelContextHandle {
+    return new (wasm().FelContext)(JSON.stringify(schema));
+}
+
 /** Inline `optionSet` references from `optionSets` on a definition JSON document. */
 export function wasmResolveOptionSetsOnDefinition(definitionJson: string): string {
     return wasm().resolveOptionSetsOnDefinition(definitionJson);

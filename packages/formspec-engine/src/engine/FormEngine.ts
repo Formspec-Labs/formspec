@@ -12,7 +12,6 @@ import type {
     ValidationProfile,
 } from '@formspec-org/types';
 import { diffEvalResults, type EvalDiagnostic, type EvalResult, type EvalValidation } from '../diff.js';
-import { interpolateFELTemplate } from '../interpolate-message.js';
 import { FelExtensionFunctions, type FelExtensionFunctionRegistration } from '../extension-functions.js';
 import type {
     AuthoredSignatureInput,
@@ -33,8 +32,8 @@ import type {
 } from '../interfaces.js';
 import {
     analyzeFEL,
-    evalFELWithContextTrace,
     getFELDependencies,
+    type FelTraceResult,
     type FelTraceStep,
 } from '../fel/fel-api-runtime.js';
 import { preactReactiveRuntime } from '../reactivity/preact-runtime.js';
@@ -46,8 +45,8 @@ import type { Issuer, IssuerSource, ResolvedIssuer } from '../issuer/types.js';
 import { createFieldViewModel, resolveItemLabel, type FieldViewModel } from '../field-view-model.js';
 import { createFormViewModel, type FormViewModel } from '../form-view-model.js';
 import {
+    wasmCreateFelContext,
     wasmEvaluateDefinition,
-    wasmEvalFELWithContext,
 } from '../wasm-bridge-runtime.js';
 import {
     resolveOptionSetsOnDefinition,
@@ -73,16 +72,15 @@ import {
     resolvePinnedDefinition,
 } from './response-assembly.js';
 import {
-    buildWasmFelContextBase,
     buildWasmFelExpressionContext,
     mergeWasmEvalWithExternalValidations,
     normalizeExpressionForWasmEvaluation,
     visibleScopedVariableValues,
     wasmEvaluateDefinitionPayload,
-    type WasmFelContextBase,
     type WasmFelContextBuildInput,
 } from './wasm-fel.js';
-import type { WasmFelContext } from '../wasm-bridge-runtime.js';
+import { felContextSchema, felContextSnapshot } from './fel-context.js';
+import type { WasmFelContextHandle, WasmInterpolated } from '../wasm-bridge-runtime.js';
 import type { EngineBindConfig } from './helpers.js';
 import {
     appendPath,
@@ -140,7 +138,8 @@ export class FormEngine implements IFormEngine {
     private readonly _fieldItems = new Map<string, FormItem>();
     /** `dataType` of every field Item by base path, from the definition (FEL value tagging, scope checks). */
     private readonly _fieldDataTypes: Record<string, string | undefined> = {};
-    private _felContextBase: { key: string; base: WasmFelContextBase } | null = null;
+    /** WASM-resident FEL context for ad-hoc reads, reloaded when `key` (the engine's state epoch) changes. */
+    private _felContext: { key: string; handle: WasmFelContextHandle } | null = null;
     private readonly _groupItems = new Map<string, FormItem>();
     private readonly _shapeTiming = new Map<string, 'continuous' | 'submit' | 'demand'>();
     private readonly _instanceCalculateBinds: EngineBindConfig[] = [];
@@ -496,11 +495,13 @@ export class FormEngine implements IFormEngine {
             this.instanceVersion.value;
             this.structureVersion.value;
             // compileExpression is a public API — propagate errors (unlike internal evaluation).
-            return wasmEvalFELWithContext(
-                this.normalizeExpressionForWasm(expression, currentItemName),
-                this.felContext(currentItemName),
+            return JSON.parse(this.felContext().evaluate(
+                expression,
+                currentItemName,
+                false,
+                this.nowISO(),
                 this._extensionFunctions,
-            );
+            )).value;
         };
     }
 
@@ -663,11 +664,13 @@ export class FormEngine implements IFormEngine {
         }
 
         try {
-            const result = evalFELWithContextTrace(
-                this.normalizeExpressionForWasm(calculate, basePath),
-                this.felContext(basePath),
+            const result = JSON.parse(this.felContext().evaluateTrace(
+                calculate,
+                basePath,
+                false,
+                this.nowISO(),
                 this._extensionFunctions,
-            );
+            )) as FelTraceResult;
             const trace = Array.isArray(result.trace) ? result.trace : [];
             this._derivationTraceCache.set(basePath, {
                 version,
@@ -1020,7 +1023,9 @@ export class FormEngine implements IFormEngine {
     }
 
     public dispose(): void {
-        // No-op — WASM-backed engine has no subscriptions to teardown.
+        // The only owned WASM allocation is the resident FEL context; signals need no teardown.
+        this._felContext?.handle.free();
+        this._felContext = null;
     }
 
     public registerExtensionFunction(name: string, registration: FelExtensionFunctionRegistration): void {
@@ -1475,19 +1480,42 @@ export class FormEngine implements IFormEngine {
     }
 
     /**
-     * FEL context for ad-hoc reads (compileExpression, Locale `{{}}`, derivation trace). The form-scope base is
-     * built once per engine state: values, MIPs, and results change only through `_evaluate` (evaluation
-     * version), rows through structure changes, instances through the instance version. Reading those signals
-     * also re-runs a caller's computed whenever the base would change. In-flight evaluation reads use
-     * `evaluateExpression`, which always builds fresh.
+     * WASM-resident FEL context for ad-hoc reads (compileExpression, Locale `{{}}`, derivation trace).
+     *
+     * The form-scope snapshot is loaded once per engine state: values, MIPs, and results change only through
+     * `_evaluate` (evaluation version), rows through structure changes, instances through the instance
+     * version. Reading those signals also re-runs a caller's computed whenever the snapshot would change.
+     * Each read then names only its expression and Item path, so it costs the scope it resolves against
+     * rather than the size of the form. In-flight evaluation reads use `evaluateExpression`, which builds a
+     * one-shot context from the partial state it is midway through producing.
      */
-    private felContext(currentItemPath: string): WasmFelContext {
+    private felContext(): WasmFelContextHandle {
         const key = `${this._evaluationVersion.value}:${this.structureVersion.value}:${this.instanceVersion.value}`;
-        const input = this.felContextInput(currentItemPath);
-        if (this._felContextBase?.key !== key) {
-            this._felContextBase = { key, base: buildWasmFelContextBase(input) };
+        if (!this._felContext) {
+            this._felContext = {
+                key: '',
+                handle: wasmCreateFelContext(felContextSchema(this._fieldDataTypes, this._bindConfigs)),
+            };
         }
-        return buildWasmFelExpressionContext(input, this._felContextBase.base);
+        if (this._felContext.key !== key) {
+            this._felContext.handle.load(JSON.stringify(felContextSnapshot({
+                data: this._data,
+                fullResult: this._fullResult,
+                fieldSignals: this.signals,
+                validationResults: this.validationResults,
+                relevantSignals: this.relevantSignals,
+                readonlySignals: this.readonlySignals,
+                requiredSignals: this.requiredSignals,
+                repeats: this.repeats,
+                variableDefs: this._variableDefs,
+                variableSignals: this.variableSignals,
+                instanceData: this.instanceData,
+                locale: this._runtimeContext.locale,
+                meta: this._runtimeContext.meta,
+            })));
+            this._felContext.key = key;
+        }
+        return this._felContext.handle;
     }
 
     private repeatCountsSnapshot(): Record<string, number> {
@@ -1851,7 +1879,12 @@ export class FormEngine implements IFormEngine {
         if (!template.includes('{{')) {
             return template;
         }
-        return interpolateFELTemplate(template, this.felContext(itemPath), this._extensionFunctions).text;
+        return (JSON.parse(this.felContext().interpolate(
+            template,
+            itemPath,
+            this.nowISO(),
+            this._extensionFunctions,
+        )) as WasmInterpolated).text;
     }
 
     private getDisplayedIssuerPin(): { url: string; version: string } | undefined {

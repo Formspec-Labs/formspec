@@ -256,12 +256,8 @@ export interface WasmFelContextBuildInput {
 
 type MipState = NonNullable<WasmFelContext['mipStates']>[string];
 
-/**
- * The scope-independent part of a FEL context: every field value and MIP state, built once from engine state.
- * O(fields). Reuse it across `buildWasmFelExpressionContext` calls while that state is unchanged (one
- * evaluation); treat it as read-only.
- */
-export interface WasmFelContextBase {
+/** The scope-independent part of a FEL context: every field value and MIP state, built from engine state. */
+interface WasmFelContextBase {
     /** Merged data, evaluation values, and signal values by instance path (signals win). */
     rawFields: Record<string, any>;
     /** Form-scope `fields` tree with `excludedValue` applied. */
@@ -273,12 +269,12 @@ export interface WasmFelContextBase {
     instances: Record<string, unknown>;
 }
 
-export type WasmFelContextBaseInput = Omit<
+type WasmFelContextBaseInput = Omit<
     WasmFelContextBuildInput,
     'currentItemPath' | 'scopedVariableOverrides' | 'variableDefs' | 'variableSignals' | 'nowIso' | 'locale' | 'meta'
 >;
 
-export function buildWasmFelContextBase(options: WasmFelContextBaseInput): WasmFelContextBase {
+function buildWasmFelContextBase(options: WasmFelContextBaseInput): WasmFelContextBase {
     const result = options.resultOverride ?? options.fullResult;
     const rawFields = {
         ...(options.dataOverride ?? options.data),
@@ -324,14 +320,13 @@ export function buildWasmFelContextBase(options: WasmFelContextBaseInput): WasmF
 }
 
 /**
- * FEL context for `currentItemPath`: the form-scope base plus each enclosing lexical scope's names, outermost
- * first so the nearest scope shadows (Core §3.2.1). Pass a shared `base` to avoid rebuilding form-scope state
- * per call; the scope overlay costs O(fields × scope depth).
+ * One-shot FEL context for `currentItemPath`: the form-scope base plus each enclosing lexical scope's names,
+ * outermost first so the nearest scope shadows (Core §3.2.1). O(fields × scope depth), so it serves the
+ * in-flight evaluation reads that must see partial state. Ad-hoc reads go through the WASM-resident
+ * `FelContext` handle instead (`FormEngine.felContext`).
  */
-export function buildWasmFelExpressionContext(
-    options: WasmFelContextBuildInput,
-    base: WasmFelContextBase = buildWasmFelContextBase(options),
-): WasmFelContext {
+export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput): WasmFelContext {
+    const base = buildWasmFelContextBase(options);
     const scopes = lexicalScopeChain(options.currentItemPath, options.fieldDataTypes);
     let fields = base.fields;
     let mipStates = base.mipStates;
