@@ -1,0 +1,27 @@
+{
+  "$formspecReferences": "1.0",
+  "version": "1.0.0",
+  "url": "https://example.com/references/ref-id-override",
+  "targetDefinition": {
+    "url": "https://example.com/forms/references"
+  },
+  "referenceDefs": {
+    "incomeRule": {
+      "type": "documentation",
+      "audience": "human",
+      "title": "Income rule",
+      "uri": "https://example.com/income-rule"
+    }
+  },
+  "references": [
+    {
+      "target": "household",
+      "$ref": "#/referenceDefs/incomeRule"
+    },
+    {
+      "target": "household.income",
+      "$ref": "#/referenceDefs/incomeRule",
+      "id": "householdIncomeRule"
+    }
+  ]
+}

@@ -968,6 +968,16 @@
       "state": "tested"
     },
     {
+      "code": "E1305",
+      "pass": 9,
+      "severity": "error",
+      "title": "References $ref override declares an id",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "remove id from the $ref binding; the referenceDefs key is the resolved reference id",
+      "fixtures": ["tests/fixtures/lint/E1305-references-ref-id-override.json"],
+      "state": "tested"
+    },
+    {
       "code": "W1300",
       "pass": 9,
       "severity": "warning",

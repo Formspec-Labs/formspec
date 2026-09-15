@@ -153,6 +153,7 @@ impl<'a> Analyzer<'a> {
             let base_path = format!("$.references[{i}]");
             if let Some(pointer) = bound.get("$ref").and_then(Value::as_str) {
                 self.check_ref_pointer(pointer, &base_path);
+                self.check_ref_id_override(bound, pointer, &base_path);
             }
             self.check_target(bound, &base_path);
             self.check_reference_fields(bound, &base_path);
@@ -178,6 +179,24 @@ impl<'a> Analyzer<'a> {
                 format!("References $ref points to missing referenceDefs entry {key:?}"),
             ));
         }
+    }
+
+    /// A `$ref` binding's identity is the `referenceDefs` key it points at, so
+    /// an override MUST NOT restate or replace it (references-spec.md §4.6.3
+    /// rule 5). Several bindings sharing one key are one reference reused, not
+    /// duplicate ids (§2.3) — the id that needs removing is the authored one.
+    fn check_ref_id_override(&mut self, bound: &Value, pointer: &str, base_path: &str) {
+        let Some(id) = bound.get("id").and_then(Value::as_str) else {
+            return;
+        };
+        self.diagnostics.push(error(
+            crate::LintCode::E1305,
+            PASS,
+            format!("{base_path}.id"),
+            format!(
+                "References $ref binding declares id {id:?}; the key named by {pointer:?} is the resolved id"
+            ),
+        ));
     }
 
     fn check_target(&mut self, bound: &Value, base_path: &str) {
@@ -273,5 +292,61 @@ impl<'a> Analyzer<'a> {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::missing_docs_in_private_items)]
+
+    use serde_json::Value;
+
+    use super::*;
+
+    fn fixture(source: &str) -> Value {
+        let mut document: Value = serde_json::from_str(source).expect("fixture is valid JSON");
+        if let Some(object) = document.as_object_mut() {
+            object.remove("_pairedDefinition");
+        }
+        document
+    }
+
+    fn codes_at(diagnostics: &[LintDiagnostic], code: crate::LintCode) -> Vec<String> {
+        diagnostics
+            .iter()
+            .filter(|diag| diag.code == code)
+            .map(|diag| diag.path.clone())
+            .collect()
+    }
+
+    #[test]
+    fn ref_binding_declaring_an_id_emits_e1305() {
+        let document = fixture(include_str!(
+            "../../../tests/fixtures/lint/E1305-references-ref-id-override.json"
+        ));
+
+        let diagnostics = lint_references_doc(&document, None);
+
+        // references[0] reuses the same def with no id — the key is its identity
+        // (references-spec.md §4.6.3 rule 5), so only references[1] is flagged.
+        assert_eq!(
+            codes_at(&diagnostics, crate::LintCode::E1305),
+            vec!["$.references[1].id".to_string()],
+            "diagnostics: {diagnostics:?}"
+        );
+    }
+
+    #[test]
+    fn inline_reference_id_does_not_emit_e1305() {
+        let document = fixture(include_str!(
+            "../../../tests/fixtures/lint/E1300-references-semantic-invalid.json"
+        ));
+
+        let diagnostics = lint_references_doc(&document, None);
+
+        assert!(
+            codes_at(&diagnostics, crate::LintCode::E1305).is_empty(),
+            "an authored id on a non-$ref binding is legal: {diagnostics:?}"
+        );
     }
 }
