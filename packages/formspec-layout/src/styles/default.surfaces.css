@@ -54,15 +54,25 @@ hr.formspec-divider {
   background: var(--formspec-default-surface);
 }
 
+/* Gap + padding here are this skin's rhythm under ADR 0064 decision 3 — same tokens layout.primitives.css used to carry. */
 .formspec-repeat-instance {
+  gap: var(--formspec-spacing-field, 0.75rem);
+  padding: 0.95rem 1rem 1rem;
   border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 86%, white);
   border-radius: var(--formspec-default-radius-sm);
   background: color-mix(in srgb, var(--formspec-default-surface) 88%, var(--formspec-default-surface-quiet));
 }
 
 .formspec-repeat-instance-header {
+  gap: 0.75rem;
   padding-bottom: 0.6rem;
   border-bottom: 1px solid color-mix(in srgb, var(--formspec-default-border-muted) 78%, white);
+}
+
+/* Instance label and Remove share one row: drop UA paragraph and button margins so adapters line them up. */
+.formspec-repeat-instance-header > .formspec-repeat-instance-label,
+.formspec-repeat-instance-header > .formspec-repeat-remove {
+  margin-block: 0;
 }
 
 .formspec-repeat-instance-label {

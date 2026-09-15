@@ -1,5 +1,31 @@
 /* @filedesc Base elements, fields, and shared chrome for the default Formspec skin. */
 
+/*
+ * Layout rhythm (ADR 0064 decision 3): `layout.primitives.css` owns structure only (flex/grid shape);
+ * the gaps between a container's children are this skin's opinion, under the same spacing tokens the
+ * structural sheet used to carry. Same selectors, same tokens, same cascade outcome — moved, not changed.
+ */
+.formspec-container {
+  gap: var(--formspec-spacing-md, 1rem);
+}
+
+.formspec-stack:not(.grid-row),
+.formspec-group {
+  gap: var(--formspec-spacing-field, 0.75rem);
+}
+
+.formspec-section {
+  gap: var(--formspec-spacing-field, 0.75rem);
+}
+
+.formspec-repeat-list {
+  gap: var(--formspec-spacing-field, 0.75rem);
+}
+
+.formspec-grid {
+  gap: var(--formspec-spacing-md, 1rem) var(--formspec-spacing-field, 0.75rem);
+}
+
 .formspec-container :where(input:not([type="radio"]):not([type="checkbox"]):not([type="range"]):not([hidden]):not(.formspec-combobox-input)),
 .formspec-container :where(textarea),
 .formspec-container :where(select) {

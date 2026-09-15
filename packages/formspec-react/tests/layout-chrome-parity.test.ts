@@ -3,13 +3,48 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 
+/**
+ * Strip top-level `@media (...) { ... }` blocks via balanced-brace scanning. `extractRuleProp`'s regex
+ * below assumes one `{`/`}` pair per rule; an unstripped `@media` wrapper nests a second pair inside the
+ * first, which desyncs every rule match that follows it in the file. None of this suite's assertions
+ * target a selector that lives inside a media query, so dropping those blocks is lossless here.
+ */
+function stripMediaBlocks(css: string): string {
+    let out = '';
+    let i = 0;
+    while (i < css.length) {
+        const atMedia = css.slice(i).match(/^@media[^{]*\{/);
+        if (!atMedia) { out += css[i]; i += 1; continue; }
+        let depth = 1;
+        let j = i + atMedia[0].length;
+        while (j < css.length && depth > 0) {
+            if (css[j] === '{') depth += 1;
+            else if (css[j] === '}') depth -= 1;
+            j += 1;
+        }
+        i = j;
+    }
+    return out;
+}
+
+/**
+ * A `/* comment *\/` directly above a selector becomes part of `extractRuleProp`'s captured selector
+ * text below (its regex treats everything between the previous `}` and the next `{` as one selector
+ * list) — an exact-match `part.trim() === selector` then never matches. Strip comments so a rule's own
+ * explanatory prose can't desync selector matching.
+ */
+function stripComments(css: string): string {
+    return css.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
 function readCSSResolved(filePath: string): string {
     const raw = readFileSync(filePath, 'utf-8');
     const dir = dirname(filePath);
-    return raw.replace(/@import\s+"(\.[^"]+)";/g, (_match, rel) => {
+    const resolved = raw.replace(/@import\s+"(\.[^"]+)";/g, (_match, rel) => {
         try { return readCSSResolved(resolve(dir, rel)); }
         catch { return _match; }
     });
+    return stripComments(stripMediaBlocks(resolved));
 }
 
 function extractRuleProp(css: string, selector: string, prop: string): string | null {

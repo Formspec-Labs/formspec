@@ -55,7 +55,11 @@ describe('Field spacing token ownership', () => {
 
     it('bundles structural layout into the canonical default CSS', () => {
         expect(layoutCSSRaw).toContain('@import "./formspec-layout.css";');
-        expect(extractRuleProp(layoutStructuralCSS, '.formspec-stack', 'gap')).toBe('var(--formspec-spacing-field, 0.75rem)');
+        // ADR 0064 decision 3: the structural sheet owns shape only (flex/grid); `.formspec-stack`'s
+        // gap is the default skin's rhythm now, under the same token — present in the combined bundle,
+        // absent from the structure-only one.
+        expect(extractRuleProp(layoutCSS, '.formspec-stack', 'gap')).toBe('var(--formspec-spacing-field, 0.75rem)');
+        expect(extractRuleProp(layoutStructuralCSS, '.formspec-stack', 'gap')).toBeNull();
     });
 
     it('keeps React and WC source CSS as thin wrappers over the canonical assets', () => {

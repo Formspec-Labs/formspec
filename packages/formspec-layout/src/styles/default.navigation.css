@@ -11,6 +11,12 @@
   transition: var(--formspec-default-transition-fast);
 }
 
+/* Rhythm under ADR 0064 decision 3 — same token layout.primitives.css used to carry. */
+.formspec-repeat-add,
+.formspec-repeat-remove {
+  margin-top: var(--formspec-spacing-sm, 0.5rem);
+}
+
 .formspec-repeat-add {
   padding: 0.72rem 1rem;
   border: 1px solid color-mix(in srgb, var(--formspec-default-border-control) 88%, white);
@@ -215,6 +221,7 @@
 }
 
 .formspec-tab-bar {
+  gap: 2px;
   margin-bottom: 1rem;
   padding: 0.22rem;
   border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 82%, white);
@@ -388,6 +395,12 @@
   padding: 10px;
 }
 
+/* Rhythm under ADR 0064 decision 3 — layout.primitives.css used to carry these. */
+.formspec-wizard-sidenav-list {
+  margin: 0;
+  padding: 8px 0;
+}
+
 .formspec-wizard-sidenav-toggle:hover,
 .formspec-wizard-sidenav-btn:hover {
   color: var(--formspec-default-text-strong);
@@ -398,6 +411,7 @@
 }
 
 .formspec-wizard-sidenav-item {
+  gap: 10px;
   margin: 0.2rem 0.5rem;
   border-left: none;
   border-radius: var(--formspec-default-radius-sm);
@@ -500,6 +514,16 @@
 .formspec-wizard-steps {
   margin-bottom: 20px;
   gap: 0.75rem;
+}
+
+/* Rhythm under ADR 0064 decision 3 — layout.primitives.css used to carry these (hardcoded px, not tokens). */
+.formspec-wizard-step-wrapper {
+  gap: 4px;
+}
+
+.formspec-wizard-nav {
+  gap: 8px;
+  margin-top: 16px;
 }
 
 .formspec-wizard-step-indicator {

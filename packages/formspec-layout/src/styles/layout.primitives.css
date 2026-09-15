@@ -29,7 +29,6 @@
 .formspec-container {
   display: flex;
   flex-direction: column;
-  gap: var(--formspec-spacing-md, 1rem);
 }
 
 /* USWDS adapter: same node is `formspec-stack grid-row grid-gap` — column flex here wins in cascade over USWDS .grid-row (no flex-direction) and breaks the field grid. */
@@ -47,41 +46,23 @@
 .formspec-repeat-list {
   display: flex;
   flex-direction: column;
-  gap: var(--formspec-spacing-field, 0.75rem);
-}
-
-.formspec-stack:not(.grid-row),
-.formspec-group {
-  gap: var(--formspec-spacing-field, 0.75rem);
-}
-
-.formspec-section {
-  gap: var(--formspec-spacing-field, 0.75rem);
-}
-
-.formspec-repeat-instance {
-  gap: var(--formspec-spacing-field, 0.75rem);
-  padding: 0.95rem 1rem 1rem;
 }
 
 .formspec-repeat-instance-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
 }
 
 .formspec-repeat-add,
 .formspec-repeat-remove {
   align-self: flex-start;
-  margin-top: var(--formspec-spacing-sm, 0.5rem);
 }
 
-/* Instance label and Remove share one row: drop UA paragraph and button margins so adapters line them up. */
+/* Instance label and Remove share one row: their UA/rhythm margins live in the default skin (ADR 0064 decision 3). */
 .formspec-repeat-instance-header > .formspec-repeat-instance-label,
 .formspec-repeat-instance-header > .formspec-repeat-remove {
   align-self: center;
-  margin-block: 0;
 }
 
 /* Match specificity of `.formspec-stack:not(.grid-row)` above so row wins over column. */
@@ -113,10 +94,6 @@
 .formspec-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-}
-
-.formspec-grid {
-  gap: var(--formspec-spacing-md, 1rem) var(--formspec-spacing-field, 0.75rem);
 }
 
 .formspec-grid > * {
@@ -182,8 +159,6 @@
 }
 
 .formspec-wizard-sidenav-list {
-  margin: 0;
-  padding: 8px 0;
   overflow: hidden;
   list-style: none;
 }
@@ -191,7 +166,6 @@
 .formspec-wizard-sidenav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
   cursor: pointer;
   white-space: nowrap;
   outline: none;
@@ -204,7 +178,6 @@
 
 .formspec-wizard-steps {
   display: flex;
-  gap: 8px;
 }
 
 .formspec-wizard-step-wrapper {
@@ -213,19 +186,15 @@
   align-items: center;
   flex: 1;
   min-width: 0;
-  gap: 4px;
 }
 
 .formspec-wizard-nav {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
 }
 
 .formspec-tab-bar {
   display: flex;
-  gap: 2px;
 }
 
 .formspec-tabs[data-placement="right"] {
