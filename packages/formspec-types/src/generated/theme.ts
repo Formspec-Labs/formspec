@@ -442,6 +442,10 @@ export interface TokenEntry {
    */
   derivedFrom?: string;
   /**
+   * When true, each adapter resolves this token to its own design system's value while a Theme leaves it unset, so it is NOT emitted into the platform Theme's token map. Its `default` is the default skin's value. Example: spacing.field falls back to USWDS's own field margin under the USWDS adapter and to 0.75rem in the default skin.
+   */
+  adapterDefault?: boolean;
+  /**
    * Example token values for documentation and tooling hints.
    */
   examples?: (string | number)[];
