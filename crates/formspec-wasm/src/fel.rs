@@ -47,7 +47,7 @@ fn parse_fel_source(expression: &str) -> Result<fel_core::Expr, String> {
 }
 
 /// JSON envelope for `evalFEL` / `evalFELWithContext` (value + error-diagnostics flag).
-fn fel_eval_envelope_json(
+pub(crate) fn fel_eval_envelope_json(
     value: &fel_core::Value,
     diagnostics: &[fel_core::Diagnostic],
 ) -> Result<String, String> {
@@ -198,7 +198,7 @@ pub(crate) fn eval_fel_with_context_inner(
 // ── Template interpolation (Locale §3.3.1) ─────────────────────
 
 /// JSON `{ text, warnings: [{ expression, message }] }` for an interpolation result.
-fn interpolated_json(interpolated: &Interpolated) -> Result<String, String> {
+pub(crate) fn interpolated_json(interpolated: &Interpolated) -> Result<String, String> {
     let warnings: Vec<Value> = interpolated
         .warnings
         .iter()

@@ -6,6 +6,7 @@
 //!
 //! ## Layout
 //! - `fel` — eval + analysis + path utils always; `fel-authoring`: tokenize/parse/print/rewrites/catalog
+//! - `fel_context` — `FelContext`: one form's FEL state resident across ad-hoc reads (no per-call context JSON)
 //! - `evaluate` — batch definition evaluation, screener (always in runtime WASM)
 //! - `extensions` — `FelExtensionHost`: JS-backed FEL extension functions (Core §3.12)
 //! - `definition` — always: option sets + migrations; `definition-assembly`: `assembleDefinition`
@@ -28,6 +29,7 @@ mod document;
 mod evaluate;
 mod extensions;
 mod fel;
+mod fel_context;
 mod json_host;
 #[cfg(feature = "mapping-api")]
 mod mapping;

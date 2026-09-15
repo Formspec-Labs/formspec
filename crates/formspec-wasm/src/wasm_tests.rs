@@ -19,6 +19,7 @@ mod tests {
     };
     #[cfg(feature = "fel-authoring")]
     use crate::fel::{rewrite_fel_for_assembly_inner, tokenize_fel_inner};
+    use crate::fel_context::FelContextHandle;
     #[cfg(feature = "mapping-api")]
     use crate::mapping::execute_mapping_rules_inner;
     #[cfg(feature = "registry-api")]
@@ -1132,5 +1133,132 @@ mod tests {
             .map(|w| w["expression"].as_str().unwrap())
             .collect();
         assert_eq!(failed, vec!["bad", "err", "boom"]);
+    }
+
+    // ── FelContext: one resident context, many ad-hoc reads ─────────────────
+
+    /// Schema + snapshot for a two-row repeat, the shape the engine loads per evaluation.
+    fn loaded_fel_context() -> FelContextHandle {
+        let mut ctx = FelContextHandle::new_inner(
+            &json!({
+                "dataTypes": { "name": "string", "rows.qty": "integer" },
+                "excludedValueNull": []
+            })
+            .to_string(),
+        )
+        .unwrap();
+        ctx.load_inner(
+            &json!({
+                "values": { "name": "Form", "rows[0].qty": 2, "rows[1].qty": 3 },
+                "mips": { "invalid": ["rows[1].qty"] },
+                "repeatCounts": { "rows": 2 },
+                "variables": { "#": { "limit": 10 } }
+            })
+            .to_string(),
+        )
+        .unwrap();
+        ctx
+    }
+
+    /// Each read names only its expression and Item path; the context stays in WASM across calls.
+    #[test]
+    fn fel_context_evaluates_by_item_path_without_per_call_context() {
+        let ctx = loaded_fel_context();
+        assert_eq!(
+            fel_eval_value(&ctx.evaluate_inner("$name", "", false, None, None).unwrap()),
+            json!("Form")
+        );
+        assert_eq!(
+            fel_eval_value(
+                &ctx.evaluate_inner("$qty * 2", "rows[1]", false, None, None)
+                    .unwrap()
+            ),
+            json!(6)
+        );
+        assert_eq!(
+            fel_eval_value(
+                &ctx.evaluate_inner("@index", "rows[1].qty", false, None, None)
+                    .unwrap()
+            ),
+            json!(2)
+        );
+        assert_eq!(
+            fel_eval_value(
+                &ctx.evaluate_inner("sum(rows.qty)", "", false, None, None)
+                    .unwrap()
+            ),
+            json!(5)
+        );
+        assert_eq!(
+            fel_eval_value(
+                &ctx.evaluate_inner("valid($qty)", "rows[1].qty", false, None, None)
+                    .unwrap()
+            ),
+            json!(false)
+        );
+        assert_eq!(
+            fel_eval_value(&ctx.evaluate_inner("@limit", "", false, None, None).unwrap()),
+            json!(10)
+        );
+        assert_eq!(ctx.prepare("$ + 1", "rows[0].qty", true), "$qty + 1");
+    }
+
+    /// Ad-hoc reads through the handle keep the `evalFELWithContext` rule: registered yes, undefined no.
+    #[test]
+    fn fel_context_resolves_host_extension_functions() {
+        let ctx = loaded_fel_context();
+        let registry = double_extension();
+        assert_eq!(
+            fel_eval_value(
+                &ctx.evaluate_inner("double($qty)", "rows[1]", false, None, Some(&registry))
+                    .unwrap()
+            ),
+            json!(6)
+        );
+        assert!(
+            ctx.evaluate_inner("double($qty)", "rows[1]", false, None, None)
+                .is_err()
+        );
+    }
+
+    /// Interpolation and tracing read the same resident context (Locale §3.3.1, derivation traces).
+    #[test]
+    fn fel_context_interpolates_and_traces_in_item_scope() {
+        let ctx = loaded_fel_context();
+        let out: Value = serde_json::from_str(
+            &ctx.interpolate_inner(
+                "Row {{@index}}/{{@count}} qty {{$qty}} {{((}}",
+                "rows[0].qty",
+                None,
+                None,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(out["text"], json!("Row 1/2 qty 2 {{((}}"));
+        assert_eq!(out["warnings"][0]["expression"], json!("(("));
+
+        let traced: Value = serde_json::from_str(
+            &ctx.evaluate_trace_inner("$qty + 1", "rows[0].qty", false, None, None)
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(traced["value"], json!(3));
+        assert!(!traced["trace"].as_array().unwrap().is_empty());
+    }
+
+    /// A reload replaces the snapshot; malformed input is an error, not a silently empty context.
+    #[test]
+    fn fel_context_reload_replaces_state_and_rejects_bad_json() {
+        let mut ctx = loaded_fel_context();
+        ctx.load_inner(&json!({ "values": { "name": "Next" }, "repeatCounts": {} }).to_string())
+            .unwrap();
+        assert_eq!(
+            fel_eval_value(&ctx.evaluate_inner("$name", "", false, None, None).unwrap()),
+            json!("Next")
+        );
+        assert!(ctx.load_inner("[]").is_err());
+        assert!(FelContextHandle::new_inner("null").is_err());
+        assert!(ctx.evaluate_inner("$ (", "", false, None, None).is_err());
     }
 }
