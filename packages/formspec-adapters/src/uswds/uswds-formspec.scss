@@ -105,6 +105,24 @@ $fs-adapter-name: 'uswds' !default;
   margin-top: var(--formspec-spacing-field, #{units(3)});
 }
 
+// USWDS types its own paragraphs with `typeset-p`: no block margins, one paragraph gap only between
+// siblings. Rich text (core §4.2.1) renders `p.formspec-rich-paragraph`, which has no USWDS class, and a
+// trimmed build forwards no global reset — so without these the UA's 1em margins own the rhythm: a hint
+// drifts a line clear of its legend and a list floats off the paragraph that introduces it. The frames
+// hug both, so the list follows its paragraph with no gap, one step past `typeset-p`.
+.formspec-rich-paragraph {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+* + .formspec-rich-paragraph {
+  margin-top: $theme-paragraph-margin-top;
+}
+
+.formspec-rich-paragraph + .formspec-rich-list {
+  margin-top: 0;
+}
+
 // The per-field help link (References spec §7) sits in its own row under the control; USWDS has no
 // pattern for it, so the row takes one unit of breathing room the way a hint does above the control.
 .formspec-field-help-row {

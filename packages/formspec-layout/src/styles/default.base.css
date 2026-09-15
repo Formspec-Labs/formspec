@@ -218,6 +218,22 @@
   color: var(--formspec-description-color, var(--formspec-default-text-muted));
 }
 
+/* Rich text (core §4.2.1) inside a hint or description: no block margins on a paragraph, one paragraph gap
+ * only between siblings, and a list continues the paragraph that introduces it. Otherwise the UA's 1em
+ * paragraph margins push the first paragraph a line clear of its label. */
+.formspec-rich-paragraph {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+* + .formspec-rich-paragraph {
+  margin-top: 1em;
+}
+
+.formspec-rich-paragraph + .formspec-rich-list {
+  margin-top: 0;
+}
+
 .formspec-hint {
   margin: 0 0 0.25rem;
   font-size: 0.855rem;

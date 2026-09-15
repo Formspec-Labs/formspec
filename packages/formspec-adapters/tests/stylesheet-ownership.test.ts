@@ -59,6 +59,13 @@ describe('USWDS integration stylesheet is self-contained', () => {
         expect(declarationsFor(css, '.formspec-field-help-row')).toMatch(/margin-top:1rem/);
     });
 
+    it('owns rich-text paragraph rhythm the way USWDS types its own paragraphs', () => {
+        // No UA margins: the first paragraph hugs its legend, siblings get one paragraph gap, a list follows.
+        expect(declarationsFor(css, '.formspec-rich-paragraph')).toMatch(/margin-top:0;margin-bottom:0/);
+        expect(declarationsFor(css, '*+.formspec-rich-paragraph')).toMatch(/margin-top:1em/);
+        expect(declarationsFor(css, '.formspec-rich-paragraph+.formspec-rich-list')).toMatch(/margin-top:0/);
+    });
+
     it('keeps the native modal dialog in the top layer and scrollable', () => {
         // `.usa-modal` itself says `position: relative`, which would drop an open dialog into page flow.
         const dialog = declarationsFor(css, 'dialog.usa-modal');
