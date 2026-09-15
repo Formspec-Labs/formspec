@@ -1,6 +1,4 @@
 /** @filedesc Entry point for the references example: registers formspec-render and loads forms. */
-import '@formspec-org/webcomponent/formspec-layout.css';
-import formspecDefaultCssUrl from '@formspec-org/webcomponent/formspec-default.css?url';
 import { FormspecRender, globalRegistry } from '@formspec-org/webcomponent';
 import { uswdsAdapter } from '@formspec-org/adapters';
 import { initFormspecEngine } from '@formspec-org/engine';
@@ -25,7 +23,6 @@ const EXAMPLES = [
     description: 'Multi-page wizard with budget, validation, repeats',
     dir: `${ASSET_BASE}/examples/grant-application`,
     artifacts: { definition: 'definition.json', component: 'component.json', theme: 'theme.json' },
-    css: 'grant-bridge.css',
     registry: `${ASSET_BASE}/registries/formspec-common.registry.json`,
     fixtures: [
       { id: 'sample-submission', label: 'Complete Submission', file: 'fixtures/sample-submission.json' },
@@ -93,7 +90,6 @@ const EXAMPLES = [
     description: 'USWDS adapter demo — repeats, calculated totals, conditional sections',
     dir: `${ASSET_BASE}/examples/uswds-grant`,
     artifacts: { definition: 'grant.definition.json', theme: 'grant.theme.json' },
-    adapter: 'uswds',
     fixtures: [
       { id: 'uswds-empty', label: 'Empty', file: 'fixtures/empty.response.json' },
       { id: 'uswds-complete', label: 'Complete Submission', file: 'fixtures/complete.response.json' },
@@ -107,15 +103,6 @@ const mainArea = document.getElementById('main-area');
 const emptyState = document.getElementById('empty-state');
 
 let activeExampleId = null;
-let activeBridgeLink = null;
-let activeDefaultSkinLink = null;
-
-function removeDefaultSkinLink() {
-  if (activeDefaultSkinLink) {
-    activeDefaultSkinLink.remove();
-    activeDefaultSkinLink = null;
-  }
-}
 
 // ── Build sidebar ──
 for (const ex of EXAMPLES) {
@@ -162,13 +149,6 @@ async function loadExample(ex, fixture = null) {
     </div>
   `;
 
-  // Remove previous bridge CSS
-  if (activeBridgeLink) {
-    activeBridgeLink.remove();
-    activeBridgeLink = null;
-  }
-  removeDefaultSkinLink();
-
   try {
     // Load artifacts (+ fixture in parallel if restoring saved state)
     const loads = [loadJSON(`${ex.dir}/${ex.artifacts.definition}`)];
@@ -190,15 +170,6 @@ async function loadExample(ex, fixture = null) {
       Promise.all(loads),
       registryPromise,
     ]);
-
-    // Load bridge CSS if specified
-    if (ex.css) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = `${ex.dir}/${ex.css}`;
-      document.head.appendChild(link);
-      activeBridgeLink = link;
-    }
 
     // Build the form area
     mainArea.innerHTML = '';
@@ -477,22 +448,6 @@ async function loadExample(ex, fixture = null) {
 
     if (registryDoc) {
       formEl.registryDocuments = registryDoc;
-    }
-
-    // Default Formspec skin (tokens, inputs, etc.) only for the built-in renderer — not USWDS.
-    if (ex.adapter !== 'uswds') {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = formspecDefaultCssUrl;
-      document.head.appendChild(link);
-      activeDefaultSkinLink = link;
-    }
-
-    // Switch adapter if specified
-    if (ex.adapter) {
-      globalRegistry.setAdapter(ex.adapter);
-    } else {
-      globalRegistry.setAdapter('default');
     }
 
     if (fixtureResponse?.data) {
