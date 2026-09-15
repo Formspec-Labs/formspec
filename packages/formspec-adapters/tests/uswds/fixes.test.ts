@@ -9,11 +9,13 @@ import { renderTextInput } from '../../src/uswds/text-input';
 import { renderNumberInput } from '../../src/uswds/number-input';
 import { renderSelect } from '../../src/uswds/select';
 import { renderCheckboxGroup } from '../../src/uswds/checkbox-group';
+import { renderRadioGroup } from '../../src/uswds/radio-group';
+import { renderMoneyInput } from '../../src/uswds/money-input';
 import { renderToggle } from '../../src/uswds/toggle';
 import { renderRating } from '../../src/uswds/rating';
 import { renderSignature } from '../../src/uswds/signature';
 import {
-    mockTextInput, mockNumberInput, mockSelect, mockToggle, mockCheckboxGroup,
+    mockTextInput, mockNumberInput, mockSelect, mockToggle, mockCheckboxGroup, mockRadioGroup, mockMoneyInput,
     mockRating, mockSignature, mockAdapterContext, captureBindRefs,
     mockCanvasContext,
 } from '../helpers';
@@ -97,17 +99,45 @@ describe('Error-class toggling (onValidationChange)', () => {
         expect(select.classList.contains('usa-input--error')).toBe(true);
     });
 
-    it('CheckboxGroup onValidationChange uses usa-form-group--error and legend error styling', () => {
+    // A fieldset renders its legend inside the border box, so a left border on the fieldset starts at the
+    // legend's vertical midpoint — halfway down every multi-line question. USWDS's template never does
+    // that: the error modifier belongs on the wrapping `.usa-form-group`.
+    it.each([
+        ['CheckboxGroup', () => { const b = mockCheckboxGroup(); return { b, render: renderCheckboxGroup }; }],
+        ['RadioGroup', () => { const b = mockRadioGroup(); return { b, render: renderRadioGroup }; }],
+    ] as const)('%s puts the error modifier on the form group, never on the fieldset', (_name, make) => {
         const parent = makeParent();
-        const b = mockCheckboxGroup();
-        renderCheckboxGroup(b, parent, mockAdapterContext());
+        const { b, render } = make();
+        render(b as never, parent, mockAdapterContext());
         const refs = captureBindRefs(b);
 
         refs.onValidationChange!(true, 'Required');
-        const fieldset = parent.querySelector('.usa-fieldset')!;
+        const group = parent.querySelector('.usa-form-group')!;
+        const fieldset = parent.querySelector('fieldset.usa-fieldset')!;
         const legend = parent.querySelector('.usa-legend')!;
-        expect(fieldset.classList.contains('usa-form-group--error')).toBe(true);
+        expect(group.classList.contains('usa-form-group--error')).toBe(true);
+        expect(fieldset.classList.contains('usa-form-group--error')).toBe(false);
+        expect(group.contains(fieldset)).toBe(true);
         expect(legend.classList.contains('usa-label--error')).toBe(true);
+
+        refs.onValidationChange!(false, '');
+        expect(group.classList.contains('usa-form-group--error')).toBe(false);
+    });
+
+    // A prefixed input is borderless inside its group, so the group carries the error border.
+    it('MoneyInput puts the error border on the currency input group', () => {
+        const parent = makeParent();
+        const b = mockMoneyInput({ resolvedCurrency: '$' });
+        renderMoneyInput(b, parent, mockAdapterContext());
+        const refs = captureBindRefs(b);
+
+        const group = parent.querySelector('.usa-input-group')!;
+        refs.onValidationChange!(true, 'Required');
+        expect(group.classList.contains('usa-input-group--error')).toBe(true);
+        expect(parent.querySelector('.formspec-money-amount')!.classList.contains('usa-input--error')).toBe(true);
+
+        refs.onValidationChange!(false, '');
+        expect(group.classList.contains('usa-input-group--error')).toBe(false);
     });
 });
 

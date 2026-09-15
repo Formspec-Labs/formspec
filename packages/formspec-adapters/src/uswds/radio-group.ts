@@ -5,27 +5,27 @@ import { applyUSWDSValidationState, createUSWDSFieldDOM, buildUSWDSOptions } fro
 export const renderRadioGroup: AdapterRenderFn<RadioGroupBehavior> = (
     behavior, parent, actx
 ) => {
-    const { root, label, hint, error } = createUSWDSFieldDOM(behavior, { asGroup: true });
+    const { root, content, label, hint, error } = createUSWDSFieldDOM(behavior, { asGroup: true });
     // Group state (required / invalid / readonly) lands on the radiogroup, which a plain fieldset cannot carry.
-    root.setAttribute('role', 'radiogroup');
-    root.setAttribute('aria-labelledby', label.id);
+    content.setAttribute('role', 'radiogroup');
+    content.setAttribute('aria-labelledby', label.id);
 
-    root.appendChild(error);
+    content.appendChild(error);
 
-    const initialControls = buildUSWDSOptions(behavior, root, behavior.options(), 'radio', behavior.fieldPath);
+    const initialControls = buildUSWDSOptions(behavior, content, behavior.options(), 'radio', behavior.fieldPath);
 
     parent.appendChild(root);
 
     const dispose = behavior.bind({
         root,
         label,
-        control: root,
+        control: content,
         skipAriaDescribedBy: true,
         hint,
         error,
         optionControls: initialControls,
         rebuildOptions: (_container, newOptions) =>
-            buildUSWDSOptions(behavior, root, newOptions, 'radio', behavior.fieldPath),
+            buildUSWDSOptions(behavior, content, newOptions, 'radio', behavior.fieldPath),
         onValidationChange: (hasError) => {
             applyUSWDSValidationState(root, label, hasError);
         },

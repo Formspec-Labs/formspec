@@ -60,12 +60,8 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
 
     const dispose = behavior.bind({
         root, label, control: container, hint, error,
-        onValidationChange: (hasError) => {
-            applyUSWDSValidationState(root, label, hasError, amountInput);
-            if (container.classList.contains('usa-input-group')) {
-                container.classList.toggle('usa-input-group--error', hasError);
-            }
-        },
+        // The shared state helper already carries the error to the amount input's group when one wraps it.
+        onValidationChange: (hasError) => applyUSWDSValidationState(root, label, hasError, amountInput),
     });
     actx.onDispose(dispose);
 };

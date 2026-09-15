@@ -6,7 +6,7 @@ import { applyUSWDSValidationState, createUSWDSFieldDOM, buildUSWDSOptions } fro
 export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
     behavior, parent, actx
 ) => {
-    const { root, label, hint, error } = createUSWDSFieldDOM(behavior, { asGroup: true });
+    const { root, content, label, hint, error } = createUSWDSFieldDOM(behavior, { asGroup: true });
 
     // Select All — USWDS doesn't have a built-in select-all, but we use
     // the same usa-checkbox markup for consistency
@@ -29,25 +29,25 @@ export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
         selectAllLabel.textContent = 'Select All';
         selectAllWrapper.appendChild(selectAllCb);
         selectAllWrapper.appendChild(selectAllLabel);
-        root.appendChild(selectAllWrapper);
+        content.appendChild(selectAllWrapper);
     }
 
-    root.appendChild(error);
+    content.appendChild(error);
 
-    let optionControlsRef = buildUSWDSOptions(behavior, root, behavior.options(), 'checkbox', behavior.fieldPath);
+    let optionControlsRef = buildUSWDSOptions(behavior, content, behavior.options(), 'checkbox', behavior.fieldPath);
 
     parent.appendChild(root);
 
     const dispose = behavior.bind({
         root,
         label,
-        control: root,
+        control: content,
         skipAriaDescribedBy: true,
         hint,
         error,
         optionControls: optionControlsRef,
         rebuildOptions: (_container, newOptions) => {
-            optionControlsRef = buildUSWDSOptions(behavior, root, newOptions, 'checkbox', behavior.fieldPath);
+            optionControlsRef = buildUSWDSOptions(behavior, content, newOptions, 'checkbox', behavior.fieldPath);
             return optionControlsRef;
         },
         onValidationChange: (hasError) => {

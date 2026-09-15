@@ -5,7 +5,10 @@ import { buildOptionList, clearOptionNodes } from '../shared/option-list.js';
 import { createInputSkeleton, linkInputAdornments, type InputSkeletonOptions, type InputSkeletonResult } from '../shared/input-factory.js';
 
 export interface USWDSFieldDOM {
+    /** The `.usa-form-group` wrapper: theme classes, `data-name`, relevance, and the error modifier. */
     root: HTMLElement;
+    /** Where label, hint, error and controls go — the `<fieldset>` for group widgets, `root` otherwise. */
+    content: HTMLElement;
     label: HTMLElement;
     hint: HTMLElement;
     error: HTMLElement;
@@ -14,15 +17,16 @@ export interface USWDSFieldDOM {
 export interface USWDSFieldOptions {
     /** Set false for components where label doesn't target a specific input (e.g. rating, signature). Default true. */
     labelFor?: boolean;
-    /** When true, use <fieldset class="usa-fieldset"> for root and <legend class="usa-legend"> for label. */
+    /** When true, nest a <fieldset class="usa-fieldset"> inside the root and use <legend class="usa-legend"> for the label. */
     asGroup?: boolean;
 }
 
 /**
- * Create the common USWDS field wrapper: usa-form-group (or usa-fieldset) root,
- * usa-label (or usa-legend), description, usa-hint (both hidden while empty), then usa-error-message.
+ * Create the common USWDS field wrapper: a `usa-form-group` root holding label (or legend),
+ * description, usa-hint (both hidden while empty), then usa-error-message. Group widgets nest a
+ * `usa-fieldset` inside the root and fill that instead.
  *
- * Order in `root` is label → description → hint → error; adapters append the control after.
+ * Order in `content` is label → description → hint → error; adapters append the control after.
  */
 export function createUSWDSFieldDOM(
     behavior: FieldBehavior,
@@ -33,12 +37,15 @@ export function createUSWDSFieldDOM(
     const asGroup = options?.asGroup === true;
     const fieldId = behavior.id;
 
-    const root = el(asGroup ? 'fieldset' : 'div', {
-        class: asGroup ? 'usa-fieldset' : 'usa-form-group',
-        'data-name': behavior.fieldPath
-    });
+    const root = el('div', { class: 'usa-form-group', 'data-name': behavior.fieldPath });
     applyCascadeClasses(root, p);
     applyCascadeAccessibility(root, p);
+
+    // USWDS's own template wraps the fieldset: `div.usa-form-group > fieldset.usa-fieldset > legend`.
+    // The error modifier is a left border, and a fieldset paints its border through the legend's vertical
+    // midpoint — put it on the fieldset and the red bar starts halfway down every multi-line question.
+    const content = asGroup ? el('fieldset', { class: 'usa-fieldset' }) : root;
+    if (asGroup) root.appendChild(content);
 
     // Label
     const labelCls = asGroup
@@ -54,7 +61,7 @@ export function createUSWDSFieldDOM(
 
     const label = el(asGroup ? 'legend' : 'label', labelAttrs);
     label.textContent = behavior.label;
-    root.appendChild(label);
+    content.appendChild(label);
 
     // Description and hint (behavior resolves them through the view model: Locale + {{}} interpolation).
     // Always rendered, hidden while empty: interpolated text can arrive after render, and
@@ -62,18 +69,18 @@ export function createUSWDSFieldDOM(
     const desc = el('div', { class: 'usa-hint formspec-description', id: `${fieldId}-desc` });
     desc.textContent = behavior.description ?? '';
     desc.hidden = !behavior.description;
-    root.appendChild(desc);
+    content.appendChild(desc);
 
     const hint = el('span', { class: 'usa-hint', id: `${fieldId}-hint` });
     hint.textContent = behavior.hint ?? '';
     hint.hidden = !behavior.hint;
-    root.appendChild(hint);
+    content.appendChild(hint);
 
     // Error (bindSharedFieldEffects adds its id to aria-describedby while an error is shown)
     const error = createUSWDSError(fieldId);
-    root.appendChild(error);
+    content.appendChild(error);
 
-    return { root, label, hint, error };
+    return { root, content, label, hint, error };
 }
 
 /**

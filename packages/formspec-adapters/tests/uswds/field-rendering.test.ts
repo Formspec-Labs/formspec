@@ -83,7 +83,7 @@ describe('USWDS error messages — aria-describedby', () => {
             }],
             { binds: [requiredBind('able')], theme: radioTheme },
         );
-        const fieldset = el.querySelector('fieldset[data-name="able"]') as HTMLElement;
+        const fieldset = el.querySelector('[data-name="able"] fieldset') as HTMLElement;
         expect(fieldset).not.toBeNull();
         el.submit({ emitEvent: false });
         expect(fieldset.getAttribute('aria-describedby')).toBe('field-able-error');
@@ -101,7 +101,7 @@ describe('USWDS radio group state', () => {
 
     it('exposes required and invalid state on the radiogroup fieldset, not the first radio', () => {
         const el = renderForm([radioItem()], { binds: [{ path: 'able', required: 'true' }], componentTree: radioTree });
-        const fieldset = el.querySelector('fieldset[data-name="able"]') as HTMLElement;
+        const fieldset = el.querySelector('[data-name="able"] fieldset') as HTMLElement;
         expect(fieldset.getAttribute('role')).toBe('radiogroup');
         expect(fieldset.getAttribute('aria-labelledby')).toBe('field-able-label');
         expect(fieldset.getAttribute('aria-required')).toBe('true');
@@ -117,7 +117,7 @@ describe('USWDS radio group state', () => {
         const el = renderForm([radioItem({ initialValue: 'yes' })], {
             binds: [{ path: 'able', readonly: 'true' }], componentTree: radioTree,
         });
-        const fieldset = el.querySelector('fieldset[data-name="able"]') as HTMLElement;
+        const fieldset = el.querySelector('[data-name="able"] fieldset') as HTMLElement;
         expect(fieldset.getAttribute('aria-readonly')).toBe('true');
         const [, no] = el.querySelectorAll('input[type="radio"]') as NodeListOf<HTMLInputElement>;
         expect(no.disabled).toBe(false);
@@ -140,7 +140,7 @@ describe('USWDS checkbox group state', () => {
 
     it('marks the fieldset invalid and no checkbox required or invalid', () => {
         const el = renderForm([petsItem()], { binds: [{ path: 'pets', required: 'true' }], componentTree: petsTree });
-        const fieldset = el.querySelector('fieldset[data-name="pets"]') as HTMLElement;
+        const fieldset = el.querySelector('[data-name="pets"] fieldset') as HTMLElement;
         el.submit({ emitEvent: false });
         expect(fieldset.getAttribute('aria-invalid')).toBe('true');
         for (const checkbox of el.querySelectorAll('input[type="checkbox"]')) {
@@ -151,7 +151,7 @@ describe('USWDS checkbox group state', () => {
 
     it('says "required" in the legend with usa-sr-only text (role=group has no aria-required)', () => {
         const el = renderForm([petsItem()], { binds: [{ path: 'pets', required: 'true' }], componentTree: petsTree });
-        const legend = el.querySelector('fieldset[data-name="pets"] legend') as HTMLElement;
+        const legend = el.querySelector('[data-name="pets"] legend') as HTMLElement;
         expect(legend.querySelector('.usa-sr-only')?.textContent?.trim()).toBe('required');
         expect(legend.querySelector('abbr')?.getAttribute('aria-hidden')).toBe('true');
     });
