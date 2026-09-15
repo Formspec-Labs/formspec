@@ -349,3 +349,26 @@ describe('Signature touch events', () => {
         expect(event.defaultPrevented).toBe(true);
     });
 });
+
+describe('empty error node', () => {
+    // USWDS styles `.usa-error-message` display:block with .25rem vertical padding, so an always-present
+    // empty node adds 8px under every label. The reference markup only has the node in the error state.
+    it('is hidden until there is a message, then shows it', () => {
+        const parent = makeParent();
+        const b = mockTextInput();
+        renderTextInput(b, parent, mockAdapterContext());
+        const error = parent.querySelector('.usa-error-message') as HTMLElement;
+
+        expect(error.hidden).toBe(true);
+
+        // The shared binder writes the text, then reports the state the adapter styles.
+        error.textContent = 'Required';
+        const refs = captureBindRefs(b);
+        refs.onValidationChange!(true, 'Required');
+        expect(error.hidden).toBe(false);
+
+        error.textContent = '';
+        refs.onValidationChange!(false, '');
+        expect(error.hidden).toBe(true);
+    });
+});

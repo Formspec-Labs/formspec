@@ -30,8 +30,6 @@ describe('USWDS display', () => {
         };
         renderUSWDSHeading(behavior, parent, mockAdapterContext());
         expect(parent.querySelector('.usa-prose .formspec-heading')).toBeTruthy();
-        expect(parent.querySelector('.formspec-uswds-heading-wrap')?.className).toContain('margin-bottom-2');
-        expect(parent.querySelector('h2')?.className).toContain('margin-top-0');
         expect(parent.querySelector('h2')?.textContent).toBe('Hi');
     });
 
@@ -52,18 +50,22 @@ describe('USWDS display', () => {
             host: mockHost(),
         };
         renderUSWDSAlert(behavior, parent, mockAdapterContext());
-        expect(parent.querySelector('.margin-y-2 > .usa-alert')).toBeTruthy();
+        // No wrapper: USWDS's own `* + .usa-alert { margin-top: 1rem }` needs the alert to be the sibling.
+        expect(parent.firstElementChild?.className).toContain('usa-alert');
         expect(parent.querySelector('.usa-alert.usa-alert--info .usa-alert__text')?.textContent).toBe('Msg');
     });
 
-    it('renderUSWDSText removes the default prose top margin from paragraphs', () => {
+    it('renderUSWDSText leaves paragraph rhythm to usa-prose', () => {
         const parent = document.createElement('div');
         const behavior: DisplayComponentBehavior = {
             comp: { text: 'Body copy' },
             host: mockHost(),
         };
         renderUSWDSText(behavior, parent, mockAdapterContext());
-        expect(parent.querySelector('.usa-prose p')?.className).toContain('margin-top-0');
+        const p = parent.querySelector('.usa-prose p');
+        expect(p?.textContent).toBe('Body copy');
+        // `margin-top-0` was a USWDS utility this build never forwards — it computed nothing.
+        expect(p?.className).toBe('formspec-text');
     });
 
     it('renderUSWDSBadge uses usa-tag', () => {
@@ -97,5 +99,26 @@ describe('USWDS display', () => {
 
         writeText('Hello Ada');
         expect(parent.querySelector(selector)?.textContent).toBe('Hello Ada');
+    });
+});
+
+describe('no dead utility classes', () => {
+    // USWDS utilities are a separate package this build never forwards, so a `margin-y-2` in the markup
+    // computes nothing. Every class the adapter emits must exist in the stylesheet the adapter ships.
+    it('emits only class names the shipped stylesheet defines', async () => {
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        const parent = document.createElement('div');
+        for (const render of [renderUSWDSHeading, renderUSWDSText, renderUSWDSAlert, renderUSWDSCard]) {
+            render({ comp: { text: 'x', title: 'T', level: 2, children: [] }, host: mockHost() } as never,
+                parent, mockAdapterContext());
+        }
+        const emitted = new Set<string>();
+        for (const el of parent.querySelectorAll('*')) {
+            for (const cls of el.classList) if (!cls.startsWith('formspec-')) emitted.add(cls);
+        }
+        expect(emitted.size).toBeGreaterThan(0);
+        const dead = [...emitted].filter((cls) => !css.includes(`.${cls}`));
+        expect(dead).toEqual([]);
     });
 });

@@ -183,12 +183,18 @@ export function renderUSWDSBooleanControl(
     actx.onDispose(dispose);
 }
 
-/** Create the USWDS error message element (`usa-error-message`, id `<behaviorId>-error`). */
+/**
+ * The USWDS error message element (`usa-error-message`, id `<behaviorId>-error`). Hidden until there is a
+ * message: USWDS styles it `display: block` with vertical padding, so an always-present empty node would
+ * add 8px under every label and legend — spacing USWDS's own markup never has.
+ */
 export function createUSWDSError(behaviorId: string): HTMLElement {
-    return el('span', {
+    const error = el('span', {
         class: 'usa-error-message',
         id: `${behaviorId}-error`,
     });
+    error.hidden = true;
+    return error;
 }
 
 /** Apply native USWDS error classes to the wrapper, label/legend, and optional control. */
@@ -199,6 +205,8 @@ export function applyUSWDSValidationState(
     control?: HTMLElement | null,
 ): void {
     root.classList.toggle('usa-form-group--error', hasError);
+    const error = root.querySelector<HTMLElement>('.usa-error-message');
+    if (error) error.hidden = !hasError;
     label.classList.toggle('usa-label--error', hasError);
     if (control) control.classList.toggle('usa-input--error', hasError);
     // Prefix/suffix inputs are borderless inside the group; the group carries the error border.

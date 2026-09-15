@@ -83,6 +83,13 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   --formspec-adapter: uswds;
 }
 
+// An empty error node must not occupy space. `.usa-error-message` sets `display: block`, which outranks
+// the UA's `[hidden]` rule, and USWDS's own markup sidesteps that by rendering the node only in the error
+// state. Formspec renders it always, because the field behavior binds to it for text and aria-describedby.
+.usa-error-message[hidden] {
+  display: none;
+}
+
 // Injected by webcomponent shared behavior (required asterisk span).
 .formspec-required {
   color: color('error-dark');

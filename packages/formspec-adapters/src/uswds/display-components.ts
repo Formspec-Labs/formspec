@@ -33,10 +33,10 @@ function badgeVariantClass(variant: string | undefined): string {
 export function renderUSWDSHeading(behavior: DisplayComponentBehavior, parent: HTMLElement, actx: AdapterContext): void {
     const { comp, host } = behavior;
     const wrap = document.createElement('div');
-    wrap.className = 'usa-prose formspec-uswds-heading-wrap margin-bottom-2';
+    wrap.className = 'usa-prose formspec-uswds-heading-wrap';
     const el = document.createElement(`h${comp.level || 2}`);
     if (comp.id) el.id = comp.id;
-    el.className = 'formspec-heading margin-top-0';
+    el.className = 'formspec-heading';
     if (comp.bind) {
         const itemFullName = host.prefix ? `${host.prefix}.${comp.bind}` : comp.bind;
         host.cleanupFns.push(
@@ -64,7 +64,7 @@ export function renderUSWDSText(behavior: DisplayComponentBehavior, parent: HTML
     wrap.className = 'usa-prose formspec-uswds-text-wrap';
     const el = document.createElement('p');
     if (comp.id) el.id = comp.id;
-    el.className = 'formspec-text margin-top-0';
+    el.className = 'formspec-text';
     if (comp.format === 'markdown') el.classList.add('formspec-text--markdown');
     const isMarkdown = comp.format === 'markdown';
     if (comp.bind) {
@@ -139,8 +139,8 @@ export function renderUSWDSAlert(behavior: DisplayComponentBehavior, parent: HTM
     const { comp, host } = behavior;
     const severity = comp.severity || 'info';
     const usaSeverity = ALERT_SEVERITY[severity] || 'info';
-    const wrap = document.createElement('div');
-    wrap.className = 'formspec-uswds-alert-wrap margin-y-2';
+    // No wrapper: USWDS spaces an alert with `* + .usa-alert { margin-top: 1rem }`, which only fires when
+    // the alert itself is the adjacent sibling. A wrapping div swallows it.
     const root = document.createElement('div');
     if (comp.id) root.id = comp.id;
     root.className = `usa-alert usa-alert--${usaSeverity}`;
@@ -183,11 +183,10 @@ export function renderUSWDSAlert(behavior: DisplayComponentBehavior, parent: HTM
         closeBtn.addEventListener('click', () => root.remove());
         root.appendChild(closeBtn);
     }
-    wrap.appendChild(root);
     actx.applyCssClass(root, comp);
     actx.applyAccessibility(root, comp);
     actx.applyStyle(root, comp.style);
-    parent.appendChild(wrap);
+    parent.appendChild(root);
 }
 
 export function renderUSWDSBadge(behavior: DisplayComponentBehavior, parent: HTMLElement, actx: AdapterContext): void {
