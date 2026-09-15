@@ -156,14 +156,14 @@ Each component type has a typed behavior interface that extends `FieldBehavior` 
 
 | Behavior | Key Properties |
 |---|---|
-| `TextInputBehavior` | `placeholder`, `maxLines`, `prefix`, `suffix`, `resolvedInputType`, `extensionAttrs` |
-| `NumberInputBehavior` | `min`, `max`, `step`, `dataType` |
+| `TextInputBehavior` | `placeholder`, `maxLines`, `prefix`, `suffix`, `resolvedInputType`, `extensionAttrs`, `width` |
+| `NumberInputBehavior` | `min`, `max`, `step`, `dataType`, `width` |
 | `RadioGroupBehavior` | `groupRole`, `inputName`, `orientation`, `options()` |
 | `CheckboxGroupBehavior` | `groupRole`, `selectAll`, `columns`, `options()`, `setValue()` |
-| `SelectBehavior` | `placeholder`, `clearable`, `dataType`, `options()` |
+| `SelectBehavior` | `placeholder`, `clearable`, `dataType`, `options()`, `width` |
 | `ToggleBehavior` | `onLabel`, `offLabel` |
-| `DatePickerBehavior` | `inputType`, `minDate`, `maxDate` |
-| `MoneyInputBehavior` | `min`, `max`, `step`, `placeholder`, `resolvedCurrency` |
+| `DatePickerBehavior` | `inputType`, `minDate`, `maxDate`, `width` |
+| `MoneyInputBehavior` | `min`, `max`, `step`, `placeholder`, `resolvedCurrency`, `width` |
 | `SliderBehavior` | `min`, `max`, `step`, `showTicks`, `showValue` |
 | `RatingBehavior` | `maxRating`, `icon`, `allowHalf`, `isInteger`, `setValue()` |
 | `FileUploadBehavior` | `accept`, `multiple`, `dragDrop` |

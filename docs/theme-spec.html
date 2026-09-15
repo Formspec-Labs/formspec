@@ -1202,9 +1202,8 @@ means the same size under every adapter:</p>
 <p>Applies to <code>TextInput</code>, <code>NumberInput</code>,
 <code>MoneyInput</code>, <code>DatePicker</code>, and
 <code>Select</code> (listed per-widget below). Absent <code>width</code>
-fills the form column, as today. An unrecognized value is an
-unrecognized <code>widgetConfig</code> key: renderers MUST ignore it and
-fill the column.</p>
+fills the form column, as today. A value outside the seven stops MUST be
+ignored, filling the column the same way absence does.</p>
 <h4 id="canonical-field-widgets">Canonical Field Widgets</h4>
 <p>Renderers MUST support these widgets.</p>
 <p><strong><code>TextInput</code></strong> (string, text, uri; loose

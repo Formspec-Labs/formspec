@@ -210,6 +210,15 @@ describe('USWDS layout natives', () => {
         write('');
         expect(parent.querySelector('.formspec-uswds-divider--labeled')).toBeNull();
         expect(shownRules()).toHaveLength(1);
+        expect(parent.querySelectorAll('hr')).toHaveLength(1); // the torn-down label/line left no dead node behind
+
+        // Empty → text → empty → text again: the label span and second line must be re-created
+        // fresh each time text arrives, not reused from the torn-down instance (which .remove()d them).
+        write('Job 3');
+        const row2 = parent.querySelector('#rule.formspec-uswds-divider--labeled') as HTMLElement;
+        expect(row2.querySelector('.usa-hint')?.textContent).toBe('Job 3');
+        expect(shownRules().map((hr) => hr.className)).toEqual(['formspec-uswds-divider__line', 'formspec-uswds-divider__line']);
+        expect(parent.querySelectorAll('hr')).toHaveLength(2);
     });
 
     it('renderUSWDSDivider emits exactly one hr for an unlabeled divider — no hidden dead line', () => {

@@ -568,8 +568,8 @@ every adapter:
 
 Applies to `TextInput`, `NumberInput`, `MoneyInput`, `DatePicker`, and
 `Select` (listed per-widget below). Absent `width` fills the form
-column, as today. An unrecognized value is an unrecognized
-`widgetConfig` key: renderers MUST ignore it and fill the column.
+column, as today. A value outside the seven stops MUST be ignored,
+filling the column the same way absence does.
 
 #### Canonical Field Widgets
 
