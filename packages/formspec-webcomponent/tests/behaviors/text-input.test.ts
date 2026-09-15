@@ -90,12 +90,13 @@ describe('useTextInput', () => {
     it('extracts TextInput-specific props', () => {
         const items = [{ key: 'name', type: 'field', label: 'Name', dataType: 'string' }];
         const ctx = makeBehaviorContext(items);
-        const comp = { component: 'TextInput', bind: 'name', placeholder: 'Type here', maxLines: 3, prefix: '$', suffix: '.00' };
+        const comp = { component: 'TextInput', bind: 'name', placeholder: 'Type here', maxLines: 3, prefix: '$', suffix: '.00', width: 'sm' };
         const behavior = useTextInput(ctx, comp);
         expect(behavior.placeholder).toBe('Type here');
         expect(behavior.maxLines).toBe(3);
         expect(behavior.prefix).toBe('$');
         expect(behavior.suffix).toBe('.00');
+        expect(behavior.width).toBe('sm');
     });
 
     it('resolves extension attributes from registry entries', () => {

@@ -1,7 +1,7 @@
 /** @filedesc Default adapter for NumberInput — renders a numeric input element, with optional stepper buttons. */
 import type { NumberInputBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
-import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, wrapInputAdornments } from './shared';
+import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, wrapInputAdornments, formspecWidthClass } from './shared';
 
 export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     behavior, parent, actx
@@ -10,7 +10,7 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
 
     const input = document.createElement('input');
     input.type = 'number';
-    input.className = 'formspec-input';
+    input.className = 'formspec-input' + formspecWidthClass(behavior.width);
     input.name = behavior.fieldPath;
     input.id = behavior.id;
     if (behavior.placeholder) input.placeholder = behavior.placeholder;

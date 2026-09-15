@@ -2,7 +2,7 @@
 import type { SelectBehavior } from '../../behaviors/types';
 import type { AdapterContext, AdapterRenderFn } from '../types';
 import type { FieldDOM } from './shared';
-import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, watchFieldValueChanges } from './shared';
+import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, watchFieldValueChanges, formspecWidthClass } from './shared';
 
 /** Distinct value for the native select "clear" row (must stay in sync with `select.ts` behavior change handler). */
 export const SelectClearSentinel = '__formspec_clear__';
@@ -86,7 +86,7 @@ export const renderSelect: AdapterRenderFn<SelectBehavior> = (
     wrapper.className = 'formspec-select-wrapper';
 
     const select = document.createElement('select');
-    select.className = 'formspec-input formspec-select-native';
+    select.className = 'formspec-input formspec-select-native' + formspecWidthClass(behavior.width);
     select.name = behavior.fieldPath;
     select.id = behavior.id;
 

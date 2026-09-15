@@ -1,7 +1,7 @@
 /** @filedesc Default adapter for TextInput — input or textarea, with a character count for widgetConfig.maxLength. */
 import type { TextInputBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
-import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, wrapInputAdornments } from './shared';
+import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, wrapInputAdornments, formspecWidthClass } from './shared';
 import { createCharacterCount } from '../character-count';
 
 export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
@@ -15,7 +15,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     if (behavior.maxLines && behavior.maxLines > 1) {
         // Textarea variant
         const textarea = document.createElement('textarea');
-        textarea.className = 'formspec-input';
+        textarea.className = 'formspec-input' + formspecWidthClass(behavior.width);
         textarea.name = behavior.fieldPath;
         textarea.rows = behavior.maxLines;
         if (behavior.placeholder) textarea.placeholder = behavior.placeholder;
@@ -24,7 +24,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     } else {
         const input = document.createElement('input');
         input.type = behavior.resolvedInputType || 'text';
-        input.className = 'formspec-input';
+        input.className = 'formspec-input' + formspecWidthClass(behavior.width);
         input.name = behavior.fieldPath;
         input.id = behavior.id;
         if (behavior.placeholder) input.placeholder = behavior.placeholder;
