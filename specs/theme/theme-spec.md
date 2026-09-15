@@ -618,7 +618,7 @@ the theme hint and the constraint then agree:
 |---|---|---|
 | `showStepper` | boolean | Show increment/decrement buttons. |
 | `locale` | string | Locale for number formatting (e.g., `"en-US"`). |
-| `width` | string | Width stop (§4.2 Width Stops): `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`. Absent fills the form column. |
+| `width` | string | Width stop (§4.2 Width Stops): `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`. Absent fills the form column. Ignored when `showStepper` is `true` — the stepper fixes its own compact control width. |
 
 **`Toggle`** (boolean)
 

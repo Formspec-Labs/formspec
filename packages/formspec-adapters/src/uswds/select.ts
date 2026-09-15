@@ -14,8 +14,11 @@ export const renderSelect: AdapterRenderFn<SelectBehavior> = (
 
     const { control, actualInput } = createInputSkeleton(behavior, {
         tag: 'select',
-        inputClass: 'usa-select' + widthStopClass('usa-input', behavior.width),
+        inputClass: 'usa-select',
     });
+    // Invariant-safe form even though Select carries no prefix/suffix today: target whatever
+    // createInputSkeleton returns as the control, not the inner element the class was seeded on.
+    control.className += widthStopClass('usa-input', behavior.width);
     const select = actualInput as HTMLSelectElement;
 
     // Placeholder / empty option

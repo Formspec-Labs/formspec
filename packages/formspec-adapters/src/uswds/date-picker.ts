@@ -22,10 +22,13 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
     }
 
     const useTextDate = behavior.inputType === 'date';
+    // No groupClass: DatePickerBehavior carries no prefix/suffix, so createInputSkeleton's
+    // group-wrap branch (triggered only by prefix || suffix) never fires — a `usa-date-picker`
+    // groupClass here would be dead configuration. The useTextDate shell below carries that
+    // class explicitly instead.
     const { control, actualInput } = createInputSkeleton(behavior, {
         type: useTextDate ? 'text' : behavior.inputType,
-        inputClass: 'usa-input' + widthStopClass('usa-input', behavior.width),
-        groupClass: useTextDate ? 'usa-date-picker' : undefined,
+        inputClass: 'usa-input',
         onInputCreated: (input) => {
             if (behavior.inputType === 'datetime-local' && input instanceof HTMLInputElement) {
                 if (behavior.minDate) input.min = behavior.minDate;
@@ -33,13 +36,14 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
             }
         },
     });
+    // Invariant-safe form even though DatePicker carries no prefix/suffix today: target whatever
+    // createInputSkeleton returns as the control, not the inner element the class was seeded on.
+    control.className += widthStopClass('usa-input', behavior.width);
 
     if (formatHint) actualInput.setAttribute('data-describedby-base', formatHint.id);
 
-    // Special case: for usa-date-picker, the prefix/suffix logic is NOT used,
-    // we just need the shell. createInputSkeleton handles groupClass if prefix/suffix present.
-    // If no prefix/suffix but groupClass present, it doesn't wrap currently.
-    // I'll manually wrap if useTextDate and it's not wrapped yet.
+    // useTextDate: wrap the bare input in the usa-date-picker shell manually (no prefix/suffix
+    // means createInputSkeleton never wraps it).
     if (useTextDate && control === actualInput) {
         const shell = el('div', { class: 'usa-date-picker' });
         shell.appendChild(actualInput);
