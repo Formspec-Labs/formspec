@@ -97,6 +97,43 @@ and no adapter CSS, and it does not restate a palette.
 The consequence is the point of the ADR: Studio preview, the Surface shell, and
 formspec-web each render a USWDS Theme as USWDS from the document alone.
 
+### D-4. An adapter's stylesheet is layered; the renderer links only what the page lacks (amendment, 2026-09-15)
+
+A page that already loads its design system — a government site with USWDS from
+a CDN — must not receive it a second time, and D-3 must still hold: the host
+imports nothing on the renderer's behalf. So an adapter declares `stylesheets`
+as ordered layers, each with a presence probe:
+
+```ts
+stylesheets: [
+  { href: uswdsBase,    presentWhen: { className: 'usa-sr-only', property: 'position', value: 'absolute' } },
+  { href: uswdsFormspec, presentWhen: { className: 'formspec-container', property: '--formspec-uswds-rules', value: '1' } },
+]
+```
+
+Before linking a layer the renderer appends a hidden probe element carrying the
+class to the render root's tree, reads the computed property, and skips the
+layer when the value matches. The USWDS adapter ships two layers: the design
+system itself (components, typefaces, icons — self-contained, ~480 KB), probed
+by a class every USWDS build defines; and Formspec's own USWDS rules (the render
+root extends `usa-form`, field rhythm from `spacing.field`, help row, rich-text
+paragraphs, the modal host — a few KB), probed by a marker only that sheet
+defines. A bare page gets both. A USWDS page gets the second only. A plain
+string entry stays valid and means "a layer with no probe": linked unless the
+adapter marker already matches, exactly as before this amendment.
+
+A variant (ADR 0064) compiles its own base layer from the partial with its
+settings and reuses the package's rules layer unchanged; its marker is the rules
+layer's, so no per-adapter marker name is needed. The renderer's
+`--formspec-adapter` marker is retired in favor of the per-layer probes.
+
+Reusing a host's design system means the host's version drives the adapter's
+markup. That is the host's risk, the same one any component takes on a USWDS
+site, and it is named in the adapter README. The same rule governs script: the
+DatePicker mounts USWDS's own module, and when the page flags USWDS as present
+(`window.uswdsPresent`) the adapter only enhances the markup and leaves the
+page's delegated handlers to drive it.
+
 ## Consequences
 
 ### Positive
