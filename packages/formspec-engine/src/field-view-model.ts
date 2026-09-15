@@ -89,6 +89,8 @@ export interface FieldViewModelDeps {
     getReadonly: () => EngineSignal<boolean>;
     getDisabledDisplay: () => 'hidden' | 'protected';
     getErrors: () => EngineSignal<any[]>;
+    /** The Bind's inline `constraintMessage` template for this field, before `{{}}` resolution. */
+    getConstraintMessage: () => string | null;
     getOptions: () => EngineSignal<OptionEntry[]>;
     getOptionsState: () => EngineSignal<{ loading: boolean; error: string | null }>;
     getOptionSetName: () => string | undefined;
@@ -331,9 +333,14 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
             const constKey = `${itemKey}.constraintMessage`;
             const fromConst = localeStore.lookupKey(constKey);
             if (fromConst !== null) return interpolate(fromConst);
+
+            // Step 3: the Bind's inline template, resolved in this scope like the Item's label, so a date
+            // in it takes the active Locale's formats (the processor resolved it with none).
+            const inline = deps.getConstraintMessage();
+            if (inline !== null) return interpolate(inline);
         }
 
-        // Step 3: the processor's message — an inline constraintMessage arrives here already interpolated
+        // Step 4: Processor default
         return err.message ?? 'Validation error';
     }
 

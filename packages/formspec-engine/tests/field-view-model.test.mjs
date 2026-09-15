@@ -32,6 +32,7 @@ function makeMinimalDeps(overrides = {}) {
         getReadonly: () => rt.signal(false),
         getDisabledDisplay: () => 'hidden',
         getErrors: () => rt.signal([]),
+        getConstraintMessage: () => null,
         getOptions: () => rt.signal([]),
         getOptionsState: () => rt.signal({ loading: false, error: null }),
         getOptionSetName: () => undefined,

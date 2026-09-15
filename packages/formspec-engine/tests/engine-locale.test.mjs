@@ -63,6 +63,23 @@ test('formats.date follows the locale cascade and a locale switch drops it', () 
   assert.equal(engine.getItemLabelSignal('week').value, '17 mai 2026', 'fr authored no pattern, so the built-in French medium renders');
 });
 
+test("an inline Bind constraintMessage renders with the Locale's date formats and follows a locale switch", () => {
+  const engine = new FormEngine(minDef({
+    items: [{ key: 'ldw', type: 'field', dataType: 'date', label: 'Last day of work' }],
+    binds: [{ path: 'ldw', constraint: '$ >= @2026-05-17', constraintMessage: "Enter a date on or after {{formatDate(@2026-05-17, 'medium')}}." }],
+  }));
+  const en = makeLocale('en-US', {});
+  en.formats = { date: { medium: 'MM/dd/yyyy' } };
+  engine.loadLocale(en);
+  engine.loadLocale(makeLocale('fr', {}));
+  engine.setLocale('en-US');
+  engine.setValue('ldw', '2026-01-01');
+  const vm = engine.getFieldVM('ldw');
+  assert.equal(vm.firstError.value, 'Enter a date on or after 05/17/2026.', 'the message reads like the labels around it');
+  engine.setLocale('fr');
+  assert.equal(vm.firstError.value, 'Enter a date on or after 17 mai 2026.');
+});
+
 // ── loadLocale / setLocale / getActiveLocale / getAvailableLocales ──
 
 test('loadLocale adds a locale document to the engine', () => {
