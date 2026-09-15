@@ -1404,6 +1404,10 @@ id.</li>
 <code>references[*].target</code> paths.</li>
 <li><code>E1304</code> rejects FEL-looking dynamic expressions in static
 reference metadata.</li>
+<li><code>E1305</code> rejects a <code>references[*]</code> binding that
+carries both <code>$ref</code> and <code>id</code>; the
+<code>referenceDefs</code> key is the resolved reference’s id (§4.6.3
+rule 5).</li>
 <li><code>W1300</code> and <code>W1301</code> warn for unknown
 non-<code>x-</code> <code>type</code> and <code>rel</code> values.</li>
 </ul>

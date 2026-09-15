@@ -685,6 +685,8 @@ The References semantic pass owns the `E1300`/`W1300` diagnostic family:
   `$ref` key is reuse, not a duplicate id.
 - `E1303` rejects malformed `references[*].target` paths.
 - `E1304` rejects FEL-looking dynamic expressions in static reference metadata.
+- `E1305` rejects a `references[*]` binding that carries both `$ref` and `id`;
+  the `referenceDefs` key is the resolved reference's id (§4.6.3 rule 5).
 - `W1300` and `W1301` warn for unknown non-`x-` `type` and `rel` values.
 
 When lint receives a paired Definition, `E1310` rejects
