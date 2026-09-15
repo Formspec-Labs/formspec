@@ -119,6 +119,8 @@ export function buildRepeatGroupBehavior(
     const path = prefix ? `${prefix}.${bindKey}` : bindKey;
     const item = host.findItemByKey(bindKey);
     const groupLabel = itemLabel(host.engine, item, path, bindKey);
+    // A row's heading sits at this level; what a row contains is one deeper, as in a plain group.
+    const childHeadingLevel = Math.min(headingLevel + 1, 6);
     // Theme widgetConfig Add/Remove locks, planned onto the template's props (theme §4.2).
     const { count, relevant, canAdd, canRemove } = repeatAffordances(host.engine, path, item, {
         allowAdd: node.props.allowAdd as boolean | undefined,
@@ -161,7 +163,7 @@ export function buildRepeatGroupBehavior(
     return {
         comp: node,
         host: groupHostSlice(host, path, cleanupFns, (child, parent, pfx) =>
-            emitChild(child as LayoutNode, parent, pfx ?? path, headingLevel, cleanupFns)),
+            emitChild(child as LayoutNode, parent, pfx ?? path, childHeadingLevel, cleanupFns)),
         bindKey,
         headingLevel: `h${Math.min(headingLevel, 6)}`,
         addLabel: computed(() => localeText('addLabel', path).value ?? `Add ${groupLabel.value}`),
@@ -173,7 +175,7 @@ export function buildRepeatGroupBehavior(
                 rowText: (index) => rowText(index, pass.count),
                 renderRow: (index, parent) => {
                     for (const child of node.children) {
-                        emitChild(child, parent, `${path}[${index}]`, headingLevel, pass.cleanupFns);
+                        emitChild(child, parent, `${path}[${index}]`, childHeadingLevel, pass.cleanupFns);
                     }
                 },
                 watch: (fn) => { pass.cleanupFns.push(effect(fn)); },
