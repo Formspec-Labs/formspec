@@ -1809,6 +1809,30 @@ describe('planDefinitionFallback', () => {
         expect(plan({ items: { notes: { widgetConfig: { rows: 5 } } } }).props.maxLines).toBe(5);
     });
 
+    it('carries widgetConfig.width to props for TextInput, NumberInput, MoneyInput, DatePicker, and Select (theme §4.2 Width Stops)', () => {
+        const items = [{ key: 'zip', type: 'field', dataType: 'string', label: 'ZIP' }];
+        const plan = (widget: string) =>
+            planDefinitionFallback(items, makeCtx({
+                items,
+                theme: { items: { zip: { widget, widgetConfig: { width: 'sm' } } } },
+                findItem: (k) => findItems(items, k),
+            }))[0];
+
+        for (const widget of ['TextInput', 'NumberInput', 'MoneyInput', 'DatePicker', 'Select']) {
+            expect(plan(widget).props.width).toBe('sm');
+        }
+    });
+
+    it('does not carry widgetConfig.width onto a widget outside the width-stop set', () => {
+        const items = [{ key: 'agree', type: 'field', dataType: 'boolean', label: 'Agree' }];
+        const node = planDefinitionFallback(items, makeCtx({
+            items,
+            theme: { items: { agree: { widget: 'Toggle', widgetConfig: { width: 'sm' } } } },
+            findItem: (k) => findItems(items, k),
+        }))[0];
+        expect(node.props.width).toBeUndefined();
+    });
+
     // Theme `items`/`selectors` apply to display Items too, and adapters ship display widgets.
     it('honors a theme widget on a display Item, carrying its widgetConfig into props', () => {
         const items = [{ key: 'weekNotice', type: 'display', label: 'Certify for the week of {{$week}}' }];
