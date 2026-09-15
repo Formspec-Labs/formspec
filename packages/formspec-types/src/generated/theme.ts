@@ -159,7 +159,7 @@ export interface ThemeDocument {
    */
   platform?: string;
   /**
-   * Registered name of the render adapter this theme's selectors, widgetConfig, and cssClass values are written for — the design system whose markup and self-contained stylesheet the adapter owns (RenderAdapter.stylesheets). Absent means the renderer's default adapter. A renderer MUST resolve this name in its adapter registry and, when it is not registered, MUST report THEME-ADAPTER-MISSING (error) and fall back to its default adapter rather than render mismatched class names silently. The adapter's own stylesheets load before the theme's additional 'stylesheets'; a compiled design system bakes its palette in at adapter build time and ignores 'tokens'. See theme-spec.md §2.4.
+   * Registered name of the render adapter this theme's selectors, widgetConfig, and cssClass are written for — the design system that owns the markup and the self-contained stylesheet those values assume. Absent means the renderer's default adapter. A renderer resolves the name in its adapter registry; an unregistered name is THEME-ADAPTER-MISSING (error) and falls back to the default adapter. See theme-spec.md §2.4.
    */
   adapter?: string;
   tokens?: Tokens;

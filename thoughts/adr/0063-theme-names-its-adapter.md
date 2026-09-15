@@ -21,27 +21,25 @@
 
 ## Context
 
-One presentation fact had two owners, and both were wrong about half of it.
+One presentation fact had two owners, and each was wrong about half of it.
 
-A Theme's `selectors`, `widgetConfig`, and `cssClass` values are written against
-exactly one design system — `usa-input` means nothing outside USWDS markup — but
-nothing in the Theme document said which one. Hosts closed the gap by hand. The
-demo at `~/NJUI/formspec-demo` had to list `node_modules/...` stylesheet URLs in
-the Theme's `stylesheets` and copy the USWDS palette into `tokens`, restating
-inside a document what the adapter package already knew.
+A Theme's `selectors`, `widgetConfig`, and `cssClass` are written against exactly
+one design system — `usa-input` means nothing outside USWDS markup — but nothing
+in the document said which. Hosts closed the gap by hand: the demo at
+`~/NJUI/formspec-demo` listed `node_modules/...` URLs in the Theme's
+`stylesheets` and copied the USWDS palette into `tokens`, restating in a document
+what the adapter package already knew.
 
-The adapter side was incomplete in the mirror image. ADR 0047's `integrationCSS`
-carried a CSS *string*, which cannot reference a font or an image; ADR 0048
-therefore chose system fonts and bundled no font files, correctly, for a
-JS-embedded string. Commit `6681ff62c` moved that CSS to a linked subpath export
-— removing the string constraint — but left relative `../fonts/` and `../img/`
-paths: the shipped `uswds-integration.css` referenced 18 fonts and 23 images the
-package never shipped. This ADR closes that.
+The adapter side failed in the mirror image. ADR 0047's `integrationCSS` carried
+a CSS *string*, which cannot reference a font or an image; ADR 0048 therefore
+chose system fonts and bundled none — correct for a JS-embedded string. Commit
+`6681ff62c` moved that CSS to a linked subpath export, removing the constraint,
+but left relative `../fonts/` and `../img/` paths: the shipped
+`uswds-integration.css` referenced 18 fonts and 23 images the package never
+shipped.
 
 The visible cost: no host besides the examples loaded any adapter, so a USWDS
-Theme could not be previewed in Studio, in the Surface shell, or in
-formspec-web. The document described a design system that only one hand-wired
-host could render.
+Theme could not be previewed in Studio, the Surface shell, or formspec-web.
 
 ## Decision
 

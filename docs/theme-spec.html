@@ -405,15 +405,12 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="
 <td>pattern: <code><a href="#fn1" class="footnote-ref" id="fnref1"
 role="doc-noteref"><sup>1</sup></a>+(-[a-z0-9]+)*$</code>; critical</td>
 <td>Registered name of the render adapter this theme’s selectors,
-widgetConfig, and cssClass values are written for — the design system
-whose markup and self-contained stylesheet the adapter owns
-(RenderAdapter.stylesheets). Absent means the renderer’s default
-adapter. A renderer MUST resolve this name in its adapter registry and,
-when it is not registered, MUST report THEME-ADAPTER-MISSING (error) and
-fall back to its default adapter rather than render mismatched class
-names silently. The adapter’s own stylesheets load before the theme’s
-additional ‘stylesheets’; a compiled design system bakes its palette in
-at adapter build time and ignores ‘tokens’. See theme-spec.md §2.4.</td>
+widgetConfig, and cssClass are written for — the design system that owns
+the markup and the self-contained stylesheet those values assume. Absent
+means the renderer’s default adapter. A renderer resolves the name in
+its adapter registry; an unregistered name is THEME-ADAPTER-MISSING
+(error) and falls back to the default adapter. See theme-spec.md
+§2.4.</td>
 </tr>
 <tr>
 <td><code>#/properties/breakpoints</code></td>
@@ -810,29 +807,20 @@ the unresolved value) and MUST fall back to its default adapter. It MUST
 NOT fail the render, and it MUST NOT silently emit the theme’s class
 names into markup the adapter never produced — the finding is what
 distinguishes “USWDS classes on default markup” from “USWDS”.</li>
-<li>A renderer MUST link the resolved adapter’s own stylesheets before
-the Theme’s <code>stylesheets</code> (§2.6), so the design system’s base
-CSS is the lower layer and the Theme’s sheets override it.</li>
+<li>A renderer MUST link the resolved adapter’s stylesheets before the
+Theme’s <code>stylesheets</code> (§2.6), so the design system is the
+lower layer and the Theme’s brand sheets override it.</li>
 <li>An adapter’s stylesheet MUST be <strong>self-contained</strong>: it
-MUST style the entire render root on its own, and MUST NOT depend on
-anything the host page contributes — no inherited <code>body</code> font
-or color, no host reset, no separately delivered asset. Fonts and images
-it needs MUST resolve from the stylesheet itself (inlined, or at URLs
-the adapter’s own package serves). A host embedding the renderer imports
-no CSS; the same document therefore renders identically in an authoring
-preview, a product shell, and a standalone page.</li>
-<li><code>adapter</code> names a design system, not a platform.
-<code>platform</code> (§2.3) stays informational and orthogonal; one
-adapter serves many platforms and one platform hosts many adapters.</li>
+MUST style the whole render root without anything the host page
+contributes — no inherited <code>body</code> font or color, no host
+reset, no separately delivered asset — and the fonts and images it needs
+MUST resolve from the stylesheet itself. A host registers adapter
+modules and imports no CSS, which is what lets an authoring preview, a
+product shell, and a public page render one document identically.</li>
 <li>An adapter decides for itself whether it reads <code>tokens</code>
-(§3). A token-driven adapter — the default skin — consumes the Theme’s
-token map. A compiled design system bakes its palette in at adapter
-build time and ignores it; a Theme for such an adapter SHOULD NOT
-restate that palette in <code>tokens</code>.</li>
-<li>A host application declares nothing about presentation. It registers
-the adapter modules it bundles; the Theme selects among them. This is
-what lets a preview surface, a shell, and a public renderer all render a
-USWDS Theme as USWDS from the document alone.</li>
+(§3). The default adapter does; a compiled design system bakes its
+palette in at adapter build time, so a Theme for one SHOULD NOT restate
+that palette.</li>
 </ul>
 <h3 id="theme-versioning">2.5 Theme Versioning</h3>
 <p>The <code>version</code> property is a free-form string. Semantic
@@ -861,9 +849,8 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="
 <li>Web renderers SHOULD load declared stylesheets before rendering the
 form. Stylesheets are loaded in array order; later sheets take CSS
 precedence over earlier sheets.</li>
-<li>The resolved adapter’s own stylesheets (§2.4) load <em>before</em>
-every sheet in this array, so a Theme sheet can override the design
-system and never the reverse.</li>
+<li>The resolved adapter’s stylesheets load before every sheet in this
+array (§2.4).</li>
 <li>Renderers MAY cache stylesheets, load them lazily, or scope them to
 the form container.</li>
 <li>Renderers MUST NOT fail if a stylesheet cannot be loaded; they

@@ -131,7 +131,7 @@ that omits a REQUIRED property.
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
 | `#/properties/$formspecTheme` | `$formspecTheme` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Theme specification version. MUST be '1.0'. |
-| `#/properties/adapter` | `adapter` | <code>string</code> | no | pattern: <code>^[a-z0-9]+(-[a-z0-9]+)*&#36;</code>; critical | Registered name of the render adapter this theme's selectors, widgetConfig, and cssClass values are written for — the design system whose markup and self-contained stylesheet the adapter owns (RenderAdapter.stylesheets). Absent means the renderer's default adapter. A renderer MUST resolve this name in its adapter registry and, when it is not registered, MUST report THEME-ADAPTER-MISSING (error) and fall back to its default adapter rather than render mismatched class names silently. The adapter's own stylesheets load before the theme's additional 'stylesheets'; a compiled design system bakes its palette in at adapter build time and ignores 'tokens'. See theme-spec.md §2.4. |
+| `#/properties/adapter` | `adapter` | <code>string</code> | no | pattern: <code>^[a-z0-9]+(-[a-z0-9]+)*&#36;</code>; critical | Registered name of the render adapter this theme's selectors, widgetConfig, and cssClass are written for — the design system that owns the markup and the self-contained stylesheet those values assume. Absent means the renderer's default adapter. A renderer resolves the name in its adapter registry; an unregistered name is THEME-ADAPTER-MISSING (error) and falls back to the default adapter. See theme-spec.md §2.4. |
 | `#/properties/breakpoints` | `breakpoints` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Breakpoints</code> | Named responsive breakpoints as min-width pixel values. Referenced by regions' 'responsive' objects to override span, start, or visibility at different viewport sizes. Processors that do not support responsive layouts SHOULD use the base span and start values. |
 | `#/properties/contrastPairs` | `contrastPairs` | <code>array</code> | no | critical | Additional color-token pairs whose effective contrast tooling must check. The platform Token Registry already declares the pairs used by the default renderer, so a Theme only needs this property for custom x-* tokens or stricter product-specific checks. A processor evaluates a pair after platform defaults and Theme token overrides are merged. It MUST use the WCAG 2.2 contrast formula when both values can be reduced to opaque sRGB colors, MUST NOT report a ratio when either value is indeterminate, and SHOULD diagnose a declared pair that references a missing token. The usage sets a standards floor: normalText is 4.5:1; largeText and uiComponent are 3:1. minimumRatio may raise but never lower that floor. |
 | `#/properties/defaults` | `defaults` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/PresentationBlock</code>; critical | Cascade level 1 (lowest theme specificity): baseline PresentationBlock applied to every item before selectors or per-item overrides. Sets the form-wide visual baseline. Overrides Tier 1 inline presentation hints (level 0) and formPresentation globals (level -1). Overridden by selectors (level 2) and items (level 3). Merge is shallow per-property — nested objects (widgetConfig, style, accessibility) are replaced as a whole, not deep-merged. Exception: cssClass uses union semantics across all levels. |
@@ -257,27 +257,18 @@ Normative requirements:
   MUST NOT silently emit the theme's class names into markup the adapter never
   produced — the finding is what distinguishes "USWDS classes on default markup"
   from "USWDS".
-- A renderer MUST link the resolved adapter's own stylesheets before the Theme's
-  `stylesheets` (§2.6), so the design system's base CSS is the lower layer and
-  the Theme's sheets override it.
-- An adapter's stylesheet MUST be **self-contained**: it MUST style the entire
-  render root on its own, and MUST NOT depend on anything the host page
-  contributes — no inherited `body` font or color, no host reset, no separately
-  delivered asset. Fonts and images it needs MUST resolve from the stylesheet
-  itself (inlined, or at URLs the adapter's own package serves). A host embedding
-  the renderer imports no CSS; the same document therefore renders identically in
-  an authoring preview, a product shell, and a standalone page.
-- `adapter` names a design system, not a platform. `platform` (§2.3) stays
-  informational and orthogonal; one adapter serves many platforms and one
-  platform hosts many adapters.
-- An adapter decides for itself whether it reads `tokens` (§3). A token-driven
-  adapter — the default skin — consumes the Theme's token map. A compiled design
-  system bakes its palette in at adapter build time and ignores it; a Theme for
-  such an adapter SHOULD NOT restate that palette in `tokens`.
-- A host application declares nothing about presentation. It registers the
-  adapter modules it bundles; the Theme selects among them. This is what lets a
-  preview surface, a shell, and a public renderer all render a USWDS Theme as
-  USWDS from the document alone.
+- A renderer MUST link the resolved adapter's stylesheets before the Theme's
+  `stylesheets` (§2.6), so the design system is the lower layer and the Theme's
+  brand sheets override it.
+- An adapter's stylesheet MUST be **self-contained**: it MUST style the whole
+  render root without anything the host page contributes — no inherited `body`
+  font or color, no host reset, no separately delivered asset — and the fonts and
+  images it needs MUST resolve from the stylesheet itself. A host registers
+  adapter modules and imports no CSS, which is what lets an authoring preview, a
+  product shell, and a public page render one document identically.
+- An adapter decides for itself whether it reads `tokens` (§3). The default
+  adapter does; a compiled design system bakes its palette in at adapter build
+  time, so a Theme for one SHOULD NOT restate that palette.
 
 ### 2.5 Theme Versioning
 
@@ -310,9 +301,8 @@ Normative requirements:
 - Web renderers SHOULD load declared stylesheets before rendering the
   form. Stylesheets are loaded in array order; later sheets take CSS
   precedence over earlier sheets.
-- The resolved adapter's own stylesheets (§2.4) load *before* every sheet in
-  this array, so a Theme sheet can override the design system and never the
-  reverse.
+- The resolved adapter's stylesheets load before every sheet in this array
+  (§2.4).
 - Renderers MAY cache stylesheets, load them lazily, or scope them
   to the form container.
 - Renderers MUST NOT fail if a stylesheet cannot be loaded; they
