@@ -59,6 +59,19 @@ describe('USWDS TextInput', () => {
         expect(group.querySelector('.usa-input-suffix')!.textContent).toBe('.00');
     });
 
+    it('applies the theme width-stop modifier (theme §4.2 Width Stops)', () => {
+        const parent = makeParent();
+        renderTextInput(mockTextInput({ width: 'sm' }), parent, mockAdapterContext());
+        expect(parent.querySelector('.usa-input.usa-input--sm')).toBeTruthy();
+    });
+
+    it('ignores an unrecognized width value', () => {
+        const parent = makeParent();
+        renderTextInput(mockTextInput({ width: 'huge' as any }), parent, mockAdapterContext());
+        const input = parent.querySelector('input.usa-input') as HTMLInputElement;
+        expect(input.className).toBe('usa-input');
+    });
+
     it('hides label with usa-sr-only when labelPosition is hidden', () => {
         const parent = makeParent();
         renderTextInput(
@@ -90,6 +103,12 @@ describe('USWDS NumberInput', () => {
         expect(input.type).toBe('number');
         expect(input.min).toBe('0');
         expect(input.max).toBe('120');
+    });
+
+    it('applies the theme width-stop modifier (theme §4.2 Width Stops)', () => {
+        const parent = makeParent();
+        renderNumberInput(mockNumberInput({ width: 'xs' }), parent, mockAdapterContext());
+        expect(parent.querySelector('.usa-input.usa-input--xs')).toBeTruthy();
     });
 });
 
@@ -167,6 +186,12 @@ describe('USWDS Select', () => {
         // placeholder + 2 options = 3
         expect(select.options.length).toBe(3);
     });
+
+    it('applies the theme width-stop modifier (theme §4.2 Width Stops) — same usa-input--<stop> class USWDS uses on every control', () => {
+        const parent = makeParent();
+        renderSelect(mockSelect({ width: 'md' }), parent, mockAdapterContext());
+        expect(parent.querySelector('select.usa-select.usa-input--md')).toBeTruthy();
+    });
 });
 
 // ── DatePicker ─────────────────────────────────────────────────────
@@ -181,6 +206,12 @@ describe('USWDS DatePicker', () => {
         expect(input.type).toBe('text');
         const hint = parent.querySelector('.usa-hint:not([hidden])');
         expect(hint?.textContent).toContain('MM/DD/YYYY');
+    });
+
+    it('applies the theme width-stop modifier (theme §4.2 Width Stops)', () => {
+        const parent = makeParent();
+        renderDatePicker(mockDatePicker({ width: 'lg' }), parent, mockAdapterContext());
+        expect(parent.querySelector('input.usa-input.usa-input--lg')).toBeTruthy();
     });
 });
 
@@ -217,6 +248,13 @@ describe('USWDS MoneyInput', () => {
         expect(parent.querySelector('.formspec-money-currency-input')).toBeTruthy();
         expect(row?.querySelector('.formspec-money-currency-input')).toBeTruthy();
         expect(row?.querySelector('input.formspec-money-amount')).toBeTruthy();
+    });
+
+    it('applies the theme width-stop modifier to the usa-input-group, not the inner amount input (theme §4.2)', () => {
+        const parent = makeParent();
+        renderMoneyInput(mockMoneyInput({ width: 'xl' }), parent, mockAdapterContext());
+        expect(parent.querySelector('.usa-input-group.usa-input--xl')).toBeTruthy();
+        expect(parent.querySelector('.formspec-money-amount')?.className).not.toContain('usa-input--xl');
     });
 });
 

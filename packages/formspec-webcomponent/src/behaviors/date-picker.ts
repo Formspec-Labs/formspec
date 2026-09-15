@@ -51,6 +51,7 @@ export function useDatePicker(ctx: BehaviorContext, comp: any): DatePickerBehavi
         minDate: comp.minDate,
         maxDate: comp.maxDate,
         placeholder: comp.placeholder || extensionPlaceholder,
+        width: comp.width,
 
         setValue(val: any): void {
             ctx.engine.setValue(fieldPath, val);

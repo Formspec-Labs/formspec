@@ -49,6 +49,7 @@ export function useNumberInput(ctx: BehaviorContext, comp: any): NumberInputBeha
         placeholder: comp.placeholder || extensionPlaceholder,
         prefix: item?.prefix,
         suffix: item?.suffix,
+        width: comp.width,
 
         setValue(val: any): void {
             ctx.engine.setValue(fieldPath, val);

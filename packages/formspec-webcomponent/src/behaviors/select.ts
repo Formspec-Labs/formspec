@@ -68,6 +68,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
         dataType,
         searchable,
         multiple,
+        width: comp.width,
 
         setValue(val: any): void {
             ctx.engine.setValue(fieldPath, val);

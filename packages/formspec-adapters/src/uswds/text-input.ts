@@ -1,6 +1,6 @@
 /** @filedesc USWDS v3 adapter for TextInput — usa-input or usa-textarea, with usa-character-count for maxLength. */
 import { createCharacterCount, type TextInputBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
-import { applyUSWDSValidationState, createUSWDSFieldDOM, createUSWDSInput } from './shared';
+import { applyUSWDSValidationState, createUSWDSFieldDOM, createUSWDSInput, uswdsWidthClass } from './shared';
 
 /** USWDS character count validation message (usa-character-count `VALIDATION_MESSAGE`). */
 const OVER_LIMIT_MESSAGE = 'The content is too long.';
@@ -51,7 +51,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     if (p.labelPosition === 'start') root.classList.add('formspec-label-start');
 
     const { control, actualInput } = createUSWDSInput(behavior, {
-        inputClass: behavior.maxLines != null && behavior.maxLines > 1 ? 'usa-textarea' : 'usa-input',
+        inputClass: (behavior.maxLines != null && behavior.maxLines > 1 ? 'usa-textarea' : 'usa-input') + uswdsWidthClass(behavior.width),
     });
 
     if (!control.parentElement) root.appendChild(control);

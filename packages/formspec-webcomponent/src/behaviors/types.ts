@@ -103,6 +103,8 @@ export interface SelectBehavior extends FieldBehavior {
     searchable?: boolean;
     /** Multi-value combobox; use with multiChoice fields. */
     multiple?: boolean;
+    /** Theme `widgetConfig.width` (theme §4.2 Width Stops): planner-carried, an adapter maps it to its own class. */
+    width?: string;
 }
 
 export interface ToggleBehavior extends FieldBehavior {
@@ -121,6 +123,8 @@ export interface TextInputBehavior extends FieldBehavior {
     suffix?: string;
     resolvedInputType?: string;
     extensionAttrs: Record<string, string>;
+    /** Theme `widgetConfig.width` (theme §4.2 Width Stops): planner-carried, an adapter maps it to its own class. */
+    width?: string;
 }
 
 export interface NumberInputBehavior extends FieldBehavior {
@@ -133,6 +137,8 @@ export interface NumberInputBehavior extends FieldBehavior {
     /** Display-only text before/after the input (definition item `prefix`/`suffix`, core §4.2.3). */
     prefix?: string;
     suffix?: string;
+    /** Theme `widgetConfig.width` (theme §4.2 Width Stops): planner-carried, an adapter maps it to its own class. */
+    width?: string;
 }
 
 export interface DatePickerBehavior extends FieldBehavior {
@@ -140,6 +146,8 @@ export interface DatePickerBehavior extends FieldBehavior {
     minDate?: string;
     maxDate?: string;
     placeholder?: string;
+    /** Theme `widgetConfig.width` (theme §4.2 Width Stops): planner-carried, an adapter maps it to its own class. */
+    width?: string;
 }
 
 export interface MoneyInputBehavior extends FieldBehavior {
@@ -148,6 +156,8 @@ export interface MoneyInputBehavior extends FieldBehavior {
     step?: number;
     placeholder?: string;
     resolvedCurrency: string | null;
+    /** Theme `widgetConfig.width` (theme §4.2 Width Stops): planner-carried, an adapter maps it to its own class. */
+    width?: string;
 }
 
 export interface SliderBehavior extends FieldBehavior {

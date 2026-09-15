@@ -12,6 +12,7 @@ type TextInputComp = ComponentDescriptor & {
     maxLines?: number;
     prefix?: string;
     suffix?: string;
+    width?: string;
 };
 
 function positiveInteger(value: unknown): number | undefined {
@@ -81,6 +82,7 @@ export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInp
         suffix: comp.suffix ?? item?.suffix,
         resolvedInputType,
         extensionAttrs,
+        width: comp.width,
 
         setValue(val: string): void {
             ctx.engine.setValue(fieldPath, val);

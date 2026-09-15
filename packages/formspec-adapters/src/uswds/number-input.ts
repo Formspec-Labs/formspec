@@ -1,6 +1,6 @@
 /** @filedesc USWDS v3 adapter for NumberInput — renders usa-input with type="number". */
 import type { NumberInputBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
-import { applyUSWDSValidationState, createUSWDSFieldDOM, createUSWDSInput } from './shared';
+import { applyUSWDSValidationState, createUSWDSFieldDOM, createUSWDSInput, uswdsWidthClass } from './shared';
 
 export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     behavior, parent, actx
@@ -12,7 +12,7 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
 
     const { control, actualInput } = createUSWDSInput(behavior, {
         type: 'number',
-        inputClass: 'usa-input',
+        inputClass: 'usa-input' + uswdsWidthClass(behavior.width),
     });
 
     root.appendChild(control);

@@ -101,6 +101,19 @@ export function createUSWDSInput(behavior: FieldBehavior, options: InputSkeleton
     }));
 }
 
+/** USWDS's seven input width modifiers (theme §4.2 Width Stops). */
+const USWDS_WIDTH_STOPS = new Set(['2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl']);
+
+/**
+ * `usa-input--<stop>` for a recognized `widgetConfig.width` (theme §4.2), leading-space-prefixed so it
+ * appends onto an existing class string; `''` when `width` is absent or not one of the seven stops —
+ * an unrecognized `widgetConfig` key MUST be ignored (theme-spec.md §4.4), so it falls back to filling
+ * the form column.
+ */
+export function uswdsWidthClass(width: string | undefined): string {
+    return width && USWDS_WIDTH_STOPS.has(width) ? ` usa-input--${width}` : '';
+}
+
 /** Removes previously-rendered option elements (marked with data-option-wrapper). */
 export function clearUSWDSOptions(container: HTMLElement): void {
     clearOptionNodes(container);

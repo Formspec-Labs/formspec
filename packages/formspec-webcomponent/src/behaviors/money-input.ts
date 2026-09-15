@@ -82,6 +82,7 @@ export function useMoneyInput(ctx: BehaviorContext, comp: any): MoneyInputBehavi
         step: comp.step,
         placeholder: comp.placeholder || extensionPlaceholder,
         resolvedCurrency,
+        width: comp.width,
 
         setValue(val: any): void {
             ctx.engine.setValue(fieldPath, val);
