@@ -18,8 +18,8 @@
 //! [`interpolate_fel_template`] does both against a FEL environment.
 
 use fel_core::{
-    ExtensionFunctions, FormspecEnvironment, Value, expr_is_interpolation_static_literal,
-    has_error_diagnostics, parse,
+    Environment, ExtensionFunctions, FormspecEnvironment, Value,
+    expr_is_interpolation_static_literal, has_error_diagnostics, parse,
 };
 
 use crate::fel_eval::Fel;
@@ -136,7 +136,7 @@ pub fn interpolate_fel_template(
 /// Interpolates `template` against `env`; `prepare` rewrites each expression before parsing.
 pub(crate) fn interpolate_fel(
     template: &str,
-    env: &FormspecEnvironment,
+    env: &dyn Environment,
     fel: Fel<'_>,
     prepare: impl Fn(&str) -> String,
 ) -> Interpolated {

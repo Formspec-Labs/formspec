@@ -9,6 +9,8 @@
 //!
 //! Cross-cutting: [`mod@convert`] (path resolution), private `fel_json` (money-aware JSON→`Value` for env fields),
 //! private `runtime_seed` (prePopulate / previous non-relevant). [`mod@screener_eval`] evaluates standalone screener documents.
+//! [`HostFelContext`] holds one form's FEL state so a host evaluates ad-hoc expressions by Item path without
+//! re-serializing the form per call.
 //!
 //! ## Documentation
 //!
@@ -23,6 +25,7 @@ mod fel_json;
 mod value_predicate;
 
 pub mod convert;
+pub mod host_context;
 pub mod interpolation;
 pub mod nrb;
 pub mod rebuild;
@@ -43,6 +46,7 @@ pub use eval_json::{
     evaluation_result_to_json_value, evaluation_result_to_json_value_styled,
 };
 pub use eval_options::EvalOptions;
+pub use host_context::HostFelContext;
 pub use nrb::{apply_nrb, resolve_nrb};
 pub use pipeline::evaluate;
 pub use rebuild::parse_variables;

@@ -5,8 +5,8 @@
 
 use fel_core::error::Diagnostic;
 use fel_core::{
-    EvalResult, EvaluatorOptions, Expr, ExtensionFunctions, FormspecEnvironment, Value,
-    evaluate_with, parse,
+    Environment, EvalResult, EvaluatorOptions, Expr, ExtensionFunctions, Value, evaluate_with,
+    parse,
 };
 
 /// Evaluates FEL with the host's extension functions, if any.
@@ -23,7 +23,7 @@ impl<'a> Fel<'a> {
     }
 
     /// Evaluates parsed `expr` in `env`.
-    pub(crate) fn evaluate(self, expr: &Expr, env: &FormspecEnvironment) -> EvalResult {
+    pub(crate) fn evaluate(self, expr: &Expr, env: &dyn Environment) -> EvalResult {
         evaluate_with(
             expr,
             env,
@@ -39,7 +39,7 @@ impl<'a> Fel<'a> {
     /// For positions where any failure is one "expression error" signal (screener
     /// routes, shape `context` values). Constraint positions keep syntax errors
     /// distinct from evaluation errors instead.
-    pub(crate) fn evaluate_source(self, source: &str, env: &FormspecEnvironment) -> EvalResult {
+    pub(crate) fn evaluate_source(self, source: &str, env: &dyn Environment) -> EvalResult {
         match parse(source) {
             Ok(parsed) => self.evaluate(&parsed, env),
             Err(e) => EvalResult {
@@ -52,7 +52,7 @@ impl<'a> Fel<'a> {
     }
 
     /// Boolean value of `source`; `default` when it fails to parse or is not a boolean.
-    pub(crate) fn eval_bool(self, source: &str, env: &FormspecEnvironment, default: bool) -> bool {
+    pub(crate) fn eval_bool(self, source: &str, env: &dyn Environment, default: bool) -> bool {
         match parse(source) {
             Ok(parsed) => match self.evaluate(&parsed, env).value {
                 Value::Boolean(b) => b,
