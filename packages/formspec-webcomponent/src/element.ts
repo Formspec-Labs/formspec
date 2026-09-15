@@ -113,6 +113,7 @@ import {
 import { applyResponseDataToEngine } from './hydrate-response-data';
 import { setupBreakpoints as setupBreakpointsFn, cleanupBreakpoints, createBreakpointState, type BreakpointState } from './rendering/breakpoints';
 import { emitNode as emitNodeFn, type RenderHost as EmitRenderHost } from './rendering/emit-node';
+import { renderSkeleton as renderSkeletonFn } from './rendering/skeleton';
 import {
     resolveToken as resolveTokenFn,
     resolveItemPresentation as resolveItemPresentationFn,
@@ -430,6 +431,7 @@ export class FormspecRender extends HTMLElement {
         this.touchedVersion.value = 0;
         // A definition without a theme still renders through an adapter: link its skin now.
         this.syncStylesheets();
+        this.renderPlaceholder();
 
         const bootEngine = () => {
             if (this._definition !== val) {
@@ -902,6 +904,7 @@ export class FormspecRender extends HTMLElement {
         this.ensureColorSchemeListener();
         const container = this.rootContainer;
         container.className = 'formspec-container';
+        container.removeAttribute('aria-busy');
         this.syncRootContainerAppearance();
         container.replaceChildren();
 
@@ -917,6 +920,16 @@ export class FormspecRender extends HTMLElement {
             return;
         }
 
+        const plan = this.buildPlan();
+        if (plan) emitNodeFn(this._renderHost, plan, container, '');
+    }
+
+    /**
+     * The layout plan for the current documents. Pure TypeScript — no engine, so the skeleton can draw
+     * the real tree's shape before WASM finishes booting and the swap moves almost nothing.
+     */
+    private buildPlan(): import('@formspec-org/layout').LayoutNode | null {
+        if (!this._definition) return null;
         const planCtx = preparePlanContext({
             items: this._definition.items,
             formPresentation: mergeFormPresentationForPlanning(
@@ -949,7 +962,7 @@ export class FormspecRender extends HTMLElement {
                     });
                 }
             }
-            emitNodeFn(this._renderHost, plan, container, '');
+            return plan;
         } else {
             const plans = planDefinitionFallback(this._definition.items, planCtx);
             const pageMode = pageModeFromPresentation(planCtx.formPresentation);
@@ -975,8 +988,47 @@ export class FormspecRender extends HTMLElement {
                     });
                 }
             }
-            emitNodeFn(this._renderHost, wrapperNode, container, '');
+            return wrapperNode;
         }
+    }
+
+    /**
+     * Draw the planned tree as placeholders while the engine boots. The column then holds the height the
+     * real form will take, so the page below it does not jump when the form lands.
+     */
+    private renderPlaceholder(): void {
+        if (!this._definition || this.engine) return;
+        const plan = this.buildPlan();
+        if (!plan) return;
+
+        if (!this.rootContainer) {
+            this.rootContainer = document.createElement('div');
+            this.appendChild(this.rootContainer);
+        }
+        const container = this.rootContainer;
+        container.className = 'formspec-container formspec-skeleton';
+        container.setAttribute('aria-busy', 'true');
+        container.replaceChildren();
+        emitTokenPropertiesFn(this._stylingHost, container);
+
+        const discard: Array<() => void> = [];
+        renderSkeletonFn(plan, container, this.resolvedAdapterName, {
+            onDispose: (fn: () => void) => discard.push(fn),
+            applyCssClass: () => {},
+            applyStyle: () => {},
+            applyAccessibility: () => {},
+            applyClassValue: () => {},
+        }, this.conditionalBindPaths());
+    }
+
+    /** Bind paths gated by a `relevant` expression — the engine decides them, so the skeleton skips them. */
+    private conditionalBindPaths(): ReadonlySet<string> {
+        const binds = (this._definition as (FormDefinition & { binds?: Array<{ path?: string; relevant?: unknown }> }) | null)?.binds;
+        return new Set(
+            (binds ?? [])
+                .filter((bind) => typeof bind?.relevant === 'string' && bind.path)
+                .map((bind) => String(bind.path)),
+        );
     }
 
     private effectiveIssuerOverride(): IssuerSource | undefined {
