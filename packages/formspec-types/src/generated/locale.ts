@@ -110,6 +110,52 @@ export type SurfaceShellStringKey =
   | '$module.x-formspec-surface.shell.transitionSuppliedBySlot'
   | '$module.x-formspec-surface.shell.transitionFireable';
 /**
+ * Closed one-to-one mapping to the renderer chrome string inventory (Locale spec §3.1.10, packages/formspec-layout/src/ui-strings.ts). A new chrome string requires a Locale schema revision.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ChromeStringKey".
+ */
+export type ChromeStringKey =
+  | '$ui.select.placeholder'
+  | '$ui.select.clear'
+  | '$ui.select.clearSelection'
+  | '$ui.select.selectedValues'
+  | '$ui.select.selectAll'
+  | '$ui.repeat.add'
+  | '$ui.repeat.remove'
+  | '$ui.repeat.row'
+  | '$ui.repeat.rowOf'
+  | '$ui.wizard.next'
+  | '$ui.wizard.nextStep'
+  | '$ui.wizard.previous'
+  | '$ui.wizard.previousStep'
+  | '$ui.wizard.skip'
+  | '$ui.wizard.skipStep'
+  | '$ui.wizard.submit'
+  | '$ui.wizard.submitForm'
+  | '$ui.wizard.steps'
+  | '$ui.wizard.progress'
+  | '$ui.wizard.step'
+  | '$ui.wizard.collapseNavigation'
+  | '$ui.modal.close'
+  | '$ui.alert.dismiss'
+  | '$ui.validationSummary.heading'
+  | '$ui.date.format'
+  | '$ui.characterCount.limit'
+  | '$ui.characterCount.allowed'
+  | '$ui.characterCount.left'
+  | '$ui.characterCount.leftOne'
+  | '$ui.characterCount.over'
+  | '$ui.characterCount.overOne'
+  | '$ui.signature.clear'
+  | '$ui.signature.canvas'
+  | '$ui.money.amount'
+  | '$ui.money.currency'
+  | '$ui.fieldHelp.label'
+  | '$ui.screener.continue'
+  | '$ui.screener.required'
+  | '$ui.screener.back';
+/**
  * Extension object whose keys must be prefixed with x-.
  */
 export interface Extensions {}
