@@ -18,10 +18,10 @@ export interface StylingHost {
     /** The root the current `stylesheetHrefs` were linked into, or `null` when nothing is linked. */
     stylesheetRoot: Document | ShadowRoot | null;
     getRootNode(): Node;
-    /** The adapter this host resolved, matched against the `--formspec-adapter` a page may have pre-loaded. */
+    /** The adapter this host resolved: its layers are linked, and its class vocabulary checks Theme classes. */
     resolvedAdapterName: string;
     /** Stylesheet layers declared by the adapter this host resolved (ADR 0063 D-4). */
-    adapterStylesheets(): Array<string | StylesheetLayer>;
+    adapterStylesheets(): StylesheetLayer[];
     /** Class vocabulary declared by the adapter this host resolved, or `undefined` when it declares none. */
     adapterClassVocabulary(): ReadonlySet<string> | undefined;
     getEffectiveTheme(): ThemeDocument;

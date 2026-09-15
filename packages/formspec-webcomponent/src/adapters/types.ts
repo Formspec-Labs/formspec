@@ -65,15 +65,13 @@ export interface RenderAdapter {
     name: string;
     components: Partial<Record<string, AdapterRenderFn>>;
     /**
-     * This adapter's stylesheet, ordered least- to most-specific layer, each an absolute URL. A plain
-     * string is a layer with no probe: linked unless the adapter marker a host may have pre-loaded already
-     * names this adapter (the rule from before ADR 0063 D-4 — Tailwind's single self-contained sheet still
-     * uses this shape). A `StylesheetLayer` carries its own presence probe, so an adapter can ship its
-     * design system and its own rules as independently skippable layers (the USWDS adapter's shape). The
-     * renderer links every layer whose probe does not already match, ref-counted, before any Theme
-     * `stylesheets`; hosts never import adapter CSS themselves.
+     * This adapter's stylesheet as ordered layers, least to most specific, each with its own presence probe
+     * (ADR 0063 D-4): a single-sheet adapter declares one layer, the USWDS adapter its design system and its
+     * own rules as two, so a page that already loads USWDS gets only the rules. The renderer links every
+     * layer whose probe does not already match, ref-counted, before any Theme `stylesheets`; hosts never
+     * import adapter CSS themselves.
      */
-    stylesheets?: Array<string | StylesheetLayer>;
+    stylesheets?: StylesheetLayer[];
     /**
      * Every CSS class name this adapter's stylesheet selects — generated from the compiled sheet at build
      * time (ADR 0064 decision 2), never hand-listed. When present, the renderer warns once per (adapter

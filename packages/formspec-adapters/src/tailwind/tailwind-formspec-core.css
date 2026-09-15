@@ -6,9 +6,9 @@
  * Unlayered CSS always beats layered utilities; do not remove this layer when using Tailwind.
  */
 
-/* Presence marker: the renderer skips linking this stylesheet when a host already loaded it. */
+/* Presence marker (ADR 0063 D-4): the Tailwind adapter's layer probes for it, so a host that already loaded this stylesheet gets no second link. */
 .formspec-container {
-  --formspec-adapter: tailwind;
+  --formspec-tailwind-rules: 1;
 }
 
 :root {

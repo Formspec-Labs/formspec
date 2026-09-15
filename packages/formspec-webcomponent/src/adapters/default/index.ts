@@ -42,7 +42,10 @@ import { renderRepeatCards } from './repeat-cards';
 export const defaultAdapter: RenderAdapter = {
     name: 'default',
     /** The Formspec skin, shipped next to the package root in `dist/`. Structural layout is linked separately. */
-    stylesheets: [new URL('../../formspec-default.css', import.meta.url).href],
+    stylesheets: [{
+        href: new URL('../../formspec-default.css', import.meta.url).href,
+        presentWhen: { className: 'formspec-container', property: '--formspec-default-skin', value: '1' },
+    }],
     components: {
         Section: renderSection,
         Stack: renderStack,

@@ -2,6 +2,11 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 
 let FormspecRender: any;
+
+/** A single-sheet adapter's layer: present when its own marker is on `.formspec-container`. */
+function layer(href: string, marker: string) {
+    return { href, presentWhen: { className: 'formspec-container', property: marker, value: '1' } };
+}
 let globalRegistry: any;
 let LAYOUT_HREF: string;
 let DEFAULT_ADAPTER_HREF: string;
@@ -19,12 +24,13 @@ beforeAll(async () => {
     FormspecRender = mod.FormspecRender;
     globalRegistry = mod.globalRegistry;
     LAYOUT_HREF = sheets.LAYOUT_STYLESHEET_HREF;
-    DEFAULT_ADAPTER_HREF = defaultAdapter.stylesheets![0];
+    DEFAULT_ADAPTER_HREF = defaultAdapter.stylesheets![0].href;
     if (!customElements.get('formspec-render')) {
         customElements.define('formspec-render', FormspecRender);
     }
-    globalRegistry.registerAdapter({ name: 'wp2-ds', components: {}, stylesheets: [DS_CSS] });
-    globalRegistry.registerAdapter({ name: 'wp2-other', components: {}, stylesheets: [OTHER_CSS] });
+    // Every stylesheet is a layer with a presence probe — one rule for all of them (ADR 0063 D-4).
+    globalRegistry.registerAdapter({ name: 'wp2-ds', components: {}, stylesheets: [layer(DS_CSS, '--wp2-ds-rules')] });
+    globalRegistry.registerAdapter({ name: 'wp2-other', components: {}, stylesheets: [layer(OTHER_CSS, '--wp2-other-rules')] });
     // Two layers with distinct probes (ADR 0063 D-4) — the shape the USWDS adapter ships: a base design
     // system probed by a class/property a bare build always defines, and Formspec's own rules probed by
     // a marker only that layer defines.
@@ -257,7 +263,7 @@ describe('stylesheet linking', () => {
 
     it('adds nothing a host already loaded, as the stylesheets declare themselves', () => {
         const declared = document.createElement('style');
-        declared.textContent = '.formspec-container { --formspec-layout: 1; --formspec-adapter: wp2-ds; }';
+        declared.textContent = '.formspec-container { --formspec-layout: 1; --wp2-ds-rules: 1; }';
         document.head.appendChild(declared);
 
         const el = mount();
@@ -270,7 +276,7 @@ describe('stylesheet linking', () => {
 
     it('still links the adapter a host pre-loaded a different one for', () => {
         const declared = document.createElement('style');
-        declared.textContent = '.formspec-container { --formspec-adapter: wp2-other; }';
+        declared.textContent = '.formspec-container { --wp2-other-rules: 1; }';
         document.head.appendChild(declared);
 
         const el = mount();
@@ -337,16 +343,14 @@ describe('layered adapter stylesheets (ADR 0063 D-4)', () => {
         expect(linkedHrefs()).toEqual([]);
     });
 
-    it('a plain string entry still follows the adapter-marker rule, unaffected by layer probing', () => {
-        // Regression: wp2-ds is a single string entry (Tailwind's shape). Mixed adapters aside, the
-        // marker rule from before this amendment must still govern a string-only adapter.
+    it("skips the default adapter's skin when a host pre-linked it, through the skin's own marker", () => {
         const declared = document.createElement('style');
-        declared.textContent = '.formspec-container { --formspec-adapter: wp2-ds; }';
+        declared.textContent = '.formspec-container { --formspec-layout: 1; --formspec-default-skin: 1; }';
         document.head.appendChild(declared);
 
         const el = mount();
-        el.themeDocument = theme({ adapter: 'wp2-ds' });
-        expect(linkedHrefs()).toEqual([LAYOUT_HREF]);
+        el.themeDocument = theme();
+        expect(linkedHrefs()).toEqual([]);
 
         declared.remove();
     });
@@ -392,7 +396,7 @@ describe('no unstyled frame', () => {
 
     it('never hides when a host pre-loaded everything', () => {
         const declared = document.createElement('style');
-        declared.textContent = '.formspec-container { --formspec-layout: 1; --formspec-adapter: wp2-ds; }';
+        declared.textContent = '.formspec-container { --formspec-layout: 1; --wp2-ds-rules: 1; }';
         document.head.appendChild(declared);
 
         const el = mount();

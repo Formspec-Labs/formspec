@@ -11,7 +11,7 @@ import type { RenderAdapter, StylesheetLayer } from './types';
  */
 export interface DeriveAdapterOptions {
     name: string;
-    stylesheets: Array<string | StylesheetLayer>;
+    stylesheets: StylesheetLayer[];
     classVocabulary?: ReadonlySet<string>;
 }
 

@@ -116,16 +116,19 @@ class to the render root's tree, reads the computed property, and skips the
 layer when the value matches. The USWDS adapter ships two layers: the design
 system itself (components, typefaces, icons — self-contained, ~480 KB), probed
 by a class every USWDS build defines; and Formspec's own USWDS rules (the render
-root extends `usa-form`, field rhythm from `spacing.field`, help row, rich-text
-paragraphs, the modal host — a few KB), probed by a marker only that sheet
-defines. A bare page gets both. A USWDS page gets the second only. A plain
-string entry stays valid and means "a layer with no probe": linked unless the
-adapter marker already matches, exactly as before this amendment.
+root extends `usa-form`, USWDS's reset scoped to the render root, field rhythm
+from `spacing.field`, help row, rich-text paragraphs, the modal host — a few
+KB), probed by a marker only that sheet defines. A bare page gets both. A USWDS
+page gets the second only. Every stylesheet the renderer links is a layer — the
+structural sheet (`--formspec-layout`), the default skin
+(`--formspec-default-skin`), Tailwind's sheet (`--formspec-tailwind-rules`) — so
+one probe answers "does the page already have this CSS?" for all of them; a bare
+URL string is not a valid entry.
 
 A variant (ADR 0064) compiles its own base layer from the partial with its
 settings and reuses the package's rules layer unchanged; its marker is the rules
-layer's, so no per-adapter marker name is needed. The renderer's
-`--formspec-adapter` marker is retired in favor of the per-layer probes.
+layer's, so no per-adapter marker name is needed. The old per-adapter
+`--formspec-adapter` marker is gone.
 
 Reusing a host's design system means the host's version drives the adapter's
 markup. That is the host's risk, the same one any component takes on a USWDS

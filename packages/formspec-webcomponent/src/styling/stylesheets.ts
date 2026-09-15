@@ -58,11 +58,14 @@ function findLink(root: StyleRoot, hrefKey: string): HTMLLinkElement | null {
     return null;
 }
 
-/** What a host already loaded, as the stylesheets themselves declare it on `.formspec-container`. */
-interface HostProvidedStyles {
-    layout: boolean;
-    adapter: string;
-}
+/**
+ * The structural sheet as a layer: present when `layout.primitives.css` already marks `.formspec-container`.
+ * Same shape as every adapter layer, so one probe answers "does the page already have this CSS?" for all.
+ */
+const LAYOUT_LAYER: StylesheetLayer = {
+    href: LAYOUT_STYLESHEET_HREF,
+    presentWhen: { className: 'formspec-container', property: '--formspec-layout', value: '1' },
+};
 
 /** The element's tree a probe attaches to — a document probes into `body`, a shadow root into itself. */
 function probeParent(root: StyleRoot): ParentNode | null {
@@ -70,77 +73,35 @@ function probeParent(root: StyleRoot): ParentNode | null {
 }
 
 /**
- * Appends a hidden element carrying `className` to `root`'s tree, reads its computed style, removes the
- * element, and returns what `read` extracted — `undefined` when the probe cannot render (no `body` yet).
- * Every presence check (ADR 0063 D-4) — the structural sheet, an adapter's marker, one `StylesheetLayer`'s
- * own probe — goes through this one hidden-element mechanism.
- */
-function withProbe<T>(root: StyleRoot, className: string, read: (style: CSSStyleDeclaration) => T): T | undefined {
-    const parent = probeParent(root);
-    if (!parent) return undefined;
-    const probe = document.createElement('div');
-    probe.className = className;
-    probe.style.display = 'none';
-    parent.appendChild(probe);
-    const result = read(getComputedStyle(probe));
-    probe.remove();
-    return result;
-}
-
-/**
- * Ask the page what it already has. The structural sheet and every legacy (string-entry) adapter sheet
- * set one custom property each on `.formspec-container` — a host that pre-loaded them (bundler import,
- * hashed asset, hand-written link) gets no link from us, and no unstyled frame.
- */
-function hostProvidedStyles(root: StyleRoot): HostProvidedStyles {
-    return (
-        withProbe(root, 'formspec-container', (style) => ({
-            layout: style.getPropertyValue('--formspec-layout').trim() !== '',
-            adapter: style.getPropertyValue('--formspec-adapter').trim(),
-        })) ?? { layout: false, adapter: '' }
-    );
-}
-
-/**
- * One `StylesheetLayer`'s own presence probe (ADR 0063 D-4): a hidden element carrying
- * `presentWhen.className`, appended to the render root's tree — present when its computed
- * `presentWhen.property` already equals `presentWhen.value`.
+ * A layer's presence probe (ADR 0063 D-4): append a hidden element carrying `presentWhen.className` to the
+ * render root's tree, read the computed `presentWhen.property`, remove it. Present when the value already
+ * equals `presentWhen.value` — a host that loaded the sheet itself (bundler import, hashed asset, CDN, a
+ * hand-written link) gets no link from us, and no unstyled frame. Not present while the probe cannot render
+ * (no `body` yet), so the sheet links.
  */
 function layerIsPresent(root: StyleRoot, layer: StylesheetLayer): boolean {
-    const value = withProbe(root, layer.presentWhen.className, (style) =>
-        style.getPropertyValue(layer.presentWhen.property).trim());
+    const parent = probeParent(root);
+    if (!parent) return false;
+    const probe = document.createElement('div');
+    probe.className = layer.presentWhen.className;
+    probe.style.display = 'none';
+    parent.appendChild(probe);
+    const value = getComputedStyle(probe).getPropertyValue(layer.presentWhen.property).trim();
+    probe.remove();
     return value === layer.presentWhen.value;
 }
 
 /**
- * Hrefs from the resolved adapter's declared layers. A plain string is a layer with no probe: linked
- * unless the adapter marker already names this adapter — the rule from before this amendment, still the
- * whole of it for a single-sheet adapter (Tailwind). A `StylesheetLayer` gets its own presence probe,
- * independent of every other layer — a bare page gets both a USWDS adapter's base and rules layers; a
- * page that already loads USWDS gets only the rules layer.
+ * Cascade order: structural layout, then the resolved adapter's layers, then the theme's own sheets —
+ * least to most specific. Layout and adapter layers link only when their probe finds them missing; theme
+ * sheets always link: they are the brand layer this document asked for, not something a page can have
+ * pre-loaded on the renderer's behalf.
  */
-function adapterLayerHrefs(host: StylingHost, root: StyleRoot, provided: HostProvidedStyles): string[] {
-    const adapterMarkerMatches = provided.adapter === host.resolvedAdapterName;
-    const hrefs: string[] = [];
-    for (const layer of host.adapterStylesheets()) {
-        if (typeof layer === 'string') {
-            if (!adapterMarkerMatches) hrefs.push(layer);
-        } else if (!layerIsPresent(root, layer)) {
-            hrefs.push(layer.href);
-        }
-    }
-    return hrefs;
-}
-
-/**
- * Cascade order: structural layout, then the resolved adapter's design system, then the theme's own
- * sheets — least to most specific. Theme sheets always link: they are the brand layer this document
- * asked for, not something a page can have pre-loaded on the renderer's behalf.
- */
-function orderedStylesheetHrefs(host: StylingHost, root: StyleRoot, provided: HostProvidedStyles): string[] {
+function orderedStylesheetHrefs(host: StylingHost, root: StyleRoot): string[] {
     return [
-        ...(provided.layout ? [] : [LAYOUT_STYLESHEET_HREF]),
-        ...adapterLayerHrefs(host, root, provided),
+        ...[LAYOUT_LAYER, ...host.adapterStylesheets()]
+            .filter((layer) => !layerIsPresent(root, layer))
+            .map((layer) => layer.href),
         ...(host._themeDocument?.stylesheets ?? []),
     ];
 }
@@ -155,7 +116,7 @@ export function loadStylesheets(host: StylingHost): HTMLLinkElement[] {
     const created: HTMLLinkElement[] = [];
 
     const uniqueHrefs = new Set<string>();
-    for (const rawHref of orderedStylesheetHrefs(host, root, hostProvidedStyles(root))) {
+    for (const rawHref of orderedStylesheetHrefs(host, root)) {
         if (!rawHref || typeof rawHref !== 'string') continue;
         const hrefKey = canonicalizeStylesheetHref(rawHref);
         if (uniqueHrefs.has(hrefKey)) continue;

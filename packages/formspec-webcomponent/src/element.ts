@@ -615,7 +615,7 @@ export class FormspecRender extends HTMLElement {
      * definition arrives: on connect the adapter is only ever the fallback, and linking its skin then
      * costs a request the theme's adapter immediately replaces.
      */
-    adapterStylesheets(): Array<string | StylesheetLayer> {
+    adapterStylesheets(): StylesheetLayer[] {
         if (!this._themeDocument && !this._definition) return [];
         return globalRegistry.getAdapter(this.resolvedAdapterName)?.stylesheets ?? [];
     }

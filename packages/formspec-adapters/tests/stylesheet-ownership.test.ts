@@ -131,11 +131,13 @@ describe('the uswds adapter declares both layers with their stated probes (ADR 0
 });
 
 describe('the tailwind adapter declares its own single-layer stylesheet', () => {
-    it('declares one absolute URL for tailwind-formspec-core.css', () => {
+    it('declares one layer for tailwind-formspec-core.css, probed by the marker that sheet sets', () => {
         expect(tailwindAdapter.stylesheets).toHaveLength(1);
-        expect(typeof tailwindAdapter.stylesheets![0]).toBe('string');
-        expect(new URL(tailwindAdapter.stylesheets![0] as string).pathname.split('/').pop())
-            .toBe('tailwind-formspec-core.css');
+        const [layer] = tailwindAdapter.stylesheets!;
+        expect(new URL(layer.href).pathname.split('/').pop()).toBe('tailwind-formspec-core.css');
+        expect(layer.presentWhen).toEqual({ className: 'formspec-container', property: '--formspec-tailwind-rules', value: '1' });
+        const sheet = readFileSync(join(pkgRoot, 'src/tailwind/tailwind-formspec-core.css'), 'utf8');
+        expect(sheet).toMatch(/\.formspec-container\s*\{\s*--formspec-tailwind-rules:\s*1;/);
     });
 
     // Storybook and every other src-aliased consumer import `src/tailwind/index.ts`; published hosts get
