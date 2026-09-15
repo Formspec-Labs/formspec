@@ -10,7 +10,9 @@ export const SelectClearSentinel = '__formspec_clear__';
 
 function mountCombobox(fieldDOM: FieldDOM, behavior: SelectBehavior, actx: AdapterContext): HTMLElement {
     const wrap = document.createElement('div');
-    wrap.className = 'formspec-combobox formspec-select-searchable';
+    // searchable/multiple share the width-stop contract with the plain dropdown (both are just
+    // "Select"): the stop targets this wrapper, the combobox's own bordered box.
+    wrap.className = 'formspec-combobox formspec-select-searchable' + widthStopClass('formspec-input', behavior.width);
     if (behavior.multiple) wrap.setAttribute('data-multiple', 'true');
 
     const chips = document.createElement('div');
@@ -84,10 +86,13 @@ export const renderSelect: AdapterRenderFn<SelectBehavior> = (
     }
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'formspec-select-wrapper';
+    // The stop targets the bordered box: .formspec-select-wrapper carries the border, radius, and
+    // chevron (default.inputs.css) — the inner select is borderless and flex:1, so a class there
+    // would narrow nothing but float inside a full-width wrapper.
+    wrapper.className = 'formspec-select-wrapper' + widthStopClass('formspec-input', behavior.width);
 
     const select = document.createElement('select');
-    select.className = 'formspec-input formspec-select-native' + widthStopClass('formspec-input', behavior.width);
+    select.className = 'formspec-input formspec-select-native';
     select.name = behavior.fieldPath;
     select.id = behavior.id;
 

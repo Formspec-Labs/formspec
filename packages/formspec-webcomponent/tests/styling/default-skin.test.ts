@@ -98,7 +98,7 @@ describe('default skin — widgetConfig.width (theme §4.2 Width Stops)', () => 
         expect(el.querySelector('[data-name="qty"] .formspec-input--xs')).toBeTruthy();
         expect(el.querySelector('[data-name="fee"] .formspec-money.formspec-input--md')).toBeTruthy();
         expect(el.querySelector('[data-name="dob"] .formspec-input--lg')).toBeTruthy();
-        expect(el.querySelector('[data-name="state"] select.formspec-input--xl')).toBeTruthy();
+        expect(el.querySelector('[data-name="state"] .formspec-select-wrapper.formspec-input--xl')).toBeTruthy();
     });
 
     it('ignores an unrecognized width value — the control keeps filling the form column', () => {
@@ -132,6 +132,30 @@ describe('default skin — widgetConfig.width (theme §4.2 Width Stops)', () => 
         );
         const stepper = el.querySelector('[data-name="qty"] .formspec-stepper')!;
         expect(stepper.querySelector('[class*="formspec-input--"]')).toBeNull();
+    });
+
+    it('caps a native Select at the .formspec-select-wrapper — the bordered box with the chevron, not the borderless inner select', () => {
+        const el = render(
+            [{ key: 'state', type: 'field', dataType: 'choice', label: 'State', options: [{ value: 'NJ', label: 'NJ' }] }],
+            [{ component: 'Select', bind: 'state' }],
+            { items: { state: { widgetConfig: { width: 'xl' } } } },
+        );
+        const wrapper = el.querySelector('[data-name="state"] .formspec-select-wrapper.formspec-input--xl') as HTMLElement;
+        expect(wrapper).toBeTruthy();
+        expect(style(wrapper, 'max-width')).toBe('40ex');
+        const select = el.querySelector('[data-name="state"] select')!;
+        expect(select.className).not.toMatch(/formspec-input--/);
+    });
+
+    it('caps a searchable Select (combobox) at the .formspec-combobox wrapper', () => {
+        const el = render(
+            [{ key: 'state', type: 'field', dataType: 'choice', label: 'State', options: [{ value: 'NJ', label: 'NJ' }] }],
+            [{ component: 'Select', bind: 'state', searchable: true }],
+            { items: { state: { widgetConfig: { width: 'sm' } } } },
+        );
+        const wrapper = el.querySelector('[data-name="state"] .formspec-combobox.formspec-input--sm') as HTMLElement;
+        expect(wrapper).toBeTruthy();
+        expect(style(wrapper, 'max-width')).toBe('13ex');
     });
 });
 
