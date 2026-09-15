@@ -2032,6 +2032,78 @@ describe('planDefinitionFallback', () => {
         expect(node.bindPath).toBe('payerName');
     });
 
+    it('plans a grid-flow group as a Grid of its children, so spans have a grid to sit in', () => {
+        const items = [{
+            key: 'hoursWorked',
+            type: 'group',
+            label: 'Hours worked',
+            presentation: { layout: { flow: 'grid', columns: 12 } },
+            children: [
+                { key: 'hours', type: 'field', dataType: 'integer', label: 'Hours', presentation: { layout: { grid: { span: 6 } } } },
+                { key: 'minutes', type: 'field', dataType: 'integer', label: 'Minutes', presentation: { layout: { grid: { span: 6 } } } },
+            ],
+        }];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+        const [group] = planDefinitionFallback(items, ctx);
+
+        expect(group.children).toHaveLength(1);
+        const grid = group.children[0];
+        expect(grid.component).toBe('Grid');
+        expect(grid.props.columns).toBe(12);
+        expect(grid.children.map((c: any) => c.props.bind)).toEqual(['hours', 'minutes']);
+        expect(grid.children.map((c: any) => c.style?.gridColumn)).toEqual(['span 6', 'span 6']);
+        // The group keeps its own identity: the grid is the arrangement inside it, not a replacement.
+        expect(group.scopeChange).toBe(true);
+        expect(group.props.bind).toBe('hoursWorked');
+    });
+
+    it('defaults a grid-flow group to the 12-column grid its children were authored against', () => {
+        const items = [{
+            key: 'address', type: 'group', label: 'Address', presentation: { layout: { flow: 'grid' } },
+            children: [{ key: 'city', type: 'field', dataType: 'string', label: 'City' }],
+        }];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+        const [group] = planDefinitionFallback(items, ctx);
+
+        expect(group.children[0].component).toBe('Grid');
+        expect(group.children[0].props.columns).toBe(12);
+    });
+
+    it("leaves a stack-flow group's children where they are", () => {
+        const items = [{
+            key: 'address', type: 'group', label: 'Address',
+            children: [{ key: 'city', type: 'field', dataType: 'string', label: 'City' }],
+        }];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+        const [group] = planDefinitionFallback(items, ctx);
+
+        expect(group.children.map((c: any) => c.component)).toEqual(['TextInput']);
+    });
+
+    it("carries a group's resolved labelPosition so a hidden legend stays in the accessible markup", () => {
+        const items = [{
+            key: 'workWeek', type: 'group', label: 'Work this week',
+            children: [{ key: 'worked', type: 'field', dataType: 'boolean', label: 'Worked' }],
+        }];
+        const theme = { items: { workWeek: { labelPosition: 'hidden' } } } as PlanContext['theme'];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k), theme });
+        const [group] = planDefinitionFallback(items, ctx);
+
+        expect(group.labelPosition).toBe('hidden');
+        expect(group.props.title).toBe('Work this week');
+    });
+
+    it('keeps an authored empty group label empty instead of falling back to the key', () => {
+        const items = [{
+            key: 'workWeek', type: 'group', label: '',
+            children: [{ key: 'worked', type: 'field', dataType: 'boolean', label: 'Worked' }],
+        }];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+        const [group] = planDefinitionFallback(items, ctx);
+
+        expect(group.props.title).toBe('');
+    });
+
     it('plans display items', () => {
         const items = [
             { key: 'info', type: 'display', label: 'Please read carefully.' },

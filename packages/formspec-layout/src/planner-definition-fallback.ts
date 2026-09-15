@@ -47,6 +47,25 @@ export function planDefinitionFallback(
     return !prefix ? applyDefinitionPageMode(nodes, planCtx) : nodes;
 }
 
+/**
+ * Core §4.2.5 `layout.flow: 'grid'`: the group arranges its children on a grid, and each child's
+ * `layout.grid.span` places it there. A span needs a grid context to mean anything, so the children go
+ * inside one `Grid` node — the group keeps its own scope, legend and identity around it. `columns`
+ * defaults to 12, the grid a `span` is authored against (core §4.2.5).
+ */
+function wrapGridFlow(children: LayoutNode[], item: FormItem, ctx: PlanContext): LayoutNode[] {
+    const layout = (item.presentation as { layout?: { flow?: string; columns?: number } } | undefined)?.layout;
+    if (layout?.flow !== 'grid' || children.length === 0) return children;
+    return [{
+        id: ctx.nextId('grid'),
+        component: 'Grid',
+        category: 'layout',
+        props: { columns: layout.columns ?? 12 },
+        cssClasses: [],
+        children,
+    }];
+}
+
 export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''): LayoutNode {
     const planCtx = preparePlanContext(ctx);
     const key = item.key || (item as { name?: string }).name || 'item';
@@ -70,7 +89,9 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
             id: planCtx.nextId('group'),
             component: 'Stack',
             category: 'layout',
-            props: { title: item.label || key, bind: key },
+            // An authored empty label is a decision — a group that titles itself through its children —
+            // so only a missing label falls back to the key.
+            props: { title: item.label ?? key, bind: key },
             style: gridPlacementStyleFromLayout((item.presentation as { layout?: unknown } | undefined)?.layout),
             cssClasses: normalizeCssClass(presentation.cssClass),
             children: [],
@@ -78,6 +99,9 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
             bindPath: fullPath,
             scopeChange: true,
         };
+        // Core §4.2.5 `labelPosition: 'hidden'` on a group: the legend stays in the accessible markup and
+        // leaves the page (theme §5.2). Renderers read it off the node, as they do for a field.
+        if (presentation.labelPosition) groupNode.labelPosition = presentation.labelPosition;
 
         if (isRepeat) {
             groupNode.repeatGroup = key;
@@ -98,12 +122,13 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
 
         const childPrefix = isRepeat ? `${fullPath}[0]` : fullPath;
         if (Array.isArray(item.children)) {
-            groupNode.children = planDefinitionFallback(
+            const children = planDefinitionFallback(
                 item.children as FormItem[],
                 planCtx,
                 childPrefix,
                 false,
             );
+            groupNode.children = wrapGridFlow(children, item, planCtx);
         }
 
         return groupNode;

@@ -15,9 +15,20 @@ export const renderGroup: AdapterRenderFn<GroupLayoutBehavior> = (behavior, pare
 
     if (behavior.titleText) {
         const heading = document.createElement(behavior.headingLevel);
-        heading.className = 'formspec-group-title';
+        // A hidden title stays in the accessible markup and leaves the page (theme §5.2).
+        heading.className = behavior.titleHidden
+            ? 'formspec-group-title formspec-sr-only'
+            : 'formspec-group-title';
         watchText(actx, behavior.titleText, (text) => { heading.textContent = text; });
         el.appendChild(heading);
+
+        if (behavior.hintText) {
+            // Same hint class a question uses: a group's instructions read the same and style the same.
+            const hint = document.createElement('span');
+            hint.className = 'formspec-hint';
+            watchText(actx, behavior.hintText, (text) => { hint.textContent = text; });
+            el.appendChild(hint);
+        }
     }
     parent.appendChild(el);
 

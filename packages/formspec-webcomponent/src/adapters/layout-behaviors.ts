@@ -103,6 +103,13 @@ export interface GroupLayoutBehavior {
     host: LayoutHostSlice;
     /** The group's live title (Locale, `{{}}`, definition label), or null when it has none. */
     titleText: LocalizedText | null;
+    /**
+     * `labelPosition: 'hidden'` (theme §5.2): draw the title for assistive technology only — it stays in
+     * the accessible markup (a legend keeps naming the fieldset) and leaves the page.
+     */
+    titleHidden: boolean;
+    /** The group's live hint (Locale `<key>.hint`, `{{}}`), or null when it has none. */
+    hintText: LocalizedText | null;
     /** Heading tag for the title at this depth: `'h3'`…`'h6'`. */
     headingLevel: string;
     /** Render the group's children into `parent`, scoped to the group's own path. */

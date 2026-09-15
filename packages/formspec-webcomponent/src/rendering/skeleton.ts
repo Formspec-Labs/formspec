@@ -160,6 +160,8 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
                 comp: current,
                 host: layoutHost(into, childLevel),
                 titleText: title ? signal(title) : null,
+                titleHidden: current.labelPosition === 'hidden',
+                hintText: null,
                 headingLevel: `h${Math.min(headingLevel, 6)}`,
                 renderChildren: (target: HTMLElement) => {
                     for (const child of current.children ?? []) walk(child as LayoutNode, target, childLevel);

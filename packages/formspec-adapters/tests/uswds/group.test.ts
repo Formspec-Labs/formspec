@@ -17,11 +17,17 @@ function hostSlice() {
     };
 }
 
-function mountGroup(title: string | null, headingLevel = 'h3') {
+function mountGroup(
+    title: string | null,
+    headingLevel = 'h3',
+    options: { titleHidden?: boolean; hint?: string } = {},
+) {
     const behavior: GroupLayoutBehavior = {
         comp: { cssClasses: [], props: {}, style: undefined, accessibility: undefined },
         host: hostSlice() as never,
         titleText: title === null ? null : signal(title),
+        titleHidden: options.titleHidden ?? false,
+        hintText: options.hint === undefined ? null : signal(options.hint),
         headingLevel,
         renderChildren: vi.fn((parent: HTMLElement) => {
             const field = document.createElement('input');
@@ -43,6 +49,7 @@ function mountRepeat(options: { canRemove?: boolean } = {}) {
         comp: { cssClasses: [], props: {}, style: undefined, accessibility: undefined },
         host: hostSlice() as never,
         bindKey: 'employers',
+        headingLevel: 'h3',
         addLabel: signal('Add Employer on record'),
         renderRows: (build) => {
             effect(() => build({
@@ -101,6 +108,30 @@ describe('USWDS bound group', () => {
         expect(parent.querySelector('fieldset')).toBeNull();
         expect(parent.querySelector('legend')).toBeNull();
         expect(parent.querySelector('input')).not.toBeNull();
+    });
+
+    it('keeps a hidden title in the accessible markup as an sr-only legend (theme §5.2)', () => {
+        const { parent } = mountGroup('Work this week', 'h3', { titleHidden: true });
+        const legend = parent.querySelector('legend')!;
+
+        // Present and named for assistive technology; off the page for everyone else.
+        expect(legend.textContent).toBe('Work this week');
+        expect(legend.className).toBe('usa-legend usa-sr-only');
+        expect(parent.querySelector('fieldset.usa-fieldset')).not.toBeNull();
+    });
+
+    it("renders the group's hint as a usa-hint under the legend", () => {
+        const { parent } = mountGroup('Hours worked', 'h4', { hint: "If you worked more than 99 hours, enter '99'." });
+        const fieldset = parent.querySelector('fieldset.usa-fieldset')!;
+        const hint = fieldset.querySelector('span.usa-hint')!;
+
+        expect(hint.textContent).toBe("If you worked more than 99 hours, enter '99'.");
+        expect(hint.previousElementSibling?.tagName).toBe('LEGEND');
+    });
+
+    it('renders no hint node when the group has none', () => {
+        const { parent } = mountGroup('Hours worked');
+        expect(parent.querySelector('span.usa-hint')).toBeNull();
     });
 
     it('binds so the renderer can hide it when the group is not relevant', () => {

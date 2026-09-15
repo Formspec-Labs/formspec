@@ -38,11 +38,22 @@ export function renderUSWDSGroup(
         const legend = document.createElement('legend');
         // A section's legend is USWDS's large legend; a nested group takes the plain one — the size a
         // question's own legend uses. USWDS has no middle size, so depth beyond that changes nothing.
-        legend.className = SECTION_HEADING_LEVELS.has(behavior.headingLevel)
-            ? 'usa-legend usa-legend--large'
-            : 'usa-legend';
+        // A hidden title keeps naming the fieldset and leaves the page: `usa-sr-only`, never `display:none`.
+        legend.className = behavior.titleHidden
+            ? 'usa-legend usa-sr-only'
+            : SECTION_HEADING_LEVELS.has(behavior.headingLevel)
+                ? 'usa-legend usa-legend--large'
+                : 'usa-legend';
         watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
         content.appendChild(legend);
+
+        if (behavior.hintText) {
+            // USWDS puts a fieldset's instructions directly under its legend, as a question's hint.
+            const hint = document.createElement('span');
+            hint.className = 'usa-hint';
+            watchText(actx, behavior.hintText, (text) => { hint.textContent = text; });
+            content.appendChild(hint);
+        }
     }
     applyNodePresentation(el, behavior.comp, actx);
     parent.appendChild(el);
