@@ -66,18 +66,11 @@ $fs-trailing-checkbox-size: 1.25rem !default;
 
 // USWDS types the document (`body` typeset + global heading styles in uswds-global), which a trimmed build
 // never forwards, and `.usa-prose` reaches only its direct children. The render root is this stylesheet's
-// `body`: without these two lines every node without a `usa-*` class — including `emit-node`'s
-// `.formspec-group-title` — falls back to the UA serif whenever the host page styles nothing.
+// `body`: without these two lines every node without a `usa-*` class falls back to the UA serif whenever
+// the host page styles nothing.
 .formspec-container {
   @include typeset;
   @include usa-headings-styles;
-}
-
-// USWDS `.usa-form` applies `max-width: units("mobile")` from the `mobile-lg` breakpoint — correct for
-// simple single-column forms, but it forces theme page grids (wizard, regions) into a phone-width strip.
-// `formspec-render` always exposes `.formspec-container` in light DOM; fill the embedding width instead.
-.usa-form:has(.formspec-container) {
-  max-width: 100%;
 }
 
 // Injected by webcomponent shared behavior (required asterisk span).
@@ -177,25 +170,6 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   align-self: flex-start;
   width: auto;
   margin-top: units(2);
-}
-
-// Repeat controls from emit-node use only formspec-* classes. Default Formspec skin
-// styles them in default.navigation.css; USWDS stories load layout + integration CSS only.
-.formspec-repeat-add {
-  @extend .usa-button;
-  @extend .usa-button--outline;
-  align-self: flex-start;
-  margin-top: units(2);
-  width: auto;
-}
-
-.formspec-repeat-remove {
-  @extend .usa-button;
-  @extend .usa-button--unstyled;
-}
-
-.formspec-repeat-instance {
-  border-bottom-color: color('base-lighter');
 }
 
 // Standalone boolean: native checkbox + label (not usa-checkbox faux control).

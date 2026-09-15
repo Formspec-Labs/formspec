@@ -166,6 +166,8 @@ Each component type has a typed behavior interface that extends `FieldBehavior` 
 | `SignatureBehavior` | `height`, `strokeColor` |
 | `WizardBehavior` | `steps`, `activeStep()`, `goNext()`, `goPrev()`, `renderStep()` |
 | `TabsBehavior` | `tabLabels`, `position`, `activeTab()`, `setActiveTab()`, `renderTab()` |
+| `GroupLayoutBehavior` | `titleText`, `headingLevel`, `renderChildren()` — a bound group (`Group`) |
+| `RepeatGroupLayoutBehavior` | `bindKey`, `addLabel`, `renderRows()`, `addInstance()`, `removeInstance()` — a repeatable group's rows and Add/Remove (`RepeatGroup`) |
 
 ## Helpers
 

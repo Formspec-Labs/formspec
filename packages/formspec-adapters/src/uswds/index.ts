@@ -22,6 +22,7 @@ import { renderUSWDSDivider } from './layout/divider';
 import { renderUSWDSCollapsible } from './layout/collapsible';
 import { renderUSWDSPanel } from './layout/panel';
 import { renderUSWDSAccordion } from './layout/accordion';
+import { renderUSWDSGroup, renderUSWDSRepeatGroup } from './layout/group';
 import { renderUSWDSModal } from './layout/modal';
 import { renderUSWDSPopover } from './layout/popover';
 import {
@@ -54,6 +55,8 @@ export const uswdsAdapter: RenderAdapter = {
         Collapsible: renderUSWDSCollapsible,
         Panel: renderUSWDSPanel,
         Accordion: renderUSWDSAccordion,
+        Group: renderUSWDSGroup,
+        RepeatGroup: renderUSWDSRepeatGroup,
         Modal: renderUSWDSModal,
         Popover: renderUSWDSPopover,
         Heading: renderUSWDSHeading,

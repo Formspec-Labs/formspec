@@ -154,6 +154,8 @@ Input components use a **headless behavior/adapter architecture** (see [ADR 0046
 
 The built-in **default adapter** reproduces the standard Formspec DOM. Design-system adapters can provide structurally different markup while reusing the same behavior hooks.
 
+Beyond the built-in components, two chrome types route to the adapter as well: **`Group`** (a bound group — its live title, heading depth, and scoped children) and **`RepeatGroup`** (a repeatable group's rows plus Add and Remove). The default adapter renders `.formspec-group` / `.formspec-repeat`; USWDS renders `fieldset.usa-fieldset` with a `legend.usa-legend` and `usa-button` affordances.
+
 **An adapter owns its design system completely** — markup *and* CSS. `stylesheets` lists absolute URLs of self-contained stylesheets (fonts and images inlined, no `@import`), typically `new URL('./x.css', import.meta.url).href`. The renderer links them; a host never imports adapter CSS. The default adapter’s stylesheet is the Formspec skin; structural `formspec-layout.css` is linked for every adapter, so an adapter sheet must not repeat it.
 
 ### Registering a Custom Adapter

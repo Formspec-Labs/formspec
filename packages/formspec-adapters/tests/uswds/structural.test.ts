@@ -364,11 +364,12 @@ describe('Integration CSS', () => {
         expect(css).not.toContain('.formspec-alert');
     });
 
-    it('uncaps .usa-form max-width when Formspec container is present (theme page grids)', async () => {
+    it('never forwards the .usa-form width cap, so nothing has to uncap it', async () => {
         const { readUswdsIntegrationCss } = await import('../helpers.js');
         const css = readUswdsIntegrationCss();
-        expect(css).toContain('.usa-form:has(.formspec-container)');
-        expect(css).toMatch(/\.usa-form:has\(\.formspec-container\)\{[^}]*max-width:100%/);
+        // USWDS caps `.usa-form` at mobile width, which would squeeze theme page grids into a phone-width
+        // strip. The trimmed build drops that rule outright; if it ever returns, an override is needed again.
+        expect(css).not.toMatch(/\.usa-form\{[^}]*max-width/);
     });
 
     it('uses compact top spacing for tabs panels', async () => {
