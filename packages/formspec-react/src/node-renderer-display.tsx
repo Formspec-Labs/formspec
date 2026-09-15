@@ -3,6 +3,7 @@
 /** @filedesc Display-category LayoutNode rendering (Text, DataTable, Summary, etc.). */
 import React, { useCallback, useMemo, useState } from 'react';
 import { computed, signal as createSignal } from '@preact/signals-core';
+import { UI_STRINGS } from '@formspec-org/layout';
 import type { LayoutNode } from '@formspec-org/layout';
 import type { FormItem } from '@formspec-org/types';
 import { useFormspecContext, findItemByKey } from './context.js';
@@ -275,7 +276,7 @@ function DismissibleAlert({ severity, alertRole, dismissible, text, cssClass, st
                 <button
                     type="button"
                     className="formspec-alert-close"
-                    aria-label="Dismiss"
+                    aria-label={UI_STRINGS['alert.dismiss']}
                     onClick={() => setDismissed(true)}
                 >
                     <span aria-hidden="true">&times;</span>

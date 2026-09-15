@@ -1,6 +1,7 @@
 /** @filedesc Signature pad canvas with clear control. */
 'use client';
 import React, { useRef, useEffect } from 'react';
+import { UI_STRINGS } from '@formspec-org/layout';
 import type { FieldComponentProps } from '../../../component-map';
 
 export function SignatureControl({
@@ -117,7 +118,7 @@ export function SignatureControl({
                 aria-label={`Clear ${field.label}`}
                 onClick={handleClear}
             >
-                Clear
+                {UI_STRINGS['signature.clear']}
             </button>
         </div>
     );

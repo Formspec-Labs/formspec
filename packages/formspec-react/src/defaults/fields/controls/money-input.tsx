@@ -1,6 +1,7 @@
 /** @filedesc MoneyInput amount + currency adornment. */
 'use client';
 import React from 'react';
+import { UI_STRINGS } from '@formspec-org/layout';
 import type { CommonInputProps } from '../field-control-types';
 
 /** Resolve ISO 4217 currency code (e.g. "USD") to its narrow symbol (e.g. "$"). */
@@ -39,7 +40,7 @@ export function MoneyInputControl({
     const min = node.props?.min != null ? String(node.props.min) : undefined;
     const max = node.props?.max != null ? String(node.props.max) : undefined;
     const step = node.props?.step != null ? String(node.props.step) : undefined;
-    const placeholder = resolvedPlaceholder || 'Amount';
+    const placeholder = resolvedPlaceholder || UI_STRINGS['money.amount'];
 
     const currencyId = `${field.id}-currency`;
 

@@ -2,6 +2,7 @@
 
 /** @filedesc FormspecScreener — standalone eligibility gate component. */
 import React from 'react';
+import { UI_STRINGS } from '@formspec-org/layout';
 import type { FormItem } from '@formspec-org/types';
 import { useScreener, itemDataType, itemOptions, isItemRequired } from './use-screener';
 import type {
@@ -154,7 +155,7 @@ function ScreenerField({
               onChange={(e) => onChange(e.target.value)}
               aria-invalid={showError}
             >
-              <option value="" disabled hidden>Select…</option>
+              <option value="" disabled hidden>{UI_STRINGS['select.placeholder']}</option>
               {itemOptions(item).map((c) => (
                 <option key={String(c.value ?? c)} value={String(c.value ?? c)}>
                   {c.label ?? String(c.value ?? c)}

@@ -3,7 +3,9 @@
 /** @filedesc Repeat-group and accordion-repeat layout rendering for FormspecNode. */
 import React, { useMemo, useRef, useCallback, useState } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';
+import { UI_STRINGS, fillUiParams, type ChromeStringKey } from '@formspec-org/layout';
 import { signal } from '@preact/signals-core';
+import type { IFormEngine } from '@formspec-org/engine/render';
 import { useFormspecContext } from './context.js';
 import { useSignal } from './use-signal';
 import type { RepeatAffordanceLocks } from '@formspec-org/engine/render';
@@ -12,6 +14,16 @@ import { RepeatInstanceContext } from './use-localized-node';
 import type { NodeRenderer } from './node-renderer-types.js';
 
 const NO_LABEL = signal('');
+
+/**
+ * Locale §3.1.10 $ui.<ChromeStringKey>: an authored override wins, else the shared English default
+ * (packages/formspec-layout/src/ui-strings.ts — same inventory the webcomponent renderer uses).
+ * Callers subscribe to `engine.localeSignal` (useSignal) so a switch re-renders.
+ */
+function chromeText(engine: IFormEngine, key: ChromeStringKey, params?: Record<string, string | number>): string {
+    const authored = engine.lookupLocaleString(`$ui.${key}`);
+    return fillUiParams(authored ?? UI_STRINGS[key], params);
+}
 
 /** A repeat node's `allowAdd` / `allowRemove` props (Accordion §6.3, or theme widgetConfig on a repeat template). */
 function repeatLocks(node: LayoutNode): RepeatAffordanceLocks {
@@ -25,6 +37,7 @@ function repeatLocks(node: LayoutNode): RepeatAffordanceLocks {
 /** Renders a repeat group: stamps template children per instance. */
 export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChild: NodeRenderer }) {
     const { engine } = useFormspecContext();
+    useSignal(engine.localeSignal); // re-render add/remove/row text on a locale switch
     const repeatPath = node.repeatPath!;
     // Theme widgetConfig Add/Remove locks, planned onto the template's props (theme §4.2).
     const { count, relevant, canAdd, canRemove } = useRepeatAffordances(repeatPath, repeatLocks(node));
@@ -85,17 +98,17 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
                 {instances.map((children, idx) => (
                     <div key={idx} className="formspec-repeat-instance"
                          role="group"
-                         aria-label={`${title} ${idx + 1} of ${count}`}>
+                         aria-label={chromeText(engine, 'repeat.rowOf', { label: title, index: idx + 1, total: count })}>
                         <div className="formspec-repeat-instance-header">
-                            <p className="formspec-repeat-instance-label">{`${title} ${idx + 1}`}</p>
+                            <p className="formspec-repeat-instance-label">{chromeText(engine, 'repeat.row', { label: title, index: idx + 1 })}</p>
                             {canRemove && (
                                 <button
                                     type="button"
                                     className="formspec-repeat-remove formspec-button-danger formspec-focus-ring"
-                                    aria-label={`Remove ${title} ${idx + 1}`}
+                                    aria-label={chromeText(engine, 'repeat.remove', { label: `${title} ${idx + 1}` })}
                                     onClick={() => handleRemove(idx)}
                                 >
-                                    {`Remove ${title}`}
+                                    {chromeText(engine, 'repeat.remove', { label: title })}
                                 </button>
                             )}
                         </div>
@@ -114,7 +127,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
                     onClick={handleAdd}
                     ref={addBtnRef}
                 >
-                    {`Add ${title}`}
+                    {chromeText(engine, 'repeat.add', { label: title })}
                 </button>
             )}
             <div aria-live="polite" className="formspec-sr-only">{announcement}</div>
@@ -124,6 +137,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
 
 export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; renderChild: NodeRenderer }) {
     const { engine } = useFormspecContext();
+    useSignal(engine.localeSignal); // re-render add/remove text on a locale switch
     const bindKey = node.props?.bind as string;
     const { count, relevant, canAdd, canRemove } = useRepeatAffordances(bindKey, repeatLocks(node));
     const labels = (node.props?.labels as string[] | undefined) ?? [];
@@ -236,10 +250,10 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
                                     <button
                                         type="button"
                                         className="formspec-repeat-remove formspec-focus-ring"
-                                        aria-label={`Remove ${groupTitle} ${i + 1}`}
+                                        aria-label={chromeText(engine, 'repeat.remove', { label: `${groupTitle} ${i + 1}` })}
                                         onClick={() => handleRemove(i)}
                                     >
-                                        {`Remove ${groupTitle}`}
+                                        {chromeText(engine, 'repeat.remove', { label: groupTitle })}
                                     </button>
                                 )}
                             </div>
@@ -254,7 +268,7 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
                     onClick={handleAdd}
                     ref={addBtnRef}
                 >
-                    {`Add ${groupTitle}`}
+                    {chromeText(engine, 'repeat.add', { label: groupTitle })}
                 </button>
             )}
             <div aria-live="polite" className="formspec-sr-only">{announcement}</div>

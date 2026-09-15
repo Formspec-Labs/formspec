@@ -1,6 +1,7 @@
 /** @filedesc Standard (non-group) field control switch — dispatches by component type. */
 'use client';
 import React from 'react';
+import { UI_STRINGS } from '@formspec-org/layout';
 import type { FieldComponentProps } from '../../component-map';
 import type { ExtensionAttrs } from './field-control-types';
 import { ComboboxSelect } from './controls/combobox-select';
@@ -71,7 +72,7 @@ export function renderControl(
             const searchable = node.props?.searchable as boolean | undefined;
             const multiple = node.props?.multiple as boolean | undefined;
             const placeholderOpt =
-                resolvePlaceholder(node.props?.placeholder as string | undefined) || 'Select…';
+                resolvePlaceholder(node.props?.placeholder as string | undefined) || UI_STRINGS['select.placeholder'];
 
             if (searchable || multiple) {
                 return (
@@ -109,7 +110,7 @@ export function renderControl(
                         <button
                             type="button"
                             className="formspec-select-clear"
-                            aria-label="Clear selection"
+                            aria-label={UI_STRINGS['select.clearSelection']}
                             onClick={() => { field.setValue(null); field.touch(); }}
                         >
                             {/* Item 28: hide decorative × from screen readers */}

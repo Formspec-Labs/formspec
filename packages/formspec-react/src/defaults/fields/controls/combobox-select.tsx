@@ -1,6 +1,7 @@
 /** @filedesc Searchable/multi Select combobox (WAI-ARIA listbox). */
 'use client';
 import { optionMatchesComboboxQuery } from '@formspec-org/engine';
+import { UI_STRINGS } from '@formspec-org/layout';
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import type { CommonInputProps } from '../field-control-types';
 import { needTraceAttrs } from '../../../projection-metadata.js';
@@ -14,7 +15,7 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
     const searchableFilter = !!(node.props?.searchable as boolean | undefined);
     const clearable = !!(node.props?.clearable as boolean | undefined);
     const placeholderText =
-        ((common.placeholder as string | undefined) || (node.props?.placeholder as string | undefined) || 'Select…');
+        ((common.placeholder as string | undefined) || (node.props?.placeholder as string | undefined) || UI_STRINGS['select.placeholder']);
 
     const blurTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const [open, setOpen] = useState(false);
@@ -182,7 +183,7 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
             {...(multiple ? { 'data-multiple': 'true' } : {})}
         >
             {multiple && selectedValues.length > 0 && (
-                <div className="formspec-combobox-chips" aria-label="Selected values">
+                <div className="formspec-combobox-chips" aria-label={UI_STRINGS['select.selectedValues']}>
                     {selectedValues.map((v) => {
                         const selectedOption = field.options.find((o) => o.value === v);
                         const label = selectedOption?.label ?? v;
@@ -244,7 +245,7 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
                         <button
                             type="button"
                             className="formspec-combobox-clear"
-                            aria-label="Clear selection"
+                            aria-label={UI_STRINGS['select.clearSelection']}
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={clearAll}
                         >
