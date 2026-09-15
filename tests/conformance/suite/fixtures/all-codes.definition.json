@@ -34,7 +34,7 @@
   ],
   "binds": [
     { "path": "required_field", "required": "true" },
-    { "path": "constrained_field", "constraint": "$ > 0", "constraintMessage": "Must be positive" }
+    { "path": "constrained_field", "constraint": "$ > 0", "constraintMessage": "Must be positive, got {{$}}" }
   ],
   "shapes": [
     {

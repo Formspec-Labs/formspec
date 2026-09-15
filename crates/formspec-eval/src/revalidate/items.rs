@@ -13,6 +13,7 @@ use fel_core::{FormspecEnvironment, parse};
 
 use crate::convert::resolve_value_by_path;
 use crate::fel_json::json_to_runtime_fel_typed;
+use crate::interpolation::interpolate_fel;
 use crate::rebuild::detect_repeat_count;
 use crate::types::{
     ConstraintKind, ExtensionConstraint, ItemInfo, Severity, ValidationCode, ValidationResult,
@@ -205,11 +206,18 @@ impl Validation<'_> {
                 };
                 let failure = match outcome {
                     Ok(value) if constraint_passes(&value) => None,
+                    // `{{expression}}` in the message resolves while `$` and repeat siblings are still
+                    // bound to this field, the same way a Shape message does (Core §5: a surfaced message
+                    // carries no unresolved template).
                     Ok(_) => Some((
                         ValidationCode::ConstraintFailed,
-                        item.constraint_message
-                            .clone()
-                            .unwrap_or_else(|| format!("Constraint failed: {expr}")),
+                        match item.constraint_message.as_deref() {
+                            Some(message) => interpolate_fel(message, env, self.fel, |e| {
+                                resolve_qualified_repeat_refs(e, &item.path)
+                            })
+                            .text,
+                            None => format!("Constraint failed: {expr}"),
+                        },
                     )),
                     Err(detail) => Some((
                         ValidationCode::ConstraintParseError,

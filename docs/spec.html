@@ -6442,8 +6442,10 @@ constraint passes when the expression evaluates to
 <td>string</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
 <td>Human-readable message to display when <code>constraint</code>
-evaluates to <code>false</code>. If absent, implementations SHOULD
-generate a generic failure message.</td>
+evaluates to <code>false</code>. MAY contain <code>{{expression}}</code>
+sequences, resolved as for a Shape <code>message</code> with
+<code>$</code> bound to the targeted node. If absent, implementations
+SHOULD generate a generic failure message.</td>
 </tr>
 <tr>
 <td><code>default</code></td>

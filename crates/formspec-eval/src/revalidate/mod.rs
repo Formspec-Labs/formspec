@@ -578,6 +578,61 @@ mod tests {
         assert_eq!(diagnostics[0].message, "undefined function: bogusFunc");
     }
 
+    /// A Bind's `constraintMessage` resolves its `{{expression}}` sequences against the field, as a Shape
+    /// `message` does — a surfaced ValidationResult message never carries an unresolved template (Core §5).
+    #[test]
+    fn constraint_message_interpolates_against_the_field() {
+        let items = vec![ItemInfo {
+            key: "amount".to_string(),
+            path: "amount".to_string(),
+            item_type: "field".to_string(),
+            data_type: Some("number".to_string()),
+            currency: None,
+            value: json!(100),
+            relevant: true,
+            required: false,
+            readonly: false,
+            calculate: None,
+            precision: None,
+            constraint: Some("$ < 50".to_string()),
+            constraint_message: Some("Amount {{$}} must be under {{25 * 2}}.".to_string()),
+            relevance: None,
+            required_expr: None,
+            readonly_expr: None,
+            whitespace: None,
+            nrb: None,
+            excluded_value: None,
+            default_value: None,
+            default_expression: None,
+            initial_value: None,
+            prev_relevant: true,
+            parent_path: None,
+            repeatable: false,
+            repeat_min: None,
+            repeat_max: None,
+            option_values: vec![],
+            accept_types: vec![],
+            extensions: vec![],
+            pre_populate_instance: None,
+            pre_populate_path: None,
+            children: vec![],
+        }];
+
+        let mut values = HashMap::new();
+        values.insert("amount".to_string(), json!(100));
+
+        let (results, _) = revalidate(
+            &items,
+            &values,
+            &HashMap::new(),
+            &json!({}),
+            &EvalOptions::default(),
+        );
+        assert_eq!(results.len(), 1, "got {results:?}");
+        assert_eq!(results[0].code, "CONSTRAINT_FAILED");
+        assert_eq!(results[0].message, "Amount 100 must be under 50.");
+    }
+
     /// BUG-3 for shapes: fail (Core §3.10.1), plus a diagnostic naming the expression.
     #[test]
     fn shape_with_undefined_function_fails_with_diagnostic() {

@@ -54,7 +54,7 @@
         "code": "CONSTRAINT_FAILED",
         "constraint": "$ > 0",
         "constraintKind": "constraint",
-        "message": "Must be positive",
+        "message": "Must be positive, got -5",
         "path": "constrained_field",
         "severity": "error",
         "source": "bind"
