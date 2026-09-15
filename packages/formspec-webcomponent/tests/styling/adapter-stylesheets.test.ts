@@ -25,8 +25,14 @@ beforeAll(async () => {
     globalRegistry.registerAdapter({ name: 'wp2-other', components: {}, stylesheets: [OTHER_CSS] });
 });
 
+const shadowHosts: HTMLDivElement[] = [];
+
 afterEach(() => {
     document.body.querySelectorAll('formspec-render').forEach((el) => el.remove());
+    shadowHosts.splice(0).forEach((host) => {
+        host.shadowRoot?.querySelectorAll('formspec-render').forEach((el) => el.remove());
+        host.remove();
+    });
     globalRegistry.setAdapter('default');
 });
 
@@ -39,9 +45,9 @@ function theme(extra: Record<string, unknown> = {}) {
     };
 }
 
-/** Linked Formspec stylesheets in document order. */
-function linkedHrefs(): string[] {
-    return [...document.head.querySelectorAll('link[data-formspec-theme-href]')]
+/** Linked Formspec stylesheets in document order, within one root. */
+function linkedHrefs(root: ParentNode = document.head): string[] {
+    return [...root.querySelectorAll('link[data-formspec-theme-href]')]
         .map((link) => (link as HTMLLinkElement).dataset.formspecThemeHref!);
 }
 
@@ -49,6 +55,20 @@ function mount(): any {
     const el = document.createElement('formspec-render') as any;
     document.body.appendChild(el);
     return el;
+}
+
+/** A connected shadow root, the arrangement a host uses when it wants CSS isolation. */
+function mountShadow(count = 1): { shadow: ShadowRoot; elements: any[] } {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    shadowHosts.push(host);
+    const shadow = host.attachShadow({ mode: 'open' });
+    const elements = Array.from({ length: count }, () => {
+        const el = document.createElement('formspec-render') as any;
+        shadow.appendChild(el);
+        return el;
+    });
+    return { shadow, elements };
 }
 
 describe('adapter resolution precedence', () => {
@@ -187,6 +207,39 @@ describe('stylesheet linking', () => {
 
         el.adapter = 'wp2-other';
         expect(linkedHrefs()).toEqual([LAYOUT_HREF, OTHER_CSS]);
+    });
+
+    it('links into the shadow root hosting the element, never the document head', () => {
+        const { shadow, elements: [el] } = mountShadow();
+        el.themeDocument = theme({ adapter: 'wp2-ds', stylesheets: [THEME_CSS] });
+        expect(linkedHrefs(shadow)).toEqual([LAYOUT_HREF, DS_CSS, THEME_CSS]);
+        expect(linkedHrefs()).toEqual([]);
+    });
+
+    it('ref-counts within one shadow root', () => {
+        const { shadow, elements: [a, b] } = mountShadow(2);
+        a.themeDocument = theme({ adapter: 'wp2-ds' });
+        b.themeDocument = theme({ adapter: 'wp2-ds' });
+        expect(linkedHrefs(shadow)).toEqual([LAYOUT_HREF, DS_CSS]);
+
+        a.remove();
+        expect(linkedHrefs(shadow)).toEqual([LAYOUT_HREF, DS_CSS]);
+
+        b.remove();
+        expect(linkedHrefs(shadow)).toEqual([]);
+    });
+
+    it('counts each root separately — the last element in one root leaves the other linked', () => {
+        const inDocument = mount();
+        const { shadow, elements: [inShadow] } = mountShadow();
+        inDocument.themeDocument = theme({ adapter: 'wp2-ds' });
+        inShadow.themeDocument = theme({ adapter: 'wp2-ds' });
+        expect(linkedHrefs()).toEqual([LAYOUT_HREF, DS_CSS]);
+        expect(linkedHrefs(shadow)).toEqual([LAYOUT_HREF, DS_CSS]);
+
+        inDocument.remove();
+        expect(linkedHrefs()).toEqual([]);
+        expect(linkedHrefs(shadow)).toEqual([LAYOUT_HREF, DS_CSS]);
     });
 
     it('unloads the theme stylesheet when the theme is replaced', () => {

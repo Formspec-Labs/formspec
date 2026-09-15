@@ -14,6 +14,9 @@ export interface StylingHost {
     _definition: FormDefinition | null;
     _themeDocument: ThemeDocument | null;
     stylesheetHrefs: string[];
+    /** The root the current `stylesheetHrefs` were linked into, or `null` when nothing is linked. */
+    stylesheetRoot: Document | ShadowRoot | null;
+    getRootNode(): Node;
     /** Stylesheets declared by the adapter this host resolved. */
     adapterStylesheets(): string[];
     getEffectiveTheme(): ThemeDocument;
@@ -36,9 +39,7 @@ export { applyStyle } from './style';
 export { applyAccessibility } from './accessibility';
 export {
     LAYOUT_STYLESHEET_HREF,
-    stylesheetRefCounts,
     canonicalizeStylesheetHref,
-    findThemeStylesheet,
     loadStylesheets,
     cleanupStylesheets,
 } from './stylesheets';

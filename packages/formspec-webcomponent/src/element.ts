@@ -189,6 +189,7 @@ export class FormspecRender extends HTMLElement {
     private _breakpoints: BreakpointState = createBreakpointState();
     private get activeBreakpoint(): string | null { return this._breakpoints.activeBreakpointSignal.value ?? null; }
     /** @internal */ stylesheetHrefs: string[] = [];
+    /** @internal */ stylesheetRoot: Document | ShadowRoot | null = null;
     private rootContainer: HTMLDivElement | null = null;
     private _renderPending = false;
     private _colorSchemeMedia: MediaQueryList | null = null;

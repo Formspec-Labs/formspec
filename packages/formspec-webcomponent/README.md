@@ -28,7 +28,7 @@ el.componentDocument = myComponentDoc;
 el.themeDocument = myTheme;
 ```
 
-**Do not import CSS.** The element links every stylesheet it needs: structural `formspec-layout.css` (always, for every adapter), then the resolved adapter’s own `stylesheets`, then the theme’s `stylesheets` — ref-counted, so instances sharing a sheet load it once. The package still exports both CSS files because those are the files the element links.
+**Do not import CSS.** The element links every stylesheet it needs: structural `formspec-layout.css` (always, for every adapter), then the resolved adapter’s own `stylesheets`, then the theme’s `stylesheets`. Links go into the element’s own root — the document `<head>`, or the shadow root it is mounted in, so a shadow-isolated host is styled without hand-linking anything. Ref-counting is per root, so instances sharing a sheet in one root load it once and unlink when the last disconnects. The package still exports both CSS files because those are the files the element links.
 
 The element is exported but not auto-registered. Call `customElements.define()` with your preferred tag name.
 
