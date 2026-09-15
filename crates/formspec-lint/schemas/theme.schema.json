@@ -626,6 +626,16 @@
             "critical": true,
             "intent": "CSS class assignment with unique union merge semantics. Unlike all other PresentationBlock properties which use shallow replacement, cssClass values accumulate across cascade levels."
           }
+        },
+        "requiredIndicator": {
+          "type": "string",
+          "enum": ["marker", "none"],
+          "description": "Whether a required item shows a visible required marker (the asterisk) beside its label. 'marker' (the processing-model default when absent) shows it; 'none' suppresses it — the posture for a form where every field is required, which marks nothing useful by marking everything. Cascades like any other PresentationBlock property, so a selector or per-item override can restore the marker on the one optional field. Visible marker only: a renderer MUST leave the programmatic required signal (aria-required, or its platform equivalent) unchanged, because assistive technology reads the state, not the asterisk. Theme specification §5.2.",
+          "examples": ["none", "marker"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Required-marker policy. Set 'none' under defaults when every field on the form is required; never treat it as removing the required state itself."
+          }
         }
       }
     },
