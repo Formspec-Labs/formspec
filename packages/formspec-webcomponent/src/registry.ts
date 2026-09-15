@@ -11,11 +11,6 @@ export interface AdapterResolution {
     missingAdapter?: string;
 }
 
-/** The adapter a Theme document was authored against (theme-spec §2.4), or `undefined`. */
-export function themeAdapterName(theme: ThemeDocument | null): string | undefined {
-    return theme?.adapter || undefined;
-}
-
 /**
  * Map-based registry that dispatches component type strings to their
  * {@link ComponentPlugin} implementations, and resolves render adapter
@@ -83,11 +78,11 @@ export class ComponentRegistry {
 
     /**
      * Resolve which adapter renders, in precedence order: element override,
-     * theme `adapter`, host-level default, `'default'`.
+     * the theme's `adapter` (theme-spec §2.4), host-level default, `'default'`.
      */
     resolveAdapterName(elementAdapter: string | null | undefined, theme: ThemeDocument | null): AdapterResolution {
         if (elementAdapter) return { name: elementAdapter };
-        const named = themeAdapterName(theme);
+        const named = theme?.adapter;
         if (!named) return { name: this.activeAdapter };
         if (this.adapters.has(named)) return { name: named };
         return { name: this.activeAdapter, missingAdapter: named };
