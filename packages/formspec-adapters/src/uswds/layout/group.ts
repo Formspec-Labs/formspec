@@ -20,7 +20,7 @@ const SECTION_HEADING_LEVELS = new Set(['h1', 'h2', 'h3']);
  * structurally, as the default adapter's group title does, so an adapter variant can style a group's
  * title without also catching a question's legend, which shares every other USWDS class.
  */
-export function createGroupLegend(titleHidden: boolean, headingLevel: string): HTMLLegendElement {
+function createGroupLegend(titleHidden: boolean, headingLevel: string): HTMLLegendElement {
     const legend = document.createElement('legend');
     legend.className = titleHidden
         ? 'usa-legend formspec-group-title usa-sr-only'
@@ -48,15 +48,15 @@ type GroupTitle = Pick<GroupLayoutBehavior, 'titleText' | 'titleHidden' | 'headi
 
 /**
  * Turns a group's bound root into USWDS's shape for grouped questions and returns where its content goes.
- * A titled group is a fieldset named by its legend, with the instructions under it as a question's hint.
- * A shown title makes the root a `usa-form-group`, the shape a question takes, so the group takes a
- * question's gap above. A hidden title still names the fieldset but adds no gap: the group's first question
- * supplies the one gap, rather than stacking a second on it. Untitled, a group is only a scope — a fieldset
- * with no legend has no accessible name — so its content goes straight into the root.
+ * A titled group is a fieldset named by its legend, with the instructions under it as a question's hint,
+ * inside a `usa-form-group` root — the shape a question takes, so the group takes a question's gap above.
+ * A hidden title keeps that gap and still names the fieldset; the rules layer drops the gap of the block
+ * right after it, so the two never stack. Untitled, a group is only a scope — a fieldset with no legend has
+ * no accessible name — so its content goes straight into the root.
  */
-export function buildGroupShell(root: HTMLElement, title: GroupTitle, actx: AdapterContext): HTMLElement {
+function buildGroupShell(root: HTMLElement, title: GroupTitle, actx: AdapterContext): HTMLElement {
     if (!title.titleText) return root;
-    if (!title.titleHidden) root.classList.add('usa-form-group');
+    root.classList.add('usa-form-group');
 
     const fieldset = document.createElement('fieldset');
     fieldset.className = 'usa-fieldset';

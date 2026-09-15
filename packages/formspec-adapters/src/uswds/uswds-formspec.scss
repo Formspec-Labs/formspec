@@ -32,11 +32,16 @@ $fs-trailing-checkbox-size: 1.25rem !default;
 // own (ADR 0064 decision 3), so USWDS margins are the one rhythm owner here. Display text and dividers
 // sit in the same flow as fields, so they take the same gap above; each block's bottom margin stays 0 and
 // the gap is never counted twice.
-.usa-form-group,
-.formspec-uswds-text-wrap,
-.formspec-uswds-divider,
-.formspec-uswds-divider--labeled {
+$fs-rhythm-blocks: '.usa-form-group, .formspec-uswds-text-wrap, .formspec-uswds-divider, .formspec-uswds-divider--labeled';
+
+#{$fs-rhythm-blocks} {
   margin-top: var(--formspec-spacing-field, #{units(3)});
+}
+
+// A group whose title is hidden already took the gap above it, and its legend occupies no line, so the
+// block right after that legend would stack a second gap on the first.
+.usa-fieldset > .usa-sr-only:first-child + :is(#{$fs-rhythm-blocks}) {
+  margin-top: 0;
 }
 
 // USWDS's own reset — normalize and its element styles — scoped to the render root. The base layer forwards

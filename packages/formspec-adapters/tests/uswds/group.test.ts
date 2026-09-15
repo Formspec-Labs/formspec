@@ -133,8 +133,8 @@ describe('USWDS bound group', () => {
         expect(legend.textContent).toBe('Work this week');
         expect(legend.className).toBe('usa-legend formspec-group-title usa-sr-only');
         expect(parent.querySelector('fieldset.usa-fieldset')).not.toBeNull();
-        // No title on the page, so no gap of its own: the group's first question supplies the one gap.
-        expect(parent.querySelector('.usa-form-group')).toBeNull();
+        // Still a form group: the gap above is the group's, whatever block it opens with.
+        expect(parent.querySelector('fieldset.usa-fieldset')!.parentElement!.className).toBe('usa-form-group');
     });
 
     it("renders the group's hint as a usa-hint under the legend", () => {
@@ -190,7 +190,7 @@ describe('USWDS repeatable group', () => {
         const { parent } = mountRepeat({ title: 'Employers on record', titleHidden: true });
         const legend = parent.querySelector('legend.formspec-group-title') as HTMLElement;
         expect(legend.className).toBe('usa-legend formspec-group-title usa-sr-only');
-        expect(parent.querySelector('.usa-form-group')).toBeNull();
+        expect((parent.querySelector('[data-bind="employers"]') as HTMLElement).classList.contains('usa-form-group')).toBe(true);
     });
 
     it('keeps a nested repeat on the plain legend — same size rule as a titled group', () => {

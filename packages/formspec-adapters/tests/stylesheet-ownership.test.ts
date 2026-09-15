@@ -81,6 +81,8 @@ describe('USWDS rules layer carries only Formspec\'s own rules (ADR 0063 D-4)', 
             expect(declarationsFor(css, selector)).toMatch(/margin-top:var\(--formspec-spacing-field,\s*1\.5rem\)/);
         }
         expect(declarationsFor(css, '.formspec-uswds-divider')).toMatch(/margin-bottom:0/);
+        // A hidden group title occupies no line, so the block after it does not repeat the group's gap.
+        expect(css).toMatch(/\.usa-fieldset>\.usa-sr-only:first-child\+:is\(\.usa-form-group,[^)]*\)\{margin-top:0\}/);
     });
 
     it('spaces the field help row below the control', () => {

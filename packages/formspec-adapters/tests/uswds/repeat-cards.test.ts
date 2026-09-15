@@ -152,7 +152,7 @@ describe('USWDS RepeatCards', () => {
         const { parent } = mountCards({ title: 'Jobs on record', titleHidden: true });
         const legend = parent.querySelector('legend.formspec-group-title') as HTMLElement;
         expect(legend.className).toBe('usa-legend formspec-group-title usa-sr-only');
-        expect(parent.querySelector('.usa-form-group')).toBeNull();
+        expect((parent.querySelector('[data-bind="jobs"]') as HTMLElement).classList.contains('usa-form-group')).toBe(true);
     });
 
     it('wraps nothing extra when the group has no title — same markup as before this fix', () => {

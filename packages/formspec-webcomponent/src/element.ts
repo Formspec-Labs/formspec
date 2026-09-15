@@ -25,7 +25,7 @@ import type {
     ResponseActionsDocument,
 } from './action-invocation';
 import { globalRegistry } from './registry';
-import type { StylesheetLayer } from './adapters/types';
+import type { RenderAdapter, StylesheetLayer } from './adapters/types';
 import {
     ScreenerRoute,
     ScreenerRouteType,
@@ -610,6 +610,11 @@ export class FormspecRender extends HTMLElement {
         return globalRegistry.resolveAdapterName(this._adapter, this._themeDocument).name;
     }
 
+    /** The registered adapter behind {@link resolvedAdapterName}, when one is registered under that name. */
+    private get resolvedAdapter(): RenderAdapter | undefined {
+        return globalRegistry.getAdapter(this.resolvedAdapterName);
+    }
+
     /**
      * @internal Styling host seam — the resolved adapter's design-system CSS. Empty until a theme or a
      * definition arrives: on connect the adapter is only ever the fallback, and linking its skin then
@@ -617,7 +622,7 @@ export class FormspecRender extends HTMLElement {
      */
     adapterStylesheets(): StylesheetLayer[] {
         if (!this._themeDocument && !this._definition) return [];
-        return globalRegistry.getAdapter(this.resolvedAdapterName)?.stylesheets ?? [];
+        return this.resolvedAdapter?.stylesheets ?? [];
     }
 
     /** The render root, created on first use, reset to `formspec-container` plus the adapter's root classes. */
@@ -626,14 +631,14 @@ export class FormspecRender extends HTMLElement {
             this.rootContainer = document.createElement('div');
             this.appendChild(this.rootContainer);
         }
-        const adapterClasses = globalRegistry.getAdapter(this.resolvedAdapterName)?.rootClasses ?? [];
+        const adapterClasses = this.resolvedAdapter?.rootClasses ?? [];
         this.rootContainer.className = ['formspec-container', ...adapterClasses, ...extraClasses].join(' ');
         return this.rootContainer;
     }
 
     /** @internal Styling host seam — the resolved adapter's declared class vocabulary, if it has one. */
     adapterClassVocabulary(): ReadonlySet<string> | undefined {
-        return globalRegistry.getAdapter(this.resolvedAdapterName)?.classVocabulary;
+        return this.resolvedAdapter?.classVocabulary;
     }
 
     /** Relink layout + adapter + theme stylesheets, reporting a theme that names an unregistered adapter. */
