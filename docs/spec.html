@@ -5382,8 +5382,8 @@ preserved.</td>
 <td>string</td>
 <td><strong>1..1</strong> (REQUIRED)</td>
 <td>Primary human-readable label. Implementations MUST display this
-label (or a <code>labels</code> alternative) when rendering the
-Item.</td>
+label (or a <code>labels</code> alternative) when rendering the Item.
+MAY use the rich-text subset (below).</td>
 </tr>
 <tr>
 <td><code>description</code></td>
@@ -5399,7 +5399,8 @@ icon).</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
 <td>Short instructional text displayed alongside the input (e.g., below
 the label or as placeholder guidance). Distinct from
-<code>description</code>, which is typically shown on demand.</td>
+<code>description</code>, which is typically shown on demand. MAY use
+the rich-text subset (below).</td>
 </tr>
 <tr>
 <td><code>labels</code></td>
@@ -5471,6 +5472,82 @@ fails to parse or evaluate renders as its literal
 whole string; results coerce to strings; replacement text is not
 re-scanned. Interpolation affects display only; it never changes
 Instance data or validation.</p>
+<p><strong>Rich text.</strong> An Item’s <code>label</code> and
+<code>hint</code>, and a Display Item’s text (§4.2.4), MAY use one
+closed Markdown subset — and so MAY the Locale strings that override
+them (<a href="../locale/locale-spec.md">Locale specification
+§3.1.2</a>), because the subset applies to the text a property resolves
+to, not to where it came from. Government questions routinely need a
+paragraph plus a list of examples, a bold date range, or a statute link
+inside a consent checkbox; the subset is exactly what those need and
+nothing more.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Construct</th>
+<th>Syntax</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Paragraph</td>
+<td>text blocks separated by one or more blank lines</td>
+<td>One block per paragraph; a single newline inside a paragraph is a
+space.</td>
+</tr>
+<tr>
+<td>Unordered list</td>
+<td>consecutive lines each beginning <code>-</code> or
+<code>*</code></td>
+<td>One list, one entry per line.</td>
+</tr>
+<tr>
+<td>Strong</td>
+<td><code>**text**</code></td>
+<td>Strong importance.</td>
+</tr>
+<tr>
+<td>Emphasis</td>
+<td><code>_text_</code></td>
+<td>Stress emphasis. Delimiters MUST sit at a word boundary, so
+<code>field_name_here</code> stays literal.</td>
+</tr>
+<tr>
+<td>Link</td>
+<td><code>[text](uri)</code></td>
+<td>A link labelled <code>text</code>. <code>uri</code> MUST use scheme
+<code>https:</code>, <code>http:</code>, or <code>mailto:</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The subset is closed. Headings, ordered lists, images, block quotes,
+code spans, code fences, tables, horizontal rules, reference links, and
+raw HTML are NOT part of it: their source characters are literal text. A
+<code>[text](uri)</code> sequence whose <code>uri</code> uses any other
+scheme — <code>javascript:</code> and <code>data:</code> included — is
+not a link, and stays literal text in full. An unterminated delimiter
+(<code>**</code> with no closer) is literal text.</p>
+<p><strong>Processing order is fixed: interpolate, then parse.</strong>
+A processor MUST resolve <code>{{expression}}</code> sequences (above)
+first, and MUST then parse the subset with every interpolated value
+treated as literal text. A value containing <code>**</code>, a leading
+<code>-</code>, or <code>[text](uri)</code> MUST NOT become markup — the
+markup boundary is what the author wrote, never what a respondent or a
+calculated value supplied. A string containing none of the subset’s
+characters renders exactly as written.</p>
+<p>The subset is display only: it never changes Instance data,
+validation, or the Response. A processor that does not implement it MUST
+render the source string as plain text — the <code>-</code> bullets and
+<code>**</code> stay visible — and MUST NOT reject the Definition. Where
+the host presentation forbids block content (a field label, or a group’s
+legend), a renderer MUST keep the inline constructs and MAY flatten
+paragraphs and list entries into line-separated inline runs.</p>
 <p>The retired EXT-1 <code>privacy</code> sibling block is not part of
 the Definition schema. Safe-address and other field-level protection
 semantics use <code>accessControl.class</code> and the Privacy Profile /
@@ -5804,11 +5881,12 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb37-1"><a href=
 <span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Complete all fields below. Required fields are marked with an asterisk.&quot;</span></span>
 <span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>A Display Item’s <code>label</code> is its displayed content. It
-follows the §4.2.1 text resolution cascade and interpolation, so a
-Locale <code>&lt;key&gt;.label</code> (or
-<code>&lt;key&gt;.label@context</code>) string replaces it and a display
+follows the §4.2.1 text resolution cascade, interpolation, and rich-text
+subset, so a Locale <code>&lt;key&gt;.label</code> (or
+<code>&lt;key&gt;.label@context</code>) string replaces it, a display
 Item can show live values
-(<code>"label": "Estimated total: {{$total}}"</code>).</p>
+(<code>"label": "Estimated total: {{$total}}"</code>), and it can carry
+a paragraph, a list, bold, emphasis, or a link.</p>
 <p>Display-specific constraints:</p>
 <ul>
 <li>Display Items MUST NOT have <code>children</code>. If

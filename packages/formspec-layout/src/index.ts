@@ -96,6 +96,10 @@ export {
 export { resolveRouteLandmark } from './route-landmark-projection.js';
 export type { ResolvedRouteLandmark, ResolvedRouteLandmarkRole } from './route-landmark-projection.js';
 
+// Rich-text subset for label / hint / display text (core §4.2.1)
+export { parseRichText, isRichText, richTextToPlain } from './rich-text.js';
+export type { RichBlock, RichInline } from './rich-text.js';
+
 // Types
 export type {
     ComponentGraphProjectionContext,

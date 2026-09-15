@@ -2709,9 +2709,9 @@ The following properties are recognized on all Item types:
 |---|---|---|---|
 | `key` | string | **1..1** (REQUIRED) | Stable identifier for this Item. MUST be unique across the entire Definition (not merely among siblings). MUST match the regular expression `[a-zA-Z][a-zA-Z0-9_]*`. The `key` is used to join Definition Items to Response data nodes and MUST NOT change across versions of the same Definition if the semantic meaning is preserved. |
 | `type` | string | **1..1** (REQUIRED) | Item type. MUST be one of: `"group"`, `"field"`, `"display"`. |
-| `label` | string | **1..1** (REQUIRED) | Primary human-readable label. Implementations MUST display this label (or a `labels` alternative) when rendering the Item. |
+| `label` | string | **1..1** (REQUIRED) | Primary human-readable label. Implementations MUST display this label (or a `labels` alternative) when rendering the Item. MAY use the rich-text subset (below). |
 | `description` | string | **0..1** (OPTIONAL) | Human-readable help text or description. Implementations SHOULD make this text available to users on demand (e.g., via tooltip or help icon). |
-| `hint` | string | **0..1** (OPTIONAL) | Short instructional text displayed alongside the input (e.g., below the label or as placeholder guidance). Distinct from `description`, which is typically shown on demand. |
+| `hint` | string | **0..1** (OPTIONAL) | Short instructional text displayed alongside the input (e.g., below the label or as placeholder guidance). Distinct from `description`, which is typically shown on demand. MAY use the rich-text subset (below). |
 | `labels` | object | **0..1** (OPTIONAL) | Alternative display labels keyed by context name. Well-known context names include `"short"`, `"pdf"`, `"csv"`, and `"accessibility"`. Implementations MAY define additional context names. |
 | `purpose` | object | **0..1** (OPTIONAL) | Plain-language purpose and citation metadata explaining why this item is asked or shown. `purpose` MAY cite a References entry, PKAF authority chain, rule URI, or implementation-specific authority reference. It MUST NOT replace `accessControl.class` or privacy-profile audience policy. |
 | `consequences` | object | **0..1** (OPTIONAL) | Respondent-facing consequence metadata for this item, including triggered deadlines, lock-in effects, and external actions such as referrals, payments, credit checks, or mandatory reports. A consequence declaration explains and gates the action; it does not itself perform the action. |
@@ -2745,6 +2745,44 @@ renders as its literal `{{expression}}` text, with a warning, and never fails
 the whole string; results coerce to strings; replacement text is not
 re-scanned. Interpolation affects display only; it never changes Instance
 data or validation.
+
+**Rich text.** An Item's `label` and `hint`, and a Display Item's text
+(§4.2.4), MAY use one closed Markdown subset — and so MAY the Locale strings
+that override them ([Locale specification §3.1.2](../locale/locale-spec.md)),
+because the subset applies to the text a property resolves to, not to where it
+came from. Government questions routinely need a paragraph plus a list of
+examples, a bold date range, or a statute link inside a consent checkbox; the
+subset is exactly what those need and nothing more.
+
+| Construct | Syntax | Meaning |
+|---|---|---|
+| Paragraph | text blocks separated by one or more blank lines | One block per paragraph; a single newline inside a paragraph is a space. |
+| Unordered list | consecutive lines each beginning `- ` or `* ` | One list, one entry per line. |
+| Strong | `**text**` | Strong importance. |
+| Emphasis | `_text_` | Stress emphasis. Delimiters MUST sit at a word boundary, so `field_name_here` stays literal. |
+| Link | `[text](uri)` | A link labelled `text`. `uri` MUST use scheme `https:`, `http:`, or `mailto:`. |
+
+The subset is closed. Headings, ordered lists, images, block quotes, code
+spans, code fences, tables, horizontal rules, reference links, and raw HTML are
+NOT part of it: their source characters are literal text. A `[text](uri)`
+sequence whose `uri` uses any other scheme — `javascript:` and `data:`
+included — is not a link, and stays literal text in full. An unterminated
+delimiter (`**` with no closer) is literal text.
+
+**Processing order is fixed: interpolate, then parse.** A processor MUST
+resolve `{{expression}}` sequences (above) first, and MUST then parse the
+subset with every interpolated value treated as literal text. A value
+containing `**`, a leading `- `, or `[text](uri)` MUST NOT become markup — the
+markup boundary is what the author wrote, never what a respondent or a
+calculated value supplied. A string containing none of the subset's characters
+renders exactly as written.
+
+The subset is display only: it never changes Instance data, validation, or the
+Response. A processor that does not implement it MUST render the source string
+as plain text — the `- ` bullets and `**` stay visible — and MUST NOT reject
+the Definition. Where the host presentation forbids block content (a field
+label, or a group's legend), a renderer MUST keep the inline constructs and MAY
+flatten paragraphs and list entries into line-separated inline runs.
 
 The retired EXT-1 `privacy` sibling block is not part of the Definition
 schema. Safe-address and other field-level protection semantics use
@@ -2852,9 +2890,10 @@ the Response data.
 ```
 
 A Display Item's `label` is its displayed content. It follows the §4.2.1 text
-resolution cascade and interpolation, so a Locale `<key>.label` (or
-`<key>.label@context`) string replaces it and a display Item can show live
-values (`"label": "Estimated total: {{$total}}"`).
+resolution cascade, interpolation, and rich-text subset, so a Locale
+`<key>.label` (or `<key>.label@context`) string replaces it, a display Item can
+show live values (`"label": "Estimated total: {{$total}}"`), and it can carry a
+paragraph, a list, bold, emphasis, or a link.
 
 Display-specific constraints:
 
