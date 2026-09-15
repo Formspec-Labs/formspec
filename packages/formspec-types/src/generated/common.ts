@@ -16,6 +16,8 @@ export type ValueClass =
   | ('user-input' | 'prepopulated' | 'calculated' | 'imported' | 'attachment' | 'system-derived' | 'migration-derived')
   | `x-${string}`;
 /**
+ * Built-in widget vocabulary shared by Tier 1 widgetHint and Theme widget. The first groups name Component Document components (specs/ui-policy.json#/components); RepeatCards and Hidden are item-presentation widgets (theme-spec.md §4.2) — they name how a renderer presents an Item and have no authorable Component node.
+ *
  * This interface was referenced by `CommonSchema`'s JSON-Schema
  * via the `definition` "BuiltInWidgetName".
  */
@@ -52,7 +54,9 @@ export type BuiltInWidgetName =
   | 'DataTable'
   | 'Panel'
   | 'Modal'
-  | 'Popover';
+  | 'Popover'
+  | 'RepeatCards'
+  | 'Hidden';
 /**
  * Custom widget identifier. Custom widgets must use the x- prefix.
  *

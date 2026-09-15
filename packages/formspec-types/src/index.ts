@@ -18,6 +18,9 @@ export {
   SPEC_WIDGET_TO_COMPONENT,
   COMPONENT_TO_HINT,
   COMPATIBILITY_MATRIX,
+  PRESENTATION_WIDGETS,
+  REPEAT_PRESENTATION_WIDGETS,
+  isRepeatPresentationWidget,
   widgetTokenToComponent,
 } from './widget-vocabulary.js';
 export { UI_POLICY } from './ui-policy.js';

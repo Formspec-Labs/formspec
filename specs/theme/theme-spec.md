@@ -697,6 +697,45 @@ Container and display widgets (`Section`, `Stack`, `Grid`, `Card`,
 `Accordion`, `Tabs`, `Heading`, `Text`, `Divider`, `Panel`, and related
 display components) have no required `widgetConfig` properties.
 
+#### Item Presentation Widgets
+
+These widgets name how a renderer presents an Item. Unlike every other
+widget in §4.2 they have no Component Document node: a Component
+Document expresses the same shapes with its own components, so these
+names are valid only as a Theme `widget` or a Tier 1 `widgetHint`.
+
+| Widget | Applies to | Presentation | Default |
+|---|---|---|---|
+| `RepeatCards` | repeatable group item (core §4.2.2) | One card per instance, each headed by the row label, with Remove in the card and Add below the list. | The renderer's default repeat chrome. |
+| `Hidden` | field item | None — the field is not rendered. | The item's dataType widget. |
+
+`RepeatCards` changes only the chrome around the rows. Row children,
+cardinality, `allowAdd` / `allowRemove` (§4.2 Repeatable Group Items),
+Locale row strings (locale §3.1.1), and add/remove announcements are
+the same as the default repeat presentation. A renderer that does not
+implement it MUST fall back to its default repeat presentation rather
+than drop the group.
+
+`Hidden` keeps the Item in the Definition and the value in the
+Response: the field still loads supplied data, still participates in
+Bind evaluation, and is still readable from other expressions — for
+example a question that interpolates `{{$payerName}}` from a sibling
+`Hidden` field in the same repeat row. Because there is nothing to
+focus, a `Hidden` field is a poor target for a respondent-facing
+`required` constraint; the Definition SHOULD carry such rules on a
+visible sibling. `Hidden` is presentation, never authorization: it
+MUST NOT be used to withhold data a respondent may not see (the
+Response carries the value either way).
+
+```json
+{
+  "items": {
+    "jobs": { "widget": "RepeatCards" },
+    "payerName": { "widget": "Hidden" }
+  }
+}
+```
+
 ### 4.3 Fallback Chains
 
 The `fallback` array in a PresentationBlock lists ordered fallback
@@ -767,12 +806,26 @@ the entire form.
 {
   "defaults": {
     "labelPosition": "top",
+    "requiredIndicator": "none",
     "style": {
       "borderRadius": "$token.border.radius"
     }
   }
 }
 ```
+
+**`requiredIndicator`** decides whether a required item shows a visible
+required marker (the asterisk) next to its label. `"marker"` (the default when
+the property is absent) shows it; `"none"` suppresses it. A form where every
+field is required — a certification, an attestation, most single-purpose
+government flows — marks nothing useful by marking everything, so a theme sets
+`"none"` once under `defaults` and states the rule in prose instead. The
+property is a PresentationBlock property like any other, so a selector or a
+per-item override can put the marker back on the one optional field.
+`requiredIndicator` governs the visible marker only: a renderer MUST keep the
+programmatic required signal (`aria-required`, or the equivalent for the
+platform) exactly as it was, because assistive technology reads the state, not
+the asterisk.
 
 ### 5.3 Level 2: Selectors
 

@@ -22,6 +22,8 @@ const FORM_TERMINALS: &[&str] = &["title", "description"];
 const ITEM_CONTEXT_TERMINALS: &[&str] = &["label", "description", "hint"];
 /// Locale §3.1.4 per-Bind message keys; no `@context` suffix.
 const ITEM_MESSAGE_TERMINALS: &[&str] = &["constraintMessage", "requiredMessage"];
+/// Locale §3.1.1 repeatable-group chrome strings; no `@context` suffix.
+const ITEM_REPEAT_TERMINALS: &[&str] = &["rowLabel", "addLabel", "removeLabel"];
 const DATA_TERMINALS: &[&str] = &[
     "type",
     "dataType",
@@ -665,7 +667,10 @@ fn classify_item_property(property: &[String]) -> ItemProperty<'_> {
     let terminal = strip_context(first);
     match (terminal, property) {
         (t, [_]) if ITEM_CONTEXT_TERMINALS.contains(&t) => ItemProperty::Presentation,
-        (t, [only]) if ITEM_MESSAGE_TERMINALS.contains(&t) && only == t => {
+        (t, [only])
+            if (ITEM_MESSAGE_TERMINALS.contains(&t) || ITEM_REPEAT_TERMINALS.contains(&t))
+                && only == t =>
+        {
             ItemProperty::Presentation
         }
         ("errors", [errors, _]) if errors == "errors" => ItemProperty::Errors,
@@ -1100,6 +1105,38 @@ mod tests {
         assert!(
             diagnostics.is_empty(),
             "bare Item keys must resolve at any depth: {diagnostics:?}"
+        );
+    }
+
+    /// Locale §3.1.1: a repeatable group owns the row / Add / Remove strings a
+    /// renderer would otherwise derive from its label.
+    #[test]
+    fn repeatable_group_chrome_keys_are_localizable() {
+        let strings = json!({
+            "lineItems.rowLabel": "Poste {{@index}} sur {{@count}}",
+            "lineItems.addLabel": "Ajouter un poste",
+            "lineItems.removeLabel": "Supprimer ce poste"
+        });
+
+        let diagnostics = lint_strings(&strings, Some(nested_definition()));
+
+        assert!(
+            diagnostics.is_empty(),
+            "repeat chrome keys must be localizable: {diagnostics:?}"
+        );
+    }
+
+    /// The chrome keys carry no `@context` suffix (Locale §3.1.1).
+    #[test]
+    fn repeat_chrome_keys_reject_a_context_suffix() {
+        let diagnostics = lint_strings(
+            &json!({ "lineItems.rowLabel@short": "Poste" }),
+            Some(nested_definition()),
+        );
+
+        assert_eq!(
+            codes_at(&diagnostics, "lineItems.rowLabel@short"),
+            vec![crate::LintCode::E1401]
         );
     }
 

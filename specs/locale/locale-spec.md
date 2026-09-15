@@ -311,6 +311,41 @@ Examples:
 }
 ```
 
+##### Repeatable group chrome
+
+A repeatable group Item (core §4.2.2, `repeatable: true`) also owns the
+three strings a renderer would otherwise derive from its label — the
+per-row heading and the Add and Remove controls:
+
+| Key pattern | Target | Derived default |
+|-------------|--------|-----------------|
+| `<key>.rowLabel` | Heading and accessible name of one instance. | `"<label> <index>"` |
+| `<key>.addLabel` | The Add control. | `"Add <label>"` |
+| `<key>.removeLabel` | The Remove control on each instance. | `"Remove <label>"` |
+
+These keys take no `@context` suffix. `rowLabel` and `removeLabel` are
+resolved in the instance's binding scope, so `{{@index}}`, `{{@count}}`
+and the row's own `$field` references are available (§3.3.2);
+`addLabel` is resolved in the group's scope, where `{{@count}}` is the
+current number of instances. A key the Locale omits keeps its derived
+default, and the defaults survive a widget change: they describe the
+group, not the widget that renders it (theme §4.2).
+
+An **empty** `rowLabel` suppresses the visible row heading and nothing
+else. The instance keeps an accessible name — processors MUST fall back
+to the derived `"<label> <index>"` for the row's `aria-label` — so a
+form whose question text already names each row (an employer name
+inside the question) can drop the redundant heading without costing a
+screen-reader user the row boundary.
+
+```json
+{
+  "jobs.rowLabel": "Emploi {{@index}}",
+  "jobs.addLabel": "Ajouter un autre emploi",
+  "jobs.removeLabel": "Supprimer cet emploi"
+}
+```
+
 #### 3.1.2 Context Labels
 
 The Definition's `labels` object provides alternative display labels
