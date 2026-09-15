@@ -1,6 +1,5 @@
 /** @filedesc E2E test harness entry point: registers formspec-render and exposes engine globals. */
 import { FormspecRender } from '../../../packages/formspec-webcomponent/src/index';
-import '../../../packages/formspec-webcomponent/src/formspec-default.css';
 // Import from the same package path as formspec-webcomponent so both share
 // a single WASM module instance. Using relative source paths would create a
 // separate module graph entry and the webcomponent would see uninitialized WASM.

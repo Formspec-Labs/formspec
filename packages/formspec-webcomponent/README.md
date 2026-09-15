@@ -14,7 +14,6 @@ The package is ESM-only. It requires `formspec-engine` and `formspec-layout` as 
 
 ```js
 import { FormspecRender } from 'formspec-webcomponent';
-import 'formspec-webcomponent/formspec-default.css';
 
 customElements.define('formspec-render', FormspecRender);
 
@@ -29,7 +28,7 @@ el.componentDocument = myComponentDoc;
 el.themeDocument = myTheme;
 ```
 
-Import `formspec-default.css` when you use the built-in renderer’s field styling; it now includes the structural layout rules as well. Import `formspec-layout.css` only when you want structural layout primitives without the default visual skin, such as for a custom adapter or utility-first design system. Both CSS files are canonically owned by `@formspec-org/layout` and re-exported here for compatibility.
+**Do not import CSS.** The element links every stylesheet it needs: structural `formspec-layout.css` (always, for every adapter), then the resolved adapter’s own `stylesheets`, then the theme’s `stylesheets` — ref-counted, so instances sharing a sheet load it once. The package still exports both CSS files because those are the files the element links.
 
 The element is exported but not auto-registered. Call `customElements.define()` with your preferred tag name.
 
@@ -40,7 +39,9 @@ The element is exported but not auto-registered. Call `customElements.define()` 
 | `definition` | `object` | Formspec definition JSON. Creates a new `FormEngine` and schedules a render. |
 | `componentDocument` | `object` | Component document JSON (layout tree, tokens, breakpoints). Schedules a render. |
 | `responseActionsDocument` | `object \| null` | Response Actions document used to resolve `ActionButton.actionRef`. Unresolved action buttons are inert and emit `formspec-action-finding`. |
-| `themeDocument` | `ThemeDocument \| null` | Theme document. Loads and unloads external stylesheets and schedules a render. |
+| `themeDocument` | `ThemeDocument \| null` | Theme document. Its `adapter` field names the render adapter the theme was written for; setting it relinks adapter + theme stylesheets and schedules a render. |
+| `adapter` | `string \| null` | Host override of the render adapter for this element only. Outranks `themeDocument.adapter`. |
+| `resolvedAdapterName` | `string` (read-only) | The adapter actually rendering: `adapter` → `themeDocument.adapter` → `globalRegistry.setAdapter(…)` → `'default'`. |
 | `registryDocuments` | `object \| object[]` | One or more extension registry documents. Builds an internal extension-name-to-entry map. **Set this before `definition`** — the engine reads registry entries at construction time. |
 
 Setting any property schedules a coalesced re-render via microtask.
@@ -100,6 +101,7 @@ All events bubble and are composed.
 |---|---|---|
 | `formspec-submit` | `submit()` called with `emitEvent !== false`, or an invoked Action declares a `hostEvent` effect with `eventName: "formspec-submit"` | `{ response, validationReport }` |
 | `formspec-action-finding` | `ActionButton.actionRef` is missing, unresolved, or no Response Actions document is loaded | `{ finding: { code: "COMP-REFERENTIAL-INTEGRITY", severity: "error", kind: "actionRef", ... } }` |
+| `formspec-theme-finding` | `themeDocument.adapter` names an adapter that is not registered (once per theme set; renders with the fallback) | `{ finding: { code: "THEME-ADAPTER-MISSING", severity: "error", adapter, message } }` |
 | `formspec-submit-pending-change` | Submit pending state toggles | `{ pending: boolean }` |
 | `formspec-screener-state-change` | Screener state changes (definition set, skip, restart, route selected) | `{ hasScreener, completed, routeType, route, reason }` |
 | `formspec-screener-route` | Screener evaluates a route | `{ route, answers, routeType, isInternal }` |
@@ -152,6 +154,8 @@ Input components use a **headless behavior/adapter architecture** (see [ADR 0046
 
 The built-in **default adapter** reproduces the standard Formspec DOM. Design-system adapters can provide structurally different markup while reusing the same behavior hooks.
 
+**An adapter owns its design system completely** — markup *and* CSS. `stylesheets` lists absolute URLs of self-contained stylesheets (fonts and images inlined, no `@import`), typically `new URL('./x.css', import.meta.url).href`. The renderer links them; a host never imports adapter CSS. The default adapter’s stylesheet is the Formspec skin; structural `formspec-layout.css` is linked for every adapter, so an adapter sheet must not repeat it.
+
 ### Registering a Custom Adapter
 
 ```js
@@ -159,6 +163,7 @@ import { globalRegistry } from 'formspec-webcomponent';
 
 globalRegistry.registerAdapter({
   name: 'my-design-system',
+  stylesheets: [new URL('./my-design-system.css', import.meta.url).href],
   components: {
     TextInput: (behavior, parent, actx) => {
       // Build your own DOM structure
@@ -186,16 +191,24 @@ globalRegistry.registerAdapter({
   },
 });
 
-// Activate globally
+// Host-level default for elements whose theme names no adapter
 globalRegistry.setAdapter('my-design-system');
 ```
 
-Per-form override is also available:
+Normally the **theme** picks the adapter, because a theme’s `selectors`, `widgetConfig`, and `cssClass` are written against one design system’s markup:
 
-```js
-const el = document.querySelector('formspec-render');
-el.adapter = 'my-design-system';  // Override for this instance only
+```json
+{ "$formspecTheme": "1.0", "version": "1.0.0", "adapter": "my-design-system" }
 ```
+
+Resolution is per element, so two `<formspec-render>` instances with different themes on one page get different adapters. Precedence, highest first:
+
+1. `el.adapter` — host override for this instance
+2. `themeDocument.adapter`
+3. `globalRegistry.setAdapter(…)` — host-level default
+4. `'default'`
+
+A theme naming an unregistered adapter emits `formspec-theme-finding` (`THEME-ADAPTER-MISSING`) once and renders with the fallback.
 
 ### Adapter Contract
 
@@ -212,6 +225,8 @@ Adapters **must not**:
 
 - Import `@preact/signals-core` or access the engine directly
 - Register event listeners for value sync, change detection, or touch tracking (`bind()` owns all event wiring)
+- Ask the host to import their CSS, or inject `<style>` into the document — declare `stylesheets` instead
+- Repeat the structural rules in `formspec-layout.css`, which the renderer links for every adapter
 
 ### Exported Types for Adapter Authors
 
@@ -239,7 +254,7 @@ The renderer resolves presentation through a 5-level cascade (lowest to highest 
 
 Tokens (`$token.spacing.lg`) resolve from the component document and theme document, then emit as CSS custom properties (`--formspec-spacing-lg`) on the form container.
 
-Theme documents may declare a `stylesheets` array of CSS URLs. The renderer injects `<link>` elements with ref-counting so multiple `<formspec-render>` instances sharing a theme do not duplicate loads.
+Theme documents may declare a `stylesheets` array of CSS URLs. The renderer links them last — after structural layout and the adapter’s own sheets — so theme CSS wins the cascade. Every link is ref-counted, so instances sharing a sheet load it once and it unloads when the last one disconnects.
 
 ## Rendering Pipeline
 
@@ -310,7 +325,7 @@ export type { WizardBehavior, WizardRefs, WizardSidenavItemRefs, WizardProgressI
 ## Development
 
 ```bash
-npm run build          # tsc + copy base CSS
+npm run build          # tsc + flatten the CSS entry points into dist
 npm run test           # vitest (happy-dom)
 npm run test:watch     # vitest watch mode
 ```
