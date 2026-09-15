@@ -14,7 +14,8 @@ use formspec_core::{
 use formspec_eval::{
     AnswerInput, AnswerState, EvalContext, EvalOptions, eval_context_from_json_object, evaluate,
     evaluate_screener_document, evaluation_result_to_json_value_styled,
-    extension_constraints_from_registry_documents, parse_answer_state,
+    extension_constraints_from_registry_documents, item_text_request_from_json_object,
+    parse_answer_state,
 };
 use formspec_lint::{LintMode, LintOptions, lint_result_to_json_value, lint_with_options};
 
@@ -173,12 +174,14 @@ pub fn lint_document(
 ///     trigger: Optional shape timing mode ("continuous", "submit", "disabled")
 ///     registry_documents: Optional list of registry document dicts
 ///     instances: Optional dict of named instance payloads
-///     context: Optional dict with now_iso / previous_validations / repeat_counts (snake or camel keys)
+///     context: Optional dict with now_iso / previous_validations / repeat_counts / itemText
+///         (snake or camel keys)
 ///     extension_functions: Optional dict of FEL extension name → callable (Core §3.12)
 ///
 /// Returns:
 ///     A dict with: values, validations, diagnostics, nonRelevant, variables, required, readonly
-///     (camelCase validation and diagnostic fields).
+///     (camelCase validation and diagnostic fields), plus `itemText` when `context` carried
+///     `itemText: { localeStrings? }` (Core §4.2.1).
 #[pyfunction(signature = (definition, data, trigger=None, registry_documents=None, instances=None, context=None, extension_functions=None))]
 #[expect(
     clippy::too_many_arguments,
@@ -217,15 +220,18 @@ pub fn evaluate_def(
         None => HashMap::new(),
     };
 
-    let eval_context = match context {
-        None => EvalContext::default(),
+    let (eval_context, item_text) = match context {
+        None => (EvalContext::default(), None),
         Some(ctx_any) => {
             let ctx_val: Value = depythonize_json(ctx_any)?;
             let map = ctx_val
                 .as_object()
                 .ok_or_else(|| pyo3::exceptions::PyTypeError::new_err("context must be a dict"))?;
-            eval_context_from_json_object(map)
-                .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?
+            (
+                eval_context_from_json_object(map)
+                    .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?,
+                item_text_request_from_json_object(map),
+            )
         }
     };
 
@@ -239,6 +245,9 @@ pub fn evaluate_def(
         .context(eval_context);
     if let Some(extensions) = &extensions {
         options = options.extensions(extensions);
+    }
+    if let Some(request) = item_text {
+        options = options.item_text(request);
     }
 
     let result = evaluate(&definition, &data, &options);

@@ -144,11 +144,14 @@ pub fn eval_host_context_from_json_map(
         trigger: parse_eval_trigger(ctx_obj)?,
         instances: parse_instances(ctx_obj),
         constraints: parse_registry_documents(ctx_obj),
-        item_text: parse_item_text_request(ctx_obj),
+        item_text: item_text_request_from_json_object(ctx_obj),
     })
 }
 
-fn parse_item_text_request(ctx_obj: &Map<String, Value>) -> Option<ItemTextRequest> {
+/// The Item text request in a host context object: `itemText: { localeStrings? }` (Core §4.2.1).
+///
+/// `None` when the object has no `itemText` key — the evaluation skips the text pass.
+pub fn item_text_request_from_json_object(ctx_obj: &Map<String, Value>) -> Option<ItemTextRequest> {
     let request = ctx_obj
         .get("itemText")
         .or_else(|| ctx_obj.get("item_text"))?

@@ -44,6 +44,7 @@ pub use convert::resolve_value_by_path;
 pub use eval_json::{
     EvalHostContextBundle, eval_context_from_json_object, eval_host_context_from_json_map,
     evaluation_result_to_json_value, evaluation_result_to_json_value_styled,
+    item_text_request_from_json_object,
 };
 pub use eval_options::EvalOptions;
 pub use host_context::HostFelContext;

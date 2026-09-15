@@ -149,6 +149,10 @@ class ProcessingResult(msgspec.Struct, frozen=True):
     # Author-facing evaluation errors from constraint and shape expressions (Core §3.10.2):
     # dicts with path, expression, message, and shapeId for shapes. Never validation results.
     diagnostics: list[dict] = msgspec.field(default_factory=list)
+    # Resolved Item text by instance path (Core §4.2.1), `{{}}` interpolated in the Item's scope:
+    # dicts with label and optional labels / description / hint. Empty unless the evaluation
+    # context carried ``itemText``.
+    item_text: dict[str, dict] = msgspec.field(default_factory=dict)
 
 
 class MappingDiagnostic(msgspec.Struct, frozen=True):
@@ -570,6 +574,9 @@ def evaluate_definition(
         instances: Optional dict of named instance data for prePopulate seeding.
             Keys are instance names, values are dicts of field data.
         context: Optional evaluator context (e.g. now_iso, repeat_counts, previous_validations).
+            ``itemText: {"localeStrings": {...}}`` also resolves Item text into
+            ``ProcessingResult.item_text`` (Core §4.2.1); the caller applies the Locale
+            fallback cascade (Locale §4) before passing the strings.
         extension_functions: Optional FEL extension functions (Core §3.12), name → callable.
             Arguments arrive as Python values; a raised exception makes the call null and
             adds an author diagnostic. A name matching a FEL built-in raises ValueError.
@@ -592,6 +599,7 @@ def evaluate_definition(
         variables=raw.get("variables", {}),
         non_relevant=raw.get("nonRelevant", raw.get("non_relevant", [])),
         diagnostics=raw.get("diagnostics", []),
+        item_text=raw.get("itemText", {}),
     )
 
 

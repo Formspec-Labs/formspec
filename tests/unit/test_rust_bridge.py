@@ -495,3 +495,48 @@ def test_severity_info_and_warning_are_distinct_enum_members():
     assert Severity.INFO is not Severity.WARNING
     assert Severity.INFO.value == "info"
     assert Severity.WARNING.value == "warning"
+
+
+_ITEM_TEXT_DEFINITION = {
+    "$formspec": "1.0",
+    "url": "urn:test:item-text",
+    "version": "1.0.0",
+    "title": "Item text",
+    "items": [
+        {
+            "key": "qty",
+            "type": "field",
+            "dataType": "integer",
+            "label": "Qty {{$qty}}",
+            "labels": {"short": "Q{{$qty}}"},
+            "hint": "Up to {{$qty}}",
+            "description": "Ordered {{$qty}}",
+        }
+    ],
+}
+
+
+def test_evaluate_definition_resolves_item_text_on_request():
+    """Core §4.2.1: `context.itemText` asks for resolved Item text; without it nothing is resolved."""
+    plain = evaluate_definition(_ITEM_TEXT_DEFINITION, {"qty": 2})
+    assert plain.item_text == {}
+
+    result = evaluate_definition(
+        _ITEM_TEXT_DEFINITION, {"qty": 2}, context={"itemText": {}}
+    )
+    assert result.item_text["qty"] == {
+        "label": "Qty 2",
+        "labels": {"short": "Q2"},
+        "description": "Ordered 2",
+        "hint": "Up to 2",
+    }
+
+
+def test_evaluate_definition_item_text_prefers_locale_strings():
+    """Locale §3.1.1: a Locale string wins over the Definition's inline text, then interpolates."""
+    result = evaluate_definition(
+        _ITEM_TEXT_DEFINITION,
+        {"qty": 2},
+        context={"itemText": {"localeStrings": {"qty.label": "Quantité {{$qty}}"}}},
+    )
+    assert result.item_text["qty"]["label"] == "Quantité 2"
