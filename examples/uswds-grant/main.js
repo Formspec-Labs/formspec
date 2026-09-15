@@ -1,5 +1,4 @@
 /** @filedesc Entry point for the USWDS Grant Application demo. */
-import '@formspec-org/webcomponent/formspec-layout.css';
 import { FormspecRender, globalRegistry, emitThemeTokens } from '@formspec-org/webcomponent';
 import { uswdsAdapter } from '@formspec-org/adapters';
 import { initFormspecEngine } from '@formspec-org/engine';
@@ -10,7 +9,7 @@ import theme from './grant.theme.json';
 await initFormspecEngine();
 customElements.define('formspec-render', FormspecRender);
 // Registering is the whole host obligation: grant.theme.json names `"adapter": "uswds"`, and the renderer
-// links the adapter's own stylesheet. No USWDS CSS is imported here.
+// links the structural layout CSS and the adapter's own stylesheet. This page imports no CSS at all.
 globalRegistry.registerAdapter(uswdsAdapter);
 
 emitThemeTokens(theme.tokens);
