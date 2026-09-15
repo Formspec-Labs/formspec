@@ -2727,7 +2727,11 @@ as Locale `<key>.<property>` → inline. `<key>` is the Item's bare `key` at any
 depth, and each Locale step walks the active locale's fallback chain before
 the cascade moves on ([Locale specification §3.1.2,
 §4.1](../locale/locale-spec.md)). The resolved text — Locale or inline — is
-interpolated in the same Item scope.
+interpolated in the same Item scope. A batch evaluation surface with no active
+display context (such as an evaluator's item-text output) returns, for each of
+the three properties, the context-free resolution plus one entry per context
+that a Locale string or `labels` supplies, so the renderer can apply the
+cascade for its active context afterward.
 
 **Text interpolation.** An Item's `label`, `labels` values, `description`,
 and `hint` MAY contain `{{expression}}` sequences, where `expression` is a FEL

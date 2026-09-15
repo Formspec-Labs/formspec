@@ -5449,7 +5449,12 @@ them). With no context, each property resolves as Locale
 depth, and each Locale step walks the active locale’s fallback chain
 before the cascade moves on (<a href="../locale/locale-spec.md">Locale
 specification §3.1.2, §4.1</a>). The resolved text — Locale or inline —
-is interpolated in the same Item scope.</p>
+is interpolated in the same Item scope. A batch evaluation surface with
+no active display context (such as an evaluator’s item-text output)
+returns, for each of the three properties, the context-free resolution
+plus one entry per context that a Locale string or <code>labels</code>
+supplies, so the renderer can apply the cascade for its active context
+afterward.</p>
 <p><strong>Text interpolation.</strong> An Item’s <code>label</code>,
 <code>labels</code> values, <code>description</code>, and
 <code>hint</code> MAY contain <code>{{expression}}</code> sequences,
