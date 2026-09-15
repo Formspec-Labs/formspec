@@ -1167,6 +1167,44 @@ chains when a widget is unavailable.</li>
 following tables define well-known configuration properties per widget.
 Renderers SHOULD support the listed properties and MUST ignore
 unrecognized keys.</p>
+<h4 id="width-stops">Width Stops</h4>
+<p><code>widgetConfig.width</code> sizes a field’s control to the
+expected answer instead of the full form column — a ZIP field shouldn’t
+stretch as wide as a name field. Seven stops, each defined in
+<code>ex</code> units (the width of the font’s “x”) so the same value
+means the same size under every adapter:</p>
+<table>
+<thead>
+<tr>
+<th>Stop</th>
+<th><code>2xs</code></th>
+<th><code>xs</code></th>
+<th><code>sm</code></th>
+<th><code>md</code></th>
+<th><code>lg</code></th>
+<th><code>xl</code></th>
+<th><code>2xl</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Width</td>
+<td>5ex</td>
+<td>9ex</td>
+<td>13ex</td>
+<td>20ex</td>
+<td>30ex</td>
+<td>40ex</td>
+<td>50ex</td>
+</tr>
+</tbody>
+</table>
+<p>Applies to <code>TextInput</code>, <code>NumberInput</code>,
+<code>MoneyInput</code>, <code>DatePicker</code>, and
+<code>Select</code> (listed per-widget below). Absent <code>width</code>
+fills the form column, as today. An unrecognized value is an
+unrecognized <code>widgetConfig</code> key: renderers MUST ignore it and
+fill the column.</p>
 <h4 id="canonical-field-widgets">Canonical Field Widgets</h4>
 <p>Renderers MUST support these widgets.</p>
 <p><strong><code>TextInput</code></strong> (string, text, uri; loose
@@ -1212,6 +1250,14 @@ count). Display-only; see below.</td>
 <td>boolean</td>
 <td>Auto-resize to content.</td>
 </tr>
+<tr>
+<td><code>width</code></td>
+<td>string</td>
+<td>Width stop (§4.2 Width Stops): <code>"2xs"</code>,
+<code>"xs"</code>, <code>"sm"</code>, <code>"md"</code>,
+<code>"lg"</code>, <code>"xl"</code>, <code>"2xl"</code>. Absent fills
+the form column.</td>
+</tr>
 </tbody>
 </table>
 <p><code>widgetConfig.maxLength</code> is a presentation hint: renderers
@@ -1239,6 +1285,11 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p><strong><code>NumberInput</code></strong> (integer, decimal)</p>
 <table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
 <thead>
 <tr>
 <th>Property</th>
@@ -1256,6 +1307,14 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="
 <td><code>locale</code></td>
 <td>string</td>
 <td>Locale for number formatting (e.g., <code>"en-US"</code>).</td>
+</tr>
+<tr>
+<td><code>width</code></td>
+<td>string</td>
+<td>Width stop (§4.2 Width Stops): <code>"2xs"</code>,
+<code>"xs"</code>, <code>"sm"</code>, <code>"md"</code>,
+<code>"lg"</code>, <code>"xl"</code>, <code>"2xl"</code>. Absent fills
+the form column.</td>
 </tr>
 </tbody>
 </table>
@@ -1283,6 +1342,11 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="
 </table>
 <p><strong><code>DatePicker</code></strong> (date, dateTime, time)</p>
 <table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
 <thead>
 <tr>
 <th>Property</th>
@@ -1306,11 +1370,24 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="
 <td>string</td>
 <td>Latest selectable date (ISO 8601).</td>
 </tr>
+<tr>
+<td><code>width</code></td>
+<td>string</td>
+<td>Width stop (§4.2 Width Stops): <code>"2xs"</code>,
+<code>"xs"</code>, <code>"sm"</code>, <code>"md"</code>,
+<code>"lg"</code>, <code>"xl"</code>, <code>"2xl"</code>. Absent fills
+the form column.</td>
+</tr>
 </tbody>
 </table>
 <p><strong><code>Select</code></strong> (choice; multiChoice when
 <code>widgetConfig.multiple</code> is <code>true</code>)</p>
 <table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
 <thead>
 <tr>
 <th>Property</th>
@@ -1328,6 +1405,14 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="
 <td><code>placeholder</code></td>
 <td>string</td>
 <td>Placeholder text when no selection.</td>
+</tr>
+<tr>
+<td><code>width</code></td>
+<td>string</td>
+<td>Width stop (§4.2 Width Stops): <code>"2xs"</code>,
+<code>"xs"</code>, <code>"sm"</code>, <code>"md"</code>,
+<code>"lg"</code>, <code>"xl"</code>, <code>"2xl"</code>. Absent fills
+the form column.</td>
 </tr>
 </tbody>
 </table>
@@ -1383,6 +1468,11 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="
 <p><strong><code>MoneyInput</code></strong> (integer, decimal,
 money)</p>
 <table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
 <thead>
 <tr>
 <th>Property</th>
@@ -1400,6 +1490,14 @@ money)</p>
 <td><code>locale</code></td>
 <td>string</td>
 <td>Locale for currency formatting.</td>
+</tr>
+<tr>
+<td><code>width</code></td>
+<td>string</td>
+<td>Width stop (§4.2 Width Stops): <code>"2xs"</code>,
+<code>"xs"</code>, <code>"sm"</code>, <code>"md"</code>,
+<code>"lg"</code>, <code>"xl"</code>, <code>"2xl"</code>. Absent fills
+the form column.</td>
 </tr>
 </tbody>
 </table>

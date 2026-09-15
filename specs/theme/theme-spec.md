@@ -554,6 +554,23 @@ The `widgetConfig` property is an open object. The following tables
 define well-known configuration properties per widget. Renderers
 SHOULD support the listed properties and MUST ignore unrecognized keys.
 
+#### Width Stops
+
+`widgetConfig.width` sizes a field's control to the expected answer
+instead of the full form column — a ZIP field shouldn't stretch as
+wide as a name field. Seven stops, each defined in `ex` units (the
+width of the font's "x") so the same value means the same size under
+every adapter:
+
+| Stop | `2xs` | `xs` | `sm` | `md` | `lg` | `xl` | `2xl` |
+|---|---|---|---|---|---|---|---|
+| Width | 5ex | 9ex | 13ex | 20ex | 30ex | 40ex | 50ex |
+
+Applies to `TextInput`, `NumberInput`, `MoneyInput`, `DatePicker`, and
+`Select` (listed per-widget below). Absent `width` fills the form
+column, as today. An unrecognized value is an unrecognized
+`widgetConfig` key: renderers MUST ignore it and fill the column.
+
 #### Canonical Field Widgets
 
 Renderers MUST support these widgets.
@@ -567,6 +584,7 @@ Renderers MUST support these widgets.
 | `rows` | integer | Visible text rows. |
 | `maxRows` | integer | Maximum rows before scroll. |
 | `autoResize` | boolean | Auto-resize to content. |
+| `width` | string | Width stop (§4.2 Width Stops): `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`. Absent fills the form column. |
 
 `widgetConfig.maxLength` is a presentation hint: renderers SHOULD display
 the character count against it, but it MUST NOT block input or submission
@@ -600,6 +618,7 @@ the theme hint and the constraint then agree:
 |---|---|---|
 | `showStepper` | boolean | Show increment/decrement buttons. |
 | `locale` | string | Locale for number formatting (e.g., `"en-US"`). |
+| `width` | string | Width stop (§4.2 Width Stops): `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`. Absent fills the form column. |
 
 **`Toggle`** (boolean)
 
@@ -615,6 +634,7 @@ the theme hint and the constraint then agree:
 | `format` | string | Display format (e.g., `"YYYY-MM-DD"`). |
 | `minDate` | string | Earliest selectable date (ISO 8601). |
 | `maxDate` | string | Latest selectable date (ISO 8601). |
+| `width` | string | Width stop (§4.2 Width Stops): `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`. Absent fills the form column. |
 
 **`Select`** (choice; multiChoice when `widgetConfig.multiple` is `true`)
 
@@ -622,6 +642,7 @@ the theme hint and the constraint then agree:
 |---|---|---|
 | `searchable` | boolean | Enable type-ahead search. |
 | `placeholder` | string | Placeholder text when no selection. |
+| `width` | string | Width stop (§4.2 Width Stops): `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`. Absent fills the form column. |
 
 **`CheckboxGroup`** (multiChoice)
 
@@ -644,6 +665,7 @@ the theme hint and the constraint then agree:
 |---|---|---|
 | `showCurrencySymbol` | boolean | Display currency symbol. |
 | `locale` | string | Locale for currency formatting. |
+| `width` | string | Width stop (§4.2 Width Stops): `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`. Absent fills the form column. |
 
 #### Progressive Widgets
 
