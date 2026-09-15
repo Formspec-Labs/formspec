@@ -87,6 +87,7 @@ Section references (§N) refer to this document unless prefixed with
 - This document defines the Tier 2 sidecar theme model for Formspec presentation behavior.
 - A valid theme requires `$formspecTheme` and `version`. `targetDefinition` is OPTIONAL and sets scope: present = Definition-scoped, absent = bundle-scoped (ADR 0150 §5.2 app envelope).
 - Effective rendering is resolved through a 3-level cascade: `defaults` -> `selectors` -> `items`.
+- `adapter` is OPTIONAL and names the render adapter the theme's `selectors`/`cssClass`/`widgetConfig` are written for; the adapter owns its design system's CSS, `stylesheets` is the additional brand layer on top, and an unregistered name is `THEME-ADAPTER-MISSING` with a default-adapter fallback (§2.4).
 - This BLUF is governed by `schemas/theme.schema.json`; generated tables should be treated as canonical structural reference.
 <!-- bluf:end -->
 
@@ -109,8 +110,9 @@ that omits a REQUIRED property.
     "compatibleVersions": ">=1.0.0 <2.0.0"
   },
   "platform": "web",
+  "adapter": "uswds",
   "stylesheets": [
-    "https://cdn.example.com/design-system/3.0/styles.css"
+    "https://agency.gov/brand/agency-overrides.css"
   ],
   "tokens": {},
   "defaults": {},
@@ -129,6 +131,7 @@ that omits a REQUIRED property.
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
 | `#/properties/$formspecTheme` | `$formspecTheme` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Theme specification version. MUST be '1.0'. |
+| `#/properties/adapter` | `adapter` | <code>string</code> | no | pattern: <code>^[a-z0-9]+(-[a-z0-9]+)*&#36;</code>; critical | Registered name of the render adapter this theme's selectors, widgetConfig, and cssClass values are written for — the design system whose markup and self-contained stylesheet the adapter owns (RenderAdapter.stylesheets). Absent means the renderer's default adapter. A renderer MUST resolve this name in its adapter registry and, when it is not registered, MUST report THEME-ADAPTER-MISSING (error) and fall back to its default adapter rather than render mismatched class names silently. The adapter's own stylesheets load before the theme's additional 'stylesheets'; a compiled design system bakes its palette in at adapter build time and ignores 'tokens'. See theme-spec.md §2.4. |
 | `#/properties/breakpoints` | `breakpoints` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Breakpoints</code> | Named responsive breakpoints as min-width pixel values. Referenced by regions' 'responsive' objects to override span, start, or visibility at different viewport sizes. Processors that do not support responsive layouts SHOULD use the base span and start values. |
 | `#/properties/contrastPairs` | `contrastPairs` | <code>array</code> | no | critical | Additional color-token pairs whose effective contrast tooling must check. The platform Token Registry already declares the pairs used by the default renderer, so a Theme only needs this property for custom x-* tokens or stricter product-specific checks. A processor evaluates a pair after platform defaults and Theme token overrides are merged. It MUST use the WCAG 2.2 contrast formula when both values can be reduced to opaque sRGB colors, MUST NOT report a ratio when either value is indeterminate, and SHOULD diagnose a declared pair that references a missing token. The usage sets a standards floor: normalText is 4.5:1; largeText and uiComponent are 3:1. minimumRatio may raise but never lower that floor. |
 | `#/properties/defaults` | `defaults` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/PresentationBlock</code>; critical | Cascade level 1 (lowest theme specificity): baseline PresentationBlock applied to every item before selectors or per-item overrides. Sets the form-wide visual baseline. Overrides Tier 1 inline presentation hints (level 0) and formPresentation globals (level -1). Overridden by selectors (level 2) and items (level 3). Merge is shallow per-property — nested objects (widgetConfig, style, accessibility) are replaced as a whole, not deep-merged. Exception: cssClass uses union semantics across all levels. |
@@ -220,22 +223,84 @@ rendering platform. Well-known values:
 Implementors MAY define additional platform values. Processors that do
 not recognize a `platform` value SHOULD apply the theme regardless.
 
-### 2.4 Theme Versioning
+### 2.4 Adapter Declaration
+
+A Theme's `selectors`, `widgetConfig`, and `cssClass` values are written against
+one design system. `usa-input` means nothing outside USWDS markup. The OPTIONAL
+`adapter` property names that design system as the registered name of a **render
+adapter** — the unit that owns a design system completely: the markup functions
+for every widget *and* a self-contained stylesheet (fonts and images inlined) the
+adapter declares and the renderer links. Absent `adapter` means the renderer's
+default adapter.
+
+```json
+{
+  "$formspecTheme": "1.0",
+  "version": "1.0.0",
+  "adapter": "uswds",
+  "selectors": [
+    {
+      "match": { "dataType": "money" },
+      "apply": { "widget": "MoneyInput", "cssClass": ["usa-input", "usa-input--currency"] }
+    }
+  ]
+}
+```
+
+Normative requirements:
+
+- A renderer MUST resolve `adapter` in its adapter registry before applying the
+  cascade.
+- If the name is not registered, the renderer MUST report
+  `THEME-ADAPTER-MISSING` (severity `error`, naming the unresolved value) and
+  MUST fall back to its default adapter. It MUST NOT fail the render, and it
+  MUST NOT silently emit the theme's class names into markup the adapter never
+  produced — the finding is what distinguishes "USWDS classes on default markup"
+  from "USWDS".
+- A renderer MUST link the resolved adapter's own stylesheets before the Theme's
+  `stylesheets` (§2.6), so the design system's base CSS is the lower layer and
+  the Theme's sheets override it.
+- An adapter's stylesheet MUST be **self-contained**: it MUST style the entire
+  render root on its own, and MUST NOT depend on anything the host page
+  contributes — no inherited `body` font or color, no host reset, no separately
+  delivered asset. Fonts and images it needs MUST resolve from the stylesheet
+  itself (inlined, or at URLs the adapter's own package serves). A host embedding
+  the renderer imports no CSS; the same document therefore renders identically in
+  an authoring preview, a product shell, and a standalone page.
+- `adapter` names a design system, not a platform. `platform` (§2.3) stays
+  informational and orthogonal; one adapter serves many platforms and one
+  platform hosts many adapters.
+- An adapter decides for itself whether it reads `tokens` (§3). A token-driven
+  adapter — the default skin — consumes the Theme's token map. A compiled design
+  system bakes its palette in at adapter build time and ignores it; a Theme for
+  such an adapter SHOULD NOT restate that palette in `tokens`.
+- A host application declares nothing about presentation. It registers the
+  adapter modules it bundles; the Theme selects among them. This is what lets a
+  preview surface, a shell, and a public renderer all render a USWDS Theme as
+  USWDS from the document alone.
+
+### 2.5 Theme Versioning
 
 The `version` property is a free-form string. Semantic versioning
 (SemVer) is RECOMMENDED. The pair (`url`, `version`) SHOULD be unique
 across all published versions of a theme.
 
-### 2.5 External Stylesheets
+### 2.6 External Stylesheets
 
-The optional `stylesheets` property is an array of URI strings
-pointing to external CSS files.
+The optional `stylesheets` property is the **additional** CSS layer — an
+agency's brand overrides on top of a design system, not the design system
+itself. A design system's base CSS belongs to its render adapter (§2.4), which
+declares it and ships it self-contained; a Theme that lists a design system's
+own sheets here is naming a fact the adapter already owns.
+
+`stylesheets` is an array of URI strings pointing to external CSS files.
 
 ```json
 {
+  "adapter": "uswds",
   "stylesheets": [
-    "https://cdn.example.com/uswds/3.11/uswds.min.css",
-    "https://cdn.example.com/custom/form-overrides.css"
+    "https://agency.gov/brand/agency-overrides.css",
+    "https://agency.gov/brand/budget-form-overrides.css"
   ]
 }
 ```
@@ -245,6 +310,9 @@ Normative requirements:
 - Web renderers SHOULD load declared stylesheets before rendering the
   form. Stylesheets are loaded in array order; later sheets take CSS
   precedence over earlier sheets.
+- The resolved adapter's own stylesheets (§2.4) load *before* every sheet in
+  this array, so a Theme sheet can override the design system and never the
+  reverse.
 - Renderers MAY cache stylesheets, load them lazily, or scope them
   to the form container.
 - Renderers MUST NOT fail if a stylesheet cannot be loaded; they
@@ -1052,6 +1120,8 @@ A processor loading a Theme Document MUST:
    (`theme.schema.json`).
 3. Verify that `$formspecTheme` is a supported version.
 4. Reject the theme if any REQUIRED property is missing.
+5. Resolve `adapter` (§2.4) in the adapter registry, falling back to the default
+   adapter with a `THEME-ADAPTER-MISSING` finding when the name is unregistered.
 
 ### 7.2 Target Definition Compatibility Check
 
@@ -1084,19 +1154,21 @@ The complete theme resolution proceeds in this order:
 
 1. **Load theme** — parse and validate.
 2. **Check compatibility** — verify target Definition match.
-3. **Resolve tokens** — collect all `$token.` references in `style`
+3. **Resolve the adapter** — look up `adapter` (§2.4); link its stylesheets,
+   then the Theme's `stylesheets` (§2.6).
+4. **Resolve tokens** — collect all `$token.` references in `style`
    and `widgetConfig` values. Substitute each with the corresponding
    token value. Unresolved tokens use platform defaults.
-4. **For each item** in the Definition:
+5. **For each item** in the Definition:
    a. Apply the cascade (§5.5) to compute the resolved
       PresentationBlock.
    b. Resolve any `$token.` references in the resolved block.
    c. Validate widget compatibility with the item’s `dataType`. If
       incompatible, apply the `fallback` chain (§4.3).
-5. **Compute layout** — if `pages` is present, assign items to pages
+6. **Compute layout** — if `pages` is present, assign items to pages
    and regions. Apply responsive overrides based on the current
    viewport.
-6. **Emit resolved presentation** — the final per-item presentation
+7. **Emit resolved presentation** — the final per-item presentation
    data for the renderer.
 
 ### 7.4 Error Handling
@@ -1105,6 +1177,7 @@ The complete theme resolution proceeds in this order:
 |-----------|----------|
 | Unknown item key in `items` | SHOULD warn, MUST NOT fail. |
 | Unknown item key in a region | SHOULD warn, MUST NOT fail. |
+| `adapter` not in the adapter registry | MUST report `THEME-ADAPTER-MISSING` (`error`) naming the value, MUST fall back to the default adapter, MUST NOT fail the render (§2.4). |
 | Incompatible widget for dataType | MUST apply `fallback` chain; if no fallback, use default widget. |
 | Unresolved `$token.` reference | MUST use platform default, SHOULD warn. |
 | Recursive token reference | MUST treat as unresolved. |

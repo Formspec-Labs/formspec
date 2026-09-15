@@ -112,6 +112,20 @@
         "kiosk"
       ]
     },
+    "adapter": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Registered name of the render adapter this theme's selectors, widgetConfig, and cssClass values are written for — the design system whose markup and self-contained stylesheet the adapter owns (RenderAdapter.stylesheets). Absent means the renderer's default adapter. A renderer MUST resolve this name in its adapter registry and, when it is not registered, MUST report THEME-ADAPTER-MISSING (error) and fall back to its default adapter rather than render mismatched class names silently. The adapter's own stylesheets load before the theme's additional 'stylesheets'; a compiled design system bakes its palette in at adapter build time and ignores 'tokens'. See theme-spec.md §2.4.",
+      "examples": [
+        "uswds",
+        "tailwind",
+        "acme-design-system"
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Names the design system the theme is authored against, so a host renders a USWDS theme as USWDS from the document alone — no host-side CSS imports, no palette copied into tokens."
+      }
+    },
     "tokens": {
       "$ref": "#/$defs/Tokens",
       "description": "Design tokens — named values (colors, spacing, typography, borders) that promote visual consistency. Defined once here, referenced throughout the theme via '$token.<key>' syntax in style and widgetConfig string values. Token keys use dot-delimited category prefixes (e.g., 'color.primary', 'spacing.md'). Values MUST be strings or numbers. Token references MUST NOT be recursive. UI Graph Policy graph-visible widget token slots accept platform prefixes from token-registry.json plus custom x-* prefixes; broader Theme token-map prefixes such as typography, border, and elevation are metadata vocabulary unless a later graph policy gate promotes them.",

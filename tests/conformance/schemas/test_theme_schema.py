@@ -102,6 +102,20 @@ class TestSchemaValid:
         """Platform is open string — custom values allowed."""
         _valid(_minimal_theme(platform="vr-headset"))
 
+    def test_with_adapter(self):
+        """`adapter` names the render adapter the theme's selectors/cssClass target (§2.4)."""
+        _valid(_minimal_theme(adapter="uswds"))
+
+    def test_with_adapter_hyphenated(self):
+        _valid(_minimal_theme(adapter="acme-design-system"))
+
+    def test_with_adapter_digits(self):
+        _valid(_minimal_theme(adapter="uswds3"))
+
+    def test_adapter_absent_means_default_adapter(self):
+        """Omitting `adapter` is the renderer's default adapter, not an error (§2.4)."""
+        _valid(_minimal_theme())
+
     def test_with_compatible_versions(self):
         _valid(_minimal_theme(targetDefinition={
             "url": "https://example.com/form",
@@ -292,6 +306,22 @@ class TestSchemaInvalid:
 
     def test_unknown_root_property(self):
         _invalid({**_minimal_theme(), "theme": "dark"})
+
+    def test_adapter_not_string(self):
+        _invalid(_minimal_theme(adapter=42))
+
+    def test_adapter_empty_rejected(self):
+        _invalid(_minimal_theme(adapter=""))
+
+    def test_adapter_uppercase_rejected(self):
+        """Registry names are lowercase — a renderer looks up the exact string (§2.4)."""
+        _invalid(_minimal_theme(adapter="USWDS"))
+
+    def test_adapter_whitespace_rejected(self):
+        _invalid(_minimal_theme(adapter="us wds"))
+
+    def test_adapter_leading_hyphen_rejected(self):
+        _invalid(_minimal_theme(adapter="-uswds"))
 
     def test_lowercase_builtin_widget_rejected(self):
         _invalid(_minimal_theme(items={"name": {"widget": "textInput"}}))
