@@ -30,6 +30,7 @@ const DEFINITION = {
 beforeAll(async () => {
     const mod = await import('../../src/index');
     FormspecRender = mod.FormspecRender;
+    mod.globalRegistry.registerAdapter({ name: 'skeleton-ds', components: {}, rootClasses: ['ds-form', 'ds-form--large'] });
     if (!customElements.get('formspec-render')) {
         customElements.define('formspec-render', FormspecRender);
     }
@@ -75,6 +76,19 @@ describe('pre-engine skeleton', () => {
         const controls = container.querySelectorAll('input, select, textarea, button');
         expect(controls.length).toBeGreaterThan(0);
         for (const control of controls) expect((control as HTMLInputElement).disabled).toBe(true);
+    });
+
+    it("carries the adapter's root classes before and after the engine arrives, so the column never changes width", () => {
+        const el = mount();
+        el.adapter = 'skeleton-ds';
+        el.definition = DEFINITION;
+        const container = el.querySelector('.formspec-container')!;
+        expect([...container.classList]).toEqual(expect.arrayContaining(['ds-form', 'ds-form--large', 'formspec-skeleton']));
+
+        el.render();
+
+        expect([...container.classList]).toEqual(expect.arrayContaining(['formspec-container', 'ds-form', 'ds-form--large']));
+        expect(container.classList.contains('formspec-skeleton')).toBe(false);
     });
 
     it('hands the column over on the real render', () => {

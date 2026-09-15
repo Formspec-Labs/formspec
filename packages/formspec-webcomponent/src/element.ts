@@ -620,6 +620,17 @@ export class FormspecRender extends HTMLElement {
         return globalRegistry.getAdapter(this.resolvedAdapterName)?.stylesheets ?? [];
     }
 
+    /** The render root, created on first use, reset to `formspec-container` plus the adapter's root classes. */
+    private prepareRootContainer(...extraClasses: string[]): HTMLDivElement {
+        if (!this.rootContainer) {
+            this.rootContainer = document.createElement('div');
+            this.appendChild(this.rootContainer);
+        }
+        const adapterClasses = globalRegistry.getAdapter(this.resolvedAdapterName)?.rootClasses ?? [];
+        this.rootContainer.className = ['formspec-container', ...adapterClasses, ...extraClasses].join(' ');
+        return this.rootContainer;
+    }
+
     /** @internal Styling host seam — the resolved adapter's declared class vocabulary, if it has one. */
     adapterClassVocabulary(): ReadonlySet<string> | undefined {
         return globalRegistry.getAdapter(this.resolvedAdapterName)?.classVocabulary;
@@ -905,15 +916,8 @@ export class FormspecRender extends HTMLElement {
             }
         }
 
-        if (!this.rootContainer) {
-            this.rootContainer = document.createElement('div');
-            this.rootContainer.className = 'formspec-container';
-            this.appendChild(this.rootContainer);
-        }
-
         this.ensureColorSchemeListener();
-        const container = this.rootContainer;
-        container.className = 'formspec-container';
+        const container = this.prepareRootContainer();
         container.removeAttribute('aria-busy');
         this.syncRootContainerAppearance();
         container.replaceChildren();
@@ -1011,12 +1015,7 @@ export class FormspecRender extends HTMLElement {
         const plan = this.buildPlan();
         if (!plan) return;
 
-        if (!this.rootContainer) {
-            this.rootContainer = document.createElement('div');
-            this.appendChild(this.rootContainer);
-        }
-        const container = this.rootContainer;
-        container.className = 'formspec-container formspec-skeleton';
+        const container = this.prepareRootContainer('formspec-skeleton');
         container.setAttribute('aria-busy', 'true');
         container.replaceChildren();
         emitTokenPropertiesFn(this._stylingHost, container);

@@ -62,6 +62,13 @@ export interface RenderAdapter {
     name: string;
     components: Partial<Record<string, AdapterRenderFn>>;
     /**
+     * Classes the render root carries beside `formspec-container`, on the live form and the boot skeleton
+     * alike — the design system's own form class, so its form rules type the whole form without the
+     * adapter's stylesheet re-deriving them (USWDS: `usa-form usa-form--large`). Part of the markup the
+     * components assume, so a derived variant inherits it with them.
+     */
+    rootClasses?: readonly string[];
+    /**
      * This adapter's stylesheet as ordered layers, least to most specific, each with its own presence probe
      * (ADR 0063 D-4): a single-sheet adapter declares one layer, the USWDS adapter its design system and its
      * own rules as two, so a page that already loads USWDS gets only the rules. The renderer links every

@@ -1,4 +1,4 @@
-/** @filedesc ADR 0064 decision 1: deriveAdapter makes a variant adapter one line — same components, new name/stylesheets/vocabulary. */
+/** @filedesc ADR 0064 decision 1: deriveAdapter makes a variant adapter one line — same components and root classes, new name/stylesheets/vocabulary. */
 import { describe, it, expect } from 'vitest';
 import { deriveAdapter } from '../../src/adapters/derive';
 import type { RenderAdapter, StylesheetLayer } from '../../src/adapters/types';
@@ -12,6 +12,7 @@ describe('deriveAdapter', () => {
         name: 'uswds',
         stylesheets: [sheet('https://cdn.example.org/uswds-base.css')],
         classVocabulary: new Set(['usa-input', 'usa-legend']),
+        rootClasses: ['usa-form'],
         components: { TextInput: renderTextInput, Select: renderSelect },
     };
 
@@ -33,6 +34,8 @@ describe('deriveAdapter', () => {
         const variant = deriveAdapter(base, { name: 'uswds-nj', stylesheets: [sheet('https://cdn.example.org/uswds-nj.css')] });
         expect(variant.components.TextInput).toBe(renderTextInput);
         expect(variant.components.Select).toBe(renderSelect);
+        // The root classes belong to the markup those functions assume, so they come along.
+        expect(variant.rootClasses).toEqual(['usa-form']);
     });
 
     it('classVocabulary stays optional — a variant can decline to declare one', () => {

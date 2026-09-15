@@ -1,4 +1,4 @@
-/** @filedesc deriveAdapter — a variant adapter in one line: same components, new name/stylesheets/vocabulary (ADR 0064 decision 1). */
+/** @filedesc deriveAdapter — a variant adapter in one line: same components and root classes, new name/stylesheets/vocabulary (ADR 0064 decision 1). */
 import type { RenderAdapter, StylesheetLayer } from './types';
 
 /**
@@ -16,13 +16,14 @@ export interface DeriveAdapterOptions {
 }
 
 /**
- * An organization's look is a variant, not a fork: the same render functions, a new registered name and
+ * An organization's look is a variant, not a fork: the same render functions and root classes, a new registered name and
  * a new declared stylesheet/vocabulary (typically a compiled `!default`-configured Sass partial — see
  * `formspec-adapters`' USWDS adapter). `base` is never mutated.
  */
 export function deriveAdapter(base: RenderAdapter, options: DeriveAdapterOptions): RenderAdapter {
     return {
         components: base.components,
+        rootClasses: base.rootClasses,
         name: options.name,
         stylesheets: options.stylesheets,
         classVocabulary: options.classVocabulary,
