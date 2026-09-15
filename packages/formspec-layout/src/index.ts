@@ -83,6 +83,11 @@ export {
     characterCountStatus,
     CHARACTER_COUNT_ANNOUNCE_DELAY_MS,
 } from './character-count.js';
+export type { UiStringLookup } from './character-count.js';
+
+// Closed renderer-chrome string inventory (Locale spec §3.1.10 `$ui.<ChromeStringKey>`)
+export { UI_STRINGS, fillUiParams } from './ui-strings.js';
+export type { ChromeStringKey } from './ui-strings.js';
 
 // Platform defaults & theme generation
 export {

@@ -501,6 +501,12 @@ export interface IFormEngine {
      * of `itemPath` (an instance path, e.g. `rows[1].note`); form scope when omitted.
      */
     resolveLocaleString(key: string, fallback: string, itemPath?: string): string;
+    /**
+     * Raw Locale string for `key` (fallback cascade, §4), or `null` when no loaded document carries it.
+     * No FEL interpolation — for chrome strings (Locale §3.1.10 `$ui.<ChromeStringKey>`), whose
+     * `{{$param}}` placeholders are renderer-supplied literals, not form-scope FEL.
+     */
+    lookupLocaleString(key: string): string | null;
 
     dispose(): void;
 

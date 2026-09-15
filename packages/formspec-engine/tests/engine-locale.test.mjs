@@ -371,6 +371,30 @@ test('resolveLocaleString interpolates {{}} in the scope of the given repeat ins
   assert.equal(engine.resolveLocaleString('note.label', '', 'rows[1].note'), 'Ligne deux #2');
 });
 
+// ── lookupLocaleString: raw Locale string, no FEL interpolation (Locale §3.1.10 $ui.<ChromeStringKey>) ──
+
+test('lookupLocaleString returns the raw Locale string without interpolating {{}}', () => {
+  const engine = new FormEngine(minDef());
+  engine.loadLocale(makeLocale('fr', { '$ui.repeat.add': 'Ajouter {{$label}}' }));
+  engine.setLocale('fr');
+  assert.equal(engine.lookupLocaleString('$ui.repeat.add'), 'Ajouter {{$label}}');
+});
+
+test('lookupLocaleString returns null when no loaded document carries the key', () => {
+  const engine = new FormEngine(minDef());
+  engine.loadLocale(makeLocale('fr', {}));
+  engine.setLocale('fr');
+  assert.equal(engine.lookupLocaleString('$ui.repeat.add'), null);
+});
+
+test('lookupLocaleString follows the fallback cascade (§4) like resolveLocaleString', () => {
+  const engine = new FormEngine(minDef());
+  engine.loadLocale(makeLocale('fr', { '$ui.wizard.next': 'Suivant' }));
+  engine.loadLocale(makeLocale('fr-CA', {}, { fallback: 'fr' }));
+  engine.setLocale('fr-CA');
+  assert.equal(engine.lookupLocaleString('$ui.wizard.next'), 'Suivant');
+});
+
 test('Locale full dotted-path keys do not address nested items', () => {
   const engine = new FormEngine(minDef({
     items: [{ key: 'address', type: 'group', label: 'Address', children: localizedChildren() }],

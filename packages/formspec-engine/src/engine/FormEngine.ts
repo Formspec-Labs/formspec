@@ -1040,6 +1040,16 @@ export class FormEngine implements IFormEngine {
         return fallback;
     }
 
+    /**
+     * Raw Locale string for `key`, or `null` when no loaded document (through the fallback cascade, §4)
+     * carries it. Unlike {@link resolveLocaleString}, this never runs `{{}}` through FEL — for chrome
+     * strings (Locale §3.1.10 `$ui.<ChromeStringKey>`), whose `{{$param}}` placeholders are renderer-
+     * supplied literals (`$label`, `$index`, ...), not form-scope FEL.
+     */
+    public lookupLocaleString(key: string): string | null {
+        return this._localeStore.lookupKey(key);
+    }
+
     public injectExternalValidation(
         results: Array<{ path: string; severity: string; code: string; message: string; source?: string }>,
     ): void {
