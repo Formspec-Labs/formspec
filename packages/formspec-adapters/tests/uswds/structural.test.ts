@@ -366,6 +366,11 @@ describe('Integration CSS', () => {
         expect(css).toContain('box-sizing:inherit');
     });
 
+    it('declares itself so a host that pre-loads it gets no second link', async () => {
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        expect(readUswdsIntegrationCss()).toMatch(/--formspec-adapter:\s*uswds/);
+    });
+
     it('contains .formspec-required using USWDS error token', async () => {
         const { readUswdsIntegrationCss } = await import('../helpers.js');
         const css = readUswdsIntegrationCss();

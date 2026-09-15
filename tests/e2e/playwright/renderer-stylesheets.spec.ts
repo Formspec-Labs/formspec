@@ -17,6 +17,23 @@ test.describe('renderer-linked stylesheets', () => {
     await page.waitForSelector('.formspec-field');
   });
 
+  // A host that pre-loads the sheets gets no link and no wait; this harness pre-loads nothing, so the
+  // element links them and must stay hidden rather than paint the form unstyled for a round-trip.
+  test('never paints unstyled: hidden until the sheets it linked answer', async ({ page }) => {
+    const state = await page.evaluate(() => {
+      const el = document.querySelector('formspec-render') as HTMLElement;
+      const probe = document.createElement('div');
+      probe.className = 'formspec-container';
+      document.body.appendChild(probe);
+      const layoutApplied = getComputedStyle(probe).getPropertyValue('--formspec-layout').trim() !== '';
+      probe.remove();
+      return { visibility: getComputedStyle(el).visibility, layoutApplied };
+    });
+    // By now the sheets have loaded, so the form is visible AND styled — never visible-and-unstyled.
+    expect(state.visibility).toBe('visible');
+    expect(state.layoutApplied).toBe(true);
+  });
+
   test('links structural layout CSS and the default adapter skin', async ({ page }) => {
     const hrefs = await page.evaluate(() =>
       [...document.head.querySelectorAll('link[data-formspec-theme-href]')].map((l) => (l as HTMLLinkElement).href));

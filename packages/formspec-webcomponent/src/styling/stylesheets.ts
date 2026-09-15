@@ -57,27 +57,57 @@ function findLink(root: StyleRoot, hrefKey: string): HTMLLinkElement | null {
     return null;
 }
 
+/** What a host already loaded, as the stylesheets themselves declare it on `.formspec-container`. */
+interface HostProvidedStyles {
+    layout: boolean;
+    adapter: string;
+}
+
 /**
- * Cascade order: structural layout, then the resolved adapter's design system,
- * then the theme's own sheets — least to most specific.
+ * Ask the page what it already has. Every renderer-known stylesheet sets one custom property on
+ * `.formspec-container` — a host that pre-loaded it (bundler import, hashed asset, hand-written link)
+ * gets no link from us, and no unstyled frame. Returns nothing detected when the probe cannot render.
  */
-function orderedStylesheetHrefs(host: StylingHost): string[] {
+function hostProvidedStyles(root: StyleRoot): HostProvidedStyles {
+    const parent = root.nodeType === DOCUMENT_NODE ? (root as Document).body : (root as ShadowRoot);
+    if (!parent) return { layout: false, adapter: '' };
+    const probe = document.createElement('div');
+    probe.className = 'formspec-container';
+    probe.style.display = 'none';
+    parent.appendChild(probe);
+    const style = getComputedStyle(probe);
+    const provided = {
+        layout: style.getPropertyValue('--formspec-layout').trim() !== '',
+        adapter: style.getPropertyValue('--formspec-adapter').trim(),
+    };
+    probe.remove();
+    return provided;
+}
+
+/**
+ * Cascade order: structural layout, then the resolved adapter's design system, then the theme's own
+ * sheets — least to most specific. Theme sheets always link: they are the brand layer this document
+ * asked for, not something a page can have pre-loaded on the renderer's behalf.
+ */
+function orderedStylesheetHrefs(host: StylingHost, provided: HostProvidedStyles): string[] {
     return [
-        LAYOUT_STYLESHEET_HREF,
-        ...host.adapterStylesheets(),
+        ...(provided.layout ? [] : [LAYOUT_STYLESHEET_HREF]),
+        ...(provided.adapter === host.resolvedAdapterName ? [] : host.adapterStylesheets()),
         ...(host._themeDocument?.stylesheets ?? []),
     ];
 }
 
-export function loadStylesheets(host: StylingHost): void {
+/** Link what the page lacks; returns the links this call created, for the caller to wait on. */
+export function loadStylesheets(host: StylingHost): HTMLLinkElement[] {
     cleanupStylesheets(host);
     const root = styleRoot(host);
-    if (!root) return;
+    if (!root) return [];
     const container = linkContainer(root);
     const counts = refCounts(root);
+    const created: HTMLLinkElement[] = [];
 
     const uniqueHrefs = new Set<string>();
-    for (const rawHref of orderedStylesheetHrefs(host)) {
+    for (const rawHref of orderedStylesheetHrefs(host, hostProvidedStyles(root))) {
         if (!rawHref || typeof rawHref !== 'string') continue;
         const hrefKey = canonicalizeStylesheetHref(rawHref);
         if (uniqueHrefs.has(hrefKey)) continue;
@@ -91,11 +121,13 @@ export function loadStylesheets(host: StylingHost): void {
             link.dataset.formspecTheme = 'true';
             link.dataset.formspecThemeHref = hrefKey;
             container.appendChild(link);
+            created.push(link);
         }
         counts.set(hrefKey, existingCount + 1);
         host.stylesheetHrefs.push(hrefKey);
     }
     host.stylesheetRoot = root;
+    return created;
 }
 
 export function cleanupStylesheets(host: StylingHost): void {

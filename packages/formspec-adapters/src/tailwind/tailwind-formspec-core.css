@@ -6,6 +6,11 @@
  * Unlayered CSS always beats layered utilities; do not remove this layer when using Tailwind.
  */
 
+/* Presence marker: the renderer skips linking this stylesheet when a host already loaded it. */
+.formspec-container {
+  --formspec-adapter: tailwind;
+}
+
 :root {
   --formspec-tw-accent: var(--formspec-color-primary, #4f46e5);
   --formspec-tw-accent-fg: var(--formspec-color-primary-foreground, #ffffff);

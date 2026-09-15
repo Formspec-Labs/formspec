@@ -47,6 +47,9 @@ import { buildPlatformTheme, mergePlatformAndTenantTheme } from '@formspec-org/l
 const defaultThemeJson = buildPlatformTheme();
 const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1', '1.2']);
 
+/** Longest the form stays hidden waiting on a stylesheet it linked. A blocked CDN must not hide the form. */
+const STYLE_REVEAL_TIMEOUT_MS = 2000;
+
 function componentFormPresentation(componentDocument: ComponentDocument | null): unknown {
     return (componentDocument as (ComponentDocument & { formPresentation?: unknown }) | null)?.formPresentation;
 }
@@ -181,6 +184,7 @@ export class FormspecRender extends HTMLElement {
     /** @internal */ _themeDocument: ThemeDocument | null = null;
     /** @internal */ _adapter: string | null = null;
     private _themeAdapterReported = false;
+    private _styleEpoch = 0;
     /** @internal */ _responseActionsDocument: ResponseActionsDocument | null = null;
     /** @internal */ _responseActionInvoker: ResponseActionInvoker | null = null;
     /** @internal */ _registryEntries: Map<string, RegistryEntry> = new Map();
@@ -424,6 +428,8 @@ export class FormspecRender extends HTMLElement {
         this._screenerRoute = null;
         this.touchedFields.clear();
         this.touchedVersion.value = 0;
+        // A definition without a theme still renders through an adapter: link its skin now.
+        this.syncStylesheets();
 
         const bootEngine = () => {
             if (this._definition !== val) {
@@ -597,8 +603,13 @@ export class FormspecRender extends HTMLElement {
         return globalRegistry.resolveAdapterName(this._adapter, this._themeDocument).name;
     }
 
-    /** @internal Styling host seam — the resolved adapter's design-system CSS. */
+    /**
+     * @internal Styling host seam — the resolved adapter's design-system CSS. Empty until a theme or a
+     * definition arrives: on connect the adapter is only ever the fallback, and linking its skin then
+     * costs a request the theme's adapter immediately replaces.
+     */
     adapterStylesheets(): string[] {
+        if (!this._themeDocument && !this._definition) return [];
         return globalRegistry.getAdapter(this.resolvedAdapterName)?.stylesheets ?? [];
     }
 
@@ -615,7 +626,36 @@ export class FormspecRender extends HTMLElement {
                 composed: true,
             }));
         }
-        loadStylesheetsFn(this._stylingHost);
+        this.revealWhenStyled(loadStylesheetsFn(this._stylingHost));
+    }
+
+    /**
+     * Stay hidden until the stylesheets this element just linked have answered — otherwise the form
+     * paints unstyled for a network round-trip. Nothing linked (a host pre-loaded it) reveals at once;
+     * a slow or blocked sheet reveals on the timeout rather than hiding the form indefinitely.
+     */
+    private revealWhenStyled(pending: HTMLLinkElement[]): void {
+        const epoch = ++this._styleEpoch;
+        if (pending.length === 0) {
+            this.reveal(epoch);
+            return;
+        }
+        this.style.visibility = 'hidden';
+        this.setAttribute('aria-busy', 'true');
+        let remaining = pending.length;
+        const settled = () => { if (--remaining === 0) this.reveal(epoch); };
+        for (const link of pending) {
+            link.addEventListener('load', settled, { once: true });
+            link.addEventListener('error', settled, { once: true });
+        }
+        setTimeout(() => this.reveal(epoch), STYLE_REVEAL_TIMEOUT_MS);
+    }
+
+    /** Show the form, unless a later sync has already taken over the wait. */
+    private reveal(epoch: number): void {
+        if (epoch !== this._styleEpoch) return;
+        this.style.visibility = '';
+        this.removeAttribute('aria-busy');
     }
 
     /**

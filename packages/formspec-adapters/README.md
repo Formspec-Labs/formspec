@@ -29,6 +29,8 @@ The renderer links those URLs before any Theme `stylesheets`. **Hosts never impo
 
 The render root **is** the design system's form: the USWDS stylesheet makes `.formspec-container` a `usa-form usa-form--large`, so the form is USWDS's 30rem column, inputs fill it, and the required asterisk loses its dotted underline — the same as hand-written USWDS markup. Do not wrap `<formspec-render>` in a second `<form class="usa-form">`; that caps it at USWDS's 20rem default.
 
+**Pre-load the adapter stylesheet in `<head>` for a flash-free first paint** — its package export (`@formspec-org/adapters/uswds-integration.css`) is the file. The stylesheet declares `--formspec-adapter` on `.formspec-container`, so the renderer sees it and links nothing; otherwise the renderer loads it and reveals the form when it is ready.
+
 ## Install
 
 ```bash

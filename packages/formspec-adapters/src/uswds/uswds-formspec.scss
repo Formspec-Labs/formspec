@@ -78,6 +78,9 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   @extend .usa-form--large;
 
   @include usa-headings-styles;
+
+  // Presence marker: the renderer skips linking this stylesheet when a host already loaded it.
+  --formspec-adapter: uswds;
 }
 
 // Injected by webcomponent shared behavior (required asterisk span).
@@ -128,12 +131,6 @@ $fs-trailing-checkbox-size: 1.25rem !default;
 .usa-textarea[readonly]:not(.usa-input--error),
 .usa-input-group:has(> .usa-input[readonly]):not(.usa-input-group--error) {
   border-color: transparent;
-}
-
-// Group fields (RadioGroup, CheckboxGroup) take the error state on the fieldset root itself rather than a
-// wrapping usa-form-group; `.usa-fieldset { border: none; padding: 0 }` would otherwise erase the error bar.
-.usa-fieldset.usa-form-group--error {
-  @extend .usa-form-group--error;
 }
 
 .grid-row.grid-gap .usa-form-group--error,

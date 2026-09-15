@@ -30,6 +30,8 @@ el.themeDocument = myTheme;
 
 **Do not import CSS.** The element links every stylesheet it needs: structural `formspec-layout.css` (always, for every adapter), then the resolved adapter’s own `stylesheets`, then the theme’s `stylesheets`. Links go into the element’s own root — the document `<head>`, or the shadow root it is mounted in, so a shadow-isolated host is styled without hand-linking anything. Ref-counting is per root, so instances sharing a sheet in one root load it once and unlink when the last disconnects. The package still exports both CSS files because those are the files the element links.
 
+**For a flash-free first paint, pre-load them in `<head>`** — a bundler import, a hashed asset, a hand-written `<link>`; the package exports are the files. Each stylesheet declares itself on `.formspec-container` (`--formspec-layout`, `--formspec-adapter`), so the renderer sees it and adds nothing. When it does have to link, the form stays `visibility: hidden` and `aria-busy` until those sheets answer (2s cap), rather than painting unstyled.
+
 The element is exported but not auto-registered. Call `customElements.define()` with your preferred tag name.
 
 ## Properties

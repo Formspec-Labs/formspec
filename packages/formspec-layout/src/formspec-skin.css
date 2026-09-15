@@ -8,3 +8,8 @@
 @import "./styles/default.navigation.css";
 @import "./styles/default.data.css";
 @import "./styles/default.accessibility.css";
+
+/* Presence marker: which adapter's stylesheet the host already loaded (see layout.primitives.css). */
+.formspec-container {
+  --formspec-adapter: default;
+}

@@ -17,6 +17,8 @@ export interface StylingHost {
     /** The root the current `stylesheetHrefs` were linked into, or `null` when nothing is linked. */
     stylesheetRoot: Document | ShadowRoot | null;
     getRootNode(): Node;
+    /** The adapter this host resolved, matched against the `--formspec-adapter` a page may have pre-loaded. */
+    resolvedAdapterName: string;
     /** Stylesheets declared by the adapter this host resolved. */
     adapterStylesheets(): string[];
     getEffectiveTheme(): ThemeDocument;

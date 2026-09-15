@@ -1,5 +1,14 @@
 /* @filedesc Structural layout primitives shared by all Formspec renderers. */
 
+/*
+ * Presence marker. The renderer reads this off `.formspec-container` before linking anything: when a host
+ * already loaded this file — bundler import, hashed asset, hand-written <link> — the renderer adds no link
+ * and the page never flashes unstyled.
+ */
+.formspec-container {
+  --formspec-layout: 1;
+}
+
 .formspec-hidden {
   display: none !important;
 }

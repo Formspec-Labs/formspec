@@ -177,7 +177,7 @@ describe('stylesheet linking', () => {
 
     it('links structural layout CSS even before any theme is set', () => {
         mount();
-        expect(linkedHrefs()).toEqual([LAYOUT_HREF, DEFAULT_ADAPTER_HREF]);
+        expect(linkedHrefs()).toEqual([LAYOUT_HREF]);
     });
 
     it('does not duplicate a href the theme and the adapter both declare', () => {
@@ -242,6 +242,36 @@ describe('stylesheet linking', () => {
         expect(linkedHrefs(shadow)).toEqual([LAYOUT_HREF, DS_CSS]);
     });
 
+    it('adds nothing a host already loaded, as the stylesheets declare themselves', () => {
+        const declared = document.createElement('style');
+        declared.textContent = '.formspec-container { --formspec-layout: 1; --formspec-adapter: wp2-ds; }';
+        document.head.appendChild(declared);
+
+        const el = mount();
+        el.themeDocument = theme({ adapter: 'wp2-ds', stylesheets: [THEME_CSS] });
+        // Layout and the adapter are already on the page; the theme's own sheet is never assumed.
+        expect(linkedHrefs()).toEqual([THEME_CSS]);
+
+        declared.remove();
+    });
+
+    it('still links the adapter a host pre-loaded a different one for', () => {
+        const declared = document.createElement('style');
+        declared.textContent = '.formspec-container { --formspec-adapter: wp2-other; }';
+        document.head.appendChild(declared);
+
+        const el = mount();
+        el.themeDocument = theme({ adapter: 'wp2-ds' });
+        expect(linkedHrefs()).toEqual([LAYOUT_HREF, DS_CSS]);
+
+        declared.remove();
+    });
+
+    it('links no adapter skin before a theme or definition arrives', () => {
+        mount();
+        expect(linkedHrefs()).toEqual([LAYOUT_HREF]);
+    });
+
     it('unloads the theme stylesheet when the theme is replaced', () => {
         const el = mount();
         el.themeDocument = theme({ stylesheets: [THEME_CSS] });
@@ -249,5 +279,57 @@ describe('stylesheet linking', () => {
 
         el.themeDocument = theme();
         expect(linkedHrefs()).not.toContain(THEME_CSS);
+    });
+});
+
+describe('no unstyled frame', () => {
+    it('hides the form while a stylesheet it linked is pending, and reveals it on load', () => {
+        const el = mount();
+        el.themeDocument = theme({ adapter: 'wp2-ds' });
+
+        expect(el.style.visibility).toBe('hidden');
+        expect(el.getAttribute('aria-busy')).toBe('true');
+
+        for (const link of document.head.querySelectorAll('link[data-formspec-theme-href]')) {
+            link.dispatchEvent(new Event('load'));
+        }
+
+        expect(el.style.visibility).toBe('');
+        expect(el.hasAttribute('aria-busy')).toBe(false);
+    });
+
+    it('reveals on error too — a blocked stylesheet must not hide the form', () => {
+        const el = mount();
+        el.themeDocument = theme({ adapter: 'wp2-ds' });
+        for (const link of document.head.querySelectorAll('link[data-formspec-theme-href]')) {
+            link.dispatchEvent(new Event('error'));
+        }
+        expect(el.style.visibility).toBe('');
+    });
+
+    it('reveals on the timeout when a stylesheet never answers', async () => {
+        vi.useFakeTimers();
+        try {
+            const el = mount();
+            el.themeDocument = theme({ adapter: 'wp2-ds' });
+            expect(el.style.visibility).toBe('hidden');
+            vi.advanceTimersByTime(2000);
+            expect(el.style.visibility).toBe('');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('never hides when a host pre-loaded everything', () => {
+        const declared = document.createElement('style');
+        declared.textContent = '.formspec-container { --formspec-layout: 1; --formspec-adapter: wp2-ds; }';
+        document.head.appendChild(declared);
+
+        const el = mount();
+        el.themeDocument = theme({ adapter: 'wp2-ds' });
+        expect(el.style.visibility).toBe('');
+        expect(el.hasAttribute('aria-busy')).toBe(false);
+
+        declared.remove();
     });
 });
