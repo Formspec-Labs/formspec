@@ -9,11 +9,21 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   build:
-    if: github.repository == 'Formspec-org/formspec'
+    if: github.repository == 'Formspec-Labs/formspec'
     name: Build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: formspec
     steps:
       - uses: actions/checkout@v6
+        with:
+          path: formspec
+      - name: Check out the fel-core sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/fel-core
+          path: fel-core
       - uses: actions/setup-node@v6
         with:
           node-version: "22"
@@ -36,7 +46,7 @@ jobs:
     # one `changeset version` PR is opened against `main` at a time — otherwise
     # parallel jobs would race the version bump commit and clobber each other.
     needs: build
-    if: github.repository == 'Formspec-org/formspec'
+    if: github.repository == 'Formspec-Labs/formspec'
     name: Release (${{ matrix.tier }})
     runs-on: ubuntu-latest
     strategy:
@@ -53,8 +63,18 @@ jobs:
     concurrency:
       group: publish-${{ matrix.tier }}
       cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: formspec
     steps:
       - uses: actions/checkout@v6
+        with:
+          path: formspec
+      - name: Check out the fel-core sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/fel-core
+          path: fel-core
       - uses: actions/setup-node@v6
         with:
           node-version: "22"
@@ -78,6 +98,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
+          cwd: formspec
           version: npm run version
           # Publish with a tier-scoped dist-tag. `<tier>-latest` keeps `latest`
           # untouched so consumers opt in explicitly to a tier cadence.

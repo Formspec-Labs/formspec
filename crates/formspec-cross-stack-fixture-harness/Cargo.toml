@@ -1,8 +1,12 @@
+# Its own workspace root: this crate's dependencies live in the private `integrity-stack` sibling, so it is
+# excluded from the repository workspace (see ../../Cargo.toml) and builds where that sibling is checked out.
+[workspace]
+
 [package]
 name = "formspec-cross-stack-fixture-harness"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
 description = "Cross-stack fixture bundle harness — walks D4 bundles and asserts manifest validity"
 repository = "https://github.com/Formspec-org/formspec"
 

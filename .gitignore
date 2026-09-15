@@ -57,3 +57,11 @@ packages/formspec-engine/wasm-pkg-tools/
 # npm pack safety: formspec-engine/.npmignore exists so npm uses it instead of this file.
 thoughts/private/
 storybook-static/
+
+# Lock files of the crates excluded from the repository workspace (the signature family, built only where
+# the private integrity-stack sibling is present). The authoritative lock for what this repo publishes is
+# the workspace's own Cargo.lock.
+crates/formspec-signature-port/Cargo.lock
+crates/formspec-signature-cose/Cargo.lock
+crates/formspec-signature-adapter-ring/Cargo.lock
+crates/formspec-cross-stack-fixture-harness/Cargo.lock

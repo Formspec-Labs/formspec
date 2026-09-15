@@ -89,8 +89,21 @@ rebuild-python: .venv/.deps-stamp
 	rm -f src/formspec/_native*.so
 	.venv/bin/maturin develop --release
 
+# The workspace is what a lone checkout can build (see Cargo.toml). The signature family needs the private
+# `integrity-stack` sibling, so it runs only where that sibling is checked out — the stack, and a
+# developer's tree — and is skipped with a note anywhere else.
+SIGNATURE_CRATES := crates/formspec-signature-port crates/formspec-signature-cose \
+	crates/formspec-signature-adapter-ring crates/formspec-cross-stack-fixture-harness
+
 test-rust:
 	cargo nextest run --workspace
+	@if [ -d ../integrity-stack ]; then \
+		for crate in $(SIGNATURE_CRATES); do \
+			cargo nextest run --no-tests=pass --manifest-path $$crate/Cargo.toml || exit 1; \
+		done; \
+	else \
+		echo "note: ../integrity-stack absent — skipping the signature crates"; \
+	fi
 
 test: sync-lint-schemas test-unit test-python test-rust test-scripts test-engine-isolation test-e2e
 

@@ -1,8 +1,12 @@
+# Its own workspace root: this crate's dependencies live in the private `integrity-stack` sibling, so it is
+# excluded from the repository workspace (see ../../Cargo.toml) and builds where that sibling is checked out.
+[workspace]
+
 [package]
 name = "formspec-signature-adapter-ring"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
 description = "Formspec ring-crypto signature adapter — implements Verifier port using ring"
 repository = "https://github.com/Formspec-org/formspec"
 
