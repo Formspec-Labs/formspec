@@ -42,9 +42,11 @@ import {
     preparePlanContext,
     mergeFormPresentationForPlanning,
     type ComponentGraphProjectionContext,
+    type FieldHelpReference,
     type LayoutHostEvidence,
+    type ReferencesDocumentLike,
 } from '@formspec-org/layout';
-import { buildPlatformTheme, mergePlatformAndTenantTheme } from '@formspec-org/layout';
+import { buildPlatformTheme, mergePlatformAndTenantTheme, resolveFieldHelp } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
 const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1', '1.2']);
 
@@ -241,6 +243,7 @@ export class FormspecRender extends HTMLElement {
     /** @internal */ _screenerRoute: ScreenerRoute | null = null;
     /** Standalone Screener Document. */
     /** @internal */ _screenerDocument: ScreenerDocument | null = null;
+    /** @internal */ _referencesDocuments: ReferencesDocumentLike[] = [];
     /** Backing store for the `screenerSeedAnswers` property. */
     private _screenerSeedAnswers: FormDataRecord | null = null;
     /**
@@ -1135,6 +1138,38 @@ export class FormspecRender extends HTMLElement {
         this.emitScreenerStateChange('restart');
         this.scheduleRender();
     }
+
+    /**
+     * Load one or more References Documents (References spec §4). Human-audience entries bound to a field or
+     * group render as that item's help link; agent-audience entries are never rendered.
+     *
+     * Documents whose `targetDefinition.url` does not match the loaded Definition are refused with an error
+     * (§4.3) — a References Document written for another form must not silently attach to this one.
+     */
+    set referencesDocuments(docs: ReferencesDocumentLike | ReferencesDocumentLike[] | null) {
+        const list = docs == null ? [] : Array.isArray(docs) ? docs : [docs];
+        this._referencesDocuments = list.filter((doc) => {
+            const target = (doc as { targetDefinition?: { url?: string } }).targetDefinition?.url;
+            const definitionUrl = this._definition?.url;
+            if (target && definitionUrl && target !== definitionUrl) {
+                console.error(`References Document targets ${target}, not the loaded Definition ${definitionUrl}; ignoring it.`);
+                return false;
+            }
+            return true;
+        });
+        this.scheduleRender();
+    }
+
+    get referencesDocuments(): ReferencesDocumentLike[] {
+        return this._referencesDocuments;
+    }
+
+    /**
+     * Human-facing References bound to `fieldPath`, across every loaded document, in presentation order.
+     * `@formspec-org/layout` owns the rule so React and this renderer surface the same set.
+     */
+    /** @internal */ resolveFieldHelp = (fieldPath: string): readonly FieldHelpReference[] =>
+        this._referencesDocuments.flatMap((doc) => resolveFieldHelp(doc, fieldPath));
 
     /** @internal */ findItemByKey = (key: string, items: FormItem[] = this._definition?.items ?? []): FormItem | null => {
         if (key == null || typeof key !== 'string') return null;

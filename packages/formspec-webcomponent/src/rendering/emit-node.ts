@@ -324,6 +324,7 @@ export function renderActualComponent(
             registryEntries: host._registryEntries,
             rerender: () => host.render(),
             getFieldVM: (fieldPath: string) => host.engine.getFieldVM(fieldPath),
+            fieldHelp: (fieldPath: string) => host.resolveFieldHelp(fieldPath),
         },
         adapterContext: adapterContextFor(host, cleanupFns),
     };

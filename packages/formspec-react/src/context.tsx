@@ -48,6 +48,7 @@ import {
     preparePlanContext,
     ensureActionButton,
     mergeFormPresentationForPlanning,
+    admitFieldHelpUri,
 } from '@formspec-org/layout';
 import type { ComponentMap } from './component-map';
 import type {
@@ -113,37 +114,11 @@ export type FormspecFieldHelpUriAdmission = (
     uri: string,
 ) => string | undefined;
 
-const ABSOLUTE_URI_SCHEME = /^[A-Za-z][A-Za-z0-9+.-]*:/;
-const FIELD_HELP_URI_BASE = 'https://formspec.invalid/';
-
-/** Fail-closed browser policy for human Reference links. */
-export function admitDefaultFieldHelpUri(uri: string): string | undefined {
-    if (
-        uri.length === 0
-        || uri.trim() !== uri
-        || uri.includes('\\')
-        || uri.startsWith('//')
-    ) {
-        return undefined;
-    }
-    try {
-        const absolute = ABSOLUTE_URI_SCHEME.test(uri);
-        const destination = absolute
-            ? new URL(uri)
-            : new URL(uri, FIELD_HELP_URI_BASE);
-        if (
-            destination.protocol !== 'https:'
-            || destination.username.length > 0
-            || destination.password.length > 0
-            || (!absolute && destination.origin !== 'https://formspec.invalid')
-        ) {
-            return undefined;
-        }
-        return uri;
-    } catch {
-        return undefined;
-    }
-}
+/**
+ * Fail-closed browser policy for human Reference links — the shared rule, so React and the webcomponent admit
+ * exactly the same URIs (`admitFieldHelpUri` in `@formspec-org/layout`).
+ */
+export const admitDefaultFieldHelpUri = admitFieldHelpUri;
 
 export interface FormspecContextValue {
     engine: IFormEngine;

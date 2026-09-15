@@ -1325,6 +1325,18 @@ queryable context for an agent.</li>
 example panels. <code>rel: "superseded-by"</code> references SHOULD be
 visually de-emphasized or annotated as outdated.</li>
 </ul>
+<p><strong>Field help.</strong> A renderer that surfaces per-item human
+references SHOULD label the affordance from Locale
+<code>&lt;key&gt;.helpLabel</code>, falling back to
+<code>"Help me answer this question"</code>. That default is the
+question a respondent actually has in front of a form control, and
+keeping it in one place means every renderer asks it the same way. The
+affordance presents the item’s qualifying references in the §2.4 order —
+priority tier first, authoring order within a tier. A renderer MUST
+apply a URI policy before making a reference clickable: the Formspec
+reference renderers admit HTTPS and same-app relative URIs and nothing
+else, and a reference whose <code>uri</code> the policy refuses keeps
+its title as text rather than becoming a link.</p>
 <p><code>Reference</code> and <code>BoundReference</code> MAY carry
 common <code>x-generation</code> provenance. Under the strict
 rendered-Need trace profile, every manifested <code>references[]</code>

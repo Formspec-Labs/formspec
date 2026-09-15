@@ -635,6 +635,17 @@ References are metadata and renderers are free to present them however they choo
 - **`audience: "both"` references**: available to both rendering and agent pipelines. A `regulation` reference might render as a citation link for humans while also being queryable context for an agent.
 - **Relationship-aware rendering**: Renderers MAY use `rel` to differentiate presentation. For example, `rel: "constrains"` references could display with a "Requirements" heading or a distinct icon, while `rel: "exemplifies"` references could render as expandable example panels. `rel: "superseded-by"` references SHOULD be visually de-emphasized or annotated as outdated.
 
+**Field help.** A renderer that surfaces per-item human references SHOULD label
+the affordance from Locale `<key>.helpLabel`, falling back to
+`"Help me answer this question"`. That default is the question a respondent
+actually has in front of a form control, and keeping it in one place means
+every renderer asks it the same way. The affordance presents the item's
+qualifying references in the §2.4 order — priority tier first, authoring order
+within a tier. A renderer MUST apply a URI policy before making a reference
+clickable: the Formspec reference renderers admit HTTPS and same-app relative
+URIs and nothing else, and a reference whose `uri` the policy refuses keeps its
+title as text rather than becoming a link.
+
 `Reference` and `BoundReference` MAY carry common `x-generation` provenance.
 Under the strict rendered-Need trace profile, every manifested `references[]`
 entry whose resolved audience is `human` or `both` is one independently

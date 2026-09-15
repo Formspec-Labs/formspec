@@ -2,7 +2,7 @@
 import type { ReadonlySignal, Signal } from '@preact/signals-core';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import type { FieldViewModel } from '@formspec-org/engine';
-import type { PresentationBlock, ItemDescriptor, LayoutNode } from '@formspec-org/layout';
+import type { FieldHelpReference, PresentationBlock, ItemDescriptor, LayoutNode } from '@formspec-org/layout';
 import type {
     FormDefinition,
     FormItem,
@@ -310,6 +310,8 @@ export interface BehaviorContext {
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- planner snapshots vs schema FormItem
     findItemByKey: (key: string) => any;
+    /** Human-facing References bound to `fieldPath`, in presentation order (References spec §7). */
+    fieldHelp?: (fieldPath: string) => readonly FieldHelpReference[];
     renderComponent: (comp: LayoutNode | ComponentDescriptor, parent: HTMLElement, prefix?: string) => void;
     submit: (options?: {
         profile?: ValidationProfile;

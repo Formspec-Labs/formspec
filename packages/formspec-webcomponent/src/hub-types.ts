@@ -13,6 +13,7 @@ import type {
     ValidationResult,
 } from '@formspec-org/types';
 import type {
+    FieldHelpReference,
     ItemDescriptor,
     LayoutNode,
     PresentationBlock,
@@ -116,6 +117,8 @@ export interface RenderHost {
     };
     applyAccessibility(el: HTMLElement, comp: ComponentPresentationSource): void;
     findItemByKey(key: string, items?: FormItem[]): FormItem | null;
+    /** Human-facing References bound to `fieldPath`, in presentation order (References spec §7). */
+    resolveFieldHelp(fieldPath: string): readonly FieldHelpReference[];
     _registryEntries: Map<string, RegistryEntry>;
     submit(options?: {
         profile?: ValidationProfile;

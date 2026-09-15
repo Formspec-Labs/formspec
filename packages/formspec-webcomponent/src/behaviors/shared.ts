@@ -5,6 +5,7 @@ import type { RegistryEntry } from '@formspec-org/types';
 import type { ResolvedPresentationBlock, FieldRefs, BehaviorContext } from './types';
 import type { FieldViewModel } from '@formspec-org/engine';
 import { writeRichText } from '../adapters/rich-text-dom.js';
+import { createFieldHelpLink, DEFAULT_FIELD_HELP_LABEL } from '../adapters/field-help-link.js';
 
 /** Registry entry metadata is an open object in schema; narrow for behavior reads. */
 export function readRegistryMetadata(entry: RegistryEntry | undefined): Record<string, unknown> {
@@ -205,6 +206,19 @@ export function bindSharedFieldEffects(
             showFieldText(refs.hint, vm.hint.value, vm.hintTemplate.value, vm.interpolate);
             showFieldText(descEl, vm.description.value, vm.descriptionTemplate.value, vm.interpolate);
             syncDescribedBy();
+        }));
+    }
+
+    // Field help: the item's human References as one link, after the hint and at the end of the field block
+    // (References spec §7). Built once — References are static per Definition (§2.3) — with the label alone
+    // following the locale.
+    const helpLink = createFieldHelpLink(ctx.fieldHelp?.(fieldPath) ?? []);
+    if (helpLink) {
+        refs.root.appendChild(helpLink);
+        const helpLabelKey = `${fieldPath.replace(/\[\d+\]/g, '').split('.').pop()}.helpLabel`;
+        disposers.push(effect(() => {
+            ctx.engine.localeSignal?.value;
+            helpLink.textContent = ctx.engine.resolveLocaleString(helpLabelKey, DEFAULT_FIELD_HELP_LABEL, fieldPath);
         }));
     }
 
