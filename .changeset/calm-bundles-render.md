@@ -9,7 +9,6 @@
 "@formspec-org/assist": minor
 "@formspec-org/surface": minor
 "@formspec-org/surface-react": minor
-"@formspec-org/surface-bundle-signing": minor
 ---
 
 <!-- tier: foundation -->

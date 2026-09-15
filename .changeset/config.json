@@ -3,7 +3,9 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [
-    ["@formspec-org/types"],
+    [
+      "@formspec-org/types"
+    ],
     [
       "@formspec-org/engine",
       "@formspec-org/app-graph",
@@ -13,15 +15,22 @@
       "@formspec-org/core",
       "@formspec-org/assist",
       "@formspec-org/surface",
-      "@formspec-org/surface-react",
-      "@formspec-org/surface-bundle-signing"
+      "@formspec-org/surface-react"
     ],
-    ["@formspec-org/adapters", "@formspec-org/studio-core"],
-    ["@formspec-org/mcp", "@formspec-org/chat"]
+    [
+      "@formspec-org/adapters",
+      "@formspec-org/studio-core"
+    ],
+    [
+      "@formspec-org/mcp",
+      "@formspec-org/chat"
+    ]
   ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@formspec-org/studio"]
+  "ignore": [
+    "@formspec-org/studio"
+  ]
 }

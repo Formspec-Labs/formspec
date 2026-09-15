@@ -21,11 +21,13 @@
     }
   },
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc",
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "build": "node ../../scripts/build-when-sibling.mjs tsc",
+    "test": "node ../../scripts/build-when-sibling.mjs vitest run",
+    "typecheck": "node ../../scripts/build-when-sibling.mjs tsc --noEmit"
   },
   "dependencies": {
     "@integrity-stack/cose": "file:../../../integrity-stack/packages/integrity-cose",
@@ -39,5 +41,6 @@
     "ajv-formats": "^3.0.1",
     "typescript": "^5.0.0",
     "vitest": "^4.1.2"
-  }
+  },
+  "private": true
 }

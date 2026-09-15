@@ -2,13 +2,13 @@
   "name": "@formspec/signature-adapter-webcrypto",
   "version": "0.1.0",
   "private": true,
-  "description": "Formspec WebCrypto signature adapter — implements Verifier port using Web Crypto API",
+  "description": "Formspec WebCrypto signature adapter \u2014 implements Verifier port using Web Crypto API",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "test": "node ../../scripts/build-when-sibling.mjs vitest run",
+    "typecheck": "node ../../scripts/build-when-sibling.mjs tsc --noEmit"
   },
   "dependencies": {
     "@integrity-stack/signature-adapter-webcrypto": "file:../../../integrity-stack/packages/integrity-signature-adapter-webcrypto",
