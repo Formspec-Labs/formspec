@@ -24,11 +24,8 @@ export interface AdapterContext {
      * `uiText` degrades to the English default when it is absent.
      */
     engine?: IFormEngine;
-    /**
-     * Apply cssClass from a PresentationBlock or comp descriptor to an element. `itemPath` names the item
-     * for an unknown-class warning (ADR 0064 decision 2); omit it to fall back to `comp.bindPath`/`comp.id`.
-     */
-    applyCssClass(el: HTMLElement, comp: any, itemPath?: string): void;
+    /** Apply cssClass from a PresentationBlock or comp descriptor to an element. */
+    applyCssClass(el: HTMLElement, comp: any): void;
     /** Apply inline styles with token resolution to an element. */
     applyStyle(el: HTMLElement, style: any): void;
     /** Apply accessibility attributes (role, aria-description, aria-live). */

@@ -142,7 +142,7 @@ export function finalizeFieldDOM(
     fieldDOM.root.appendChild(fieldDOM.error);
 
     // Theme cascade styles
-    actx.applyCssClass(fieldDOM.root, behavior.presentation, behavior.fieldPath);
+    actx.applyCssClass(fieldDOM.root, behavior.presentation);
     actx.applyStyle(fieldDOM.root, behavior.presentation.style);
     actx.applyAccessibility(fieldDOM.root, behavior.presentation);
 
@@ -151,7 +151,7 @@ export function finalizeFieldDOM(
         actx.applyAccessibility(fieldDOM.root, behavior.compOverrides);
     }
     if (behavior.compOverrides.cssClass) {
-        actx.applyCssClass(fieldDOM.root, behavior.compOverrides, behavior.fieldPath);
+        actx.applyCssClass(fieldDOM.root, behavior.compOverrides);
     }
     if (behavior.compOverrides.style) {
         actx.applyStyle(fieldDOM.root, behavior.compOverrides.style);

@@ -94,7 +94,7 @@ function adapterContextFor(host: RenderHost, cleanupFns: Array<() => void>): Ada
     return {
         onDispose: (fn: () => void) => cleanupFns.push(fn),
         engine: host.engine,
-        applyCssClass: (el, comp, itemPath) => host.applyCssClass(el, comp, itemPath),
+        applyCssClass: (el, comp) => host.applyCssClass(el, comp),
         applyStyle: (el, style) => host.applyStyle(el, style),
         applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),
         applyClassValue: (el: HTMLElement, classValue: unknown) => host.applyClassValue(el, classValue),
@@ -304,7 +304,7 @@ export function renderActualComponent(
         renderComponent: renderChild,
         resolveToken: (val) => host.resolveToken(val),
         applyStyle: (el, style) => host.applyStyle(el, style),
-        applyCssClass: (el, comp, itemPath) => host.applyCssClass(el, comp, itemPath),
+        applyCssClass: (el, comp) => host.applyCssClass(el, comp),
         applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),
         resolveItemPresentation: (itemDesc: ItemDescriptor) => host.resolveItemPresentation(itemDesc),
         cleanupFns,

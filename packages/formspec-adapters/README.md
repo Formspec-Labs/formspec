@@ -70,7 +70,7 @@ An organization's look — a compile-time USWDS reskin, house rules — is a **v
 
 4. Register it and name it in the Theme (`"adapter": "uswds-nj"`) — same as any other adapter (see Usage below).
 
-**Vocabulary and the unknown-class warning.** `classVocabulary` is generated from the compiled sheet — the CLI writes it every run, never hand-listed. When the resolved adapter declares one, the renderer warns once per (adapter name, class) on a Theme `cssClass` the vocabulary does not contain, naming the class, the item, and the adapter — a typo or a stale class fails visibly instead of rendering blank. An adapter that declares no vocabulary (the default adapter today) gets no check.
+**Vocabulary and the unknown-class warning.** `classVocabulary` is generated from the compiled sheet — the CLI writes it every run, never hand-listed. When the resolved adapter declares one, the renderer warns once per (adapter name, class) on a Theme `cssClass` the vocabulary does not contain, naming the class and the adapter — a typo or a stale class fails visibly instead of rendering blank. An adapter that declares no vocabulary (the default adapter today) gets no check.
 
 ## Install
 

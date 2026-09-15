@@ -10,7 +10,7 @@ export const renderTabs: AdapterRenderFn<TabsBehavior> = (
     if (behavior.id) el.id = behavior.id;
     el.className = 'formspec-tabs';
     if (behavior.placement !== 'top') el.dataset.placement = behavior.placement;
-    if (behavior.compOverrides.cssClass) actx.applyCssClass(el, behavior.compOverrides, behavior.id);
+    if (behavior.compOverrides.cssClass) actx.applyCssClass(el, behavior.compOverrides);
     if (behavior.compOverrides.accessibility) actx.applyAccessibility(el, behavior.compOverrides);
     if (behavior.compOverrides.style) actx.applyStyle(el, behavior.compOverrides.style);
     parent.appendChild(el);

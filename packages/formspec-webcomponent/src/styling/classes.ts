@@ -13,40 +13,27 @@ const warnedUnknownClasses = new Set<string>();
  * the Theme names. An adapter that declares no vocabulary (the default adapter today) gets no check —
  * everything past this is silent for every existing Theme until an adapter opts in.
  */
-function warnIfUnknownClass(adapterName: string, cls: string, vocabulary: ReadonlySet<string> | undefined, itemPath: string | undefined): void {
+function warnIfUnknownClass(adapterName: string, cls: string, vocabulary: ReadonlySet<string> | undefined): void {
     if (!vocabulary || vocabulary.has(cls)) return;
     const key = `${adapterName}::${cls}`;
     if (warnedUnknownClasses.has(key)) return;
     warnedUnknownClasses.add(key);
-    const where = itemPath ? ` on '${itemPath}'` : '';
     console.warn(
-        `Theme cssClass '${cls}'${where} is not in the '${adapterName}' adapter's class vocabulary — ` +
+        `Theme cssClass '${cls}' is not in the '${adapterName}' adapter's class vocabulary — ` +
             `it will render as a literal class with no guaranteed styling.`,
     );
 }
 
-/** Best-effort identifier for the item a class was applied to, when the caller did not pass one explicitly. */
-function fallbackItemPath(comp: ComponentPresentationSource): string | undefined {
-    const withPath = comp as { bindPath?: string; id?: string };
-    return withPath.bindPath ?? withPath.id;
-}
-
-export function applyCssClass(
-    host: StylingHost,
-    el: HTMLElement,
-    comp: ComponentPresentationSource,
-    itemPath?: string,
-): void {
+export function applyCssClass(host: StylingHost, el: HTMLElement, comp: ComponentPresentationSource): void {
     if (!comp.cssClass) return;
     const vocabulary = host.adapterClassVocabulary();
-    const path = itemPath ?? fallbackItemPath(comp);
     const classes = Array.isArray(comp.cssClass) ? comp.cssClass : [comp.cssClass];
     for (const cls of classes) {
         const resolved = String(resolveToken(host, cls));
         for (const c of resolved.split(/\s+/)) {
             if (!c) continue;
             el.classList.add(c);
-            warnIfUnknownClass(host.resolvedAdapterName, c, vocabulary, path);
+            warnIfUnknownClass(host.resolvedAdapterName, c, vocabulary);
         }
     }
 }

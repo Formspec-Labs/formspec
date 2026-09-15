@@ -290,7 +290,7 @@ export class FormspecRender extends HTMLElement {
     /** @internal */ resolveToken = (val: unknown): unknown => resolveTokenFn(this._stylingHost, val);
     /** @internal */ resolveItemPresentation = (itemDesc: ItemDescriptor): PresentationBlock => resolveItemPresentationFn(this._stylingHost, itemDesc);
     /** @internal */ applyStyle = (el: HTMLElement, style: Record<string, string | number> | undefined): void => applyStyleFn(this._stylingHost, el, style);
-    /** @internal */ applyCssClass = (el: HTMLElement, comp: ComponentPresentationSource, itemPath?: string): void => applyCssClassFn(this._stylingHost, el, comp, itemPath);
+    /** @internal */ applyCssClass = (el: HTMLElement, comp: ComponentPresentationSource): void => applyCssClassFn(this._stylingHost, el, comp);
     /** @internal */ applyClassValue = (el: HTMLElement, classValue: unknown): void => applyClassValueFn(this._stylingHost, el, classValue);
     /** @internal */ resolveWidgetClassSlots = (presentation: PresentationBlock) => resolveWidgetClassSlotsFn(this._stylingHost, presentation);
     /** @internal */ applyAccessibility = (el: HTMLElement, comp: ComponentPresentationSource): void => applyAccessibilityFn(this._stylingHost, el, comp);
@@ -1026,7 +1026,7 @@ export class FormspecRender extends HTMLElement {
             adapterName: this.resolvedAdapterName,
             actx: {
                 onDispose: (fn: () => void) => discard.push(fn),
-                applyCssClass: (el, comp, itemPath) => this.applyCssClass(el, comp, itemPath),
+                applyCssClass: (el, comp) => this.applyCssClass(el, comp),
                 applyStyle: (el, style) => this.applyStyle(el, style),
                 applyAccessibility: (el, comp) => this.applyAccessibility(el, comp),
                 applyClassValue: (el, classValue) => this.applyClassValue(el, classValue),

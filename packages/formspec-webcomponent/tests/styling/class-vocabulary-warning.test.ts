@@ -21,17 +21,16 @@ function mockHost(overrides: Partial<StylingHost> = {}): StylingHost {
 }
 
 describe('applyCssClass warns on an unknown Theme cssClass', () => {
-    it('warns once, naming the class, the item path, and the adapter', () => {
+    it('warns once, naming the class and the adapter', () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const host = mockHost();
         const el = document.createElement('div');
 
-        applyCssClass(host, el, { cssClass: 'nj-callout' }, 'applicant.orgName');
+        applyCssClass(host, el, { cssClass: 'nj-callout' });
 
         expect(warn).toHaveBeenCalledTimes(1);
         const [message] = warn.mock.calls[0];
         expect(message).toContain('nj-callout');
-        expect(message).toContain('applicant.orgName');
         expect(message).toContain('uswds-test');
         expect(el.classList.contains('nj-callout')).toBe(true); // still applied — a warning, not a refusal.
         warn.mockRestore();
@@ -42,7 +41,7 @@ describe('applyCssClass warns on an unknown Theme cssClass', () => {
         const host = mockHost();
         const el = document.createElement('div');
 
-        applyCssClass(host, el, { cssClass: 'usa-input' }, 'applicant.orgName');
+        applyCssClass(host, el, { cssClass: 'usa-input' });
 
         expect(warn).not.toHaveBeenCalled();
         warn.mockRestore();
@@ -53,7 +52,7 @@ describe('applyCssClass warns on an unknown Theme cssClass', () => {
         const host = mockHost({ resolvedAdapterName: 'default', adapterClassVocabulary: () => undefined });
         const el = document.createElement('div');
 
-        applyCssClass(host, el, { cssClass: 'anything-goes' }, 'applicant.orgName');
+        applyCssClass(host, el, { cssClass: 'anything-goes' });
 
         expect(warn).not.toHaveBeenCalled();
         warn.mockRestore();
@@ -64,8 +63,8 @@ describe('applyCssClass warns on an unknown Theme cssClass', () => {
         const host = mockHost();
         const el = document.createElement('div');
 
-        applyCssClass(host, el, { cssClass: 'repeat-me' }, 'field.one');
-        applyCssClass(host, el, { cssClass: 'repeat-me' }, 'field.two');
+        applyCssClass(host, el, { cssClass: 'repeat-me' });
+        applyCssClass(host, el, { cssClass: 'repeat-me' });
 
         expect(warn).toHaveBeenCalledTimes(1);
         warn.mockRestore();
