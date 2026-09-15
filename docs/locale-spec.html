@@ -885,22 +885,38 @@ the item.</p>
 spec §4.3.1) or use the item-level required message. To localize a
 specific Bind’s constraint message, use:</p>
 <pre><code>&lt;itemKey&gt;.constraintMessage</code></pre>
-<p>When a field has a single Bind with <code>constraint</code>, this key
-localizes that Bind’s <code>constraintMessage</code>. When a field is
-targeted by multiple Binds, the key applies to the first Bind whose
-<code>constraint</code> fires.</p>
+<p>This key localizes the <code>constraintMessage</code> of the Item’s
+effective Bind (core §4.3.1 merges several Binds on one path into one),
+and only for a <code>CONSTRAINT_FAILED</code> result — the constraint
+evaluated to <code>false</code>. A <code>CONSTRAINT_PARSE_ERROR</code>
+(the expression fails to parse or calls an undefined function — a
+definition error, core §3.10.1 and Phase 3 step 1a) keeps its
+processor-generated message: the author’s rule text describes data that
+broke the rule, not a broken rule. <code>TYPE_MISMATCH</code>,
+<code>MIN_REPEAT</code> / <code>MAX_REPEAT</code>,
+<code>SHAPE_FAILED</code>, and <code>EXTERNAL_FAILED</code> results
+likewise keep their processor or Shape message. Only the per-code key
+(<code>&lt;key&gt;.errors.&lt;code&gt;</code>) relabels those.</p>
 <p>To localize the required-field message for an item:</p>
 <pre><code>&lt;itemKey&gt;.requiredMessage</code></pre>
 <h5 id="resolution-precedence">Resolution precedence</h5>
 <p>When resolving a validation message, the cascade is:</p>
 <ol type="1">
 <li>Per-code Locale key (<code>&lt;key&gt;.errors.&lt;code&gt;</code>) —
-if present, wins.</li>
-<li>Per-Bind Locale key (<code>&lt;key&gt;.constraintMessage</code> or
-<code>&lt;key&gt;.requiredMessage</code>) — if present.</li>
-<li>Inline <code>constraintMessage</code> on the Bind (Definition).</li>
-<li>Processor-generated default message.</li>
+if present, wins for any code.</li>
+<li>Per-Bind Locale key — <code>&lt;key&gt;.constraintMessage</code> for
+a <code>CONSTRAINT_FAILED</code> result,
+<code>&lt;key&gt;.requiredMessage</code> for a <code>REQUIRED</code>
+result — if present.</li>
+<li>Inline <code>constraintMessage</code> on the Bind (Definition), for
+a <code>CONSTRAINT_FAILED</code> result.</li>
+<li>The <code>ValidationResult.message</code>: the processor-generated
+message, or for a <code>REQUIRED</code> result the Bind’s inline
+<code>requiredMessage</code> (core Phase 3 step 1b).</li>
 </ol>
+<p>Steps 2 and 3 never apply to another code: a
+<code>CONSTRAINT_PARSE_ERROR</code> falls from step 1 straight to step
+4.</p>
 <p>Examples:</p>
 <div class="sourceCode" id="cb14"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
@@ -1976,8 +1992,10 @@ layer) resolves the localized message by:</p>
 active locale cascade (synthesizing <code>code</code> from
 <code>constraintKind</code> if absent — see §3.1.4).</li>
 <li>If not found, looking up
-<code>&lt;itemKey&gt;.constraintMessage</code> or
-<code>&lt;itemKey&gt;.requiredMessage</code> as appropriate.</li>
+<code>&lt;itemKey&gt;.constraintMessage</code> for a
+<code>CONSTRAINT_FAILED</code> result or
+<code>&lt;itemKey&gt;.requiredMessage</code> for a <code>REQUIRED</code>
+result (§3.1.4); no other code consults these keys.</li>
 <li>If not found, using the <code>ValidationResult.message</code>
 as-is.</li>
 </ol>

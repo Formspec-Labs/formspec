@@ -461,9 +461,16 @@ constraint message, use:
 <itemKey>.constraintMessage
 ```
 
-When a field has a single Bind with `constraint`, this key localizes
-that Bind's `constraintMessage`. When a field is targeted by multiple
-Binds, the key applies to the first Bind whose `constraint` fires.
+This key localizes the `constraintMessage` of the Item's effective Bind
+(core §4.3.1 merges several Binds on one path into one), and only for a
+`CONSTRAINT_FAILED` result — the constraint evaluated to `false`. A
+`CONSTRAINT_PARSE_ERROR` (the expression fails to parse or calls an
+undefined function — a definition error, core §3.10.1 and Phase 3 step
+1a) keeps its processor-generated message: the author's rule text
+describes data that broke the rule, not a broken rule. `TYPE_MISMATCH`,
+`MIN_REPEAT` / `MAX_REPEAT`, `SHAPE_FAILED`, and `EXTERNAL_FAILED`
+results likewise keep their processor or Shape message. Only the
+per-code key (`<key>.errors.<code>`) relabels those.
 
 To localize the required-field message for an item:
 
@@ -475,11 +482,19 @@ To localize the required-field message for an item:
 
 When resolving a validation message, the cascade is:
 
-1. Per-code Locale key (`<key>.errors.<code>`) — if present, wins.
-2. Per-Bind Locale key (`<key>.constraintMessage` or
-   `<key>.requiredMessage`) — if present.
-3. Inline `constraintMessage` on the Bind (Definition).
-4. Processor-generated default message.
+1. Per-code Locale key (`<key>.errors.<code>`) — if present, wins for
+   any code.
+2. Per-Bind Locale key — `<key>.constraintMessage` for a
+   `CONSTRAINT_FAILED` result, `<key>.requiredMessage` for a `REQUIRED`
+   result — if present.
+3. Inline `constraintMessage` on the Bind (Definition), for a
+   `CONSTRAINT_FAILED` result.
+4. The `ValidationResult.message`: the processor-generated message, or
+   for a `REQUIRED` result the Bind's inline `requiredMessage` (core
+   Phase 3 step 1b).
+
+Steps 2 and 3 never apply to another code: a `CONSTRAINT_PARSE_ERROR`
+falls from step 1 straight to step 4.
 
 Examples:
 
@@ -1201,8 +1216,9 @@ presentation layer) resolves the localized message by:
 
 1. Looking up `<itemKey>.errors.<code>` in the active locale cascade
    (synthesizing `code` from `constraintKind` if absent — see §3.1.4).
-2. If not found, looking up `<itemKey>.constraintMessage` or
-   `<itemKey>.requiredMessage` as appropriate.
+2. If not found, looking up `<itemKey>.constraintMessage` for a
+   `CONSTRAINT_FAILED` result or `<itemKey>.requiredMessage` for a
+   `REQUIRED` result (§3.1.4); no other code consults these keys.
 3. If not found, using the `ValidationResult.message` as-is.
 
 This design means `ValidationResult.message` always contains the
