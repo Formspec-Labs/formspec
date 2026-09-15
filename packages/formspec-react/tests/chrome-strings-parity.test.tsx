@@ -42,6 +42,7 @@ describe('the React renderer draws its own words from the shared inventory', () 
         // third key is resolved the same way without appearing as a literal here.
         expect([...consumed].sort()).toEqual([
             'alert.dismiss',
+            'modal.close',
             'money.amount',
             'repeat.add',
             'repeat.remove',
@@ -49,9 +50,18 @@ describe('the React renderer draws its own words from the shared inventory', () 
             'repeat.rowOf',
             'select.clearSelection',
             'select.placeholder',
+            'select.selectAll',
             'select.selectedValues',
             'signature.canvas',
             'signature.clear',
+            'wizard.next',
+            'wizard.nextStep',
+            'wizard.previous',
+            'wizard.previousStep',
+            'wizard.skip',
+            'wizard.skipStep',
+            'wizard.submit',
+            'wizard.submitForm',
         ]);
     });
 

@@ -405,12 +405,15 @@ describe('Signature', () => {
         const container = renderField(def, node);
         const canvas = container.querySelector('canvas') as HTMLCanvasElement;
         expect(canvas.getAttribute('role')).toBe('img');
-        // Locale §3.1.10: the shared inventory's words, which a Locale can author — not English composed here.
-        expect(canvas.getAttribute('aria-label')).toBe('Signature canvas. Use the Clear button to reset.');
+        // Named by the field's own label plus the pad's description, both authorable through the Locale
+        // (§3.1.10) — no English composed in the renderer, and two pads on a form read apart.
+        expect(canvas.getAttribute('aria-labelledby')).toBe('field-sig-label field-sig-canvas-description');
+        expect(container.querySelector('#field-sig-canvas-description')?.textContent)
+            .toBe('Signature canvas. Use the Clear button to reset.');
         expect(canvas.getAttribute('tabindex')).toBe('0');
     });
 
-    it('names the Clear button by its own text, as the web component does', () => {
+    it('names the Clear button by its own word and the field it clears', () => {
         const def = baseDef([{ key: 'sig', type: 'field', dataType: 'string', label: 'Your Signature' }]);
         const node: LayoutNode = {
             id: 'sig-field', component: 'Signature', category: 'field',
@@ -418,8 +421,9 @@ describe('Signature', () => {
         };
         const container = renderField(def, node);
         const btn = container.querySelector('.formspec-signature-clear') as HTMLButtonElement;
-        expect(btn.getAttribute('aria-label')).toBeNull();
+        expect(btn.getAttribute('aria-labelledby')).toBe('field-sig-clear-text field-sig-label');
         expect(btn.textContent).toBe('Clear');
+        expect(container.querySelector('#field-sig-label')?.textContent).toContain('Your Signature');
     });
 
     it('canvas uses CSS width 100% instead of hardcoded pixel width', () => {

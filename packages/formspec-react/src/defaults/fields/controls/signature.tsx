@@ -103,21 +103,28 @@ export function SignatureControl({
             <canvas
                 ref={canvasRef}
                 id={field.id}
-                // Item 1: WCAG 2.1.1 / 4.1.2 — canvas needs role, label, and keyboard focus
+                // Item 1: WCAG 2.1.1 / 4.1.2 — canvas needs role, label, and keyboard focus. A canvas takes
+                // no <label for>, so it names itself from the field's label and the pad's own description —
+                // both already in the respondent's language, neither composed here.
                 role="img"
-                aria-label={chrome('signature.canvas')}
+                aria-labelledby={`${field.id}-label ${field.id}-canvas-description`}
                 aria-invalid={showError}
                 {...(describedBy ? { 'aria-describedby': describedBy } : {})}
                 tabIndex={0}
                 className="formspec-signature-canvas"
                 style={{ width: '100%', height, touchAction: 'none', cursor: 'crosshair', display: 'block' }}
             />
+            <span id={`${field.id}-canvas-description`} className="formspec-sr-only">
+                {chrome('signature.canvas')}
+            </span>
             <button
                 type="button"
                 className="formspec-signature-clear"
+                // Two pads on one form both read "Clear" without this: the button's own word, then whose.
+                aria-labelledby={`${field.id}-clear-text ${field.id}-label`}
                 onClick={handleClear}
             >
-                {chrome('signature.clear')}
+                <span id={`${field.id}-clear-text`}>{chrome('signature.clear')}</span>
             </button>
         </div>
     );

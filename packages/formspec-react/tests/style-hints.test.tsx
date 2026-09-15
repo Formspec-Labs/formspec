@@ -9,6 +9,24 @@ beforeAll(async () => {
     await initFormspecEngine();
 });
 
+describe('group heading depth', () => {
+    it('titles a section h3 and a group inside it h4, as the web component does', () => {
+        const engine = createFormEngine({
+            $formspec: '1.0', url: 'urn:test:depth', version: '1.0.0', title: 'Depth',
+            items: [{
+                key: 'eligibility', type: 'group', label: 'Eligibility',
+                children: [{
+                    key: 'retirement', type: 'group', label: 'Retirement and pension',
+                    children: [{ key: 'pension', type: 'field', dataType: 'string', label: 'Pension' }],
+                }],
+            }],
+        });
+        const container = actRender(<FormspecForm engine={engine} />);
+        const titles = [...container.querySelectorAll('.formspec-group-title')].map((el) => [el.tagName, el.textContent]);
+        expect(titles).toEqual([['H3', 'Eligibility'], ['H4', 'Retirement and pension']]);
+    });
+});
+
 describe('styleHints', () => {
     it('puts each item’s tone and size classes on the root the default skin styles', () => {
         const engine = createFormEngine({

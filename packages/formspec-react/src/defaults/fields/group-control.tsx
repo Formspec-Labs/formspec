@@ -2,6 +2,7 @@
 import React from 'react';
 import type { FieldComponentProps } from '../../component-map';
 import { needTraceAttrs } from '../../projection-metadata.js';
+import { useChromeText } from '../../use-chrome-text';
 
 /**
  * `readonly` has no effect on radios or checkboxes. While read-only, cancel the click that would change an option
@@ -37,6 +38,7 @@ export function GroupControl({
     labelId: string;
     describedBy: string | undefined;
 }) {
+    const chrome = useChromeText();
     const onClickCapture = isReadonly ? blockReadonlyChange : undefined;
 
     if (node.component === 'RadioGroup') {
@@ -100,7 +102,7 @@ export function GroupControl({
                 <label className="formspec-select-all" data-select-all>
                     <input
                         type="checkbox"
-                        aria-label="Select all"
+                        aria-label={chrome('select.selectAll')}
                         aria-readonly={isReadonly}
                         checked={allSelected}
                         onChange={(e) => {
@@ -109,7 +111,7 @@ export function GroupControl({
                             field.touch();
                         }}
                     />
-                    Select all
+                    {chrome('select.selectAll')}
                 </label>
             )}
             {field.options.map((opt) => (

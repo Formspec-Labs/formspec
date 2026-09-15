@@ -256,6 +256,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
             {...(node.accessibility?.description ? { 'aria-description': node.accessibility.description } : {})}
         >
             <label
+                id={`${field.id}-label`}
                 htmlFor={field.id}
                 className={node.labelPosition === 'hidden' ? 'formspec-label formspec-sr-only' : 'formspec-label'}
                 {...labelNeedAttrs}

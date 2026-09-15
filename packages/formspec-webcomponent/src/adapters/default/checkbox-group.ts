@@ -2,6 +2,8 @@
 import type { CheckboxGroupBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
 import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass } from './shared';
+import { uiText } from '../ui-text.js';
+import { watchText } from '../watch-text.js';
 
 export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
     behavior, parent, actx
@@ -33,7 +35,9 @@ export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
             behavior.setValue(checked);
         });
         selectAllLbl.appendChild(selectAllCb);
-        selectAllLbl.appendChild(document.createTextNode(' Select all'));
+        const selectAllText = document.createTextNode('');
+        watchText(actx, uiText(actx.engine, 'select.selectAll'), (text) => { selectAllText.textContent = ` ${text}`; });
+        selectAllLbl.appendChild(selectAllText);
         container.appendChild(selectAllLbl);
     }
 

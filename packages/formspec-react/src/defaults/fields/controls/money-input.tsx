@@ -70,11 +70,8 @@ export function MoneyInputControl({
 
     return (
         <div className="formspec-money">
-            <span
-                id={currencyId}
-                className="formspec-money-currency"
-                aria-label={`Currency: ${currency}`}
-            >
+            {/* The code is its own name; the amount input points at it through aria-describedby. */}
+            <span id={currencyId} className="formspec-money-currency">
                 {currency}
             </span>
             <input

@@ -12,6 +12,8 @@ import type { LayoutComponentProps } from '../../component-map';
 import { useWhen } from '../../use-when';
 import { projectionMetadataAttrs } from '../../projection-metadata.js';
 import { routeLandmarkAttrs } from '../../route-landmark.js';
+import { HeadingLevelContext, useHeadingLevel } from '../../heading-level';
+import { useChromeText } from '../../use-chrome-text';
 
 /**
  * Default layout renderer — dispatches to the correct container component
@@ -119,6 +121,7 @@ function stackJustifyContent(value: string | undefined): React.CSSProperties['ju
 
 function StackLayout({ node, children, themeClass, style }: LayoutProps) {
     const props = node.props ?? {};
+    const headingLevel = useHeadingLevel();
     const direction = props.direction as string | undefined;
     const alignment = props.align as string | undefined;
     const justify = props.justify as string | undefined;
@@ -150,8 +153,10 @@ function StackLayout({ node, children, themeClass, style }: LayoutProps) {
                 {...routeLandmarkAttrs(node)}
                 {...projectionMetadataAttrs(node)}
             >
-                <h3 className="formspec-group-title">{title}</h3>
-                {children}
+                {React.createElement(`h${headingLevel}`, { className: 'formspec-group-title' }, title)}
+                <HeadingLevelContext.Provider value={headingLevel + 1}>
+                    {children}
+                </HeadingLevelContext.Provider>
             </section>
         );
     }
@@ -439,6 +444,7 @@ function parseModalPlacement(raw: unknown): PopupPlacement | undefined {
 }
 
 function ModalLayout({ node, children, themeClass, style }: LayoutProps) {
+    const chrome = useChromeText();
     const props = node.props ?? {};
     const title = props.title as string | undefined;
     const triggerLabel = (props.triggerLabel as string | undefined) ?? 'Open';
@@ -558,7 +564,7 @@ function ModalLayout({ node, children, themeClass, style }: LayoutProps) {
                     <button
                         type="button"
                         className="formspec-modal-close formspec-focus-ring"
-                        aria-label="Close"
+                        aria-label={chrome('modal.close')}
                         onClick={closeModal}
                     >
                         <span aria-hidden="true">×</span>

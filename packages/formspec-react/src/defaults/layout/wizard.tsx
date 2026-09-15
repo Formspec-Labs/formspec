@@ -5,6 +5,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';
 import type { LayoutComponentProps } from '../../component-map';
 import { useFormspecContext } from '../../context';
+import { useChromeText } from '../../use-chrome-text';
 import type { FormspecContextValue } from '../../context';
 import { projectionMetadataAttrs } from '../../projection-metadata.js';
 import { routeLandmarkAttrs } from '../../route-landmark.js';
@@ -63,6 +64,7 @@ function cx(...parts: Array<string | false | undefined>): string {
  */
 export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Element {
     const { touchField, engine, onSubmit, resolveActionRef } = useFormspecContext();
+    const chrome = useChromeText();
 
     const stepNodes = node.children; // LayoutNode[] — one per step
     const stepChildren = React.Children.toArray(children); // ReactNode[] — rendered steps
@@ -188,22 +190,22 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
                 <button
                     type="button"
                     className="formspec-wizard-prev formspec-button-secondary formspec-focus-ring"
-                    aria-label="Previous step"
+                    aria-label={chrome('wizard.previousStep')}
                     disabled={isFirst}
                     aria-disabled={isFirst}
                     onClick={handlePrev}
                 >
-                    Previous
+                    {chrome('wizard.previous')}
                 </button>
 
                 {allowSkip && !isLast && (
                     <button
                         type="button"
                         className="formspec-wizard-skip formspec-button-secondary formspec-focus-ring"
-                        aria-label="Skip this step"
+                        aria-label={chrome('wizard.skipStep')}
                         onClick={handleSkip}
                     >
-                        Skip
+                        {chrome('wizard.skip')}
                     </button>
                 )}
 
@@ -211,16 +213,16 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
                     <button
                         type="button"
                         className="formspec-wizard-next formspec-button-primary formspec-focus-ring"
-                        aria-label="Next step"
+                        aria-label={chrome('wizard.nextStep')}
                         onClick={handleNext}
                     >
-                        Next
+                        {chrome('wizard.next')}
                     </button>
                 ) : finalStepHasSubmitAction ? null : (
                     <button
                         type="button"
                         className="formspec-wizard-submit formspec-button-primary formspec-focus-ring"
-                        aria-label="Submit form"
+                        aria-label={chrome('wizard.submitForm')}
                         onClick={() => {
                             touchCurrentStep();
                             if (currentStepHasErrors()) return;
@@ -231,7 +233,7 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
                             }
                         }}
                     >
-                        Submit
+                        {chrome('wizard.submit')}
                     </button>
                 )}
             </div>
