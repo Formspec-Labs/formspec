@@ -543,7 +543,10 @@ the URI target.</li>
 <li><code>id</code>, when present, MUST be unique within the References
 Document. IDs SHOULD be unique across all loaded References Documents
 targeting the same Definition to enable unambiguous cross-referencing,
-but this is not a hard requirement.</li>
+but this is not a hard requirement. Several <code>$ref</code> bindings
+that resolve to one <code>referenceDefs</code> entry share its key as
+<code>id</code> by design (§4.6.3 rule 5); that is one reference bound
+to several targets, not a duplicate.</li>
 <li><code>audience</code> MUST be one of: <code>"human"</code>,
 <code>"agent"</code>, <code>"both"</code>.</li>
 <li><code>type</code> MUST be a recognized type from §2.2 or an

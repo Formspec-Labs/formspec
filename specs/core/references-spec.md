@@ -152,7 +152,7 @@ The `type` property is an open string — the schema does not reject unrecognize
 
 - At least one of `uri` or `content` MUST be present.
 - If both `uri` and `content` are present, `content` is treated as a cached/fallback representation of the URI target.
-- `id`, when present, MUST be unique within the References Document. IDs SHOULD be unique across all loaded References Documents targeting the same Definition to enable unambiguous cross-referencing, but this is not a hard requirement.
+- `id`, when present, MUST be unique within the References Document. IDs SHOULD be unique across all loaded References Documents targeting the same Definition to enable unambiguous cross-referencing, but this is not a hard requirement. Several `$ref` bindings that resolve to one `referenceDefs` entry share its key as `id` by design (§4.6.3 rule 5); that is one reference bound to several targets, not a duplicate.
 - `audience` MUST be one of: `"human"`, `"agent"`, `"both"`.
 - `type` MUST be a recognized type from §2.2 or an `x-`-prefixed custom type. A processor encountering an unrecognized, non-`x-`-prefixed type SHOULD emit a warning and MAY skip the reference, but MUST NOT reject the document.
 - `priority` when present MUST be one of: `"primary"`, `"supplementary"`, `"background"`.
