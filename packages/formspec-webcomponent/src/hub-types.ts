@@ -106,7 +106,7 @@ export interface RenderHost {
     resolveToken(val: TokenResolvable): TokenResolvable;
     resolveItemPresentation(itemDesc: ItemDescriptor): PresentationBlock;
     applyStyle(el: HTMLElement, style: Record<string, string | number> | undefined): void;
-    applyCssClass(el: HTMLElement, comp: ComponentPresentationSource): void;
+    applyCssClass(el: HTMLElement, comp: ComponentPresentationSource, itemPath?: string): void;
     applyClassValue(el: HTMLElement, classValue: unknown): void;
     resolveWidgetClassSlots(presentation: PresentationBlock): {
         root?: unknown;

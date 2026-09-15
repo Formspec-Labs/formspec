@@ -93,7 +93,7 @@ function applyProjectionMetadata(
 function adapterContextFor(host: RenderHost, cleanupFns: Array<() => void>): AdapterContext {
     return {
         onDispose: (fn: () => void) => cleanupFns.push(fn),
-        applyCssClass: (el, comp) => host.applyCssClass(el, comp),
+        applyCssClass: (el, comp, itemPath) => host.applyCssClass(el, comp, itemPath),
         applyStyle: (el, style) => host.applyStyle(el, style),
         applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),
         applyClassValue: (el: HTMLElement, classValue: unknown) => host.applyClassValue(el, classValue),
@@ -303,7 +303,7 @@ export function renderActualComponent(
         renderComponent: renderChild,
         resolveToken: (val) => host.resolveToken(val),
         applyStyle: (el, style) => host.applyStyle(el, style),
-        applyCssClass: (el, comp) => host.applyCssClass(el, comp),
+        applyCssClass: (el, comp, itemPath) => host.applyCssClass(el, comp, itemPath),
         applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),
         resolveItemPresentation: (itemDesc: ItemDescriptor) => host.resolveItemPresentation(itemDesc),
         cleanupFns,

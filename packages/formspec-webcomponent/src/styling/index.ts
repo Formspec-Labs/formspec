@@ -21,6 +21,8 @@ export interface StylingHost {
     resolvedAdapterName: string;
     /** Stylesheets declared by the adapter this host resolved. */
     adapterStylesheets(): string[];
+    /** Class vocabulary declared by the adapter this host resolved, or `undefined` when it declares none. */
+    adapterClassVocabulary(): ReadonlySet<string> | undefined;
     getEffectiveTheme(): ThemeDocument;
     findItemByKey(key: string, items?: FormItem[]): FormItem | null;
 }

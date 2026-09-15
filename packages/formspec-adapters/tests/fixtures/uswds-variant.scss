@@ -1,0 +1,10 @@
+// @filedesc Test fixture (ADR 0064 decision 1): a variant using the shipped USWDS partial with one changed
+// setting and one house rule — compiled through the CLI inside the test.
+@use '../../src/uswds/uswds-formspec' with (
+  $fs-adapter-name: 'uswds-test',
+  $theme-color-primary: 'red-60v',
+);
+
+.usa-legend:not(.usa-legend--large) {
+  font-weight: 700;
+}

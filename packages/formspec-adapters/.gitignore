@@ -2,3 +2,5 @@
 # `../../<name>.css` resolves identically from src/<adapter>/ and dist/<adapter>/.
 /uswds-integration.css
 /tailwind-formspec-core.css
+/uswds-integration.classes.js
+/uswds-integration.classes.d.ts

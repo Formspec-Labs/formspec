@@ -5,13 +5,48 @@ import { resolveToken } from './tokens';
 
 import type { ComponentPresentationSource } from '../hub-types.js';
 
-export function applyCssClass(host: StylingHost, el: HTMLElement, comp: ComponentPresentationSource): void {
+/** (adapter name, class) pairs already warned about — process-wide, so a class warns once, not once per render. */
+const warnedUnknownClasses = new Set<string>();
+
+/**
+ * Theme spec escape-hatch ladder (§2.4): `cssClass` is only meaningful in the vocabulary of the adapter
+ * the Theme names. An adapter that declares no vocabulary (the default adapter today) gets no check —
+ * everything past this is silent for every existing Theme until an adapter opts in.
+ */
+function warnIfUnknownClass(adapterName: string, cls: string, vocabulary: ReadonlySet<string> | undefined, itemPath: string | undefined): void {
+    if (!vocabulary || vocabulary.has(cls)) return;
+    const key = `${adapterName}::${cls}`;
+    if (warnedUnknownClasses.has(key)) return;
+    warnedUnknownClasses.add(key);
+    const where = itemPath ? ` on '${itemPath}'` : '';
+    console.warn(
+        `Theme cssClass '${cls}'${where} is not in the '${adapterName}' adapter's class vocabulary — ` +
+            `it will render as a literal class with no guaranteed styling.`,
+    );
+}
+
+/** Best-effort identifier for the item a class was applied to, when the caller did not pass one explicitly. */
+function fallbackItemPath(comp: ComponentPresentationSource): string | undefined {
+    const withPath = comp as { bindPath?: string; id?: string };
+    return withPath.bindPath ?? withPath.id;
+}
+
+export function applyCssClass(
+    host: StylingHost,
+    el: HTMLElement,
+    comp: ComponentPresentationSource,
+    itemPath?: string,
+): void {
     if (!comp.cssClass) return;
+    const vocabulary = host.adapterClassVocabulary();
+    const path = itemPath ?? fallbackItemPath(comp);
     const classes = Array.isArray(comp.cssClass) ? comp.cssClass : [comp.cssClass];
     for (const cls of classes) {
         const resolved = String(resolveToken(host, cls));
         for (const c of resolved.split(/\s+/)) {
-            if (c) el.classList.add(c);
+            if (!c) continue;
+            el.classList.add(c);
+            warnIfUnknownClass(host.resolvedAdapterName, c, vocabulary, path);
         }
     }
 }

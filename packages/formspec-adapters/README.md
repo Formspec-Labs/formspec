@@ -31,6 +31,46 @@ The render root **is** the design system's form: the USWDS stylesheet makes `.fo
 
 **Pre-load the adapter stylesheet in `<head>` for a flash-free first paint** — its package export (`@formspec-org/adapters/uswds-integration.css`) is the file. The stylesheet declares `--formspec-adapter` on `.formspec-container`, so the renderer sees it and links nothing; otherwise the renderer loads it and reveals the form when it is ready.
 
+## Variants
+
+An organization's look — a compile-time USWDS reskin, house rules — is a **variant**, not a fork: the same render functions, a differently configured compiled sheet ([ADR 0064](../../thoughts/adr/0064-adapter-variants-and-checked-escape-hatches.md)).
+
+1. Write `variant.scss` against the shipped partial (`@formspec-org/adapters/uswds.scss`). Every USWDS `!default` setting is reconfigurable through it — not just the ones `uswds-formspec.scss` itself re-lists — plus your own house rules:
+
+    ```scss
+    @use '@formspec-org/adapters/uswds.scss' with (
+      $fs-adapter-name: 'uswds-nj',
+      $theme-color-primary: 'blue-warm-60v',
+    );
+
+    .usa-legend:not(.usa-legend--large) { font-weight: 700; }
+    ```
+
+2. Compile it with the shipped CLI (`formspec-adapter-css`) — same asset inlining as the base build, plus a sibling class-vocabulary module next to the sheet:
+
+    ```bash
+    npx formspec-adapter-css variant.scss uswds-nj.css
+    # writes uswds-nj.css, uswds-nj.classes.js, uswds-nj.classes.d.ts
+    ```
+
+3. Derive the adapter — same components, new name/stylesheet/vocabulary:
+
+    ```ts
+    import { deriveAdapter } from 'formspec-webcomponent';
+    import { uswdsAdapter } from 'formspec-adapters';
+    import { classVocabulary } from './uswds-nj.classes.js';
+
+    export const uswdsNjAdapter = deriveAdapter(uswdsAdapter, {
+        name: 'uswds-nj',
+        stylesheets: [new URL('./uswds-nj.css', import.meta.url).href],
+        classVocabulary,
+    });
+    ```
+
+4. Register it and name it in the Theme (`"adapter": "uswds-nj"`) — same as any other adapter (see Usage below).
+
+**Vocabulary and the unknown-class warning.** `classVocabulary` is generated from the compiled sheet — the CLI writes it every run, never hand-listed. When the resolved adapter declares one, the renderer warns once per (adapter name, class) on a Theme `cssClass` the vocabulary does not contain, naming the class, the item, and the adapter — a typo or a stale class fails visibly instead of rendering blank. An adapter that declares no vocabulary (the default adapter today) gets no check.
+
 ## Install
 
 ```bash

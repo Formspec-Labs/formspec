@@ -84,3 +84,21 @@ describe.each([
         expect(existsSync(target), `${target} does not exist`).toBe(true);
     });
 });
+
+describe('the uswds adapter declares its class vocabulary from the generated artifact (ADR 0064 decision 2+3)', () => {
+    it('is a non-empty set carrying the classes the compiled sheet selects', () => {
+        expect(uswdsAdapter.classVocabulary).toBeInstanceOf(Set);
+        expect(uswdsAdapter.classVocabulary!.size).toBeGreaterThan(0);
+        expect(uswdsAdapter.classVocabulary!.has('usa-input')).toBe(true);
+        expect(uswdsAdapter.classVocabulary!.has('usa-legend')).toBe(true);
+    });
+
+    it('includes the font-weight utilities the `$output-these-utilities` whitelist forwards', () => {
+        expect(uswdsAdapter.classVocabulary!.has('text-bold')).toBe(true);
+        expect(uswdsAdapter.classVocabulary!.has('text-normal')).toBe(true);
+    });
+
+    it('never carries a class the compiled sheet does not select', () => {
+        expect(uswdsAdapter.classVocabulary!.has('this-class-does-not-exist')).toBe(false);
+    });
+});

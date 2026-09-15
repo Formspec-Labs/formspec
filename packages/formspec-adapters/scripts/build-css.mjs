@@ -1,9 +1,10 @@
-/** @filedesc Compiles the self-contained USWDS adapter stylesheet and copies the Tailwind core CSS to the package root. */
+#!/usr/bin/env node
+/** @filedesc CLI: compiles a self-contained USWDS-family Sass entry into a CSS sheet with inlined assets and a sibling class-vocabulary module. With no args, rebuilds this package's own shipped stylesheets. */
 
-import { execSync } from 'node:child_process';
+import * as sass from 'sass';
 import { copyFileSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, extname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dirname, extname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { findPackageJSON } from 'node:module';
 
 /** Sentinel asset root set as `$theme-font-path` / `$theme-image-path` in uswds-formspec.scss. */
@@ -22,46 +23,129 @@ const MEDIA_TYPES = {
 // `wasm-pkg-runtime/`. A src-aliased consumer (Storybook) would 404 a dist-only path.
 const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-copyFileSync(
-    join(pkgRoot, 'src/tailwind/tailwind-formspec-core.css'),
-    join(pkgRoot, 'tailwind-formspec-core.css'),
-);
+/**
+ * A bundler emits `new URL('../uswds-integration.css', import.meta.url)` verbatim and never follows the
+ * `url()` references inside it, so every `@uswds/...` asset must travel in the file itself as a data URI.
+ * Anything already external (`data:`, `http(s):`, or USWDS's own `url("")` `@supports` probe) passes through.
+ */
+function inlineAssets(css, uswdsDist) {
+    const assets = new Map();
+    let inlined = 0;
+    const out = css.replace(/url\(\s*(['"]?)(.*?)\1\s*\)/g, (whole, _quote, ref) => {
+        if (!ref.startsWith(ASSET_PREFIX)) {
+            if (ref === '' || ref.startsWith('data:') || /^https?:/.test(ref)) return whole;
+            throw new Error(`url(${ref}) escapes the artifact — inline it or drop the rule`);
+        }
+        const file = join(uswdsDist, ref.slice(ASSET_PREFIX.length));
+        if (!assets.has(file)) {
+            const type = MEDIA_TYPES[extname(file)];
+            if (!type) throw new Error(`no media type registered for ${file}`);
+            assets.set(file, `url(data:${type};base64,${readFileSync(file).toString('base64')})`);
+        }
+        inlined += 1;
+        return assets.get(file);
+    });
+    return { css: out, assetCount: assets.size, inlined };
+}
 
-// Locate the @uswds/uswds package root regardless of workspace hoisting.
-const uswdsRoot = dirname(findPackageJSON('@uswds/uswds', import.meta.url));
-const uswdsDist = join(uswdsRoot, 'dist');
-
-// No source map: inlining assets shifts every byte offset, so a map of the compiled output would lie.
-const out = join(pkgRoot, 'uswds-integration.css');
-execSync(
-    `npx sass src/uswds/uswds-formspec.scss ${out} --style=compressed --no-source-map ` +
-        `--load-path=${join(uswdsRoot, 'packages')} --quiet-deps`,
-    { cwd: pkgRoot, stdio: 'inherit' },
-);
-
-// A bundler emits `new URL('../uswds-integration.css', import.meta.url)` verbatim and never follows the
-// `url()` references inside it, so every asset must travel in the file itself.
-const assets = new Map();
-let inlined = 0;
-
-const css = readFileSync(out, 'utf8').replace(/url\(\s*(['"]?)(.*?)\1\s*\)/g, (whole, _quote, ref) => {
-    if (!ref.startsWith(ASSET_PREFIX)) {
-        // `url("")` is USWDS's `@supports (mask: url(""))` feature probe, not an asset.
-        if (ref === '' || ref.startsWith('data:') || /^https?:/.test(ref)) return whole;
-        throw new Error(`url(${ref}) escapes the artifact — inline it or drop the rule`);
+/**
+ * Sorted, de-duplicated class names selected anywhere in the compiled CSS. Walks brace depth to isolate
+ * selector text from declaration text (and skips at-rule preludes like `@media (...)`) instead of a flat
+ * regex, so a class-shaped token can never come from a declaration value — the inlined `url(data:...)`
+ * asset bytes included, without needing to strip them separately.
+ */
+function extractClassVocabulary(css) {
+    const classes = new Set();
+    let segmentStart = 0;
+    for (let i = 0; i < css.length; i++) {
+        const ch = css[i];
+        if (ch === '{') {
+            const selector = css.slice(segmentStart, i).trim();
+            if (selector && !selector.startsWith('@')) {
+                for (const match of selector.matchAll(/\.-?[_a-zA-Z][-\w]*/g)) {
+                    classes.add(match[0].slice(1));
+                }
+            }
+            segmentStart = i + 1;
+        } else if (ch === '}') {
+            segmentStart = i + 1;
+        }
     }
-    const file = join(uswdsDist, ref.slice(ASSET_PREFIX.length));
-    if (!assets.has(file)) {
-        const type = MEDIA_TYPES[extname(file)];
-        if (!type) throw new Error(`no media type registered for ${file}`);
-        assets.set(file, `url(data:${type};base64,${readFileSync(file).toString('base64')})`);
-    }
-    inlined += 1;
-    return assets.get(file);
-});
+    return [...classes].sort();
+}
 
-writeFileSync(out, css);
-console.log(
-    `uswds-integration.css: ${(statSync(out).size / 1024).toFixed(0)} KB, ` +
-        `${assets.size} assets inlined (${inlined} references)`,
-);
+/**
+ * Writes `<out sans .css>.classes.js` + a `.d.ts` beside it — the same relative-path placement the
+ * stylesheet itself resolves via `new URL('../../x', import.meta.url)`, so `RenderAdapter.classVocabulary`
+ * can import the artifact from src/ (vitest, Storybook) or dist/ alike. Never hand-edited; regenerated
+ * every compile.
+ */
+function writeClassVocabulary(outCss, classNames) {
+    const base = outCss.replace(/\.css$/, '');
+    const filedesc = 'Generated by scripts/build-css.mjs — sorted class vocabulary selected in the compiled sheet. Do not hand-edit.';
+    writeFileSync(
+        `${base}.classes.js`,
+        `/** @filedesc ${filedesc} */\nexport const classVocabulary = new Set(${JSON.stringify(classNames)});\n`,
+    );
+    writeFileSync(
+        `${base}.classes.d.ts`,
+        `/** @filedesc ${filedesc} */\nexport declare const classVocabulary: ReadonlySet<string>;\n`,
+    );
+    return classNames.length;
+}
+
+/**
+ * Compiles `entryScss` to `outCss` against the USWDS package rooted at `uswdsRoot`: inlines every
+ * `@uswds/...` asset reference as a data URI (resolved against `<uswdsRoot>/dist`) and writes the sibling
+ * class-vocabulary module next to `outCss`. No source map — inlining assets shifts every byte offset, so a
+ * map of the compiled output would lie.
+ */
+function compileAdapterStylesheet(entryScss, outCss, uswdsRoot) {
+    const compiled = sass.compile(entryScss, {
+        style: 'compressed',
+        sourceMap: false,
+        loadPaths: [join(uswdsRoot, 'packages')],
+        quietDeps: true,
+    });
+    const { css, assetCount, inlined } = inlineAssets(compiled.css, join(uswdsRoot, 'dist'));
+    writeFileSync(outCss, css);
+    const classCount = writeClassVocabulary(outCss, extractClassVocabulary(css));
+    return { size: statSync(outCss).size, assetCount, inlined, classCount };
+}
+
+/** Locates the `@uswds/uswds` package root visible from `fromUrl` upward — the caller's own install. */
+function resolveUswdsRoot(fromUrl) {
+    const pkgJson = findPackageJSON('@uswds/uswds', fromUrl);
+    if (!pkgJson) throw new Error(`@uswds/uswds not found from ${fromUrl} upward`);
+    return dirname(pkgJson);
+}
+
+const [entryArg, outArg] = process.argv.slice(2);
+
+if (entryArg && outArg) {
+    // Ad-hoc entry (`formspec-adapter-css <entry.scss> <out.css>`): a variant living anywhere — this
+    // repo's test fixtures, a downstream consumer's project — resolves `@uswds/uswds` from ITS OWN
+    // location upward, not this package's.
+    const entryAbs = resolve(entryArg);
+    const outAbs = resolve(outArg);
+    const uswdsRoot = resolveUswdsRoot(pathToFileURL(entryAbs).href);
+    const stats = compileAdapterStylesheet(entryAbs, outAbs, uswdsRoot);
+    console.log(
+        `${outArg}: ${(stats.size / 1024).toFixed(0)} KB, ${stats.assetCount} assets inlined ` +
+            `(${stats.inlined} references), ${stats.classCount} classes`,
+    );
+} else {
+    // Default (`npm run build:css`): rebuild this package's own shipped stylesheets, unchanged from before.
+    copyFileSync(
+        join(pkgRoot, 'src/tailwind/tailwind-formspec-core.css'),
+        join(pkgRoot, 'tailwind-formspec-core.css'),
+    );
+
+    const uswdsRoot = resolveUswdsRoot(import.meta.url);
+    const out = join(pkgRoot, 'uswds-integration.css');
+    const stats = compileAdapterStylesheet(join(pkgRoot, 'src/uswds/uswds-formspec.scss'), out, uswdsRoot);
+    console.log(
+        `uswds-integration.css: ${(stats.size / 1024).toFixed(0)} KB, ${stats.assetCount} assets inlined ` +
+            `(${stats.inlined} references), ${stats.classCount} classes`,
+    );
+}

@@ -116,7 +116,7 @@ export interface RenderContext {
     applyStyle: (el: HTMLElement, style: Record<string, string | number> | undefined) => void;
 
     /** Apply `cssClass` entries from a component descriptor to an element's classList. */
-    applyCssClass: (el: HTMLElement, comp: ComponentPresentationSource) => void;
+    applyCssClass: (el: HTMLElement, comp: ComponentPresentationSource, itemPath?: string) => void;
 
     /** Apply accessibility attributes (role, aria-description, aria-live) from a component descriptor. */
     applyAccessibility: (el: HTMLElement, comp: ComponentPresentationSource) => void;

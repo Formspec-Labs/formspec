@@ -8,7 +8,7 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
     const el = document.createElement('div');
     if (behavior.id) el.id = behavior.id;
     el.className = 'formspec-wizard';
-    if (behavior.compOverrides.cssClass) actx.applyCssClass(el, behavior.compOverrides);
+    if (behavior.compOverrides.cssClass) actx.applyCssClass(el, behavior.compOverrides, behavior.id);
     if (behavior.compOverrides.accessibility) actx.applyAccessibility(el, behavior.compOverrides);
     if (behavior.compOverrides.style) actx.applyStyle(el, behavior.compOverrides.style);
     parent.appendChild(el);
