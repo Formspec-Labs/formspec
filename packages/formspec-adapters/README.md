@@ -15,6 +15,18 @@ A **behavior hook** extracts reactive state from the engine and returns a typed 
 
 The default adapter (built into `formspec-webcomponent`) reproduces Formspec's standard DOM. Adapters in this package provide alternative DOM structures for specific design systems.
 
+**One owner per presentation fact.** An adapter owns its design system completely — markup *and* CSS. It ships a **self-contained** stylesheet (fonts and images inlined as data URIs) and declares it on the adapter object:
+
+```ts
+export const uswdsAdapter: RenderAdapter = {
+    name: 'uswds',
+    stylesheets: [new URL('../uswds-integration.css', import.meta.url).href],
+    components: { /* ... */ },
+};
+```
+
+The renderer links those URLs before any Theme `stylesheets`. **Hosts never import adapter CSS.** Self-contained is load-bearing: a bundler emits `new URL(x, import.meta.url)` as-is and never follows the `url()` references inside the file, so a stylesheet with relative `../fonts/` paths loses its typefaces in every bundled build. It also means the adapter types the render root itself — with `adapter: "uswds"` in the Theme and no page CSS at all, the form looks like USWDS.
+
 ## Install
 
 ```bash
@@ -30,7 +42,12 @@ import { globalRegistry } from 'formspec-webcomponent';
 import { exampleAdapter } from 'formspec-adapters';
 
 globalRegistry.registerAdapter(exampleAdapter);
-globalRegistry.setAdapter('example');
+```
+
+A Theme names the adapter it was authored against — Theme spec §2.4, "Adapter Declaration" — so registering is all the host does:
+
+```json
+{ "$formspecTheme": "1.0", "adapter": "example", "tokens": { }  }
 ```
 
 Per-form override:
@@ -229,9 +246,9 @@ const renderTextInput: AdapterRenderFn<TextInputBehavior> = (behavior, parent, a
 
 **Tailwind integration notes:**
 
-- **`integrationCSS` is omitted** — nothing is injected into `<head>`. Styling is only utility classes on the emitted DOM, compiled by your Tailwind/Vite (or CDN) pipeline. In Tailwind v4, add `@source` for `packages/formspec-adapters/src/tailwind/**/*.ts` so class names are discovered.
+- **Controls carry no adapter CSS** — styling is only the utility classes on the emitted DOM, compiled by your Tailwind/Vite (or CDN) pipeline. In Tailwind v4, add `@source` for `packages/formspec-adapters/src/tailwind/**/*.ts` so class names are discovered.
 
-- **Core plugin styling** — `Card`, `ActionButton`, and `ValidationSummary` are not adapter-rendered; they still use `formspec-*` class hooks. Import **`formspec-adapters/tailwind-formspec-core.css`** for light-theme defaults (teal accent, white cards, validation summary). Rules are in **`@layer components`** so Tailwind **utilities** on those nodes (e.g. `cssClass` on `ActionButton`) override the defaults. Override `--formspec-tw-*` on `:root` for token tweaks without utilities.
+- **Core plugin styling** — `Card`, `ActionButton`, and `ValidationSummary` are not adapter-rendered; they still use `formspec-*` class hooks. That is all `tailwindAdapter.stylesheets` carries: `tailwind-formspec-core.css`, linked by the renderer, with light-theme defaults (teal accent, white cards, validation summary). Rules are in **`@layer components`** so Tailwind **utilities** on those nodes (e.g. `cssClass` on `ActionButton`) override the defaults. Override `--formspec-tw-*` on `:root` for token tweaks without utilities.
 
 **Customization:**
 
@@ -411,7 +428,8 @@ src/
 ## Development
 
 ```bash
-npm run build          # tsc
-npm run test           # vitest (happy-dom)
+npm run build          # build:css (scripts/build-css.mjs) then tsc
+npm run build:css      # compile uswds-formspec.scss, inline its fonts and images, copy the Tailwind CSS
+npm run test           # vitest (happy-dom) — reads dist/, so build first
 npm run test:watch     # vitest watch mode
 ```
