@@ -13,7 +13,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     let field: HTMLInputElement | HTMLTextAreaElement;
 
     if (behavior.maxLines && behavior.maxLines > 1) {
-        // Textarea variant
+        // Textarea variant — never adorned, so the stop lands directly on the bordered control.
         const textarea = document.createElement('textarea');
         textarea.className = 'formspec-input' + formspecWidthClass(behavior.width);
         textarea.name = behavior.fieldPath;
@@ -24,7 +24,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     } else {
         const input = document.createElement('input');
         input.type = behavior.resolvedInputType || 'text';
-        input.className = 'formspec-input' + formspecWidthClass(behavior.width);
+        input.className = 'formspec-input';
         input.name = behavior.fieldPath;
         input.id = behavior.id;
         if (behavior.placeholder) input.placeholder = behavior.placeholder;
@@ -35,7 +35,10 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
             else input.setAttribute(attr, val);
         }
         field = input;
+        // The stop targets the bordered box: the input itself, or — with a prefix/suffix —
+        // the .formspec-input-adornment wrapper wrapInputAdornments returns around it.
         control = wrapInputAdornments(input, behavior);
+        control.className += formspecWidthClass(behavior.width);
     }
 
     fieldDOM.root.appendChild(control);

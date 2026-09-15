@@ -65,11 +65,19 @@ describe('USWDS TextInput', () => {
         expect(parent.querySelector('.usa-input.usa-input--sm')).toBeTruthy();
     });
 
+    it('applies the width-stop modifier to the usa-input-group when prefixed, not the inner input', () => {
+        const parent = makeParent();
+        renderTextInput(mockTextInput({ prefix: '$', width: 'sm' }), parent, mockAdapterContext());
+        expect(parent.querySelector('.usa-input-group.usa-input--sm')).toBeTruthy();
+        const input = parent.querySelector('input.usa-input') as HTMLInputElement;
+        expect(input.className).not.toMatch(/usa-input--/);
+    });
+
     it('ignores an unrecognized width value', () => {
         const parent = makeParent();
         renderTextInput(mockTextInput({ width: 'huge' as any }), parent, mockAdapterContext());
         const input = parent.querySelector('input.usa-input') as HTMLInputElement;
-        expect(input.className).toBe('usa-input');
+        expect(input.className).not.toMatch(/usa-input--/);
     });
 
     it('hides label with usa-sr-only when labelPosition is hidden', () => {
@@ -109,6 +117,14 @@ describe('USWDS NumberInput', () => {
         const parent = makeParent();
         renderNumberInput(mockNumberInput({ width: 'xs' }), parent, mockAdapterContext());
         expect(parent.querySelector('.usa-input.usa-input--xs')).toBeTruthy();
+    });
+
+    it('applies the width-stop modifier to the usa-input-group when prefixed, not the inner input', () => {
+        const parent = makeParent();
+        renderNumberInput(mockNumberInput({ prefix: '$', width: 'xs' }), parent, mockAdapterContext());
+        expect(parent.querySelector('.usa-input-group.usa-input--xs')).toBeTruthy();
+        const input = parent.querySelector('input.usa-input') as HTMLInputElement;
+        expect(input.className).not.toMatch(/usa-input--/);
     });
 });
 

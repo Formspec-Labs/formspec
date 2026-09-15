@@ -10,7 +10,7 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
 
     const input = document.createElement('input');
     input.type = 'number';
-    input.className = 'formspec-input' + formspecWidthClass(behavior.width);
+    input.className = 'formspec-input';
     input.name = behavior.fieldPath;
     input.id = behavior.id;
     if (behavior.placeholder) input.placeholder = behavior.placeholder;
@@ -56,8 +56,14 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
 
         wrapper.append(decBtn, adorned, incBtn);
         control = wrapper;
+        // No width stop here: default.inputs.css fixes the stepper's inner input at a hard
+        // `width: 3.5rem` (a compact spinner shape, not a free-form field sized to its answer) —
+        // widgetConfig.width and showStepper are mutually exclusive sizing concerns.
     } else {
         control = adorned;
+        // The stop targets the bordered box: the input itself, or — with a prefix/suffix —
+        // the .formspec-input-adornment wrapper wrapInputAdornments returns around it.
+        control.className += formspecWidthClass(behavior.width);
     }
     fieldDOM.root.appendChild(control);
     applyControlSlotClass(control, behavior, actx);

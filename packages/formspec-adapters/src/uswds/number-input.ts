@@ -12,8 +12,11 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
 
     const { control, actualInput } = createUSWDSInput(behavior, {
         type: 'number',
-        inputClass: 'usa-input' + uswdsWidthClass(behavior.width),
+        inputClass: 'usa-input',
     });
+    // The stop targets the bordered box: the input itself, or — with a prefix/suffix — the
+    // usa-input-group createUSWDSInput wraps it in.
+    control.className += uswdsWidthClass(behavior.width);
 
     root.appendChild(control);
 

@@ -110,6 +110,29 @@ describe('default skin — widgetConfig.width (theme §4.2 Width Stops)', () => 
         const input = el.querySelector('[data-name="zip"] input')!;
         expect(input.className).not.toMatch(/formspec-input--/);
     });
+
+    it('caps a prefixed NumberInput at the .formspec-input-adornment wrapper, not the inner input', () => {
+        const el = render(
+            [{ key: 'fee', type: 'field', dataType: 'integer', label: 'Fee', prefix: '$' }],
+            [{ component: 'NumberInput', bind: 'fee' }],
+            { items: { fee: { widgetConfig: { width: 'xs' } } } },
+        );
+        const wrapper = el.querySelector('[data-name="fee"] .formspec-input-adornment.formspec-input--xs') as HTMLElement;
+        expect(wrapper).toBeTruthy();
+        expect(style(wrapper, 'max-width')).toBe('9ex');
+        const input = el.querySelector('[data-name="fee"] input')!;
+        expect(input.className).not.toMatch(/formspec-input--/);
+    });
+
+    it('does not apply a width stop inside a stepper — its fixed spinner shape wins over widgetConfig.width', () => {
+        const el = render(
+            [{ key: 'qty', type: 'field', dataType: 'integer', label: 'Qty' }],
+            [{ component: 'NumberInput', bind: 'qty', showStepper: true }],
+            { items: { qty: { widgetConfig: { width: 'xs' } } } },
+        );
+        const stepper = el.querySelector('[data-name="qty"] .formspec-stepper')!;
+        expect(stepper.querySelector('[class*="formspec-input--"]')).toBeNull();
+    });
 });
 
 describe('default skin — character count', () => {

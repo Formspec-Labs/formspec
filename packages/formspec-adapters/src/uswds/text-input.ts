@@ -51,8 +51,12 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     if (p.labelPosition === 'start') root.classList.add('formspec-label-start');
 
     const { control, actualInput } = createUSWDSInput(behavior, {
-        inputClass: (behavior.maxLines != null && behavior.maxLines > 1 ? 'usa-textarea' : 'usa-input') + uswdsWidthClass(behavior.width),
+        inputClass: behavior.maxLines != null && behavior.maxLines > 1 ? 'usa-textarea' : 'usa-input',
     });
+    // The stop targets the bordered box: the input itself, or — with a prefix/suffix — the
+    // usa-input-group createUSWDSInput wraps it in (USWDS's own group already carries a 30rem
+    // max-width; the stop narrows further, it never widens past it).
+    control.className += uswdsWidthClass(behavior.width);
 
     if (!control.parentElement) root.appendChild(control);
 
