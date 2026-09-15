@@ -225,16 +225,3 @@ export function applyControlSlotClass(
         if (target instanceof HTMLElement) actx.applyClassValue(target, controlSlot);
     }
 }
-
-/** The skin's seven input width modifiers (theme §4.2 Width Stops), defined as `max-width` in formspec-skin.css. */
-const FORMSPEC_WIDTH_STOPS = new Set(['2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl']);
-
-/**
- * `formspec-input--<stop>` for a recognized `widgetConfig.width` (theme §4.2), leading-space-prefixed so
- * it appends onto an existing class string; `''` when `width` is absent or not one of the seven stops —
- * an unrecognized `widgetConfig` key MUST be ignored (theme-spec.md §4.4), so it falls back to filling
- * the form column.
- */
-export function formspecWidthClass(width: string | undefined): string {
-    return width && FORMSPEC_WIDTH_STOPS.has(width) ? ` formspec-input--${width}` : '';
-}

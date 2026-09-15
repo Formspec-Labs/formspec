@@ -1,6 +1,6 @@
 /** @filedesc USWDS v3 adapter for NumberInput — renders usa-input with type="number". */
-import type { NumberInputBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
-import { applyUSWDSValidationState, createUSWDSFieldDOM, createUSWDSInput, uswdsWidthClass } from './shared';
+import { widthStopClass, type NumberInputBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
+import { applyUSWDSValidationState, createUSWDSFieldDOM, createUSWDSInput } from './shared';
 
 export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     behavior, parent, actx
@@ -16,7 +16,7 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     });
     // The stop targets the bordered box: the input itself, or — with a prefix/suffix — the
     // usa-input-group createUSWDSInput wraps it in.
-    control.className += uswdsWidthClass(behavior.width);
+    control.className += widthStopClass('usa-input', behavior.width);
 
     root.appendChild(control);
 

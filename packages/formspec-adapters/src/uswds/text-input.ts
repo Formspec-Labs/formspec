@@ -1,6 +1,6 @@
 /** @filedesc USWDS v3 adapter for TextInput — usa-input or usa-textarea, with usa-character-count for maxLength. */
-import { createCharacterCount, type TextInputBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
-import { applyUSWDSValidationState, createUSWDSFieldDOM, createUSWDSInput, uswdsWidthClass } from './shared';
+import { createCharacterCount, widthStopClass, type TextInputBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
+import { applyUSWDSValidationState, createUSWDSFieldDOM, createUSWDSInput } from './shared';
 
 /** USWDS character count validation message (usa-character-count `VALIDATION_MESSAGE`). */
 const OVER_LIMIT_MESSAGE = 'The content is too long.';
@@ -56,7 +56,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     // The stop targets the bordered box: the input itself, or — with a prefix/suffix — the
     // usa-input-group createUSWDSInput wraps it in (USWDS's own group already carries a 30rem
     // max-width; the stop narrows further, it never widens past it).
-    control.className += uswdsWidthClass(behavior.width);
+    control.className += widthStopClass('usa-input', behavior.width);
 
     if (!control.parentElement) root.appendChild(control);
 

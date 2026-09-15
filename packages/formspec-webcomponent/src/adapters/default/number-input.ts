@@ -1,7 +1,8 @@
 /** @filedesc Default adapter for NumberInput — renders a numeric input element, with optional stepper buttons. */
 import type { NumberInputBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
-import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, wrapInputAdornments, formspecWidthClass } from './shared';
+import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, wrapInputAdornments } from './shared';
+import { widthStopClass } from '../width-stops';
 
 export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     behavior, parent, actx
@@ -63,7 +64,7 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
         control = adorned;
         // The stop targets the bordered box: the input itself, or — with a prefix/suffix —
         // the .formspec-input-adornment wrapper wrapInputAdornments returns around it.
-        control.className += formspecWidthClass(behavior.width);
+        control.className += widthStopClass('formspec-input', behavior.width);
     }
     fieldDOM.root.appendChild(control);
     applyControlSlotClass(control, behavior, actx);

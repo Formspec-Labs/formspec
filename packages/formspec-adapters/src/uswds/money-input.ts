@@ -1,7 +1,7 @@
 /** @filedesc USWDS v3 adapter for MoneyInput — usa-input-group (fixed currency) or grid row (editable code + amount). */
-import type { MoneyInputBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { widthStopClass, type MoneyInputBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
-import { applyUSWDSValidationState, createUSWDSFieldDOM, uswdsWidthClass } from './shared';
+import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
 import { createInputSkeleton } from '../shared/input-factory.js';
 
@@ -17,7 +17,7 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
         const skeleton = createInputSkeleton(behavior, {
             type: 'number',
             inputClass: 'usa-input formspec-money-amount',
-            groupClass: 'usa-input-group' + uswdsWidthClass(behavior.width),
+            groupClass: 'usa-input-group' + widthStopClass('usa-input', behavior.width),
             prefixClass: 'usa-input-prefix',
             prefix: behavior.resolvedCurrency,
         });

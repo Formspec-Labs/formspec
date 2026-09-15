@@ -9,6 +9,7 @@ import type {
     RegistryEntry,
     ValidationOverride,
     ValidationProfile,
+    WidthStop,
 } from '@formspec-org/types';
 import type {
     ComponentDescriptor,
@@ -104,7 +105,7 @@ export interface SelectBehavior extends FieldBehavior {
     /** Multi-value combobox; use with multiChoice fields. */
     multiple?: boolean;
     /** Theme `widgetConfig.width` (theme §4.2 Width Stops): planner-carried, an adapter maps it to its own class. */
-    width?: string;
+    width?: WidthStop;
 }
 
 export interface ToggleBehavior extends FieldBehavior {
@@ -124,7 +125,7 @@ export interface TextInputBehavior extends FieldBehavior {
     resolvedInputType?: string;
     extensionAttrs: Record<string, string>;
     /** Theme `widgetConfig.width` (theme §4.2 Width Stops): planner-carried, an adapter maps it to its own class. */
-    width?: string;
+    width?: WidthStop;
 }
 
 export interface NumberInputBehavior extends FieldBehavior {
@@ -138,7 +139,7 @@ export interface NumberInputBehavior extends FieldBehavior {
     prefix?: string;
     suffix?: string;
     /** Theme `widgetConfig.width` (theme §4.2 Width Stops): planner-carried, an adapter maps it to its own class. */
-    width?: string;
+    width?: WidthStop;
 }
 
 export interface DatePickerBehavior extends FieldBehavior {
@@ -147,7 +148,7 @@ export interface DatePickerBehavior extends FieldBehavior {
     maxDate?: string;
     placeholder?: string;
     /** Theme `widgetConfig.width` (theme §4.2 Width Stops): planner-carried, an adapter maps it to its own class. */
-    width?: string;
+    width?: WidthStop;
 }
 
 export interface MoneyInputBehavior extends FieldBehavior {
@@ -157,7 +158,7 @@ export interface MoneyInputBehavior extends FieldBehavior {
     placeholder?: string;
     resolvedCurrency: string | null;
     /** Theme `widgetConfig.width` (theme §4.2 Width Stops): planner-carried, an adapter maps it to its own class. */
-    width?: string;
+    width?: WidthStop;
 }
 
 export interface SliderBehavior extends FieldBehavior {

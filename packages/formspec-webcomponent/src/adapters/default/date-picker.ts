@@ -1,7 +1,8 @@
 /** @filedesc Default adapter for DatePicker — renders a date/time/datetime-local input. */
 import type { DatePickerBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
-import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, formspecWidthClass } from './shared';
+import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass } from './shared';
+import { widthStopClass } from '../width-stops';
 
 export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
     behavior, parent, actx
@@ -10,7 +11,7 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
 
     const input = document.createElement('input');
     input.type = behavior.inputType;
-    input.className = 'formspec-input' + formspecWidthClass(behavior.width);
+    input.className = 'formspec-input' + widthStopClass('formspec-input', behavior.width);
     input.name = behavior.fieldPath;
     input.id = behavior.id;
     if (behavior.placeholder) input.placeholder = behavior.placeholder;

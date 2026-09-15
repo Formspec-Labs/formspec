@@ -26,6 +26,10 @@ export {
 export { UI_POLICY } from './ui-policy.js';
 export type { UiPolicy } from './ui-policy.js';
 
+// Width stops — canonical widgetConfig.width vocabulary (theme §4.2)
+export { WIDTH_STOPS } from './width-stops.js';
+export type { WidthStop } from './width-stops.js';
+
 // Path utilities — shared dotted path parsing and normalization
 export { Path, PathSegmentKind } from './path-utils.js';
 export type { PathSegment } from './path-utils.js';

@@ -1,7 +1,7 @@
 /** @filedesc USWDS v3 adapter for DatePicker — usa-date-picker markup + text input (parity with RealUSWDSStory). */
-import type { DatePickerBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { widthStopClass, type DatePickerBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
-import { applyUSWDSValidationState, createUSWDSFieldDOM, uswdsWidthClass } from './shared';
+import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
 import { createInputSkeleton } from '../shared/input-factory.js';
 
@@ -24,7 +24,7 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
     const useTextDate = behavior.inputType === 'date';
     const { control, actualInput } = createInputSkeleton(behavior, {
         type: useTextDate ? 'text' : behavior.inputType,
-        inputClass: 'usa-input' + uswdsWidthClass(behavior.width),
+        inputClass: 'usa-input' + widthStopClass('usa-input', behavior.width),
         groupClass: useTextDate ? 'usa-date-picker' : undefined,
         onInputCreated: (input) => {
             if (behavior.inputType === 'datetime-local' && input instanceof HTMLInputElement) {

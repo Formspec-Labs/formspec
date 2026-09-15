@@ -1,7 +1,8 @@
 /** @filedesc Default adapter for MoneyInput — renders a compound amount + currency input. */
 import type { MoneyInputBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
-import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, formspecWidthClass } from './shared';
+import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass } from './shared';
+import { widthStopClass } from '../width-stops';
 
 export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
     behavior, parent, actx
@@ -9,7 +10,7 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
     const fieldDOM = createFieldDOM(behavior, actx);
 
     const container = document.createElement('div');
-    container.className = 'formspec-money' + formspecWidthClass(behavior.width);
+    container.className = 'formspec-money' + widthStopClass('formspec-input', behavior.width);
 
     const amountInput = document.createElement('input');
     amountInput.type = 'text';

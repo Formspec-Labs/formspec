@@ -1,5 +1,6 @@
 /** @filedesc TextInput behavior hook — extracts reactive state for text/textarea fields. */
 import { effect } from '@preact/signals-core';
+import type { WidthStop } from '@formspec-org/types';
 import type { ComponentDescriptor } from '../hub-types.js';
 import type { TextInputBehavior, FieldRefs, BehaviorContext } from './types';
 import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata, readRegistryConstraints } from './shared';
@@ -12,7 +13,7 @@ type TextInputComp = ComponentDescriptor & {
     maxLines?: number;
     prefix?: string;
     suffix?: string;
-    width?: string;
+    width?: WidthStop;
 };
 
 function positiveInteger(value: unknown): number | undefined {

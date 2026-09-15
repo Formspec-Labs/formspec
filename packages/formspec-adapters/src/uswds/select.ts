@@ -1,6 +1,6 @@
 /** @filedesc USWDS v3 adapter for Select — renders usa-select dropdown markup. */
-import type { SelectBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
-import { applyUSWDSValidationState, createUSWDSFieldDOM, uswdsWidthClass } from './shared';
+import { widthStopClass, type SelectBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
+import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
 import { createInputSkeleton } from '../shared/input-factory.js';
 
@@ -14,7 +14,7 @@ export const renderSelect: AdapterRenderFn<SelectBehavior> = (
 
     const { control, actualInput } = createInputSkeleton(behavior, {
         tag: 'select',
-        inputClass: 'usa-select' + uswdsWidthClass(behavior.width),
+        inputClass: 'usa-select' + widthStopClass('usa-input', behavior.width),
     });
     const select = actualInput as HTMLSelectElement;
 

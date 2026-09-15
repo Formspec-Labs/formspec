@@ -1,8 +1,9 @@
 /** @filedesc Default adapter for TextInput — input or textarea, with a character count for widgetConfig.maxLength. */
 import type { TextInputBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
-import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, wrapInputAdornments, formspecWidthClass } from './shared';
+import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, wrapInputAdornments } from './shared';
 import { createCharacterCount } from '../character-count';
+import { widthStopClass } from '../width-stops';
 
 export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     behavior, parent, actx
@@ -15,7 +16,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     if (behavior.maxLines && behavior.maxLines > 1) {
         // Textarea variant — never adorned, so the stop lands directly on the bordered control.
         const textarea = document.createElement('textarea');
-        textarea.className = 'formspec-input' + formspecWidthClass(behavior.width);
+        textarea.className = 'formspec-input' + widthStopClass('formspec-input', behavior.width);
         textarea.name = behavior.fieldPath;
         textarea.rows = behavior.maxLines;
         if (behavior.placeholder) textarea.placeholder = behavior.placeholder;
@@ -38,7 +39,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
         // The stop targets the bordered box: the input itself, or — with a prefix/suffix —
         // the .formspec-input-adornment wrapper wrapInputAdornments returns around it.
         control = wrapInputAdornments(input, behavior);
-        control.className += formspecWidthClass(behavior.width);
+        control.className += widthStopClass('formspec-input', behavior.width);
     }
 
     fieldDOM.root.appendChild(control);
