@@ -3,8 +3,9 @@ import { describe, it, expect } from 'vitest';
 import { signal } from '@preact/signals-core';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import { renderSelect } from '../../src/uswds/select';
+import { renderTextInput } from '../../src/uswds/text-input';
 import { renderDatePicker } from '../../src/uswds/date-picker';
-import { mockSelect, mockDatePicker, mockAdapterContext } from '../helpers';
+import { mockSelect, mockDatePicker, mockTextInput, mockAdapterContext } from '../helpers';
 
 /** A minimal engine stub: a real localeSignal (so watchText's effect subscribes) plus a fixed lookup table. */
 function mockEngine(strings: Record<string, string> = {}): IFormEngine {
@@ -68,5 +69,27 @@ describe('USWDS DatePicker — $ui.date.format', () => {
         );
         const hint = parent.querySelector('#field-dob-format') as HTMLElement;
         expect(hint.textContent).toBe('JJ/MM/AAAA');
+    });
+});
+
+describe('USWDS TextInput character count — $ui.characterCount.*', () => {
+    it('keeps the English inventory defaults when the Locale sets nothing', () => {
+        const parent = makeParent();
+        renderTextInput(mockTextInput({ maxLength: 200 }), parent, { ...mockAdapterContext(), engine: mockEngine() });
+        expect(parent.querySelector('.usa-character-count__status')?.textContent).toBe('200 characters allowed');
+        expect(parent.querySelector('.usa-character-count__message')?.textContent).toBe('You can enter up to 200 characters');
+    });
+
+    it('an authored Locale $ui.characterCount.* reaches the USWDS counter', () => {
+        const parent = makeParent();
+        renderTextInput(mockTextInput({ maxLength: 200 }), parent, {
+            ...mockAdapterContext(),
+            engine: mockEngine({
+                '$ui.characterCount.allowed': 'Se permiten {{$max}} caracteres',
+                '$ui.characterCount.limit': 'Puede ingresar hasta {{$max}} caracteres',
+            }),
+        });
+        expect(parent.querySelector('.usa-character-count__status')?.textContent).toBe('Se permiten 200 caracteres');
+        expect(parent.querySelector('.usa-character-count__message')?.textContent).toBe('Puede ingresar hasta 200 caracteres');
     });
 });

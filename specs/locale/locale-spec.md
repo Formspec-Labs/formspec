@@ -819,6 +819,7 @@ with the schema by test):
 | `repeat.remove` | `Remove {{$label}}` | `$label` |
 | `repeat.row` | `{{$label}} {{$index}}` | `$label`, `$index` |
 | `repeat.rowOf` | `{{$label}} {{$index}} of {{$total}}` | `$label`, `$index`, `$total` |
+| `repeat.rowNamed` | `{{$label}} of {{$total}}` | `$label` (the authored row heading), `$total` |
 | `wizard.next` | `Next` | none |
 | `wizard.nextStep` | `Next step` | none |
 | `wizard.previous` | `Previous` | none |

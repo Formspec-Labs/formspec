@@ -1,5 +1,5 @@
 /** @filedesc USWDS v3 adapter for TextInput — usa-input or usa-textarea, with usa-character-count for maxLength. */
-import { createCharacterCount, widthStopClass, type TextInputBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
+import { createCharacterCount, widthStopClass, type TextInputBehavior, type AdapterRenderFn, type AdapterContext } from '@formspec-org/webcomponent';
 import { applyUSWDSValidationState, createUSWDSFieldDOM, createUSWDSInput } from './shared';
 
 /** USWDS character count validation message (usa-character-count `VALIDATION_MESSAGE`). */
@@ -12,6 +12,7 @@ const OVER_LIMIT_MESSAGE = 'The content is too long.';
  */
 function renderCharacterCount(
     behavior: TextInputBehavior,
+    actx: AdapterContext,
     root: HTMLElement,
     field: HTMLInputElement | HTMLTextAreaElement,
     maxLength: number,
@@ -24,6 +25,7 @@ function renderCharacterCount(
         field,
         maxLength,
         vm: behavior.vm,
+        engine: actx.engine,
         messageId: `${behavior.id}-info`,
         classes: {
             message: 'usa-character-count__message usa-sr-only',
@@ -71,7 +73,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     };
     if (hasCharacterCount) {
         actx.onDispose(renderCharacterCount(
-            behavior, root, actualInput as HTMLInputElement | HTMLTextAreaElement, behavior.maxLength!,
+            behavior, actx, root, actualInput as HTMLInputElement | HTMLTextAreaElement, behavior.maxLength!,
             (next) => { overLimit = next; applyInvalidState(); },
         ));
     }

@@ -125,6 +125,7 @@ export type ChromeStringKey =
   | '$ui.repeat.remove'
   | '$ui.repeat.row'
   | '$ui.repeat.rowOf'
+  | '$ui.repeat.rowNamed'
   | '$ui.wizard.next'
   | '$ui.wizard.nextStep'
   | '$ui.wizard.previous'

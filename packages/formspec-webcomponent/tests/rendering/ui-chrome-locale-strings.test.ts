@@ -80,6 +80,17 @@ describe('$ui.repeat.add — switches the rendered Add button', () => {
         el.locale = 'es';
         expect(addBtn().textContent).toBe('Agregar otro empleo');
     });
+
+    it("names an authored row through $ui.repeat.rowNamed, so the ' of ' glue follows the Locale too", () => {
+        const el = renderJobs({ 'jobs.rowLabel': 'Empleo {{@index}}', '$ui.repeat.rowNamed': '{{$label}} de {{$total}}' });
+        const rowName = () => el.querySelector('.formspec-repeat-instance')?.getAttribute('aria-label');
+
+        expect(rowName()).toBe('Job 1 of 1');
+        el.locale = 'es';
+        expect(rowName()).toBe('Empleo 1 de 1');
+        el.locale = 'en';
+        expect(rowName()).toBe('Job 1 of 1');
+    });
 });
 
 describe('$ui.select.placeholder — switches the native Select placeholder', () => {

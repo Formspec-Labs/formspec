@@ -176,7 +176,9 @@ export function buildRepeatGroupBehavior(
         return {
             label: computed(() => authoredRow.value ?? derivedRow.value),
             // An empty rowLabel drops the heading, never the row's accessible name (Locale §3.1.1).
-            ariaLabel: computed(() => (authoredRow.value ? `${authoredRow.value} of ${total}` : derivedRowOf.value)),
+            ariaLabel: computed(() => (authoredRow.value
+                ? uiText(host.engine, 'repeat.rowNamed', { label: authoredRow.value, total }).value
+                : derivedRowOf.value)),
             removeLabel: computed(() => authoredRemove.value ?? derivedRemove.value),
             removeAriaLabel: computed(() => authoredRemove.value ?? derivedRemoveIndexed.value),
         };
