@@ -1074,3 +1074,55 @@ describe('Accordion plugin', () => {
         expect(details[1].open).toBe(true);
     });
 });
+
+describe('ActionButton label resolution', () => {
+    afterEach(() => {
+        document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
+    });
+
+    function labelledActions(label?: unknown) {
+        return {
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: 'urn:test:form' },
+            actions: [{
+                id: 'submit',
+                intent: 'submit',
+                ...(label === undefined ? {} : { label }),
+                effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+            }],
+        };
+    }
+
+    function render(opts: { actionLabel?: unknown; comp?: any }) {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.responseActionsDocument = labelledActions(opts.actionLabel);
+        el.definition = {
+            $formspec: '1.0', url: 'urn:test:form', version: '1.0.0', title: 'Test',
+            items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+        };
+        if (opts.comp) el.componentDocument = minimalComponentDoc(opts.comp);
+        el.render();
+        return el.querySelector('.formspec-submit') as HTMLButtonElement;
+    }
+
+    // Response Actions spec: the Action's `label` is presentational, and the injected button has none of
+    // its own — so the button must read the Action's label, not the generic fallback.
+    it('shows the action label on the injected submit button', () => {
+        expect(render({ actionLabel: { literal: 'Submit Certification' } }).textContent)
+            .toBe('Submit Certification');
+    });
+
+    it('keeps a Component-placed button’s own label', () => {
+        const button = render({
+            actionLabel: { literal: 'Submit Certification' },
+            comp: { component: 'ActionButton', actionRef: 'submit', label: { literal: 'Send it' } },
+        });
+        expect(button.textContent).toBe('Send it');
+    });
+
+    it('falls back to Submit when neither carries a label', () => {
+        expect(render({}).textContent).toBe('Submit');
+    });
+});

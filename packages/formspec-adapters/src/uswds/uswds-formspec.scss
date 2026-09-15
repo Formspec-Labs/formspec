@@ -151,9 +151,14 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   margin-top: 0;
 }
 
+// A submit button sizes to its label rather than stretching to the form column, wherever it sits.
+// USWDS has no rule for this, so it is Formspec's own — written once, not inline from the adapter.
+.formspec-submit {
+  align-self: flex-start;
+}
+
 .formspec-container > .formspec-submit,
 .formspec-stack > .formspec-submit {
-  align-self: flex-start;
   width: auto;
   margin-top: units(2);
 }

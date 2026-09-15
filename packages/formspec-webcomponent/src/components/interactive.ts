@@ -6,19 +6,21 @@ import { globalRegistry } from '../registry';
 import { compText } from './layout-plugin-factory';
 
 /**
- * ActionButton label wrappers (`{ literal }` or a Locale `{ ref }`; plain strings tolerated in tests) as a signal
- * that follows the active locale.
+ * An ActionButton's text as a signal that follows the active locale. `value` is the label wrapper
+ * (`{ literal }` or a Locale `{ ref }`; plain strings tolerated in tests) the caller resolved: the
+ * component's own if it has one, else the Action's — the Response Actions spec makes `label`
+ * presentational, and an injected button has no label of its own to carry.
  */
-function actionButtonText(ctx: RenderContext, comp: any, prop: string, fallback: string): ReadonlySignal<string> {
-    const value = comp[prop];
-    if (value && typeof value === 'object' && typeof value.ref === 'string') {
+function actionButtonText(ctx: RenderContext, comp: any, prop: string, value: unknown, fallback: string): ReadonlySignal<string> {
+    if (value && typeof value === 'object' && typeof (value as any).ref === 'string') {
+        const ref = (value as any).ref as string;
         return computed(() => {
             ctx.engine.localeSignal.value;
-            return ctx.engine.resolveLocaleString(value.ref, fallback);
+            return ctx.engine.resolveLocaleString(ref, fallback);
         });
     }
-    const inline = value && typeof value === 'object' && typeof value.literal === 'string'
-        ? value.literal
+    const inline = value && typeof value === 'object' && typeof (value as any).literal === 'string'
+        ? (value as any).literal as string
         : typeof value === 'string' ? value : fallback;
     return compText(ctx, comp, prop, inline);
 }
@@ -42,11 +44,14 @@ export const ActionButtonPlugin: ComponentPlugin = {
     type: 'ActionButton',
     render: (comp: any, parent: HTMLElement, ctx: RenderContext) => {
         const actionRef = actionRefFor(comp);
-        const actionResolved = ctx.resolveActionRef(actionRef, comp.id).resolved;
+        const resolution = ctx.resolveActionRef(actionRef, comp.id);
+        const actionResolved = resolution.resolved;
+        const action = resolution.action as Record<string, unknown> | null;
+        const labelSource = (prop: string) => comp[prop] ?? action?.[prop];
         const adapterFn = globalRegistry.resolveAdapterFn('ActionButton', ctx.adapterName);
         if (adapterFn) {
-            const defaultLabel = actionButtonText(ctx, comp, 'label', 'Submit');
-            const pendingLabel = actionButtonText(ctx, comp, 'pendingLabel', 'Submitting\u2026');
+            const defaultLabel = actionButtonText(ctx, comp, 'label', labelSource('label'), 'Submit');
+            const pendingLabel = actionButtonText(ctx, comp, 'pendingLabel', labelSource('pendingLabel'), 'Submitting\u2026');
             const disableWhenPending = comp.disableWhenPending !== false;
             adapterFn({
                 id: comp.id,
@@ -78,8 +83,8 @@ export const ActionButtonPlugin: ComponentPlugin = {
         button.type = 'button';
         button.className = 'formspec-action formspec-submit formspec-focus-ring';
         if (comp.id) button.id = comp.id;
-        const defaultLabel = actionButtonText(ctx, comp, 'label', 'Submit');
-        const pendingLabel = actionButtonText(ctx, comp, 'pendingLabel', 'Submitting\u2026');
+        const defaultLabel = actionButtonText(ctx, comp, 'label', labelSource('label'), 'Submit');
+        const pendingLabel = actionButtonText(ctx, comp, 'pendingLabel', labelSource('pendingLabel'), 'Submitting\u2026');
         const disableWhenPending = comp.disableWhenPending !== false;
         button.disabled = !actionResolved;
         ctx.applyCssClass(button, comp);
