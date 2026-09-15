@@ -72,6 +72,38 @@ export function resolveFieldText(
 }
 
 /**
+ * A choice field's options, and the re-render that follows them. The engine's view model resolves each
+ * option label through the Locale cascade (field key, `$optionSet`, inline label — Locale §3.1) and follows
+ * a locale switch and a remote load alike; adapters draw options once, so any change re-renders the field.
+ * Without a view model (a bind the engine does not know), the raw options stand.
+ */
+export function fieldOptions(
+    ctx: BehaviorContext,
+    fieldPath: string,
+    vm: FieldViewModel | undefined,
+    item: { options?: unknown[] } | null | undefined,
+): { options: () => any[]; remoteOptionsState: { loading: boolean; error: string | null } } {
+    const optionSignal = ctx.engine.getOptionsSignal?.(fieldPath);
+    const optionStateSignal = ctx.engine.getOptionsStateSignal?.(fieldPath);
+    if (vm || optionSignal || optionStateSignal) {
+        let initialized = false;
+        ctx.cleanupFns.push(effect(() => {
+            if (vm) vm.options.value; else optionSignal?.value;
+            optionStateSignal?.value;
+            if (!initialized) {
+                initialized = true;
+                return;
+            }
+            ctx.rerender();
+        }));
+    }
+    return {
+        options: () => (vm ? vm.options.value : (ctx.engine.getOptions?.(fieldPath) || item?.options || [])),
+        remoteOptionsState: ctx.engine.getOptionsState?.(fieldPath) || { loading: false, error: null },
+    };
+}
+
+/**
  * Set a hint/description element through the rich-text subset (core §4.2.1), hiding it while empty.
  *
  * `template` is the authored string and `interpolate` fills its leaves, so the markup boundary is the author's

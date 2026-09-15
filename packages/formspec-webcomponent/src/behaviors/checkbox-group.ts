@@ -1,7 +1,7 @@
 /** @filedesc CheckboxGroup behavior hook — extracts reactive state for multi-select checkbox groups. */
 import { effect } from '@preact/signals-core';
 import type { CheckboxGroupBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, fieldOptions, warnIfIncompatible } from './shared';
 
 export function useCheckboxGroup(ctx: BehaviorContext, comp: any): CheckboxGroupBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
@@ -15,22 +15,7 @@ export function useCheckboxGroup(ctx: BehaviorContext, comp: any): CheckboxGroup
     const labelText = item?.label || item?.key || comp.bind;
     const vm = ctx.getFieldVM(fieldPath);
 
-    // Handle remote options
-    const optionSignal = ctx.engine.getOptionsSignal?.(fieldPath);
-    const optionStateSignal = ctx.engine.getOptionsStateSignal?.(fieldPath);
-    if (optionSignal || optionStateSignal) {
-        let initialized = false;
-        ctx.cleanupFns.push(effect(() => {
-            optionSignal?.value;
-            optionStateSignal?.value;
-            if (!initialized) {
-                initialized = true;
-                return;
-            }
-            ctx.rerender();
-        }));
-    }
-    const remoteOptionsState = ctx.engine.getOptionsState?.(fieldPath) || { loading: false, error: null };
+    const { options, remoteOptionsState } = fieldOptions(ctx, fieldPath, vm, item);
 
     // Mutable ref for the current optionControls from the adapter
     let currentOptionControls: Map<string, HTMLInputElement> | undefined;
@@ -49,7 +34,7 @@ export function useCheckboxGroup(ctx: BehaviorContext, comp: any): CheckboxGroup
             accessibility: comp.accessibility,
         },
         remoteOptionsState,
-        options: () => ctx.engine.getOptions?.(fieldPath) || item?.options || [],
+        options,
         groupRole: 'group',
         selectAll: !!comp.selectAll,
         columns: comp.columns,

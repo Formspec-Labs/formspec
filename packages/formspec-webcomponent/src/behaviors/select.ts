@@ -1,7 +1,7 @@
 /** @filedesc Select behavior hook — extracts reactive state for dropdown select fields. */
 import { effect } from '@preact/signals-core';
 import type { SelectBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, fieldOptions, warnIfIncompatible, readRegistryMetadata } from './shared';
 import { bindSelectCombobox } from './select-combobox-bind';
 
 export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
@@ -29,22 +29,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
         }
     }
 
-    // Handle remote options
-    const optionSignal = ctx.engine.getOptionsSignal?.(fieldPath);
-    const optionStateSignal = ctx.engine.getOptionsStateSignal?.(fieldPath);
-    if (optionSignal || optionStateSignal) {
-        let initialized = false;
-        ctx.cleanupFns.push(effect(() => {
-            optionSignal?.value;
-            optionStateSignal?.value;
-            if (!initialized) {
-                initialized = true;
-                return;
-            }
-            ctx.rerender();
-        }));
-    }
-    const remoteOptionsState = ctx.engine.getOptionsState?.(fieldPath) || { loading: false, error: null };
+    const { options, remoteOptionsState } = fieldOptions(ctx, fieldPath, vm, item);
 
     const dataType = item?.dataType || 'choice';
 
@@ -62,7 +47,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
             accessibility: comp.accessibility,
         },
         remoteOptionsState,
-        options: () => ctx.engine.getOptions?.(fieldPath) || item?.options || [],
+        options,
         placeholder: comp.placeholder || extensionPlaceholder,
         clearable: comp.clearable,
         dataType,
@@ -96,8 +81,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
                         vm,
                         labelText,
                         presentation,
-                        getOptions: () =>
-                            ctx.engine.getOptions?.(fieldPath) || item?.options || [],
+                        getOptions: options,
                     },
                     refs,
                 );
