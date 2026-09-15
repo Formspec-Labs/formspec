@@ -113,3 +113,26 @@
   opacity: 0.4;
   cursor: default;
 }
+
+/* Core §4.2.5.3 styleHints, carried onto an item's root as classes by the resolver. Zero specificity: they are
+ * the author's defaults, so a state or a Theme class restyles over them. A tone is the leading bar this skin
+ * already gives headings; muted re-points the skin's text tokens for everything in the item; size scales the
+ * item's words and controls together. */
+:where(.formspec-emphasis-primary, .formspec-emphasis-success, .formspec-emphasis-warning, .formspec-emphasis-danger) {
+  border-inline-start: 3px solid var(--formspec-emphasis-tone);
+  padding-inline-start: var(--formspec-spacing-md, 0.75rem);
+}
+
+:where(.formspec-emphasis-primary) { --formspec-emphasis-tone: var(--formspec-default-primary); }
+:where(.formspec-emphasis-success) { --formspec-emphasis-tone: var(--formspec-default-success); }
+:where(.formspec-emphasis-warning) { --formspec-emphasis-tone: var(--formspec-default-warning); }
+:where(.formspec-emphasis-danger) { --formspec-emphasis-tone: var(--formspec-default-danger); }
+
+:where(.formspec-emphasis-muted) {
+  --formspec-default-text: var(--formspec-default-text-muted);
+  --formspec-default-text-strong: var(--formspec-default-text-muted);
+  color: var(--formspec-default-text-muted);
+}
+
+:where(.formspec-size-compact) { zoom: 0.875; }
+:where(.formspec-size-large) { zoom: 1.125; }

@@ -2,6 +2,37 @@ import { describe, it, expect, vi } from 'vitest';
 import { resolvePresentation, resolveWidget, widgetTokenToComponent, setTailwindMerge, type ThemeDocument, type ItemDescriptor } from '../src/index';
 
 describe('resolvePresentation', () => {
+    describe('Tier 1 styleHints (core §4.2.5.3)', () => {
+        const item: ItemDescriptor = { key: 'note', type: 'display' };
+
+        it('carries emphasis and size as structural classes each adapter maps to its palette and scale', () => {
+            const result = resolvePresentation(null, item, {
+                itemPresentation: { styleHints: { emphasis: 'muted', size: 'large' } },
+            });
+            expect(result.cssClass).toEqual(['formspec-emphasis-muted', 'formspec-size-large']);
+        });
+
+        it("adds no class for the default size, which is every renderer's normal treatment", () => {
+            const result = resolvePresentation(null, item, {
+                itemPresentation: { styleHints: { emphasis: 'warning', size: 'default' } },
+            });
+            expect(result.cssClass).toEqual(['formspec-emphasis-warning']);
+        });
+
+        it('keeps them beneath the Theme, whose classes join them', () => {
+            const theme = {
+                $formspecTheme: '1.0' as const,
+                version: '1.0.0',
+                targetDefinition: { url: 'test' },
+                items: { note: { cssClass: 'house-note' } },
+            };
+            const result = resolvePresentation(theme, item, {
+                itemPresentation: { styleHints: { emphasis: 'primary', size: 'large' } },
+            });
+            expect(result.cssClass).toEqual(['formspec-emphasis-primary', 'formspec-size-large', 'house-note']);
+        });
+    });
+
     it('returns empty block with no theme', () => {
         const item: ItemDescriptor = { key: 'name', type: 'field', dataType: 'string' };
         const result = resolvePresentation(null, item);

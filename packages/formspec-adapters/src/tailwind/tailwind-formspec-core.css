@@ -222,3 +222,28 @@
     gap: var(--formspec-spacing-md, 1rem) var(--formspec-spacing-field, 0.75rem);
   }
 }
+
+/*
+ * Core §4.2.5.3 styleHints, carried onto an item's root as classes. Zero specificity, so utilities and states win:
+ * a tone is a leading bar, muted re-points this sheet's text token for the whole item, size scales it.
+ */
+@layer components {
+  :where(.formspec-emphasis-primary, .formspec-emphasis-success, .formspec-emphasis-warning, .formspec-emphasis-danger) {
+    border-inline-start: 3px solid var(--formspec-emphasis-tone);
+    padding-inline-start: 0.75rem;
+  }
+
+  :where(.formspec-emphasis-primary) { --formspec-emphasis-tone: var(--formspec-tw-accent); }
+  :where(.formspec-emphasis-success) { --formspec-emphasis-tone: var(--formspec-tw-success); }
+  :where(.formspec-emphasis-warning) { --formspec-emphasis-tone: var(--formspec-tw-warning-border); }
+  :where(.formspec-emphasis-danger) { --formspec-emphasis-tone: var(--formspec-tw-danger); }
+
+  :where(.formspec-emphasis-muted) {
+    --formspec-tw-text: var(--formspec-tw-muted);
+    color: var(--formspec-tw-muted);
+  }
+
+  :where(.formspec-size-compact) { zoom: 0.875; }
+  :where(.formspec-size-large) { zoom: 1.125; }
+}
+

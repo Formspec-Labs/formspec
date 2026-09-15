@@ -3005,6 +3005,11 @@ NOT CSS — renderers map them to their own palette and sizing.
 | `emphasis` | string | `"primary"`, `"success"`, `"warning"`, `"danger"`, `"muted"` | (none) | Semantic importance or tone. |
 | `size` | string | `"compact"`, `"default"`, `"large"` | `"default"` | Relative sizing. |
 
+A renderer SHOULD honor both on the Item's whole rendering — its label,
+help text, and control — and MUST keep them beneath state: a tone never
+hides a validation error or a read-only treatment. They are author
+defaults, so a Theme (Tier 2) styles over them.
+
 ##### 4.2.5.4 Accessibility
 
 The `accessibility` sub-object provides metadata for assistive technologies.

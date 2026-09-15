@@ -319,6 +319,19 @@ function selectorMatches(match: SelectorMatch, item: ItemDescriptor): boolean {
 // ── Main Resolver ───────────────────────────────────────────────────
 
 /**
+ * Core §4.2.5.3 `styleHints` as the structural classes every renderer carries onto the item's root:
+ * `formspec-emphasis-<tone>` and `formspec-size-<compact|large>` (`default` is the normal treatment, so it
+ * adds none). The hints name intent, not CSS; each adapter's stylesheet maps these classes to its own
+ * palette and type scale, and a Theme's classes join them.
+ */
+function styleHintClasses(hints: StyleHints | undefined): string[] {
+    const classes: string[] = [];
+    if (hints?.emphasis) classes.push(`formspec-emphasis-${hints.emphasis}`);
+    if (hints?.size && hints.size !== 'default') classes.push(`formspec-size-${hints.size}`);
+    return classes;
+}
+
+/**
  * Resolve the effective {@link PresentationBlock} for a single item by
  * merging five cascade levels (lowest to highest priority):
  *
@@ -353,11 +366,8 @@ export function resolvePresentation(
     if (tier1?.itemPresentation) {
         const ip = tier1.itemPresentation;
         if (ip.widgetHint) result.widget = ip.widgetHint;
-        // Map layout hints that have presentation equivalents
-        if (ip.layout?.collapsible) {
-            // Layout hints don't map directly to PresentationBlock properties,
-            // but are available through the Tier1Hints for consumers
-        }
+        const styleClasses = styleHintClasses(ip.styleHints);
+        if (styleClasses.length > 0) result.cssClass = styleClasses;
     }
 
     if (!theme) return result;

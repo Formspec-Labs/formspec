@@ -112,6 +112,25 @@ describe('USWDS rules layer carries only Formspec\'s own rules (ADR 0063 D-4)', 
     });
 });
 
+describe('every adapter sheet maps the core §4.2.5.3 styleHints classes', () => {
+    const STYLE_HINT_CLASSES = [
+        'formspec-emphasis-primary', 'formspec-emphasis-success', 'formspec-emphasis-warning',
+        'formspec-emphasis-danger', 'formspec-emphasis-muted', 'formspec-size-compact', 'formspec-size-large',
+    ];
+    const sheets = {
+        'USWDS rules layer': readUswdsFormspecCss(),
+        'Tailwind core': readFileSync(join(pkgRoot, 'src/tailwind/tailwind-formspec-core.css'), 'utf8'),
+    };
+
+    it.each(Object.entries(sheets))('%s styles each one', (_name, css) => {
+        for (const cls of STYLE_HINT_CLASSES) expect(css, cls).toContain(`.${cls}`);
+    });
+
+    it('keeps a tone beneath USWDS states, so an error bar still shows', () => {
+        expect(readUswdsFormspecCss()).toMatch(/:where\(\.formspec-emphasis-primary,[^)]*\)\{border-left:/);
+    });
+});
+
 describe('the uswds adapter declares both layers with their stated probes (ADR 0063 D-4)', () => {
     it('declares the base layer probed by usa-sr-only/position:absolute', () => {
         expect(uswdsAdapter.stylesheets![0].presentWhen).toEqual({ className: 'usa-sr-only', property: 'position', value: 'absolute' });

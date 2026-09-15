@@ -44,8 +44,10 @@ Three pressures produced the same symptom — patches — from three places.
    tokens. The USWDS gap override is deleted; USWDS margins are its rhythm.
 4. **New Theme knobs pass a rule.** A semantic knob (schema + every adapter)
    only for form meaning that at least two adapters can map — width stops,
-   required indicator, label position qualify. An org-wide look → variant. A
-   per-item look → checked class. `style` → last resort.
+   required indicator, label position qualify. A per-item tone or scale → the
+   Definition's `styleHints` (core §4.2.5.3), which every adapter maps. An
+   org-wide look → variant. Any other per-item look → checked class. `style` →
+   last resort.
 
 ## Consequences
 
@@ -70,3 +72,9 @@ Three pressures produced the same symptom — patches — from three places.
   them; Playwright and the unit suites hold; the USWDS demo still measures 40px
   between questions with no adapter-side gap rule.
 - The demo ships `uswds-nj`, names it in its Theme, and renders bold sub-heads.
+
+**Amended (fs-1u4n):** `styleHints` was declared and read by nothing, a second
+answer to "where does per-item tone live". The resolver now carries it as
+`formspec-emphasis-<tone>` / `formspec-size-<size>` classes, and the default,
+USWDS and Tailwind sheets each map them at zero specificity — a tone is a
+leading bar, muted recedes the text, size scales the item.

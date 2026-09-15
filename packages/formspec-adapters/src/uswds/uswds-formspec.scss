@@ -247,6 +247,28 @@ dialog.usa-modal::backdrop {
   min-width: 0;
 }
 
+// Core §4.2.5.3 styleHints, carried onto an item's root as classes. Zero specificity: they are the author's
+// defaults, so USWDS's own states (an error bar) and a Theme class win over them. A tone is a leading bar in
+// USWDS's palette, the shape of its alert and summary box; muted takes the hint color, which USWDS's choice
+// labels set for themselves; size scales the item's words and controls together.
+:where(.formspec-emphasis-primary, .formspec-emphasis-success, .formspec-emphasis-warning, .formspec-emphasis-danger) {
+  border-left: units(0.5) solid var(--formspec-emphasis-tone);
+  padding-left: units(2);
+}
+
+:where(.formspec-emphasis-primary) { --formspec-emphasis-tone: #{color('primary')}; }
+:where(.formspec-emphasis-success) { --formspec-emphasis-tone: #{color('success')}; }
+:where(.formspec-emphasis-warning) { --formspec-emphasis-tone: #{color('warning')}; }
+:where(.formspec-emphasis-danger) { --formspec-emphasis-tone: #{color('error')}; }
+
+.formspec-emphasis-muted,
+.formspec-emphasis-muted :is(.usa-radio__label, .usa-checkbox__label) {
+  color: color('base');
+}
+
+:where(.formspec-size-compact) { zoom: 0.875; }
+:where(.formspec-size-large) { zoom: 1.125; }
+
 // usa-tag has no semantic variants — map Formspec badge variants to USWDS palette.
 .usa-tag.formspec-uswds-tag--primary {
   background-color: color('primary');
