@@ -51,12 +51,21 @@ describe('USWDS integration stylesheet is self-contained', () => {
     it('lets the Theme retune the rhythm between fields through the spacing.field token', () => {
         // USWDS's own units-3 margin is the fallback; the token the renderer publishes overrides it.
         expect(declarationsFor(css, '.usa-form-group')).toMatch(/margin-top:var\(--formspec-spacing-field,\s*1\.5rem\)/);
-        // One rhythm owner: the structural stack gap would otherwise add to the margin inside repeat lists.
-        expect(declarationsFor(css, '.formspec-container .formspec-stack:not(.grid-row)')).toMatch(/gap:0/);
+        // One rhythm owner: the structural sheet carries no gaps (ADR 0064 decision 3), so no override here.
+        expect(declarationsFor(css, '.formspec-container .formspec-stack:not(.grid-row)')).toBe('');
     });
 
     it('spaces the field help row below the control', () => {
         expect(declarationsFor(css, '.formspec-field-help-row')).toMatch(/margin-top:1rem/);
+    });
+
+    it('keeps the native modal dialog in the top layer and scrollable', () => {
+        // `.usa-modal` itself says `position: relative`, which would drop an open dialog into page flow.
+        const dialog = declarationsFor(css, 'dialog.usa-modal');
+        expect(dialog).toMatch(/position:fixed/);
+        expect(dialog).toMatch(/margin:auto/);
+        expect(dialog).toMatch(/overflow:auto/);
+        expect(dialog).not.toMatch(/overflow:visible/);
     });
 
     it('types the render root without help from the page', () => {
@@ -82,6 +91,14 @@ describe.each([
         const target = declaredStylesheetTarget(join(pkgRoot, modulePath));
         expect(target).toBe(join(pkgRoot, file));
         expect(existsSync(target), `${target} does not exist`).toBe(true);
+    });
+});
+
+describe('the tailwind adapter owns its layout rhythm (ADR 0064 decision 3)', () => {
+    const css = readFileSync(join(pkgRoot, 'src/tailwind/tailwind-formspec-core.css'), 'utf8');
+    it('declares the container and stack gaps the structural sheet no longer carries', () => {
+        expect(css).toMatch(/\.formspec-container\s*\{\s*gap: var\(--formspec-spacing-md/);
+        expect(css).toMatch(/\.formspec-stack:not\(\.grid-row\),[\s\S]*?gap: var\(--formspec-spacing-field/);
     });
 });
 

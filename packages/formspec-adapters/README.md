@@ -56,8 +56,8 @@ An organization's look — a compile-time USWDS reskin, house rules — is a **v
 3. Derive the adapter — same components, new name/stylesheet/vocabulary:
 
     ```ts
-    import { deriveAdapter } from 'formspec-webcomponent';
-    import { uswdsAdapter } from 'formspec-adapters';
+    import { deriveAdapter } from '@formspec-org/webcomponent';
+    import { uswdsAdapter } from '@formspec-org/adapters';
     import { classVocabulary } from './uswds-nj.classes.js';
 
     export const uswdsNjAdapter = deriveAdapter(uswdsAdapter, {
@@ -82,8 +82,8 @@ Peer dependency: `formspec-webcomponent`.
 ## Usage
 
 ```js
-import { globalRegistry } from 'formspec-webcomponent';
-import { exampleAdapter } from 'formspec-adapters';
+import { globalRegistry } from '@formspec-org/webcomponent';
+import { exampleAdapter } from '@formspec-org/adapters';
 
 globalRegistry.registerAdapter(exampleAdapter);
 ```
@@ -106,7 +106,7 @@ el.adapter = 'example';
 An adapter is a `RenderAdapter` object mapping component type strings to render functions:
 
 ```ts
-import type { RenderAdapter, AdapterRenderFn, TextInputBehavior } from 'formspec-webcomponent';
+import type { RenderAdapter, AdapterRenderFn, TextInputBehavior } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from 'formspec-adapters/helpers';
 
 const renderTextInput: AdapterRenderFn<TextInputBehavior> = (behavior, parent, actx) => {
@@ -234,7 +234,7 @@ Adapters are the integration point between Formspec and CSS frameworks like Tail
 Tailwind adapters emit utility classes directly in the markup. No bridge CSS or runtime class injection needed — the adapter IS the bridge.
 
 ```ts
-import type { AdapterRenderFn, TextInputBehavior } from 'formspec-webcomponent';
+import type { AdapterRenderFn, TextInputBehavior } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from 'formspec-adapters/helpers';
 
 const renderTextInput: AdapterRenderFn<TextInputBehavior> = (behavior, parent, actx) => {

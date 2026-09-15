@@ -48,9 +48,8 @@
   },
   "peerDependencies": {
     "@formspec-org/webcomponent": "^1.0.0",
-    "@preact/signals-core": "^1.6.0"
-  },
-  "dependencies": {
+    "@preact/signals-core": "^1.6.0",
+    "@uswds/uswds": "^3.11.0",
     "sass": "^1.86.0"
   },
   "devDependencies": {
@@ -58,6 +57,15 @@
     "@uswds/uswds": "^3.11.0",
     "@formspec-org/webcomponent": "*",
     "happy-dom": "^17.6.1",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "sass": "^1.86.0"
+  },
+  "peerDependenciesMeta": {
+    "@uswds/uswds": {
+      "optional": true
+    },
+    "sass": {
+      "optional": true
+    }
   }
 }
