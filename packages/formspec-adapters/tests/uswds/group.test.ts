@@ -178,8 +178,17 @@ describe('USWDS repeatable group', () => {
     it('emits no Formspec default repeat chrome', () => {
         const { parent } = mountRepeat();
         expect(parent.querySelector('.formspec-repeat-instance')).toBeNull();
-        expect(parent.querySelector('.formspec-repeat-add')).toBeNull();
         expect(parent.querySelector('.formspec-repeat-remove')).toBeNull();
+        expect(parent.querySelector('.formspec-focus-ring')).toBeNull();
+    });
+
+    it('marks Add with the structural repeat-add class, so the layout sheet sizes it to its label', () => {
+        const { parent } = mountRepeat();
+        const add = parent.querySelector('button.usa-button--outline') as HTMLButtonElement;
+        // The layout primitive keys `align-self: flex-start` on this class: a flex-column child otherwise
+        // stretches to the form column. The USWDS accordion repeat already carries it; group and cards
+        // must too, or the same button renders full-width in one layout and label-width in another.
+        expect(add.classList.contains('formspec-repeat-add')).toBe(true);
     });
 
     it('announces add and remove through a polite live region', () => {

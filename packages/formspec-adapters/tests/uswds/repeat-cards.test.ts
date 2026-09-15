@@ -85,6 +85,8 @@ describe('USWDS RepeatCards', () => {
         expect(add!.textContent).toBe('Add another job');
         // Add follows the rows: it is the move after the last card, not a header control.
         expect(add!.previousElementSibling?.querySelector('.usa-card')).not.toBeNull();
+        // Structural class: the layout sheet sizes it to its label (left-aligned) instead of the column.
+        expect(add!.classList.contains('formspec-repeat-add')).toBe(true);
         add!.click();
         expect(addInstance).toHaveBeenCalledOnce();
     });

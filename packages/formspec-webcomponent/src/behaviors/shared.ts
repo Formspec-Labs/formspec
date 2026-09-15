@@ -211,10 +211,14 @@ export function bindSharedFieldEffects(
 
     // Field help: the item's human References as one link, after the hint and at the end of the field block
     // (References spec §7). Built once — References are static per Definition (§2.3) — with the label alone
-    // following the locale.
+    // following the locale. The link sits in a row of its own so it clears the control above it; the
+    // adapters space the row, not the inline anchor.
     const helpLink = createFieldHelpLink(ctx.fieldHelp?.(fieldPath) ?? []);
     if (helpLink) {
-        refs.root.appendChild(helpLink);
+        const helpRow = document.createElement('div');
+        helpRow.className = 'formspec-field-help-row';
+        helpRow.appendChild(helpLink);
+        refs.root.appendChild(helpRow);
         const helpLabelKey = `${fieldPath.replace(/\[\d+\]/g, '').split('.').pop()}.helpLabel`;
         disposers.push(effect(() => {
             ctx.engine.localeSignal?.value;

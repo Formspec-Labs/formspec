@@ -61,6 +61,20 @@ describe('field help link', () => {
         expect(links[0].classList.contains('usa-link')).toBe(true);
     });
 
+    it('sits in its own block row below the control, so it never runs into the options above it', () => {
+        const el = render([
+            { target: 'workType', audience: 'human', title: 'Types of work', uri: 'https://nj.gov/help/work-types' },
+        ]);
+        const link = helpLinks(el)[0];
+        const row = link.parentElement as HTMLElement;
+        // A block of its own (not an inline anchor appended to the field root): spacing is the row's, and the
+        // structural sheet owns it, so both adapters get the same gap.
+        expect(row.classList.contains('formspec-field-help-row')).toBe(true);
+        expect(row.tagName).toBe('DIV');
+        expect(row.parentElement?.getAttribute('data-name')).toBe('workType');
+        expect(row.lastElementChild).toBe(link);
+    });
+
     it('puts the link inside its own field, after the hint', () => {
         const el = render([
             { target: 'workType', audience: 'human', title: 'Types of work', uri: 'https://nj.gov/help/work-types' },

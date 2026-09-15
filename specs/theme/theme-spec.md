@@ -373,6 +373,14 @@ widget token-slot prefixes unless a later policy gate promotes them.
 | `elevation.` | Shadows and depth | `elevation.low`, `elevation.medium`, `elevation.high` |
 | `x-` | Custom/vendor tokens | `x-brand.logo-height`, `x-agency.seal-color` |
 
+`spacing.field` is the semantic gap between consecutive fields. Renderers
+emit every token as a CSS custom property on the render root, named
+`--formspec-<key>` with dots replaced by dashes (`spacing.field` →
+`--formspec-spacing-field`), and adapters read that property for the
+rhythm between fields — falling back to their design system's own default
+when the Theme sets no token — so one Theme value retunes the whole form
+without touching adapter stylesheets.
+
 > **See also:** The [Token Registry Specification](token-registry-spec.md)
 > defines a structured catalog format that adds type, description, and
 > default metadata to these token categories. The registry enables

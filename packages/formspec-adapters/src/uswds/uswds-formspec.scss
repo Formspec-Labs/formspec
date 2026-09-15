@@ -81,6 +81,25 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   --formspec-adapter: uswds;
 }
 
+// Rhythm between fields is USWDS's `.usa-form-group` top margin. The Theme can retune it through the
+// semantic `spacing.field` token (Theme spec §3.2), which the renderer publishes as a custom property on
+// the render root; absent a token the USWDS default stands. Formspec's structural stacks add no gap of
+// their own here — USWDS components carry their own margins, and a flex gap on top would double the rhythm
+// inside repeat lists while fieldset children got the margin alone.
+.usa-form-group {
+  margin-top: var(--formspec-spacing-field, #{units(3)});
+}
+
+.formspec-container .formspec-stack:not(.grid-row) {
+  gap: 0;
+}
+
+// The per-field help link (References spec §7) sits in its own row under the control; USWDS has no
+// pattern for it, so the row takes one unit of breathing room the way a hint does above the control.
+.formspec-field-help-row {
+  margin-top: units(2);
+}
+
 // An empty error node must not occupy space. `.usa-error-message` sets `display: block`, which outranks
 // the UA's `[hidden]` rule, and USWDS's own markup sidesteps that by rendering the node only in the error
 // state. Formspec renders it always, because the field behavior binds to it for text and aria-describedby.

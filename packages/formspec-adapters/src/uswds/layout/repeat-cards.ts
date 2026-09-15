@@ -33,7 +33,8 @@ export function renderUSWDSRepeatCards(
 
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
-    addBtn.className = 'usa-button';
+    // `formspec-repeat-add` is structural: the layout sheet sizes the button to its label instead of the column.
+    addBtn.className = 'usa-button formspec-repeat-add';
     addBtn.addEventListener('click', () => behavior.addInstance());
     watchText(actx, behavior.addLabel, (text) => { addBtn.textContent = text; });
 

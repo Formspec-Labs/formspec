@@ -970,6 +970,14 @@ unless a later policy gate promotes them.</p>
 </tr>
 </tbody>
 </table>
+<p><code>spacing.field</code> is the semantic gap between consecutive
+fields. Renderers emit every token as a CSS custom property on the
+render root, named <code>--formspec-&lt;key&gt;</code> with dots
+replaced by dashes (<code>spacing.field</code> →
+<code>--formspec-spacing-field</code>), and adapters read that property
+for the rhythm between fields — falling back to their design system’s
+own default when the Theme sets no token — so one Theme value retunes
+the whole form without touching adapter stylesheets.</p>
 <blockquote>
 <p><strong>See also:</strong> The <a href="token-registry-spec.md">Token
 Registry Specification</a> defines a structured catalog format that adds

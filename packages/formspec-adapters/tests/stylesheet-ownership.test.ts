@@ -48,6 +48,17 @@ describe('USWDS integration stylesheet is self-contained', () => {
         expect(sources.filter((u) => !u.startsWith('data:font/woff2;base64,'))).toEqual([]);
     });
 
+    it('lets the Theme retune the rhythm between fields through the spacing.field token', () => {
+        // USWDS's own units-3 margin is the fallback; the token the renderer publishes overrides it.
+        expect(declarationsFor(css, '.usa-form-group')).toMatch(/margin-top:var\(--formspec-spacing-field,\s*1\.5rem\)/);
+        // One rhythm owner: the structural stack gap would otherwise add to the margin inside repeat lists.
+        expect(declarationsFor(css, '.formspec-container .formspec-stack:not(.grid-row)')).toMatch(/gap:0/);
+    });
+
+    it('spaces the field help row below the control', () => {
+        expect(declarationsFor(css, '.formspec-field-help-row')).toMatch(/margin-top:1rem/);
+    });
+
     it('types the render root without help from the page', () => {
         // USWDS applies body typography and heading styles at the document level (uswds-global), which this
         // trimmed build never forwards — without adapter-owned rules the root inherits the UA serif.
