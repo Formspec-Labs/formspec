@@ -42,22 +42,34 @@ export function renderDividerDOM(
         return;
     }
 
+    // Root stays put (never swapped) so Bind relevance, which captures the elements this render appended,
+    // keeps applying. Its label/second-line children exist only while the live label has text — added on
+    // first arrival, torn down when it empties again — so an always-empty label never leaves a dead `<hr>`.
     const root = document.createElement('div');
     const lineBefore = document.createElement('hr');
-    const labelEl = document.createElement('span');
-    labelEl.className = classes.label;
-    const lineAfter = document.createElement('hr');
-    lineAfter.className = classes.line;
-    root.append(lineBefore, labelEl, lineAfter);
+    lineBefore.className = classes.rule;
+    root.append(lineBefore);
     decorate(root);
 
     const labeledTokens = classes.labeled.split(/\s+/).filter(Boolean);
+    let labelEl: HTMLElement | null = null;
+    let lineAfter: HTMLElement | null = null;
     behavior.watchLabel((text) => {
         const labeled = text !== '';
         for (const token of labeledTokens) root.classList.toggle(token, labeled);
         lineBefore.className = labeled ? classes.line : classes.rule;
-        labelEl.textContent = text;
-        labelEl.hidden = !labeled;
-        lineAfter.hidden = !labeled;
+        if (labeled && !labelEl) {
+            labelEl = document.createElement('span');
+            labelEl.className = classes.label;
+            lineAfter = document.createElement('hr');
+            lineAfter.className = classes.line;
+            root.append(labelEl, lineAfter);
+        } else if (!labeled && labelEl) {
+            labelEl.remove();
+            lineAfter?.remove();
+            labelEl = null;
+            lineAfter = null;
+        }
+        if (labelEl) labelEl.textContent = text;
     });
 }

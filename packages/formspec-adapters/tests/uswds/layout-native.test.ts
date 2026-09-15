@@ -212,6 +212,22 @@ describe('USWDS layout natives', () => {
         expect(shownRules()).toHaveLength(1);
     });
 
+    it('renderUSWDSDivider emits exactly one hr for an unlabeled divider — no hidden dead line', () => {
+        // A display Item with a permanently empty label (a plain hairline) still has a label *source*, so it
+        // takes the reactive branch below — it must not leave a hidden `hr.formspec-uswds-divider__line` behind.
+        const parent = document.createElement('div');
+        const behavior: DividerLayoutBehavior = { comp: {}, labelText: '', watchLabel: (fn) => fn('') };
+        renderUSWDSDivider(behavior, parent, mockAdapterContext());
+        expect(parent.querySelectorAll('hr')).toHaveLength(1);
+    });
+
+    it('renderUSWDSDivider emits exactly two hrs for a labeled divider — no extra line', () => {
+        const parent = document.createElement('div');
+        const behavior: DividerLayoutBehavior = { comp: {}, labelText: 'Job', watchLabel: (fn) => fn('Job') };
+        renderUSWDSDivider(behavior, parent, mockAdapterContext());
+        expect(parent.querySelectorAll('hr')).toHaveLength(2);
+    });
+
     it('renderUSWDSCollapsible uses usa-accordion button and content', () => {
         const parent = document.createElement('div');
         const behavior: CollapsibleLayoutBehavior = {
