@@ -68,10 +68,12 @@ function mountRepeat(options: { canRemove?: boolean } = {}) {
 }
 
 describe('USWDS bound group', () => {
-    it('renders a titled group as a fieldset named by its legend', () => {
+    it('renders a titled group as a fieldset named by its legend, inside a form group', () => {
         const { parent } = mountGroup('Mailing address');
         const fieldset = parent.querySelector('fieldset.usa-fieldset');
         expect(fieldset).not.toBeNull();
+        // Same shape as a question, so a section separates from the preceding field by USWDS's own margins.
+        expect(fieldset!.parentElement!.className).toBe('usa-form-group');
         expect(fieldset!.querySelector('legend.usa-legend')?.textContent).toBe('Mailing address');
         expect(fieldset!.querySelector('input')).not.toBeNull();
     });

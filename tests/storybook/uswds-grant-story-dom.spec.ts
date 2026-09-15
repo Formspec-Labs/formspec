@@ -159,14 +159,16 @@ test.describe('USWDS Grant story DOM', () => {
         );
         expect(themeGridCellClasses![1], 'second region is span 4').toContain('tablet:grid-col-4');
 
+        // The render root IS the USWDS form (`.formspec-container` extends `.usa-form--large`), so it holds
+        // the 30rem federal form column — not the 20rem default a plain `.usa-form` wrapper would impose.
         const usaFormMax = await previewFrame
-            .locator('form.usa-form')
+            .locator('.formspec-container')
             .first()
             .evaluate((el) => getComputedStyle(el).maxWidth);
         const maxPx = parseFloat(usaFormMax);
         expect(
-            usaFormMax === 'none' || usaFormMax === '100%' || (Number.isFinite(maxPx) && maxPx >= 500),
-            `Live Storybook: .usa-form max-width should not be USWDS mobile cap (~320px); got ${usaFormMax}`
+            usaFormMax === 'none' || usaFormMax === '100%' || (Number.isFinite(maxPx) && maxPx >= 480),
+            `Live Storybook: render root should carry the large USWDS form column, not the 20rem default; got ${usaFormMax}`
         ).toBe(true);
     });
 });

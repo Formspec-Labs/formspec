@@ -24,11 +24,17 @@ export function renderUSWDSGroup(
     parent: HTMLElement,
     actx: AdapterContext,
 ): void {
-    // USWDS groups related fields in a fieldset named by its legend. Untitled, a group is only a scope:
-    // a fieldset with no legend has no accessible name, so it stays a plain wrapper.
-    const el = document.createElement(behavior.titleText ? 'fieldset' : 'div');
+    // USWDS groups related fields in a fieldset named by its legend, inside a form group — the same shape
+    // a question takes, so a section separates from the preceding field by USWDS's own margins. Untitled,
+    // a group is only a scope: a fieldset with no legend has no accessible name, so it stays a wrapper.
+    const el = document.createElement('div');
+    let content: HTMLElement = el;
     if (behavior.titleText) {
-        el.className = 'usa-fieldset';
+        el.className = 'usa-form-group';
+        content = document.createElement('fieldset');
+        content.className = 'usa-fieldset';
+        el.appendChild(content);
+
         const legend = document.createElement('legend');
         // A section's legend is USWDS's large legend; a nested group takes the plain one — the size a
         // question's own legend uses. USWDS has no middle size, so depth beyond that changes nothing.
@@ -36,12 +42,12 @@ export function renderUSWDSGroup(
             ? 'usa-legend usa-legend--large'
             : 'usa-legend';
         watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
-        el.appendChild(legend);
+        content.appendChild(legend);
     }
     applyNodePresentation(el, behavior.comp, actx);
     parent.appendChild(el);
 
-    behavior.renderChildren(el);
+    behavior.renderChildren(content);
     actx.onDispose(behavior.bind({ root: el }));
 }
 

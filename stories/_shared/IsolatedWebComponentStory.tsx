@@ -153,16 +153,12 @@ export function IsolatedWebComponentStory({
     const inner =
         adapter?.name === 'uswds' ? (
             <div className="isolated-story-root">
-                {/*
-                  Render the adapter inside a real `.usa-form` shell. Any width policy should come
-                  from the adapter CSS itself, not Storybook-only comparison overrides.
-                */}
-                <form className="usa-form">
-                    {definition?.title ? (
-                        <h2 className={allDisplayOnly ? undefined : 'usa-sr-only'}>{definition.title}</h2>
-                    ) : null}
-                    <div ref={containerRef} />
-                </form>
+                {/* No `.usa-form` shell: the render root is the form, so wrapping it in a second one
+                    would cap the story at USWDS's 20rem default instead of the adapter's own column. */}
+                {definition?.title ? (
+                    <h2 className={allDisplayOnly ? undefined : 'usa-sr-only'}>{definition.title}</h2>
+                ) : null}
+                <div ref={containerRef} />
             </div>
         ) : (
             <div className="isolated-story-root" ref={containerRef} />

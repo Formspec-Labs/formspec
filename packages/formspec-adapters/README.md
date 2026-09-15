@@ -27,6 +27,8 @@ export const uswdsAdapter: RenderAdapter = {
 
 The renderer links those URLs before any Theme `stylesheets`. **Hosts never import adapter CSS.** Self-contained is load-bearing: a bundler emits `new URL(x, import.meta.url)` as-is and never follows the `url()` references inside the file, so a stylesheet with relative `../fonts/` paths loses its typefaces in every bundled build. It also means the adapter types the render root itself — with `adapter: "uswds"` in the Theme and no page CSS at all, the form looks like USWDS.
 
+The render root **is** the design system's form: the USWDS stylesheet makes `.formspec-container` a `usa-form usa-form--large`, so the form is USWDS's 30rem column, inputs fill it, and the required asterisk loses its dotted underline — the same as hand-written USWDS markup. Do not wrap `<formspec-render>` in a second `<form class="usa-form">`; that caps it at USWDS's 20rem default.
+
 ## Install
 
 ```bash

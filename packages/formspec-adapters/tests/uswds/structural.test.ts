@@ -343,6 +343,29 @@ describe('USWDS Tabs', () => {
 // ── Integration CSS ───────────────────────────────────────────────
 
 describe('Integration CSS', () => {
+    // USWDS forms are a column, not a full-width sheet: `_usa-form.scss` caps the form, clears the cap on
+    // inputs inside it, drops the dotted underline under the required asterisk, and spaces the buttons.
+    it('forwards usa-form and makes the render root that form', async () => {
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        expect(css).toContain('abbr[title=required]');
+        // `@extend` puts the render root in usa-form's own selector lists — the root IS the form.
+        expect(css).toMatch(/\.usa-form--large[^{]*\.formspec-container[^{]*\{[^}]*max-width:30rem/);
+        expect(css).toMatch(/\.usa-form[^{]*\.formspec-container[^{]*\{[^}]*max-width:20rem/);
+    });
+
+    it('caps inputs by default and clears the cap inside the form, with no global override', async () => {
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        // The form owns the column width; a global `$theme-input-max-width: none` would take that away.
+        expect(css).toMatch(/:where\(\.usa-input,\s*\.usa-textarea,\s*\.usa-select,\s*\.usa-range\)\{max-width:none\}/);
+        expect(css).not.toMatch(/\.usa-input\{[^}]*max-width:none/);
+        // USWDS's global border-box reset lives in uswds-global, which this build never forwards; without
+        // the form owning box-sizing, a padded input overflows the form column by its padding and border.
+        expect(css).toMatch(/\.formspec-container\{[^}]*box-sizing:border-box|\.formspec-container[^{]*\{[^}]*box-sizing:border-box/);
+        expect(css).toContain('box-sizing:inherit');
+    });
+
     it('contains .formspec-required using USWDS error token', async () => {
         const { readUswdsIntegrationCss } = await import('../helpers.js');
         const css = readUswdsIntegrationCss();

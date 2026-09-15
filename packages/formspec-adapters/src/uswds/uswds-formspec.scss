@@ -10,7 +10,10 @@
 // URIs by scripts/build-css.mjs, so the artifact is self-contained: no font or image ships beside it.
 @forward 'uswds-core' with (
   $theme-show-notifications: false,
-  $theme-input-max-width: none,
+  // USWDS's global `border-box` reset ships in `uswds-global`, which a trimmed build never forwards.
+  // `false` lets `border-box-sizing` emit inside `.usa-form`, so the render root and its fields size
+  // the way every USWDS component assumes — without this the padded inputs overflow the form column.
+  $theme-global-border-box-sizing: false,
   $theme-font-path: '@uswds/fonts',
   $theme-image-path: '@uswds/img',
   $theme-font-browser-compatibility: false,
@@ -21,6 +24,7 @@
 // ---------------------------------------------------------------------------
 // Component packages — only what the adapter actually renders
 // ---------------------------------------------------------------------------
+@forward 'usa-form';
 @forward 'usa-form-group';
 @forward 'usa-label';
 @forward 'usa-input';
@@ -55,7 +59,6 @@
 @use 'uswds-core' as *;
 
 // -- Configuration variables (overridable via theme) --
-$fs-field-max-width: units('mobile-lg') !default;
 $fs-wizard-circle-size: units(4) !default;
 $fs-wizard-circle-font-size: 0.875rem !default;
 $fs-wizard-panel-max-width: 32rem !default;
@@ -64,12 +67,16 @@ $fs-tabs-panel-padding-top: units(3) !default;
 $fs-divider-margin: units(4) 0 !default;
 $fs-trailing-checkbox-size: 1.25rem !default;
 
-// USWDS types the document (`body` typeset + global heading styles in uswds-global), which a trimmed build
-// never forwards, and `.usa-prose` reaches only its direct children. The render root is this stylesheet's
-// `body`: without these two lines every node without a `usa-*` class falls back to the UA serif whenever
-// the host page styles nothing.
+// The render root IS the form: `_usa-form.scss` is what makes a USWDS form look like one — a capped
+// column, inputs filling it, no dotted underline under the required asterisk, button spacing, typeset
+// links. `--large` is the 30rem column the federal reference forms use.
+//
+// `usa-headings-styles` stays: USWDS types headings in `uswds-global`, which a trimmed build never
+// forwards, so without it every heading falls back to the UA serif. `.usa-form` brings its own typeset.
 .formspec-container {
-  @include typeset;
+  @extend .usa-form;
+  @extend .usa-form--large;
+
   @include usa-headings-styles;
 }
 
@@ -81,32 +88,6 @@ $fs-trailing-checkbox-size: 1.25rem !default;
 // ---------------------------------------------------------------------------
 // Layout: Formspec container/stack + USWDS grid-row (no formspec-uswds-grid bridge class)
 // ---------------------------------------------------------------------------
-
-// Direct children of the render root / plain stacks (no grid cell wrapper).
-.formspec-container > .usa-form-group,
-.formspec-stack > .usa-form-group,
-.formspec-container > .usa-fieldset,
-.formspec-stack > .usa-fieldset {
-  max-width: $fs-field-max-width;
-}
-
-.formspec-container > .usa-form-group > .usa-input-group,
-.formspec-stack > .usa-form-group > .usa-input-group,
-.formspec-container > .usa-form-group > .usa-range,
-.formspec-stack > .usa-form-group > .usa-range,
-.formspec-container > .usa-form-group > .usa-file-input,
-.formspec-stack > .usa-form-group > .usa-file-input {
-  max-width: $fs-field-max-width;
-}
-
-// Inside USWDS flex rows: let the form shell control width, like stock USWDS.
-.grid-row.grid-gap > [class*='grid-col'] > .usa-form-group,
-.grid-row.grid-gap > [class*='grid-col'] > .usa-fieldset,
-.grid-row.grid-gap > [class*='grid-col'] > .usa-form-group > .usa-input-group,
-.grid-row.grid-gap > [class*='grid-col'] > .usa-form-group > .usa-range,
-.grid-row.grid-gap > [class*='grid-col'] > .usa-form-group > .usa-file-input {
-  max-width: none;
-}
 
 .formspec-grid .usa-form-group,
 .formspec-grid .usa-fieldset,

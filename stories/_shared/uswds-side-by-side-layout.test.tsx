@@ -127,12 +127,13 @@ describe('USWDS comparison story layout', () => {
 
         const [adapterHost] = findShadowHosts(container);
         const shadowRoot = adapterHost?.shadowRoot;
-        const form = shadowRoot?.querySelector('form.usa-form') as HTMLFormElement | null;
         const styleText = collectShadowStyleText(shadowRoot);
 
         expect(shadowRoot).toBeTruthy();
-        expect(form).not.toBeNull();
-        expect(form?.className).toBe('usa-form');
+        // The render root is the USWDS form itself; a wrapper `form.usa-form` would cap the adapter pane
+        // at USWDS's 20rem default instead of the 30rem column the adapter's own stylesheet gives it.
+        expect(shadowRoot?.querySelector('form.usa-form')).toBeNull();
+        expect(shadowRoot?.querySelector('.formspec-container')).not.toBeNull();
         expect(styleText).not.toContain('.formspec-uswds-comparison-form');
         expect(styleText).toContain('.isolated-story-root *');
         expect(styleText).toContain('box-sizing: border-box');
