@@ -1,4 +1,4 @@
-/** @filedesc Verifies CSS ownership: adapters declare self-contained stylesheets that resolve from dist/. */
+/** @filedesc Verifies CSS ownership: adapters declare self-contained stylesheets that resolve from src and dist. */
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
@@ -22,12 +22,12 @@ function declarationsFor(css: string, selector: string): string {
         .join(';');
 }
 
-/** A bundler emits `new URL(x, import.meta.url)` as-is, so the shipped literal is the contract. */
-function declaredStylesheetTarget(builtModule: string): string {
-    const src = readFileSync(builtModule, 'utf8');
+/** A bundler emits `new URL(x, import.meta.url)` as-is, so the literal in the module file is the contract. */
+function declaredStylesheetTarget(modulePath: string): string {
+    const src = readFileSync(modulePath, 'utf8');
     const m = src.match(/new URL\((['"])(.*?)\1,\s*import\.meta\.url\)/);
-    expect(m, `${builtModule} declares no new URL(..., import.meta.url)`).toBeTruthy();
-    return fileURLToPath(new URL(m![2], pathToFileURL(builtModule)));
+    expect(m, `${modulePath} declares no new URL(..., import.meta.url)`).toBeTruthy();
+    return fileURLToPath(new URL(m![2], pathToFileURL(modulePath)));
 }
 
 describe('USWDS integration stylesheet is self-contained', () => {
@@ -57,16 +57,19 @@ describe('USWDS integration stylesheet is self-contained', () => {
 });
 
 describe.each([
-    ['uswds', uswdsAdapter, 'uswds-integration.css', 'dist/uswds/index.js'] as const,
-    ['tailwind', tailwindAdapter, 'tailwind-formspec-core.css', 'dist/tailwind/index.js'] as const,
-])('the %s adapter declares its own stylesheet', (_name, adapter, file, builtModule) => {
+    ['uswds', uswdsAdapter, 'uswds-integration.css'] as const,
+    ['tailwind', tailwindAdapter, 'tailwind-formspec-core.css'] as const,
+])('the %s adapter declares its own stylesheet', (name, adapter, file) => {
     it(`declares one absolute URL for ${file}`, () => {
         expect(adapter.stylesheets).toHaveLength(1);
         expect(basename(new URL(adapter.stylesheets![0]).pathname)).toBe(file);
     });
 
-    it('resolves that URL from the built module location', () => {
-        const target = declaredStylesheetTarget(join(pkgRoot, builtModule));
+    // Storybook and every other src-aliased consumer import `src/<adapter>/index.ts`; published hosts get
+    // `dist/<adapter>/index.js`. The stylesheet sits at the package root so one literal serves both.
+    it.each([`src/${name}/index.ts`, `dist/${name}/index.js`])('resolves from %s', (modulePath) => {
+        const target = declaredStylesheetTarget(join(pkgRoot, modulePath));
+        expect(target).toBe(join(pkgRoot, file));
         expect(existsSync(target), `${target} does not exist`).toBe(true);
     });
 });

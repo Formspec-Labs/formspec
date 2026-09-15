@@ -1,7 +1,7 @@
-/** @filedesc Compiles the self-contained USWDS adapter stylesheet and copies the Tailwind core CSS into dist/. */
+/** @filedesc Compiles the self-contained USWDS adapter stylesheet and copies the Tailwind core CSS to the package root. */
 
 import { execSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findPackageJSON } from 'node:module';
@@ -17,12 +17,14 @@ const MEDIA_TYPES = {
     '.gif': 'image/gif',
 };
 
+// Both stylesheets land at the package root so `../../<name>.css` reaches them identically from
+// `src/<adapter>/index.ts` and `dist/<adapter>/index.js` — the same placement formspec-engine uses for
+// `wasm-pkg-runtime/`. A src-aliased consumer (Storybook) would 404 a dist-only path.
 const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-mkdirSync(join(pkgRoot, 'dist'), { recursive: true });
 
 copyFileSync(
     join(pkgRoot, 'src/tailwind/tailwind-formspec-core.css'),
-    join(pkgRoot, 'dist/tailwind-formspec-core.css'),
+    join(pkgRoot, 'tailwind-formspec-core.css'),
 );
 
 // Locate the @uswds/uswds package root regardless of workspace hoisting.
@@ -30,7 +32,7 @@ const uswdsRoot = dirname(findPackageJSON('@uswds/uswds', import.meta.url));
 const uswdsDist = join(uswdsRoot, 'dist');
 
 // No source map: inlining assets shifts every byte offset, so a map of the compiled output would lie.
-const out = join(pkgRoot, 'dist/uswds-integration.css');
+const out = join(pkgRoot, 'uswds-integration.css');
 execSync(
     `npx sass src/uswds/uswds-formspec.scss ${out} --style=compressed --no-source-map ` +
         `--load-path=${join(uswdsRoot, 'packages')} --quiet-deps`,

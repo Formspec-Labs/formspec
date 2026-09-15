@@ -45,7 +45,7 @@ import {
  */
 export const uswdsAdapter: RenderAdapter = {
     name: 'uswds',
-    stylesheets: [new URL('../uswds-integration.css', import.meta.url).href],
+    stylesheets: [new URL('../../uswds-integration.css', import.meta.url).href],
     components: {
         Section: renderUSWDSSection,
         Stack: renderUSWDSStack,

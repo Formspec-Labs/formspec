@@ -32,7 +32,7 @@ import { renderTabs } from './tabs';
  */
 export const tailwindAdapter: RenderAdapter = {
     name: 'tailwind',
-    stylesheets: [new URL('../tailwind-formspec-core.css', import.meta.url).href],
+    stylesheets: [new URL('../../tailwind-formspec-core.css', import.meta.url).href],
     components: {
         TextInput: renderTextInput,
         NumberInput: renderNumberInput,

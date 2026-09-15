@@ -242,7 +242,7 @@ export function mockCanvasContext(): void {
 
 const adaptersPkgRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Compiled USWDS integration stylesheet (fs-fp3e subpath export). */
+/** Compiled USWDS integration stylesheet — package root, so src and dist reach it by one relative path. */
 export function readUswdsIntegrationCss(): string {
-    return readFileSync(join(adaptersPkgRoot, 'dist/uswds-integration.css'), 'utf8');
+    return readFileSync(join(adaptersPkgRoot, 'uswds-integration.css'), 'utf8');
 }

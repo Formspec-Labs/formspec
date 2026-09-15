@@ -430,6 +430,6 @@ src/
 ```bash
 npm run build          # build:css (scripts/build-css.mjs) then tsc
 npm run build:css      # compile uswds-formspec.scss, inline its fonts and images, copy the Tailwind CSS
-npm run test           # vitest (happy-dom) — reads dist/, so build first
+npm run test           # vitest (happy-dom) — reads the generated CSS, so build first
 npm run test:watch     # vitest watch mode
 ```
