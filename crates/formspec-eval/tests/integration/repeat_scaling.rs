@@ -111,3 +111,60 @@ fn constraint_scaling() {
         "800 rows cost {ratio:.2}x 400 rows: superlinear"
     );
 }
+
+/// A definition whose only per-item work is the seed pass (9e): `n` plain fields, each with a FEL
+/// `initialValue`, beside a repeat group that carries `n` rows of data. The seed pass runs before
+/// repeat expansion, so it evaluates one expression per field against the whole flat data map.
+fn seeded_definition(fields: usize) -> Value {
+    let mut items: Vec<Value> = (0..fields)
+        .map(|i| {
+            json!({
+                "key": format!("f{i}"),
+                "type": "field",
+                "dataType": "integer",
+                "label": "F",
+                "initialValue": format!("={i} + 1")
+            })
+        })
+        .collect();
+    items.push(json!({
+        "key": "rows",
+        "type": "group",
+        "label": "Rows",
+        "repeatable": true,
+        "children": [{ "key": "v", "type": "field", "dataType": "integer", "label": "V" }]
+    }));
+    json!({ "$formspec": "1.0", "url": "test", "version": "1.0.0", "title": "T", "items": items })
+}
+
+/// Seeding rebuilt the FEL environment from every value in `data` for each `=` initial value, so
+/// the pass cost the product of two independent inputs: O(seeded items x data). Growing both
+/// together doubled the time once the environment is built one per pass and updated in place;
+/// before, it quadrupled.
+#[test]
+#[ignore = "timing benchmark; run explicitly with --run-ignored only"]
+fn initial_value_seed_scaling() {
+    let half = best_seed_time(200, 3);
+    let full = best_seed_time(400, 3);
+    let ratio = full.as_secs_f64() / half.as_secs_f64();
+    println!("200 fields x 200 rows: {half:?}; 400 x 400: {full:?}; ratio {ratio:.2}");
+    assert!(ratio < 3.0, "doubling both cost {ratio:.2}x: superlinear");
+}
+
+/// Best of `runs` evaluations of `n` seeded fields against `n` rows of data.
+fn best_seed_time(n: usize, runs: usize) -> Duration {
+    let def = seeded_definition(n);
+    let data: HashMap<String, Value> = (0..n)
+        .map(|row| (format!("rows[{row}].v"), json!(row)))
+        .collect();
+    (0..runs)
+        .map(|_| {
+            let start = Instant::now();
+            let result = evaluate(&def, &data, &EvalOptions::default());
+            let elapsed = start.elapsed();
+            assert_eq!(result.values["f1"], json!(2));
+            elapsed
+        })
+        .min()
+        .expect("runs > 0")
+}
