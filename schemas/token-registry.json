@@ -317,7 +317,13 @@
         },
         "spacing.field": {
           "description": "Vertical gap between form fields",
-          "default": "0.75rem"
+          "default": "0.75rem",
+          "adapterDefault": true
+        },
+        "spacing.section": {
+          "description": "Vertical gap above a section: a group titled at section depth",
+          "default": "1.5rem",
+          "adapterDefault": true
         }
       }
     },

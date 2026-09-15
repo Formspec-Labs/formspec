@@ -942,7 +942,7 @@ unless a later policy gate promotes them.</p>
 <td>Spacing and padding</td>
 <td><code>spacing.xs</code>, <code>spacing.sm</code>,
 <code>spacing.md</code>, <code>spacing.lg</code>,
-<code>spacing.field</code></td>
+<code>spacing.field</code>, <code>spacing.section</code></td>
 </tr>
 <tr>
 <td><code>font.</code></td>
@@ -981,13 +981,16 @@ unless a later policy gate promotes them.</p>
 </tbody>
 </table>
 <p><code>spacing.field</code> is the semantic gap between consecutive
-fields. Renderers emit every token as a CSS custom property on the
-render root, named <code>--formspec-&lt;key&gt;</code> with dots
-replaced by dashes (<code>spacing.field</code> →
-<code>--formspec-spacing-field</code>), and adapters read that property
-for the rhythm between fields — falling back to their design system’s
-own default when the Theme sets no token — so one Theme value retunes
-the whole form without touching adapter stylesheets.</p>
+fields, and <code>spacing.section</code> the gap above a section — a
+group titled at section depth, so a boundary between sections reads as
+larger than one between questions. Renderers emit every token as a CSS
+custom property on the render root, named
+<code>--formspec-&lt;key&gt;</code> with dots replaced by dashes
+(<code>spacing.field</code> → <code>--formspec-spacing-field</code>),
+and adapters read those properties for the rhythm — falling back to
+their design system’s own default when the Theme sets no token (both are
+adapter-default tokens, Token Registry §2.5) — so one Theme value
+retunes the whole form without touching adapter stylesheets.</p>
 <blockquote>
 <p><strong>See also:</strong> The <a href="token-registry-spec.md">Token
 Registry Specification</a> defines a structured catalog format that adds
@@ -2924,6 +2927,11 @@ Reference</h2>
 <td><code>spacing.*</code> (semantic)</td>
 <td><code>spacing.field</code></td>
 <td><code>"0.75rem"</code></td>
+</tr>
+<tr>
+<td><code>spacing.*</code> (semantic)</td>
+<td><code>spacing.section</code></td>
+<td><code>"1.5rem"</code></td>
 </tr>
 <tr>
 <td><code>typography.*.family</code></td>

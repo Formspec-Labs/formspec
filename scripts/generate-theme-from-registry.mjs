@@ -55,7 +55,9 @@ const checkMode = process.argv.includes('--check');
 
 /**
  * @param registry        parsed token-registry.json
- * @param includeDerived  when false, tokens carrying `derivedFrom` are omitted.
+ * @param includeDerived  when false, tokens carrying `derivedFrom` or `adapterDefault` are omitted.
+ * An adapter-default token (`spacing.field`) resolves to each adapter's own design system while a Theme
+ * leaves it unset; emitted, the default skin's value would override every design system's rhythm.
  *
  * A derived token (today: `color.ring` from `color.primary`) must NOT appear in
  * the platform Theme's token map. If it did, every theme would carry an explicit
@@ -70,7 +72,7 @@ function extractTokens(registry, includeDerived = true) {
   const dark = {};
   for (const [catKey, category] of Object.entries(registry.categories)) {
     for (const [tokenKey, entry] of Object.entries(category.tokens)) {
-      if (!includeDerived && entry.derivedFrom !== undefined) continue;
+      if (!includeDerived && (entry.derivedFrom !== undefined || entry.adapterDefault)) continue;
       if (entry.default !== undefined) {
         light[tokenKey] = entry.default;
       }
@@ -201,7 +203,8 @@ const existingCss = readFileSync(TOKENS_CSS_PATH, 'utf8');
 // the CSS fallback map and app-graph's THEME-TOKEN-UNREGISTERED key set.
 const declaredTokens = extractTokens(registry, true);
 // Emitted keys — what the platform Theme actually carries. Derived tokens are
-// omitted so their CSS chain can resolve through the token they derive from.
+// omitted so their CSS chain can resolve through the token they derive from, and
+// adapter-default tokens so each design system's own rhythm can show.
 const tokens = extractTokens(registry, false);
 const theme = generateTheme(tokens);
 const themeJson = JSON.stringify(theme, null, 2) + '\n';
@@ -261,8 +264,8 @@ for (const copyPath of REGISTRY_COPIES) {
   console.log(`Synced ${rel}`);
 }
 
-const derivedCount = Object.keys(declaredTokens).length - Object.keys(tokens).length;
+const notEmittedCount = Object.keys(declaredTokens).length - Object.keys(tokens).length;
 console.log(
   `\nGenerated ${Object.keys(tokens).length} platform theme tokens from registry `
-  + `(${Object.keys(declaredTokens).length} declared; ${derivedCount} derived and therefore not emitted).`,
+  + `(${Object.keys(declaredTokens).length} declared; ${notEmittedCount} derived or adapter-default and therefore not emitted).`,
 );

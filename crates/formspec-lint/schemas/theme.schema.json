@@ -458,6 +458,10 @@
           "type": "string",
           "description": "Another token key this token derives from when a Theme leaves it unset. A derived token is NOT emitted into the platform Theme's token map — if it were, every theme would inherit an explicit value and the derivation could never fire. Its `default` stays the CSS fallback of last resort. Example: color.ring derives from color.primary, so a tenant who sets only the brand token gets a brand-coloured focus ring."
         },
+        "adapterDefault": {
+          "type": "boolean",
+          "description": "When true, each adapter resolves this token to its own design system's value while a Theme leaves it unset, so it is NOT emitted into the platform Theme's token map. Its `default` is the default skin's value. Example: spacing.field falls back to USWDS's own field margin under the USWDS adapter and to 0.75rem in the default skin."
+        },
         "examples": {
           "type": "array",
           "items": {

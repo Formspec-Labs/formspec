@@ -91,9 +91,16 @@ describe('buildPlatformTheme', () => {
 
     it('includes all expected token count', () => {
         const tokenKeys = Object.keys(theme.tokens ?? {});
-        // 45 declared, minus the 2 derived (color.ring / color.dark.ring) that
-        // §2.5 forbids emitting — see the next test.
-        expect(tokenKeys.length).toBe(43);
+        // 46 declared, minus the 2 derived (color.ring / color.dark.ring) and the 2 adapter-default rhythm
+        // tokens (spacing.field / spacing.section) that §2.5 forbids emitting — see the next tests.
+        expect(tokenKeys.length).toBe(42);
+    });
+
+    // token-registry-spec §2.5: the rhythm tokens resolve to each adapter's design system when a Theme leaves
+    // them unset. Emitted here, the default skin's 0.75rem would override USWDS's own 1.5rem field margin.
+    it('omits adapter-default tokens so each design system keeps its own rhythm', () => {
+        expect(theme.tokens?.['spacing.field']).toBeUndefined();
+        expect(theme.tokens?.['spacing.section']).toBeUndefined();
     });
 
     // token-registry-spec §2.5. A derived token in the platform theme's token

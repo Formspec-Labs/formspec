@@ -114,6 +114,13 @@
   cursor: default;
 }
 
+/* A section — a group this skin titles at section depth (h1–h3) — opens further from what precedes it than
+ * two questions sit apart. The stack's gap is already the field rhythm, so the margin carries the rest; the
+ * Theme retunes either through `spacing.field` / `spacing.section` (Theme spec §3.2). */
+.formspec-group:has(> :is(h1, h2, h3).formspec-group-title:not(.formspec-sr-only)) {
+  margin-top: max(0px, calc(var(--formspec-spacing-section, 1.5rem) - var(--formspec-spacing-field, 0.75rem)));
+}
+
 /* Core §4.2.5.3 styleHints, carried onto an item's root as classes by the resolver. Zero specificity: they are
  * the author's defaults, so a state or a Theme class restyles over them. A tone is the leading bar this skin
  * already gives headings; muted re-points the skin's text tokens for everything in the item; size scales the

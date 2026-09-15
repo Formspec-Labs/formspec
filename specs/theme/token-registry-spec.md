@@ -160,6 +160,7 @@ token key (e.g., `color.primary`, `spacing.md`). The value is a
 | `default` | string or number | RECOMMENDED | Default value shipped with the platform theme. |
 | `dark` | string or number | OPTIONAL | Default dark-mode value. See §2.2 for derivation. |
 | `derivedFrom` | string | OPTIONAL | Another token key this token resolves through when a Theme leaves it unset. See §2.5. |
+| `adapterDefault` | boolean | OPTIONAL | When `true`, each adapter resolves the token to its own design system's value while a Theme leaves it unset. See §2.5. |
 | `examples` | array of (string or number) | OPTIONAL | Example token values for documentation and tooling hints. |
 
 Example:
@@ -220,6 +221,15 @@ by the renderer as the innermost fallback of its resolution chain:
 ```css
 --formspec-default-focus: var(--formspec-color-ring, var(--formspec-color-primary, #27594f));
 ```
+
+A token entry MAY instead declare `adapterDefault: true`: while a Theme
+leaves it unset, each adapter uses its own design system's value — the
+USWDS adapter its field and section margins, the default skin the entry's
+`default`. The same rule applies and for the same reason: a processor
+building the platform Theme's token map MUST NOT emit an adapter-default
+token, or every Theme would carry the default skin's value and no design
+system's own rhythm could show. `spacing.field` and `spacing.section` are
+adapter-default tokens.
 
 `derivedFrom` MUST name a key declared by the same registry, and
 derivation chains MUST NOT be cyclic. A derived token is still a declared

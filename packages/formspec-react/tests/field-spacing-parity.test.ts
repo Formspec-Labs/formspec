@@ -74,7 +74,10 @@ describe('Field spacing token ownership', () => {
 
     it('defines spacing tokens in the canonical layout-owned theme', () => {
         expect(layoutTheme.tokens['spacing.xs']).toBe('0.25rem');
-        expect(layoutTheme.tokens['spacing.field']).toBe('0.75rem');
+        // token-registry-spec §2.5: the rhythm tokens are adapter-default, so the platform theme leaves them
+        // unset and each design system's own margin shows. The skin's 0.75rem is the CSS fallback above.
+        expect(layoutTheme.tokens['spacing.field']).toBeUndefined();
+        expect(layoutTheme.tokens['spacing.section']).toBeUndefined();
     });
 
     it('defines the refined default typography and color tokens in the canonical theme', () => {

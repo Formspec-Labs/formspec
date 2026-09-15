@@ -38,6 +38,13 @@ $fs-rhythm-blocks: '.usa-form-group, .formspec-uswds-text-wrap, .formspec-uswds-
   margin-top: var(--formspec-spacing-field, #{units(3)});
 }
 
+// A section — a group USWDS titles with its large legend — opens further from what precedes it than two
+// questions sit apart. The Theme retunes it through `spacing.section` (Theme spec §3.2); unset, USWDS's own
+// units-6 stands, twice its field margin.
+.usa-form-group:has(> .usa-fieldset > .usa-legend--large) {
+  margin-top: var(--formspec-spacing-section, #{units(6)});
+}
+
 // A group whose title is hidden already took the gap above it, and its legend occupies no line, so the
 // block right after that legend would stack a second gap on the first.
 .usa-fieldset > .usa-sr-only:first-child + :is(#{$fs-rhythm-blocks}) {

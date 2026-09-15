@@ -375,7 +375,7 @@ widget token-slot prefixes unless a later policy gate promotes them.
 | Prefix | Purpose | Example keys |
 |--------|---------|-------------|
 | `color.` | Colors (hex, rgb, hsl, named) | `color.primary`, `color.error`, `color.warning`, `color.success`, `color.info`, `color.surface`, `color.background` |
-| `spacing.` | Spacing and padding | `spacing.xs`, `spacing.sm`, `spacing.md`, `spacing.lg`, `spacing.field` |
+| `spacing.` | Spacing and padding | `spacing.xs`, `spacing.sm`, `spacing.md`, `spacing.lg`, `spacing.field`, `spacing.section` |
 | `font.` | Font properties | `font.family` |
 | `radius.` | Border radii | `radius.sm`, `radius.md` |
 | `typography.` | Extended typography (font size, weight, line-height) | `typography.body.family`, `typography.body.size`, `typography.heading.weight` |
@@ -383,13 +383,16 @@ widget token-slot prefixes unless a later policy gate promotes them.
 | `elevation.` | Shadows and depth | `elevation.low`, `elevation.medium`, `elevation.high` |
 | `x-` | Custom/vendor tokens | `x-brand.logo-height`, `x-agency.seal-color` |
 
-`spacing.field` is the semantic gap between consecutive fields. Renderers
-emit every token as a CSS custom property on the render root, named
-`--formspec-<key>` with dots replaced by dashes (`spacing.field` →
-`--formspec-spacing-field`), and adapters read that property for the
-rhythm between fields — falling back to their design system's own default
-when the Theme sets no token — so one Theme value retunes the whole form
-without touching adapter stylesheets.
+`spacing.field` is the semantic gap between consecutive fields, and
+`spacing.section` the gap above a section — a group titled at section
+depth, so a boundary between sections reads as larger than one between
+questions. Renderers emit every token as a CSS custom property on the
+render root, named `--formspec-<key>` with dots replaced by dashes
+(`spacing.field` → `--formspec-spacing-field`), and adapters read those
+properties for the rhythm — falling back to their design system's own
+default when the Theme sets no token (both are adapter-default tokens,
+Token Registry §2.5) — so one Theme value retunes the whole form without
+touching adapter stylesheets.
 
 > **See also:** The [Token Registry Specification](token-registry-spec.md)
 > defines a structured catalog format that adds type, description, and
@@ -1561,6 +1564,7 @@ This appendix is **informative**.
 | `color.*.light` | `color.primary.light` | `"#E0F0FF"` |
 | `spacing.*` | `spacing.md` | `"16px"` |
 | `spacing.*` (semantic) | `spacing.field` | `"0.75rem"` |
+| `spacing.*` (semantic) | `spacing.section` | `"1.5rem"` |
 | `typography.*.family` | `typography.body.family` | `"Inter, sans-serif"` |
 | `typography.*.size` | `typography.body.size` | `"1rem"` |
 | `typography.*.weight` | `typography.heading.weight` | `"700"` |
