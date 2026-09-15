@@ -33,6 +33,12 @@ export interface AdapterContext {
 export interface RenderAdapter {
     name: string;
     components: Partial<Record<string, AdapterRenderFn>>;
-    /** CSS text injected into the document head when this adapter is active. */
+    /**
+     * Absolute URLs of the stylesheets this adapter's markup needs — its design system's CSS, self-contained
+     * (fonts and images inlined), typically `new URL('./x.css', import.meta.url).href`. The renderer links them,
+     * ref-counted, before any Theme `stylesheets`; hosts never import adapter CSS themselves.
+     */
+    stylesheets?: string[];
+    /** @deprecated Inline CSS cannot carry fonts or images; declare `stylesheets` instead. Removed with the theme `adapter` field. */
     integrationCSS?: string;
 }
