@@ -10,6 +10,7 @@
     "compatibleVersions": ">=1.0.0 <2.0.0"
   },
   "platform": "web",
+  "adapter": "uswds",
   "stylesheets": [],
   "breakpoints": {
     "sm": 640,

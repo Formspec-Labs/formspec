@@ -9,8 +9,9 @@ import theme from './grant.theme.json';
 
 await initFormspecEngine();
 customElements.define('formspec-render', FormspecRender);
+// Registering is the whole host obligation: grant.theme.json names `"adapter": "uswds"`, and the renderer
+// links the adapter's own stylesheet. No USWDS CSS is imported here.
 globalRegistry.registerAdapter(uswdsAdapter);
-globalRegistry.setAdapter('uswds');
 
 emitThemeTokens(theme.tokens);
 
