@@ -49,6 +49,17 @@ export type LocaleDocument = {
    * BCP 47 language tag of the locale to consult when a key is not found in this document's strings. Enables explicit fallback chains (e.g., fr-CA → fr). If absent, the cascade proceeds to implicit language fallback (strip region subtag) or inline defaults. Processors MUST detect circular fallback chains and terminate the cascade with a warning.
    */
   fallback?: string;
+  /**
+   * How this locale writes values that FEL formats by style. formats.date maps a formatDate style name (short, medium, long, full) to a pattern; a style without a pattern keeps the processor's built-in rendering for the locale. Patterns use the ICU letters yyyy, yy, MMMM, MMM, MM, M, dd, d, EEEE, EEE; every other character is literal. A Definition never carries a pattern: it names the style, the Locale decides the shape.
+   */
+  formats?: {
+    date?: {
+      short?: string;
+      medium?: string;
+      long?: string;
+      full?: string;
+    };
+  };
   target: LocaleTarget;
   /**
    * Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification.

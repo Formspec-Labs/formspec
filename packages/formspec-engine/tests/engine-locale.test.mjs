@@ -31,6 +31,38 @@ function makeLocale(locale, strings, opts = {}) {
   };
 }
 
+// ── formats.date (Locale §2.4) ──
+
+test('a Locale formats.date pattern shapes formatDate for that style, in labels and expressions', () => {
+  const engine = new FormEngine(minDef({
+    items: [
+      { key: 'week', type: 'display', label: "Week of {{formatDate(@2026-05-17, 'medium')}} — {{formatDate(@2026-05-17, 'full')}}" },
+    ],
+  }));
+  const doc = makeLocale('en-US', {});
+  doc.formats = { date: { medium: 'MM/dd/yyyy', full: 'EEEE, MM/dd/yyyy' } };
+  engine.loadLocale(doc);
+  engine.setLocale('en-US');
+  assert.equal(engine.getItemLabelSignal('week').value, 'Week of 05/17/2026 — Sunday, 05/17/2026');
+  // `long` has no pattern here, so it keeps the built-in rendering; `full` names the weekday.
+  assert.equal(engine.compileExpression("formatDate(@2026-05-17, 'long')")(), 'May 17, 2026');
+});
+
+test('formats.date follows the locale cascade and a locale switch drops it', () => {
+  const engine = new FormEngine(minDef({
+    items: [{ key: 'week', type: 'display', label: "{{formatDate(@2026-05-17, 'medium')}}" }],
+  }));
+  const en = makeLocale('en', {});
+  en.formats = { date: { medium: 'MM/dd/yyyy' } };
+  engine.loadLocale(en);
+  engine.loadLocale(makeLocale('en-US', {}));
+  engine.loadLocale(makeLocale('fr', {}));
+  engine.setLocale('en-US');
+  assert.equal(engine.getItemLabelSignal('week').value, '05/17/2026', 'en-US inherits en formats through the implicit cascade');
+  engine.setLocale('fr');
+  assert.equal(engine.getItemLabelSignal('week').value, '17 mai 2026', 'fr authored no pattern, so the built-in French medium renders');
+});
+
 // ── loadLocale / setLocale / getActiveLocale / getAvailableLocales ──
 
 test('loadLocale adds a locale document to the engine', () => {

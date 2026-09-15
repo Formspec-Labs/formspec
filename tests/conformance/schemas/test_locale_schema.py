@@ -128,3 +128,27 @@ class TestLocaleSchema:
             }
             doc["strings"] = {key: "Texte {{locale()}}"}
             _validate(doc)
+
+
+class TestLocaleFormats:
+    """Locale §2.4: `formats.date` maps formatDate style names to patterns."""
+
+    def test_date_formats_accept_the_four_style_names(self) -> None:
+        doc = _minimal_locale()
+        doc["formats"] = {"date": {"short": "d/M/yy", "medium": "MM/dd/yyyy", "long": "d MMMM yyyy", "full": "EEEE, MM/dd/yyyy"}}
+        _validate(doc)
+
+    def test_date_formats_reject_an_unknown_style_and_an_empty_pattern(self) -> None:
+        doc = _minimal_locale()
+        doc["formats"] = {"date": {"iso": "yyyy-MM-dd"}}
+        with pytest.raises(ValidationError):
+            _validate(doc)
+        doc["formats"] = {"date": {"medium": ""}}
+        with pytest.raises(ValidationError):
+            _validate(doc)
+
+    def test_formats_holds_only_date(self) -> None:
+        doc = _minimal_locale()
+        doc["formats"] = {"number": {"medium": "#,##0"}}
+        with pytest.raises(ValidationError):
+            _validate(doc)

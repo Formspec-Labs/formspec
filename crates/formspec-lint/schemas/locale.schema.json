@@ -26,7 +26,9 @@
             }
           }
         },
-        "required": ["strings"]
+        "required": [
+          "strings"
+        ]
       },
       "then": {
         "properties": {
@@ -36,7 +38,9 @@
                 "const": "app"
               }
             },
-            "required": ["kind"]
+            "required": [
+              "kind"
+            ]
           }
         }
       }
@@ -62,7 +66,12 @@
         "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef"
       },
       "examples": [
-        [{ "id": "x-formspec-conversation", "version": "^0.1.0" }]
+        [
+          {
+            "id": "x-formspec-conversation",
+            "version": "^0.1.0"
+          }
+        ]
       ]
     },
     "url": {
@@ -138,6 +147,43 @@
         "fr",
         "en",
         "zh"
+      ]
+    },
+    "formats": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How this locale writes values that FEL formats by style. formats.date maps a formatDate style name (short, medium, long, full) to a pattern; a style without a pattern keeps the processor's built-in rendering for the locale. Patterns use the ICU letters yyyy, yy, MMMM, MMM, MM, M, dd, d, EEEE, EEE; every other character is literal. A Definition never carries a pattern: it names the style, the Locale decides the shape.",
+      "properties": {
+        "date": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "short": {
+              "type": "string",
+              "minLength": 1
+            },
+            "medium": {
+              "type": "string",
+              "minLength": 1
+            },
+            "long": {
+              "type": "string",
+              "minLength": 1
+            },
+            "full": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "examples": [
+        {
+          "date": {
+            "medium": "MM/dd/yyyy",
+            "full": "EEEE, MM/dd/yyyy"
+          }
+        }
       ]
     },
     "target": {
@@ -225,8 +271,14 @@
       "description": "Extension namespace for vendor-specific or tooling-specific metadata. All keys MUST be x- prefixed. Processors MUST ignore unrecognized extensions. Extensions MUST NOT alter locale resolution semantics.",
       "examples": [
         {
-          "x-translator": { "tool": "Crowdin", "projectId": "budget-form" },
-          "x-coverage": { "percentage": 92, "lastUpdated": "2026-03-15" }
+          "x-translator": {
+            "tool": "Crowdin",
+            "projectId": "budget-form"
+          },
+          "x-coverage": {
+            "percentage": 92,
+            "lastUpdated": "2026-03-15"
+          }
         }
       ]
     }
@@ -234,12 +286,18 @@
   "$defs": {
     "LocaleTarget": {
       "type": "object",
-      "required": ["kind", "url"],
+      "required": [
+        "kind",
+        "url"
+      ],
       "additionalProperties": false,
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["definition", "app"],
+          "enum": [
+            "definition",
+            "app"
+          ],
           "description": "Target artifact kind. No aliases or additional kinds are admitted in Locale 2.0."
         },
         "url": {

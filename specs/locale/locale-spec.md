@@ -110,9 +110,10 @@ This specification does NOT define:
   Use a locale-specific Theme Document.
 - Translation memory, machine translation, or translator tooling —
   these are external tooling concerns.
-- Built-in plural tables, gender agreement tables, or number/date
-  formatting patterns from CLDR — FEL expressions authored by the
-  translator handle these cases.
+- Built-in plural tables, gender agreement tables, or number formatting
+  patterns from CLDR — FEL expressions authored by the translator handle
+  these cases. (How a locale writes each `formatDate` style is the one
+  exception, and it is authored, not built in: §2.4 `formats`.)
 - Locale Documents address all human-readable strings across all tiers.
   Theme-tier page layout strings (`PageLayout.title`,
   `PageLayout.description`) are addressable via the `$page.<pageId>` key
@@ -201,6 +202,7 @@ Locale Document that omits a REQUIRED property.
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of the locale's purpose and target audience. |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Extension namespace for vendor-specific or tooling-specific metadata. All keys MUST be x- prefixed. Processors MUST ignore unrecognized extensions. Extensions MUST NOT alter locale resolution semantics. |
 | `#/properties/fallback` | `fallback` | <code>string</code> | no | pattern: <code>^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*&#36;</code> | BCP 47 language tag of the locale to consult when a key is not found in this document's strings. Enables explicit fallback chains (e.g., fr-CA → fr). If absent, the cascade proceeds to implicit language fallback (strip region subtag) or inline defaults. Processors MUST detect circular fallback chains and terminate the cascade with a warning. |
+| `#/properties/formats` | `formats` | <code>object</code> | no | — | How this locale writes values that FEL formats by style. formats.date maps a formatDate style name (short, medium, long, full) to a pattern; a style without a pattern keeps the processor's built-in rendering for the locale. Patterns use the ICU letters yyyy, yy, MMMM, MMM, MM, M, dd, d, EEEE, EEE; every other character is literal. A Definition never carries a pattern: it names the style, the Locale decides the shape. |
 | `#/properties/locale` | `locale` | <code>string</code> | yes | pattern: <code>^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*&#36;</code>; critical | BCP 47 language tag identifying the locale this document provides strings for. Processors MUST perform case-insensitive comparison and SHOULD normalize to lowercase language with title-case region (e.g., 'fr-CA'). |
 | `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef. Module-contributed Locale string keys use $module.<modId>.<nodeId>.<prop>. The x-formspec-surface module reserves the closed $module.x-formspec-surface.shell.<SurfaceStringKey> family for app-targeted shell text. |
 | `#/properties/name` | `name` | <code>string</code> | no | — | Machine-friendly short identifier for programmatic use. |
@@ -251,6 +253,41 @@ Processors MUST perform case-insensitive comparison of locale codes
 (BCP 47 tags are case-insensitive). Processors SHOULD normalize
 locale codes to lowercase language with title-case region
 (e.g., `fr-CA`, not `FR-CA` or `fr-ca`).
+
+### 2.4 Formats
+
+A Definition names how a value is formatted, never how it looks:
+`formatDate(value, 'medium')` (core §4.2) asks for the medium style of
+whatever locale is active. The optional `formats` property is where a
+Locale Document says what that style looks like here.
+
+```json
+{
+  "formats": {
+    "date": { "medium": "MM/dd/yyyy", "full": "EEEE, MM/dd/yyyy" }
+  }
+}
+```
+
+- `formats.date` maps a `formatDate` style name — `short`, `medium`,
+  `long`, `full` — to a pattern. A processor evaluating `formatDate` for
+  that style in this locale MUST render the pattern instead of its
+  built-in rendering. A style with no pattern keeps the built-in
+  rendering, which follows CLDR for the locale (`full` names the weekday).
+- Patterns use the ICU letters `yyyy`, `yy`, `MMMM`, `MMM`, `MM`, `M`,
+  `dd`, `d`, `EEEE`, `EEE`; every other character is literal. Month and
+  weekday names come from the locale.
+- `formats` resolves on the string cascade (§4): a regional document
+  without `formats.date` inherits its fallback's, then its language's.
+  The first document on the cascade that authored `formats.date` wins as
+  a whole; styles are not merged across documents.
+- An explicit `locale` argument to `formatDate` selects the built-in
+  rendering for that locale; authored patterns apply only to the active
+  locale's styles.
+
+The pattern lives in the Locale because it is a fact about the locale
+(an agency's house style is a locale variant), not about the form: the
+same Definition serves a `fr-CA` audience with `d MMMM yyyy` untouched.
 
 ## 3. String Keys and Values
 

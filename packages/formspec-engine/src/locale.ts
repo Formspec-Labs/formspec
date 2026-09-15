@@ -123,6 +123,25 @@ export class LocaleStore {
         return this._cascadeLookup(key, target, activeCode, activeCode, new Set());
     }
 
+    /**
+     * The active locale's `formats.date` (Locale §2.4): the first document on the same cascade
+     * strings use — regional, explicit fallback, implicit language — that authored one. Null when none did.
+     */
+    dateFormats(): Record<string, string> | null {
+        if (this._activeTarget === null) return null;
+        const seen = new Set<string>();
+        let code = LocaleStore.normalizeCode(this.activeLocale.value);
+        while (code && !seen.has(code)) {
+            seen.add(code);
+            const doc = this._documents.get(LocaleStore.documentKey(this._activeTarget, code));
+            const date = doc?.formats?.date;
+            if (date && Object.keys(date).length > 0) return { ...date } as Record<string, string>;
+            const dash = code.indexOf('-');
+            code = doc?.fallback ? LocaleStore.normalizeCode(doc.fallback) : dash > 0 ? code.substring(0, dash) : '';
+        }
+        return null;
+    }
+
     private _cascadeLookup(
         key: string,
         target: LocaleTargetIdentity,

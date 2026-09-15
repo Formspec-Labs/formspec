@@ -141,6 +141,8 @@ export interface WasmFelContext {
     nowIso?: string;
     /** Active locale code (BCP 47) — backs `locale()` and default for `pluralCategory()`. */
     locale?: string;
+    /** The active Locale document's `formats.date` patterns by `formatDate` style (Locale §2.4). */
+    dateFormats?: Record<string, string>;
     /** Runtime metadata bag — backs `runtimeMeta(key)`. */
     meta?: Record<string, string | number | boolean>;
 }

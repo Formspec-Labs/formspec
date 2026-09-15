@@ -62,6 +62,7 @@ Top-Level Properties</a></li>
 <li><a href="#target-binding" id="toc-target-binding">2.2 Target
 Binding</a></li>
 <li><a href="#locale-code" id="toc-locale-code">2.3 Locale Code</a></li>
+<li><a href="#formats" id="toc-formats">2.4 Formats</a></li>
 </ul></li>
 <li><a href="#string-keys-and-values" id="toc-string-keys-and-values">3.
 String Keys and Values</a>
@@ -279,9 +280,11 @@ a host application concern.</li>
 Use a locale-specific Theme Document.</li>
 <li>Translation memory, machine translation, or translator tooling —
 these are external tooling concerns.</li>
-<li>Built-in plural tables, gender agreement tables, or number/date
+<li>Built-in plural tables, gender agreement tables, or number
 formatting patterns from CLDR — FEL expressions authored by the
-translator handle these cases.</li>
+translator handle these cases. (How a locale writes each
+<code>formatDate</code> style is the one exception, and it is authored,
+not built in: §2.4 <code>formats</code>.)</li>
 <li>Locale Documents address all human-readable strings across all
 tiers. Theme-tier page layout strings (<code>PageLayout.title</code>,
 <code>PageLayout.description</code>) are addressable via the
@@ -486,6 +489,20 @@ detect circular fallback chains and terminate the cascade with a
 warning.</td>
 </tr>
 <tr>
+<td><code>#/properties/formats</code></td>
+<td><code>formats</code></td>
+<td><code>object</code></td>
+<td>no</td>
+<td>—</td>
+<td>How this locale writes values that FEL formats by style.
+formats.date maps a formatDate style name (short, medium, long, full) to
+a pattern; a style without a pattern keeps the processor’s built-in
+rendering for the locale. Patterns use the ICU letters yyyy, yy, MMMM,
+MMM, MM, M, dd, d, EEEE, EEE; every other character is literal. A
+Definition never carries a pattern: it names the style, the Locale
+decides the shape.</td>
+</tr>
+<tr>
 <td><code>#/properties/locale</code></td>
 <td><code>locale</code></td>
 <td><code>string</code></td>
@@ -674,6 +691,44 @@ unrecognized subtags.</p>
 (BCP 47 tags are case-insensitive). Processors SHOULD normalize locale
 codes to lowercase language with title-case region (e.g.,
 <code>fr-CA</code>, not <code>FR-CA</code> or <code>fr-ca</code>).</p>
+<h3 id="formats">2.4 Formats</h3>
+<p>A Definition names how a value is formatted, never how it looks:
+<code>formatDate(value, 'medium')</code> (core §4.2) asks for the medium
+style of whatever locale is active. The optional <code>formats</code>
+property is where a Locale Document says what that style looks like
+here.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;formats&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;date&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;medium&quot;</span><span class="fu">:</span> <span class="st">&quot;MM/dd/yyyy&quot;</span><span class="fu">,</span> <span class="dt">&quot;full&quot;</span><span class="fu">:</span> <span class="st">&quot;EEEE, MM/dd/yyyy&quot;</span> <span class="fu">}</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<ul>
+<li><code>formats.date</code> maps a <code>formatDate</code> style name
+— <code>short</code>, <code>medium</code>, <code>long</code>,
+<code>full</code> — to a pattern. A processor evaluating
+<code>formatDate</code> for that style in this locale MUST render the
+pattern instead of its built-in rendering. A style with no pattern keeps
+the built-in rendering, which follows CLDR for the locale
+(<code>full</code> names the weekday).</li>
+<li>Patterns use the ICU letters <code>yyyy</code>, <code>yy</code>,
+<code>MMMM</code>, <code>MMM</code>, <code>MM</code>, <code>M</code>,
+<code>dd</code>, <code>d</code>, <code>EEEE</code>, <code>EEE</code>;
+every other character is literal. Month and weekday names come from the
+locale.</li>
+<li><code>formats</code> resolves on the string cascade (§4): a regional
+document without <code>formats.date</code> inherits its fallback’s, then
+its language’s. The first document on the cascade that authored
+<code>formats.date</code> wins as a whole; styles are not merged across
+documents.</li>
+<li>An explicit <code>locale</code> argument to <code>formatDate</code>
+selects the built-in rendering for that locale; authored patterns apply
+only to the active locale’s styles.</li>
+</ul>
+<p>The pattern lives in the Locale because it is a fact about the locale
+(an agency’s house style is a locale variant), not about the form: the
+same Definition serves a <code>fr-CA</code> audience with
+<code>d MMMM yyyy</code> untouched.</p>
 <h2 id="string-keys-and-values">3. String Keys and Values</h2>
 <h3 id="string-key-format">3.1 String Key Format</h3>
 <p>String keys are dot-delimited and address localizable properties of
@@ -738,13 +793,70 @@ Document must use <code>section1_name.label</code>.</p>
 </tbody>
 </table>
 <p>Examples:</p>
-<div class="sourceCode" id="cb3"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;projectName.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom du projet&quot;</span><span class="fu">,</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;projectName.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez le nom officiel&quot;</span><span class="fu">,</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Section budgétaire&quot;</span><span class="fu">,</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Détails du budget annuel&quot;</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;projectName.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom du projet&quot;</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;projectName.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez le nom officiel&quot;</span><span class="fu">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Section budgétaire&quot;</span><span class="fu">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Détails du budget annuel&quot;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h5 id="repeatable-group-chrome">Repeatable group chrome</h5>
+<p>A repeatable group Item (core §4.2.2, <code>repeatable: true</code>)
+also owns the three strings a renderer would otherwise derive from its
+label — the per-row heading and the Add and Remove controls:</p>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 21%" />
+<col style="width: 44%" />
+</colgroup>
+<thead>
+<tr>
+<th>Key pattern</th>
+<th>Target</th>
+<th>Derived default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;key&gt;.rowLabel</code></td>
+<td>Heading and accessible name of one instance.</td>
+<td><code>"&lt;label&gt; &lt;index&gt;"</code></td>
+</tr>
+<tr>
+<td><code>&lt;key&gt;.addLabel</code></td>
+<td>The Add control.</td>
+<td><code>"Add &lt;label&gt;"</code></td>
+</tr>
+<tr>
+<td><code>&lt;key&gt;.removeLabel</code></td>
+<td>The Remove control on each instance.</td>
+<td><code>"Remove &lt;label&gt;"</code></td>
+</tr>
+</tbody>
+</table>
+<p>These keys take no <code>@context</code> suffix.
+<code>rowLabel</code> and <code>removeLabel</code> are resolved in the
+instance’s binding scope, so <code>{{@index}}</code>,
+<code>{{@count}}</code> and the row’s own <code>$field</code> references
+are available (§3.3.2); <code>addLabel</code> is resolved in the group’s
+scope, where <code>{{@count}}</code> is the current number of instances.
+A key the Locale omits keeps its derived default, and the defaults
+survive a widget change: they describe the group, not the widget that
+renders it (theme §4.2).</p>
+<p>An <strong>empty</strong> <code>rowLabel</code> suppresses the
+visible row heading and nothing else. The instance keeps an accessible
+name — processors MUST fall back to the derived
+<code>"&lt;label&gt; &lt;index&gt;"</code> for the row’s
+<code>aria-label</code> — so a form whose question text already names
+each row (an employer name inside the question) can drop the redundant
+heading without costing a screen-reader user the row boundary.</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;jobs.rowLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Emploi {{@index}}&quot;</span><span class="fu">,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;jobs.addLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Ajouter un autre emploi&quot;</span><span class="fu">,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;jobs.removeLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Supprimer cet emploi&quot;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h4 id="context-labels">3.1.2 Context Labels</h4>
 <p>The Definition’s <code>labels</code> object provides alternative
 display labels keyed by context name (e.g., <code>short</code>,
@@ -752,13 +864,13 @@ display labels keyed by context name (e.g., <code>short</code>,
 these with a <code>@context</code> suffix:</p>
 <pre><code>&lt;itemKey&gt;.label@&lt;context&gt;</code></pre>
 <p>Examples:</p>
-<div class="sourceCode" id="cb5"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Section budgétaire&quot;</span><span class="fu">,</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.label@short&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget&quot;</span><span class="fu">,</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.label@pdf&quot;</span><span class="fu">:</span> <span class="st">&quot;Section III : Informations budgétaires&quot;</span><span class="fu">,</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.label@accessibility&quot;</span><span class="fu">:</span> <span class="st">&quot;Section du budget annuel détaillé&quot;</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Section budgétaire&quot;</span><span class="fu">,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.label@short&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget&quot;</span><span class="fu">,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.label@pdf&quot;</span><span class="fu">:</span> <span class="st">&quot;Section III : Informations budgétaires&quot;</span><span class="fu">,</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budgetSection.label@accessibility&quot;</span><span class="fu">:</span> <span class="st">&quot;Section du budget annuel détaillé&quot;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>When resolving a context label, the cascade is:</p>
 <ol type="1">
 <li>Locale Document key <code>&lt;key&gt;.label@&lt;context&gt;</code>
@@ -807,11 +919,11 @@ cascade omits the inline context step:</p>
 </tbody>
 </table>
 <p>Example: providing a screen-reader-specific hint:</p>
-<div class="sourceCode" id="cb6"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;email.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Courriel professionnel&quot;</span><span class="fu">,</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;email.hint@accessibility&quot;</span><span class="fu">:</span> <span class="st">&quot;Saisissez votre adresse courriel professionnelle. Ce champ est obligatoire.&quot;</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;email.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Courriel professionnel&quot;</span><span class="fu">,</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;email.hint@accessibility&quot;</span><span class="fu">:</span> <span class="st">&quot;Saisissez votre adresse courriel professionnelle. Ce champ est obligatoire.&quot;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h4 id="choice-option-labels">3.1.3 Choice Option Labels</h4>
 <p>Fields with <code>choices</code> have option display text that must
 be localized. Options are addressed by their <code>value</code>:</p>
@@ -823,12 +935,12 @@ Definition schema defines option objects with <code>value</code> and
 <code>label</code> only; <code>value</code> is a data key and is not
 subject to localization.</p>
 <p>Examples:</p>
-<div class="sourceCode" id="cb8"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fundingStatus.options.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fundingStatus.options.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fundingStatus.options.na.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Sans objet&quot;</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fundingStatus.options.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fundingStatus.options.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fundingStatus.options.na.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Sans objet&quot;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>When an option <code>value</code> contains characters that are not
 valid in a dot-delimited key (<code>.</code>, <code>\</code>), those
 characters MUST be escaped with a backslash: <code>\.</code> for a
@@ -851,13 +963,13 @@ context-specific translations when the same value set needs different
 display text in different fields (e.g., “Yes/No” vs. “Approved/Rejected”
 for the same underlying <code>yesNoNA</code> set).</p>
 <p>Examples:</p>
-<div class="sourceCode" id="cb10"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$optionSet.yesNoNA.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$optionSet.yesNoNA.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$optionSet.yesNoNA.na.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Sans objet&quot;</span><span class="fu">,</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;approvalStatus.options.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Approuvé&quot;</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$optionSet.yesNoNA.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$optionSet.yesNoNA.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$optionSet.yesNoNA.na.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Sans objet&quot;</span><span class="fu">,</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;approvalStatus.options.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Approuvé&quot;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The <code>$optionSet</code> prefix is reserved and cannot collide
 with item keys (item keys exclude the <code>$</code> character).
 Escaping rules for option values containing dots or backslashes and the
@@ -918,13 +1030,13 @@ message, or for a <code>REQUIRED</code> result the Bind’s inline
 <code>CONSTRAINT_PARSE_ERROR</code> falls from step 1 straight to step
 4.</p>
 <p>Examples:</p>
-<div class="sourceCode" id="cb14"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;email.errors.REQUIRED&quot;</span><span class="fu">:</span> <span class="st">&quot;L&#39;adresse courriel est obligatoire&quot;</span><span class="fu">,</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;email.errors.CONSTRAINT_FAILED&quot;</span><span class="fu">:</span> <span class="st">&quot;Veuillez entrer une adresse courriel valide&quot;</span><span class="fu">,</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ssn.constraintMessage&quot;</span><span class="fu">:</span> <span class="st">&quot;Le NAS doit être au format 000-000-000&quot;</span><span class="fu">,</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budget.errors.TYPE_MISMATCH&quot;</span><span class="fu">:</span> <span class="st">&quot;Le budget doit être un nombre&quot;</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;email.errors.REQUIRED&quot;</span><span class="fu">:</span> <span class="st">&quot;L&#39;adresse courriel est obligatoire&quot;</span><span class="fu">,</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;email.errors.CONSTRAINT_FAILED&quot;</span><span class="fu">:</span> <span class="st">&quot;Veuillez entrer une adresse courriel valide&quot;</span><span class="fu">,</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ssn.constraintMessage&quot;</span><span class="fu">:</span> <span class="st">&quot;Le NAS doit être au format 000-000-000&quot;</span><span class="fu">,</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budget.errors.TYPE_MISMATCH&quot;</span><span class="fu">:</span> <span class="st">&quot;Le budget doit être un nombre&quot;</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h5 id="code-synthesis">Code synthesis</h5>
 <p>The <code>code</code> property is optional on
 <code>ValidationResult</code>. When a result lacks an explicit
@@ -972,11 +1084,11 @@ the processor explicitly sets the <code>code</code> property.</p>
 <p>Top-level Definition properties (<code>title</code>,
 <code>description</code>) use the reserved key prefix
 <code>$form</code>:</p>
-<div class="sourceCode" id="cb15"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$form.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Rapport annuel sur les subventions&quot;</span><span class="fu">,</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$form.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Formulaire de rapport pour les bénéficiaires&quot;</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$form.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Rapport annuel sur les subventions&quot;</span><span class="fu">,</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$form.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Formulaire de rapport pour les bénéficiaires&quot;</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The <code>$form</code> and <code>$shape</code> prefixes are reserved
 for form-level and shape-level keys respectively. These prefixes cannot
 collide with item keys because the core Definition schema restricts item
@@ -987,10 +1099,10 @@ the <code>$</code> character.</p>
 <code>id</code>:</p>
 <pre><code>$shape.&lt;shapeId&gt;.message</code></pre>
 <p>Example:</p>
-<div class="sourceCode" id="cb17"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$shape.budget-balance.message&quot;</span><span class="fu">:</span> <span class="st">&quot;Le total du budget doit correspondre au financement demandé&quot;</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$shape.budget-balance.message&quot;</span><span class="fu">:</span> <span class="st">&quot;Le total du budget doit correspondre au financement demandé&quot;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h4 id="page-layout-strings">3.1.7 Page Layout Strings</h4>
 <p>Theme Documents define pages via <code>PageLayout</code> objects with
 <code>id</code>, <code>title</code>, and <code>description</code>
@@ -1001,12 +1113,12 @@ $page.&lt;pageId&gt;.description</code></pre>
 <p>Where <code>&lt;pageId&gt;</code> is the <code>id</code> property of
 a <code>PageLayout</code> in the Theme Document (theme spec §6.1).</p>
 <p>Examples:</p>
-<div class="sourceCode" id="cb19"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$page.info.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Informations du projet&quot;</span><span class="fu">,</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$page.info.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez les détails de base du projet&quot;</span><span class="fu">,</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$page.review.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Révision et soumission&quot;</span></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$page.info.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Informations du projet&quot;</span><span class="fu">,</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$page.info.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez les détails de base du projet&quot;</span><span class="fu">,</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$page.review.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Révision et soumission&quot;</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Page IDs are unique within a Theme Document and follow the pattern
 <code>^[a-zA-Z][a-zA-Z0-9_\-]*$</code>.</p>
 <blockquote>
@@ -1027,18 +1139,18 @@ a component node in the Component Document. Only string-typed props (and
 string elements of array props) are addressable. Bracket indexing with
 numeric indices is used for array-valued properties.</p>
 <p>Examples:</p>
-<div class="sourceCode" id="cb21"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.budgetHeading.text&quot;</span><span class="fu">:</span> <span class="st">&quot;Détails du budget&quot;</span><span class="fu">,</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.contactCard.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Coordonnées&quot;</span><span class="fu">,</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.contactCard.subtitle&quot;</span><span class="fu">:</span> <span class="st">&quot;Adresse courriel et téléphone&quot;</span><span class="fu">,</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.submitBtn.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Soumettre la demande&quot;</span><span class="fu">,</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.submitBtn.pendingLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Soumission en cours...&quot;</span><span class="fu">,</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.mainTabs.tabLabels[0]&quot;</span><span class="fu">:</span> <span class="st">&quot;Personnel&quot;</span><span class="fu">,</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.mainTabs.tabLabels[1]&quot;</span><span class="fu">:</span> <span class="st">&quot;Emploi&quot;</span><span class="fu">,</span></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.lineItemTable.columns[0].header&quot;</span><span class="fu">:</span> <span class="st">&quot;Description&quot;</span><span class="fu">,</span></span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.lineItemTable.columns[1].header&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span></span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.budgetHeading.text&quot;</span><span class="fu">:</span> <span class="st">&quot;Détails du budget&quot;</span><span class="fu">,</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.contactCard.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Coordonnées&quot;</span><span class="fu">,</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.contactCard.subtitle&quot;</span><span class="fu">:</span> <span class="st">&quot;Adresse courriel et téléphone&quot;</span><span class="fu">,</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.submitBtn.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Soumettre la demande&quot;</span><span class="fu">,</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.submitBtn.pendingLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Soumission en cours...&quot;</span><span class="fu">,</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.mainTabs.tabLabels[0]&quot;</span><span class="fu">:</span> <span class="st">&quot;Personnel&quot;</span><span class="fu">,</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.mainTabs.tabLabels[1]&quot;</span><span class="fu">:</span> <span class="st">&quot;Emploi&quot;</span><span class="fu">,</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.lineItemTable.columns[0].header&quot;</span><span class="fu">:</span> <span class="st">&quot;Description&quot;</span><span class="fu">,</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$component.lineItemTable.columns[1].header&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The following component properties are localizable:</p>
 <table>
 <thead>
@@ -1317,12 +1429,12 @@ gives the expression access to:</p>
 <li>The <code>pluralCategory()</code> function (core spec §3.5)</li>
 </ul>
 <p>Examples:</p>
-<div class="sourceCode" id="cb24"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;itemCount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nombre d&#39;articles : {{$itemCount}}&quot;</span><span class="fu">,</span></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budget.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Maximum autorisé : {{formatNumber($maxBudget)}} $&quot;</span><span class="fu">,</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;poste&#39;, &#39;postes&#39;)}}&quot;</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;itemCount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nombre d&#39;articles : {{$itemCount}}&quot;</span><span class="fu">,</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budget.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Maximum autorisé : {{formatNumber($maxBudget)}} $&quot;</span><span class="fu">,</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;poste&#39;, &#39;postes&#39;)}}&quot;</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h4 id="interpolation-processing">3.3.1 Interpolation Processing</h4>
 <p>Processors MUST apply the following rules:</p>
 <ol type="1">
@@ -1444,10 +1556,10 @@ evaluated in the <strong>instance context</strong>: <code>@index</code>
 resolves to the actual 1-based instance index. This enables per-instance
 labels, here on the repeat child <code>amount</code> of
 <code>lineItems</code>:</p>
-<div class="sourceCode" id="cb25"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant du poste {{@index}}&quot;</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant du poste {{@index}}&quot;</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h2 id="fallback-cascade">4. Fallback Cascade</h2>
 <p>When the engine resolves a localized string, it walks a fallback
 chain from most-specific to least-specific. Every lookup is indexed by
@@ -1498,30 +1610,30 @@ different language from the base <code>fr</code>.</p>
 <h3 id="cascade-examples">4.2 Cascade Examples</h3>
 <p>Given these documents:</p>
 <p><strong>Definition</strong> (inline defaults):</p>
-<div class="sourceCode" id="cb27"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;field&quot;</span><span class="fu">,</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Name&quot;</span><span class="fu">,</span> <span class="dt">&quot;hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Enter your full name&quot;</span> <span class="fu">}</span></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p><strong>Locale Document (<code>fr</code>)</strong>:</p>
-<div class="sourceCode" id="cb28"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom&quot;</span><span class="fu">,</span></span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez votre nom complet&quot;</span></span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p><strong>Locale Document (<code>fr-CA</code>)</strong>:</p>
 <div class="sourceCode" id="cb29"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr-CA&quot;</span><span class="fu">,</span></span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez votre nom au complet&quot;</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;field&quot;</span><span class="fu">,</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Name&quot;</span><span class="fu">,</span> <span class="dt">&quot;hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Enter your full name&quot;</span> <span class="fu">}</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Locale Document (<code>fr</code>)</strong>:</p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom&quot;</span><span class="fu">,</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez votre nom complet&quot;</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Locale Document (<code>fr-CA</code>)</strong>:</p>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr-CA&quot;</span><span class="fu">,</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez votre nom au complet&quot;</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Resolution for locale <code>fr-CA</code>:</p>
 <table>
 <colgroup>
@@ -1602,15 +1714,15 @@ spec’s treatment of <code>now()</code>.</p>
 <code>calculate</code>, <code>relevant</code>, <code>constraint</code>,
 and <code>readonly</code> expressions. This enables locale-aware logic
 in the Definition itself:</p>
-<div class="sourceCode" id="cb30"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;instructions&quot;</span><span class="fu">,</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;display&quot;</span><span class="fu">,</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Instructions&quot;</span><span class="fu">,</span></span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;relevant&quot;</span><span class="fu">:</span> <span class="st">&quot;locale() = &#39;en&#39; or locale() = &#39;&#39;&quot;</span></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;instructions&quot;</span><span class="fu">,</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;display&quot;</span><span class="fu">,</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Instructions&quot;</span><span class="fu">,</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bind&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;relevant&quot;</span><span class="fu">:</span> <span class="st">&quot;locale() = &#39;en&#39; or locale() = &#39;&#39;&quot;</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h3 id="pluralization-via-pluralcategory">5.2 Pluralization via
 <code>pluralCategory()</code></h3>
 <p>Pluralization in locale strings uses the core FEL function
@@ -1620,16 +1732,16 @@ values are: <code>zero</code>, <code>one</code>, <code>two</code>,
 <code>few</code>, <code>many</code>, <code>other</code>.</p>
 <p>Authors combine <code>pluralCategory()</code> with <code>if()</code>
 to select the appropriate word form:</p>
-<div class="sourceCode" id="cb31"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;ligne&#39;, &#39;lignes&#39;)}}&quot;</span></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;ligne&#39;, &#39;lignes&#39;)}}&quot;</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>For languages with more than two plural forms (e.g., Arabic with six
 forms, or Polish with three), authors chain conditions:</p>
-<div class="sourceCode" id="cb32"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;element&#39;, if(pluralCategory($count) = &#39;few&#39;, &#39;elementy&#39;, &#39;elementów&#39;))}}&quot;</span></span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items.label&quot;</span><span class="fu">:</span> <span class="st">&quot;{{$count}} {{if(pluralCategory($count) = &#39;one&#39;, &#39;element&#39;, if(pluralCategory($count) = &#39;few&#39;, &#39;elementy&#39;, &#39;elementów&#39;))}}&quot;</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Because <code>pluralCategory()</code> uses CLDR data, it correctly
 handles all languages — including those where the <code>one</code>
 category does not correspond to the number 1 (e.g., French treats 0 as
@@ -2023,12 +2135,12 @@ field value signals referenced by interpolation expressions.</p>
 like top-level Items. For a repeatable group <code>lineItems</code> with
 children <code>amount</code> and <code>description</code> (instance
 paths <code>lineItems[0].amount</code>, …):</p>
-<div class="sourceCode" id="cb33"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Postes budgétaires&quot;</span><span class="fu">,</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span><span class="fu">,</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Postes budgétaires&quot;</span><span class="fu">,</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant&quot;</span><span class="fu">,</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p><code>lineItems.amount.label</code> and
 <code>lineItems[*].amount.label</code> are not valid keys for
 <code>amount</code> (§3.1). A processor resolving a string for instance
@@ -2038,10 +2150,10 @@ path <code>lineItems[2].amount</code> looks up
 item. Per-instance string customization is not supported — use FEL
 interpolation with the <code>@index</code> repeat context variable (core
 spec §3.2.2) if instance-specific text is needed:</p>
-<div class="sourceCode" id="cb34"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant du poste {{@index}}&quot;</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant du poste {{@index}}&quot;</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The <code>@index</code> variable is 1-based, so the above produces
 “Poste 1”, “Poste 2”, etc.</p>
 <h2 id="security-considerations">9. Security Considerations</h2>
@@ -2133,73 +2245,73 @@ closed set.</li>
 Complete Locale Document Example</h2>
 <p>The following is a complete Locale Document for a grant report form,
 demonstrating all key patterns defined in this specification.</p>
-<div class="sourceCode" id="cb35"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$formspecLocale&quot;</span><span class="fu">:</span> <span class="st">&quot;2.0&quot;</span><span class="fu">,</span></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/grant-report/locales/fr-CA&quot;</span><span class="fu">,</span></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;grant-report-fr-CA&quot;</span><span class="fu">,</span></span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Rapport de subvention — Français canadien&quot;</span><span class="fu">,</span></span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Localisation française canadienne du formulaire de rapport de subvention.&quot;</span><span class="fu">,</span></span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr-CA&quot;</span><span class="fu">,</span></span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;target&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;definition&quot;</span><span class="fu">,</span></span>
-<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/grant-report&quot;</span><span class="fu">,</span></span>
-<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;compatibleVersions&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;=1.0.0 &lt;2.0.0&quot;</span></span>
-<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Form-level</span> <span class="er">strings</span> <span class="er">(§3.1.5)</span></span>
-<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$form.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Rapport annuel sur les subventions&quot;</span><span class="fu">,</span></span>
-<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$form.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Formulaire de rapport pour les organismes bénéficiaires&quot;</span><span class="fu">,</span></span>
-<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Item</span> <span class="er">labels,</span> <span class="er">descriptions,</span> <span class="er">hints</span> <span class="er">(§3.1.1)</span></span>
-<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom du projet&quot;</span><span class="fu">,</span></span>
-<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez le nom officiel tel qu&#39;il apparaît dans l&#39;entente&quot;</span><span class="fu">,</span></span>
-<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Le nom complet du projet subventionné&quot;</span><span class="fu">,</span></span>
-<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Context</span> <span class="er">labels</span> <span class="er">(§3.1.2)</span></span>
-<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Section budgétaire&quot;</span><span class="fu">,</span></span>
-<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label@short&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget&quot;</span><span class="fu">,</span></span>
-<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label@pdf&quot;</span><span class="fu">:</span> <span class="st">&quot;Section III : Informations budgétaires détaillées&quot;</span><span class="fu">,</span></span>
-<span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-30"><a href="#cb35-30" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Choice</span> <span class="er">option</span> <span class="er">labels</span> <span class="er">(§3.1.3)</span></span>
-<span id="cb35-31"><a href="#cb35-31" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
-<span id="cb35-32"><a href="#cb35-32" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
-<span id="cb35-33"><a href="#cb35-33" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.na.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Sans objet&quot;</span><span class="fu">,</span></span>
-<span id="cb35-34"><a href="#cb35-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-35"><a href="#cb35-35" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Validation</span> <span class="er">messages</span> <span class="er">—</span> <span class="er">per</span> <span class="er">constraint</span> <span class="er">code</span> <span class="er">(§3.1.4)</span></span>
-<span id="cb35-36"><a href="#cb35-36" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;email.errors.REQUIRED&quot;</span><span class="fu">:</span> <span class="st">&quot;L&#39;adresse courriel est obligatoire&quot;</span><span class="fu">,</span></span>
-<span id="cb35-37"><a href="#cb35-37" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;email.errors.CONSTRAINT_FAILED&quot;</span><span class="fu">:</span> <span class="st">&quot;Veuillez entrer une adresse courriel valide&quot;</span><span class="fu">,</span></span>
-<span id="cb35-38"><a href="#cb35-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-39"><a href="#cb35-39" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Validation</span> <span class="er">messages</span> <span class="er">—</span> <span class="er">per</span> <span class="er">Bind</span> <span class="er">(§3.1.4)</span></span>
-<span id="cb35-40"><a href="#cb35-40" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;ssn.constraintMessage&quot;</span><span class="fu">:</span> <span class="st">&quot;Le NAS doit être au format 000-000-000&quot;</span><span class="fu">,</span></span>
-<span id="cb35-41"><a href="#cb35-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-42"><a href="#cb35-42" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Shape</span> <span class="er">rule</span> <span class="er">messages</span> <span class="er">(§3.1.6)</span></span>
-<span id="cb35-43"><a href="#cb35-43" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$shape.budget-balance.message&quot;</span><span class="fu">:</span> <span class="st">&quot;Le total du budget doit correspondre au financement demandé&quot;</span><span class="fu">,</span></span>
-<span id="cb35-44"><a href="#cb35-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-45"><a href="#cb35-45" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">FEL</span> <span class="er">interpolation</span> <span class="er">(§3.3)</span></span>
-<span id="cb35-46"><a href="#cb35-46" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;totalItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Total : {{$itemCount}} {{if(pluralCategory($itemCount) = &#39;one&#39;, &#39;article&#39;, &#39;articles&#39;)}}&quot;</span><span class="fu">,</span></span>
-<span id="cb35-47"><a href="#cb35-47" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetRemaining.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Il vous reste {{formatNumber($remaining)}} $&quot;</span><span class="fu">,</span></span>
-<span id="cb35-48"><a href="#cb35-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-49"><a href="#cb35-49" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Repeat</span> <span class="er">group</span> <span class="er">with</span> <span class="er">@index</span> <span class="er">(§8.4)</span></span>
-<span id="cb35-50"><a href="#cb35-50" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Postes budgétaires&quot;</span><span class="fu">,</span></span>
-<span id="cb35-51"><a href="#cb35-51" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant du poste {{@index}}&quot;</span><span class="fu">,</span></span>
-<span id="cb35-52"><a href="#cb35-52" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span><span class="fu">,</span></span>
-<span id="cb35-53"><a href="#cb35-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-54"><a href="#cb35-54" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Page</span> <span class="er">titles</span> <span class="er">(§3.1.7)</span></span>
-<span id="cb35-55"><a href="#cb35-55" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$page.info.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Informations du projet&quot;</span><span class="fu">,</span></span>
-<span id="cb35-56"><a href="#cb35-56" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$page.review.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Révision et soumission&quot;</span><span class="fu">,</span></span>
-<span id="cb35-57"><a href="#cb35-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-58"><a href="#cb35-58" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">OptionSet</span> <span class="er">labels</span> <span class="er">(§3.1.3)</span></span>
-<span id="cb35-59"><a href="#cb35-59" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$optionSet.yesNoNA.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
-<span id="cb35-60"><a href="#cb35-60" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$optionSet.yesNoNA.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
-<span id="cb35-61"><a href="#cb35-61" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-62"><a href="#cb35-62" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Component</span> <span class="er">node</span> <span class="er">strings</span> <span class="er">(§3.1.8)</span></span>
-<span id="cb35-63"><a href="#cb35-63" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$component.submitBtn.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Soumettre la demande&quot;</span><span class="fu">,</span></span>
-<span id="cb35-64"><a href="#cb35-64" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$component.mainTabs.tabLabels[0]&quot;</span><span class="fu">:</span> <span class="st">&quot;Personnel&quot;</span></span>
-<span id="cb35-65"><a href="#cb35-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb35-66"><a href="#cb35-66" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$formspecLocale&quot;</span><span class="fu">:</span> <span class="st">&quot;2.0&quot;</span><span class="fu">,</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/grant-report/locales/fr-CA&quot;</span><span class="fu">,</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;grant-report-fr-CA&quot;</span><span class="fu">,</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Rapport de subvention — Français canadien&quot;</span><span class="fu">,</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Localisation française canadienne du formulaire de rapport de subvention.&quot;</span><span class="fu">,</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;fr-CA&quot;</span><span class="fu">,</span></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="st">&quot;fr&quot;</span><span class="fu">,</span></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;target&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;definition&quot;</span><span class="fu">,</span></span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://agency.gov/forms/grant-report&quot;</span><span class="fu">,</span></span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;compatibleVersions&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;=1.0.0 &lt;2.0.0&quot;</span></span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;strings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Form-level</span> <span class="er">strings</span> <span class="er">(§3.1.5)</span></span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$form.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Rapport annuel sur les subventions&quot;</span><span class="fu">,</span></span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$form.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Formulaire de rapport pour les organismes bénéficiaires&quot;</span><span class="fu">,</span></span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Item</span> <span class="er">labels,</span> <span class="er">descriptions,</span> <span class="er">hints</span> <span class="er">(§3.1.1)</span></span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Nom du projet&quot;</span><span class="fu">,</span></span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Entrez le nom officiel tel qu&#39;il apparaît dans l&#39;entente&quot;</span><span class="fu">,</span></span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;projectName.description&quot;</span><span class="fu">:</span> <span class="st">&quot;Le nom complet du projet subventionné&quot;</span><span class="fu">,</span></span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-25"><a href="#cb37-25" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Context</span> <span class="er">labels</span> <span class="er">(§3.1.2)</span></span>
+<span id="cb37-26"><a href="#cb37-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Section budgétaire&quot;</span><span class="fu">,</span></span>
+<span id="cb37-27"><a href="#cb37-27" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label@short&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget&quot;</span><span class="fu">,</span></span>
+<span id="cb37-28"><a href="#cb37-28" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetSection.label@pdf&quot;</span><span class="fu">:</span> <span class="st">&quot;Section III : Informations budgétaires détaillées&quot;</span><span class="fu">,</span></span>
+<span id="cb37-29"><a href="#cb37-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-30"><a href="#cb37-30" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Choice</span> <span class="er">option</span> <span class="er">labels</span> <span class="er">(§3.1.3)</span></span>
+<span id="cb37-31"><a href="#cb37-31" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
+<span id="cb37-32"><a href="#cb37-32" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
+<span id="cb37-33"><a href="#cb37-33" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;fundingStatus.options.na.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Sans objet&quot;</span><span class="fu">,</span></span>
+<span id="cb37-34"><a href="#cb37-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-35"><a href="#cb37-35" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Validation</span> <span class="er">messages</span> <span class="er">—</span> <span class="er">per</span> <span class="er">constraint</span> <span class="er">code</span> <span class="er">(§3.1.4)</span></span>
+<span id="cb37-36"><a href="#cb37-36" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;email.errors.REQUIRED&quot;</span><span class="fu">:</span> <span class="st">&quot;L&#39;adresse courriel est obligatoire&quot;</span><span class="fu">,</span></span>
+<span id="cb37-37"><a href="#cb37-37" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;email.errors.CONSTRAINT_FAILED&quot;</span><span class="fu">:</span> <span class="st">&quot;Veuillez entrer une adresse courriel valide&quot;</span><span class="fu">,</span></span>
+<span id="cb37-38"><a href="#cb37-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-39"><a href="#cb37-39" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Validation</span> <span class="er">messages</span> <span class="er">—</span> <span class="er">per</span> <span class="er">Bind</span> <span class="er">(§3.1.4)</span></span>
+<span id="cb37-40"><a href="#cb37-40" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;ssn.constraintMessage&quot;</span><span class="fu">:</span> <span class="st">&quot;Le NAS doit être au format 000-000-000&quot;</span><span class="fu">,</span></span>
+<span id="cb37-41"><a href="#cb37-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-42"><a href="#cb37-42" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Shape</span> <span class="er">rule</span> <span class="er">messages</span> <span class="er">(§3.1.6)</span></span>
+<span id="cb37-43"><a href="#cb37-43" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$shape.budget-balance.message&quot;</span><span class="fu">:</span> <span class="st">&quot;Le total du budget doit correspondre au financement demandé&quot;</span><span class="fu">,</span></span>
+<span id="cb37-44"><a href="#cb37-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-45"><a href="#cb37-45" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">FEL</span> <span class="er">interpolation</span> <span class="er">(§3.3)</span></span>
+<span id="cb37-46"><a href="#cb37-46" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;totalItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Total : {{$itemCount}} {{if(pluralCategory($itemCount) = &#39;one&#39;, &#39;article&#39;, &#39;articles&#39;)}}&quot;</span><span class="fu">,</span></span>
+<span id="cb37-47"><a href="#cb37-47" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;budgetRemaining.hint&quot;</span><span class="fu">:</span> <span class="st">&quot;Il vous reste {{formatNumber($remaining)}} $&quot;</span><span class="fu">,</span></span>
+<span id="cb37-48"><a href="#cb37-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-49"><a href="#cb37-49" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Repeat</span> <span class="er">group</span> <span class="er">with</span> <span class="er">@index</span> <span class="er">(§8.4)</span></span>
+<span id="cb37-50"><a href="#cb37-50" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Postes budgétaires&quot;</span><span class="fu">,</span></span>
+<span id="cb37-51"><a href="#cb37-51" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;amount.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Montant du poste {{@index}}&quot;</span><span class="fu">,</span></span>
+<span id="cb37-52"><a href="#cb37-52" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;description.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Description du poste&quot;</span><span class="fu">,</span></span>
+<span id="cb37-53"><a href="#cb37-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-54"><a href="#cb37-54" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Page</span> <span class="er">titles</span> <span class="er">(§3.1.7)</span></span>
+<span id="cb37-55"><a href="#cb37-55" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$page.info.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Informations du projet&quot;</span><span class="fu">,</span></span>
+<span id="cb37-56"><a href="#cb37-56" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$page.review.title&quot;</span><span class="fu">:</span> <span class="st">&quot;Révision et soumission&quot;</span><span class="fu">,</span></span>
+<span id="cb37-57"><a href="#cb37-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-58"><a href="#cb37-58" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">OptionSet</span> <span class="er">labels</span> <span class="er">(§3.1.3)</span></span>
+<span id="cb37-59"><a href="#cb37-59" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$optionSet.yesNoNA.yes.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Oui&quot;</span><span class="fu">,</span></span>
+<span id="cb37-60"><a href="#cb37-60" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$optionSet.yesNoNA.no.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Non&quot;</span><span class="fu">,</span></span>
+<span id="cb37-61"><a href="#cb37-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-62"><a href="#cb37-62" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Component</span> <span class="er">node</span> <span class="er">strings</span> <span class="er">(§3.1.8)</span></span>
+<span id="cb37-63"><a href="#cb37-63" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$component.submitBtn.label&quot;</span><span class="fu">:</span> <span class="st">&quot;Soumettre la demande&quot;</span><span class="fu">,</span></span>
+<span id="cb37-64"><a href="#cb37-64" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;$component.mainTabs.tabLabels[0]&quot;</span><span class="fu">:</span> <span class="st">&quot;Personnel&quot;</span></span>
+<span id="cb37-65"><a href="#cb37-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb37-66"><a href="#cb37-66" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <section id="footnotes" class="footnotes footnotes-end-of-document"
 role="doc-endnotes">
 <hr />

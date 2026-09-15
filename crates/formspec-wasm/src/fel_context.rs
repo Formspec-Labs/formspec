@@ -44,7 +44,8 @@ impl FelContextHandle {
         Self::new_inner(schema_json).map_err(|e| JsError::new(&e))
     }
 
-    /// Replaces the form-scope snapshot: `{ values, mips, repeatCounts, variables, instances, locale, meta }`.
+    /// Replaces the form-scope snapshot:
+    /// `{ values, mips, repeatCounts, variables, instances, locale, dateFormats, meta }`.
     #[wasm_bindgen(js_name = "load")]
     pub fn load(&mut self, snapshot_json: &str) -> Result<(), JsError> {
         self.load_inner(snapshot_json).map_err(|e| JsError::new(&e))

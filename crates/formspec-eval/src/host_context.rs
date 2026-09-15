@@ -43,6 +43,8 @@ pub struct HostFelContext {
     instances: HashMap<String, Value>,
     /// Active locale (BCP 47) behind `locale()`.
     locale: Option<String>,
+    /// The active Locale document's `formats.date` patterns by `formatDate` style (Locale §2.4).
+    date_formats: HashMap<String, String>,
     /// Runtime metadata behind `runtimeMeta(key)`.
     meta: HashMap<String, Value>,
     /// Repeat aliases (`rows.score`) inferred from the value paths, rebuilt per load.
@@ -143,6 +145,18 @@ impl HostFelContext {
             .get("locale")
             .and_then(JsonValue::as_str)
             .map(str::to_string);
+        self.date_formats = snapshot
+            .get("dateFormats")
+            .and_then(JsonValue::as_object)
+            .map(|formats| {
+                formats
+                    .iter()
+                    .filter_map(|(style, pattern)| {
+                        pattern.as_str().map(|p| (style.clone(), p.to_string()))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
         self.meta = fel_map(snapshot.get("meta").and_then(JsonValue::as_object));
         self.nested.borrow_mut().clear();
         Ok(())
@@ -643,6 +657,10 @@ impl Environment for ScopedEnv<'_> {
 
     fn locale(&self) -> Option<&str> {
         self.ctx.locale.as_deref()
+    }
+
+    fn date_format(&self, style: &str) -> Option<&str> {
+        self.ctx.date_formats.get(style).map(String::as_str)
     }
 
     fn runtime_meta(&self, key: &str) -> Value {

@@ -251,6 +251,8 @@ export interface WasmFelContextBuildInput {
     instanceData: Record<string, unknown>;
     nowIso: string;
     locale?: string;
+    /** The active Locale document's `formats.date` patterns by `formatDate` style (Locale §2.4). */
+    dateFormats?: Record<string, string>;
     meta?: Record<string, string | number | boolean>;
 }
 
@@ -379,6 +381,7 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
         instances: base.instances,
         nowIso: options.nowIso,
         locale: options.locale,
+        dateFormats: options.dateFormats,
         meta: options.meta,
     };
 }
