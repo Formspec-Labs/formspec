@@ -266,6 +266,7 @@ describe('USWDS layout natives', () => {
         expect(trigger?.textContent).toBe('Open details');
         expect(dialog?.hidden).toBe(true);
         expect(dialog?.getAttribute('hidden')).toBe('');
-        expect(dialog?.style.display).toBe('none');
+        // A closed <dialog> is not rendered natively; an inline display would be a second switch to keep.
+        expect(dialog?.style.display).toBe('');
     });
 });

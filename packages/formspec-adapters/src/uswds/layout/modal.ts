@@ -6,13 +6,11 @@ import { focusFirstIn, positionOverlayNearTrigger, type PopupPlacement } from '.
 function hideDialog(dialog: HTMLDialogElement): void {
     dialog.hidden = true;
     dialog.setAttribute('hidden', '');
-    dialog.style.display = 'none';
 }
 
 function showDialog(dialog: HTMLDialogElement): void {
     dialog.hidden = false;
     dialog.removeAttribute('hidden');
-    dialog.style.display = '';
 }
 
 export function renderUSWDSModal(behavior: ModalLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {

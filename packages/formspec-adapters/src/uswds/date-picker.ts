@@ -11,7 +11,7 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
     const p = behavior.presentation;
     const { root, label, hint, error } = createUSWDSFieldDOM(behavior);
 
-    if (p.labelPosition === 'start') root.style.display = 'flex';
+    if (p.labelPosition === 'start') root.classList.add('formspec-label-start');
 
     // Format hint when the item has none. Static and separate from `hint`, whose text the view model owns.
     let formatHint: HTMLElement | undefined;

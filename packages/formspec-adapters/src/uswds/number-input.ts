@@ -8,7 +8,7 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     const p = behavior.presentation;
     const { root, label, hint, error } = createUSWDSFieldDOM(behavior);
 
-    if (p.labelPosition === 'start') root.style.display = 'flex';
+    if (p.labelPosition === 'start') root.classList.add('formspec-label-start');
 
     const { control, actualInput } = createUSWDSInput(behavior, {
         type: 'number',

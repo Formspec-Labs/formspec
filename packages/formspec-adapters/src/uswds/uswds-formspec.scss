@@ -59,8 +59,6 @@
 @use 'uswds-core' as *;
 
 // -- Configuration variables (overridable via theme) --
-$fs-wizard-circle-size: units(4) !default;
-$fs-wizard-circle-font-size: 0.875rem !default;
 $fs-wizard-panel-max-width: 32rem !default;
 $fs-wizard-panel-radius: radius('md') !default;
 $fs-tabs-panel-padding-top: units(3) !default;
@@ -90,6 +88,14 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   display: none;
 }
 
+// Theme `labelPosition: "start"` puts the label beside the control. USWDS has no inline-label pattern,
+// so this is Formspec's own rule — one class, not the same inline style written from four adapters.
+.formspec-label-start {
+  display: flex;
+  align-items: baseline;
+  gap: units(1);
+}
+
 // Injected by webcomponent shared behavior (required asterisk span).
 .formspec-required {
   color: color('error-dark');
@@ -98,14 +104,6 @@ $fs-trailing-checkbox-size: 1.25rem !default;
 // ---------------------------------------------------------------------------
 // Layout: Formspec container/stack + USWDS grid-row (no formspec-uswds-grid bridge class)
 // ---------------------------------------------------------------------------
-
-.formspec-grid .usa-form-group,
-.formspec-grid .usa-fieldset,
-.formspec-grid .usa-form-group > .usa-input-group,
-.formspec-grid .usa-form-group > .usa-range,
-.formspec-grid .usa-form-group > .usa-file-input {
-  max-width: none;
-}
 
 // Do not zero `.usa-form-group` margin inside grid rows — USWDS uses `margin-top` on each group for
 // rhythm between fields (label of the next group sits below the prior control). A previous
@@ -145,8 +143,11 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   margin-left: 0;
 }
 
-.formspec-container .usa-label,
-.formspec-container .usa-hint {
+// A flex container does not collapse its child's margin, so USWDS's `.usa-label{margin-top:1.5rem}` would
+// show up as a gap at the top of every grid cell. Outside a grid, USWDS's own collapse gives the right
+// rhythm (label→input 8, input→next label 24) and the margin stays.
+.grid-row.grid-gap > [class*='grid-col'] > .usa-form-group > .usa-label,
+.grid-row.grid-gap > [class*='grid-col'] > .usa-form-group > .usa-hint {
   margin-top: 0;
 }
 
@@ -255,22 +256,6 @@ dialog.usa-modal::backdrop {
 
 .formspec-tab-panels {
   padding-top: $fs-tabs-panel-padding-top;
-}
-
-.formspec-wizard .usa-step-indicator__heading {
-  font-size: 1rem;
-}
-
-.formspec-wizard .usa-step-indicator__current-step {
-  width: $fs-wizard-circle-size;
-  height: $fs-wizard-circle-size;
-  padding: 0;
-  font-size: $fs-wizard-circle-font-size;
-  line-height: $fs-wizard-circle-size;
-}
-
-.formspec-wizard .usa-step-indicator__heading-text {
-  font-weight: 700;
 }
 
 .formspec-uswds-wizard__content {
