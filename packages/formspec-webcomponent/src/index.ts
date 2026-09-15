@@ -73,6 +73,7 @@ export type {
     LocalizedText,
 } from './adapters/layout-behaviors';
 export type { DisplayHostSlice } from './adapters/display-host';
+export { readValidationSummaryRows, type ValidationSummaryRow } from './adapters/validation-summary';
 export type { DisplayComponentBehavior } from './adapters/display-behaviors';
 export { renderMarkdown } from './adapters/display-markdown';
 export {

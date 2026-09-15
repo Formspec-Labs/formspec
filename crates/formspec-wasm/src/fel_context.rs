@@ -97,18 +97,21 @@ impl FelContextHandle {
         .map_err(|e| JsError::new(&e))
     }
 
-    /// Resolves every `{{expression}}` in `template` in the scope of `item_path` (Locale §3.3.1).
+    /// Resolves every `{{expression}}` in `template` in the scope of `item_path` (Locale §3.3.1);
+    /// `replace_self_ref` binds bare `$` to the item, as a validation message needs.
     #[wasm_bindgen(js_name = "interpolate")]
     pub fn interpolate(
         &self,
         template: &str,
         item_path: &str,
+        replace_self_ref: bool,
         now_iso: Option<String>,
         extensions: Option<FelExtensionHost>,
     ) -> Result<String, JsError> {
         self.interpolate_inner(
             template,
             item_path,
+            replace_self_ref,
             now_iso.as_deref(),
             extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
         )
@@ -173,13 +176,16 @@ impl FelContextHandle {
         &self,
         template: &str,
         item_path: &str,
+        replace_self_ref: bool,
         now_iso: Option<&str>,
         extensions: Option<&dyn ExtensionFunctions>,
     ) -> Result<String, String> {
-        interpolated_json(
-            &self
-                .inner
-                .interpolate(template, item_path, now_iso, extensions),
-        )
+        interpolated_json(&self.inner.interpolate(
+            template,
+            item_path,
+            replace_self_ref,
+            now_iso,
+            extensions,
+        ))
     }
 }

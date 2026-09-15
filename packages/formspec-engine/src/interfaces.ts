@@ -495,6 +495,12 @@ export interface IFormEngine {
      */
     readonly localeSignal: ReadonlyEngineSignal<number>;
     getFieldVM(path: string): FieldViewModel | undefined;
+    /**
+     * The message a respondent reads for `result`: its field's Locale validation-message cascade when the
+     * result's path is a field instance, else the processor's `message`. Summaries use it so they read what
+     * the field itself shows.
+     */
+    resolveValidationMessage(result: ValidationResult): string;
     getFormVM(): FormViewModel;
     /**
      * Resolve a Locale string key with fallback. `{{}}` interpolates in the binding scope

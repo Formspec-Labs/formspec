@@ -42,6 +42,11 @@ export interface FieldViewModel {
     // ── Validation ──
     readonly errors: ReadonlyEngineSignal<ResolvedValidationResult[]>;
     readonly firstError: ReadonlyEngineSignal<string | null>;
+    /**
+     * The message a respondent reads for one of this field's validation results, through the Locale
+     * validation-message cascade — what `errors` shows, for a result from any report (a submit, a summary).
+     */
+    resolveMessage(result: { code?: string; constraintKind?: string; message?: string }): string;
 
     // ── Options (choice fields) ──
     readonly options: ReadonlyEngineSignal<ResolvedOption[]>;
@@ -97,6 +102,8 @@ export interface FieldViewModelDeps {
     setFieldValue: (value: any) => void;
     /** Resolves `{{expression}}` in the field's binding scope (Locale §3.3.1). */
     interpolate: (template: string) => string;
+    /** {@link FieldViewModelDeps.interpolate} with bare `$` bound to the field, as in its Bind: validation messages. */
+    interpolateMessage: (template: string) => string;
 }
 
 // ── Code synthesis table (§3.1.4) ───────────────────────────────────
@@ -204,7 +211,7 @@ export function resolveItemLabel(source: ItemLabelSource): ResolvedPresentationS
 export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
     // Locale §3.1: item strings are keyed `<itemKey>.<property>` by the Item's
     // definition-unique `key` — never by group path or repeat instance path.
-    const { rx, localeStore, itemKey, interpolate } = deps;
+    const { rx, localeStore, itemKey, interpolate, interpolateMessage } = deps;
 
     const helpText = (
         property: 'hint' | 'description',
@@ -253,23 +260,22 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
 
     // ── Validation: locale-resolved messages with code synthesis ──
 
-    const errors = rx.computed((): ResolvedValidationResult[] => {
-        localeStore.version.value;
-        const rawErrors = deps.getErrors().value;
-        if (!rawErrors.length) return [];
+    const codeOf = (err: any): string => err.code ?? CODE_SYNTHESIS[err.constraintKind] ?? 'UNKNOWN';
 
-        return rawErrors.map((err: any) => {
-            const code = err.code ?? CODE_SYNTHESIS[err.constraintKind] ?? 'UNKNOWN';
-            const resolvedMessage = resolveValidationMessage(err, code);
-            return {
-                path: err.path,
-                severity: err.severity,
-                constraintKind: err.constraintKind ?? 'unknown',
-                code,
-                message: resolvedMessage,
-            };
-        });
-    });
+    function resolveMessage(err: any): string {
+        localeStore.version.value;
+        return resolveValidationMessage(err, codeOf(err));
+    }
+
+    const errors = rx.computed((): ResolvedValidationResult[] =>
+        deps.getErrors().value.map((err: any) => ({
+            path: err.path,
+            severity: err.severity,
+            constraintKind: err.constraintKind ?? 'unknown',
+            code: codeOf(err),
+            message: resolveMessage(err),
+        })),
+    );
 
     const firstError = rx.computed((): string | null => {
         const errs = errors.value;
@@ -319,25 +325,25 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         const codeKey = `${itemKey}.errors.${code}`;
         const fromCode = localeStore.lookupKey(codeKey);
         if (fromCode !== null) {
-            return interpolate(fromCode);
+            return interpolateMessage(fromCode);
         }
 
         // Step 2: Per-bind key — itemKey.requiredMessage or itemKey.constraintMessage
         if (err.constraintKind === 'required') {
             const reqKey = `${itemKey}.requiredMessage`;
             const fromReq = localeStore.lookupKey(reqKey);
-            if (fromReq !== null) return interpolate(fromReq);
+            if (fromReq !== null) return interpolateMessage(fromReq);
         } else if (code === 'CONSTRAINT_FAILED') {
             // Core Phase 3 step 1a: `constraintMessage` labels a `false` result only; a
             // CONSTRAINT_PARSE_ERROR (definition error) keeps its processor-generated message.
             const constKey = `${itemKey}.constraintMessage`;
             const fromConst = localeStore.lookupKey(constKey);
-            if (fromConst !== null) return interpolate(fromConst);
+            if (fromConst !== null) return interpolateMessage(fromConst);
 
-            // Step 3: the Bind's inline template, resolved in this scope like the Item's label, so a date
-            // in it takes the active Locale's formats (the processor resolved it with none).
+            // Step 3: the Bind's inline template, resolved here rather than taken from the processor, so a
+            // date in it takes the active Locale's formats; `$` is the field either way.
             const inline = deps.getConstraintMessage();
-            if (inline !== null) return interpolate(inline);
+            if (inline !== null) return interpolateMessage(inline);
         }
 
         // Step 4: Processor default
@@ -399,6 +405,7 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         readonly: readonly_,
         errors,
         firstError,
+        resolveMessage,
         options,
         optionsState,
         setValue: deps.setFieldValue,

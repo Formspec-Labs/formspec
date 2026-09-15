@@ -637,7 +637,8 @@ function ValidationSummaryDisplay() {
     const report = engine.getValidationReport({ profile: 'live' });
     const results = report.results.map((r) => ({
         path: r.path || '',
-        message: r.message || 'Validation error',
+        // The words the field itself shows (Locale validation-message cascade), not the processor's.
+        message: engine.resolveValidationMessage(r) || 'Validation error',
         severity: r.severity || 'error',
     }));
     return <ValidationSummary results={results} autoFocus={false} />;

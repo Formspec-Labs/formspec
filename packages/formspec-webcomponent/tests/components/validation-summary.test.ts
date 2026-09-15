@@ -247,3 +247,27 @@ describe('ValidationSummary — source: submit', () => {
         expect(summary.classList.contains('formspec-validation-summary--visible')).toBe(true);
     });
 });
+
+describe('ValidationSummary — message wording', () => {
+    afterEach(() => {
+        document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
+    });
+
+    it("lists each result in the words the field itself shows, the Locale's included", () => {
+        const el = renderWithValidationSummary({ source: 'live', mode: 'submit', showFieldErrors: true });
+        el.localeDocuments = [{
+            $formspecLocale: '2.0',
+            locale: 'en',
+            version: '1.0.0',
+            target: { kind: 'definition', url: 'urn:test:form' },
+            strings: { 'name.requiredMessage': 'Tell us your name.' },
+        }];
+        el.locale = 'en';
+        el.render();
+        el.submit({ profile: 'on-submit', emitEvent: false });
+
+        const summary = el.querySelector('.formspec-validation-summary') as HTMLElement;
+        expect(el.getEngine().getFieldVM('name').firstError.value).toBe('Tell us your name.');
+        expect(summary.textContent).toContain('Name: Tell us your name.');
+    });
+});

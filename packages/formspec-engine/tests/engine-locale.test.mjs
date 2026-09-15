@@ -76,8 +76,35 @@ test("an inline Bind constraintMessage renders with the Locale's date formats an
   engine.setValue('ldw', '2026-01-01');
   const vm = engine.getFieldVM('ldw');
   assert.equal(vm.firstError.value, 'Enter a date on or after 05/17/2026.', 'the message reads like the labels around it');
+  const [result] = engine.getValidationReport({ profile: 'live' }).results.filter((r) => r.path === 'ldw');
+  assert.equal(engine.resolveValidationMessage(result), 'Enter a date on or after 05/17/2026.', 'a summary reads the message the field shows');
+  assert.equal(engine.resolveValidationMessage({ ...result, path: 'nowhere' }), result.message, 'a result with no field keeps the processor message');
   engine.setLocale('fr');
   assert.equal(vm.firstError.value, 'Enter a date on or after 17 mai 2026.');
+});
+
+test('a validation message binds {{$}} to its field, as the Bind does, inline and from the Locale, in and out of a repeat', () => {
+  const engine = new FormEngine(minDef({
+    items: [
+      { key: 'amount', type: 'field', dataType: 'integer', label: 'Amount' },
+      { key: 'rows', type: 'group', label: 'Rows', repeatable: true, children: [{ key: 'qty', type: 'field', dataType: 'integer', label: 'Qty' }] },
+      { key: 'max', type: 'field', dataType: 'integer', label: 'Max' },
+    ],
+    binds: [
+      { path: 'amount', constraint: '$ > 0', constraintMessage: 'Must be positive, got {{$}}' },
+      { path: 'rows[*].qty', constraint: '$ <= $max', constraintMessage: 'Qty {{$}} exceeds {{$max}}' },
+    ],
+  }));
+  engine.setValue('max', 3);
+  engine.addRepeatInstance('rows');
+  engine.setValue('amount', -5);
+  engine.setValue('rows[0].qty', 9);
+  assert.equal(engine.getFieldVM('amount').firstError.value, 'Must be positive, got -5');
+  assert.equal(engine.getFieldVM('rows[0].qty').firstError.value, 'Qty 9 exceeds 3');
+
+  engine.loadLocale(makeLocale('fr', { 'amount.constraintMessage': 'Doit être positif, reçu {{$}}' }));
+  engine.setLocale('fr');
+  assert.equal(engine.getFieldVM('amount').firstError.value, 'Doit être positif, reçu -5');
 });
 
 // ── loadLocale / setLocale / getActiveLocale / getAvailableLocales ──

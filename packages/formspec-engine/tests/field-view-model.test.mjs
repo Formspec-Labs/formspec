@@ -38,6 +38,7 @@ function makeMinimalDeps(overrides = {}) {
         getOptionSetName: () => undefined,
         setFieldValue: (_v) => {},
         interpolate: (template) => interpolateMessage(template, (expr) => `[${expr}]`).text,
+        interpolateMessage: (template) => interpolateMessage(template, (expr) => `[${expr}]`).text,
         ...overrides,
     };
 }

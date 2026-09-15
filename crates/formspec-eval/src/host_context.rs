@@ -222,16 +222,20 @@ impl HostFelContext {
     }
 
     /// Resolves every `{{expression}}` in `template` in the scope of `current_item_path` (Locale §3.3.1).
+    ///
+    /// `replace_self_ref` binds bare `$` to the item, as in its Bind: a validation message says `{{$}}` for
+    /// the value that failed (Core Bind `constraintMessage`), as [`HostFelContext::evaluate`] does.
     pub fn interpolate(
         &self,
         template: &str,
         current_item_path: &str,
+        replace_self_ref: bool,
         now_iso: Option<&str>,
         extensions: Option<&dyn ExtensionFunctions>,
     ) -> Interpolated {
         let env = ScopedEnv::new(self, current_item_path, now_iso);
         interpolate_fel(template, &env, Fel::new(extensions), |expression| {
-            self.prepare(expression, current_item_path, false)
+            self.prepare(expression, current_item_path, replace_self_ref)
         })
     }
 
@@ -830,12 +834,15 @@ mod tests {
         let out = ctx.interpolate(
             "Row {{@index}} of {{@count}}: {{$name}}",
             "rows[1].name",
+            false,
             None,
             None,
         );
         assert_eq!(out.text, "Row 2 of 2: Beta");
         assert!(out.warnings.is_empty());
-        let failed = ctx.interpolate("{{nope(}} {{$name}}", "", None, None);
+        let message = ctx.interpolate("Qty {{$}} in row {{@index}}", "rows[1].qty", true, None, None);
+        assert_eq!(message.text, "Qty 3 in row 2");
+        let failed = ctx.interpolate("{{nope(}} {{$name}}", "", false, None, None);
         assert_eq!(failed.text, "{{nope(}} Form");
         assert_eq!(failed.warnings.len(), 1);
     }

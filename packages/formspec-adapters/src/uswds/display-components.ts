@@ -7,6 +7,7 @@ import {
     writeRichText,
     renderDefaultProgressBar,
     renderDefaultDataTable,
+    readValidationSummaryRows,
     uiText,
     watchText,
 } from '@formspec-org/webcomponent';
@@ -279,78 +280,14 @@ export function renderUSWDSValidationSummary(
     actx.applyStyle(el, comp.style);
     parent.appendChild(el);
 
-    const source = comp.source || 'live';
-    const mode = comp.mode || 'continuous';
-    const showFieldErrors = comp.showFieldErrors === true;
-    const jumpLinks = comp.jumpLinks === true;
-    const dedupe = comp.dedupe !== false;
-
     host.cleanupFns.push(
         effect(() => {
-            let rawResults: any[] = [];
-            if (source === 'submit') {
-                const detail = host.latestSubmitDetailSignal.value;
-                const fromReport = detail?.validationReport?.results;
-                const fromResponse = detail?.response?.validationResults;
-                rawResults = Array.isArray(fromReport)
-                    ? fromReport
-                    : Array.isArray(fromResponse)
-                      ? fromResponse
-                      : [];
-            } else {
-                const detail = host.latestSubmitDetailSignal.value;
-                const submitOccurred = detail !== null;
-                const wizardNavigated = host.touchedVersion.value > 0;
-                const gateOpen = mode === 'submit' ? submitOccurred : submitOccurred || wizardNavigated;
-                if (!gateOpen) {
-                    el.replaceChildren();
-                    el.classList.remove('formspec-validation-summary--visible');
-                    return;
-                }
-                if (mode === 'submit') {
-                    const fromReport = detail?.validationReport?.results;
-                    const fromResponse = detail?.response?.validationResults;
-                    rawResults = Array.isArray(fromReport)
-                        ? fromReport
-                        : Array.isArray(fromResponse)
-                          ? fromResponse
-                          : [];
-                } else {
-                    host.engine.structureVersion.value;
-                    rawResults = host.engine.getValidationReport({ profile: 'live' }).results;
-                }
-            }
-
-            const filteredResults = rawResults.filter((r: any) => {
-                if (showFieldErrors) return true;
-                return r.source === 'shape' || r.constraintKind === 'shape';
-            });
-
-            const resolved = filteredResults.map((result: any) => ({
-                result,
-                target: host.resolveValidationTarget(result),
-            }));
-
-            const rows = dedupe
-                ? (() => {
-                      const seen = new Set<string>();
-                      return resolved.filter(({ result, target }) => {
-                          const key = `${result?.severity || 'error'}|${target.path || result?.path || ''}|${result?.message || ''}`;
-                          if (seen.has(key)) return false;
-                          seen.add(key);
-                          return true;
-                      });
-                  })()
-                : resolved;
-
+            const rows = readValidationSummaryRows(host, comp, false);
             el.replaceChildren();
-            if (rows.length === 0) {
-                el.classList.remove('formspec-validation-summary--visible');
-                return;
-            }
-            el.classList.add('formspec-validation-summary--visible');
+            el.classList.toggle('formspec-validation-summary--visible', rows.length > 0);
+            if (rows.length === 0) return;
 
-            const errorCount = rows.filter(({ result }) => (result.severity || 'error') === 'error').length;
+            const errorCount = rows.filter((row) => row.severity === 'error').length;
             const alertRoot = document.createElement('div');
             alertRoot.className =
                 errorCount > 0
@@ -384,17 +321,15 @@ export function renderUSWDSValidationSummary(
             const list = document.createElement('ul');
             list.className = 'usa-list';
 
-            for (const { result, target } of rows) {
+            for (const { message, labeled, jumpPath } of rows) {
                 const li = document.createElement('li');
-                const message = result?.message || 'Validation error';
-                const withLabel = target.formLevel ? message : `${target.label}: ${message}`;
-                if (jumpLinks && target.jumpable) {
+                if (jumpPath !== null) {
                     const button = document.createElement('button');
                     button.type = 'button';
                     button.className = 'usa-button usa-button--unstyled formspec-validation-summary-link formspec-focus-ring';
-                    button.textContent = withLabel;
+                    button.textContent = labeled;
                     button.addEventListener('click', () => {
-                        host.focusField(target.path);
+                        host.focusField(jumpPath);
                     });
                     li.appendChild(button);
                 } else {

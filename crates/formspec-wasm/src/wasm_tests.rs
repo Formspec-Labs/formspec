@@ -1229,6 +1229,7 @@ mod tests {
             &ctx.interpolate_inner(
                 "Row {{@index}}/{{@count}} qty {{$qty}} {{((}}",
                 "rows[0].qty",
+                false,
                 None,
                 None,
             )

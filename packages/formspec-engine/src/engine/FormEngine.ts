@@ -1028,6 +1028,10 @@ export class FormEngine implements IFormEngine {
         return this._fieldViewModels[path];
     }
 
+    public resolveValidationMessage(result: ValidationResult): string {
+        return this._fieldViewModels[result.path]?.resolveMessage(result) ?? result.message;
+    }
+
     public getFormVM(): FormViewModel {
         return this._formViewModel;
     }
@@ -1946,6 +1950,7 @@ export class FormEngine implements IFormEngine {
             getOptionSetName: () => item.optionSet,
             setFieldValue: (value) => this.setValue(path, value),
             interpolate: (template) => this._interpolate(template, path),
+            interpolateMessage: (template) => this._interpolate(template, path, true),
         });
         this._fieldViewModels[path] = vm;
     }
@@ -1953,14 +1958,16 @@ export class FormEngine implements IFormEngine {
     /**
      * Locale §3.3.2: resolve `{{}}` in `template` in the binding scope of `itemPath` (form scope when empty),
      * one WASM call per template. Plain text skips the FEL context, so it tracks no evaluation signals.
+     * `bindScope` binds bare `$` to the item, as its Bind does — the scope a validation message resolves in.
      */
-    private _interpolate(template: string, itemPath = ''): string {
+    private _interpolate(template: string, itemPath = '', bindScope = false): string {
         if (!template.includes('{{')) {
             return template;
         }
         return (JSON.parse(this.felContext().interpolate(
             template,
             itemPath,
+            bindScope,
             this.nowISO(),
             this._extensionFunctions,
         )) as WasmInterpolated).text;
