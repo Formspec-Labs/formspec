@@ -21,8 +21,8 @@ The default adapter (built into `formspec-webcomponent`) reproduces Formspec's s
 export const uswdsAdapter: RenderAdapter = {
     name: 'uswds',
     stylesheets: [
-        { href: new URL('../uswds-base.css', import.meta.url).href, presentWhen: uswdsBasePresentWhen },
-        uswdsRulesLayer,
+        { href: new URL('../uswds-base.css', import.meta.url).href, presentWhen: { className: 'usa-sr-only', property: 'position', value: 'absolute' } },
+        { href: new URL('../uswds-formspec.css', import.meta.url).href, presentWhen: { className: 'formspec-container', property: '--formspec-uswds-rules', value: '1' } },
     ],
     components: { /* ... */ },
 };
@@ -55,21 +55,16 @@ An organization's look — a compile-time USWDS reskin, house rules — is a **v
     # writes uswds-nj-base.css, uswds-nj-base.classes.js, uswds-nj-base.classes.d.ts
     ```
 
-3. Derive the adapter — same components, new name, your compiled base layer plus the base adapter's exported, unchanged rules layer, and a vocabulary that's the union of both:
+3. Make the adapter — the USWDS components, your sheet as the base layer, this package's rules layer unchanged, and your vocabulary merged with the adapter's:
 
     ```ts
-    import { deriveAdapter } from '@formspec-org/webcomponent';
-    import { uswdsAdapter, uswdsBasePresentWhen, uswdsRulesLayer } from '@formspec-org/adapters';
-    import { classVocabulary as njBaseVocabulary } from './uswds-nj-base.classes.js';
-    import { classVocabulary as rulesVocabulary } from '@formspec-org/adapters/uswds.classes.js';
+    import { uswdsVariant } from '@formspec-org/adapters';
+    import { classVocabulary } from './uswds-nj-base.classes.js';
 
-    export const uswdsNjAdapter = deriveAdapter(uswdsAdapter, {
+    export const uswdsNjAdapter = uswdsVariant({
         name: 'uswds-nj',
-        stylesheets: [
-            { href: new URL('./uswds-nj-base.css', import.meta.url).href, presentWhen: uswdsBasePresentWhen },
-            uswdsRulesLayer,
-        ],
-        classVocabulary: new Set([...njBaseVocabulary, ...rulesVocabulary]),
+        stylesheet: new URL('./uswds-nj-base.css', import.meta.url).href,
+        classVocabulary,
     });
     ```
 

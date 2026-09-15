@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { uswdsAdapter, uswdsBasePresentWhen, uswdsRulesLayer } from '../src/uswds';
+import { uswdsAdapter } from '../src/uswds';
 import { tailwindAdapter } from '../src/tailwind';
 import { readUswdsBaseCss, readUswdsFormspecCss } from './helpers';
 
@@ -108,13 +108,11 @@ describe('USWDS rules layer carries only Formspec\'s own rules (ADR 0063 D-4)', 
 
 describe('the uswds adapter declares both layers with their stated probes (ADR 0063 D-4)', () => {
     it('declares the base layer probed by usa-sr-only/position:absolute', () => {
-        expect(uswdsAdapter.stylesheets![0]).toMatchObject({ presentWhen: uswdsBasePresentWhen });
-        expect(uswdsBasePresentWhen).toEqual({ className: 'usa-sr-only', property: 'position', value: 'absolute' });
+        expect(uswdsAdapter.stylesheets![0].presentWhen).toEqual({ className: 'usa-sr-only', property: 'position', value: 'absolute' });
     });
 
-    it('declares the rules layer probed by its own marker, exported for a variant to reuse unchanged', () => {
-        expect(uswdsAdapter.stylesheets![1]).toBe(uswdsRulesLayer);
-        expect(uswdsRulesLayer.presentWhen).toEqual({
+    it('declares the rules layer probed by its own marker', () => {
+        expect(uswdsAdapter.stylesheets![1].presentWhen).toEqual({
             className: 'formspec-container',
             property: '--formspec-uswds-rules',
             value: '1',
