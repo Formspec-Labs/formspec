@@ -42,7 +42,7 @@ export function compText(
 }
 
 export function runLayoutAdapter<T>(type: string, behavior: T, parent: HTMLElement, ctx: RenderContext): void {
-    const fn = globalRegistry.resolveAdapterFn(type);
+    const fn = globalRegistry.resolveAdapterFn(type, ctx.adapterName);
     if (fn) fn(behavior as any, parent, ctx.adapterContext);
 }
 

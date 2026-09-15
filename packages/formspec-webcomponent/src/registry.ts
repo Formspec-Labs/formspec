@@ -1,6 +1,26 @@
 /** @filedesc ComponentRegistry class with plugin dispatch and adapter resolution. */
 import { ComponentPlugin } from './types';
+import type { ThemeDocument } from '@formspec-org/layout';
 import type { RenderAdapter, AdapterRenderFn } from './adapters/types';
+
+/** Outcome of {@link ComponentRegistry.resolveAdapterName}. */
+export interface AdapterResolution {
+    /** The adapter that will render. */
+    name: string;
+    /** Set when the theme named an adapter that is not registered; `name` is then the fallback. */
+    missingAdapter?: string;
+}
+
+/**
+ * The adapter a Theme document was authored against, or `undefined`.
+ *
+ * Read structurally: the optional top-level `adapter` field is being added to
+ * `schemas/theme.schema.json` and `@formspec-org/types` in a parallel change.
+ */
+export function themeAdapterName(theme: ThemeDocument | null): string | undefined {
+    const named = (theme as (ThemeDocument & { adapter?: unknown }) | null)?.adapter;
+    return typeof named === 'string' && named.length > 0 ? named : undefined;
+}
 
 /**
  * Map-based registry that dispatches component type strings to their
@@ -15,8 +35,6 @@ import type { RenderAdapter, AdapterRenderFn } from './adapters/types';
  * `registerDefaultComponents()`. Custom plugins can be added at any
  * time by calling {@link register} on the {@link globalRegistry} singleton.
  */
-const INTEGRATION_STYLE_ID = 'formspec-adapter-integration';
-
 export class ComponentRegistry {
     private plugins: Map<string, ComponentPlugin> = new Map();
     private adapters: Map<string, RenderAdapter> = new Map();
@@ -52,34 +70,38 @@ export class ComponentRegistry {
         this.adapters.set(adapter.name, adapter);
     }
 
-    /** Set the active adapter by name. Warns and keeps current if name is unknown. */
+    /**
+     * Set the host-level default adapter by name. Warns and keeps current if name is unknown.
+     * Carries no CSS side effect — stylesheets follow the adapter each element resolves.
+     */
     setAdapter(name: string): void {
         if (!this.adapters.has(name)) {
             console.warn(`Adapter '${name}' not registered, keeping current adapter.`);
             return;
         }
         this.activeAdapter = name;
-        this.applyIntegrationCSS();
     }
 
-    /** Inject or remove the active adapter's integrationCSS in the document head. */
-    private applyIntegrationCSS(): void {
-        const existing = document.getElementById(INTEGRATION_STYLE_ID);
-        if (existing) existing.remove();
+    /** Look up a registered adapter by name. */
+    getAdapter(name: string): RenderAdapter | undefined {
+        return this.adapters.get(name);
+    }
 
-        const adapter = this.adapters.get(this.activeAdapter);
-        if (adapter?.integrationCSS) {
-            const style = document.createElement('style');
-            style.id = INTEGRATION_STYLE_ID;
-            style.textContent = adapter.integrationCSS;
-            document.head.appendChild(style);
-        }
+    /**
+     * Resolve which adapter renders, in precedence order: element override,
+     * theme `adapter`, host-level default, `'default'`.
+     */
+    resolveAdapterName(elementAdapter: string | null | undefined, theme: ThemeDocument | null): AdapterResolution {
+        if (elementAdapter) return { name: elementAdapter };
+        const named = themeAdapterName(theme);
+        if (!named) return { name: this.activeAdapter };
+        if (this.adapters.has(named)) return { name: named };
+        return { name: this.activeAdapter, missingAdapter: named };
     }
 
     /** Resolve the render function for a component type. Falls back to default adapter. */
-    resolveAdapterFn(componentType: string): AdapterRenderFn | undefined {
-        const active = this.adapters.get(this.activeAdapter);
-        return active?.components[componentType]
+    resolveAdapterFn(componentType: string, adapterName: string = this.activeAdapter): AdapterRenderFn | undefined {
+        return this.adapters.get(adapterName)?.components[componentType]
             ?? this.adapters.get('default')?.components[componentType];
     }
 

@@ -39,6 +39,4 @@ export interface RenderAdapter {
      * ref-counted, before any Theme `stylesheets`; hosts never import adapter CSS themselves.
      */
     stylesheets?: string[];
-    /** @deprecated Inline CSS cannot carry fonts or images; declare `stylesheets` instead. Removed with the theme `adapter` field. */
-    integrationCSS?: string;
 }

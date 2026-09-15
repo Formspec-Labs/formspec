@@ -14,6 +14,8 @@ export interface StylingHost {
     _definition: FormDefinition | null;
     _themeDocument: ThemeDocument | null;
     stylesheetHrefs: string[];
+    /** Stylesheets declared by the adapter this host resolved. */
+    adapterStylesheets(): string[];
     getEffectiveTheme(): ThemeDocument;
     findItemByKey(key: string, items?: FormItem[]): FormItem | null;
 }
@@ -33,6 +35,7 @@ export { applyCssClass, applyClassValue, resolveWidgetClassSlots } from './class
 export { applyStyle } from './style';
 export { applyAccessibility } from './accessibility';
 export {
+    LAYOUT_STYLESHEET_HREF,
     stylesheetRefCounts,
     canonicalizeStylesheetHref,
     findThemeStylesheet,

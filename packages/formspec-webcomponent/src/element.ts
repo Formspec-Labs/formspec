@@ -179,6 +179,8 @@ export class FormspecRender extends HTMLElement {
     /** @internal */ _componentGraph: ComponentGraphProjectionContext | null = null;
     /** @internal */ _hostEvidence: LayoutHostEvidence | null = null;
     /** @internal */ _themeDocument: ThemeDocument | null = null;
+    /** @internal */ _adapter: string | null = null;
+    private _themeAdapterReported = false;
     /** @internal */ _responseActionsDocument: ResponseActionsDocument | null = null;
     /** @internal */ _responseActionInvoker: ResponseActionInvoker | null = null;
     /** @internal */ _registryEntries: Map<string, RegistryEntry> = new Map();
@@ -562,18 +564,65 @@ export class FormspecRender extends HTMLElement {
     }
 
     /**
-     * Set the theme document. Loads/unloads referenced stylesheets via
-     * ref-counting and schedules a re-render.
+     * Set the theme document. The theme names the adapter it was written for;
+     * setting it relinks adapter + theme stylesheets and schedules a re-render.
      */
     set themeDocument(val: ThemeDocument | null) {
         this._themeDocument = val;
-        loadStylesheetsFn(this._stylingHost);
+        this._themeAdapterReported = false;
+        this.syncStylesheets();
         this.scheduleRender();
     }
 
     /** The currently loaded theme document, or `null` if none. */
     get themeDocument(): ThemeDocument | null {
         return this._themeDocument;
+    }
+
+    /** Host override of the render adapter for this element only — outranks the theme's `adapter`. */
+    set adapter(val: string | null) {
+        this._adapter = val ?? null;
+        this.syncStylesheets();
+        this.scheduleRender();
+    }
+
+    /** The element-level adapter override, or `null` when the theme or host default decides. */
+    get adapter(): string | null {
+        return this._adapter;
+    }
+
+    /** The adapter actually rendering this element: override → theme `adapter` → host default → `'default'`. */
+    get resolvedAdapterName(): string {
+        return globalRegistry.resolveAdapterName(this._adapter, this._themeDocument).name;
+    }
+
+    /** @internal Styling host seam — the resolved adapter's design-system CSS. */
+    adapterStylesheets(): string[] {
+        return globalRegistry.getAdapter(this.resolvedAdapterName)?.stylesheets ?? [];
+    }
+
+    /** Relink layout + adapter + theme stylesheets, reporting a theme that names an unregistered adapter. */
+    private syncStylesheets(): void {
+        const { name, missingAdapter } = globalRegistry.resolveAdapterName(this._adapter, this._themeDocument);
+        if (missingAdapter && !this._themeAdapterReported) {
+            this._themeAdapterReported = true;
+            const message = `Theme names render adapter '${missingAdapter}', which is not registered; rendering with '${name}'.`;
+            console.warn(message);
+            this.dispatchEvent(new CustomEvent('formspec-theme-finding', {
+                detail: { finding: { code: 'THEME-ADAPTER-MISSING', severity: 'error', adapter: missingAdapter, message } },
+                bubbles: true,
+                composed: true,
+            }));
+        }
+        loadStylesheetsFn(this._stylingHost);
+    }
+
+    /**
+     * Custom element lifecycle callback. Links the stylesheets the resolved
+     * adapter needs so a host never imports renderer or adapter CSS itself.
+     */
+    connectedCallback() {
+        this.syncStylesheets();
     }
 
     /** Whether to auto-inject an ActionButton into the layout plan. Defaults to true. */

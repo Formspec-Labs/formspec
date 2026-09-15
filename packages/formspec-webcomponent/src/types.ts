@@ -58,6 +58,9 @@ export interface RenderContext {
     /** The loaded theme document, or `null` when no theme is provided. */
     themeDocument: ThemeDocument | null;
 
+    /** Adapter resolved for this element — pass to `globalRegistry.resolveAdapterFn`. */
+    adapterName: string;
+
     /** Dotted path prefix for the current render scope (e.g. `"group[0]"`). */
     prefix: string;
 

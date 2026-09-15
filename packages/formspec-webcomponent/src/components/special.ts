@@ -6,7 +6,7 @@ import type { DisplayComponentBehavior } from '../adapters/display-behaviors';
 import { useDataTable } from '../behaviors/data-table';
 
 function runSpecialAdapter(type: string, parent: HTMLElement, ctx: RenderContext, comp: any): void {
-    const fn = globalRegistry.resolveAdapterFn(type);
+    const fn = globalRegistry.resolveAdapterFn(type, ctx.adapterName);
     const behavior: DisplayComponentBehavior = { comp, host: displayHostSlice(ctx) };
     if (fn) fn(behavior, parent, ctx.adapterContext);
 }
@@ -22,7 +22,7 @@ export const DataTablePlugin: ComponentPlugin = {
     type: 'DataTable',
     render: (comp, parent, ctx) => {
         const behavior = useDataTable(ctx.behaviorContext, comp);
-        const fn = globalRegistry.resolveAdapterFn('DataTable');
+        const fn = globalRegistry.resolveAdapterFn('DataTable', ctx.adapterName);
         if (fn) fn(behavior, parent, ctx.adapterContext);
     },
 };

@@ -32,7 +32,7 @@ export const TabsPlugin: ComponentPlugin = {
     type: 'Tabs',
     render: (comp: any, parent: HTMLElement, ctx: RenderContext) => {
         const behavior = useTabs(ctx.behaviorContext, comp);
-        const adapterFn = globalRegistry.resolveAdapterFn('Tabs');
+        const adapterFn = globalRegistry.resolveAdapterFn('Tabs', ctx.adapterName);
         if (adapterFn) adapterFn(behavior, parent, ctx.adapterContext);
     }
 };
@@ -43,7 +43,7 @@ export const ActionButtonPlugin: ComponentPlugin = {
     render: (comp: any, parent: HTMLElement, ctx: RenderContext) => {
         const actionRef = actionRefFor(comp);
         const actionResolved = ctx.resolveActionRef(actionRef, comp.id).resolved;
-        const adapterFn = globalRegistry.resolveAdapterFn('ActionButton');
+        const adapterFn = globalRegistry.resolveAdapterFn('ActionButton', ctx.adapterName);
         if (adapterFn) {
             const defaultLabel = actionButtonText(ctx, comp, 'label', 'Submit');
             const pendingLabel = actionButtonText(ctx, comp, 'pendingLabel', 'Submitting\u2026');

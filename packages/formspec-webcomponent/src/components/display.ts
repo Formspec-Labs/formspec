@@ -5,7 +5,7 @@ import { displayHostSlice, renderWithDisplayItemRelevance } from '../adapters/di
 import type { DisplayComponentBehavior } from '../adapters/display-behaviors';
 
 function runDisplayAdapter(type: string, parent: HTMLElement, ctx: RenderContext, comp: any): void {
-    const fn = globalRegistry.resolveAdapterFn(type);
+    const fn = globalRegistry.resolveAdapterFn(type, ctx.adapterName);
     if (!fn) return;
     const behavior: DisplayComponentBehavior = { comp, host: displayHostSlice(ctx) };
     renderWithDisplayItemRelevance(comp, parent, ctx, () => fn(behavior, parent, ctx.adapterContext));

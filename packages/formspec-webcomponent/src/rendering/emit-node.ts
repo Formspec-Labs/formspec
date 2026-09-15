@@ -366,6 +366,7 @@ export function renderActualComponent(
         engine: host.engine,
         componentDocument: host._componentDocument,
         themeDocument: host._themeDocument,
+        adapterName: host.resolvedAdapterName,
         prefix,
         submit: (opts) => host.submit(opts),
         resolveActionRef: (actionRef, nodeId) => host.resolveActionRef(actionRef, nodeId),
@@ -501,7 +502,7 @@ function renderPageModeWizard(host: RenderHost, comp: ComponentDescriptor, paren
     };
 
     const behavior = useWizard(ctx.behaviorContext, wizardComp);
-    const adapterFn = globalRegistry.resolveAdapterFn('Wizard');
+    const adapterFn = globalRegistry.resolveAdapterFn('Wizard', ctx.adapterName);
     if (adapterFn) adapterFn(behavior, parent, ctx.adapterContext);
 }
 
@@ -529,7 +530,7 @@ function renderPageModeTabs(host: RenderHost, comp: ComponentDescriptor, parent:
     };
 
     const behavior = useTabs(ctx.behaviorContext, tabsComp);
-    const adapterFn = globalRegistry.resolveAdapterFn('Tabs');
+    const adapterFn = globalRegistry.resolveAdapterFn('Tabs', ctx.adapterName);
     if (adapterFn) adapterFn(behavior, parent, ctx.adapterContext);
 
     // Keep non-page siblings, such as an injected ActionButton, after the tabs.

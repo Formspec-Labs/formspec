@@ -130,4 +130,5 @@ export interface RenderHost {
     isSubmitPending(): boolean;
     render(): void;
     activeBreakpoint: string | null;
+    resolvedAdapterName: string;
 }

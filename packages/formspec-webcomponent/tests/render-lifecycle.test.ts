@@ -722,32 +722,33 @@ describe('render lifecycle', () => {
     });
 
     it('reference-counts external theme stylesheets across multiple instances', () => {
-        document.head.querySelectorAll('link[data-formspec-theme]').forEach(link => link.remove());
+        const href = 'data:text/css,.formspec-test%7Bcolor%3Ainherit%7D';
+        const linkCount = () => document.head.querySelectorAll(`link[data-formspec-theme-href="${href}"]`).length;
 
         const theme = {
             $formspecTheme: '1.0' as const,
             version: '1.0.0',
             targetDefinition: { url: 'urn:test:form' },
-            stylesheets: ['data:text/css,.formspec-test%7Bcolor%3Ainherit%7D'],
+            stylesheets: [href],
         };
 
         el.themeDocument = theme;
         el.definition = singleFieldDef();
         el.render();
-        expect(document.head.querySelectorAll('link[data-formspec-theme]').length).toBe(1);
+        expect(linkCount()).toBe(1);
 
         const el2 = document.createElement('formspec-render') as InstanceType<any>;
         document.body.appendChild(el2);
         el2.themeDocument = theme;
         el2.definition = singleFieldDef();
         el2.render();
-        expect(document.head.querySelectorAll('link[data-formspec-theme]').length).toBe(1);
+        expect(linkCount()).toBe(1);
 
         el.remove();
-        expect(document.head.querySelectorAll('link[data-formspec-theme]').length).toBe(1);
+        expect(linkCount()).toBe(1);
 
         el2.remove();
-        expect(document.head.querySelectorAll('link[data-formspec-theme]').length).toBe(0);
+        expect(linkCount()).toBe(0);
 
         // Recreate for suite afterEach cleanup contract.
         el = document.createElement('formspec-render');

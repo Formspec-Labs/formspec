@@ -13,7 +13,7 @@ export function makeInputPlugin(type: string, useBehavior: InputBehaviorHook): C
         render: (comp: any, parent: HTMLElement, ctx: RenderContext) => {
             if (!comp.bind) return;
             const behavior = useBehavior(ctx.behaviorContext, comp);
-            const adapterFn = globalRegistry.resolveAdapterFn(type);
+            const adapterFn = globalRegistry.resolveAdapterFn(type, ctx.adapterName);
             if (adapterFn) adapterFn(behavior, parent, ctx.adapterContext);
         },
     };

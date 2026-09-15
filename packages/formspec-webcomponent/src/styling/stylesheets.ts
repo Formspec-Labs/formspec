@@ -1,6 +1,12 @@
 /** @filedesc Ref-counted theme stylesheet injection and cleanup for document.head. */
 import type { StylingHost } from './index';
 
+/**
+ * Structural layout CSS, shipped next to this module in `dist/`. Every adapter needs it,
+ * so the renderer links it ahead of any adapter or theme sheet.
+ */
+export const LAYOUT_STYLESHEET_HREF: string = new URL('../formspec-layout.css', import.meta.url).href;
+
 /** Module-level ref counts (was static on the class). */
 export const stylesheetRefCounts: Map<string, number> = new Map();
 
@@ -21,11 +27,22 @@ export function findThemeStylesheet(hrefKey: string): HTMLLinkElement | null {
     return null;
 }
 
+/**
+ * Cascade order: structural layout, then the resolved adapter's design system,
+ * then the theme's own sheets — least to most specific.
+ */
+function orderedStylesheetHrefs(host: StylingHost): string[] {
+    return [
+        LAYOUT_STYLESHEET_HREF,
+        ...host.adapterStylesheets(),
+        ...(host._themeDocument?.stylesheets ?? []),
+    ];
+}
+
 export function loadStylesheets(host: StylingHost): void {
     cleanupStylesheets(host);
-    if (!host._themeDocument?.stylesheets) return;
     const uniqueHrefs = new Set<string>();
-    for (const rawHref of host._themeDocument.stylesheets) {
+    for (const rawHref of orderedStylesheetHrefs(host)) {
         if (!rawHref || typeof rawHref !== 'string') continue;
         const hrefKey = canonicalizeStylesheetHref(rawHref);
         if (uniqueHrefs.has(hrefKey)) continue;

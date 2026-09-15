@@ -39,6 +39,8 @@ import { renderDefaultConditionalGroup, renderDefaultDataTable } from './special
 
 export const defaultAdapter: RenderAdapter = {
     name: 'default',
+    /** The Formspec skin, shipped next to the package root in `dist/`. Structural layout is linked separately. */
+    stylesheets: [new URL('../../formspec-default.css', import.meta.url).href],
     components: {
         Section: renderSection,
         Stack: renderStack,
