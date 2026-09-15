@@ -69,14 +69,18 @@ describe('USWDS rules layer carries only Formspec\'s own rules (ADR 0063 D-4)', 
         expect(declarationsFor(css, '.formspec-container')).toMatch(/--formspec-uswds-rules:\s*1/);
     });
 
-    it('extends the render root from usa-form and types it without help from the page', () => {
-        // `@extend` merges `.formspec-container` into usa-form's own selector list — the root IS the form.
-        expect(declarationsFor(css, '.formspec-container')).toMatch(/Source Sans Pro/);
+    it('types headings at zero specificity, so a USWDS component heading keeps its own type', () => {
+        expect(declarationsFor(css, ':where(.formspec-container) h2')).toMatch(/Merriweather/);
+        expect(css).not.toMatch(/(^|[},])\.formspec-container h[1-6]\b/);
     });
 
-    it('lets the Theme retune the rhythm between fields through the spacing.field token', () => {
-        // USWDS's own units-3 margin is the fallback; the token the renderer publishes overrides it.
-        expect(declarationsFor(css, '.usa-form-group')).toMatch(/margin-top:var\(--formspec-spacing-field,\s*1\.5rem\)/);
+    it('lets the Theme retune the rhythm between blocks through the spacing.field token', () => {
+        // USWDS's own units-3 margin is the fallback; the token the renderer publishes overrides it. Display
+        // text and dividers share the one gap above, and no block adds a bottom margin to double it.
+        for (const selector of ['.usa-form-group', '.formspec-uswds-text-wrap', '.formspec-uswds-divider', '.formspec-uswds-divider--labeled']) {
+            expect(declarationsFor(css, selector)).toMatch(/margin-top:var\(--formspec-spacing-field,\s*1\.5rem\)/);
+        }
+        expect(declarationsFor(css, '.formspec-uswds-divider')).toMatch(/margin-bottom:0/);
     });
 
     it('spaces the field help row below the control', () => {

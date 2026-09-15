@@ -4,6 +4,7 @@ import {
     type AdapterContext,
     type GroupLayoutBehavior,
     type RepeatGroupLayoutBehavior,
+    type RepeatGroupRefs,
 } from '@formspec-org/webcomponent';
 
 /**
@@ -40,34 +41,47 @@ function applyNodePresentation(el: HTMLElement, comp: any, actx: AdapterContext)
     actx.applyStyle(el, comp.style);
 }
 
+/** The title fields every group behavior shares; a repeat has no hint. */
+type GroupTitle = Pick<GroupLayoutBehavior, 'titleText' | 'titleHidden' | 'headingLevel'> & {
+    hintText?: GroupLayoutBehavior['hintText'];
+};
+
+/**
+ * Turns a group's bound root into USWDS's shape for grouped questions and returns where its content goes.
+ * A titled group is a fieldset named by its legend, with the instructions under it as a question's hint.
+ * A shown title makes the root a `usa-form-group`, the shape a question takes, so the group takes a
+ * question's gap above. A hidden title still names the fieldset but adds no gap: the group's first question
+ * supplies the one gap, rather than stacking a second on it. Untitled, a group is only a scope — a fieldset
+ * with no legend has no accessible name — so its content goes straight into the root.
+ */
+export function buildGroupShell(root: HTMLElement, title: GroupTitle, actx: AdapterContext): HTMLElement {
+    if (!title.titleText) return root;
+    if (!title.titleHidden) root.classList.add('usa-form-group');
+
+    const fieldset = document.createElement('fieldset');
+    fieldset.className = 'usa-fieldset';
+    root.appendChild(fieldset);
+
+    const legend = createGroupLegend(title.titleHidden, title.headingLevel);
+    watchText(actx, title.titleText, (text) => { legend.textContent = text; });
+    fieldset.appendChild(legend);
+
+    if (title.hintText) {
+        const hint = document.createElement('span');
+        hint.className = 'usa-hint';
+        watchText(actx, title.hintText, (text) => { hint.textContent = text; });
+        fieldset.appendChild(hint);
+    }
+    return fieldset;
+}
+
 export function renderUSWDSGroup(
     behavior: GroupLayoutBehavior,
     parent: HTMLElement,
     actx: AdapterContext,
 ): void {
-    // USWDS groups related fields in a fieldset named by its legend, inside a form group — the same shape
-    // a question takes, so a section separates from the preceding field by USWDS's own margins. Untitled,
-    // a group is only a scope: a fieldset with no legend has no accessible name, so it stays a wrapper.
     const el = document.createElement('div');
-    let content: HTMLElement = el;
-    if (behavior.titleText) {
-        el.className = 'usa-form-group';
-        content = document.createElement('fieldset');
-        content.className = 'usa-fieldset';
-        el.appendChild(content);
-
-        const legend = createGroupLegend(behavior.titleHidden, behavior.headingLevel);
-        watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
-        content.appendChild(legend);
-
-        if (behavior.hintText) {
-            // USWDS puts a fieldset's instructions directly under its legend, as a question's hint.
-            const hint = document.createElement('span');
-            hint.className = 'usa-hint';
-            watchText(actx, behavior.hintText, (text) => { hint.textContent = text; });
-            content.appendChild(hint);
-        }
-    }
+    const content = buildGroupShell(el, behavior, actx);
     applyNodePresentation(el, behavior.comp, actx);
     parent.appendChild(el);
 
@@ -75,48 +89,50 @@ export function renderUSWDSGroup(
     actx.onDispose(behavior.bind({ root: el }));
 }
 
-export function renderUSWDSRepeatGroup(
+/**
+ * A repeatable group's frame, shared by the fieldset and card renders: the bound root shaped as a titled
+ * group, the row list and Add inside it, and the polite announcer after it. Only the rows differ.
+ */
+export function buildRepeatFrame(
     behavior: RepeatGroupLayoutBehavior,
     parent: HTMLElement,
     actx: AdapterContext,
-): void {
-    const container = document.createElement('div');
-    container.className = 'formspec-stack';
-    container.dataset.bind = behavior.bindKey;
-    applyNodePresentation(container, behavior.comp, actx);
-    parent.appendChild(container);
-
-    // A titled repeat takes the same shape a titled group takes: the rows and Add sit inside one
-    // fieldset, named by the group's own legend, so a repeatable group's own title finally renders.
-    let content: HTMLElement = container;
-    if (behavior.titleText) {
-        const formGroup = document.createElement('div');
-        formGroup.className = 'usa-form-group';
-        container.appendChild(formGroup);
-
-        content = document.createElement('fieldset');
-        content.className = 'usa-fieldset';
-        formGroup.appendChild(content);
-
-        const legend = createGroupLegend(behavior.titleHidden, behavior.headingLevel);
-        watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
-        content.appendChild(legend);
-    }
+    addButtonClass: string,
+): Required<RepeatGroupRefs> {
+    const root = document.createElement('div');
+    root.className = 'formspec-stack';
+    root.dataset.bind = behavior.bindKey;
+    applyNodePresentation(root, behavior.comp, actx);
+    parent.appendChild(root);
+    const content = buildGroupShell(root, behavior, actx);
 
     const list = document.createElement('div');
     list.className = 'formspec-stack';
     content.appendChild(list);
 
-    const addBtn = document.createElement('button');
-    addBtn.type = 'button';
+    const addButton = document.createElement('button');
+    addButton.type = 'button';
     // `formspec-repeat-add` is structural: the layout sheet sizes the button to its label instead of the column.
-    addBtn.className = 'usa-button usa-button--outline formspec-repeat-add';
-    addBtn.addEventListener('click', () => behavior.addInstance());
-    watchText(actx, behavior.addLabel, (text) => { addBtn.textContent = text; });
+    addButton.className = `${addButtonClass} formspec-repeat-add`;
+    addButton.addEventListener('click', () => behavior.addInstance());
+    watchText(actx, behavior.addLabel, (text) => { addButton.textContent = text; });
+    content.appendChild(addButton);
 
     const announcer = document.createElement('div');
     announcer.className = 'formspec-sr-only';
     announcer.setAttribute('aria-live', 'polite');
+    root.appendChild(announcer);
+
+    return { root, list, addButton, announcer };
+}
+
+export function renderUSWDSRepeatGroup(
+    behavior: RepeatGroupLayoutBehavior,
+    parent: HTMLElement,
+    actx: AdapterContext,
+): void {
+    const refs = buildRepeatFrame(behavior, parent, actx, 'usa-button usa-button--outline');
+    const { list } = refs;
 
     behavior.renderRows((rows) => {
         list.replaceChildren();
@@ -152,7 +168,5 @@ export function renderUSWDSRepeatGroup(
         }
     });
 
-    content.appendChild(addBtn);
-    container.appendChild(announcer);
-    actx.onDispose(behavior.bind({ root: container, list, addButton: addBtn, announcer }));
+    actx.onDispose(behavior.bind(refs));
 }

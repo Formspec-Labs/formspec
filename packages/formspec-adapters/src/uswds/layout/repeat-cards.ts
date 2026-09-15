@@ -1,10 +1,6 @@
 /** @filedesc USWDS RepeatCards presentation — one `usa-card` per repeat instance, Add below the list. */
-import {
-    watchText,
-    type AdapterContext,
-    type RepeatGroupLayoutBehavior,
-} from '@formspec-org/webcomponent';
-import { createGroupLegend } from './group';
+import type { AdapterContext, RepeatGroupLayoutBehavior } from '@formspec-org/webcomponent';
+import { buildRepeatFrame } from './group';
 
 /**
  * A repeatable group as USWDS cards (theme §4.2 `RepeatCards`): each instance is a `usa-card` headed by the
@@ -19,46 +15,8 @@ export function renderUSWDSRepeatCards(
     parent: HTMLElement,
     actx: AdapterContext,
 ): void {
-    const container = document.createElement('div');
-    container.className = 'formspec-stack';
-    container.dataset.bind = behavior.bindKey;
-    const comp = behavior.comp;
-    if (comp.cssClasses?.length > 0) actx.applyClassValue(container, comp.cssClasses);
-    actx.applyAccessibility(container, comp);
-    actx.applyStyle(container, comp.style);
-    parent.appendChild(container);
-
-    // A titled repeat takes the same shape a titled group takes: the rows and Add sit inside one
-    // fieldset, named by the group's own legend, so a repeatable group's own title finally renders.
-    let content: HTMLElement = container;
-    if (behavior.titleText) {
-        const formGroup = document.createElement('div');
-        formGroup.className = 'usa-form-group';
-        container.appendChild(formGroup);
-
-        content = document.createElement('fieldset');
-        content.className = 'usa-fieldset';
-        formGroup.appendChild(content);
-
-        const legend = createGroupLegend(behavior.titleHidden, behavior.headingLevel);
-        watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
-        content.appendChild(legend);
-    }
-
-    const list = document.createElement('div');
-    list.className = 'formspec-stack';
-    content.appendChild(list);
-
-    const addBtn = document.createElement('button');
-    addBtn.type = 'button';
-    // `formspec-repeat-add` is structural: the layout sheet sizes the button to its label instead of the column.
-    addBtn.className = 'usa-button formspec-repeat-add';
-    addBtn.addEventListener('click', () => behavior.addInstance());
-    watchText(actx, behavior.addLabel, (text) => { addBtn.textContent = text; });
-
-    const announcer = document.createElement('div');
-    announcer.className = 'formspec-sr-only';
-    announcer.setAttribute('aria-live', 'polite');
+    const refs = buildRepeatFrame(behavior, parent, actx, 'usa-button');
+    const { list } = refs;
 
     behavior.renderRows((rows) => {
         list.replaceChildren();
@@ -113,7 +71,5 @@ export function renderUSWDSRepeatCards(
         }
     });
 
-    content.appendChild(addBtn);
-    container.appendChild(announcer);
-    actx.onDispose(behavior.bind({ root: container, list, addButton: addBtn, announcer }));
+    actx.onDispose(behavior.bind(refs));
 }

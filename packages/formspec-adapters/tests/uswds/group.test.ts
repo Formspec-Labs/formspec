@@ -133,6 +133,8 @@ describe('USWDS bound group', () => {
         expect(legend.textContent).toBe('Work this week');
         expect(legend.className).toBe('usa-legend formspec-group-title usa-sr-only');
         expect(parent.querySelector('fieldset.usa-fieldset')).not.toBeNull();
+        // No title on the page, so no gap of its own: the group's first question supplies the one gap.
+        expect(parent.querySelector('.usa-form-group')).toBeNull();
     });
 
     it("renders the group's hint as a usa-hint under the legend", () => {
@@ -169,12 +171,10 @@ describe('USWDS repeatable group', () => {
     it("wraps the rows and Add in one fieldset when the group has a title, the shape a titled group takes", () => {
         const { parent } = mountRepeat({ title: 'Employers on record' });
         const container = parent.querySelector('[data-bind="employers"]') as HTMLElement;
-        const formGroup = container.querySelector('.usa-form-group') as HTMLElement;
-        expect(formGroup).not.toBeNull();
-        expect(container.firstElementChild).toBe(formGroup);
-        const fieldset = formGroup.querySelector('fieldset.usa-fieldset') as HTMLElement;
-        expect(fieldset).not.toBeNull();
-        expect(formGroup.firstElementChild).toBe(fieldset);
+        // The bound root is the form group, exactly as a titled group's root is.
+        expect(container.classList.contains('usa-form-group')).toBe(true);
+        const fieldset = container.firstElementChild as HTMLElement;
+        expect(fieldset.matches('fieldset.usa-fieldset')).toBe(true);
         const legend = fieldset.querySelector('legend') as HTMLElement;
         expect(legend.className).toBe('usa-legend formspec-group-title usa-legend--large');
         expect(legend.textContent).toBe('Employers on record');
@@ -190,6 +190,7 @@ describe('USWDS repeatable group', () => {
         const { parent } = mountRepeat({ title: 'Employers on record', titleHidden: true });
         const legend = parent.querySelector('legend.formspec-group-title') as HTMLElement;
         expect(legend.className).toBe('usa-legend formspec-group-title usa-sr-only');
+        expect(parent.querySelector('.usa-form-group')).toBeNull();
     });
 
     it('keeps a nested repeat on the plain legend — same size rule as a titled group', () => {

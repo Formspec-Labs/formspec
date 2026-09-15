@@ -50,8 +50,8 @@ import {
 const USWDS_PRESENT: StylesheetLayer['presentWhen'] = { className: 'usa-sr-only', property: 'position', value: 'absolute' };
 
 /**
- * Formspec's own USWDS rules layer (ADR 0063 D-4) — the render root extends `usa-form`, USWDS's reset scoped
- * to it, field rhythm, help row, rich text, the modal host. Shared unchanged by every variant.
+ * Formspec's own USWDS rules layer (ADR 0063 D-4) — USWDS's reset and headings scoped to the render root,
+ * field rhythm, help row, rich text, the modal host. Shared unchanged by every variant.
  */
 const RULES_LAYER: StylesheetLayer = {
     href: new URL('../../uswds-formspec.css', import.meta.url).href,
@@ -71,6 +71,9 @@ const RULES_LAYER: StylesheetLayer = {
  */
 export const uswdsAdapter: RenderAdapter = {
     name: 'uswds',
+    // The render root is the form: USWDS's own `usa-form` rules (the 30rem column federal reference forms
+    // use, inputs filling it, button spacing) apply from whichever USWDS build the page loads.
+    rootClasses: ['usa-form', 'usa-form--large'],
     stylesheets: [
         { href: new URL('../../uswds-base.css', import.meta.url).href, presentWhen: USWDS_PRESENT },
         RULES_LAYER,

@@ -1,5 +1,5 @@
-// @filedesc Formspec's own USWDS rules — house rules layered over uswds-base.scss (ADR 0063 D-4): the
-// render root extends usa-form, field rhythm, help row, rich text, the modal host, and every other
+// @filedesc Formspec's own USWDS rules — house rules layered over uswds-base.scss (ADR 0063 D-4): USWDS's
+// reset and headings scoped to the render root, field rhythm, help row, rich text, the modal host, and every other
 // formspec-* class this adapter's markup uses. No USWDS component styling lives here — that is
 // uswds-base.scss's job.
 //
@@ -9,39 +9,18 @@
 
 @use 'uswds-core' as * with (
   $theme-show-notifications: false,
-  // Matches uswds-base.scss's own setting, for the same reason: `.usa-form` below calls
-  // `border-box-sizing`, and without this the render root's padded inputs overflow the form column.
-  $theme-global-border-box-sizing: false,
 );
-// `.usa-form`/`.usa-form--large` for the @extend below — the inner partial directly, not the `usa-form`
-// package root (`@forward 'usa-form'`, which also forwards `uswds-fonts`). uswds-base.scss already ships
-// the real typefaces; pulling `uswds-fonts` in here too would make this "few KB" layer carry duplicate
-// inlined font data. The resulting `.usa-form`/`.usa-form--large` rule bodies (typeset, max-width,
-// `.usa-button` margin, link color, `.usa-show-password`) duplicate a few hundred bytes of the base
-// layer's own `usa-form` forward — harmless: only the `@extend`ed, `.formspec-container`-merged copy
-// here ever reaches the real render root, since no DOM element carries a literal `usa-form` class.
-@use 'usa-form/src/styles/usa-form';
 @use 'sass:meta';
 
 // -- Configuration variables (overridable via theme) --
 $fs-wizard-panel-max-width: 32rem !default;
 $fs-wizard-panel-radius: radius('md') !default;
 $fs-tabs-panel-padding-top: units(3) !default;
-$fs-divider-margin: units(4) 0 !default;
 $fs-trailing-checkbox-size: 1.25rem !default;
 
-// The render root IS the form: `_usa-form.scss` is what makes a USWDS form look like one — a capped
-// column, inputs filling it, no dotted underline under the required asterisk, button spacing, typeset
-// links. `--large` is the 30rem column the federal reference forms use.
-//
-// `usa-headings-styles` stays: USWDS types headings in `uswds-global`, which a trimmed build never
-// forwards, so without it every heading falls back to the UA serif. `.usa-form` brings its own typeset.
+// The render root IS the form: the adapter declares `usa-form usa-form--large` on it (`rootClasses`), so
+// USWDS's form rules come from whichever USWDS build the page loads, at USWDS's own specificity.
 .formspec-container {
-  @extend .usa-form;
-  @extend .usa-form--large;
-
-  @include usa-headings-styles;
-
   // Presence marker (ADR 0063 D-4): names this shared rules layer, not any one adapter — a variant
   // reuses it unchanged, so there is nothing per-adapter to name.
   --formspec-uswds-rules: 1;
@@ -50,8 +29,13 @@ $fs-trailing-checkbox-size: 1.25rem !default;
 // Rhythm between fields is USWDS's `.usa-form-group` top margin. The Theme can retune it through the
 // semantic `spacing.field` token (Theme spec §3.2), which the renderer publishes as a custom property on
 // the render root; absent a token the USWDS default stands. The structural sheet carries no gaps of its
-// own (ADR 0064 decision 3), so USWDS margins are the one rhythm owner here.
-.usa-form-group {
+// own (ADR 0064 decision 3), so USWDS margins are the one rhythm owner here. Display text and dividers
+// sit in the same flow as fields, so they take the same gap above; each block's bottom margin stays 0 and
+// the gap is never counted twice.
+.usa-form-group,
+.formspec-uswds-text-wrap,
+.formspec-uswds-divider,
+.formspec-uswds-divider--labeled {
   margin-top: var(--formspec-spacing-field, #{units(3)});
 }
 
@@ -61,10 +45,13 @@ $fs-trailing-checkbox-size: 1.25rem !default;
 // on radio, checkbox and date-picker controls). `:where()` keeps each rule at element specificity, exactly as
 // the page-wide reset sits, so USWDS component classes still override it; plain nesting under the class
 // would raise it above them. The reset's `html`/`body` rules compile to selectors that cannot match inside
-// the form — harmless — which is why box-sizing (`.usa-form` above) and headings keep their own rules.
+// the form — harmless. Headings join them: USWDS types headings in `uswds-global`, which a trimmed build
+// never forwards, so without `usa-headings-styles` every heading falls back to the UA serif — and at zero
+// specificity a USWDS component heading (`.usa-card__heading`) keeps its own type.
 :where(.formspec-container) {
   @include meta.load-css('uswds-elements/lib/normalize');
   @include meta.load-css('uswds-elements');
+  @include usa-headings-styles;
 }
 
 // USWDS types its own paragraphs with `typeset-p`: no block margins, one paragraph gap only between
@@ -233,7 +220,8 @@ dialog.usa-modal::backdrop {
 .formspec-uswds-divider {
   border: 0;
   border-top: units(1px) solid color('base-lighter');
-  margin: $fs-divider-margin;
+  margin-bottom: 0;
+  margin-inline: 0;
   width: 100%;
 }
 
@@ -242,7 +230,8 @@ dialog.usa-modal::backdrop {
   display: flex;
   flex-direction: row;
   gap: units(2);
-  margin: $fs-divider-margin;
+  margin-bottom: 0;
+  margin-inline: 0;
 }
 
 .formspec-uswds-divider__line {

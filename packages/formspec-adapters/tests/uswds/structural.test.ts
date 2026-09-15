@@ -429,11 +429,12 @@ describe('Integration CSS', () => {
     // inputs inside it, drops the dotted underline under the required asterisk, and spaces the buttons.
     it('forwards usa-form and makes the render root that form', async () => {
         const { readUswdsAdapterCss } = await import('../helpers.js');
+        const { uswdsAdapter } = await import('../../src/uswds/index.js');
         const css = readUswdsAdapterCss();
         expect(css).toContain('abbr[title=required]');
-        // `@extend` puts the render root in usa-form's own selector lists — the root IS the form.
-        expect(css).toMatch(/\.usa-form--large[^{]*\.formspec-container[^{]*\{[^}]*max-width:30rem/);
-        expect(css).toMatch(/\.usa-form[^{]*\.formspec-container[^{]*\{[^}]*max-width:20rem/);
+        expect(css).toMatch(/\.usa-form--large\{max-width:30rem\}/);
+        // The renderer puts USWDS's own form classes on the render root — the root IS the form, from any USWDS build.
+        expect(uswdsAdapter.rootClasses).toEqual(['usa-form', 'usa-form--large']);
     });
 
     it('caps inputs by default and clears the cap inside the form, with no global override', async () => {
@@ -444,7 +445,7 @@ describe('Integration CSS', () => {
         expect(css).not.toMatch(/\.usa-input\{[^}]*max-width:none/);
         // USWDS's global border-box reset lives in uswds-global, which this build never forwards; without
         // the form owning box-sizing, a padded input overflows the form column by its padding and border.
-        expect(css).toMatch(/\.formspec-container\{[^}]*box-sizing:border-box|\.formspec-container[^{]*\{[^}]*box-sizing:border-box/);
+        expect(css).toMatch(/\.usa-form\{[^}]*box-sizing:border-box/);
         expect(css).toContain('box-sizing:inherit');
     });
 
@@ -474,13 +475,11 @@ describe('Integration CSS', () => {
         expect(css).not.toContain('.formspec-alert');
     });
 
-    it("the rules layer's own .usa-form load never stands alone — only the extend-merged render root", async () => {
-        // Split into layers (ADR 0063 D-4), the base layer's `@forward 'usa-form'` DOES carry USWDS's own
-        // bare `.usa-form{...max-width}` cap — genuine, unmodified USWDS behavior, since that layer ships
-        // the design system whole. The rules layer loads `.usa-form` only to `@extend` it into
-        // `.formspec-container`; it must never emit that selector unmerged on its own.
+    it('leaves usa-form to the base layer — the rules layer re-derives none of it', async () => {
+        // A later-loaded copy of usa-form's rules would outrank utilities and width stops that the base
+        // layer orders after them (a `.usa-input--md` cap lost to `:where(.usa-input){max-width:none}`).
         const { readUswdsFormspecCss } = await import('../helpers.js');
-        expect(readUswdsFormspecCss()).not.toMatch(/\.usa-form\{[^}]*max-width/);
+        expect(readUswdsFormspecCss()).not.toMatch(/\.usa-form(?![-\w])|\.usa-form--large/);
     });
 
     it('uses compact top spacing for tabs panels', async () => {

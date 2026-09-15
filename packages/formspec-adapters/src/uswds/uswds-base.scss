@@ -2,7 +2,7 @@
 // Formspec (ADR 0063 D-4). No Formspec-owned rule lives here.
 //
 // Compiled by scripts/build-css.mjs into ../../uswds-base.css at the package root. Formspec's own rules
-// (the render root extends usa-form, field rhythm, help row, rich text, the modal host, and every other
+// (USWDS's reset and headings scoped to the render root, field rhythm, help row, rich text, the modal host, and every other
 // formspec-* class this adapter's markup uses) live in the sibling uswds-formspec.scss layer, compiled
 // separately (ADR 0063 D-4) — a variant recompiles THIS file with its own settings and reuses that layer
 // unchanged (ADR 0064 decision 1).
@@ -24,7 +24,6 @@
   // USWDS's global `border-box` reset ships in `uswds-global`, which a trimmed build never forwards.
   // `false` lets `border-box-sizing` emit inside `.usa-form`, so the render root and its fields size
   // the way every USWDS component assumes — without this the padded inputs overflow the form column.
-  // The rules layer's own `.usa-form` load (uswds-formspec.scss) sets the same value, for the same reason.
   $theme-global-border-box-sizing: false !default,
   $theme-font-path: '@uswds/fonts' !default,
   $theme-image-path: '@uswds/img' !default,

@@ -133,12 +133,10 @@ describe('USWDS RepeatCards', () => {
     it("wraps the cards and Add in one fieldset when the group has a title, the shape a titled group takes", () => {
         const { parent } = mountCards({ title: 'Jobs on record' });
         const container = parent.querySelector('[data-bind="jobs"]') as HTMLElement;
-        const formGroup = container.querySelector('.usa-form-group') as HTMLElement;
-        expect(formGroup).not.toBeNull();
-        expect(container.firstElementChild).toBe(formGroup);
-        const fieldset = formGroup.querySelector('fieldset.usa-fieldset') as HTMLElement;
-        expect(fieldset).not.toBeNull();
-        expect(formGroup.firstElementChild).toBe(fieldset);
+        // The bound root is the form group, exactly as a titled group's root is.
+        expect(container.classList.contains('usa-form-group')).toBe(true);
+        const fieldset = container.firstElementChild as HTMLElement;
+        expect(fieldset.matches('fieldset.usa-fieldset')).toBe(true);
         const legend = fieldset.querySelector('legend') as HTMLElement;
         expect(legend.className).toBe('usa-legend formspec-group-title usa-legend--large');
         expect(legend.textContent).toBe('Jobs on record');
@@ -154,6 +152,7 @@ describe('USWDS RepeatCards', () => {
         const { parent } = mountCards({ title: 'Jobs on record', titleHidden: true });
         const legend = parent.querySelector('legend.formspec-group-title') as HTMLElement;
         expect(legend.className).toBe('usa-legend formspec-group-title usa-sr-only');
+        expect(parent.querySelector('.usa-form-group')).toBeNull();
     });
 
     it('wraps nothing extra when the group has no title — same markup as before this fix', () => {
