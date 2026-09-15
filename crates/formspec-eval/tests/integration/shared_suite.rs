@@ -110,6 +110,13 @@ fn bind_merge_document_order() {
     run_validation_report_case("bind-merge-document-order.json");
 }
 
+/// Core §4.3 / FEL repeat context: a Bind constraint and its message inside a row see that row's
+/// `@index` and `@count`, as its calculate does.
+#[test]
+fn repeat_row_validation_context() {
+    run_validation_report_case("repeat-row-validation-context.json");
+}
+
 fn input_data(case: &Value) -> HashMap<String, Value> {
     case["inputData"]
         .as_object()

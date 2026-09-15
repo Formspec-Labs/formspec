@@ -680,6 +680,35 @@ fn bind_constraint_uses_constraint_message_when_present() {
 }
 
 #[test]
+fn bind_constraint_and_message_see_the_repeat_row() {
+    let def = json!({
+        "items": [{
+            "key": "rows", "type": "group", "repeatable": true,
+            "children": [{ "key": "position", "type": "field", "dataType": "integer" }]
+        }],
+        "binds": [{
+            "path": "rows[*].position",
+            "constraint": "$ = @index and @current.position = $",
+            "constraintMessage": "Row {{@index}} of {{@count}}"
+        }]
+    });
+
+    let mut data = HashMap::new();
+    data.insert(
+        "rows".to_string(),
+        json!([{ "position": 1 }, { "position": 5 }]),
+    );
+
+    let result = evaluate(&def, &data, &EvalOptions::default());
+    let failures: Vec<_> = result
+        .validations
+        .iter()
+        .map(|v| (v.path.as_str(), v.message.as_str()))
+        .collect();
+    assert_eq!(failures, vec![("rows[1].position", "Row 2 of 2")]);
+}
+
+#[test]
 fn required_with_empty_string_fails() {
     let def = json!({
         "items": [

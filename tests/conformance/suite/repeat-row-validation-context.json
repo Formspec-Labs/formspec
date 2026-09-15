@@ -1,0 +1,57 @@
+{
+  "id": "core.repeat-row-validation-context",
+  "kind": "VALIDATION_REPORT",
+  "definitionPath": "tests/conformance/suite/fixtures/repeat-row-context.definition.json",
+  "inputData": {
+    "rows": [
+      {
+        "position": 1
+      },
+      {
+        "position": 3
+      }
+    ]
+  },
+  "mode": "submit",
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "info": 0,
+      "warning": 1
+    },
+    "results": [
+      {
+        "$formspecValidationResult": "1.0",
+        "code": "CONSTRAINT_FAILED",
+        "constraint": "$ = @index and @count = 2",
+        "constraintKind": "constraint",
+        "message": "Row 2 of 2 must say 2",
+        "path": "rows[1].position",
+        "severity": "error",
+        "source": "bind"
+      },
+      {
+        "$formspecValidationResult": "1.0",
+        "code": "SHAPE_FAILED",
+        "constraint": "$ <= @count",
+        "constraintKind": "shape",
+        "message": "Row 2 says 3, past the 2 rows",
+        "path": "rows[1].position",
+        "severity": "warning",
+        "shapeId": "row-within-count",
+        "source": "shape"
+      }
+    ]
+  },
+  "legacyCoverage": [
+    {
+      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
+      "check": "repeat_row_validation_context"
+    },
+    {
+      "path": "packages/formspec-engine/tests/shared-suite.test.mjs",
+      "check": "core.repeat-row-validation-context"
+    }
+  ]
+}

@@ -17,7 +17,7 @@ use crate::types::{
     find_item_by_path,
 };
 
-use super::env::restore_sibling_aliases;
+use super::env::{RowContext, restore_sibling_aliases};
 use super::expr::{ConstraintSite, constraint_passes};
 use super::{Findings, Validation};
 
@@ -142,6 +142,7 @@ impl Validation<'_> {
         };
 
         let concrete_paths = expand_wildcard_path(target, values);
+        let mut row = RowContext::new();
 
         for concrete_path in &concrete_paths {
             // §5.6 rule 1: skip non-relevant targets
@@ -164,6 +165,7 @@ impl Validation<'_> {
             };
 
             let saved_aliases = siblings.bind(env, concrete_path);
+            row.enter(concrete_path, env, values, self.index);
 
             // Build a row-scoped environment: instantiate [*] references in the constraint
             let prev_dollar = env.data.remove("");
@@ -232,6 +234,7 @@ impl Validation<'_> {
                 env.data.insert(String::new(), prev);
             }
         }
+        row.finish(env);
     }
 }
 

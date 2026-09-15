@@ -63,6 +63,7 @@ pub fn revalidate(
     let validation = Validation {
         items,
         values,
+        index: &index,
         siblings: SiblingValues::new(values, data_types),
         shapes_by_id: shapes
             .unwrap_or(&[])
@@ -142,6 +143,8 @@ struct Validation<'a> {
     items: &'a [ItemInfo],
     /// Response values after recalculation.
     values: &'a HashMap<String, Value>,
+    /// Field data types and repeat rows, for the row scope a repeat instance's Binds see.
+    index: &'a ResponseIndex,
     /// Row-sibling values for bare `$field` aliases.
     siblings: SiblingValues<'a>,
     /// Shapes by `id`, for composition references.

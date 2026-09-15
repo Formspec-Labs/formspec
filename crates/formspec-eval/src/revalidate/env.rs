@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use fel_core::{FormspecEnvironment, Value as EnvVal, json_to_fel};
 use serde_json::Value;
 
+use formspec_core::path_utils::{Path, PathSegment};
+
 use crate::fel_json::json_to_runtime_fel_typed;
 use crate::rebuild::is_repeat_group_array;
 use crate::recalculate::repeats::{ResponseIndex, data_type_of};
@@ -102,6 +104,67 @@ fn collect_repeat_group_arrays(
             slots.push((item.path.clone(), Some(array)));
         }
         collect_repeat_group_arrays(&item.children, values, index, slots);
+    }
+}
+
+/// The FEL repeat context (`@index`, `@count`, `@current`, `prev()`, `next()`) for concrete row paths
+/// visited in order, as a wildcard Shape visits `rows[0].qty`, `rows[1].qty`, ….
+///
+/// Revalidation never writes values, so a group's rows are built once when its first path is entered
+/// and only `current`/`index` move after that; the recalculate walk's `InstanceScope` also refreshes a
+/// row its calculates wrote, which validation has no need for.
+pub(super) struct RowContext {
+    /// Group path whose rows are lent to the env's innermost repeat context.
+    group: Option<String>,
+}
+
+impl RowContext {
+    pub(super) fn new() -> Self {
+        Self { group: None }
+    }
+
+    /// Point the repeat context at the innermost repeat instance of `concrete_path`.
+    pub(super) fn enter(
+        &mut self,
+        concrete_path: &str,
+        env: &mut FormspecEnvironment,
+        values: &HashMap<String, Value>,
+        index: &ResponseIndex,
+    ) {
+        let mut segments = Path::parse(concrete_path).segments;
+        let Some(at) = segments
+            .iter()
+            .rposition(|s| matches!(s, PathSegment::Indexed(_)))
+        else {
+            return self.finish(env);
+        };
+        let PathSegment::Indexed(instance) = segments[at] else {
+            unreachable!()
+        };
+        segments.truncate(at);
+        let group = Path { segments }.to_string();
+
+        if self.group.as_deref() == Some(group.as_str())
+            && let Some(context) = env.repeat_context.as_mut()
+            && instance < context.collection.len()
+        {
+            context.current = context.collection[instance].clone();
+            context.index = instance + 1;
+            return;
+        }
+        self.finish(env);
+        let rows = index.repeats.fel_rows(&group, values, &index.data_types);
+        if let Some(current) = rows.get(instance).cloned() {
+            env.push_repeat(current, instance + 1, rows.len(), rows);
+            self.group = Some(group);
+        }
+    }
+
+    /// Pop the repeat context this pushed, if any.
+    pub(super) fn finish(&mut self, env: &mut FormspecEnvironment) {
+        if self.group.take().is_some() {
+            env.pop_repeat();
+        }
     }
 }
 

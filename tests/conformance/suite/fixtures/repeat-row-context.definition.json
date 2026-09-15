@@ -1,0 +1,39 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.org/forms/conformance/repeat-row-context",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Repeat row context in validation",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "repeatable": true,
+      "children": [
+        {
+          "key": "position",
+          "type": "field",
+          "dataType": "integer",
+          "label": "Position"
+        }
+      ]
+    }
+  ],
+  "binds": [
+    {
+      "path": "rows[*].position",
+      "constraint": "$ = @index and @count = 2",
+      "constraintMessage": "Row {{@index}} of {{@count}} must say {{@index}}"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "row-within-count",
+      "target": "rows[*].position",
+      "constraint": "$ <= @count",
+      "message": "Row {{@index}} says {{$}}, past the {{@count}} rows",
+      "severity": "warning"
+    }
+  ]
+}

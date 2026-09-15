@@ -840,7 +840,13 @@ mod tests {
         );
         assert_eq!(out.text, "Row 2 of 2: Beta");
         assert!(out.warnings.is_empty());
-        let message = ctx.interpolate("Qty {{$}} in row {{@index}}", "rows[1].qty", true, None, None);
+        let message = ctx.interpolate(
+            "Qty {{$}} in row {{@index}}",
+            "rows[1].qty",
+            true,
+            None,
+            None,
+        );
         assert_eq!(message.text, "Qty 3 in row 2");
         let failed = ctx.interpolate("{{nope(}} {{$name}}", "", false, None, None);
         assert_eq!(failed.text, "{{nope(}} Form");
