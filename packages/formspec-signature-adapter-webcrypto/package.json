@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@integrity-stack/signature-adapter-webcrypto": "file:../../../integrity-stack/packages/integrity-signature-adapter-webcrypto",
-    "@formspec/signature-cose": "file:../formspec-signature-cose",
-    "@formspec/signature-port": "file:../formspec-signature-port"
+    "@formspec/signature-cose": "0.1.0",
+    "@formspec/signature-port": "0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

@@ -28,6 +28,15 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
+from tests.siblings import requires, sibling
+
+# The canonical envelope fixture is Trellis's, read from the sibling repository.
+TRELLIS_FIXTURE = sibling(
+    "trellis", "fixtures", "vectors", "append", "018-attachment-bound",
+    "input-formspec-respondent-ledger-event.json",
+)
+pytestmark = requires(TRELLIS_FIXTURE, "the trellis repository")
+
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
 
@@ -90,16 +99,7 @@ def _trellis_attachment_event() -> dict:
     """Load the canonical Trellis fixture (regression-proof). Envelope `actor`
     is `kind: respondent`; `eventType: attachment.added` does NOT match the
     `^(ai\\.|user\\.)` pattern, so `authoredBy` is not required."""
-    path = (
-        ROOT_DIR.parent
-        / "trellis"
-        / "fixtures"
-        / "vectors"
-        / "append"
-        / "018-attachment-bound"
-        / "input-formspec-respondent-ledger-event.json"
-    )
-    return json.loads(path.read_text())
+    return json.loads(TRELLIS_FIXTURE.read_text())
 
 
 # ─── authoredBy is REQUIRED on ai.* / user.* events ─────────────────────────

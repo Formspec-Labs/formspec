@@ -1,6 +1,6 @@
 {
   "name": "@formspec-org/react",
-  "description": "React hooks and auto-renderer for Formspec — use any component library with FormEngine",
+  "description": "React hooks and auto-renderer for Formspec \u2014 use any component library with FormEngine",
   "version": "0.1.0",
   "type": "module",
   "license": "Apache-2.0",
@@ -40,7 +40,7 @@
     "@preact/signals-core": "^1.8.0",
     "@formspec-org/engine": "^1.0.0",
     "@formspec-org/layout": "^1.0.0",
-    "@formspec-org/types": "^1.0.0",
+    "@formspec-org/types": "^0.1.0",
     "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {

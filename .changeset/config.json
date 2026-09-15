@@ -18,19 +18,12 @@
       "@formspec-org/surface-react"
     ],
     [
-      "@formspec-org/adapters",
-      "@formspec-org/studio-core"
-    ],
-    [
-      "@formspec-org/mcp",
-      "@formspec-org/chat"
+      "@formspec-org/adapters"
     ]
   ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": [
-    "@formspec-org/studio"
-  ]
+  "ignore": []
 }

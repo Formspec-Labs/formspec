@@ -12,6 +12,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from tests.siblings import skip_without_sibling_path
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LEDGER_PATH = REPO_ROOT / "tests" / "contracts" / "surface-coverage.json"
@@ -35,6 +37,8 @@ def _as_paths(value: Any) -> list[str]:
 def _assert_paths_exist(paths: list[str], *, label: str) -> None:
     for rel_path in paths:
         assert not rel_path.startswith("/"), f"{label}: path must be repo-relative: {rel_path}"
+        # A contract surface may live in a sibling repository; only this one is guaranteed present.
+        skip_without_sibling_path(rel_path, label=label)
         assert (REPO_ROOT / rel_path).exists(), f"{label}: path does not exist: {rel_path}"
 
 

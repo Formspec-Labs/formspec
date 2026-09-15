@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import subprocess
+
+from tests.siblings import requires_node_modules
 from pathlib import Path
 from typing import Any, Iterable, NamedTuple
 
@@ -156,6 +158,7 @@ def test_no_rewrite_gate_discovers_existing_component_documents() -> None:
     assert COMPONENT_DOCUMENTS, "No pre-existing Component documents were discovered"
 
 
+@requires_node_modules("ajv")
 def test_existing_component_documents_validate_against_amended_schema() -> None:
     manifest = json.dumps(
         [{"id": component.id, "doc": component.doc} for component in COMPONENT_DOCUMENTS]
