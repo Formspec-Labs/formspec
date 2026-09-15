@@ -56,14 +56,28 @@ export function planDefinitionFallback(
 function wrapGridFlow(children: LayoutNode[], item: FormItem, ctx: PlanContext): LayoutNode[] {
     const layout = (item.presentation as { layout?: { flow?: string; columns?: number } } | undefined)?.layout;
     if (layout?.flow !== 'grid' || children.length === 0) return children;
+    const columns = layout.columns ?? 12;
     return [{
         id: ctx.nextId('grid'),
         component: 'Grid',
         category: 'layout',
-        props: { columns: layout.columns ?? 12 },
+        props: { columns },
         cssClasses: [],
-        children,
+        children: columns === CANVAS_COLUMNS ? children.map(spanWholeCanvasRow) : children,
     }];
+}
+
+/** The 12-column canvas: `columns: 12` is a placement grid, not a request for twelve equal columns. */
+const CANVAS_COLUMNS = 12;
+
+/**
+ * On that canvas, a child that declares no `layout.grid.span` takes the whole row. One twelfth of a row
+ * is never a usable field, and leaving the span off would otherwise hand the child to the renderer's
+ * equal-column arrangement, which squeezes every unspanned sibling onto one line.
+ */
+function spanWholeCanvasRow(child: LayoutNode): LayoutNode {
+    if (child.style?.gridColumn !== undefined) return child;
+    return { ...child, style: { ...child.style, gridColumn: `span ${CANVAS_COLUMNS}` } };
 }
 
 export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''): LayoutNode {

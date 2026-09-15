@@ -2057,6 +2057,42 @@ describe('planDefinitionFallback', () => {
         expect(group.props.bind).toBe('hoursWorked');
     });
 
+    it('gives a child with no span the whole row of a 12-column canvas', () => {
+        const items = [{
+            key: 'jobs',
+            type: 'group',
+            label: 'Job',
+            presentation: { layout: { flow: 'grid', columns: 12 } },
+            children: [
+                { key: 'employer', type: 'field', dataType: 'string', label: 'Employer' },
+                { key: 'city', type: 'field', dataType: 'string', label: 'City', presentation: { layout: { grid: { span: 6 } } } },
+                { key: 'state', type: 'field', dataType: 'string', label: 'State', presentation: { layout: { grid: { span: 4 } } } },
+                { key: 'zip', type: 'field', dataType: 'string', label: 'ZIP', presentation: { layout: { grid: { span: 2 } } } },
+            ],
+        }];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+        const [group] = planDefinitionFallback(items, ctx);
+
+        // Unspanned: a full-width row of its own. Spanned: 6 + 4 + 2 share the next row.
+        expect(group.children[0].children.map((c: any) => c.style?.gridColumn))
+            .toEqual(['span 12', 'span 6', 'span 4', 'span 2']);
+    });
+
+    it('leaves an equal-column grid to arrange its unspanned children itself', () => {
+        const items = [{
+            key: 'pair', type: 'group', label: 'Pair', presentation: { layout: { flow: 'grid', columns: 2 } },
+            children: [
+                { key: 'a', type: 'field', dataType: 'string', label: 'A' },
+                { key: 'b', type: 'field', dataType: 'string', label: 'B' },
+            ],
+        }];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+        const [group] = planDefinitionFallback(items, ctx);
+
+        expect(group.children[0].props.columns).toBe(2);
+        expect(group.children[0].children.map((c: any) => c.style?.gridColumn)).toEqual([undefined, undefined]);
+    });
+
     it('defaults a grid-flow group to the 12-column grid its children were authored against', () => {
         const items = [{
             key: 'address', type: 'group', label: 'Address', presentation: { layout: { flow: 'grid' } },
