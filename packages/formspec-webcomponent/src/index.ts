@@ -60,6 +60,12 @@ export type {
     PanelLayoutBehavior,
     AccordionLayoutBehavior,
     AccordionRowsPass,
+    GroupLayoutBehavior,
+    GroupRefs,
+    RepeatGroupLayoutBehavior,
+    RepeatGroupRefs,
+    RepeatGroupRowsPass,
+    RepeatRowText,
     ModalLayoutBehavior,
     PopoverLayoutBehavior,
     LocalizedText,
@@ -78,6 +84,7 @@ export {
     renderDefaultValidationSummary,
 } from './adapters/default/display-components';
 export { renderDefaultConditionalGroup, renderDefaultDataTable } from './adapters/default/special-adapters';
+export { renderGroup as renderDefaultGroup, renderRepeatGroup as renderDefaultRepeatGroup } from './adapters/default/group';
 
 /** Default layout DOM builders — call from design-system adapters when falling back to canonical markup. */
 export {

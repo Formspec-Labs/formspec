@@ -91,6 +91,82 @@ export interface AccordionRowsPass {
     watch(fn: () => void): void;
 }
 
+export interface GroupRefs {
+    /** The element the adapter made for the group. */
+    root: HTMLElement;
+}
+
+/** A bound (scope-changing) group: `address`, `employer[0]`. Titled or not, it wraps its children in one scope. */
+export interface GroupLayoutBehavior {
+    /** The planner's node: `cssClasses`, `style`, `accessibility`, and surface `props`. */
+    comp: any;
+    host: LayoutHostSlice;
+    /** The group's live title (Locale, `{{}}`, definition label), or null when it has none. */
+    titleText: LocalizedText | null;
+    /** Heading tag for the title at this depth: `'h3'`…`'h6'`. */
+    headingLevel: string;
+    /** Render the group's children into `parent`, scoped to the group's own path. */
+    renderChildren(parent: HTMLElement): void;
+    /** Hides the group while it is not relevant. */
+    bind(refs: GroupRefs): () => void;
+}
+
+export interface RepeatGroupRefs {
+    root: HTMLElement;
+    /** Row container: its element children are the rows, in order. Used to restore focus after add/remove. */
+    list: HTMLElement;
+    /** Add control; hidden while Add is locked or the group is at `maxRepeat`. */
+    addButton?: HTMLElement;
+    /** Polite live region for add/remove announcements. */
+    announcer?: HTMLElement;
+}
+
+/** One repeat row's text, all following the active locale and `{{}}` values. */
+export interface RepeatRowText {
+    /** "Employer 1" */
+    label: LocalizedText;
+    /** "Employer 1 of 3" */
+    ariaLabel: LocalizedText;
+    /** "Remove Employer" */
+    removeLabel: LocalizedText;
+    /** "Remove Employer 1" */
+    removeAriaLabel: LocalizedText;
+}
+
+/** One render pass of a repeatable group's rows. */
+export interface RepeatGroupRowsPass {
+    count: number;
+    /** False at or below `minRepeat` or when `allowRemove` is false: omit Remove. */
+    canRemove: boolean;
+    /** Localized text for row `index`; write it inside {@link watch}, never once at build time. */
+    rowText(index: number): RepeatRowText;
+    /** Render row `index`'s children into `parent`, scoped to that row. */
+    renderRow(index: number, parent: HTMLElement): void;
+    /** Run `fn` as an effect disposed with this pass. */
+    watch(fn: () => void): void;
+}
+
+/** A repeatable group's chrome: rows plus the Add and Remove affordances. */
+export interface RepeatGroupLayoutBehavior {
+    comp: any;
+    host: LayoutHostSlice;
+    /** The repeated group's key, as authored. */
+    bindKey: string;
+    /** "Add Employer" */
+    addLabel: LocalizedText;
+    /**
+     * Build the rows now and again whenever the count or Remove availability changes. Each pass
+     * renders untracked into its own scope, disposed before the next pass.
+     */
+    renderRows(build: (rows: RepeatGroupRowsPass) => void): void;
+    /** Append a row, announce it, and focus into it. No-op while Add is locked. */
+    addInstance(): void;
+    /** Remove row `index`, announce it, and move focus to the nearest surviving row. */
+    removeInstance(index: number): void;
+    /** Hides the group while it is not relevant, and the Add control while Add is unavailable. */
+    bind(refs: RepeatGroupRefs): () => void;
+}
+
 export interface ModalLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;

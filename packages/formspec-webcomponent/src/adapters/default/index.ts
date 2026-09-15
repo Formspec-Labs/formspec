@@ -36,6 +36,7 @@ import {
     renderDefaultValidationSummary,
 } from './display-components';
 import { renderDefaultConditionalGroup, renderDefaultDataTable } from './special-adapters';
+import { renderGroup, renderRepeatGroup } from './group';
 
 export const defaultAdapter: RenderAdapter = {
     name: 'default',
@@ -75,5 +76,7 @@ export const defaultAdapter: RenderAdapter = {
         Signature: renderSignature,
         Wizard: renderWizard,
         Tabs: renderTabs,
+        Group: renderGroup,
+        RepeatGroup: renderRepeatGroup,
     },
 };

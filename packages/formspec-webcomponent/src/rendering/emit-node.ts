@@ -16,10 +16,7 @@ import {
 import type { ValidationResult } from '@formspec-org/types';
 import { useWizard } from '../behaviors/wizard';
 import { useTabs } from '../behaviors/tabs';
-import { applySurfaceProps } from '../adapters/default/layout';
-import { repeatAffordances, renderRepeatRows } from './repeat-affordances';
-import { itemLabel } from './item-label';
-import { compText } from '../components/layout-plugin-factory';
+import { buildGroupBehavior, buildRepeatGroupBehavior, type EmitChild } from './group-behaviors';
 
 export type { RenderHost } from '../hub-types.js';
 
@@ -92,6 +89,42 @@ function applyProjectionMetadata(
     applyUiGraphRoutePolicy(el, metadata.component, metadata.uiGraphRoutePolicy);
 }
 
+/** The styling appliers an adapter may use. One shape, whether the caller is a plugin or `emitNode` itself. */
+function adapterContextFor(host: RenderHost, cleanupFns: Array<() => void>): AdapterContext {
+    return {
+        onDispose: (fn: () => void) => cleanupFns.push(fn),
+        applyCssClass: (el, comp) => host.applyCssClass(el, comp),
+        applyStyle: (el, style) => host.applyStyle(el, style),
+        applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),
+        applyClassValue: (el: HTMLElement, classValue: unknown) => host.applyClassValue(el, classValue),
+    };
+}
+
+/** The renderer owns tree recursion; group behaviors only ask for a child in a given scope. */
+const emitChild = (host: RenderHost): EmitChild =>
+    (child, parent, prefix, headingLevel, scope) => emitNode(host, child, parent, prefix, headingLevel, scope);
+
+/** Hand a planner node's chrome to the resolved adapter, then stamp the renderer's projection metadata on it. */
+function emitThroughAdapter<B>(
+    host: RenderHost,
+    node: LayoutNode,
+    target: HTMLElement,
+    cleanupFns: Array<() => void>,
+    componentType: string,
+    behavior: B,
+): void {
+    const render = globalRegistry.resolveAdapterFn(componentType, host.resolvedAdapterName);
+    if (!render) {
+        console.warn(`No adapter renders ${componentType}`);
+        return;
+    }
+    const firstNewChildIndex = target.childElementCount;
+    render(behavior, target, adapterContextFor(host, cleanupFns));
+    for (const child of Array.from(target.children).slice(firstNewChildIndex)) {
+        if (child instanceof HTMLElement) applyProjectionMetadata(child, node);
+    }
+}
+
 function renderActualComponentWithProjectionMetadata(
     host: RenderHost,
     comp: ComponentDescriptor,
@@ -148,147 +181,14 @@ export function emitNode(
     }
 
     if (node.isRepeatTemplate && node.props.bind) {
-        const bindKey = node.props.bind as string;
-        const fullRepeatPath = prefix ? `${prefix}.${bindKey}` : bindKey;
-        const container = document.createElement('div');
-        container.className = 'formspec-repeat';
-        container.dataset.bind = bindKey;
-        applyProjectionMetadata(container, node);
-        target.appendChild(container);
-        const list = document.createElement('div');
-        list.className = 'formspec-repeat-list';
-        container.appendChild(list);
-        const addBtn = document.createElement('button');
-        addBtn.type = 'button';
-        addBtn.className = 'formspec-repeat-add formspec-focus-ring';
-        const item = host.findItemByKey(bindKey);
-        const groupLabel = itemLabel(host.engine, item, fullRepeatPath, bindKey);
-        // Theme widgetConfig Add/Remove locks, planned onto the template's props (theme §4.2).
-        const { count: repeatCount, relevant, canAdd, canRemove } = repeatAffordances(host.engine, fullRepeatPath, item, {
-            allowAdd: node.props.allowAdd as boolean | undefined,
-            allowRemove: node.props.allowRemove as boolean | undefined,
-        });
-        const liveRegion = document.createElement('div');
-        liveRegion.className = 'formspec-sr-only';
-        liveRegion.setAttribute('aria-live', 'polite');
-        const findRepeatInstanceFocusTarget = (instance: Element | null): HTMLElement | null =>
-            instance?.querySelector<HTMLElement>(
-                'input:not([type="hidden"]), select, textarea, [contenteditable="true"], button:not(.formspec-repeat-remove)',
-            ) ?? instance?.querySelector<HTMLElement>('button, [tabindex]:not([tabindex="-1"])') ?? null;
-        cleanupFns.push(effect(() => {
-            container.classList.toggle('formspec-hidden', !relevant.value);
-        }));
-        cleanupFns.push(effect(() => {
-            addBtn.classList.toggle('formspec-hidden', !canAdd.value);
-        }));
-        cleanupFns.push(effect(() => {
-            addBtn.textContent = `Add ${groupLabel.value}`;
-        }));
-        renderRepeatRows(cleanupFns, { count: repeatCount, canRemove }, (rows) => {
-            const { count } = rows;
-            list.replaceChildren();
-            for (let idx = 0; idx < count; idx++) {
-                const instanceWrapper = document.createElement('div');
-                instanceWrapper.className = 'formspec-repeat-instance';
-                instanceWrapper.setAttribute('role', 'group');
-                list.appendChild(instanceWrapper);
-
-                const instanceHeader = document.createElement('div');
-                instanceHeader.className = 'formspec-repeat-instance-header';
-                const instanceLabel = document.createElement('p');
-                instanceLabel.className = 'formspec-repeat-instance-label';
-                instanceHeader.appendChild(instanceLabel);
-                instanceWrapper.appendChild(instanceHeader);
-
-                const removeBtn = rows.canRemove ? document.createElement('button') : null;
-                if (removeBtn) {
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'formspec-repeat-remove formspec-button-danger formspec-focus-ring';
-                    const removeIdx = idx;
-                    removeBtn.addEventListener('click', () => {
-                        host.engine.removeRepeatInstance(fullRepeatPath, removeIdx);
-                        const newCount = Math.max(0, count - 1);
-                        liveRegion.textContent = `${groupLabel.value} ${removeIdx + 1} removed. ${newCount} remaining.`;
-                        queueMicrotask(() => {
-                            if (newCount === 0) {
-                                addBtn.focus();
-                                return;
-                            }
-                            const instances = container.querySelectorAll<HTMLElement>('.formspec-repeat-instance');
-                            const targetInstance = instances[Math.min(removeIdx, newCount - 1)];
-                            findRepeatInstanceFocusTarget(targetInstance)?.focus();
-                        });
-                    });
-                    instanceHeader.appendChild(removeBtn);
-                }
-                rows.cleanupFns.push(effect(() => {
-                    const label = groupLabel.value;
-                    instanceWrapper.setAttribute('aria-label', `${label} ${idx + 1} of ${count}`);
-                    instanceLabel.textContent = `${label} ${idx + 1}`;
-                    if (removeBtn) {
-                        removeBtn.textContent = `Remove ${label}`;
-                        removeBtn.setAttribute('aria-label', `Remove ${label} ${idx + 1}`);
-                    }
-                }));
-
-                const instancePrefix = `${fullRepeatPath}[${idx}]`;
-                for (const child of node.children) {
-                    emitNode(host, child, instanceWrapper, instancePrefix, headingLevel, rows.cleanupFns);
-                }
-            }
-        });
-        addBtn.addEventListener('click', () => {
-            if (!canAdd.value) return;
-            host.engine.addRepeatInstance(fullRepeatPath);
-            const newCount = repeatCount.value;
-            liveRegion.textContent = `${groupLabel.value} ${newCount} added. ${newCount} total.`;
-            queueMicrotask(() => {
-                const instances = container.querySelectorAll<HTMLElement>('.formspec-repeat-instance');
-                const last = instances[instances.length - 1];
-                findRepeatInstanceFocusTarget(last)?.focus();
-            });
-        });
-        container.appendChild(addBtn);
-        container.appendChild(liveRegion);
+        emitThroughAdapter(host, node, target, cleanupFns, 'RepeatGroup',
+            buildRepeatGroupBehavior(host, node, prefix, headingLevel, cleanupFns, emitChild(host)));
         return;
     }
 
     if (node.scopeChange && !node.isRepeatTemplate && node.props.bind) {
-        const bindKey = node.props.bind as string;
-        const nextPrefix = prefix ? `${prefix}.${bindKey}` : bindKey;
-        const el = document.createElement('div');
-        el.className = 'formspec-group';
-        applyProjectionMetadata(el, node);
-        if (node.cssClasses.length > 0) host.applyClassValue(el, node.cssClasses);
-        host.applyAccessibility(el, node);
-        host.applyStyle(el, node.style);
-        applySurfaceProps(el, node.props, host.resolveToken);
-        if (node.props.title) {
-            const heading = document.createElement(`h${Math.min(headingLevel, 6)}`);
-            heading.className = 'formspec-group-title';
-            // An authored `$component.<id>.title` Locale string wins; the Stack sits in the enclosing scope.
-            const title = compText({ engine: host.engine, prefix }, node.props, 'title', node.props.title as string);
-            const groupItem = host.findItemByKey(Path.parse(nextPrefix).stripIndices());
-            // The definition planner titles a group with its inline label: show that label live.
-            const label = groupItem ? itemLabel(host.engine, groupItem, nextPrefix, bindKey) : null;
-            cleanupFns.push(effect(() => {
-                const authored = title.value;
-                heading.textContent = label && authored === groupItem?.label ? label.value : authored;
-            }));
-            el.appendChild(heading);
-        }
-        const groupFullPath = nextPrefix;
-        if (host.engine.relevantSignals[groupFullPath]) {
-            cleanupFns.push(effect(() => {
-                const isRelevant = host.engine.relevantSignals[groupFullPath].value;
-                el.classList.toggle('formspec-hidden', !isRelevant);
-            }));
-        }
-        target.appendChild(el);
-
-        for (const child of node.children) {
-            emitNode(host, child, el, nextPrefix, Math.min(headingLevel + 1, 6), cleanupFns);
-        }
+        emitThroughAdapter(host, node, target, cleanupFns, 'Group',
+            buildGroupBehavior(host, node, prefix, headingLevel, cleanupFns, emitChild(host)));
         return;
     }
 
@@ -406,13 +306,7 @@ export function renderActualComponent(
             rerender: () => host.render(),
             getFieldVM: (fieldPath: string) => host.engine.getFieldVM(fieldPath),
         },
-        adapterContext: {
-            onDispose: (fn: () => void) => cleanupFns.push(fn),
-            applyCssClass: (el, comp) => host.applyCssClass(el, comp),
-            applyStyle: (el, style) => host.applyStyle(el, style),
-            applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),
-            applyClassValue: (el: HTMLElement, classValue: unknown) => host.applyClassValue(el, classValue),
-        },
+        adapterContext: adapterContextFor(host, cleanupFns),
     };
 
     // pageMode-driven rendering: a planner-marked Stack root with direct Section children triggers the
