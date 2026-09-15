@@ -2,6 +2,8 @@
 import type { MoneyInputBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
 import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass } from './shared';
+import { uiText } from '../ui-text.js';
+import { watchText } from '../watch-text.js';
 import { widthStopClass } from '../width-stops';
 
 export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
@@ -17,7 +19,11 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
     amountInput.inputMode = 'decimal';
     amountInput.pattern = '[0-9]*\\.?[0-9]*';
     amountInput.className = 'formspec-input formspec-money-amount';
-    amountInput.placeholder = behavior.placeholder || 'Amount';
+    if (behavior.placeholder) {
+        amountInput.placeholder = behavior.placeholder;
+    } else {
+        watchText(actx, uiText(actx.engine, 'money.amount'), (text) => { amountInput.placeholder = text; });
+    }
     amountInput.name = `${behavior.fieldPath}__amount`;
     amountInput.id = behavior.id;
     if (behavior.step != null) amountInput.step = String(behavior.step);
@@ -40,7 +46,7 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
         currencyInput.className = 'formspec-input formspec-money-currency-input';
         currencyInput.placeholder = 'Currency';
         currencyInput.name = `${behavior.fieldPath}__currency`;
-        currencyInput.setAttribute('aria-label', 'Currency code');
+        watchText(actx, uiText(actx.engine, 'money.currency'), (text) => { currencyInput.setAttribute('aria-label', text); });
         container.appendChild(currencyInput);
     }
 

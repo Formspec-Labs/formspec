@@ -2,6 +2,13 @@ import type { IFormEngine } from '@formspec-org/engine/render';
 import { wasmEvaluateScreenerDocument } from '@formspec-org/engine';
 import { FormDefinition, ScreenerDocument, FormItem, ScreenerBind, DeterminationRecord, PhaseResult } from '@formspec-org/types';
 import type { ScreenerRoute } from '../types.js';
+import { uiText } from '../adapters/ui-text.js';
+
+/** One-shot chrome text: the screener panel is a plain imperative build, not rebuilt on a bare locale
+ * switch (same limitation `host.engine.getLabel(item)` already has on this same panel, below). */
+function screenerUiText(engine: IFormEngine, key: Parameters<typeof uiText>[1], fallback?: string): string {
+    return uiText(engine, key, undefined, fallback).value;
+}
 
 /** Use as {@link ScreenerRoute.extensions} only for plain objects (excludes null, arrays, Date, etc.). */
 function asRouteExtensionsRecord(value: unknown): Record<string, any> | undefined {
@@ -230,7 +237,7 @@ export function renderScreener(host: ScreenerHost, container: HTMLElement): void
             if (item.hint) select.setAttribute('aria-describedby', hintId);
             const emptyOpt = document.createElement('option');
             emptyOpt.value = '';
-            emptyOpt.textContent = '-- Select --';
+            emptyOpt.textContent = screenerUiText(host.engine, 'select.placeholder', '-- Select --');
             select.appendChild(emptyOpt);
             for (const opt of (item.options || [])) {
                 const option = document.createElement('option');
@@ -264,7 +271,7 @@ export function renderScreener(host: ScreenerHost, container: HTMLElement): void
             input.type = 'number';
             input.className = 'formspec-input';
             input.id = fieldId;
-            input.placeholder = 'Amount';
+            input.placeholder = screenerUiText(host.engine, 'money.amount');
             if (item.hint) input.setAttribute('aria-describedby', hintId);
             const moneySeed = answers[item.key];
             if (moneySeed && typeof moneySeed.amount === 'number' && !Number.isNaN(moneySeed.amount)) {
@@ -306,7 +313,7 @@ export function renderScreener(host: ScreenerHost, container: HTMLElement): void
     const continueBtn = document.createElement('button');
     continueBtn.type = 'button';
     continueBtn.className = 'formspec-screener-continue formspec-focus-ring';
-    continueBtn.textContent = 'Continue';
+    continueBtn.textContent = screenerUiText(host.engine, 'screener.continue');
     continueBtn.addEventListener('click', () => {
         // Clear prior errors
         for (const err of fieldsContainer.querySelectorAll('.formspec-error')) {
@@ -335,7 +342,7 @@ export function renderScreener(host: ScreenerHost, container: HTMLElement): void
                         err.className = 'formspec-error';
                         err.setAttribute('role', 'alert');
                         err.setAttribute('aria-live', 'assertive');
-                        err.textContent = 'Required';
+                        err.textContent = screenerUiText(host.engine, 'screener.required');
                         wrapper.appendChild(err);
                     }
                 }
@@ -358,7 +365,7 @@ export function renderScreener(host: ScreenerHost, container: HTMLElement): void
                             err.className = 'formspec-error';
                             err.setAttribute('role', 'alert');
                             err.setAttribute('aria-live', 'assertive');
-                            err.textContent = 'Required';
+                            err.textContent = screenerUiText(host.engine, 'screener.required');
                             wrapper.appendChild(err);
                         }
                     }
@@ -426,7 +433,7 @@ function showExternalRouteResult(
     const backBtn = document.createElement('button');
     backBtn.type = 'button';
     backBtn.className = 'formspec-screener-continue formspec-focus-ring';
-    backBtn.textContent = 'Back to screening';
+    backBtn.textContent = screenerUiText(host.engine, 'screener.back');
     backBtn.addEventListener('click', () => {
         host._screenerRoute = null;
         host.emitScreenerStateChange('restart', undefined);

@@ -1,5 +1,5 @@
 /** @filedesc USWDS v3 adapter for CheckboxGroup — renders usa-checkbox markup inside a fieldset. */
-import type { CheckboxGroupBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { uiText, watchText, type CheckboxGroupBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
 import { applyUSWDSValidationState, createUSWDSFieldDOM, buildUSWDSOptions } from './shared';
 
@@ -26,7 +26,7 @@ export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
             behavior.setValue(checked);
         });
         const selectAllLabel = el('label', { class: 'usa-checkbox__label', for: selectAllId });
-        selectAllLabel.textContent = 'Select All';
+        watchText(actx, uiText(actx.engine, 'select.selectAll'), (text) => { selectAllLabel.textContent = text; });
         selectAllWrapper.appendChild(selectAllCb);
         selectAllWrapper.appendChild(selectAllLabel);
         content.appendChild(selectAllWrapper);

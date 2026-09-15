@@ -1,6 +1,6 @@
 /** @filedesc USWDS Modal — native `<dialog>` with `usa-modal` inner structure (CSS-only; no USWDS modal JS). */
 import { effect } from '@preact/signals-core';
-import { watchText, type AdapterContext, type ModalLayoutBehavior } from '@formspec-org/webcomponent';
+import { uiText, watchText, type AdapterContext, type ModalLayoutBehavior } from '@formspec-org/webcomponent';
 import { focusFirstIn, positionOverlayNearTrigger, type PopupPlacement } from './overlay';
 
 function hideDialog(dialog: HTMLDialogElement): void {
@@ -56,7 +56,7 @@ export function renderUSWDSModal(behavior: ModalLayoutBehavior, parent: HTMLElem
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button';
         closeBtn.className = 'usa-button usa-modal__close formspec-focus-ring';
-        closeBtn.setAttribute('aria-label', 'Close');
+        watchText(actx, uiText(actx.engine, 'modal.close'), (text) => { closeBtn.setAttribute('aria-label', text); });
         closeBtn.innerHTML = '<span aria-hidden="true">\u00d7</span>';
         closeBtn.addEventListener('click', () => dialog.close());
         contentWrap.appendChild(closeBtn);

@@ -2,7 +2,7 @@
  * The `date` field mounts USWDS's own usa-date-picker JS (hidden ISO input + visible MM/DD/YYYY input +
  * calendar button + month grid) when `@uswds/uswds` is installed; it falls back to the plain text shell
  * (no calendar, native-text value sync) when the module can't be loaded. */
-import { widthStopClass, type DatePickerBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
+import { widthStopClass, uiText, watchText, type DatePickerBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
 import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
@@ -23,7 +23,7 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
     let formatHint: HTMLElement | undefined;
     if (!behavior.hint) {
         formatHint = el('span', { class: 'usa-hint', id: `${behavior.id}-format` });
-        formatHint.textContent = 'MM/DD/YYYY';
+        watchText(actx, uiText(actx.engine, 'date.format'), (text) => { formatHint!.textContent = text; });
         root.appendChild(formatHint);
     }
 

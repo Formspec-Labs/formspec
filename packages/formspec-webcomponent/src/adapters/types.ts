@@ -1,4 +1,5 @@
 /** @filedesc Render adapter types for the headless component architecture. */
+import type { IFormEngine } from '@formspec-org/engine/render';
 
 /**
  * An adapter render function receives a behavior contract and a parent element.
@@ -16,6 +17,13 @@ export type AdapterRenderFn<B = any> = (behavior: B, parent: HTMLElement, actx: 
 export interface AdapterContext {
     /** Register a cleanup function called when the component is torn down. */
     onDispose(fn: () => void): void;
+    /**
+     * The rendering engine, when one exists — absent only for the pre-engine skeleton pass
+     * (`rendering/skeleton.ts`), which draws inert placeholder markup before boot. Adapters resolve
+     * renderer chrome (Locale §3.1.10 `$ui.<ChromeStringKey>`) through {@link uiText} with this engine;
+     * `uiText` degrades to the English default when it is absent.
+     */
+    engine?: IFormEngine;
     /**
      * Apply cssClass from a PresentationBlock or comp descriptor to an element. `itemPath` names the item
      * for an unknown-class warning (ADR 0064 decision 2); omit it to fall back to `comp.bindPath`/`comp.id`.

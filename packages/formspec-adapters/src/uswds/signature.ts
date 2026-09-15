@@ -1,6 +1,6 @@
 /** @filedesc USWDS v3 adapter for Signature — canvas drawing with USWDS button for clear. */
 import type { SignatureBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
-import { createSignatureCanvas } from '@formspec-org/webcomponent';
+import { createSignatureCanvas, uiText, watchText } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
 import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
@@ -19,7 +19,7 @@ export const renderSignature: AdapterRenderFn<SignatureBehavior> = (
     canvas.style.border = '1px solid';
     canvas.setAttribute('tabindex', '0');
     canvas.setAttribute('role', 'img');
-    canvas.setAttribute('aria-label', 'Signature canvas. Use the Clear button to reset.');
+    watchText(actx, uiText(actx.engine, 'signature.canvas'), (text) => { canvas.setAttribute('aria-label', text); });
 
     root.appendChild(canvas);
     actx.onDispose(canvasDispose);
@@ -28,7 +28,7 @@ export const renderSignature: AdapterRenderFn<SignatureBehavior> = (
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
     clearBtn.className = 'usa-button usa-button--outline';
-    clearBtn.textContent = 'Clear';
+    watchText(actx, uiText(actx.engine, 'signature.clear'), (text) => { clearBtn.textContent = text; });
     clearBtn.addEventListener('click', clear);
     root.appendChild(clearBtn);
 

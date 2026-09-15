@@ -3,6 +3,8 @@ import type { SelectBehavior } from '../../behaviors/types';
 import type { AdapterContext, AdapterRenderFn } from '../types';
 import type { FieldDOM } from './shared';
 import { createFieldDOM, finalizeFieldDOM, applyControlSlotClass, watchFieldValueChanges } from './shared';
+import { uiText } from '../ui-text.js';
+import { watchText } from '../watch-text.js';
 import { widthStopClass } from '../width-stops';
 
 /** Distinct value for the native select "clear" row (must stay in sync with `select.ts` behavior change handler). */
@@ -17,7 +19,7 @@ function mountCombobox(fieldDOM: FieldDOM, behavior: SelectBehavior, actx: Adapt
 
     const chips = document.createElement('div');
     chips.className = 'formspec-combobox-chips';
-    chips.setAttribute('aria-label', 'Selected values');
+    watchText(actx, uiText(actx.engine, 'select.selectedValues'), (text) => { chips.setAttribute('aria-label', text); });
 
     const popover = document.createElement('div');
     popover.className = 'formspec-combobox-popover';
@@ -39,7 +41,7 @@ function mountCombobox(fieldDOM: FieldDOM, behavior: SelectBehavior, actx: Adapt
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
     clearBtn.className = 'formspec-combobox-clear';
-    clearBtn.setAttribute('aria-label', 'Clear selection');
+    watchText(actx, uiText(actx.engine, 'select.clearSelection'), (text) => { clearBtn.setAttribute('aria-label', text); });
     clearBtn.innerHTML = '<span aria-hidden="true">\u00d7</span>';
 
     const chevron = document.createElement('span');
@@ -99,7 +101,13 @@ export const renderSelect: AdapterRenderFn<SelectBehavior> = (
     {
         const placeholderOpt = document.createElement('option');
         placeholderOpt.value = '';
-        placeholderOpt.textContent = behavior.placeholder || 'Select\u2026';
+        // An authored placeholder (Definition/Theme) always wins; only the unauthored default follows the
+        // Locale's $ui.select.placeholder (Locale \u00a73.1.10).
+        if (behavior.placeholder) {
+            placeholderOpt.textContent = behavior.placeholder;
+        } else {
+            watchText(actx, uiText(actx.engine, 'select.placeholder'), (text) => { placeholderOpt.textContent = text; });
+        }
         placeholderOpt.disabled = true;
         placeholderOpt.selected = true;
         placeholderOpt.hidden = true;
@@ -127,7 +135,7 @@ export const renderSelect: AdapterRenderFn<SelectBehavior> = (
         const clearBtn = document.createElement('button');
         clearBtn.type = 'button';
         clearBtn.className = 'formspec-select-clear';
-        clearBtn.setAttribute('aria-label', 'Clear selection');
+        watchText(actx, uiText(actx.engine, 'select.clearSelection'), (text) => { clearBtn.setAttribute('aria-label', text); });
         clearBtn.innerHTML = '<span aria-hidden="true">\u00d7</span>';
         clearBtn.style.display = 'none';
         clearBtn.addEventListener('click', () => {

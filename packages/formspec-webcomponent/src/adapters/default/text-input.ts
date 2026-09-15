@@ -52,6 +52,7 @@ export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
             field,
             maxLength: behavior.maxLength,
             vm: behavior.vm,
+            engine: actx.engine,
             messageId: `${behavior.id}-count-info`,
             classes: {
                 message: 'formspec-sr-only',

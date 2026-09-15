@@ -93,6 +93,7 @@ function applyProjectionMetadata(
 function adapterContextFor(host: RenderHost, cleanupFns: Array<() => void>): AdapterContext {
     return {
         onDispose: (fn: () => void) => cleanupFns.push(fn),
+        engine: host.engine,
         applyCssClass: (el, comp, itemPath) => host.applyCssClass(el, comp, itemPath),
         applyStyle: (el, style) => host.applyStyle(el, style),
         applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),

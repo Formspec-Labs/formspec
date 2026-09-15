@@ -1,5 +1,5 @@
 /** @filedesc USWDS v3 adapter for Select — renders usa-select dropdown markup. */
-import { widthStopClass, type SelectBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
+import { widthStopClass, uiText, watchText, type SelectBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
 import { createInputSkeleton } from '../shared/input-factory.js';
@@ -21,10 +21,17 @@ export const renderSelect: AdapterRenderFn<SelectBehavior> = (
     control.className += widthStopClass('usa-input', behavior.width);
     const select = actualInput as HTMLSelectElement;
 
-    // Placeholder / empty option
+    // Placeholder / empty option. An authored placeholder always wins; the unauthored default keeps
+    // USWDS's own "- Select -" unless a Locale sets $ui.select.placeholder (Locale §3.1.10).
     const placeholderOpt = document.createElement('option');
     placeholderOpt.value = '';
-    placeholderOpt.textContent = behavior.placeholder || '- Select -';
+    if (behavior.placeholder) {
+        placeholderOpt.textContent = behavior.placeholder;
+    } else {
+        watchText(actx, uiText(actx.engine, 'select.placeholder', undefined, '- Select -'), (text) => {
+            placeholderOpt.textContent = text;
+        });
+    }
     if (!behavior.clearable) placeholderOpt.disabled = true;
     placeholderOpt.selected = true;
     select.appendChild(placeholderOpt);

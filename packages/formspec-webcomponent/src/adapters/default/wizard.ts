@@ -1,6 +1,8 @@
-/** @filedesc Default adapter for Wizard — pure DOM, no signal imports per ADR 0046. */
+/** @filedesc Default adapter for Wizard — pure DOM, no signal imports per ADR 0046 (watchText/uiText wrap the reactivity). */
 import type { WizardBehavior, WizardSidenavItemRefs, WizardProgressItemRefs } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
+import { uiText } from '../ui-text.js';
+import { watchText } from '../watch-text.js';
 
 export const renderWizard: AdapterRenderFn<WizardBehavior> = (
     behavior, parent, actx
@@ -25,23 +27,29 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
         // Side nav
         const sidenav = document.createElement('nav');
         sidenav.className = 'formspec-wizard-sidenav';
-        sidenav.setAttribute('aria-label', 'Form steps');
+        watchText(actx, uiText(actx.engine, 'wizard.steps'), (text) => { sidenav.setAttribute('aria-label', text); });
         el.appendChild(sidenav);
 
-        // Collapse/expand toggle — pure local UI state, no signals needed
+        // Collapse/expand toggle — pure local UI state, no signals needed. Only the "Collapse navigation"
+        // state is in the closed chrome vocabulary (Locale §3.1.10); "Expand navigation" has no $ui key
+        // and stays an English literal, matching the given key table exactly.
         const toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
         toggleBtn.className = 'formspec-wizard-sidenav-toggle formspec-focus-ring';
-        toggleBtn.setAttribute('aria-label', 'Collapse navigation');
         toggleBtn.title = 'Collapse';
         toggleBtn.innerHTML = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>';
         sidenav.appendChild(toggleBtn);
 
         let collapsed = false;
+        let collapseLabel = 'Collapse navigation';
+        watchText(actx, uiText(actx.engine, 'wizard.collapseNavigation'), (text) => {
+            collapseLabel = text;
+            if (!collapsed) toggleBtn.setAttribute('aria-label', text);
+        });
         toggleBtn.addEventListener('click', () => {
             collapsed = !collapsed;
             sidenav.classList.toggle('formspec-wizard-sidenav--collapsed', collapsed);
-            toggleBtn.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Collapse navigation');
+            toggleBtn.setAttribute('aria-label', collapsed ? 'Expand navigation' : collapseLabel);
             toggleBtn.title = collapsed ? 'Expand' : 'Collapse';
             toggleBtn.innerHTML = collapsed
                 ? '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>'
@@ -148,8 +156,8 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
     const prevBtn = document.createElement('button');
     prevBtn.type = 'button';
     prevBtn.className = 'formspec-wizard-prev formspec-button-secondary formspec-focus-ring';
-    prevBtn.textContent = 'Previous';
-    prevBtn.setAttribute('aria-label', 'Previous step');
+    watchText(actx, uiText(actx.engine, 'wizard.previous'), (text) => { prevBtn.textContent = text; });
+    watchText(actx, uiText(actx.engine, 'wizard.previousStep'), (text) => { prevBtn.setAttribute('aria-label', text); });
     prevBtn.disabled = true;
     prevBtn.setAttribute('aria-disabled', 'true');
     nav.appendChild(prevBtn);
@@ -159,14 +167,16 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
         skipBtn = document.createElement('button');
         skipBtn.type = 'button';
         skipBtn.className = 'formspec-wizard-skip formspec-button-secondary formspec-focus-ring';
-        skipBtn.textContent = 'Skip';
-        skipBtn.setAttribute('aria-label', 'Skip this step');
+        watchText(actx, uiText(actx.engine, 'wizard.skip'), (text) => { skipBtn!.textContent = text; });
+        watchText(actx, uiText(actx.engine, 'wizard.skipStep'), (text) => { skipBtn!.setAttribute('aria-label', text); });
         skipBtn.addEventListener('click', () => {
             if (behavior.canGoNext()) behavior.goToStep(behavior.activeStep() + 1);
         });
         nav.appendChild(skipBtn);
     }
 
+    // Next/Submit text+aria are owned by behaviors/wizard.ts's bind() (step-driven, also locale-reactive)
+    // — every adapter shares that one site, so this static text is a paint-avoidance seed only.
     const nextBtn = document.createElement('button');
     nextBtn.type = 'button';
     nextBtn.className = 'formspec-wizard-next formspec-button-primary formspec-focus-ring';

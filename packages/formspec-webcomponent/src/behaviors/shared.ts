@@ -6,6 +6,7 @@ import type { ResolvedPresentationBlock, FieldRefs, BehaviorContext } from './ty
 import type { FieldViewModel } from '@formspec-org/engine';
 import { writeRichText } from '../adapters/rich-text-dom.js';
 import { createFieldHelpLink, DEFAULT_FIELD_HELP_LABEL } from '../adapters/field-help-link.js';
+import { uiText } from '../adapters/ui-text.js';
 
 /** Registry entry metadata is an open object in schema; narrow for behavior reads. */
 export function readRegistryMetadata(entry: RegistryEntry | undefined): Record<string, unknown> {
@@ -254,7 +255,10 @@ export function bindSharedFieldEffects(
         const helpLabelKey = `${fieldPath.replace(/\[\d+\]/g, '').split('.').pop()}.helpLabel`;
         disposers.push(effect(() => {
             ctx.engine.localeSignal?.value;
-            helpLink.textContent = ctx.engine.resolveLocaleString(helpLabelKey, DEFAULT_FIELD_HELP_LABEL, fieldPath);
+            // Authored <key>.helpLabel (Locale §3.1.1) wins; else the closed $ui.fieldHelp.label chrome
+            // string (§3.1.10); else the hardcoded English default.
+            const chromeDefault = uiText(ctx.engine, 'fieldHelp.label', undefined, DEFAULT_FIELD_HELP_LABEL).value;
+            helpLink.textContent = ctx.engine.resolveLocaleString(helpLabelKey, chromeDefault, fieldPath);
         }));
     }
 

@@ -2,6 +2,7 @@
 import { signal } from '@preact/signals-core';
 import { effect } from '@preact/signals-core';
 import type { WizardBehavior, WizardRefs, BehaviorContext } from './types';
+import { uiText } from '../adapters/ui-text.js';
 import { touchFieldsInContainer } from '../submit/index.js';
 
 export function useWizard(ctx: BehaviorContext, comp: any): WizardBehavior {
@@ -104,8 +105,13 @@ export function useWizard(ctx: BehaviorContext, comp: any): WizardBehavior {
                 if (refs.nextButton) {
                     refs.nextButton.disabled = total === 0;
                     const last = step === total - 1;
-                    refs.nextButton.textContent = last ? 'Submit' : 'Next';
-                    refs.nextButton.setAttribute('aria-label', last ? 'Submit form' : 'Next step');
+                    // One site for every adapter (default/USWDS/tailwind share this behavior): Locale
+                    // §3.1.10 $ui.wizard.next/.submit, re-read on every step AND locale change.
+                    refs.nextButton.textContent = uiText(ctx.engine, last ? 'wizard.submit' : 'wizard.next').value;
+                    refs.nextButton.setAttribute(
+                        'aria-label',
+                        uiText(ctx.engine, last ? 'wizard.submitForm' : 'wizard.nextStep').value,
+                    );
                     refs.nextButton.classList.toggle('formspec-wizard-submit', last);
                 }
 

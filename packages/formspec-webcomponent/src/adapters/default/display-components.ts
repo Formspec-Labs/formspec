@@ -5,6 +5,8 @@ import type { DisplayComponentBehavior } from '../display-behaviors';
 import { renderMarkdown } from '../display-markdown';
 import { writeRichText } from '../rich-text-dom.js';
 import { formatMoney } from '../../format';
+import { uiText } from '../ui-text.js';
+import { watchText } from '../watch-text.js';
 
 function applySurfaceProps(el: HTMLElement, comp: any, resolveToken: (value: unknown) => unknown): void {
     if (comp.padding != null) el.style.padding = String(resolveToken(comp.padding));
@@ -118,7 +120,7 @@ export function renderDefaultAlert(behavior: DisplayComponentBehavior, parent: H
         closeBtn.type = 'button';
         closeBtn.className = 'formspec-alert-close formspec-focus-ring';
         closeBtn.textContent = '\u00d7';
-        closeBtn.setAttribute('aria-label', 'Dismiss');
+        watchText(actx, uiText(actx.engine, 'alert.dismiss'), (text) => { closeBtn.setAttribute('aria-label', text); });
         closeBtn.addEventListener('click', () => {
             el.remove();
         });

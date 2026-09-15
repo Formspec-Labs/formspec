@@ -7,6 +7,8 @@ import {
     writeRichText,
     renderDefaultProgressBar,
     renderDefaultDataTable,
+    uiText,
+    watchText,
 } from '@formspec-org/webcomponent';
 
 const ALERT_SEVERITY: Record<string, string> = {
@@ -181,8 +183,10 @@ export function renderUSWDSAlert(behavior: DisplayComponentBehavior, parent: HTM
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button';
         closeBtn.className = 'usa-button usa-button--unstyled formspec-focus-ring';
-        closeBtn.setAttribute('aria-label', 'Dismiss');
-        closeBtn.textContent = 'Dismiss';
+        watchText(actx, uiText(actx.engine, 'alert.dismiss'), (text) => {
+            closeBtn.setAttribute('aria-label', text);
+            closeBtn.textContent = text;
+        });
         closeBtn.addEventListener('click', () => root.remove());
         root.appendChild(closeBtn);
     }
@@ -358,7 +362,7 @@ export function renderUSWDSValidationSummary(
             body.className = 'usa-alert__body';
             const heading = document.createElement('h3');
             heading.className = 'usa-alert__heading';
-            heading.textContent = 'Please correct the following';
+            heading.textContent = uiText(host.engine, 'validationSummary.heading').value;
             body.appendChild(heading);
 
             const intro = document.createElement('p');

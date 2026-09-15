@@ -13,6 +13,7 @@ import type {
     RepeatRowText,
 } from '../adapters/layout-behaviors';
 import type { LayoutHostSlice } from '../adapters/layout-host';
+import { uiText } from '../adapters/ui-text.js';
 import { compText } from '../components/layout-plugin-factory';
 import { itemLabel } from './item-label';
 import { repeatAffordances, renderRepeatRows } from './repeat-affordances';
@@ -159,16 +160,25 @@ export function buildRepeatGroupBehavior(
         const scope = `${path}[${index}]`;
         const authoredRow = localeText('rowLabel', scope);
         const authoredRemove = localeText('removeLabel', scope);
-        const derivedRow = computed(() => `${groupLabel.value} ${index + 1}`);
+        // Derived defaults, unauthored: Locale §3.1.10 $ui.repeat.row / .rowOf / .remove, `{{$label}}`-filled
+        // with the group's own live label — same closed vocabulary the webcomponent uses everywhere else.
+        const derivedRow = computed(() =>
+            uiText(host.engine, 'repeat.row', { label: groupLabel.value, index: index + 1 }).value);
+        const derivedRowOf = computed(() =>
+            uiText(host.engine, 'repeat.rowOf', { label: groupLabel.value, index: index + 1, total }).value);
+        const derivedRemove = computed(() =>
+            uiText(host.engine, 'repeat.remove', { label: groupLabel.value }).value);
+        // An authored Remove label is the accessible name as written — `{{@index}}` is how its author
+        // tells one row's control from another's; the derived default composes the index into $label
+        // itself, so $ui.repeat.remove stays one template either way.
+        const derivedRemoveIndexed = computed(() =>
+            uiText(host.engine, 'repeat.remove', { label: `${groupLabel.value} ${index + 1}` }).value);
         return {
             label: computed(() => authoredRow.value ?? derivedRow.value),
             // An empty rowLabel drops the heading, never the row's accessible name (Locale §3.1.1).
-            ariaLabel: computed(() => `${authoredRow.value || derivedRow.value} of ${total}`),
-            removeLabel: computed(() => authoredRemove.value ?? `Remove ${groupLabel.value}`),
-            // An authored Remove label is the accessible name as written — `{{@index}}` is how its author
-            // tells one row's control from another's.
-            removeAriaLabel: computed(() =>
-                authoredRemove.value ?? `Remove ${groupLabel.value} ${index + 1}`),
+            ariaLabel: computed(() => (authoredRow.value ? `${authoredRow.value} of ${total}` : derivedRowOf.value)),
+            removeLabel: computed(() => authoredRemove.value ?? derivedRemove.value),
+            removeAriaLabel: computed(() => authoredRemove.value ?? derivedRemoveIndexed.value),
         };
     };
 
@@ -180,7 +190,8 @@ export function buildRepeatGroupBehavior(
         titleText,
         titleHidden: node.labelPosition === 'hidden',
         headingLevel: `h${Math.min(headingLevel, 6)}`,
-        addLabel: computed(() => localeText('addLabel', path).value ?? `Add ${groupLabel.value}`),
+        addLabel: computed(() =>
+            localeText('addLabel', path).value ?? uiText(host.engine, 'repeat.add', { label: groupLabel.value }).value),
 
         renderRows(build: (rows: RepeatGroupRowsPass) => void): void {
             renderRepeatRows(cleanupFns, { count, canRemove }, (pass) => build({

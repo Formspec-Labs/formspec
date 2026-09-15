@@ -4,7 +4,7 @@
  * has direct Section children and formPresentation.pageMode is "wizard". The "Wizard"
  * adapter key is a rendering concept — the Wizard schema component type was
  * removed; all page navigation is now driven by formPresentation. */
-import type { WizardBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { uiText, watchText, type WizardBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import {
     createWizardAnnouncer,
     createWizardNav,
@@ -32,7 +32,7 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
     if (behavior.showProgress) {
         stepIndicator = document.createElement('nav');
         stepIndicator.className = 'usa-step-indicator';
-        stepIndicator.setAttribute('aria-label', 'Form progress');
+        watchText(actx, uiText(actx.engine, 'wizard.progress'), (text) => { stepIndicator!.setAttribute('aria-label', text); });
 
         segmentsList = document.createElement('ol');
         segmentsList.className = 'usa-step-indicator__segments';
@@ -49,7 +49,7 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
 
         const srStep = document.createElement('span');
         srStep.className = 'usa-sr-only';
-        srStep.textContent = 'Step';
+        watchText(actx, uiText(actx.engine, 'wizard.step'), (text) => { srStep.textContent = text; });
         counter.appendChild(srStep);
 
         currentStepSpan = document.createElement('span');
@@ -99,6 +99,12 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
         next: 'formspec-wizard-next usa-button',
         skip: 'formspec-wizard-skip usa-button usa-button--unstyled',
     });
+    // Next/Submit text is owned by behaviors/wizard.ts's bind(), shared by every adapter. Previous/Skip
+    // are this shell's own (createWizardNav's static defaults are the pre-engine skeleton's seed).
+    watchText(actx, uiText(actx.engine, 'wizard.previous'), (text) => { prevButton.textContent = text; });
+    if (skipButton) {
+        watchText(actx, uiText(actx.engine, 'wizard.skip'), (text) => { skipButton.textContent = text; });
+    }
     stepContent.appendChild(nav);
 
     const announcer = createWizardAnnouncer('usa-sr-only');

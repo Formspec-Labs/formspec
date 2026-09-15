@@ -105,6 +105,7 @@ export { createCharacterCount } from './adapters/character-count';
 export { renderDividerDOM } from './adapters/divider';
 export { widthStopClass } from './adapters/width-stops';
 export { watchText } from './adapters/watch-text';
+export { uiText } from './adapters/ui-text';
 export { writeRichText } from './adapters/rich-text-dom';
 export type { RichTextOptions } from './adapters/rich-text-dom';
 export type { DividerClasses } from './adapters/divider';
