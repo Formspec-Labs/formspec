@@ -23,6 +23,7 @@ import { renderUSWDSCollapsible } from './layout/collapsible';
 import { renderUSWDSPanel } from './layout/panel';
 import { renderUSWDSAccordion } from './layout/accordion';
 import { renderUSWDSGroup, renderUSWDSRepeatGroup } from './layout/group';
+import { renderUSWDSRepeatCards } from './layout/repeat-cards';
 import { renderUSWDSModal } from './layout/modal';
 import { renderUSWDSPopover } from './layout/popover';
 import {
@@ -57,6 +58,7 @@ export const uswdsAdapter: RenderAdapter = {
         Accordion: renderUSWDSAccordion,
         Group: renderUSWDSGroup,
         RepeatGroup: renderUSWDSRepeatGroup,
+        RepeatCards: renderUSWDSRepeatCards,
         Modal: renderUSWDSModal,
         Popover: renderUSWDSPopover,
         Heading: renderUSWDSHeading,
