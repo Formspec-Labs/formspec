@@ -1,6 +1,6 @@
 /** @filedesc Definition-items fallback planner when no component document is provided. */
 
-import { widgetTokenToComponent } from '@formspec-org/types';
+import { isRepeatPresentationWidget, widgetTokenToComponent } from '@formspec-org/types';
 import type { ItemDescriptor, Tier1Hints } from './theme-resolver.js';
 import { resolvePresentation, resolveWidget } from './theme-resolver.js';
 import { getDefaultComponent } from './defaults.js';
@@ -87,6 +87,12 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
             for (const lock of ['allowAdd', 'allowRemove'] as const) {
                 const value = presentation.widgetConfig?.[lock];
                 if (typeof value === 'boolean') groupNode.props[lock] = value;
+            }
+            // Theme §4.2 Item Presentation Widgets: the theme may name how the rows are presented.
+            // Availability is the renderer's call — an adapter owns the card render, not the component
+            // registry — so the planner records the name and leaves the fallback to the renderer.
+            if (isRepeatPresentationWidget(presentation.widget)) {
+                groupNode.repeatPresentation = presentation.widget;
             }
         }
 

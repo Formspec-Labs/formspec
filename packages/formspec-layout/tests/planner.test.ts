@@ -1980,6 +1980,58 @@ describe('planDefinitionFallback', () => {
         expect(node.props).toMatchObject({ allowAdd: false, allowRemove: false });
     });
 
+    it('records a theme RepeatCards widget as the repeat presentation (theme §4.2)', () => {
+        const items = [{
+            key: 'jobs', type: 'group', label: 'Job', repeatable: true,
+            children: [{ key: 'payerName', type: 'field', dataType: 'string', label: 'Payer' }],
+        }];
+        const theme = { items: { jobs: { widget: 'RepeatCards' } } } as PlanContext['theme'];
+        // The adapter owns the card render, not the component registry: availability is the renderer's call.
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k), theme, isComponentAvailable: () => false });
+        const [node] = planDefinitionFallback(items, ctx);
+
+        expect(node.isRepeatTemplate).toBe(true);
+        expect(node.repeatPresentation).toBe('RepeatCards');
+        // The group is still a Stack-shaped scope: the presentation is chrome, not a different tree.
+        expect(node.component).toBe('Stack');
+        expect(node.children).toHaveLength(1);
+    });
+
+    it('ignores a theme widget on a repeat group that is not a repeat presentation', () => {
+        const items = [{
+            key: 'jobs', type: 'group', label: 'Job', repeatable: true,
+            children: [{ key: 'payerName', type: 'field', dataType: 'string', label: 'Payer' }],
+        }];
+        const theme = { items: { jobs: { widget: 'MoneyInput' } } } as PlanContext['theme'];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k), theme, isComponentAvailable: () => true });
+        const [node] = planDefinitionFallback(items, ctx);
+
+        expect(node.repeatPresentation).toBeUndefined();
+    });
+
+    it('leaves a non-repeatable group without a repeat presentation', () => {
+        const items = [{
+            key: 'address', type: 'group', label: 'Address',
+            children: [{ key: 'city', type: 'field', dataType: 'string', label: 'City' }],
+        }];
+        const theme = { items: { address: { widget: 'RepeatCards' } } } as PlanContext['theme'];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k), theme, isComponentAvailable: () => true });
+        const [node] = planDefinitionFallback(items, ctx);
+
+        expect(node.repeatPresentation).toBeUndefined();
+    });
+
+    it('plans a Hidden field to the Hidden widget so the engine keeps the value (theme §4.2)', () => {
+        const items = [{ key: 'payerName', type: 'field', dataType: 'string', label: 'Payer' }];
+        const theme = { items: { payerName: { widget: 'Hidden' } } } as PlanContext['theme'];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k), theme, isComponentAvailable: () => true });
+        const [node] = planDefinitionFallback(items, ctx);
+
+        expect(node.component).toBe('Hidden');
+        expect(node.category).toBe('field');
+        expect(node.bindPath).toBe('payerName');
+    });
+
     it('plans display items', () => {
         const items = [
             { key: 'info', type: 'display', label: 'Please read carefully.' },
