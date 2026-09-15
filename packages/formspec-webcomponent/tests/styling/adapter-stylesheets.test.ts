@@ -9,6 +9,8 @@ let DEFAULT_ADAPTER_HREF: string;
 const DS_CSS = 'https://cdn.example.org/wp2-ds.css';
 const OTHER_CSS = 'https://cdn.example.org/wp2-other.css';
 const THEME_CSS = 'https://cdn.example.org/wp2-theme.css';
+const LAYERED_BASE_CSS = 'https://cdn.example.org/wp2-layered-base.css';
+const LAYERED_RULES_CSS = 'https://cdn.example.org/wp2-layered-rules.css';
 
 beforeAll(async () => {
     const mod = await import('../../src/index');
@@ -23,6 +25,17 @@ beforeAll(async () => {
     }
     globalRegistry.registerAdapter({ name: 'wp2-ds', components: {}, stylesheets: [DS_CSS] });
     globalRegistry.registerAdapter({ name: 'wp2-other', components: {}, stylesheets: [OTHER_CSS] });
+    // Two layers with distinct probes (ADR 0063 D-4) — the shape the USWDS adapter ships: a base design
+    // system probed by a class/property a bare build always defines, and Formspec's own rules probed by
+    // a marker only that layer defines.
+    globalRegistry.registerAdapter({
+        name: 'wp2-layered',
+        components: {},
+        stylesheets: [
+            { href: LAYERED_BASE_CSS, presentWhen: { className: 'wp2-layered-probe', property: 'position', value: 'absolute' } },
+            { href: LAYERED_RULES_CSS, presentWhen: { className: 'formspec-container', property: '--wp2-layered-rules', value: '1' } },
+        ],
+    });
 });
 
 const shadowHosts: HTMLDivElement[] = [];
@@ -279,6 +292,63 @@ describe('stylesheet linking', () => {
 
         el.themeDocument = theme();
         expect(linkedHrefs()).not.toContain(THEME_CSS);
+    });
+});
+
+describe('layered adapter stylesheets (ADR 0063 D-4)', () => {
+    it('links every layer on a bare page', () => {
+        const el = mount();
+        el.themeDocument = theme({ adapter: 'wp2-layered' });
+        expect(linkedHrefs()).toEqual([LAYOUT_HREF, LAYERED_BASE_CSS, LAYERED_RULES_CSS]);
+    });
+
+    it("skips a layer whose own presence probe already matches — a page that already loads the design system", () => {
+        const declared = document.createElement('style');
+        declared.textContent = '.wp2-layered-probe { position: absolute; }';
+        document.head.appendChild(declared);
+
+        const el = mount();
+        el.themeDocument = theme({ adapter: 'wp2-layered' });
+        expect(linkedHrefs()).toEqual([LAYOUT_HREF, LAYERED_RULES_CSS]);
+
+        declared.remove();
+    });
+
+    it('links only the missing layer when a host already carries the other layer\'s marker', () => {
+        const declared = document.createElement('style');
+        declared.textContent = '.formspec-container { --wp2-layered-rules: 1; }';
+        document.head.appendChild(declared);
+
+        const el = mount();
+        el.themeDocument = theme({ adapter: 'wp2-layered' });
+        expect(linkedHrefs()).toEqual([LAYOUT_HREF, LAYERED_BASE_CSS]);
+
+        declared.remove();
+    });
+
+    it('probes within the shadow root hosting the element, never the document', () => {
+        const { shadow, elements: [el] } = mountShadow();
+        const declared = document.createElement('style');
+        declared.textContent = '.wp2-layered-probe { position: absolute; }';
+        shadow.appendChild(declared);
+
+        el.themeDocument = theme({ adapter: 'wp2-layered' });
+        expect(linkedHrefs(shadow)).toEqual([LAYOUT_HREF, LAYERED_RULES_CSS]);
+        expect(linkedHrefs()).toEqual([]);
+    });
+
+    it('a plain string entry still follows the adapter-marker rule, unaffected by layer probing', () => {
+        // Regression: wp2-ds is a single string entry (Tailwind's shape). Mixed adapters aside, the
+        // marker rule from before this amendment must still govern a string-only adapter.
+        const declared = document.createElement('style');
+        declared.textContent = '.formspec-container { --formspec-adapter: wp2-ds; }';
+        document.head.appendChild(declared);
+
+        const el = mount();
+        el.themeDocument = theme({ adapter: 'wp2-ds' });
+        expect(linkedHrefs()).toEqual([LAYOUT_HREF]);
+
+        declared.remove();
     });
 });
 

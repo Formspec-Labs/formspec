@@ -23,24 +23,26 @@
       "default": "./dist/index.js"
     },
     "./tailwind-formspec-core.css": "./tailwind-formspec-core.css",
-    "./uswds-integration.css": "./uswds-integration.css",
-    "./uswds-integration.classes.js": {
-      "types": "./uswds-integration.classes.d.ts",
-      "default": "./uswds-integration.classes.js"
+    "./uswds-base.css": "./uswds-base.css",
+    "./uswds-formspec.css": "./uswds-formspec.css",
+    "./uswds.classes.js": {
+      "types": "./uswds.classes.d.ts",
+      "default": "./uswds.classes.js"
     },
-    "./uswds.scss": "./src/uswds/uswds-formspec.scss"
+    "./uswds-base.scss": "./src/uswds/uswds-base.scss"
   },
   "files": [
     "dist",
     "tailwind-formspec-core.css",
-    "uswds-integration.css",
-    "uswds-integration.classes.js",
-    "uswds-integration.classes.d.ts",
-    "src/uswds/uswds-formspec.scss"
+    "uswds-base.css",
+    "uswds-formspec.css",
+    "uswds.classes.js",
+    "uswds.classes.d.ts",
+    "src/uswds/uswds-base.scss"
   ],
   "scripts": {
     "build:css": "node scripts/build-css.mjs",
-    "clean": "rm -rf dist tailwind-formspec-core.css uswds-integration.css uswds-integration.classes.js uswds-integration.classes.d.ts",
+    "clean": "rm -rf dist tailwind-formspec-core.css uswds-base.css uswds-formspec.css uswds.classes.js uswds.classes.d.ts",
     "prebuild": "npm run clean && npm run build:css",
     "build": "tsc",
     "test": "vitest run",

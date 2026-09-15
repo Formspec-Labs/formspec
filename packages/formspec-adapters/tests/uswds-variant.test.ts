@@ -1,11 +1,11 @@
-/** @filedesc ADR 0064 decisions 1+2: a variant compiles from the shipped, configurable USWDS partial through the CLI — own marker, own house rule, a changed USWDS setting, and the font-weight utilities. */
+/** @filedesc ADR 0064 decisions 1+2, ADR 0063 D-4: a variant compiles from the shipped, configurable USWDS base partial through the CLI — own house rule, a changed USWDS setting, the font-weight utilities, and no marker of its own (it reuses the package's rules layer unchanged). */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readUswdsIntegrationCss } from './helpers';
+import { readUswdsBaseCss } from './helpers';
 
 const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const cli = join(pkgRoot, 'scripts/build-css.mjs');
@@ -22,16 +22,18 @@ describe('a variant compiled through the CLI', () => {
         outCss = join(dir, 'uswds-nj-test.css');
         execFileSync('node', [cli, fixture, outCss], { cwd: pkgRoot });
         css = readFileSync(outCss, 'utf8');
-        baseCss = readUswdsIntegrationCss();
+        baseCss = readUswdsBaseCss();
     });
 
     afterAll(() => {
         rmSync(dir, { recursive: true, force: true });
     });
 
-    it('marks its own adapter name, not the base "uswds"', () => {
-        expect(css).toMatch(/--formspec-adapter:\s*uswds-test/);
-        expect(css).not.toMatch(/--formspec-adapter:\s*uswds(?!-test)/);
+    it('carries no marker and no Formspec rule of its own — those live in the shared rules layer', () => {
+        // ADR 0063 D-4: a variant recompiles only the base layer and reuses the package's rules layer
+        // (marker and all) unchanged, so a per-variant base compile declares neither.
+        expect(css).not.toMatch(/--formspec-uswds-rules/);
+        expect(css).not.toMatch(/\.formspec-[\w-]/);
     });
 
     it('carries the font-weight utilities the base forwards', () => {
@@ -45,7 +47,7 @@ describe('a variant compiled through the CLI', () => {
 
     it("overrides a USWDS setting the partial's own forward never mentions", () => {
         // $theme-color-primary defaults to 'blue-60v' (#005ea2); the fixture reconfigures it to 'red-60v'
-        // through the forward chain alone — uswds-formspec.scss never re-lists this variable.
+        // through the forward chain alone — uswds-base.scss never re-lists this variable.
         expect(baseCss).toContain('#005ea2');
         expect(css).not.toContain('#005ea2');
     });

@@ -8,6 +8,7 @@ import {
 } from '@formspec-org/layout';
 
 import { FormDefinition, ComponentDocument, FormItem } from '@formspec-org/types';
+import type { StylesheetLayer } from '../adapters/types';
 
 export interface StylingHost {
     _componentDocument: ComponentDocument | null;
@@ -19,8 +20,8 @@ export interface StylingHost {
     getRootNode(): Node;
     /** The adapter this host resolved, matched against the `--formspec-adapter` a page may have pre-loaded. */
     resolvedAdapterName: string;
-    /** Stylesheets declared by the adapter this host resolved. */
-    adapterStylesheets(): string[];
+    /** Stylesheet layers declared by the adapter this host resolved (ADR 0063 D-4). */
+    adapterStylesheets(): Array<string | StylesheetLayer>;
     /** Class vocabulary declared by the adapter this host resolved, or `undefined` when it declares none. */
     adapterClassVocabulary(): ReadonlySet<string> | undefined;
     getEffectiveTheme(): ThemeDocument;

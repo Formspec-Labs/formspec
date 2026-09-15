@@ -274,7 +274,8 @@ describe('USWDS comparison story layout', () => {
         expect(shadowRoot).toBeTruthy();
         expect(queryShadowTree(shadowRoot, '.formspec-tabs')).not.toBeNull();
         expect(queryShadowTree(shadowRoot, '.formspec-tab-panels')).not.toBeNull();
-        const css = readFileSync(resolve('packages/formspec-adapters/uswds-integration.css'), 'utf8');
+        // `.formspec-tab-panels` is a Formspec-owned rule — it lives in the rules layer (ADR 0063 D-4).
+        const css = readFileSync(resolve('packages/formspec-adapters/uswds-formspec.css'), 'utf8');
         expect(css).toContain('.formspec-tab-panels{padding-top:1.5rem}');
     });
 

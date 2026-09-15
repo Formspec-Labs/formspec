@@ -1,15 +1,17 @@
 /** @filedesc deriveAdapter — a variant adapter in one line: same components, new name/stylesheets/vocabulary (ADR 0064 decision 1). */
-import type { RenderAdapter } from './types';
+import type { RenderAdapter, StylesheetLayer } from './types';
 
 /**
  * What a variant declares for itself. `stylesheets` is required, not inherited from `base`: a variant is
  * a distinct compiled sheet (own settings, own house rules — ADR 0064 decision 1), so its `classVocabulary`
  * is equally distinct and is never inherited either. A variant that skips `classVocabulary` renders with
- * no unknown-class check, the same as any adapter that never declares one.
+ * no unknown-class check, the same as any adapter that never declares one. A variant built from a layered
+ * base (ADR 0063 D-4) typically re-declares its own compiled base layer plus the base adapter's exported,
+ * unchanged rules layer — see the USWDS adapter's README.
  */
 export interface DeriveAdapterOptions {
     name: string;
-    stylesheets: string[];
+    stylesheets: Array<string | StylesheetLayer>;
     classVocabulary?: ReadonlySet<string>;
 }
 

@@ -49,7 +49,7 @@ import { buildPlatformTheme } from '@formspec-org/layout';
 export const defaultTheme = buildPlatformTheme();
 
 // Headless adapter public API
-export type { RenderAdapter, AdapterRenderFn, AdapterContext } from './adapters/types';
+export type { RenderAdapter, AdapterRenderFn, AdapterContext, StylesheetLayer } from './adapters/types';
 export { deriveAdapter } from './adapters/derive';
 export type { DeriveAdapterOptions } from './adapters/derive';
 export type { LayoutHostSlice } from './adapters/layout-host';

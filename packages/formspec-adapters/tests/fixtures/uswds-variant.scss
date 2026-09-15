@@ -1,7 +1,8 @@
-// @filedesc Test fixture (ADR 0064 decision 1): a variant using the shipped USWDS partial with one changed
-// setting and one house rule — compiled through the CLI inside the test.
-@use '../../src/uswds/uswds-formspec' with (
-  $fs-adapter-name: 'uswds-test',
+// @filedesc Test fixture (ADR 0064 decision 1, ADR 0063 D-4): a variant using the shipped USWDS base
+// partial with one changed setting and one house rule — compiled through the CLI inside the test. The
+// variant recompiles only the base layer; it reuses the package's rules layer unchanged, so this fixture
+// carries no Formspec rule and no rules-layer marker of its own.
+@use '../../src/uswds/uswds-base' with (
   $theme-color-primary: 'red-60v',
 );
 

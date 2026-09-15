@@ -25,6 +25,7 @@ import type {
     ResponseActionsDocument,
 } from './action-invocation';
 import { globalRegistry } from './registry';
+import type { StylesheetLayer } from './adapters/types';
 import {
     ScreenerRoute,
     ScreenerRouteType,
@@ -614,7 +615,7 @@ export class FormspecRender extends HTMLElement {
      * definition arrives: on connect the adapter is only ever the fallback, and linking its skin then
      * costs a request the theme's adapter immediately replaces.
      */
-    adapterStylesheets(): string[] {
+    adapterStylesheets(): Array<string | StylesheetLayer> {
         if (!this._themeDocument && !this._definition) return [];
         return globalRegistry.getAdapter(this.resolvedAdapterName)?.stylesheets ?? [];
     }

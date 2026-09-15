@@ -428,8 +428,8 @@ describe('Integration CSS', () => {
     // USWDS forms are a column, not a full-width sheet: `_usa-form.scss` caps the form, clears the cap on
     // inputs inside it, drops the dotted underline under the required asterisk, and spaces the buttons.
     it('forwards usa-form and makes the render root that form', async () => {
-        const { readUswdsIntegrationCss } = await import('../helpers.js');
-        const css = readUswdsIntegrationCss();
+        const { readUswdsAdapterCss } = await import('../helpers.js');
+        const css = readUswdsAdapterCss();
         expect(css).toContain('abbr[title=required]');
         // `@extend` puts the render root in usa-form's own selector lists — the root IS the form.
         expect(css).toMatch(/\.usa-form--large[^{]*\.formspec-container[^{]*\{[^}]*max-width:30rem/);
@@ -437,8 +437,8 @@ describe('Integration CSS', () => {
     });
 
     it('caps inputs by default and clears the cap inside the form, with no global override', async () => {
-        const { readUswdsIntegrationCss } = await import('../helpers.js');
-        const css = readUswdsIntegrationCss();
+        const { readUswdsAdapterCss } = await import('../helpers.js');
+        const css = readUswdsAdapterCss();
         // The form owns the column width; a global `$theme-input-max-width: none` would take that away.
         expect(css).toMatch(/:where\(\.usa-input,\s*\.usa-textarea,\s*\.usa-select,\s*\.usa-range\)\{max-width:none\}/);
         expect(css).not.toMatch(/\.usa-input\{[^}]*max-width:none/);
@@ -448,43 +448,44 @@ describe('Integration CSS', () => {
         expect(css).toContain('box-sizing:inherit');
     });
 
-    it('declares itself so a host that pre-loads it gets no second link', async () => {
-        const { readUswdsIntegrationCss } = await import('../helpers.js');
-        expect(readUswdsIntegrationCss()).toMatch(/--formspec-adapter:\s*uswds/);
+    it('declares its rules-layer marker so a host that pre-loads it gets no second link (ADR 0063 D-4)', async () => {
+        const { readUswdsFormspecCss } = await import('../helpers.js');
+        expect(readUswdsFormspecCss()).toMatch(/--formspec-uswds-rules:\s*1/);
     });
 
     it('contains .formspec-required using USWDS error token', async () => {
-        const { readUswdsIntegrationCss } = await import('../helpers.js');
-        const css = readUswdsIntegrationCss();
+        const { readUswdsAdapterCss } = await import('../helpers.js');
+        const css = readUswdsAdapterCss();
         expect(css).toContain('.formspec-required');
         expect(css).toMatch(/\.formspec-required\{[^}]*color:#b50909/);
     });
 
     it('contains wizard layout selectors', async () => {
-        const { readUswdsIntegrationCss } = await import('../helpers.js');
-        const css = readUswdsIntegrationCss();
+        const { readUswdsAdapterCss } = await import('../helpers.js');
+        const css = readUswdsAdapterCss();
         expect(css).toContain('.formspec-uswds-wizard__content');
         expect(css).toContain('.formspec-wizard-nav.usa-button-group');
     });
 
     it('ships usa-alert styles from forwarded package (no custom formspec-alert skin)', async () => {
-        const { readUswdsIntegrationCss } = await import('../helpers.js');
-        const css = readUswdsIntegrationCss();
+        const { readUswdsAdapterCss } = await import('../helpers.js');
+        const css = readUswdsAdapterCss();
         expect(css).toContain('.usa-alert');
         expect(css).not.toContain('.formspec-alert');
     });
 
-    it('never forwards the .usa-form width cap, so nothing has to uncap it', async () => {
-        const { readUswdsIntegrationCss } = await import('../helpers.js');
-        const css = readUswdsIntegrationCss();
-        // USWDS caps `.usa-form` at mobile width, which would squeeze theme page grids into a phone-width
-        // strip. The trimmed build drops that rule outright; if it ever returns, an override is needed again.
-        expect(css).not.toMatch(/\.usa-form\{[^}]*max-width/);
+    it("the rules layer's own .usa-form load never stands alone — only the extend-merged render root", async () => {
+        // Split into layers (ADR 0063 D-4), the base layer's `@forward 'usa-form'` DOES carry USWDS's own
+        // bare `.usa-form{...max-width}` cap — genuine, unmodified USWDS behavior, since that layer ships
+        // the design system whole. The rules layer loads `.usa-form` only to `@extend` it into
+        // `.formspec-container`; it must never emit that selector unmerged on its own.
+        const { readUswdsFormspecCss } = await import('../helpers.js');
+        expect(readUswdsFormspecCss()).not.toMatch(/\.usa-form\{[^}]*max-width/);
     });
 
     it('uses compact top spacing for tabs panels', async () => {
-        const { readUswdsIntegrationCss } = await import('../helpers.js');
-        const css = readUswdsIntegrationCss();
+        const { readUswdsAdapterCss } = await import('../helpers.js');
+        const css = readUswdsAdapterCss();
         expect(css).toContain('.formspec-tab-panels{padding-top:1.5rem}');
     });
 });

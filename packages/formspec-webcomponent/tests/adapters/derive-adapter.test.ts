@@ -8,7 +8,7 @@ describe('deriveAdapter', () => {
     const renderSelect = () => {};
     const base: RenderAdapter = {
         name: 'uswds',
-        stylesheets: ['https://cdn.example.org/uswds-integration.css'],
+        stylesheets: ['https://cdn.example.org/uswds-base.css'],
         classVocabulary: new Set(['usa-input', 'usa-legend']),
         components: { TextInput: renderTextInput, Select: renderSelect },
     };
@@ -24,7 +24,21 @@ describe('deriveAdapter', () => {
         expect(variant.classVocabulary).toEqual(new Set(['usa-input', 'usa-legend', 'nj-callout']));
         // The base is untouched — deriveAdapter never mutates its input.
         expect(base.name).toBe('uswds');
-        expect(base.stylesheets).toEqual(['https://cdn.example.org/uswds-integration.css']);
+        expect(base.stylesheets).toEqual(['https://cdn.example.org/uswds-base.css']);
+    });
+
+    it('accepts a StylesheetLayer entry (ADR 0063 D-4) alongside a plain string', () => {
+        const variant = deriveAdapter(base, {
+            name: 'uswds-nj',
+            stylesheets: [
+                { href: 'https://cdn.example.org/uswds-nj-base.css', presentWhen: { className: 'usa-sr-only', property: 'position', value: 'absolute' } },
+                'https://cdn.example.org/uswds-formspec.css',
+            ],
+        });
+        expect(variant.stylesheets).toEqual([
+            { href: 'https://cdn.example.org/uswds-nj-base.css', presentWhen: { className: 'usa-sr-only', property: 'position', value: 'absolute' } },
+            'https://cdn.example.org/uswds-formspec.css',
+        ]);
     });
 
     it('shares the same component render functions — a variant is a skin, not a fork', () => {

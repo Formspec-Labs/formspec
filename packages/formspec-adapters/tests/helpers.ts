@@ -242,7 +242,17 @@ export function mockCanvasContext(): void {
 
 const adaptersPkgRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Compiled USWDS integration stylesheet — package root, so src and dist reach it by one relative path. */
-export function readUswdsIntegrationCss(): string {
-    return readFileSync(join(adaptersPkgRoot, 'uswds-integration.css'), 'utf8');
+/** Compiled USWDS base layer — package root, so src and dist reach it by one relative path (ADR 0063 D-4). */
+export function readUswdsBaseCss(): string {
+    return readFileSync(join(adaptersPkgRoot, 'uswds-base.css'), 'utf8');
+}
+
+/** Compiled USWDS rules layer — Formspec's own house rules over the base design system (ADR 0063 D-4). */
+export function readUswdsFormspecCss(): string {
+    return readFileSync(join(adaptersPkgRoot, 'uswds-formspec.css'), 'utf8');
+}
+
+/** Both compiled USWDS layers, base then rules — the union a page with no host-provided USWDS ends up with. */
+export function readUswdsAdapterCss(): string {
+    return readUswdsBaseCss() + readUswdsFormspecCss();
 }

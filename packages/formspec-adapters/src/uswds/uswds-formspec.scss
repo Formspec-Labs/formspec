@@ -1,73 +1,26 @@
-// @filedesc USWDS Sass entry — @forward component packages + minimal Formspec-only glue (no duplicate USWDS patterns).
+// @filedesc Formspec's own USWDS rules — house rules layered over uswds-base.scss (ADR 0063 D-4): the
+// render root extends usa-form, field rhythm, help row, rich text, the modal host, and every other
+// formspec-* class this adapter's markup uses. No USWDS component styling lives here — that is
+// uswds-base.scss's job.
 //
-// Compiled by `npm run build:css` into the one shipped artifact, ../../uswds-integration.css at the package root.
+// Compiled by scripts/build-css.mjs into ../../uswds-formspec.css at the package root. A variant
+// (ADR 0064) recompiles uswds-base.scss with its own settings and reuses THIS layer unchanged — its
+// marker is this layer's `--formspec-uswds-rules`, never a per-adapter name.
 
-// ---------------------------------------------------------------------------
-// USWDS core (settings, functions, mixins, tokens) — no output CSS
-// ---------------------------------------------------------------------------
-// Use USWDS default type roles (Source Sans Pro Web, Merriweather, Roboto Mono) — matches dist `uswds.css` /
-// federal defaults. The `@uswds` asset roots are resolved against the installed package and inlined as data
-// URIs by scripts/build-css.mjs, so the artifact is self-contained: no font or image ships beside it.
-//
-// Every setting below is `!default`: a variant does `@use 'uswds-formspec' with (...)` and can override any
-// of these AND any other `!default` setting uswds-core declares (theme-color-primary, theme-font-type-*, …) —
-// verified by compiling a variant that overrides `$theme-color-primary`, which this list never mentions
-// (ADR 0064 decision 1). Sass resolves `with` configuration once, top-down, from the entry point that loads
-// this module; nothing here needs to re-list a setting just to keep it reachable.
-@forward 'uswds-core' with (
-  $theme-show-notifications: false !default,
-  // USWDS's global `border-box` reset ships in `uswds-global`, which a trimmed build never forwards.
-  // `false` lets `border-box-sizing` emit inside `.usa-form`, so the render root and its fields size
-  // the way every USWDS component assumes — without this the padded inputs overflow the form column.
-  $theme-global-border-box-sizing: false !default,
-  $theme-font-path: '@uswds/fonts' !default,
-  $theme-image-path: '@uswds/img' !default,
-  $theme-font-browser-compatibility: false !default,
-  // The type roles above use 400/700 roman + italic only; `false` drops six unreachable 300-weight faces.
-  $theme-font-weight-light: false !default,
-  // `font-weight` utilities (`.text-bold` / `.text-normal`) only — every other USWDS utility bundle
-  // (~220 KB) stays out; a variant that needs another bundle adds it to this list, `!default` so it can.
-  $output-these-utilities: ('font-weight') !default,
+@use 'uswds-core' as * with (
+  $theme-show-notifications: false,
+  // Matches uswds-base.scss's own setting, for the same reason: `.usa-form` below calls
+  // `border-box-sizing`, and without this the render root's padded inputs overflow the form column.
+  $theme-global-border-box-sizing: false,
 );
-
-@forward 'uswds-utilities';
-
-// ---------------------------------------------------------------------------
-// Component packages — only what the adapter actually renders
-// ---------------------------------------------------------------------------
-@forward 'usa-form';
-@forward 'usa-form-group';
-@forward 'usa-label';
-@forward 'usa-input';
-@forward 'usa-input-prefix-suffix';
-@forward 'usa-textarea';
-@forward 'usa-character-count';
-@forward 'usa-select';
-@forward 'usa-checkbox';
-@forward 'usa-radio';
-@forward 'usa-date-picker';
-@forward 'usa-file-input';
-@forward 'usa-range';
-@forward 'usa-fieldset';
-@forward 'usa-hint';
-@forward 'usa-error-message';
-@forward 'usa-button';
-@forward 'usa-button-group';
-@forward 'usa-step-indicator';
-@forward 'usa-layout-grid';
-@forward 'usa-section';
-@forward 'usa-prose';
-@forward 'usa-accordion';
-@forward 'usa-card';
-@forward 'usa-modal';
-@forward 'usa-alert';
-@forward 'usa-tag';
-@forward 'usa-list';
-
-// ---------------------------------------------------------------------------
-// Formspec-only (classes / markup USWDS does not ship)
-// ---------------------------------------------------------------------------
-@use 'uswds-core' as *;
+// `.usa-form`/`.usa-form--large` for the @extend below — the inner partial directly, not the `usa-form`
+// package root (`@forward 'usa-form'`, which also forwards `uswds-fonts`). uswds-base.scss already ships
+// the real typefaces; pulling `uswds-fonts` in here too would make this "few KB" layer carry duplicate
+// inlined font data. The resulting `.usa-form`/`.usa-form--large` rule bodies (typeset, max-width,
+// `.usa-button` margin, link color, `.usa-show-password`) duplicate a few hundred bytes of the base
+// layer's own `usa-form` forward — harmless: only the `@extend`ed, `.formspec-container`-merged copy
+// here ever reaches the real render root, since no DOM element carries a literal `usa-form` class.
+@use 'usa-form/src/styles/usa-form';
 
 // -- Configuration variables (overridable via theme) --
 $fs-wizard-panel-max-width: 32rem !default;
@@ -75,11 +28,6 @@ $fs-wizard-panel-radius: radius('md') !default;
 $fs-tabs-panel-padding-top: units(3) !default;
 $fs-divider-margin: units(4) 0 !default;
 $fs-trailing-checkbox-size: 1.25rem !default;
-
-// The registered adapter name a variant compiles under (Theme `adapter`, ADR 0063 D-2). A variant does
-// `@use 'uswds-formspec' with ($fs-adapter-name: 'uswds-nj', ...)` so its own presence marker — not
-// 'uswds' — is what the renderer's host-provided-styles probe matches (styling/stylesheets.ts).
-$fs-adapter-name: 'uswds' !default;
 
 // The render root IS the form: `_usa-form.scss` is what makes a USWDS form look like one — a capped
 // column, inputs filling it, no dotted underline under the required asterisk, button spacing, typeset
@@ -93,8 +41,9 @@ $fs-adapter-name: 'uswds' !default;
 
   @include usa-headings-styles;
 
-  // Presence marker: the renderer skips linking this stylesheet when a host already loaded it.
-  --formspec-adapter: #{$fs-adapter-name};
+  // Presence marker (ADR 0063 D-4): names this shared rules layer, not any one adapter — a variant
+  // reuses it unchanged, so there is nothing per-adapter to name.
+  --formspec-uswds-rules: 1;
 }
 
 // Rhythm between fields is USWDS's `.usa-form-group` top margin. The Theme can retune it through the

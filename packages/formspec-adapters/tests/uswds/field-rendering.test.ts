@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
 import { FormspecRender, globalRegistry } from '@formspec-org/webcomponent';
 import { uswdsAdapter } from '../../src/uswds/index';
-import { readUswdsIntegrationCss } from '../helpers';
+import { readUswdsAdapterCss } from '../helpers';
 
 beforeAll(async () => {
     await initFormspecEngine();
@@ -336,7 +336,7 @@ describe('USWDS read-only values', () => {
 
     it('keeps the red error border on an invalid read-only calculated field', () => {
         const style = document.createElement('style');
-        style.textContent = readUswdsIntegrationCss();
+        style.textContent = readUswdsAdapterCss();
         document.head.appendChild(style);
         try {
             const el = renderForm(

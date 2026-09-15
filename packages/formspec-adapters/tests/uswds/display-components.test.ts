@@ -106,8 +106,8 @@ describe('no dead utility classes', () => {
     // USWDS utilities are a separate package this build never forwards, so a `margin-y-2` in the markup
     // computes nothing. Every class the adapter emits must exist in the stylesheet the adapter ships.
     it('emits only class names the shipped stylesheet defines', async () => {
-        const { readUswdsIntegrationCss } = await import('../helpers.js');
-        const css = readUswdsIntegrationCss();
+        const { readUswdsAdapterCss } = await import('../helpers.js');
+        const css = readUswdsAdapterCss();
         const parent = document.createElement('div');
         for (const render of [renderUSWDSHeading, renderUSWDSText, renderUSWDSAlert, renderUSWDSCard]) {
             render({ comp: { text: 'x', title: 'T', level: 2, children: [] }, host: mockHost() } as never,

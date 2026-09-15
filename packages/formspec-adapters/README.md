@@ -15,55 +15,61 @@ A **behavior hook** extracts reactive state from the engine and returns a typed 
 
 The default adapter (built into `formspec-webcomponent`) reproduces Formspec's standard DOM. Adapters in this package provide alternative DOM structures for specific design systems.
 
-**One owner per presentation fact.** An adapter owns its design system completely — markup *and* CSS. It ships a **self-contained** stylesheet (fonts and images inlined as data URIs) and declares it on the adapter object:
+**One owner per presentation fact.** An adapter owns its design system completely — markup *and* CSS. Its stylesheet is **layered**, each layer self-contained (fonts and images inlined as data URIs) and independently skippable when a host already loads it ([ADR 0063 D-4](../../thoughts/adr/0063-theme-names-its-adapter.md)):
 
 ```ts
 export const uswdsAdapter: RenderAdapter = {
     name: 'uswds',
-    stylesheets: [new URL('../uswds-integration.css', import.meta.url).href],
+    stylesheets: [
+        { href: new URL('../uswds-base.css', import.meta.url).href, presentWhen: uswdsBasePresentWhen },
+        uswdsRulesLayer,
+    ],
     components: { /* ... */ },
 };
 ```
 
-The renderer links those URLs before any Theme `stylesheets`. **Hosts never import adapter CSS.** Self-contained is load-bearing: a bundler emits `new URL(x, import.meta.url)` as-is and never follows the `url()` references inside the file, so a stylesheet with relative `../fonts/` paths loses its typefaces in every bundled build. It also means the adapter types the render root itself — with `adapter: "uswds"` in the Theme and no page CSS at all, the form looks like USWDS.
+The renderer links every layer whose own presence probe does not already match, before any Theme `stylesheets`. **Hosts never import adapter CSS.** Self-contained is load-bearing: a bundler emits `new URL(x, import.meta.url)` as-is and never follows the `url()` references inside the file, so a stylesheet with relative `../fonts/` paths loses its typefaces in every bundled build. It also means the adapter types the render root itself — with `adapter: "uswds"` in the Theme and no page CSS at all, the form looks like USWDS.
 
 The render root **is** the design system's form: the USWDS stylesheet makes `.formspec-container` a `usa-form usa-form--large`, so the form is USWDS's 30rem column, inputs fill it, and the required asterisk loses its dotted underline — the same as hand-written USWDS markup. Do not wrap `<formspec-render>` in a second `<form class="usa-form">`; that caps it at USWDS's 20rem default.
 
-**Pre-load the adapter stylesheet in `<head>` for a flash-free first paint** — its package export (`@formspec-org/adapters/uswds-integration.css`) is the file. The stylesheet declares `--formspec-adapter` on `.formspec-container`, so the renderer sees it and links nothing; otherwise the renderer loads it and reveals the form when it is ready.
+**A host pre-links both layers for a flash-free first paint, or only the rules layer when it already loads USWDS itself.** The USWDS adapter ships two package exports — `@formspec-org/adapters/uswds-base.css` (the design system: components, typefaces, icons, ~480 KB) and `@formspec-org/adapters/uswds-formspec.css` (Formspec's own rules over it — field rhythm, help row, rich text, the modal host, a few KB). Each layer declares its own presence probe on the render root or a class every USWDS build defines, so the renderer sees a pre-linked layer and skips it — otherwise it loads the missing layer(s) and reveals the form when they're ready. A government site that already pulls USWDS from a CDN only needs to pre-link the rules layer.
 
 ## Variants
 
-An organization's look — a compile-time USWDS reskin, house rules — is a **variant**, not a fork: the same render functions, a differently configured compiled sheet ([ADR 0064](../../thoughts/adr/0064-adapter-variants-and-checked-escape-hatches.md)).
+An organization's look — a compile-time USWDS reskin, house rules — is a **variant**, not a fork: the same render functions, a differently configured compiled base layer, reusing the package's rules layer unchanged ([ADR 0064](../../thoughts/adr/0064-adapter-variants-and-checked-escape-hatches.md), [ADR 0063 D-4](../../thoughts/adr/0063-theme-names-its-adapter.md)).
 
-1. Write `variant.scss` against the shipped partial (`@formspec-org/adapters/uswds.scss`). Every USWDS `!default` setting is reconfigurable through it — not just the ones `uswds-formspec.scss` itself re-lists — plus your own house rules:
+1. Write `variant.scss` against the shipped base partial (`pkg:@formspec-org/adapters/uswds-base.scss` — the `.scss` extension in the specifier disambiguates it from the compiled `.css` export of the same name). Every USWDS `!default` setting is reconfigurable through it — not just the ones `uswds-base.scss` itself re-lists — plus your own house rules:
 
     ```scss
-    @use '@formspec-org/adapters/uswds.scss' with (
-      $fs-adapter-name: 'uswds-nj',
+    @use 'pkg:@formspec-org/adapters/uswds-base.scss' with (
       $theme-color-primary: 'blue-warm-60v',
     );
 
     .usa-legend:not(.usa-legend--large) { font-weight: 700; }
     ```
 
-2. Compile it with the shipped CLI (`formspec-adapter-css`) — same asset inlining as the base build, plus a sibling class-vocabulary module next to the sheet:
+2. Compile it with the shipped CLI (`formspec-adapter-css`) — same asset inlining as the package's own base build, plus a sibling class-vocabulary module next to the sheet. This recompiles only your base layer; the rules layer is not part of this step:
 
     ```bash
-    npx formspec-adapter-css variant.scss uswds-nj.css
-    # writes uswds-nj.css, uswds-nj.classes.js, uswds-nj.classes.d.ts
+    npx formspec-adapter-css variant.scss uswds-nj-base.css
+    # writes uswds-nj-base.css, uswds-nj-base.classes.js, uswds-nj-base.classes.d.ts
     ```
 
-3. Derive the adapter — same components, new name/stylesheet/vocabulary:
+3. Derive the adapter — same components, new name, your compiled base layer plus the base adapter's exported, unchanged rules layer, and a vocabulary that's the union of both:
 
     ```ts
     import { deriveAdapter } from '@formspec-org/webcomponent';
-    import { uswdsAdapter } from '@formspec-org/adapters';
-    import { classVocabulary } from './uswds-nj.classes.js';
+    import { uswdsAdapter, uswdsBasePresentWhen, uswdsRulesLayer } from '@formspec-org/adapters';
+    import { classVocabulary as njBaseVocabulary } from './uswds-nj-base.classes.js';
+    import { classVocabulary as rulesVocabulary } from '@formspec-org/adapters/uswds.classes.js';
 
     export const uswdsNjAdapter = deriveAdapter(uswdsAdapter, {
         name: 'uswds-nj',
-        stylesheets: [new URL('./uswds-nj.css', import.meta.url).href],
-        classVocabulary,
+        stylesheets: [
+            { href: new URL('./uswds-nj-base.css', import.meta.url).href, presentWhen: uswdsBasePresentWhen },
+            uswdsRulesLayer,
+        ],
+        classVocabulary: new Set([...njBaseVocabulary, ...rulesVocabulary]),
     });
     ```
 

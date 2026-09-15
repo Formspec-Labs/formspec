@@ -1,5 +1,6 @@
 /** @filedesc Ref-counted stylesheet linking into an element's own root — document head or shadow root. */
 import type { StylingHost } from './index';
+import type { StylesheetLayer } from '../adapters/types';
 
 /**
  * Structural layout CSS, shipped next to this module in `dist/`. Every adapter needs it,
@@ -63,25 +64,72 @@ interface HostProvidedStyles {
     adapter: string;
 }
 
+/** The element's tree a probe attaches to — a document probes into `body`, a shadow root into itself. */
+function probeParent(root: StyleRoot): ParentNode | null {
+    return root.nodeType === DOCUMENT_NODE ? (root as Document).body : (root as ShadowRoot);
+}
+
 /**
- * Ask the page what it already has. Every renderer-known stylesheet sets one custom property on
- * `.formspec-container` — a host that pre-loaded it (bundler import, hashed asset, hand-written link)
- * gets no link from us, and no unstyled frame. Returns nothing detected when the probe cannot render.
+ * Appends a hidden element carrying `className` to `root`'s tree, reads its computed style, removes the
+ * element, and returns what `read` extracted — `undefined` when the probe cannot render (no `body` yet).
+ * Every presence check (ADR 0063 D-4) — the structural sheet, an adapter's marker, one `StylesheetLayer`'s
+ * own probe — goes through this one hidden-element mechanism.
  */
-function hostProvidedStyles(root: StyleRoot): HostProvidedStyles {
-    const parent = root.nodeType === DOCUMENT_NODE ? (root as Document).body : (root as ShadowRoot);
-    if (!parent) return { layout: false, adapter: '' };
+function withProbe<T>(root: StyleRoot, className: string, read: (style: CSSStyleDeclaration) => T): T | undefined {
+    const parent = probeParent(root);
+    if (!parent) return undefined;
     const probe = document.createElement('div');
-    probe.className = 'formspec-container';
+    probe.className = className;
     probe.style.display = 'none';
     parent.appendChild(probe);
-    const style = getComputedStyle(probe);
-    const provided = {
-        layout: style.getPropertyValue('--formspec-layout').trim() !== '',
-        adapter: style.getPropertyValue('--formspec-adapter').trim(),
-    };
+    const result = read(getComputedStyle(probe));
     probe.remove();
-    return provided;
+    return result;
+}
+
+/**
+ * Ask the page what it already has. The structural sheet and every legacy (string-entry) adapter sheet
+ * set one custom property each on `.formspec-container` — a host that pre-loaded them (bundler import,
+ * hashed asset, hand-written link) gets no link from us, and no unstyled frame.
+ */
+function hostProvidedStyles(root: StyleRoot): HostProvidedStyles {
+    return (
+        withProbe(root, 'formspec-container', (style) => ({
+            layout: style.getPropertyValue('--formspec-layout').trim() !== '',
+            adapter: style.getPropertyValue('--formspec-adapter').trim(),
+        })) ?? { layout: false, adapter: '' }
+    );
+}
+
+/**
+ * One `StylesheetLayer`'s own presence probe (ADR 0063 D-4): a hidden element carrying
+ * `presentWhen.className`, appended to the render root's tree — present when its computed
+ * `presentWhen.property` already equals `presentWhen.value`.
+ */
+function layerIsPresent(root: StyleRoot, layer: StylesheetLayer): boolean {
+    const value = withProbe(root, layer.presentWhen.className, (style) =>
+        style.getPropertyValue(layer.presentWhen.property).trim());
+    return value === layer.presentWhen.value;
+}
+
+/**
+ * Hrefs from the resolved adapter's declared layers. A plain string is a layer with no probe: linked
+ * unless the adapter marker already names this adapter — the rule from before this amendment, still the
+ * whole of it for a single-sheet adapter (Tailwind). A `StylesheetLayer` gets its own presence probe,
+ * independent of every other layer — a bare page gets both a USWDS adapter's base and rules layers; a
+ * page that already loads USWDS gets only the rules layer.
+ */
+function adapterLayerHrefs(host: StylingHost, root: StyleRoot, provided: HostProvidedStyles): string[] {
+    const adapterMarkerMatches = provided.adapter === host.resolvedAdapterName;
+    const hrefs: string[] = [];
+    for (const layer of host.adapterStylesheets()) {
+        if (typeof layer === 'string') {
+            if (!adapterMarkerMatches) hrefs.push(layer);
+        } else if (!layerIsPresent(root, layer)) {
+            hrefs.push(layer.href);
+        }
+    }
+    return hrefs;
 }
 
 /**
@@ -89,10 +137,10 @@ function hostProvidedStyles(root: StyleRoot): HostProvidedStyles {
  * sheets — least to most specific. Theme sheets always link: they are the brand layer this document
  * asked for, not something a page can have pre-loaded on the renderer's behalf.
  */
-function orderedStylesheetHrefs(host: StylingHost, provided: HostProvidedStyles): string[] {
+function orderedStylesheetHrefs(host: StylingHost, root: StyleRoot, provided: HostProvidedStyles): string[] {
     return [
         ...(provided.layout ? [] : [LAYOUT_STYLESHEET_HREF]),
-        ...(provided.adapter === host.resolvedAdapterName ? [] : host.adapterStylesheets()),
+        ...adapterLayerHrefs(host, root, provided),
         ...(host._themeDocument?.stylesheets ?? []),
     ];
 }
@@ -107,7 +155,7 @@ export function loadStylesheets(host: StylingHost): HTMLLinkElement[] {
     const created: HTMLLinkElement[] = [];
 
     const uniqueHrefs = new Set<string>();
-    for (const rawHref of orderedStylesheetHrefs(host, hostProvidedStyles(root))) {
+    for (const rawHref of orderedStylesheetHrefs(host, root, hostProvidedStyles(root))) {
         if (!rawHref || typeof rawHref !== 'string') continue;
         const hrefKey = canonicalizeStylesheetHref(rawHref);
         if (uniqueHrefs.has(hrefKey)) continue;
