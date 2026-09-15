@@ -314,15 +314,18 @@ pub fn apply_migrations_to_response_data(
 ///     screener: Python dict of the Screener Document
 ///     answers: Python dict of screener answers (key → value)
 ///     context: Optional Python dict with `answerStates` and `nowIso`
+///     extension_functions: Optional dict of name → callable, resolving host extension
+///         functions (Core §3.12) in route conditions and scores
 ///
 /// Returns:
 ///     A dict representing the Determination Record (always non-None).
-#[pyfunction(signature = (screener, answers, context=None))]
+#[pyfunction(signature = (screener, answers, context=None, extension_functions=None))]
 pub fn evaluate_screener_document_py(
     py: Python,
     screener: &Bound<'_, PyAny>,
     answers: &Bound<'_, PyAny>,
     context: Option<&Bound<'_, PyAny>>,
+    extension_functions: Option<&Bound<'_, PyDict>>,
 ) -> PyResult<PyObject> {
     let screener_val: Value = depythonize_json(screener)?;
     let raw_answers = json_object_to_string_map(&depythonize_json(answers)?);
@@ -377,7 +380,17 @@ pub fn evaluate_screener_document_py(
         }
     }
 
-    let record = evaluate_screener_document(&screener_val, &answer_inputs, now_iso.as_deref());
+    let extensions = extension_functions
+        .map(PyExtensionFunctions::from_dict)
+        .transpose()?;
+    let record = evaluate_screener_document(
+        &screener_val,
+        &answer_inputs,
+        now_iso.as_deref(),
+        extensions
+            .as_ref()
+            .map(|e| e as &dyn fel_core::ExtensionFunctions),
+    );
     let json = serde_json::to_value(&record)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("serialization: {e}")))?;
     json_to_python(py, &json)

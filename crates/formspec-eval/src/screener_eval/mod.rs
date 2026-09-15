@@ -14,9 +14,10 @@ mod tests;
 
 use std::collections::HashMap;
 
-use fel_core::FormspecEnvironment;
+use fel_core::{ExtensionFunctions, FormspecEnvironment};
 use serde_json::Value;
 
+use crate::fel_eval::Fel;
 use crate::fel_json::json_to_runtime_fel;
 use crate::types::determination::{
     AnswerInput, AnswerState, DeterminationRecord, OverrideBlock, PhaseResult, PhaseStatus,
@@ -40,11 +41,17 @@ use validity::build_validity;
 /// 3. Hoist and evaluate override routes
 /// 4. Evaluate phases by strategy
 /// 5. Assemble Determination Record
+///
+/// `extensions` resolves host extension functions (Core §3.12) in every route `condition`,
+/// `score`, and phase `activeWhen`. Without them such a call is a definition error
+/// (Core §3.10.1): the route is eliminated for an expression error and the phase warns.
 pub fn evaluate_screener_document(
     screener: &Value,
     answers: &HashMap<String, AnswerInput>,
     now_iso: Option<&str>,
+    extensions: Option<&dyn ExtensionFunctions>,
 ) -> DeterminationRecord {
+    let fel = Fel::new(extensions);
     let url = screener
         .get("url")
         .and_then(Value::as_str)
@@ -119,7 +126,7 @@ pub fn evaluate_screener_document(
             .get("condition")
             .and_then(Value::as_str)
             .unwrap_or("false");
-        let cond = eval_screener_condition(condition, &env);
+        let cond = eval_screener_condition(condition, &env, fel);
         if cond.expression_error {
             push_unique_warning(&mut document_warnings, WARNING_FEL_EXPRESSION_ERROR);
         }
@@ -187,7 +194,7 @@ pub fn evaluate_screener_document(
 
         // Check activeWhen
         if let Some(active_when) = phase_val.get("activeWhen").and_then(Value::as_str) {
-            let active = eval_screener_condition(active_when, &env);
+            let active = eval_screener_condition(active_when, &env, fel);
             if !active.truthy {
                 let mut warnings = Vec::new();
                 if active.expression_error {
@@ -209,14 +216,24 @@ pub fn evaluate_screener_document(
 
         let result = match &strategy {
             PhaseStrategy::FirstMatch => {
-                eval_first_match(&phase_id, strategy.clone(), &phase_routes, &env)
+                eval_first_match(&phase_id, strategy.clone(), &phase_routes, &env, fel)
             }
-            PhaseStrategy::FanOut => {
-                eval_fan_out(&phase_id, strategy.clone(), &phase_routes, &env, config)
-            }
-            PhaseStrategy::ScoreThreshold => {
-                eval_score_threshold(&phase_id, strategy.clone(), &phase_routes, &env, config)
-            }
+            PhaseStrategy::FanOut => eval_fan_out(
+                &phase_id,
+                strategy.clone(),
+                &phase_routes,
+                &env,
+                fel,
+                config,
+            ),
+            PhaseStrategy::ScoreThreshold => eval_score_threshold(
+                &phase_id,
+                strategy.clone(),
+                &phase_routes,
+                &env,
+                fel,
+                config,
+            ),
             PhaseStrategy::Other(s) if s.starts_with("x-") => PhaseResult {
                 id: phase_id,
                 status: PhaseStatus::UnsupportedStrategy,

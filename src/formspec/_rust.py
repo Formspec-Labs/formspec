@@ -599,6 +599,7 @@ def evaluate_screener_document(
     screener_doc: dict,
     answers: dict,
     context: dict | None = None,
+    extension_functions: Mapping[str, Callable[..., Any]] | None = None,
 ) -> dict:
     """Evaluate a standalone Screener Document against respondent inputs.
 
@@ -608,8 +609,15 @@ def evaluate_screener_document(
         screener_doc: The Screener Document (dict with $formspecScreener marker).
         answers: Flat dict of item key → value.
         context: Optional dict with ``answerStates`` and ``nowIso``.
+        extension_functions: Optional FEL extension functions (Core §3.12), name → callable,
+            resolved in route ``condition`` / ``score`` and phase ``activeWhen``.
     """
-    return formspec_rust.evaluate_screener_document_py(screener_doc, answers, context)
+    return formspec_rust.evaluate_screener_document_py(
+        screener_doc,
+        answers,
+        context,
+        dict(extension_functions) if extension_functions is not None else None,
+    )
 
 
 # ── Mapping ──────────────────────────────────────────────────────

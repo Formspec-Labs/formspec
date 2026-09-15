@@ -64,7 +64,7 @@ fn first_match_returns_first_truthy_route() {
     let screener = simple_screener();
     let mut answers = HashMap::new();
     answers.insert("orgType".to_string(), answer(json!("nonprofit")));
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.status, "completed");
     assert_eq!(det.marker, "1.0");
@@ -93,7 +93,7 @@ fn malformed_route_condition_emits_warning_and_expression_error_reason() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].matched.len(), 0);
     assert_eq!(det.phases[0].eliminated.len(), 1);
@@ -127,7 +127,7 @@ fn malformed_score_expression_emits_single_fel_warning() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(
         det.phases[0]
@@ -158,7 +158,7 @@ fn malformed_score_expression_emits_warning_and_expression_error_reason() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].matched.len(), 0);
     assert_eq!(det.phases[0].eliminated.len(), 1);
@@ -178,7 +178,7 @@ fn first_match_falls_through_to_default() {
     let screener = simple_screener();
     let mut answers = HashMap::new();
     answers.insert("orgType".to_string(), answer(json!("forprofit")));
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].matched.len(), 1);
     assert_eq!(det.phases[0].matched[0].target, "urn:forms:general|1.0.0");
@@ -207,7 +207,7 @@ fn first_match_no_match_produces_empty() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].matched.len(), 0);
     assert_eq!(det.phases[0].eliminated.len(), 1);
@@ -235,7 +235,7 @@ fn fan_out_returns_all_matching_routes() {
     });
     let mut answers = HashMap::new();
     answers.insert("income".to_string(), answer(json!(15000)));
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].strategy, "fan-out");
     assert_eq!(det.phases[0].matched.len(), 3);
@@ -262,7 +262,7 @@ fn fan_out_max_matches_limits_results() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].matched.len(), 2);
     // Excess route eliminated with reason "max-exceeded"
@@ -293,7 +293,7 @@ fn fan_out_below_minimum_emits_warning() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].matched.len(), 1);
     assert!(
@@ -323,7 +323,7 @@ fn score_threshold_basic() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].matched.len(), 1);
     assert_eq!(det.phases[0].matched[0].target, "urn:high");
@@ -352,7 +352,7 @@ fn score_threshold_null_score_eliminated() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].matched.len(), 0);
     assert_eq!(det.phases[0].eliminated.len(), 1);
@@ -382,7 +382,7 @@ fn score_threshold_top_n() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     // After sorting by score desc, top 1 should be the highest
     assert_eq!(det.phases[0].matched.len(), 1);
@@ -408,7 +408,7 @@ fn score_threshold_normalize() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     // After normalization: a=1.0 (>=0.5 → match), b=0.4 (<0.5 → eliminated)
     assert_eq!(det.phases[0].matched.len(), 1);
@@ -449,7 +449,7 @@ fn override_routes_fire_before_phases() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     // Override matched
     assert_eq!(det.overrides.matched.len(), 1);
@@ -483,7 +483,7 @@ fn terminal_override_halts_pipeline() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert!(det.overrides.halted);
     assert_eq!(det.overrides.matched.len(), 1);
@@ -509,7 +509,7 @@ fn multiple_overrides_all_evaluated() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     // All overrides evaluated even though first is terminal
     assert_eq!(det.overrides.matched.len(), 2);
@@ -539,7 +539,7 @@ fn override_malformed_terminal_route_does_not_halt_but_emits_fel_warning() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert!(!det.overrides.halted);
     assert_eq!(det.overrides.matched.len(), 0);
@@ -573,7 +573,7 @@ fn override_malformed_condition_emits_fel_warning_on_first_phase() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert!(!det.overrides.halted);
     assert_eq!(det.overrides.matched.len(), 0);
@@ -605,7 +605,7 @@ fn active_when_false_skips_phase() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].status, "skipped");
     assert_eq!(det.phases[0].matched.len(), 0);
@@ -627,7 +627,7 @@ fn active_when_malformed_expression_emits_single_phase_warning() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].status, "skipped");
     assert_eq!(
@@ -654,7 +654,7 @@ fn availability_with_missing_now_returns_unavailable() {
         "evaluation": [{ "id": "p1", "strategy": "first-match", "routes": [] }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, None);
+    let det = evaluate_screener_document(&screener, &answers, None, None);
 
     assert_eq!(det.status, "unavailable");
     assert_eq!(det.phases.len(), 0);
@@ -672,7 +672,7 @@ fn availability_with_unparseable_now_returns_unavailable() {
         "evaluation": [{ "id": "p1", "strategy": "first-match", "routes": [] }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("not-a-date"));
+    let det = evaluate_screener_document(&screener, &answers, Some("not-a-date"), None);
 
     assert_eq!(det.status, "unavailable");
 }
@@ -689,7 +689,7 @@ fn availability_window_before_start_returns_unavailable() {
         "evaluation": [{ "id": "p1", "strategy": "first-match", "routes": [] }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01"), None);
 
     assert_eq!(det.status, "unavailable");
     assert_eq!(det.phases.len(), 0);
@@ -707,7 +707,7 @@ fn availability_window_after_end_returns_unavailable() {
         "evaluation": [{ "id": "p1", "strategy": "first-match", "routes": [] }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01"), None);
 
     assert_eq!(det.status, "unavailable");
 }
@@ -724,7 +724,7 @@ fn availability_within_window_proceeds() {
         "evaluation": [{ "id": "p1", "strategy": "first-match", "routes": [] }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-06-15"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-06-15"), None);
 
     assert_ne!(det.status, "unavailable");
 }
@@ -741,7 +741,8 @@ fn availability_until_inclusive_uses_offset_calendar_date_not_utc() {
         "evaluation": [{ "id": "p1", "strategy": "first-match", "routes": [] }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T23:00:00-08:00"));
+    let det =
+        evaluate_screener_document(&screener, &answers, Some("2026-04-01T23:00:00-08:00"), None);
 
     assert_ne!(
         det.status, "unavailable",
@@ -770,7 +771,7 @@ fn declined_item_evaluates_as_null_in_conditions() {
     });
     let mut answers = HashMap::new();
     answers.insert("choice".to_string(), declined());
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     // Declined → null → empty($choice) should be true
     assert_eq!(det.phases[0].matched[0].target, "urn:empty");
@@ -796,7 +797,7 @@ fn not_presented_item_evaluates_as_null() {
     });
     let mut answers = HashMap::new();
     answers.insert("hidden".to_string(), not_presented());
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].matched[0].target, "urn:empty");
     assert_eq!(det.inputs["hidden"].state, AnswerState::NotPresented);
@@ -807,7 +808,7 @@ fn partial_status_when_declined_items_present() {
     let screener = simple_screener();
     let mut answers = HashMap::new();
     answers.insert("orgType".to_string(), declined());
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.status, "partial");
 }
@@ -831,7 +832,7 @@ fn extension_strategy_returns_unsupported() {
         }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases[0].status, "unsupported-strategy");
     assert_eq!(det.phases[0].strategy, "x-custom-algo");
@@ -866,7 +867,7 @@ fn multiple_phases_all_execute_independently() {
         ]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     assert_eq!(det.phases.len(), 2);
     assert_eq!(det.phases[0].matched.len(), 2); // fan-out: both match
@@ -880,11 +881,64 @@ fn determination_serializes_with_correct_keys() {
     let screener = simple_screener();
     let mut answers = HashMap::new();
     answers.insert("orgType".to_string(), answer(json!("nonprofit")));
-    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
 
     let json = serde_json::to_value(&det).unwrap();
     assert_eq!(json["$formspecDetermination"], "1.0");
     assert!(json.get("screener").is_some());
     assert!(json.get("evaluationVersion").is_some());
     assert!(json.get("evaluation_version").is_none()); // must be camelCase
+}
+
+// ── Host extension functions (Core §3.12) ──────────────────────
+
+/// A screener route calling a host extension function routes on its result, not on an
+/// expression error — the same Core §3.12 contract the Definition evaluator honours.
+#[test]
+fn routes_resolve_host_extension_functions() {
+    let screener = json!({
+        "$formspecScreener": "1.0",
+        "url": "urn:test:ext",
+        "version": "1.0.0",
+        "title": "Extension Screener",
+        "items": [{ "key": "headcount", "type": "field", "dataType": "integer", "label": "Headcount" }],
+        "evaluation": [
+            {
+                "id": "routing",
+                "strategy": "first-match",
+                "routes": [
+                    { "condition": "double($headcount) > 10", "target": "urn:forms:large|1.0.0", "label": "Large" },
+                    { "condition": "true", "target": "urn:forms:small|1.0.0", "label": "Small" }
+                ]
+            }
+        ]
+    });
+    let mut answers = HashMap::new();
+    answers.insert("headcount".to_string(), answer(json!(6)));
+
+    let mut registry = fel_core::ExtensionRegistry::new();
+    registry
+        .register("double", 1, Some(1), |args| match &args[0] {
+            fel_core::Value::Number(n) => {
+                fel_core::Value::Number(*n * rust_decimal::Decimal::from(2))
+            }
+            _ => fel_core::Value::Null,
+        })
+        .unwrap();
+
+    let with = evaluate_screener_document(
+        &screener,
+        &answers,
+        Some("2026-04-01T10:00:00Z"),
+        Some(&registry),
+    );
+    assert_eq!(with.phases[0].matched[0].target, "urn:forms:large|1.0.0");
+    assert!(with.phases[0].warnings.is_empty());
+
+    // Without a host registry the call is a definition error (Core §3.10.1): the route is
+    // eliminated for an expression error and the phase warns.
+    let without =
+        evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"), None);
+    assert_eq!(without.phases[0].matched[0].target, "urn:forms:small|1.0.0");
+    assert_eq!(without.phases[0].warnings, vec!["fel-expression-error"]);
 }

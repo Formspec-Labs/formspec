@@ -19,8 +19,12 @@ pub(crate) struct NumericEval {
     pub(crate) expression_error: bool,
 }
 
-pub(crate) fn eval_screener_condition(condition: &str, env: &FormspecEnvironment) -> ConditionEval {
-    let result = Fel::default().evaluate_source(condition, env);
+pub(crate) fn eval_screener_condition(
+    condition: &str,
+    env: &FormspecEnvironment,
+    fel: Fel<'_>,
+) -> ConditionEval {
+    let result = fel.evaluate_source(condition, env);
     let expression_error = has_error_diagnostics(&result.diagnostics);
     let truthy = !expression_error && result.value.is_truthy();
     ConditionEval {
@@ -29,8 +33,12 @@ pub(crate) fn eval_screener_condition(condition: &str, env: &FormspecEnvironment
     }
 }
 
-pub(crate) fn eval_screener_numeric(expr_str: &str, env: &FormspecEnvironment) -> NumericEval {
-    let result = Fel::default().evaluate_source(expr_str, env);
+pub(crate) fn eval_screener_numeric(
+    expr_str: &str,
+    env: &FormspecEnvironment,
+    fel: Fel<'_>,
+) -> NumericEval {
+    let result = fel.evaluate_source(expr_str, env);
     if has_error_diagnostics(&result.diagnostics) {
         return NumericEval {
             value: None,

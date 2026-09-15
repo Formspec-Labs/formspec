@@ -415,17 +415,24 @@ export function wasmEvaluateDefinition(
     return JSON.parse(resultJson);
 }
 
-/** Evaluate a standalone Screener Document against respondent inputs.
- *  Returns a Determination Record (always non-null). */
+/**
+ * Evaluate a standalone Screener Document against respondent inputs.
+ * Returns a Determination Record (always non-null).
+ *
+ * `extensions` resolves host extension functions (Core §3.12) in route `condition` / `score` and
+ * phase `activeWhen`; without them such a call is a definition error and the route is eliminated.
+ */
 export function wasmEvaluateScreenerDocument(
     screener: unknown,
     answers: Record<string, unknown>,
     context?: Record<string, unknown>,
+    extensions?: FelExtensionHost,
 ): import('@formspec-org/types').DeterminationRecord {
     const resultJson = wasm().evaluateScreenerDocument(
         JSON.stringify(screener),
         JSON.stringify(answers),
         context ? JSON.stringify(context) : undefined,
+        extensions,
     );
     return JSON.parse(resultJson);
 }

@@ -82,20 +82,29 @@ pub(crate) fn evaluate_definition_inner(
 /// `context_json` is an optional JSON object with:
 /// - `answerStates`: `Record<string, "answered"|"declined"|"not-presented">` — per-item states
 /// - `nowIso`: ISO 8601 datetime string for availability/validity checks
+///
+/// `extensions` resolves host extension functions (Core §3.12) in route conditions and scores.
 #[wasm_bindgen(js_name = "evaluateScreenerDocument")]
 pub fn evaluate_screener_document_wasm(
     screener_json: &str,
     answers_json: &str,
     context_json: Option<String>,
+    extensions: Option<FelExtensionHost>,
 ) -> Result<String, JsError> {
-    evaluate_screener_document_inner(screener_json, answers_json, context_json)
-        .map_err(|e| JsError::new(&e))
+    evaluate_screener_document_inner(
+        screener_json,
+        answers_json,
+        context_json,
+        extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
+    )
+    .map_err(|e| JsError::new(&e))
 }
 
-fn evaluate_screener_document_inner(
+pub(crate) fn evaluate_screener_document_inner(
     screener_json: &str,
     answers_json: &str,
     context_json: Option<String>,
+    extensions: Option<&dyn ExtensionFunctions>,
 ) -> Result<String, String> {
     let screener: Value = parse_value_str(screener_json, "screener JSON")?;
     let answers_val: Value = parse_value_str(answers_json, "answers JSON")?;
@@ -146,7 +155,7 @@ fn evaluate_screener_document_inner(
         }
     }
 
-    let record = evaluate_screener_document(&screener, &answers, now_iso.as_deref());
+    let record = evaluate_screener_document(&screener, &answers, now_iso.as_deref(), extensions);
 
     serde_json::to_string(&record).map_err(|e| format!("serialization error: {e}"))
 }

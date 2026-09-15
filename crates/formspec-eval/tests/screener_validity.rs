@@ -52,6 +52,7 @@ fn no_result_validity_means_no_block() {
         &screener_without_validity(),
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
+        None,
     );
     assert!(det.validity.is_none());
 }
@@ -62,6 +63,7 @@ fn zero_duration_yields_now_as_valid_until() {
         &screener_with_validity("P0D"),
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
+        None,
     );
     let v = det.validity.expect("validity block");
     assert_eq!(v.result_validity, "P0D");
@@ -75,6 +77,7 @@ fn days_duration_adds_to_now() {
         &screener_with_validity("P14D"),
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
+        None,
     );
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2026-04-15T10:00:00+00:00");
@@ -86,6 +89,7 @@ fn one_year_duration_adds_one_year() {
         &screener_with_validity("P1Y"),
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
+        None,
     );
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2027-04-01T10:00:00+00:00");
@@ -98,6 +102,7 @@ fn leap_year_p1y_clamps_to_feb_28() {
         &screener_with_validity("P1Y"),
         &empty_answers(),
         Some("2024-02-29T12:00:00Z"),
+        None,
     );
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2025-02-28T12:00:00+00:00");
@@ -109,6 +114,7 @@ fn timezone_offset_preserved_across_day_addition() {
         &screener_with_validity("P1D"),
         &empty_answers(),
         Some("2026-01-01T00:00:00-05:00"),
+        None,
     );
     let v = det.validity.unwrap();
     // Offset preserved; calendar day rolls forward.
@@ -121,6 +127,7 @@ fn weeks_duration_adds_seven_days_per_week() {
         &screener_with_validity("P2W"),
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
+        None,
     );
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2026-04-15T10:00:00+00:00");
@@ -132,6 +139,7 @@ fn time_only_duration_works() {
         &screener_with_validity("PT1H30M"),
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
+        None,
     );
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2026-04-01T11:30:00+00:00");
@@ -147,6 +155,7 @@ fn composite_duration_combines_calendar_and_time_units() {
         &screener_with_validity("P1Y2M3DT4H5M"),
         &empty_answers(),
         Some("2026-01-01T00:00:00Z"),
+        None,
     );
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2027-03-04T04:05:00+00:00");
@@ -176,6 +185,7 @@ fn malformed_duration_drops_validity_block() {
             &screener_with_validity(bad),
             &empty_answers(),
             Some("2026-04-01T10:00:00Z"),
+            None,
         );
         assert!(
             det.validity.is_none(),
@@ -195,6 +205,7 @@ fn p1m_from_jan31_clamps_to_february() {
         &screener_with_validity("P1M"),
         &empty_answers(),
         Some("2024-01-31T00:00:00Z"),
+        None,
     );
     let v = det.validity.unwrap();
     // 2024 is a leap year → Feb 29.
@@ -204,6 +215,7 @@ fn p1m_from_jan31_clamps_to_february() {
         &screener_with_validity("P1M"),
         &empty_answers(),
         Some("2025-01-31T00:00:00Z"),
+        None,
     );
     let v = det.validity.unwrap();
     // 2025 non-leap → Feb 28.
@@ -218,6 +230,7 @@ fn pt_seconds_branch_adds_exact_duration() {
         &screener_with_validity("PT30S"),
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
+        None,
     );
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2026-04-01T10:00:30+00:00");
@@ -227,6 +240,7 @@ fn pt_seconds_branch_adds_exact_duration() {
         &screener_with_validity("PT1H2M3S"),
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
+        None,
     );
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2026-04-01T11:02:03+00:00");
@@ -240,13 +254,19 @@ fn malformed_now_drops_validity_block() {
         &screener_with_validity("P14D"),
         &empty_answers(),
         Some("2026-04-01"),
+        None,
     );
     assert!(det.validity.is_none());
 }
 
 #[test]
 fn no_now_drops_validity_block() {
-    let det = evaluate_screener_document(&screener_with_validity("P14D"), &empty_answers(), None);
+    let det = evaluate_screener_document(
+        &screener_with_validity("P14D"),
+        &empty_answers(),
+        None,
+        None,
+    );
     assert!(det.validity.is_none());
 }
 
@@ -256,6 +276,7 @@ fn serialized_validity_uses_camel_case() {
         &screener_with_validity("P90D"),
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
+        None,
     );
     let serialized = serde_json::to_value(&det).expect("serialize");
     let v = &serialized["validity"];

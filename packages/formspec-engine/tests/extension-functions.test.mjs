@@ -1,7 +1,7 @@
 /** @filedesc Host FEL extension functions (Core §3.12): engine registration reaches every Rust evaluation. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FormEngine } from '../dist/index.js';
+import { FormEngine, wasmEvaluateScreenerDocument } from '../dist/index.js';
 
 function definition() {
   return {
@@ -74,4 +74,39 @@ test('a throwing implementation yields null plus an author diagnostic (Core §3.
     snapshot.evaluationDiagnostics.some((d) => d.path === 'qty' && /boom/.test(d.message)),
     JSON.stringify(snapshot.evaluationDiagnostics),
   );
+});
+
+test('a standalone Screener Document routes on host extension functions (Core §3.12)', () => {
+  const screener = {
+    $formspecScreener: '1.0',
+    url: 'urn:test:screener-extensions',
+    version: '1.0.0',
+    title: 'Extensions Screener',
+    items: [{ key: 'headcount', type: 'field', dataType: 'integer', label: 'Headcount' }],
+    evaluation: [
+      {
+        id: 'routing',
+        strategy: 'first-match',
+        routes: [
+          { condition: 'double($headcount) > 10', target: 'urn:forms:large|1.0.0', label: 'Large' },
+          { condition: 'true', target: 'urn:forms:small|1.0.0', label: 'Small' },
+        ],
+      },
+    ],
+  };
+  const answers = { headcount: 6 };
+  // The `FelExtensionHost` shape Rust calls: arity lookup plus JSON-in/JSON-out invoke.
+  const host = {
+    arity: (name) => (name === 'double' ? { minArgs: 1, maxArgs: 1 } : undefined),
+    invoke: (name, argsJson) => JSON.stringify(double.implementation(...JSON.parse(argsJson))),
+  };
+
+  const withHost = wasmEvaluateScreenerDocument(screener, answers, undefined, host);
+  assert.equal(withHost.phases[0].matched[0].target, 'urn:forms:large|1.0.0');
+  assert.deepEqual(withHost.phases[0].warnings, []);
+
+  // Without a host the call is a definition error: the route is eliminated and the phase warns.
+  const withoutHost = wasmEvaluateScreenerDocument(screener, answers);
+  assert.equal(withoutHost.phases[0].matched[0].target, 'urn:forms:small|1.0.0');
+  assert.deepEqual(withoutHost.phases[0].warnings, ['fel-expression-error']);
 });

@@ -3,6 +3,7 @@
 use fel_core::FormspecEnvironment;
 use serde_json::Value;
 
+use crate::fel_eval::Fel;
 use crate::types::determination::{EliminationReason, PhaseResult, PhaseStatus, PhaseStrategy};
 
 use super::condition::{
@@ -17,6 +18,7 @@ pub(crate) fn eval_first_match(
     strategy: PhaseStrategy,
     routes: &[&Value],
     env: &FormspecEnvironment,
+    fel: Fel<'_>,
 ) -> PhaseResult {
     let mut matched = Vec::new();
     let mut eliminated = Vec::new();
@@ -26,7 +28,7 @@ pub(crate) fn eval_first_match(
             .get("condition")
             .and_then(Value::as_str)
             .unwrap_or("false");
-        let cond = eval_screener_condition(condition, env);
+        let cond = eval_screener_condition(condition, env, fel);
         if cond.truthy {
             matched.push(route_to_result(route));
             break;
@@ -54,6 +56,7 @@ pub(crate) fn eval_fan_out(
     strategy: PhaseStrategy,
     routes: &[&Value],
     env: &FormspecEnvironment,
+    fel: Fel<'_>,
     config: Option<&Value>,
 ) -> PhaseResult {
     let mut matched = Vec::new();
@@ -65,7 +68,7 @@ pub(crate) fn eval_fan_out(
             .get("condition")
             .and_then(Value::as_str)
             .unwrap_or("false");
-        let cond = eval_screener_condition(condition, env);
+        let cond = eval_screener_condition(condition, env, fel);
         if cond.truthy {
             matched.push(route_to_result(route));
         } else {
@@ -114,6 +117,7 @@ pub(crate) fn eval_score_threshold(
     strategy: PhaseStrategy,
     routes: &[&Value],
     env: &FormspecEnvironment,
+    fel: Fel<'_>,
     config: Option<&Value>,
 ) -> PhaseResult {
     let normalize = config
@@ -140,7 +144,7 @@ pub(crate) fn eval_score_threshold(
                 .get("threshold")
                 .and_then(Value::as_f64)
                 .unwrap_or(0.0);
-            let score_eval = eval_screener_numeric(score_expr, env);
+            let score_eval = eval_screener_numeric(score_expr, env, fel);
 
             ScoredRoute {
                 route,
