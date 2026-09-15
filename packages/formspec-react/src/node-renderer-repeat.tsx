@@ -3,7 +3,7 @@
 /** @filedesc Repeat-group and accordion-repeat layout rendering for FormspecNode. */
 import React, { useMemo, useRef, useCallback, useState } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';
-import { UI_STRINGS, fillUiParams, type ChromeStringKey } from '@formspec-org/layout';
+import { chromeText } from './use-chrome-text';
 import { signal } from '@preact/signals-core';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import { useFormspecContext } from './context.js';
@@ -14,16 +14,6 @@ import { RepeatInstanceContext } from './use-localized-node';
 import type { NodeRenderer } from './node-renderer-types.js';
 
 const NO_LABEL = signal('');
-
-/**
- * Locale §3.1.10 $ui.<ChromeStringKey>: an authored override wins, else the shared English default
- * (packages/formspec-layout/src/ui-strings.ts — same inventory the webcomponent renderer uses).
- * Callers subscribe to `engine.localeSignal` (useSignal) so a switch re-renders.
- */
-function chromeText(engine: IFormEngine, key: ChromeStringKey, params?: Record<string, string | number>): string {
-    const authored = engine.lookupLocaleString(`$ui.${key}`);
-    return fillUiParams(authored ?? UI_STRINGS[key], params);
-}
 
 /** A repeat node's `allowAdd` / `allowRemove` props (Accordion §6.3, or theme widgetConfig on a repeat template). */
 function repeatLocks(node: LayoutNode): RepeatAffordanceLocks {

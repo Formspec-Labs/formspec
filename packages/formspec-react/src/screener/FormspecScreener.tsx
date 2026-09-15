@@ -2,7 +2,7 @@
 
 /** @filedesc FormspecScreener — standalone eligibility gate component. */
 import React from 'react';
-import { UI_STRINGS } from '@formspec-org/layout';
+import { useChromeText } from '../use-chrome-text';
 import type { FormItem } from '@formspec-org/types';
 import { useScreener, itemDataType, itemOptions, isItemRequired } from './use-screener';
 import type {
@@ -121,6 +121,7 @@ function ScreenerField({
   error?: string;
   onChange: (val: ScreenerFieldValue | undefined) => void;
 }) {
+  const chrome = useChromeText();
   const id = `screener-${item.key}`;
   const showError = !!error;
   const dt = itemDataType(item);
@@ -155,7 +156,7 @@ function ScreenerField({
               onChange={(e) => onChange(e.target.value)}
               aria-invalid={showError}
             >
-              <option value="" disabled hidden>{UI_STRINGS['select.placeholder']}</option>
+              <option value="" disabled hidden>{chrome('select.placeholder')}</option>
               {itemOptions(item).map((c) => (
                 <option key={String(c.value ?? c)} value={String(c.value ?? c)}>
                   {c.label ?? String(c.value ?? c)}

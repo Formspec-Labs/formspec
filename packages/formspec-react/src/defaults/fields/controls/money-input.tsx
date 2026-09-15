@@ -1,7 +1,7 @@
 /** @filedesc MoneyInput amount + currency adornment. */
 'use client';
 import React from 'react';
-import { UI_STRINGS } from '@formspec-org/layout';
+import { useChromeText } from '../../../use-chrome-text';
 import type { CommonInputProps } from '../field-control-types';
 
 /** Resolve ISO 4217 currency code (e.g. "USD") to its narrow symbol (e.g. "$"). */
@@ -35,12 +35,13 @@ export function MoneyInputControl({
     isReadonly,
     placeholder: resolvedPlaceholder,
 }: CommonInputProps & { placeholder?: string }) {
+    const chrome = useChromeText();
     const currencyCode = ((node.props?.currency as string) || 'USD').toUpperCase();
     const currency = toCurrencySymbol(currencyCode);
     const min = node.props?.min != null ? String(node.props.min) : undefined;
     const max = node.props?.max != null ? String(node.props.max) : undefined;
     const step = node.props?.step != null ? String(node.props.step) : undefined;
-    const placeholder = resolvedPlaceholder || UI_STRINGS['money.amount'];
+    const placeholder = resolvedPlaceholder || chrome('money.amount');
 
     const currencyId = `${field.id}-currency`;
 

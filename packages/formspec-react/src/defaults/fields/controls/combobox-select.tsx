@@ -1,7 +1,7 @@
 /** @filedesc Searchable/multi Select combobox (WAI-ARIA listbox). */
 'use client';
 import { optionMatchesComboboxQuery } from '@formspec-org/engine';
-import { UI_STRINGS } from '@formspec-org/layout';
+import { useChromeText } from '../../../use-chrome-text';
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import type { CommonInputProps } from '../field-control-types';
 import { needTraceAttrs } from '../../../projection-metadata.js';
@@ -11,11 +11,12 @@ function comboboxValuePresent(v: unknown): boolean {
 }
 
 export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonInputProps, 'field' | 'node' | 'common' | 'isReadonly'>) {
+    const chrome = useChromeText();
     const multiple = !!(node.props?.multiple as boolean | undefined);
     const searchableFilter = !!(node.props?.searchable as boolean | undefined);
     const clearable = !!(node.props?.clearable as boolean | undefined);
     const placeholderText =
-        ((common.placeholder as string | undefined) || (node.props?.placeholder as string | undefined) || UI_STRINGS['select.placeholder']);
+        ((common.placeholder as string | undefined) || (node.props?.placeholder as string | undefined) || chrome('select.placeholder'));
 
     const blurTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const [open, setOpen] = useState(false);
@@ -183,7 +184,7 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
             {...(multiple ? { 'data-multiple': 'true' } : {})}
         >
             {multiple && selectedValues.length > 0 && (
-                <div className="formspec-combobox-chips" aria-label={UI_STRINGS['select.selectedValues']}>
+                <div className="formspec-combobox-chips" aria-label={chrome('select.selectedValues')}>
                     {selectedValues.map((v) => {
                         const selectedOption = field.options.find((o) => o.value === v);
                         const label = selectedOption?.label ?? v;
@@ -245,7 +246,7 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
                         <button
                             type="button"
                             className="formspec-combobox-clear"
-                            aria-label={UI_STRINGS['select.clearSelection']}
+                            aria-label={chrome('select.clearSelection')}
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={clearAll}
                         >

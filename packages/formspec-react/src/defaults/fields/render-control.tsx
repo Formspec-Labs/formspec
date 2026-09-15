@@ -1,7 +1,7 @@
 /** @filedesc Standard (non-group) field control switch — dispatches by component type. */
 'use client';
 import React from 'react';
-import { UI_STRINGS } from '@formspec-org/layout';
+import { useChromeText } from '../../use-chrome-text';
 import type { FieldComponentProps } from '../../component-map';
 import type { ExtensionAttrs } from './field-control-types';
 import { ComboboxSelect } from './controls/combobox-select';
@@ -71,9 +71,6 @@ export function renderControl(
             const clearable = node.props?.clearable as boolean | undefined;
             const searchable = node.props?.searchable as boolean | undefined;
             const multiple = node.props?.multiple as boolean | undefined;
-            const placeholderOpt =
-                resolvePlaceholder(node.props?.placeholder as string | undefined) || UI_STRINGS['select.placeholder'];
-
             if (searchable || multiple) {
                 return (
                     <ComboboxSelect
@@ -86,38 +83,14 @@ export function renderControl(
             }
 
             return (
-                <div className="formspec-select-wrapper">
-                    <select
-                        {...common}
-                        className="formspec-input formspec-select-native"
-                        value={value ?? ''}
-                        onChange={isReadonly ? undefined : (e) => field.setValue(e.target.value)}
-                        disabled={isReadonly}
-                    >
-                        {/* Item 5: hidden prevents placeholder appearing in iOS picker dropdown */}
-                        <option value="" disabled hidden>{placeholderOpt}</option>
-                        {field.options.map((opt) => (
-                            <option
-                                key={opt.value}
-                                value={opt.value}
-                                {...needTraceAttrs(opt.needAnchors)}
-                            >
-                                {opt.label}
-                            </option>
-                        ))}
-                    </select>
-                    {clearable && value && !isReadonly && (
-                        <button
-                            type="button"
-                            className="formspec-select-clear"
-                            aria-label={UI_STRINGS['select.clearSelection']}
-                            onClick={() => { field.setValue(null); field.touch(); }}
-                        >
-                            {/* Item 28: hide decorative × from screen readers */}
-                            <span aria-hidden="true">×</span>
-                        </button>
-                    )}
-                </div>
+                <NativeSelect
+                    field={field}
+                    common={common}
+                    value={value}
+                    isReadonly={isReadonly}
+                    clearable={!!clearable}
+                    placeholder={resolvePlaceholder(node.props?.placeholder as string | undefined)}
+                />
             );
         }
 
@@ -299,3 +272,49 @@ export function renderControl(
         }
     }
 }
+
+/**
+ * The plain `<select>` — a component, not a branch, so it reads the form's own chrome strings
+ * (Locale §3.1.10) and follows a locale switch like every other control.
+ */
+function NativeSelect({ field, common, value, isReadonly, clearable, placeholder }: {
+    field: FieldComponentProps['field'];
+    common: Record<string, unknown>;
+    value: unknown;
+    isReadonly: boolean;
+    clearable: boolean;
+    placeholder?: string;
+}) {
+    const chrome = useChromeText();
+    return (
+        <div className="formspec-select-wrapper">
+            <select
+                {...common}
+                className="formspec-input formspec-select-native"
+                value={(value as string | number | undefined) ?? ''}
+                onChange={isReadonly ? undefined : (e) => field.setValue(e.target.value)}
+                disabled={isReadonly}
+            >
+                {/* Item 5: hidden prevents placeholder appearing in iOS picker dropdown */}
+                <option value="" disabled hidden>{placeholder || chrome('select.placeholder')}</option>
+                {field.options.map((opt) => (
+                    <option key={opt.value} value={opt.value} {...needTraceAttrs(opt.needAnchors)}>
+                        {opt.label}
+                    </option>
+                ))}
+            </select>
+            {clearable && value != null && value !== '' && !isReadonly && (
+                <button
+                    type="button"
+                    className="formspec-select-clear"
+                    aria-label={chrome('select.clearSelection')}
+                    onClick={() => { field.setValue(null); field.touch(); }}
+                >
+                    {/* Item 28: hide decorative × from screen readers */}
+                    <span aria-hidden="true">×</span>
+                </button>
+            )}
+        </div>
+    );
+}
+

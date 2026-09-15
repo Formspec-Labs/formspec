@@ -190,7 +190,8 @@ export interface FormspecContextValue {
     formPresentation?: Record<string, unknown>;
 }
 
-const FormspecContext = createContext<FormspecContextValue | null>(null);
+/** @internal The provider's value, or `null` outside one — read it through {@link useFormspecContext}. */
+export const FormspecContext = createContext<FormspecContextValue | null>(null);
 
 function pageModeFromPresentation(presentation: Record<string, unknown> | undefined): 'wizard' | 'tabs' | undefined {
     return presentation?.pageMode === 'wizard' || presentation?.pageMode === 'tabs'

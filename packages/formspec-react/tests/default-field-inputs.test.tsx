@@ -405,11 +405,12 @@ describe('Signature', () => {
         const container = renderField(def, node);
         const canvas = container.querySelector('canvas') as HTMLCanvasElement;
         expect(canvas.getAttribute('role')).toBe('img');
-        expect(canvas.getAttribute('aria-label')).toBe('Signature pad for Your Signature');
+        // Locale §3.1.10: the shared inventory's words, which a Locale can author — not English composed here.
+        expect(canvas.getAttribute('aria-label')).toBe('Signature canvas. Use the Clear button to reset.');
         expect(canvas.getAttribute('tabindex')).toBe('0');
     });
 
-    it('Clear button has aria-label with field label', () => {
+    it('names the Clear button by its own text, as the web component does', () => {
         const def = baseDef([{ key: 'sig', type: 'field', dataType: 'string', label: 'Your Signature' }]);
         const node: LayoutNode = {
             id: 'sig-field', component: 'Signature', category: 'field',
@@ -417,7 +418,8 @@ describe('Signature', () => {
         };
         const container = renderField(def, node);
         const btn = container.querySelector('.formspec-signature-clear') as HTMLButtonElement;
-        expect(btn.getAttribute('aria-label')).toBe('Clear Your Signature');
+        expect(btn.getAttribute('aria-label')).toBeNull();
+        expect(btn.textContent).toBe('Clear');
     });
 
     it('canvas uses CSS width 100% instead of hardcoded pixel width', () => {

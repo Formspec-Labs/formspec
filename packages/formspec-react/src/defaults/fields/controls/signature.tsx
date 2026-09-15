@@ -1,7 +1,7 @@
 /** @filedesc Signature pad canvas with clear control. */
 'use client';
 import React, { useRef, useEffect } from 'react';
-import { UI_STRINGS } from '@formspec-org/layout';
+import { useChromeText } from '../../../use-chrome-text';
 import type { FieldComponentProps } from '../../../component-map';
 
 export function SignatureControl({
@@ -13,6 +13,7 @@ export function SignatureControl({
     node: FieldComponentProps['node'];
     describedBy?: string;
 }) {
+    const chrome = useChromeText();
     const showError = !!(field.error && field.touched);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const isDrawingRef = useRef(false);
@@ -104,7 +105,7 @@ export function SignatureControl({
                 id={field.id}
                 // Item 1: WCAG 2.1.1 / 4.1.2 — canvas needs role, label, and keyboard focus
                 role="img"
-                aria-label={`Signature pad for ${field.label}`}
+                aria-label={chrome('signature.canvas')}
                 aria-invalid={showError}
                 {...(describedBy ? { 'aria-describedby': describedBy } : {})}
                 tabIndex={0}
@@ -114,11 +115,9 @@ export function SignatureControl({
             <button
                 type="button"
                 className="formspec-signature-clear"
-                // Item 1: include field label so clear button has context for screen readers
-                aria-label={`Clear ${field.label}`}
                 onClick={handleClear}
             >
-                {UI_STRINGS['signature.clear']}
+                {chrome('signature.clear')}
             </button>
         </div>
     );
