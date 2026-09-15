@@ -99,15 +99,10 @@ $fs-adapter-name: 'uswds' !default;
 
 // Rhythm between fields is USWDS's `.usa-form-group` top margin. The Theme can retune it through the
 // semantic `spacing.field` token (Theme spec §3.2), which the renderer publishes as a custom property on
-// the render root; absent a token the USWDS default stands. Formspec's structural stacks add no gap of
-// their own here — USWDS components carry their own margins, and a flex gap on top would double the rhythm
-// inside repeat lists while fieldset children got the margin alone.
+// the render root; absent a token the USWDS default stands. The structural sheet carries no gaps of its
+// own (ADR 0064 decision 3), so USWDS margins are the one rhythm owner here.
 .usa-form-group {
   margin-top: var(--formspec-spacing-field, #{units(3)});
-}
-
-.formspec-container .formspec-stack:not(.grid-row) {
-  gap: 0;
 }
 
 // The per-field help link (References spec §7) sits in its own row under the control; USWDS has no
@@ -233,14 +228,21 @@ $fs-adapter-name: 'uswds' !default;
 
 // Validation summary: spacing comes from inner .usa-alert.margin-bottom-2 (Real USWDS pane parity).
 
-// Native <dialog> host for usa-modal inner markup (CSS-only; no USWDS modal JS).
+// The Modal is a native <dialog> carrying `usa-modal` itself: the browser is the overlay (top layer,
+// backdrop, Escape, focus trap), so there is no usa-modal-wrapper/-overlay markup and no USWDS modal JS.
+// Four declarations reconcile the box with the UA dialog: `.usa-modal`'s `position: relative` would pull
+// an open dialog out of the top layer's fixed centering into page flow; its `margin: 1.25rem auto` would
+// over-constrain a fixed, inset-0 box into filling the viewport height; the UA border and padding are not
+// USWDS's; and `overflow: auto` keeps content taller than the UA max-height scrollable instead of
+// spilling off-screen. The width leaves usa-modal-overlay's side gutter on narrow screens; `.usa-modal`
+// and `--lg` still cap it.
 dialog.usa-modal {
-  background: transparent;
-  border: none;
+  position: fixed;
   margin: auto;
-  max-width: none;
-  overflow: visible;
   padding: 0;
+  border: 0;
+  width: calc(100% - #{units(3) * 2});
+  overflow: auto;
 }
 
 dialog.usa-modal::backdrop {

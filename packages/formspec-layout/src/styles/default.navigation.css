@@ -93,14 +93,17 @@
   box-shadow: var(--formspec-default-shadow-md);
 }
 
+/* The modal is a native <dialog>: the browser owns the overlay (top layer, fixed centering, backdrop, Escape,
+ * focus trap). No `position` here — an author position would pull an open dialog out of the top layer's
+ * centering into page flow. `overflow: auto` lets content taller than the UA max-height scroll instead of
+ * being clipped. */
 .formspec-modal {
-  position: relative;
   width: auto;
   min-width: 320px;
   max-width: min(560px, 90vw);
   padding: 0;
   border: none;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .formspec-modal[data-size="sm"] {

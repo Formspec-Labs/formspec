@@ -15,7 +15,9 @@ function showDialog(dialog: HTMLDialogElement): void {
 
 export function renderUSWDSModal(behavior: ModalLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
     const { comp, host, titleText, triggerLabelText } = behavior;
-    const placement: PopupPlacement = comp.placement || 'bottom';
+    // Component spec: `placement` anchors the open dialog near its trigger; omitted means the native
+    // centered modal, which the stylesheet's `dialog.usa-modal` rule keeps in the top layer.
+    const placement: PopupPlacement | undefined = comp.placement;
 
     const dialog = document.createElement('dialog');
     if (comp.id) dialog.id = comp.id;
@@ -99,7 +101,7 @@ export function renderUSWDSModal(behavior: ModalLayoutBehavior, parent: HTMLElem
     watchText(actx, triggerLabelText, (text) => { triggerBtn.textContent = text; });
 
     const repositionDialog = () => {
-        if (dialog.open) positionOverlayNearTrigger(triggerBtn, dialog, placement);
+        if (placement && dialog.open) positionOverlayNearTrigger(triggerBtn, dialog, placement);
     };
 
     triggerBtn.addEventListener('click', () => {
