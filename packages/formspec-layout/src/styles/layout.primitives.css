@@ -243,49 +243,10 @@
 }
 
 /*
- * Pre-engine skeleton. The renderer draws the planned tree as placeholders while the engine boots, so the
- * column already holds the form's height and the page below it does not jump. Structural, not a skin: the
- * placeholder shows before any design system can, and an adapter that wants its own registers `Skeleton`.
+ * The renderer draws the planned tree as real, inert markup while the engine boots, so the column already
+ * holds the form's height. `display: block` lets a host reserve height on the element itself; the skeleton
+ * needs no styling of its own, because it is the adapter's own markup.
  */
 formspec-render {
   display: block;
-}
-
-.formspec-skeleton-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--formspec-spacing-xs, 0.25rem);
-  margin-top: var(--formspec-spacing-field, 0.75rem);
-}
-
-.formspec-skeleton-line,
-.formspec-skeleton-title,
-.formspec-skeleton-control {
-  background: color-mix(in srgb, currentColor 9%, transparent);
-  border-radius: 0.25rem;
-}
-
-.formspec-skeleton-line {
-  height: 1rem;
-  width: 45%;
-}
-
-.formspec-skeleton-title {
-  height: 1.5rem;
-  width: 60%;
-  margin-top: var(--formspec-spacing-lg, 1.5rem);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .formspec-skeleton-line,
-  .formspec-skeleton-title,
-  .formspec-skeleton-control {
-    animation: formspec-skeleton-shimmer 1.4s ease-in-out infinite;
-  }
-
-  @keyframes formspec-skeleton-shimmer {
-    50% {
-      opacity: 0.45;
-    }
-  }
 }

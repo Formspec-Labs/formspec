@@ -91,18 +91,6 @@ export interface AccordionRowsPass {
     watch(fn: () => void): void;
 }
 
-/**
- * One placeholder in the pre-engine skeleton. The renderer plans the real tree before the engine boots,
- * so the skeleton has the same shape and the swap moves almost nothing. Adapters may register `Skeleton`
- * to draw their own; unregistered, they inherit the default adapter's neutral blocks.
- */
-export interface SkeletonBehavior {
-    /** `field` is a label line plus a control block; `title` is a section or group heading line. */
-    kind: 'field' | 'title';
-    /** Nominal control height in `rem` for this widget — what the real control will occupy. */
-    height: number;
-}
-
 export interface GroupRefs {
     /** The element the adapter made for the group. */
     root: HTMLElement;

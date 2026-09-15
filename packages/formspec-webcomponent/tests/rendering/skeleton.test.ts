@@ -1,7 +1,9 @@
-/** @filedesc The pre-engine skeleton draws the planned tree, so the real render replaces it in place. */
+/** @filedesc The pre-engine skeleton is the real markup, inert — so the engine swap is controls going live. */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 
 let FormspecRender: any;
+
+const LONG_HINT = 'Full legal name as it appears on your IRS determination letter, including any suffix.';
 
 const DEFINITION = {
     $formspec: '1.0',
@@ -10,7 +12,7 @@ const DEFINITION = {
     title: 'Skeleton',
     items: [
         { key: 'notice', type: 'display', label: 'Read this first' },
-        { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+        { key: 'name', type: 'field', dataType: 'string', label: 'Organization legal name', hint: LONG_HINT },
         { key: 'age', type: 'field', dataType: 'integer', label: 'Age' },
         {
             key: 'address',
@@ -22,15 +24,8 @@ const DEFINITION = {
             ],
         },
     ],
+    binds: [{ path: 'age', relevant: 'name != null' }],
 };
-
-/** Every planned field, however deep — what the skeleton must account for. */
-function plannedFieldCount(items: any[]): number {
-    return items.reduce((total, item) => {
-        if (item.type === 'field') return total + 1;
-        return total + (item.children ? plannedFieldCount(item.children) : 0);
-    }, 0);
-}
 
 beforeAll(async () => {
     const mod = await import('../../src/index');
@@ -51,45 +46,48 @@ function mount(): any {
 }
 
 describe('pre-engine skeleton', () => {
-    it('draws one placeholder per planned field, before any engine exists', () => {
+    it('draws every unconditional field as the adapter would, with its real label and hint', () => {
         const el = mount();
-        el.engine = null;
         el.definition = DEFINITION;
 
         const container = el.querySelector('.formspec-container')!;
         expect(container.classList.contains('formspec-skeleton')).toBe(true);
-        expect(container.querySelectorAll('.formspec-skeleton-field')).toHaveLength(
-            plannedFieldCount(DEFINITION.items),
-        );
+        // name, street, city — `age` is gated by a Bind `relevant`, which only the engine can answer.
+        expect(container.querySelectorAll('.formspec-field')).toHaveLength(3);
+        expect(container.textContent).toContain('Organization legal name');
+        // The hint is what makes a field two lines tall; reserving it is the point.
+        expect(container.textContent).toContain(LONG_HINT);
     });
 
-    it('sizes each placeholder control at its widget’s nominal height', () => {
+    it('renders text, not bars — nothing is left to animate', () => {
         const el = mount();
         el.definition = DEFINITION;
-
-        const controls = [...el.querySelectorAll('.formspec-skeleton-control')] as HTMLElement[];
-        expect(controls.length).toBeGreaterThan(0);
-        for (const control of controls) expect(control.style.height).toMatch(/^\d+(\.\d+)?rem$/);
+        const container = el.querySelector('.formspec-container')!;
+        expect(container.querySelector('[class^="formspec-skeleton-"]')).toBeNull();
+        expect(container.textContent).toContain('Read this first');
     });
 
-    it('marks the column busy while it is a skeleton, and clears that on the real render', () => {
+    it('leaves every control inert while the engine boots', () => {
         const el = mount();
         el.definition = DEFINITION;
         const container = el.querySelector('.formspec-container')!;
         expect(container.getAttribute('aria-busy')).toBe('true');
+        const controls = container.querySelectorAll('input, select, textarea, button');
+        expect(controls.length).toBeGreaterThan(0);
+        for (const control of controls) expect((control as HTMLInputElement).disabled).toBe(true);
+    });
+
+    it('hands the column over on the real render', () => {
+        const el = mount();
+        el.definition = DEFINITION;
+        const container = el.querySelector('.formspec-container')!;
 
         el.render();
 
         expect(container.hasAttribute('aria-busy')).toBe(false);
         expect(container.classList.contains('formspec-skeleton')).toBe(false);
-        expect(container.querySelectorAll('.formspec-skeleton-field')).toHaveLength(0);
-    });
-
-    it('keeps the placeholders hidden from assistive technology', () => {
-        const el = mount();
-        el.definition = DEFINITION;
-        const blocks = el.querySelectorAll('.formspec-skeleton-field, .formspec-skeleton-title');
-        expect(blocks.length).toBeGreaterThan(0);
-        for (const block of blocks) expect(block.getAttribute('aria-hidden')).toBe('true');
+        for (const control of container.querySelectorAll('input, select, textarea')) {
+            expect((control as HTMLInputElement).disabled).toBe(false);
+        }
     });
 });

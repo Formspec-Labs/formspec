@@ -143,6 +143,45 @@ function renderActualComponentWithProjectionMetadata(
     }
 }
 
+/** A planner node flattened into the descriptor plugins and adapters read. */
+export function nodeDescriptor(node: LayoutNode): ComponentDescriptor {
+    const comp: ComponentDescriptor = {
+        component: node.component,
+        ...node.props,
+    };
+    if (node.when) {
+        comp.when = node.when;
+        if (node.whenPrefix !== undefined) comp.whenPrefix = node.whenPrefix;
+    }
+    if (node.style) comp.style = node.style;
+    if (node.cssClasses.length > 0) comp.cssClass = node.cssClasses;
+    if (node.accessibility) comp.accessibility = node.accessibility;
+    if (node.pageMode) comp.pageMode = node.pageMode;
+    comp.children = node.children;
+    // Planner-only fields (theme cascade for definition fallback) live on the
+    // LayoutNode alongside `props`. Props win when both are set (component doc).
+    if (node.labelPosition !== undefined && comp.labelPosition === undefined) {
+        comp.labelPosition = node.labelPosition;
+    }
+    if (node.presentation !== undefined && comp.presentation === undefined) {
+        comp.presentation = node.presentation;
+    }
+    if (node.fieldItem !== undefined && comp.fieldItem === undefined) {
+        comp.fieldItem = node.fieldItem;
+    }
+    if (node.bindPath !== undefined && comp.bindPath === undefined) {
+        comp.bindPath = node.bindPath;
+    }
+    if (node.componentGraphIdentity !== undefined) {
+        comp.componentGraphIdentity = node.componentGraphIdentity;
+    }
+    if (node.uiGraphRoutePolicy !== undefined) {
+        comp.uiGraphRoutePolicy = node.uiGraphRoutePolicy;
+    }
+
+    return comp;
+}
+
 /**
  * Walk a LayoutNode tree from the planner and emit DOM.
  * Effects register on `cleanupFns`: the host's list, or a repeat row pass's own list.
@@ -192,40 +231,7 @@ export function emitNode(
         return;
     }
 
-    const comp: ComponentDescriptor = {
-        component: node.component,
-        ...node.props,
-    };
-    if (node.when) {
-        comp.when = node.when;
-        if (node.whenPrefix !== undefined) comp.whenPrefix = node.whenPrefix;
-    }
-    if (node.style) comp.style = node.style;
-    if (node.cssClasses.length > 0) comp.cssClass = node.cssClasses;
-    if (node.accessibility) comp.accessibility = node.accessibility;
-    if (node.pageMode) comp.pageMode = node.pageMode;
-    comp.children = node.children;
-    // Planner-only fields (theme cascade for definition fallback) live on the
-    // LayoutNode alongside `props`. Props win when both are set (component doc).
-    if (node.labelPosition !== undefined && comp.labelPosition === undefined) {
-        comp.labelPosition = node.labelPosition;
-    }
-    if (node.presentation !== undefined && comp.presentation === undefined) {
-        comp.presentation = node.presentation;
-    }
-    if (node.fieldItem !== undefined && comp.fieldItem === undefined) {
-        comp.fieldItem = node.fieldItem;
-    }
-    if (node.bindPath !== undefined && comp.bindPath === undefined) {
-        comp.bindPath = node.bindPath;
-    }
-    if (node.componentGraphIdentity !== undefined) {
-        comp.componentGraphIdentity = node.componentGraphIdentity;
-    }
-    if (node.uiGraphRoutePolicy !== undefined) {
-        comp.uiGraphRoutePolicy = node.uiGraphRoutePolicy;
-    }
-
+    const comp = nodeDescriptor(node);
     renderActualComponentWithProjectionMetadata(host, comp, target, prefix, cleanupFns);
 }
 

@@ -8,6 +8,7 @@ import {
     type LocaleDocument,
 } from '@formspec-org/engine/render';
 import { initFormspecEngine, isFormspecEngineInitialized } from '@formspec-org/engine/init-formspec-engine';
+import { Path } from '@formspec-org/types';
 import type {
     ComponentDocument,
     FormDefinition,
@@ -1012,13 +1013,35 @@ export class FormspecRender extends HTMLElement {
         emitTokenPropertiesFn(this._stylingHost, container);
 
         const discard: Array<() => void> = [];
-        renderSkeletonFn(plan, container, this.resolvedAdapterName, {
-            onDispose: (fn: () => void) => discard.push(fn),
-            applyCssClass: () => {},
-            applyStyle: () => {},
-            applyAccessibility: () => {},
-            applyClassValue: () => {},
-        }, this.conditionalBindPaths());
+        renderSkeletonFn(plan, container, {
+            adapterName: this.resolvedAdapterName,
+            actx: {
+                onDispose: (fn: () => void) => discard.push(fn),
+                applyCssClass: (el, comp) => this.applyCssClass(el, comp),
+                applyStyle: (el, style) => this.applyStyle(el, style),
+                applyAccessibility: (el, comp) => this.applyAccessibility(el, comp),
+                applyClassValue: (el, classValue) => this.applyClassValue(el, classValue),
+            },
+            resolveToken: (val) => this.resolveToken(val),
+            conditionalPaths: this.conditionalBindPaths(),
+            repeatCount: (path) => this.initialRepeatCount(path),
+            itemLabel: (path) => {
+                const item = this.findItemByKey(Path.parse(path).stripIndices());
+                return item?.label ?? path.split('.').pop() ?? path;
+            },
+        });
+    }
+
+    /** Rows a repeat opens with: the supplied data decides, else `minRepeat`. Both are known without the engine. */
+    private initialRepeatCount(path: string): number {
+        const key = Path.parse(path).stripIndices();
+        const rows = key.split('.').reduce<unknown>(
+            (value: unknown, segment: string) => (value as Record<string, unknown> | null)?.[segment],
+            this._initialData as unknown,
+        );
+        if (Array.isArray(rows)) return rows.length;
+        const item = this.findItemByKey(key) as { minRepeat?: number } | null;
+        return item?.minRepeat ?? 1;
     }
 
     /** Bind paths gated by a `relevant` expression — the engine decides them, so the skeleton skips them. */
