@@ -2716,6 +2716,19 @@ The following properties are recognized on all Item types:
 | `purpose` | object | **0..1** (OPTIONAL) | Plain-language purpose and citation metadata explaining why this item is asked or shown. `purpose` MAY cite a References entry, PKAF authority chain, rule URI, or implementation-specific authority reference. It MUST NOT replace `accessControl.class` or privacy-profile audience policy. |
 | `consequences` | object | **0..1** (OPTIONAL) | Respondent-facing consequence metadata for this item, including triggered deadlines, lock-in effects, and external actions such as referrals, payments, credit checks, or mandatory reports. A consequence declaration explains and gates the action; it does not itself perform the action. |
 
+**Text resolution.** Before display, each of an Item's text properties is
+resolved through one cascade, first match wins, then interpolated (below).
+With an active display context `c` (a `labels` context name such as `pdf`,
+chosen by the renderer or host), `label` resolves as Locale `<key>.label@c` →
+Locale `<key>.label` → `labels[c]` → `label`; `hint` and `description` resolve
+as Locale `<key>.hint@c` → Locale `<key>.hint` → `hint` (no Definition-side
+context alternative exists for them). With no context, each property resolves
+as Locale `<key>.<property>` → inline. `<key>` is the Item's bare `key` at any
+depth, and each Locale step walks the active locale's fallback chain before
+the cascade moves on ([Locale specification §3.1.2,
+§4.1](../locale/locale-spec.md)). The resolved text — Locale or inline — is
+interpolated in the same Item scope.
+
 **Text interpolation.** An Item's `label`, `labels` values, `description`,
 and `hint` MAY contain `{{expression}}` sequences, where `expression` is a FEL
 expression evaluated in the Item's binding scope — for an Item inside a
@@ -2726,9 +2739,8 @@ as Locale strings ([Locale specification §3.3.1](../locale/locale-spec.md)):
 `{{{{` renders a literal `{{`; an expression that fails to parse or evaluate
 renders as its literal `{{expression}}` text, with a warning, and never fails
 the whole string; results coerce to strings; replacement text is not
-re-scanned. A Locale string that replaces one of these properties is
-interpolated in the same scope. Interpolation affects display only; it never
-changes Instance data or validation.
+re-scanned. Interpolation affects display only; it never changes Instance
+data or validation.
 
 The retired EXT-1 `privacy` sibling block is not part of the Definition
 schema. Safe-address and other field-level protection semantics use
@@ -2835,10 +2847,10 @@ the Response data.
 }
 ```
 
-A Display Item's `label` is its displayed content. It follows §4.2.1 text
-interpolation, so a display Item can show live values
-(`"label": "Estimated total: {{$total}}"`), and a Locale string for the Item's
-`label` replaces it.
+A Display Item's `label` is its displayed content. It follows the §4.2.1 text
+resolution cascade and interpolation, so a Locale `<key>.label` (or
+`<key>.label@context`) string replaces it and a display Item can show live
+values (`"label": "Estimated total: {{$total}}"`).
 
 Display-specific constraints:
 

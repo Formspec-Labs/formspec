@@ -139,7 +139,7 @@ When host override is active, renderers walk only the host-injected Issuer's `pa
 
 ### Phase 3: Revalidate
 **Trigger**: Phase 2 completed.
-**Action**: For affected relevant fields: evaluate `constraint` binds, check `required` state, evaluate intersecting shapes. Composed shapes (`and`/`or`/`not`/`xone`) evaluated by combining constituent results.
+**Action**: For affected relevant fields: evaluate `constraint` binds (`false` → `CONSTRAINT_FAILED` with the Bind's `constraintMessage`; parse error or undefined function → `CONSTRAINT_PARSE_ERROR` with a processor-generated message, never the author's text), check `required` state, evaluate intersecting shapes. Composed shapes (`and`/`or`/`not`/`xone`) evaluated by combining constituent results.
 
 ### Phase 4: Notify
 **Trigger**: Phase 3 completed.
@@ -275,7 +275,7 @@ Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semv
 
 ### Item Properties
 
-**Common** (all types): `key` (REQUIRED, globally unique in definition, `[a-zA-Z][a-zA-Z0-9_]*`), `type` (REQUIRED), `label` (REQUIRED), `description`, `hint`, `labels` (context-keyed alternatives: "short", "pdf", "csv", "accessibility"). `label`, `labels` values, `description`, `hint` may contain `{{expression}}` FEL interpolation, evaluated in the item's scope (repeat instance inside a repeat) under Locale §3.3.1 rules (`{{{{` = literal `{{`; failed expression stays literal).
+**Common** (all types): `key` (REQUIRED, globally unique in definition, `[a-zA-Z][a-zA-Z0-9_]*`), `type` (REQUIRED), `label` (REQUIRED), `description`, `hint`, `labels` (context-keyed alternatives: "short", "pdf", "csv", "accessibility"). Displayed text resolves per property before interpolation, first match wins: Locale `<key>.label@context` → Locale `<key>.label` → `labels[context]` → `label`; `hint`/`description` the same minus the `labels[context]` step. `label`, `labels` values, `description`, `hint` may contain `{{expression}}` FEL interpolation, evaluated in the item's scope (repeat instance inside a repeat) under Locale §3.3.1 rules (`{{{{` = literal `{{`; failed expression stays literal).
 
 **Group-specific**: `children` (REQUIRED), `repeatable` (default false), `minRepeat` (default 0), `maxRepeat` (positive int or absent for unbounded).
 
