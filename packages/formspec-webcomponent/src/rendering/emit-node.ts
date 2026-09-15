@@ -143,9 +143,10 @@ function renderActualComponentWithProjectionMetadata(
     parent: HTMLElement,
     prefix: string,
     cleanupFns: Array<() => void>,
+    headingLevel: number,
 ): void {
     const firstNewChildIndex = parent.childElementCount;
-    renderActualComponent(host, comp, parent, prefix, cleanupFns);
+    renderActualComponent(host, comp, parent, prefix, cleanupFns, headingLevel);
     if (!comp.componentGraphIdentity && !comp.uiGraphRoutePolicy) return;
     const added = Array.from(parent.children).slice(firstNewChildIndex);
     for (const child of added) {
@@ -245,7 +246,7 @@ export function emitNode(
     }
 
     const comp = nodeDescriptor(node);
-    renderActualComponentWithProjectionMetadata(host, comp, target, prefix, cleanupFns);
+    renderActualComponentWithProjectionMetadata(host, comp, target, prefix, cleanupFns, headingLevel);
 }
 
 /**
@@ -257,9 +258,10 @@ export function renderComponent(
     parent: HTMLElement,
     prefix = '',
     cleanupFns: Array<() => void> = host.cleanupFns,
+    headingLevel = 3,
 ): void {
     if (comp && typeof comp === 'object' && 'category' in comp && 'id' in comp) {
-        emitNode(host, comp as LayoutNode, parent, prefix, 3, cleanupFns);
+        emitNode(host, comp as LayoutNode, parent, prefix, headingLevel, cleanupFns);
         return;
     }
     console.warn('renderComponent called with non-LayoutNode comp — this should not happen after planner integration', comp);
@@ -274,12 +276,14 @@ export function renderActualComponent(
     parent: HTMLElement,
     prefix = '',
     cleanupFns: Array<() => void> = host.cleanupFns,
+    headingLevel = 3,
 ): void {
     const componentType = comp.component;
     const plugin = globalRegistry.get(componentType);
-    // Children render into this component's scope unless a repeat row pass hands them its own list.
+    // Children render into this component's scope unless a repeat row pass hands them its own list, and at
+    // this component's heading depth: a Grid cell or a Section body is not a new page section.
     const renderChild: RenderContext['renderComponent'] = (child, childParent, pfx, scope = cleanupFns) =>
-        renderComponent(host, child, childParent, pfx, scope);
+        renderComponent(host, child, childParent, pfx, scope, headingLevel);
 
     const ctx: RenderContext = {
         engine: host.engine,

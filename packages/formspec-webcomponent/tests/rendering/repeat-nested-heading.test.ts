@@ -65,4 +65,24 @@ describe('heading depth inside a repeat row', () => {
         expect(inRow).toBe(inGroup);
         expect(inRow?.startsWith('H3:')).toBe(false);
     });
+
+    it('keeps the depth through a grid cell: an adapter rendering children owes them the scope it sits in', () => {
+        const el = render([
+            {
+                key: 'work',
+                type: 'group',
+                label: 'Work',
+                presentation: { layout: { flow: 'grid', columns: 12 } },
+                children: [
+                    { key: 'employer', type: 'field', dataType: 'string', label: 'Employer', presentation: { layout: { grid: { span: 12 } } } },
+                    { ...hoursWorked, presentation: { layout: { grid: { span: 12 } } } },
+                ],
+            },
+        ]);
+
+        const titles = [...el.querySelectorAll('.formspec-group-title')].map((h) => `${h.tagName}:${h.textContent}`);
+        expect(titles[0]).toBe('H3:Work');
+        // The nested group sits inside a Grid cell the adapter rendered; that must not reset it to a section.
+        expect(titles[1]).toBe('H4:Enter the total number of hours and minutes you worked.');
+    });
 });
