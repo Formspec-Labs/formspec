@@ -3,7 +3,7 @@
 /** @filedesc useScreener — React hook for the Formspec screener gate. */
 import { useState, useCallback, useMemo } from 'react';
 import { evalFEL, wasmEvaluateScreenerDocument } from '@formspec-org/engine';
-import { chromeText } from '../use-chrome-text';
+import { useChromeText } from '../use-chrome-text';
 import type { Bind, DeterminationRecord, FormItem, RouteResult } from '@formspec-org/types';
 import type {
   UseScreenerOptions,
@@ -108,6 +108,8 @@ function firstMatchedRouteFromDetermination(
 export function useScreener(
   options: UseScreenerOptions = {},
 ): UseScreenerResult {
+  // Inside a form this follows that form's Locale; standalone it answers with the English defaults.
+  const chrome = useChromeText();
   const screenerDoc = options.screenerDocument ?? null;
   const items = useMemo(() => screenerDoc?.items ?? [], [screenerDoc]);
   const routes = useMemo<ScreenerRouteDef[]>(
@@ -158,9 +160,7 @@ export function useScreener(
         return v !== undefined && v !== null && v !== '';
       });
       if (!hasAny && items.length > 0) {
-        // No provider stands above a standalone screener, so this is the inventory's English default;
-        // rendered inside a form it follows that form's Locale like every other chrome string.
-        newErrors[items[0].key] = chromeText(undefined, 'screener.answerOne');
+        newErrors[items[0].key] = chrome('screener.answerOne');
       }
     }
 

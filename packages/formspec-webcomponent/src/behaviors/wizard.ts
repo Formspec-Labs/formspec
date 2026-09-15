@@ -19,9 +19,15 @@ export function useWizard(ctx: BehaviorContext, comp: any): WizardBehavior {
         title: (child?.props?.title as string | undefined) ?? '',
     }));
 
-    /** The authored title, else the renderer's own numbering — one site for every adapter. */
+    /**
+     * The authored title, else the renderer's own numbering — one site for every adapter. The authored
+     * title wins: a Locale that translates `$ui.wizard.stepTitle` renames the steps nobody titled, never
+     * the ones the Component Document names.
+     */
     const stepTitle = (index: number) =>
-        uiText(ctx.engine, 'wizard.stepTitle', { index: index + 1 }, steps[index]?.title || undefined);
+        computed(
+            () => steps[index]?.title || uiText(ctx.engine, 'wizard.stepTitle', { index: index + 1 }).value,
+        );
     const activeStepTitle = computed(() => stepTitle(currentStep.value).value);
 
     const wizardId = comp.id;

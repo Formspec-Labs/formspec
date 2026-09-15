@@ -78,11 +78,9 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
 
     const panels: HTMLElement[] = [];
     for (let i = 0; i < behavior.totalSteps(); i++) {
-        const panel = createWizardPanelShell({
-            behavior,
-            index: i,
-
-        });
+        const panel = createWizardPanelShell({ behavior, index: i });
+        // A region needs a name: the step's own heading, live across a locale switch.
+        watchText(actx, behavior.stepTitle(i), (text) => { panel.setAttribute('aria-label', text); });
         behavior.renderStep(i, panel);
         root.appendChild(panel);
         panels.push(panel);

@@ -30,9 +30,8 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
         watchText(actx, uiText(actx.engine, 'wizard.steps'), (text) => { sidenav.setAttribute('aria-label', text); });
         el.appendChild(sidenav);
 
-        // Collapse/expand toggle — pure local UI state, no signals needed. Only the "Collapse navigation"
-        // state is in the closed chrome vocabulary (Locale §3.1.10); "Expand navigation" has no $ui key
-        // and stays an English literal, matching the given key table exactly.
+        // Collapse/expand toggle — pure local UI state, no signals needed. Both states are in the closed
+        // chrome vocabulary (Locale §3.1.10), so each follows the active locale.
         const toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
         toggleBtn.className = 'formspec-wizard-sidenav-toggle formspec-focus-ring';
@@ -41,15 +40,20 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
         sidenav.appendChild(toggleBtn);
 
         let collapsed = false;
-        let collapseLabel = 'Collapse navigation';
+        let collapseLabel = '';
+        let expandLabel = '';
         watchText(actx, uiText(actx.engine, 'wizard.collapseNavigation'), (text) => {
             collapseLabel = text;
             if (!collapsed) toggleBtn.setAttribute('aria-label', text);
         });
+        watchText(actx, uiText(actx.engine, 'wizard.expandNavigation'), (text) => {
+            expandLabel = text;
+            if (collapsed) toggleBtn.setAttribute('aria-label', text);
+        });
         toggleBtn.addEventListener('click', () => {
             collapsed = !collapsed;
             sidenav.classList.toggle('formspec-wizard-sidenav--collapsed', collapsed);
-            toggleBtn.setAttribute('aria-label', collapsed ? 'Expand navigation' : collapseLabel);
+            toggleBtn.setAttribute('aria-label', collapsed ? expandLabel : collapseLabel);
             toggleBtn.title = collapsed ? 'Expand' : 'Collapse';
             toggleBtn.innerHTML = collapsed
                 ? '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>'
@@ -117,15 +121,11 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
             indicator.textContent = `${i + 1}`;
             wrapper.appendChild(indicator);
 
-            const stepTitle = behavior.steps[i]?.title;
-            let labelEl: HTMLElement | undefined;
-            if (stepTitle) {
-                labelEl = document.createElement('span');
-                labelEl.className = 'formspec-wizard-step-label';
-                if (i === 0) labelEl.classList.add('formspec-wizard-step-label--active');
-                labelEl.textContent = stepTitle;
-                wrapper.appendChild(labelEl);
-            }
+            const labelEl = document.createElement('span');
+            labelEl.className = 'formspec-wizard-step-label';
+            if (i === 0) labelEl.classList.add('formspec-wizard-step-label--active');
+            watchText(actx, behavior.stepTitle(i), (text) => { labelEl.textContent = text; });
+            wrapper.appendChild(labelEl);
 
             progress.appendChild(wrapper);
             progressItems.push({ indicator, label: labelEl });

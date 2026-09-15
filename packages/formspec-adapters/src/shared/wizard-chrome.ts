@@ -22,24 +22,19 @@ export interface WizardPanelShellOptions {
     index: number;
     /** Panel `aria-labelledby` target id (USWDS step-indicator panels). */
     labelledById?: string;
-    /** Panel `aria-label` when labelledById is omitted; a caller that wants the step's live title
-     * watches `behavior.stepTitle(index)` onto the returned panel instead. */
-    ariaLabel?: string;
     decoratePanel?: (panel: HTMLElement, index: number) => void;
 }
 
 /** Standard wizard step panel shell: region, initial visibility, optional a11y hooks. */
 export function createWizardPanelShell(options: WizardPanelShellOptions): HTMLElement {
-    const { behavior, index, labelledById, ariaLabel, decoratePanel } = options;
+    const { behavior, index, labelledById, decoratePanel } = options;
     const panel = document.createElement('div');
     panel.className = 'formspec-wizard-panel';
     panel.setAttribute('role', 'region');
     panel.tabIndex = -1;
-    if (labelledById) {
-        panel.setAttribute('aria-labelledby', labelledById);
-    } else if (ariaLabel) {
-        panel.setAttribute('aria-label', ariaLabel);
-    }
+    // A panel is named either by a heading it already renders (`labelledById`) or by the caller watching
+    // `behavior.stepTitle(index)` onto it — never by a string frozen at build time.
+    if (labelledById) panel.setAttribute('aria-labelledby', labelledById);
     if (index !== 0) panel.classList.add('formspec-hidden');
     decoratePanel?.(panel, index);
     return panel;

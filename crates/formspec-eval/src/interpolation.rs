@@ -6,9 +6,10 @@
 //! 2. An expression that fails to parse, or whose evaluation records an error
 //!    diagnostic, renders as its literal `{{expression}}` and adds a warning; the
 //!    rest of the string still resolves.
-//! 3. A `null` result renders as `""`, unless (rule 3a) the trimmed expression has
-//!    neither a `$` nor an `@` sigil and is not an interpolation static literal, in
-//!    which case it fails like rule 2.
+//! 3. A `null` result renders as `""`, unless (rule 3a) the parsed expression reads no
+//!    instance data — no `$field`, no `@context`, no `prev`/`next`/`parent`/`instance`
+//!    call — and is not an interpolation static literal, in which case it fails like
+//!    rule 2.
 //! 4. Other results coerce to display strings.
 //! 5. Replacement text is not re-scanned.
 //!
@@ -100,7 +101,7 @@ pub fn interpolate_template(
 /// # Errors
 ///
 /// A warning message when the expression must stay literal: `has_error_diagnostics`
-/// (rule 2), or a `null` result without a `$` / `@` sigil from an expression that is
+/// (rule 2), or a `null` result from an expression that reads no instance data and is
 /// not an interpolation static literal (rule 3a).
 pub fn interpolation_text(
     expression: &str,

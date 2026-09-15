@@ -285,10 +285,14 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                         const removeBtn = document.createElement('button');
                         removeBtn.type = 'button';
                         removeBtn.className = 'formspec-datatable-remove formspec-button-danger formspec-focus-ring';
-                        watchText(actx, uiText(actx.engine, 'dataTable.remove'), (text) => { removeBtn.textContent = text; });
-                        watchText(actx, uiText(actx.engine, 'dataTable.removeRow', { index: i + 1 }), (text) => {
-                            removeBtn.setAttribute('aria-label', text);
-                        });
+                        // Row scope, not component scope: this effect rebuilds every row on each change,
+                        // so a disposer kept until teardown would pile up one per row per rebuild.
+                        const removeText = uiText(actx.engine, 'dataTable.remove');
+                        const removeRowText = uiText(actx.engine, 'dataTable.removeRow', { index: i + 1 });
+                        cellEffectDisposers.push(
+                            effect(() => { removeBtn.textContent = removeText.value; }),
+                            effect(() => { removeBtn.setAttribute('aria-label', removeRowText.value); }),
+                        );
                         const idx = i;
                         removeBtn.addEventListener('click', () => {
                             removeInstance(idx);

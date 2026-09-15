@@ -106,7 +106,7 @@ export function buildAccordionBehavior(comp: any, ctx: RenderContext): Accordion
 export function buildModalBehavior(comp: any, ctx: RenderContext): ModalLayoutBehavior {
     return {
         ...hostWithTitleDescription(comp, ctx),
-        triggerLabelText: compText(ctx, comp, 'triggerLabel', comp.triggerLabel || uiText(ctx.engine, 'modal.open').value),
+        triggerLabelText: compText(ctx, comp, 'triggerLabel', () => comp.triggerLabel || uiText(ctx.engine, 'modal.open').value),
     };
 }
 
@@ -115,6 +115,6 @@ export function buildPopoverBehavior(comp: any, ctx: RenderContext): PopoverLayo
         comp,
         host: layoutHostSlice(ctx),
         titleResolved: compText(ctx, comp, 'title', comp.title || comp.triggerLabel || 'Popover'),
-        triggerLabelFallback: compText(ctx, comp, 'triggerLabel', comp.triggerLabel || uiText(ctx.engine, 'modal.open').value),
+        triggerLabelFallback: compText(ctx, comp, 'triggerLabel', () => comp.triggerLabel || uiText(ctx.engine, 'modal.open').value),
     };
 }

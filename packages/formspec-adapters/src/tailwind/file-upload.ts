@@ -13,7 +13,9 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
         class: 'flex justify-center rounded-lg border-2 border-dashed border-[color:var(--formspec-tw-border)] px-6 py-10 transition-colors',
         tabindex: '0',
         role: 'button',
-        'aria-label': uiText(actx.engine, 'fileUpload.dropzoneKeyboard').value,
+    });
+    watchText(actx, uiText(actx.engine, 'fileUpload.dropzoneKeyboard'), (text) => {
+        dropZone.setAttribute('aria-label', text);
     });
 
     dropZone.addEventListener('keydown', (e: KeyboardEvent) => {

@@ -387,7 +387,6 @@
       "type": "string",
       "enum": [
         "$ui.select.placeholder",
-        "$ui.select.clear",
         "$ui.select.clearSelection",
         "$ui.select.selectedValues",
         "$ui.select.selectAll",

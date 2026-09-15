@@ -1,5 +1,5 @@
 /** @filedesc USWDS v3 adapter for FileUpload — usa-file-input with drag-drop target. */
-import { uiText, type FileUploadBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
+import { uiText, watchText, type FileUploadBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
 import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
@@ -14,7 +14,9 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
         class: 'usa-file-input__target',
         tabindex: '0',
         role: 'button',
-        'aria-label': uiText(actx.engine, 'fileUpload.dropzoneKeyboard').value,
+    });
+    watchText(actx, uiText(actx.engine, 'fileUpload.dropzoneKeyboard'), (text) => {
+        target.setAttribute('aria-label', text);
     });
     target.addEventListener('keydown', (e: KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {

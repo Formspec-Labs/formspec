@@ -941,12 +941,14 @@ Processors MUST apply the following rules:
    that do not reference instance data (e.g. author typos or invalid
    operator sequences) that happen to evaluate to `null`.
 
-   An expression **reads instance data** when it contains a `$` field
-   reference, an `@` context reference, or a call to one of the
-   repeat-context navigation functions `prev()`, `next()` or `parent()`.
-   Navigation counts because a boundary row is a legitimate absence:
-   `{{prev().total}}` on the first row MUST render as empty text, not as
-   its own template.
+   An expression **reads instance data** when the parsed expression
+   contains a `$` field reference, an `@` context reference, or a call to
+   `prev()`, `next()`, `parent()` or `instance()`. Those calls count
+   because their absences are legitimate: `{{prev().total}}` on the first
+   row MUST render as empty text, not as its own template. The test is on
+   the parsed expression, not on its source text, so a `$` or `@`
+   appearing inside a string literal does not make an expression a data
+   reference.
 
    An **interpolation static literal** is any of: the `null`, boolean,
    numeric, string, date, or datetime literals; an array or object

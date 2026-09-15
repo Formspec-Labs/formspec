@@ -117,7 +117,6 @@ export type SurfaceShellStringKey =
  */
 export type ChromeStringKey =
   | '$ui.select.placeholder'
-  | '$ui.select.clear'
   | '$ui.select.clearSelection'
   | '$ui.select.selectedValues'
   | '$ui.select.selectAll'

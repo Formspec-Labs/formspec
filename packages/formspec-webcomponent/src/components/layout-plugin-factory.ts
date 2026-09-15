@@ -33,11 +33,12 @@ export function compText(
     ctx: Pick<RenderContext, 'engine' | 'prefix'>,
     comp: { id?: string },
     prop: string,
-    fallback: string,
+    /** A function is re-read on every locale change — what a `$ui` chrome default needs. */
+    fallback: string | (() => string),
 ): ReadonlySignal<string> {
     return computed(() => {
         ctx.engine.localeSignal.value;
-        return resolveCompText(ctx, comp, prop, fallback);
+        return resolveCompText(ctx, comp, prop, typeof fallback === 'function' ? fallback() : fallback);
     });
 }
 
