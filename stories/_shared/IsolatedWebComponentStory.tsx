@@ -3,10 +3,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FormspecRender, emitThemeTokens, globalRegistry } from '@formspec-org/webcomponent';
 import type { RenderAdapter } from '@formspec-org/webcomponent';
-import formspecDefaultCssUrl from '../../packages/formspec-webcomponent/src/formspec-default.css?url';
-import formspecLayoutCssUrl from '../../packages/formspec-webcomponent/src/formspec-layout.css?url';
-import uswdsCssUrl from '@uswds/uswds/css/uswds.css?url';
-import uswdsIntegrationCssUrl from '../../packages/formspec-adapters/dist/uswds-integration.css?url';
 import type { StoryAppearance } from './storyAppearance';
 
 if (!customElements.get('formspec-render')) {
@@ -28,7 +24,8 @@ export interface IsolatedWebComponentStoryProps {
     appearance?: StoryAppearance;
 }
 
-function useShadowRoot(stylesheets: string[], inlineStyles: string[]) {
+/** The element links its own layout + adapter + theme CSS into this shadow root; only story chrome is inlined here. */
+function useShadowRoot(inlineStyles: string[]) {
     const hostRef = useRef<HTMLDivElement>(null);
     const [mountNode, setMountNode] = useState<HTMLDivElement | null>(null);
 
@@ -38,13 +35,6 @@ function useShadowRoot(stylesheets: string[], inlineStyles: string[]) {
 
         const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
         shadow.replaceChildren();
-
-        stylesheets.forEach((href) => {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = href;
-            shadow.appendChild(link);
-        });
 
         inlineStyles.forEach((cssText) => {
             const style = document.createElement('style');
@@ -60,7 +50,7 @@ function useShadowRoot(stylesheets: string[], inlineStyles: string[]) {
             setMountNode(null);
             shadow.replaceChildren();
         };
-    }, [stylesheets, inlineStyles]);
+    }, [inlineStyles]);
 
     return { hostRef, mountNode };
 }
@@ -78,16 +68,6 @@ export function IsolatedWebComponentStory({
 }: IsolatedWebComponentStoryProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const elementRef = useRef<FormspecRender | null>(null);
-
-    const stylesheets = useMemo(() => {
-        const urls = [formspecLayoutCssUrl];
-        if (adapter?.name === 'uswds') {
-            urls.push(uswdsCssUrl, uswdsIntegrationCssUrl);
-        } else {
-            urls.push(formspecDefaultCssUrl);
-        }
-        return urls;
-    }, [adapter?.name]);
 
     const inlineStyles = useMemo(() => {
         const styles = [
@@ -109,7 +89,7 @@ export function IsolatedWebComponentStory({
         return styles;
     }, []);
 
-    const { hostRef, mountNode } = useShadowRoot(stylesheets, inlineStyles);
+    const { hostRef, mountNode } = useShadowRoot(inlineStyles);
 
     useEffect(() => {
         const el = elementRef.current;
@@ -126,12 +106,7 @@ export function IsolatedWebComponentStory({
 
         const shadowHost = hostRef.current;
 
-        if (adapter) {
-            globalRegistry.registerAdapter(adapter);
-            globalRegistry.setAdapter(adapter.name);
-        } else {
-            globalRegistry.setAdapter('default');
-        }
+        if (adapter) globalRegistry.registerAdapter(adapter);
 
         if (!elementRef.current) {
             const el = document.createElement('formspec-render') as FormspecRender;
@@ -140,6 +115,8 @@ export function IsolatedWebComponentStory({
         }
 
         const el = elementRef.current;
+        // Per-element override, so stories on one page do not fight over a global active adapter.
+        el.adapter = adapter?.name ?? null;
         if (appearance === 'light' || appearance === 'dark') {
             el.setAttribute('data-formspec-appearance', appearance);
         } else {
@@ -162,7 +139,6 @@ export function IsolatedWebComponentStory({
         }
 
         return () => {
-            globalRegistry.setAdapter('default');
             if (elementRef.current) {
                 elementRef.current.remove();
                 elementRef.current = null;

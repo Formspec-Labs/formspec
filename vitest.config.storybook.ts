@@ -28,9 +28,7 @@ export default defineConfig({
             // React
             { find: '@formspec-org/react/hooks', replacement: `${pkg('formspec-react')}/hooks.ts` },
             { find: '@formspec-org/react', replacement: `${pkg('formspec-react')}/index.ts` },
-            // Webcomponent — CSS subpaths before base
-            { find: '@formspec-org/webcomponent/formspec-default.css', replacement: `${pkg('formspec-webcomponent')}/formspec-default.css` },
-            { find: '@formspec-org/webcomponent/formspec-layout.css', replacement: `${pkg('formspec-webcomponent')}/formspec-layout.css` },
+            // Webcomponent — no CSS subpath aliases: the element links its own stylesheets by URL.
             { find: '@formspec-org/webcomponent', replacement: `${pkg('formspec-webcomponent')}/index.ts` },
             { find: '@formspec-org/adapters', replacement: `${pkg('formspec-adapters')}/index.ts` },
         ],

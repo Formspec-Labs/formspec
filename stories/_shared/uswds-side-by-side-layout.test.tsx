@@ -273,7 +273,7 @@ describe('USWDS comparison story layout', () => {
         expect(shadowRoot).toBeTruthy();
         expect(queryShadowTree(shadowRoot, '.formspec-tabs')).not.toBeNull();
         expect(queryShadowTree(shadowRoot, '.formspec-tab-panels')).not.toBeNull();
-        const css = readFileSync(resolve('packages/formspec-adapters/dist/uswds-integration.css'), 'utf8');
+        const css = readFileSync(resolve('packages/formspec-adapters/uswds-integration.css'), 'utf8');
         expect(css).toContain('.formspec-tab-panels{padding-top:1.5rem}');
     });
 
