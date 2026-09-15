@@ -9,9 +9,29 @@ import {
 /**
  * Heading depths that read as a form section rather than a question group. The renderer starts groups at
  * `h3`; the shallower tags are covered so a change of starting depth cannot silently flatten every legend.
- * Shared with the RepeatCards render, so a titled repeat's legend follows the same size rule.
  */
-export const SECTION_HEADING_LEVELS = new Set(['h1', 'h2', 'h3']);
+const SECTION_HEADING_LEVELS = new Set(['h1', 'h2', 'h3']);
+
+/**
+ * A group's legend: a section reads as USWDS's large legend, a nested group as the plain one (the size a
+ * question's own legend uses — USWDS has no middle size), and a hidden title keeps naming the fieldset and
+ * leaves the page (`usa-sr-only`, never `display:none`). `formspec-group-title` names the role
+ * structurally, as the default adapter's group title does, so an adapter variant can style a group's
+ * title without also catching a question's legend, which shares every other USWDS class.
+ */
+export function createGroupLegend(titleHidden: boolean, headingLevel: string): HTMLLegendElement {
+    const legend = document.createElement('legend');
+    legend.className = titleHidden
+        ? 'usa-legend formspec-group-title usa-sr-only'
+        : SECTION_HEADING_LEVELS.has(headingLevel)
+            ? 'usa-legend formspec-group-title usa-legend--large'
+            : 'usa-legend formspec-group-title';
+    // The heading depth this legend stands for (the default adapter renders a real h3–h6). USWDS types
+    // only two legend sizes, so a variant that wants a third — NJ's bold sub-heads at one depth, plain
+    // question legends below it — keys on this.
+    legend.dataset.headingLevel = headingLevel;
+    return legend;
+}
 
 /** Classes and inline presentation the theme cascade resolved onto the planner node. */
 function applyNodePresentation(el: HTMLElement, comp: any, actx: AdapterContext): void {
@@ -36,17 +56,7 @@ export function renderUSWDSGroup(
         content.className = 'usa-fieldset';
         el.appendChild(content);
 
-        const legend = document.createElement('legend');
-        // A section's legend is USWDS's large legend; a nested group takes the plain one — the size a
-        // question's own legend uses. USWDS has no middle size, so depth beyond that changes nothing.
-        // A hidden title keeps naming the fieldset and leaves the page: `usa-sr-only`, never `display:none`.
-        // `formspec-group-title` names the role structurally (default adapter's group title carries the
-        // same class) so an adapter variant can target a group's legend without also catching a question's.
-        legend.className = behavior.titleHidden
-            ? 'usa-legend formspec-group-title usa-sr-only'
-            : SECTION_HEADING_LEVELS.has(behavior.headingLevel)
-                ? 'usa-legend formspec-group-title usa-legend--large'
-                : 'usa-legend formspec-group-title';
+        const legend = createGroupLegend(behavior.titleHidden, behavior.headingLevel);
         watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
         content.appendChild(legend);
 
@@ -88,12 +98,7 @@ export function renderUSWDSRepeatGroup(
         content.className = 'usa-fieldset';
         formGroup.appendChild(content);
 
-        const legend = document.createElement('legend');
-        legend.className = behavior.titleHidden
-            ? 'usa-legend formspec-group-title usa-sr-only'
-            : SECTION_HEADING_LEVELS.has(behavior.headingLevel)
-                ? 'usa-legend formspec-group-title usa-legend--large'
-                : 'usa-legend formspec-group-title';
+        const legend = createGroupLegend(behavior.titleHidden, behavior.headingLevel);
         watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
         content.appendChild(legend);
     }

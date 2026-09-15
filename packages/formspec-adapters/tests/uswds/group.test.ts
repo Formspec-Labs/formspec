@@ -104,6 +104,12 @@ describe('USWDS bound group', () => {
         expect(legend!.className).toBe('usa-legend formspec-group-title');
     });
 
+    it('records the heading depth the legend stands for, so a variant can size a third level', () => {
+        expect(mountGroup('Eligibility', 'h3').parent.querySelector('legend')!.dataset.headingLevel).toBe('h3');
+        expect(mountGroup('Retirement and pension', 'h4').parent.querySelector('legend')!.dataset.headingLevel).toBe('h4');
+        expect(mountRepeat({ title: 'Your employers on record', headingLevel: 'h5' }).parent.querySelector('legend.formspec-group-title')!.dataset.headingLevel).toBe('h5');
+    });
+
     it('emits no Formspec default group wrapper, but names the legend structurally like the default adapter does', () => {
         const { parent } = mountGroup('Mailing address');
         expect(parent.querySelector('.formspec-group')).toBeNull();

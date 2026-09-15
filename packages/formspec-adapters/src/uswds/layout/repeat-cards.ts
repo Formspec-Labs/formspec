@@ -4,7 +4,7 @@ import {
     type AdapterContext,
     type RepeatGroupLayoutBehavior,
 } from '@formspec-org/webcomponent';
-import { SECTION_HEADING_LEVELS } from './group';
+import { createGroupLegend } from './group';
 
 /**
  * A repeatable group as USWDS cards (theme §4.2 `RepeatCards`): each instance is a `usa-card` headed by the
@@ -40,12 +40,7 @@ export function renderUSWDSRepeatCards(
         content.className = 'usa-fieldset';
         formGroup.appendChild(content);
 
-        const legend = document.createElement('legend');
-        legend.className = behavior.titleHidden
-            ? 'usa-legend formspec-group-title usa-sr-only'
-            : SECTION_HEADING_LEVELS.has(behavior.headingLevel)
-                ? 'usa-legend formspec-group-title usa-legend--large'
-                : 'usa-legend formspec-group-title';
+        const legend = createGroupLegend(behavior.titleHidden, behavior.headingLevel);
         watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
         content.appendChild(legend);
     }
