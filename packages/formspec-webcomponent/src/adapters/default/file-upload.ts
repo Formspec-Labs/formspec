@@ -2,6 +2,8 @@
 import type { FileUploadBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
 import { createFieldDOM, finalizeFieldDOM } from './shared';
+import { uiText } from '../ui-text.js';
+import { watchText } from '../watch-text.js';
 import { formatBytes } from '../../format';
 
 export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
@@ -104,7 +106,9 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
 
         dropZone.setAttribute('tabindex', '0');
         dropZone.setAttribute('role', 'button');
-        dropZone.setAttribute('aria-label', 'Drop files here or click to browse');
+        watchText(actx, uiText(actx.engine, 'fileUpload.dropzone'), (text) => {
+            dropZone.setAttribute('aria-label', text);
+        });
         dropZone.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();

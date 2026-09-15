@@ -4,13 +4,12 @@
  * has direct Section children and formPresentation.pageMode is "wizard". The "Wizard"
  * adapter key is a rendering concept — the Wizard schema component type was
  * removed; all page navigation is now driven by formPresentation. */
-import type { WizardBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { watchText, type WizardBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import { TW } from './shared';
 import {
     createWizardNav,
     createWizardPanelShell,
     initWizardRoot,
-    stepTitle,
 } from '../shared/wizard-chrome.js';
 
 export const renderWizard: AdapterRenderFn<WizardBehavior> = (
@@ -56,7 +55,7 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
 
             const stepLabel = document.createElement('span');
             stepLabel.className = 'ml-2 text-sm font-medium text-[var(--formspec-tw-text)]';
-            stepLabel.textContent = stepTitle(behavior.steps, i);
+            watchText(actx, behavior.stepTitle(i), (text) => { stepLabel.textContent = text; });
             stepContent.appendChild(stepLabel);
 
             li.appendChild(stepContent);
@@ -82,7 +81,7 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
         const panel = createWizardPanelShell({
             behavior,
             index: i,
-            ariaLabel: stepTitle(behavior.steps, i),
+
         });
         behavior.renderStep(i, panel);
         root.appendChild(panel);

@@ -520,6 +520,7 @@ function DataTableDisplay({
     style: React.CSSProperties | undefined;
     metadataAttrs: Record<string, string>;
 }) {
+    const chrome = useChromeText();
     const { engine } = useFormspecContext();
     const bindKey = node.props?.bind as string | undefined;
     const columns = (node.props?.columns as DataTableColumn[]) || [];
@@ -601,10 +602,10 @@ function DataTableDisplay({
                                         <button
                                             type="button"
                                             className="formspec-datatable-remove formspec-button-danger formspec-focus-ring"
-                                            aria-label={`Remove row ${i + 1}`}
+                                            aria-label={chrome('dataTable.removeRow', { index: i + 1 })}
                                             onClick={() => handleRemove(i)}
                                         >
-                                            Remove
+                                            {chrome('dataTable.remove')}
                                         </button>
                                     )}
                                 </td>
@@ -619,7 +620,7 @@ function DataTableDisplay({
                     className="formspec-datatable-add formspec-focus-ring"
                     onClick={handleAdd}
                 >
-                    Add Row
+                    {chrome('dataTable.addRow')}
                 </button>
             )}
         </div>

@@ -3,6 +3,8 @@ import { effect, untracked } from '@preact/signals-core';
 import type { FieldBehavior } from '../../behaviors/types';
 import type { AdapterContext } from '../types';
 import { writeRichText } from '../rich-text-dom.js';
+import { uiText } from '../ui-text.js';
+import { watchText } from '../watch-text.js';
 
 export interface FieldDOMOptions {
     /** Set false for group controls where the label shouldn't target a single input. Default true. */
@@ -130,11 +132,10 @@ export function finalizeFieldDOM(
         const status = document.createElement('div');
         status.className = 'formspec-hint formspec-remote-options-status';
         if (ros.loading) {
-            status.textContent = 'Loading options...';
+            watchText(actx, uiText(actx.engine, 'select.loadingOptions'), (text) => { status.textContent = text; });
         } else if (ros.error) {
-            status.textContent = behavior.options().length > 0
-                ? 'Remote options unavailable; using fallback options.'
-                : 'Failed to load options.';
+            const key = behavior.options().length > 0 ? 'select.remoteFallback' : 'select.remoteFailed';
+            watchText(actx, uiText(actx.engine, key), (text) => { status.textContent = text; });
         }
         fieldDOM.root.appendChild(status);
     }

@@ -418,7 +418,8 @@ describe('FormspecForm', () => {
         const help = container.querySelector('[data-name="name"] .formspec-field-help');
         const reference = help?.querySelector('.formspec-field-help-reference');
 
-        expect(help?.textContent).toContain('Help and guidance');
+        // Locale §3.1.10 `$ui.fieldHelp.label` — the same words the web component's help link uses.
+        expect(help?.textContent).toContain('Help me answer this question');
         expect(help?.textContent).toContain('Use the name shown on your account.');
         expect(help?.getAttribute('data-need-ids')).toBe('identify-person');
         expect(reference?.getAttribute('data-need-anchors')).toBe(

@@ -31,8 +31,9 @@ describe('the React renderer draws its own words from the shared inventory', () 
         const consumed = new Set<string>();
         for (const file of files) {
             const source = readFileSync(file, 'utf8');
-            for (const match of source.matchAll(/chrome(?:Text)?\((?:engine,\s*)?'([a-zA-Z.]+)'/g)) {
-                consumed.add(match[1]);
+            // Every quoted key inside a chrome(...) call, so a key picked by a ternary counts too.
+            for (const call of source.matchAll(/chrome(?:Text)?\(([^)]*)\)/g)) {
+                for (const key of call[1].matchAll(/'([a-z][a-zA-Z]*\.[a-zA-Z]+)'/g)) consumed.add(key[1]);
             }
         }
         // Every key the renderer asks for exists in the closed inventory (Locale §3.1.10).
@@ -41,25 +42,44 @@ describe('the React renderer draws its own words from the shared inventory', () 
         // picks between `repeat.row`, `repeat.rowOf` and `repeat.rowNamed` through a variable, so that
         // third key is resolved the same way without appearing as a literal here.
         expect([...consumed].sort()).toEqual([
+            'action.inProgress',
+            'action.submit',
             'alert.dismiss',
+            'dataTable.addRow',
+            'dataTable.remove',
+            'dataTable.removeRow',
+            'fieldHelp.label',
+            'fileUpload.dropzone',
             'modal.close',
             'money.amount',
             'repeat.add',
             'repeat.remove',
             'repeat.row',
             'repeat.rowOf',
+            'screener.answerOne',
+            'screener.submit',
             'select.clearSelection',
             'select.placeholder',
             'select.selectAll',
             'select.selectedValues',
             'signature.canvas',
             'signature.clear',
+            'validationSummary.fixMany',
+            'validationSummary.fixOne',
+            'validationSummary.reviewMany',
+            'validationSummary.reviewOne',
+            'wizard.collapseNavigation',
+            'wizard.expandNavigation',
+            'wizard.finalStepStatus',
             'wizard.next',
             'wizard.nextStep',
             'wizard.previous',
             'wizard.previousStep',
             'wizard.skip',
             'wizard.skipStep',
+            'wizard.stepStatus',
+            'wizard.stepTitle',
+            'wizard.steps',
             'wizard.submit',
             'wizard.submitForm',
         ]);

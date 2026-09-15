@@ -5,6 +5,7 @@ import { compText } from './layout-plugin-factory';
 import { effect } from '@preact/signals-core';
 import { repeatAffordances, renderRepeatRows } from '../rendering/repeat-affordances';
 import { itemLabel } from '../rendering/item-label';
+import { uiText } from '../adapters/ui-text.js';
 import { resolveDisplayItem } from '../adapters/display-host';
 import type {
     SectionLayoutBehavior,
@@ -105,7 +106,7 @@ export function buildAccordionBehavior(comp: any, ctx: RenderContext): Accordion
 export function buildModalBehavior(comp: any, ctx: RenderContext): ModalLayoutBehavior {
     return {
         ...hostWithTitleDescription(comp, ctx),
-        triggerLabelText: compText(ctx, comp, 'triggerLabel', comp.triggerLabel || 'Open'),
+        triggerLabelText: compText(ctx, comp, 'triggerLabel', comp.triggerLabel || uiText(ctx.engine, 'modal.open').value),
     };
 }
 
@@ -114,6 +115,6 @@ export function buildPopoverBehavior(comp: any, ctx: RenderContext): PopoverLayo
         comp,
         host: layoutHostSlice(ctx),
         titleResolved: compText(ctx, comp, 'title', comp.title || comp.triggerLabel || 'Popover'),
-        triggerLabelFallback: compText(ctx, comp, 'triggerLabel', comp.triggerLabel || 'Open'),
+        triggerLabelFallback: compText(ctx, comp, 'triggerLabel', comp.triggerLabel || uiText(ctx.engine, 'modal.open').value),
     };
 }

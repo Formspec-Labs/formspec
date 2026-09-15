@@ -4,6 +4,7 @@ import type { AdapterContext } from '../types';
 import type { DisplayComponentBehavior } from '../display-behaviors';
 import type { DataTableBehavior } from '../../behaviors/types';
 import { watchText } from '../watch-text';
+import { uiText } from '../ui-text.js';
 
 type SelectOption = { value: string; label?: string };
 
@@ -121,7 +122,7 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
         th.setAttribute('scope', 'col');
         const sr = document.createElement('span');
         sr.className = 'formspec-sr-only';
-        sr.textContent = 'Actions';
+        watchText(actx, uiText(actx.engine, 'dataTable.actions'), (text) => { sr.textContent = text; });
         th.appendChild(sr);
         headerRow.appendChild(th);
     }
@@ -284,8 +285,10 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                         const removeBtn = document.createElement('button');
                         removeBtn.type = 'button';
                         removeBtn.className = 'formspec-datatable-remove formspec-button-danger formspec-focus-ring';
-                        removeBtn.textContent = 'Remove';
-                        removeBtn.setAttribute('aria-label', `Remove row ${i + 1}`);
+                        watchText(actx, uiText(actx.engine, 'dataTable.remove'), (text) => { removeBtn.textContent = text; });
+                        watchText(actx, uiText(actx.engine, 'dataTable.removeRow', { index: i + 1 }), (text) => {
+                            removeBtn.setAttribute('aria-label', text);
+                        });
                         const idx = i;
                         removeBtn.addEventListener('click', () => {
                             removeInstance(idx);
@@ -303,7 +306,7 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'formspec-datatable-add formspec-focus-ring';
-        addBtn.textContent = 'Add Row';
+        watchText(actx, uiText(actx.engine, 'dataTable.addRow'), (text) => { addBtn.textContent = text; });
         addBtn.addEventListener('click', () => {
             addInstance();
         });

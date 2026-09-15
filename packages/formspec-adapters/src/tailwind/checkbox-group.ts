@@ -1,5 +1,6 @@
 /** @filedesc Tailwind adapter for CheckboxGroup — card-style multi-select grid. */
 import type { CheckboxGroupBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { uiText, watchText } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
 import { createTailwindError, TW, applyErrorStyling, buildTailwindGroupOptions, createTailwindHint } from './shared';
 
@@ -51,7 +52,7 @@ export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
             class: 'cursor-pointer text-sm font-semibold text-[var(--formspec-tw-text)]',
             for: selectAllId,
         });
-        selectAllLabel.textContent = 'Select all';
+        watchText(actx, uiText(actx.engine, 'select.selectAll'), (text) => { selectAllLabel.textContent = text; });
         selectAllRow.appendChild(selectAllCb);
         selectAllRow.appendChild(selectAllLabel);
         fieldset.appendChild(selectAllRow);

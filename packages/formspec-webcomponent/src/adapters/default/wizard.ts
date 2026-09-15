@@ -79,7 +79,7 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
 
             const label = document.createElement('span');
             label.className = 'formspec-wizard-sidenav-label';
-            label.textContent = behavior.steps[i]?.title || `Step ${i + 1}`;
+            watchText(actx, behavior.stepTitle(i), (text) => { label.textContent = text; });
             btn.appendChild(label);
 
             const idx = i;
@@ -142,7 +142,7 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
         const panel = document.createElement('div');
         panel.className = 'formspec-wizard-panel';
         panel.setAttribute('role', 'region');
-        panel.setAttribute('aria-label', behavior.steps[i]?.title || `Step ${i + 1}`);
+        watchText(actx, behavior.stepTitle(i), (text) => { panel.setAttribute('aria-label', text); });
         if (i !== 0) panel.classList.add('formspec-hidden');
         behavior.renderStep(i, panel);
         container.appendChild(panel);
@@ -180,8 +180,8 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
     const nextBtn = document.createElement('button');
     nextBtn.type = 'button';
     nextBtn.className = 'formspec-wizard-next formspec-button-primary formspec-focus-ring';
-    nextBtn.textContent = 'Next';
-    nextBtn.setAttribute('aria-label', 'Next step');
+    watchText(actx, uiText(actx.engine, 'wizard.next'), (text) => { nextBtn.textContent = text; });
+    watchText(actx, uiText(actx.engine, 'wizard.nextStep'), (text) => { nextBtn.setAttribute('aria-label', text); });
     nav.appendChild(nextBtn);
     container.appendChild(nav);
 

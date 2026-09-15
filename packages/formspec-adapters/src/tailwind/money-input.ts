@@ -1,6 +1,7 @@
 /** @filedesc Tailwind adapter for MoneyInput — input group with currency prefix. */
 import type { MoneyInputBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
 import { createInputSkeleton } from '../shared/input-factory.js';
+import { uiText, watchText } from '@formspec-org/webcomponent';
 import { createTailwindFieldDOM, TW, toggleInputError, applyAffixRounding } from './shared';
 
 export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
@@ -35,7 +36,9 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
         currencyInput.type = 'text';
         currencyInput.placeholder = 'Currency';
         currencyInput.name = `${behavior.fieldPath}__currency`;
-        currencyInput.setAttribute('aria-label', 'Currency code');
+        watchText(actx, uiText(actx.engine, 'money.currency'), (text) => {
+            currencyInput.setAttribute('aria-label', text);
+        });
         control.appendChild(currencyInput);
     }
 

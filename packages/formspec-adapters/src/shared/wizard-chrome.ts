@@ -1,13 +1,6 @@
 /** @filedesc Shared wizard shell wiring — root, panels, nav, skip (design-system classes stay in adapters). */
 import type { AdapterContext, WizardBehavior } from '@formspec-org/webcomponent';
 
-export function stepTitle(
-    steps: WizardBehavior['steps'],
-    index: number,
-): string {
-    return steps[index]?.title || `Step ${index + 1}`;
-}
-
 /** Create `formspec-wizard` root, apply component overrides, append to parent. */
 export function initWizardRoot(
     behavior: Pick<WizardBehavior, 'id' | 'compOverrides'>,
@@ -29,7 +22,8 @@ export interface WizardPanelShellOptions {
     index: number;
     /** Panel `aria-labelledby` target id (USWDS step-indicator panels). */
     labelledById?: string;
-    /** Panel `aria-label` when labelledById is omitted (Tailwind). */
+    /** Panel `aria-label` when labelledById is omitted; a caller that wants the step's live title
+     * watches `behavior.stepTitle(index)` onto the returned panel instead. */
     ariaLabel?: string;
     decoratePanel?: (panel: HTMLElement, index: number) => void;
 }
@@ -45,8 +39,6 @@ export function createWizardPanelShell(options: WizardPanelShellOptions): HTMLEl
         panel.setAttribute('aria-labelledby', labelledById);
     } else if (ariaLabel) {
         panel.setAttribute('aria-label', ariaLabel);
-    } else {
-        panel.setAttribute('aria-label', stepTitle(behavior.steps, index));
     }
     if (index !== 0) panel.classList.add('formspec-hidden');
     decoratePanel?.(panel, index);

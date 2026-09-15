@@ -55,6 +55,8 @@ import type {
     SemanticControlScope,
     SemanticResponseBinding,
 } from './semantic-controls';
+import { useSignal } from './use-signal';
+import { chromeText } from './use-chrome-text';
 
 const platformTheme = buildPlatformTheme();
 
@@ -431,7 +433,6 @@ export function FormspecProvider(props: FormspecProviderProps) {
         resolveActionIdempotencyKey,
         children,
     } = props;
-    const fieldHelpLabel = props.fieldHelpLabel ?? 'Help and guidance';
     const shouldEmitThemeTokens = props.emitThemeTokens ?? true;
     const semanticResponseState = useMemo(
         () => ({
@@ -511,6 +512,10 @@ export function FormspecProvider(props: FormspecProviderProps) {
             engine.setIssuerOverride(issuerOverride);
         }
     }, [engine, hasIssuerOverrideProp, issuerOverride]);
+
+    // Locale §3.1.10: the renderer's own words for the help link, unless the host names its own.
+    useSignal(engine.localeSignal);
+    const fieldHelpLabel = props.fieldHelpLabel ?? chromeText(engine, 'fieldHelp.label');
 
     // Build registry entry map for extension resolution
     const registryMap = useMemo(() => {

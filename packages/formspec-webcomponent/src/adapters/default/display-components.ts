@@ -279,13 +279,14 @@ export function renderDefaultValidationSummary(
             if (rows.length === 0) return;
 
             const errorCount = rows.filter((row) => row.severity === 'error').length;
-            const headerText =
-                errorCount > 0
-                    ? `Please fix ${errorCount === 1 ? 'this error' : `these ${errorCount} errors`} before continuing:`
-                    : 'Please review the following before continuing:';
+            const headerKey = errorCount === 0
+                ? 'validationSummary.review'
+                : errorCount === 1
+                    ? 'validationSummary.fixOne'
+                    : 'validationSummary.fixMany';
             const header = document.createElement('h2');
             header.className = 'formspec-validation-summary-title';
-            header.textContent = headerText;
+            header.textContent = uiText(host.engine, headerKey, { count: errorCount }).value;
             el.appendChild(header);
 
             const severityIcon: Record<string, string> = { error: '✕', warning: '!', info: 'i' };

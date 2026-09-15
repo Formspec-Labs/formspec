@@ -29,6 +29,7 @@ export function FormspecScreener({
   className,
   ...options
 }: FormspecScreenerProps) {
+  const chrome = useChromeText();
   const screener = useScreener({ ...options, screenerDocument });
   const items = screener.items;
 
@@ -100,7 +101,7 @@ export function FormspecScreener({
         className="formspec-screener-continue"
         onClick={screener.submit}
       >
-        {screenerDocument.submitLabel || 'Check Eligibility'}
+        {screenerDocument.submitLabel || chrome('screener.submit')}
       </button>
     </div>
   );

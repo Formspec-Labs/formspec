@@ -305,17 +305,10 @@ export function renderUSWDSValidationSummary(
             const intro = document.createElement('p');
             intro.className = 'usa-alert__text';
             const total = rows.length;
-            if (errorCount > 0) {
-                intro.textContent =
-                    errorCount === 1
-                        ? 'There is 1 error on this form.'
-                        : `There are ${errorCount} errors on this form.`;
-            } else {
-                intro.textContent =
-                    total === 1
-                        ? 'There is 1 issue to review on this form.'
-                        : `There are ${total} issues to review on this form.`;
-            }
+            const introKey = errorCount > 0
+                ? (errorCount === 1 ? 'validationSummary.errorCountOne' : 'validationSummary.errorCount')
+                : (total === 1 ? 'validationSummary.issueCountOne' : 'validationSummary.issueCount');
+            intro.textContent = uiText(host.engine, introKey, { count: errorCount > 0 ? errorCount : total }).value;
             body.appendChild(intro);
 
             const list = document.createElement('ul');

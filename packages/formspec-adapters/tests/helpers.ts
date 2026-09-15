@@ -167,6 +167,9 @@ export function mockWizard(overrides?: Partial<WizardBehavior>): WizardBehavior 
         id: 'wizard-1',
         compOverrides: {},
         steps: [{ id: 's1', title: 'Step 1' }, { id: 's2', title: 'Step 2' }],
+        // The behavior resolves a step's heading (authored title, else `$ui.wizard.stepTitle`).
+        stepTitle: (index: number) => signal(`Step ${index + 1}`),
+        activeStepTitle: signal('Step 1'),
         showSideNav: false, showProgress: true, allowSkip: false,
         activeStep: () => 0, totalSteps: () => 2,
         canGoNext: () => true, canGoPrev: () => false,

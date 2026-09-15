@@ -82,7 +82,7 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
     const stepTitle = (idx: number): string =>
         (stepNodes[idx]?.props?.title as string | undefined) ||
         (stepNodes[idx]?.fieldItem?.label as string | undefined) ||
-        `Step ${idx + 1}`;
+        chrome('wizard.stepTitle', { index: idx + 1 });
 
     // Soft-touch all fields in the current step to reveal validation errors.
     // Does NOT block navigation — just makes errors visible.
@@ -175,8 +175,11 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
         <>
             {progressRow}
             <div className="formspec-wizard-step-indicator" ref={announcerRef}>
-                {`Step ${currentStep + 1} of ${totalSteps}: ${title}`}
-                {isLast ? ' — final step' : ''}
+                {chrome(isLast ? 'wizard.finalStepStatus' : 'wizard.stepStatus', {
+                    index: currentStep + 1,
+                    total: totalSteps,
+                    title,
+                })}
             </div>
             <div
                 className="formspec-wizard-panel"
@@ -259,12 +262,12 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
                     'formspec-wizard-sidenav',
                     sidenavCollapsed && 'formspec-wizard-sidenav--collapsed',
                 )}
-                aria-label="Form steps"
+                aria-label={chrome('wizard.steps')}
             >
                 <button
                     type="button"
                     className="formspec-wizard-sidenav-toggle formspec-focus-ring"
-                    aria-label={sidenavCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+                    aria-label={chrome(sidenavCollapsed ? 'wizard.expandNavigation' : 'wizard.collapseNavigation')}
                     title={sidenavCollapsed ? 'Expand' : 'Collapse'}
                     onClick={() => setSidenavCollapsed((c) => !c)}
                 >

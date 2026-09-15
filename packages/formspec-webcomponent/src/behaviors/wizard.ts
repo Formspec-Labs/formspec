@@ -1,5 +1,5 @@
 /** @filedesc Wizard behavior hook — manages multi-step navigation state. */
-import { signal } from '@preact/signals-core';
+import { computed, signal } from '@preact/signals-core';
 import { effect } from '@preact/signals-core';
 import type { WizardBehavior, WizardRefs, BehaviorContext } from './types';
 import { uiText } from '../adapters/ui-text.js';
@@ -16,8 +16,13 @@ export function useWizard(ctx: BehaviorContext, comp: any): WizardBehavior {
 
     const steps = children.map((child: any, i: number) => ({
         id: child.id || `step-${i}`,
-        title: child?.props?.title || `Step ${i + 1}`,
+        title: (child?.props?.title as string | undefined) ?? '',
     }));
+
+    /** The authored title, else the renderer's own numbering — one site for every adapter. */
+    const stepTitle = (index: number) =>
+        uiText(ctx.engine, 'wizard.stepTitle', { index: index + 1 }, steps[index]?.title || undefined);
+    const activeStepTitle = computed(() => stepTitle(currentStep.value).value);
 
     const wizardId = comp.id;
     const compOverrides = {
@@ -37,6 +42,8 @@ export function useWizard(ctx: BehaviorContext, comp: any): WizardBehavior {
         id: wizardId,
         compOverrides,
         steps,
+        stepTitle,
+        activeStepTitle,
         showSideNav,
         showProgress,
         allowSkip,
@@ -143,19 +150,23 @@ export function useWizard(ctx: BehaviorContext, comp: any): WizardBehavior {
                     }
                 }
 
-                const stepTitle =
-                    (children[step] as any)?.props?.title || `Step ${step + 1}`;
+                const last = step === total - 1;
+                const title = stepTitle(step).value;
+                const params = { index: step + 1, total, title };
 
                 if (refs.stepIndicator) {
-                    refs.stepIndicator.textContent =
-                        `Step ${step + 1} of ${total}: ${stepTitle}` +
-                        (step === total - 1 ? ' — final step' : '');
+                    refs.stepIndicator.textContent = uiText(
+                        ctx.engine,
+                        last ? 'wizard.finalStepStatus' : 'wizard.stepStatus',
+                        params,
+                    ).value;
                 }
                 if (refs.announcer) {
-                    refs.announcer.textContent =
-                        step === total - 1
-                            ? `${stepTitle}. Next will submit the form.`
-                            : `${stepTitle}. Step ${step + 1} of ${total}.`;
+                    refs.announcer.textContent = uiText(
+                        ctx.engine,
+                        last ? 'wizard.finalStepAnnouncement' : 'wizard.stepAnnouncement',
+                        params,
+                    ).value;
                 }
 
                 if (refs.onStepChange) {

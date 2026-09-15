@@ -269,7 +269,15 @@ export interface WizardRefs {
 export interface WizardBehavior {
     id?: string;
     compOverrides: ComponentPresentationOverrides;
+    /** Each step's authored title, empty when the Component Document names none. */
     steps: ReadonlyArray<{ id: string; title: string }>;
+    /**
+     * A step's heading: its authored title, else the renderer's own numbering (Locale §3.1.10
+     * `$ui.wizard.stepTitle`). Live, so a locale switch renames every step.
+     */
+    stepTitle(index: number): import('../adapters/layout-behaviors').LocalizedText;
+    /** The step being shown, by the same rule — for chrome that names only the active one. */
+    activeStepTitle: import('../adapters/layout-behaviors').LocalizedText;
     showSideNav: boolean;
     showProgress: boolean;
     allowSkip: boolean;

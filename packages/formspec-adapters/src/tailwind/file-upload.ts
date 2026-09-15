@@ -1,5 +1,5 @@
 /** @filedesc Tailwind adapter for FileUpload — drag-drop zone with styled file input. */
-import type { FileUploadBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { uiText, watchText, type FileUploadBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
 import { createTailwindFieldDOM } from './shared';
 
@@ -13,7 +13,7 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
         class: 'flex justify-center rounded-lg border-2 border-dashed border-[color:var(--formspec-tw-border)] px-6 py-10 transition-colors',
         tabindex: '0',
         role: 'button',
-        'aria-label': 'Drop files here or press Enter to browse',
+        'aria-label': uiText(actx.engine, 'fileUpload.dropzoneKeyboard').value,
     });
 
     dropZone.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -34,7 +34,7 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
     const browseLabel = el('span', {
         class: 'relative cursor-pointer rounded-md font-medium text-[var(--formspec-tw-accent)] hover:text-[var(--formspec-tw-accent)]',
     });
-    browseLabel.textContent = 'Upload a file';
+    watchText(actx, uiText(actx.engine, 'fileUpload.browse'), (text) => { browseLabel.textContent = text; });
     textRow.appendChild(browseLabel);
     textRow.appendChild(document.createTextNode('\u00a0or drag and drop'));
     inner.appendChild(textRow);

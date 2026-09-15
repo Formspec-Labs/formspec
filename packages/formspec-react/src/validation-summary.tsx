@@ -3,6 +3,7 @@
 /** @filedesc ValidationSummary — displays validation results with jump-to-field links. */
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import { useFormspecContext } from './context';
+import { useChromeText } from './use-chrome-text';
 import { useSignal } from './use-signal';
 
 export interface ValidationSummaryProps {
@@ -98,18 +99,15 @@ export function ValidationSummary({
 
     const errors = useMemo(() => deduped.filter(r => r.severity === 'error'), [deduped]);
     const warnings = useMemo(() => deduped.filter(r => r.severity === 'warning'), [deduped]);
+    const chrome = useChromeText();
     const hasErrors = errors.length > 0;
     const hasWarnings = warnings.length > 0;
     const summaryClassName = className
         ? `formspec-validation-summary formspec-validation-summary--visible ${className}`
         : 'formspec-validation-summary formspec-validation-summary--visible';
     const headerText = hasErrors
-        ? (errors.length === 1
-            ? 'Please fix this error before continuing:'
-            : `Please fix these ${errors.length} errors before continuing:`)
-        : (warnings.length === 1
-            ? 'Please review this warning before continuing:'
-            : `Please review these ${warnings.length} warnings before continuing:`);
+        ? chrome(errors.length === 1 ? 'validationSummary.fixOne' : 'validationSummary.fixMany', { count: errors.length })
+        : chrome(warnings.length === 1 ? 'validationSummary.reviewOne' : 'validationSummary.reviewMany', { count: warnings.length });
 
     // Auto-focus the summary container when errors appear
     useEffect(() => {

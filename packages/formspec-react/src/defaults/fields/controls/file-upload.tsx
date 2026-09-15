@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { CommonInputProps } from '../field-control-types';
 import { formatBytes } from '../format-bytes';
+import { useChromeText } from '../../../use-chrome-text';
 
 function filesFromFieldValue(value: unknown, multiple: boolean | undefined): File[] {
     if (value == null) return [];
@@ -37,6 +38,7 @@ function shouldPreserveLocalFiles(value: unknown, prev: File[], next: File[]): b
 
 /** Item 22: FileUpload with drag-drop zone and maxSize validation. */
 export function FileUploadControl({ field, node, common, isReadonly }: CommonInputProps) {
+    const chrome = useChromeText();
     const accept = node.props?.accept as string | undefined;
     const multiple = node.props?.multiple as boolean | undefined;
     const maxSize = node.props?.maxSize as number | undefined;
@@ -174,7 +176,7 @@ export function FileUploadControl({ field, node, common, isReadonly }: CommonInp
                 className={`formspec-file-drop-zone formspec-focus-ring${isDragOver ? ' formspec-file-drop-zone--active' : ''}`}
                 tabIndex={isReadonly ? -1 : 0}
                 role="button"
-                aria-label="Drop files here or click to browse"
+                aria-label={chrome('fileUpload.dropzone')}
                 onKeyDown={(e) => {
                     if (isReadonly) return;
                     if (e.key === 'Enter' || e.key === ' ') {

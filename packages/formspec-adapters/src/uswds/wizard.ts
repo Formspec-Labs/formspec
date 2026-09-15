@@ -10,7 +10,6 @@ import {
     createWizardNav,
     createWizardPanelShell,
     initWizardRoot,
-    stepTitle,
 } from '../shared/wizard-chrome.js';
 
 export const renderWizard: AdapterRenderFn<WizardBehavior> = (
@@ -84,7 +83,7 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
                 panelHeading.id = panelLabelId;
                 panelHeading.className =
                     'usa-step-indicator__heading formspec-uswds-wizard__panel-heading';
-                panelHeading.textContent = stepTitle(behavior.steps, i);
+                watchText(actx, behavior.stepTitle(i), (text) => { panelHeading.textContent = text; });
                 panelEl.appendChild(panelHeading);
             },
         });
@@ -117,14 +116,17 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
 
             const segLabel = document.createElement('span');
             segLabel.className = 'usa-step-indicator__segment-label';
-            segLabel.textContent = stepTitle(behavior.steps, i);
+            watchText(actx, behavior.stepTitle(i), (text) => { segLabel.textContent = text; });
             segment.appendChild(segLabel);
 
             segmentsList.appendChild(segment);
         }
         if (currentStepSpan) currentStepSpan.textContent = '1';
         if (totalStepsSpan) totalStepsSpan.textContent = ` of ${behavior.totalSteps()}`;
-        if (headingText) headingText.textContent = stepTitle(behavior.steps, 0);
+        if (headingText) {
+            const heading = headingText;
+            watchText(actx, behavior.activeStepTitle, (text) => { heading.textContent = text; });
+        }
     }
 
     const stepIndicators = segmentsList
@@ -159,7 +161,6 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
             }
         }
         if (currentStepSpan) currentStepSpan.textContent = String(activeIdx + 1);
-        if (headingText) headingText.textContent = stepTitle(behavior.steps, activeIdx);
     };
 
     const dispose = behavior.bind({

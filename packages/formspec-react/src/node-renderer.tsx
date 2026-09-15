@@ -19,6 +19,7 @@ import {
 import type { LayoutNode } from '@formspec-org/layout';
 import type { ResponseActionInvokerResult, SubmitResult } from './context';
 import { useFormspecContext } from './context';
+import { useChromeText } from './use-chrome-text';
 import { useSignal } from './use-signal';
 import { useField } from './use-field';
 import { useForm } from './use-form';
@@ -145,6 +146,7 @@ function actionResultMessage(
 }
 
 function ActionButtonNode({ node }: { node: LayoutNode }) {
+    const chrome = useChromeText();
     const {
         onSubmit,
         onHostEvent,
@@ -171,7 +173,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     // renderer's generic fallback. This keeps product copy in structured data.
     const label = resolveActionButtonLabel(
         node.props?.label ?? resolution.action?.label,
-        'Submit',
+        chrome('action.submit'),
     );
     const actionNeedAnchors = generationNeedAnchors(resolution.action);
     const needAttrs = needTraceAttrs([...(node.needAnchors ?? []), ...actionNeedAnchors]);
@@ -289,7 +291,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             return inFlightRef.current;
         }
 
-        setFeedback({ phase: 'pending', message: 'In progress.' });
+        setFeedback({ phase: 'pending', message: chrome('action.inProgress') });
         const invocation = invoke(invocationContext);
         const tracked = invocation.then(
             (result) => {
