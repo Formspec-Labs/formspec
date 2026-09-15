@@ -270,6 +270,16 @@ Normative requirements:
   adapter does; a compiled design system bakes its palette in at adapter build
   time, so a Theme for one SHOULD NOT restate that palette.
 
+Presentation has an escape-hatch ladder, in ascending order of last resort:
+design tokens (§3) for a value a scale already covers; `widget`/`widgetConfig`
+(§4) for a variant the design system ships; `cssClass`, but only within the
+vocabulary of the adapter this Theme names — an adapter publishes that
+vocabulary (generated from its compiled stylesheet, never hand-listed), and a
+renderer SHOULD warn once per unknown class rather than render it silently;
+inline `style` last, since it bypasses the design system with no signal at
+all. Reach for the next rung only when the current one cannot express the
+need.
+
 ### 2.5 Theme Versioning
 
 The `version` property is a free-form string. Semantic versioning

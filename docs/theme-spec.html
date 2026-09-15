@@ -822,6 +822,16 @@ product shell, and a public page render one document identically.</li>
 palette in at adapter build time, so a Theme for one SHOULD NOT restate
 that palette.</li>
 </ul>
+<p>Presentation has an escape-hatch ladder, in ascending order of last
+resort: design tokens (§3) for a value a scale already covers;
+<code>widget</code>/<code>widgetConfig</code> (§4) for a variant the
+design system ships; <code>cssClass</code>, but only within the
+vocabulary of the adapter this Theme names — an adapter publishes that
+vocabulary (generated from its compiled stylesheet, never hand-listed),
+and a renderer SHOULD warn once per unknown class rather than render it
+silently; inline <code>style</code> last, since it bypasses the design
+system with no signal at all. Reach for the next rung only when the
+current one cannot express the need.</p>
 <h3 id="theme-versioning">2.5 Theme Versioning</h3>
 <p>The <code>version</code> property is a free-form string. Semantic
 versioning (SemVer) is RECOMMENDED. The pair (<code>url</code>,
