@@ -87,9 +87,14 @@ describe('USWDS rules layer carries only Formspec\'s own rules (ADR 0063 D-4)', 
         expect(declarationsFor(css, '.formspec-rich-paragraph')).toMatch(/margin-top:0;margin-bottom:0/);
     });
 
-    it("zeroes the UA legend padding inside the render root, as USWDS's normalize does page-wide", () => {
-        // Without it a question's title sits 2px right of its hint on any page that lacks USWDS's global reset.
-        expect(declarationsFor(css, '.formspec-container legend')).toMatch(/padding:0/);
+    it("carries USWDS's own reset, scoped to the render root at zero specificity", () => {
+        // A page without USWDS's global CSS would otherwise leave UA styles on what the adapter renders: a
+        // 2px legend inset, 13px Arial on radio, checkbox and date-picker buttons, UA control margins.
+        expect(declarationsFor(css, ':where(.formspec-container) legend')).toMatch(/padding:0/);
+        expect(declarationsFor(css, ':where(.formspec-container) button')).toMatch(/font-family:inherit/);
+        // `:where()` keeps the reset at element specificity, so USWDS's component classes still win over it,
+        // as they do over the page-wide normalize. Plain nesting under the class would invert that.
+        expect(css).not.toMatch(/(^|[},])\.formspec-container (legend|button|input)\b/);
     });
 
     it('keeps the native modal dialog in the top layer and scrollable', () => {

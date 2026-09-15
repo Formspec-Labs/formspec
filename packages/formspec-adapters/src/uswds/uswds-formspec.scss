@@ -21,6 +21,7 @@
 // layer's own `usa-form` forward — harmless: only the `@extend`ed, `.formspec-container`-merged copy
 // here ever reaches the real render root, since no DOM element carries a literal `usa-form` class.
 @use 'usa-form/src/styles/usa-form';
+@use 'sass:meta';
 
 // -- Configuration variables (overridable via theme) --
 $fs-wizard-panel-max-width: 32rem !default;
@@ -54,11 +55,16 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   margin-top: var(--formspec-spacing-field, #{units(3)});
 }
 
-// USWDS's normalize zeroes legend padding page-wide; the base layer forwards no global reset, so on a page
-// without USWDS's own CSS the UA's 2px would inset every question and group title from its hint. Scoped to
-// the render root, so a host page's own legends are left alone.
-.formspec-container legend {
-  padding: 0;
+// USWDS's own reset — normalize and its element styles — scoped to the render root. The base layer forwards
+// no page-wide reset, so a host page is never restyled; without this, on a page that lacks USWDS's global
+// CSS, the browser's defaults reach what the adapter renders (a 2px legend inset, 13px Arial and UA margins
+// on radio, checkbox and date-picker controls). `:where()` keeps each rule at element specificity, exactly as
+// the page-wide reset sits, so USWDS component classes still override it; plain nesting under the class
+// would raise it above them. The reset's `html`/`body` rules compile to selectors that cannot match inside
+// the form — harmless — which is why box-sizing (`.usa-form` above) and headings keep their own rules.
+:where(.formspec-container) {
+  @include meta.load-css('uswds-elements/lib/normalize');
+  @include meta.load-css('uswds-elements');
 }
 
 // USWDS types its own paragraphs with `typeset-p`: no block margins, one paragraph gap only between
