@@ -37,6 +37,7 @@ import {
 } from './display-components';
 import { renderDefaultConditionalGroup, renderDefaultDataTable } from './special-adapters';
 import { renderGroup, renderRepeatGroup } from './group';
+import { renderRepeatCards } from './repeat-cards';
 
 export const defaultAdapter: RenderAdapter = {
     name: 'default',
@@ -78,5 +79,6 @@ export const defaultAdapter: RenderAdapter = {
         Tabs: renderTabs,
         Group: renderGroup,
         RepeatGroup: renderRepeatGroup,
+        RepeatCards: renderRepeatCards,
     },
 };

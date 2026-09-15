@@ -6,10 +6,11 @@ import { InputPlugins } from './inputs';
 import { HeadingPlugin, TextPlugin, CardPlugin, AlertPlugin, BadgePlugin, ProgressBarPlugin, SummaryPlugin, ValidationSummaryPlugin } from './display';
 import { TabsPlugin, ActionButtonPlugin } from './interactive';
 import { ConditionalGroupPlugin, DataTablePlugin } from './special';
+import { HiddenPlugin } from './hidden';
 
 /**
- * Registers all 33 built-in component plugins with the global registry.
- * Includes layout (9), input (12), display (8), interactive (2), and special (2) plugins.
+ * Registers the built-in component plugins — layout, input, display, interactive, special, and the
+ * `Hidden` presentation widget — with the global registry. The list below is the inventory.
  * Wizard behavior is driven by formPresentation.pageMode, not a component plugin.
  */
 export function registerDefaultComponents() {
@@ -27,5 +28,6 @@ export function registerDefaultComponents() {
     globalRegistry.register(ValidationSummaryPlugin);
     globalRegistry.register(ConditionalGroupPlugin);
     globalRegistry.register(DataTablePlugin);
+    globalRegistry.register(HiddenPlugin);
     globalRegistry.registerAdapter(defaultAdapter);
 }

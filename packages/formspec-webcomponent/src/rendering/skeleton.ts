@@ -6,7 +6,7 @@ import { globalRegistry } from '../registry';
 import type { AdapterContext } from '../adapters/types';
 import type { DisplayHostSlice } from '../adapters/display-host';
 import type { LayoutHostSlice } from '../adapters/layout-host';
-import { nodeDescriptor } from './emit-node';
+import { nodeDescriptor, repeatAdapterType } from './emit-node';
 
 /** A path is conditional when its Bind carries a `relevant` expression, indices aside. */
 function conditionalMatcher(conditionalPaths: ReadonlySet<string>) {
@@ -122,10 +122,12 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
             const path = current.bindPath ?? String(current.props.bind);
             const label = options.itemLabel?.(path) ?? String(current.props.bind);
             const count = Math.max(1, options.repeatCount?.(path) ?? 1);
-            attempt('RepeatGroup', {
+            // Same routing as the live render, so the swap does not change the repeat's shape.
+            attempt(repeatAdapterType(current, adapterName), {
                 comp: current,
                 host: layoutHost(into, headingLevel),
                 bindKey: String(current.props.bind),
+                headingLevel: `h${Math.min(headingLevel, 6)}`,
                 addLabel: signal(`Add ${label}`),
                 renderRows: (build: (rows: unknown) => void) => build({
                     count,

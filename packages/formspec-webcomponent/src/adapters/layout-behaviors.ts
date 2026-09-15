@@ -121,11 +121,15 @@ export interface RepeatGroupRefs {
     announcer?: HTMLElement;
 }
 
-/** One repeat row's text, all following the active locale and `{{}}` values. */
+/**
+ * One repeat row's text, all following the active locale and `{{}}` values. Each comes from the group's
+ * Locale strings (`<key>.rowLabel` / `<key>.removeLabel`, Locale §3.1.1) and is derived from the group
+ * label only when the Locale is silent.
+ */
 export interface RepeatRowText {
-    /** "Employer 1" */
+    /** "Employer 1". Empty when the Locale suppresses the row heading: draw no heading, keep {@link ariaLabel}. */
     label: LocalizedText;
-    /** "Employer 1 of 3" */
+    /** "Employer 1 of 3" — the row's accessible name, never empty. */
     ariaLabel: LocalizedText;
     /** "Remove Employer" */
     removeLabel: LocalizedText;
@@ -152,7 +156,9 @@ export interface RepeatGroupLayoutBehavior {
     host: LayoutHostSlice;
     /** The repeated group's key, as authored. */
     bindKey: string;
-    /** "Add Employer" */
+    /** Heading tag for a row heading at this depth: `'h3'`…`'h6'`. */
+    headingLevel: string;
+    /** "Add Employer" — Locale `<key>.addLabel`, else derived from the group label. */
     addLabel: LocalizedText;
     /**
      * Build the rows now and again whenever the count or Remove availability changes. Each pass

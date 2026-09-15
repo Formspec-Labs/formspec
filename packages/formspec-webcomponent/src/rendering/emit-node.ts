@@ -100,6 +100,18 @@ function adapterContextFor(host: RenderHost, cleanupFns: Array<() => void>): Ada
     };
 }
 
+/**
+ * Which render draws a repeatable group's chrome: the theme's repeat presentation (theme §4.2
+ * `RepeatCards`) when the active adapter has one, else the group's default repeat chrome. Both take the
+ * same behavior, so the fallback is a different shape around the same rows — never a dropped group.
+ */
+export function repeatAdapterType(node: LayoutNode, adapterName: string): string {
+    const presentation = node.repeatPresentation;
+    return presentation && globalRegistry.resolveAdapterFn(presentation, adapterName)
+        ? presentation
+        : 'RepeatGroup';
+}
+
 /** The renderer owns tree recursion; group behaviors only ask for a child in a given scope. */
 const emitChild = (host: RenderHost): EmitChild =>
     (child, parent, prefix, headingLevel, scope) => emitNode(host, child, parent, prefix, headingLevel, scope);
@@ -220,7 +232,8 @@ export function emitNode(
     }
 
     if (node.isRepeatTemplate && node.props.bind) {
-        emitThroughAdapter(host, node, target, cleanupFns, 'RepeatGroup',
+        emitThroughAdapter(host, node, target, cleanupFns,
+            repeatAdapterType(node, host.resolvedAdapterName),
             buildRepeatGroupBehavior(host, node, prefix, headingLevel, cleanupFns, emitChild(host)));
         return;
     }

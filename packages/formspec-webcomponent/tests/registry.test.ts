@@ -46,6 +46,8 @@ describe('ComponentRegistry', () => {
             'Tabs', 'ActionButton',
             // Special
             'ConditionalGroup', 'DataTable',
+            // Presentation widgets (theme §4.2) — no markup, so no adapter render
+            'Hidden',
         ];
 
         for (const type of expectedTypes) {

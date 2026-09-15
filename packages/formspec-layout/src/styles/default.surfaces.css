@@ -129,6 +129,18 @@ hr.formspec-divider {
   box-shadow: var(--formspec-default-shadow-elevation-5);
 }
 
+/* Card interior — the RepeatCards row shape: heading, the row's fields, then Remove. */
+.formspec-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--formspec-spacing-field, 0.75rem);
+}
+
+.formspec-card-footer {
+  display: flex;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
 .formspec-card-title,
 .formspec-group-title {
   margin: 0 0 0.5rem;
