@@ -31,6 +31,8 @@ export interface ResolvedPresentationBlock {
     accessibility?: { role?: string; description?: string; liveRegion?: string };
     cssClass?: string | string[];
     fallback?: string[];
+    /** Theme `requiredIndicator` (§5.2): `'none'` hides the visible required marker; `aria-required` is unaffected. */
+    requiredIndicator?: 'marker' | 'none';
 }
 
 export interface FieldRefs {

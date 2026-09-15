@@ -2,6 +2,7 @@
 import { effect, untracked } from '@preact/signals-core';
 import type { FieldBehavior } from '../../behaviors/types';
 import type { AdapterContext } from '../types';
+import { writeRichText } from '../rich-text-dom.js';
 
 export interface FieldDOMOptions {
     /** Set false for group controls where the label shouldn't target a single input. Default true. */
@@ -58,7 +59,8 @@ export function createFieldDOM(
 
     const label = document.createElement(asGroup ? 'legend' : 'label');
     label.className = asGroup ? 'formspec-legend' : 'formspec-label';
-    label.textContent = labelText;
+    // Label and legend take phrasing content only, so the rich-text subset renders inline (core §4.2.1).
+    writeRichText(label, labelText, { inline: true });
     if (asGroup) {
         label.id = `${fieldId}-label`;
     } else if (options?.labelFor !== false) {
@@ -79,14 +81,15 @@ export function createFieldDOM(
     const desc = document.createElement('div');
     desc.className = 'formspec-description';
     desc.id = descId;
-    desc.textContent = descText ?? '';
+    writeRichText(desc, descText);
     desc.hidden = !descText;
     root.appendChild(desc);
 
-    const hint = document.createElement('p');
+    // A div, not a p: a hint carrying the rich-text subset may hold paragraphs and a list, which a <p> cannot.
+    const hint = document.createElement('div');
     hint.className = 'formspec-hint';
     hint.id = hintId;
-    hint.textContent = hintText ?? '';
+    writeRichText(hint, hintText);
     hint.hidden = !hintText;
     if (slots.hint) actx.applyClassValue(hint, slots.hint);
     root.appendChild(hint);
@@ -112,7 +115,8 @@ export function finalizeFieldDOM(
 ): void {
     const vm = behavior.vm;
     const isRequired = vm ? untracked(() => vm.required.value) : false;
-    if (isRequired && !fieldDOM.label.querySelector('.formspec-required')) {
+    const showMarker = behavior.presentation.requiredIndicator !== 'none';
+    if (isRequired && showMarker && !fieldDOM.label.querySelector('.formspec-required')) {
         const marker = document.createElement('abbr');
         marker.className = 'formspec-required usa-label--required';
         marker.setAttribute('title', 'required');

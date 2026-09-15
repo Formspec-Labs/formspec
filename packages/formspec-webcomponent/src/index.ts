@@ -102,6 +102,8 @@ export { createSignatureCanvas } from './adapters/signature-canvas';
 export { createCharacterCount } from './adapters/character-count';
 export { renderDividerDOM } from './adapters/divider';
 export { watchText } from './adapters/watch-text';
+export { writeRichText } from './adapters/rich-text-dom';
+export type { RichTextOptions } from './adapters/rich-text-dom';
 export type { DividerClasses } from './adapters/divider';
 export type { CharacterCountConfig, CharacterCountResult } from './adapters/character-count';
 export type { SignatureCanvasConfig, SignatureCanvasResult } from './adapters/signature-canvas';

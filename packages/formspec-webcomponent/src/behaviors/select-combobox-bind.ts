@@ -2,7 +2,7 @@
 import { optionMatchesComboboxQuery } from '@formspec-org/engine';
 import { effect } from '@preact/signals-core';
 import type { FieldViewModel } from '@formspec-org/engine';
-import type { BehaviorContext, FieldRefs } from './types';
+import type { BehaviorContext, FieldRefs, ResolvedPresentationBlock } from './types';
 import { bindSharedFieldEffects } from './shared';
 
 export interface SelectComboboxBindOpts {
@@ -14,6 +14,7 @@ export interface SelectComboboxBindOpts {
     placeholder: string;
     vm: FieldViewModel | undefined;
     labelText: string;
+    presentation: ResolvedPresentationBlock;
     getOptions: () => ReadonlyArray<{ value: string; label: string; keywords?: string[] }>;
 }
 
@@ -31,11 +32,12 @@ export function bindSelectCombobox(
         placeholder,
         vm,
         labelText,
+        presentation,
         getOptions,
     } = opts;
 
     refs.skipSharedReadonlyControl = true;
-    const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs);
+    const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
 
     const root = refs.control;
     const input = root.querySelector('.formspec-combobox-input') as HTMLInputElement;

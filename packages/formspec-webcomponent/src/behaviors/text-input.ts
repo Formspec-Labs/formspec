@@ -94,7 +94,7 @@ export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInp
         },
 
         bind(refs: FieldRefs): () => void {
-            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs);
+            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
 
             // Resolve the actual input element once for both sync directions
             const inputEl = refs.control.querySelector('input') || refs.control.querySelector('textarea') || refs.control;

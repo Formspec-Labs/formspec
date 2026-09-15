@@ -95,7 +95,7 @@ export function useMoneyInput(ctx: BehaviorContext, comp: any): MoneyInputBehavi
         },
 
         bind(refs: FieldRefs): () => void {
-            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs);
+            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
 
             // Find amount and currency inputs by class name convention
             const amountInput = refs.control.querySelector('input.formspec-money-amount') as HTMLInputElement | null;

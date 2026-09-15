@@ -22,6 +22,16 @@ export interface FieldViewModel {
     readonly description: ReadonlyEngineSignal<string | null>;
     readonly descriptionNeedAnchors: ReadonlyEngineSignal<string[]>;
 
+    // ── Presentation templates (locale-resolved, NOT yet interpolated) ──
+    // The string the author wrote, after the Locale cascade picked which one wins and before `{{}}` runs.
+    // A renderer that gives authored text structure — the core §4.2.1 rich-text subset — parses THIS and
+    // interpolates the leaves, so a respondent's value can never open a markup boundary the author did not.
+    readonly labelTemplate: ReadonlyEngineSignal<string>;
+    readonly hintTemplate: ReadonlyEngineSignal<string | null>;
+    readonly descriptionTemplate: ReadonlyEngineSignal<string | null>;
+    /** Resolve `{{expression}}` in this field's binding scope (Locale §3.3.1). */
+    interpolate(template: string): string;
+
     // ── State ──
     readonly value: ReadonlyEngineSignal<any>;
     readonly required: ReadonlyEngineSignal<boolean>;
@@ -99,6 +109,8 @@ const CODE_SYNTHESIS: Record<string, string> = {
 
 export interface ResolvedPresentationString<T extends string | null> {
     value: T;
+    /** The winning string before `{{}}` interpolation — what the author wrote. */
+    template: T;
     needAnchors: string[];
 }
 
@@ -132,6 +144,7 @@ function resolveLocaleItemString(
         if (fromLocale.value !== null) {
             return {
                 value: interpolate(fromLocale.value),
+                template: fromLocale.value,
                 needAnchors: [...(fromLocale.needAnchors ?? [])],
             };
         }
@@ -165,9 +178,9 @@ export function resolveItemHelpText(source: ItemHelpTextSource): ResolvedPresent
         return fromLocale;
     }
     if (inlineText === null || inlineText === undefined) {
-        return { value: null, needAnchors: [] };
+        return { value: null, template: null, needAnchors: [] };
     }
-    return { value: interpolate(inlineText), needAnchors: [] };
+    return { value: interpolate(inlineText), template: inlineText, needAnchors: [] };
 }
 
 /**
@@ -181,7 +194,7 @@ export function resolveItemLabel(source: ItemLabelSource): ResolvedPresentationS
         return fromLocale;
     }
     const definitionLabel = (context ? labels?.[context] : undefined) || source.inlineLabel || '';
-    return { value: interpolate(definitionLabel), needAnchors: [] };
+    return { value: interpolate(definitionLabel), template: definitionLabel, needAnchors: [] };
 }
 
 // ── Factory ─────────────────────────────────────────────────────────
@@ -214,16 +227,19 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         interpolate,
     }));
     const label = rx.computed(() => labelResolution.value.value);
+    const labelTemplate = rx.computed(() => labelResolution.value.template);
     const labelNeedAnchors = rx.computed(() => labelResolution.value.needAnchors);
 
     // ── Hint / description: Locale @context → Locale → inline ──
 
     const hintResolution = rx.computed(() => helpText('hint', deps.getItemHint()));
     const hint = rx.computed(() => hintResolution.value.value);
+    const hintTemplate = rx.computed(() => hintResolution.value.template);
     const hintNeedAnchors = rx.computed(() => hintResolution.value.needAnchors);
 
     const descriptionResolution = rx.computed(() => helpText('description', deps.getItemDescription()));
     const description = rx.computed(() => descriptionResolution.value.value);
+    const descriptionTemplate = rx.computed(() => descriptionResolution.value.template);
     const descriptionNeedAnchors = rx.computed(() => descriptionResolution.value.needAnchors);
 
     // ── State signals: wrap existing engine signals ──
@@ -369,6 +385,10 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         hintNeedAnchors,
         description,
         descriptionNeedAnchors,
+        labelTemplate,
+        hintTemplate,
+        descriptionTemplate,
+        interpolate,
         value,
         required,
         visible,

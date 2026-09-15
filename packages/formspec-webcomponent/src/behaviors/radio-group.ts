@@ -63,7 +63,7 @@ export function useRadioGroup(ctx: BehaviorContext, comp: any): RadioGroupBehavi
         },
 
         bind(refs: FieldRefs): () => void {
-            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs);
+            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
 
             // Register change listeners on each radio via optionControls
             if (refs.optionControls) {

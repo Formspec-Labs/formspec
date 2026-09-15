@@ -4,6 +4,7 @@ import { type PresentationBlock, COMPATIBILITY_MATRIX } from '@formspec-org/layo
 import type { RegistryEntry } from '@formspec-org/types';
 import type { ResolvedPresentationBlock, FieldRefs, BehaviorContext } from './types';
 import type { FieldViewModel } from '@formspec-org/engine';
+import { writeRichText } from '../adapters/rich-text-dom.js';
 
 /** Registry entry metadata is an open object in schema; narrow for behavior reads. */
 export function readRegistryMetadata(entry: RegistryEntry | undefined): Record<string, unknown> {
@@ -69,11 +70,22 @@ export function resolveFieldText(
     }));
 }
 
-/** Set a hint/description element's text, hiding it while empty. */
-function showFieldText(el: HTMLElement | null | undefined, text: string | null | undefined): void {
+/**
+ * Set a hint/description element through the rich-text subset (core §4.2.1), hiding it while empty.
+ *
+ * `template` is the authored string and `interpolate` fills its leaves, so the markup boundary is the author's
+ * and a respondent's value is always literal text. `resolved` decides visibility only — a template that
+ * interpolates to an empty string still hides the element.
+ */
+function showFieldText(
+    el: HTMLElement | null | undefined,
+    resolved: string | null | undefined,
+    template: string | null | undefined,
+    interpolate: (t: string) => string,
+): void {
     if (!el) return;
-    el.textContent = text ?? '';
-    el.hidden = !text;
+    writeRichText(el, template, { interpolate });
+    el.hidden = !resolved;
 }
 
 /** Set (or with `null`, remove) an attribute only when it changes: field effects re-run on every touch. */
@@ -112,7 +124,8 @@ export function bindSharedFieldEffects(
     fieldPath: string,
     vm: FieldViewModel | undefined,
     labelText: string,
-    refs: FieldRefs
+    refs: FieldRefs,
+    presentation?: ResolvedPresentationBlock,
 ): Array<() => void> {
     const disposers: Array<() => void> = [];
 
@@ -129,14 +142,21 @@ export function bindSharedFieldEffects(
     const checkboxGroup = [...(refs.optionControls?.values() ?? [])][0]?.type === 'checkbox';
     const stateTarget = checkboxGroup || refs.control.getAttribute('role') === 'radiogroup' ? refs.control : actualInput;
 
+    // Theme `requiredIndicator: 'none'` drops the visible asterisk only — a form where every field is required
+    // marks nothing useful by marking everything (theme §5.2). aria-required below is untouched: assistive
+    // technology reads the state, not the marker.
+    const showRequiredMarker = presentation?.requiredIndicator !== 'none';
+
     // Required indicator + reactive label
     disposers.push(effect(() => {
         const isRequired = vm
             ? vm.required.value
             : (ctx.engine.requiredSignals[fieldPath]?.value ?? false);
-        const currentLabel = vm ? vm.label.value : labelText;
-        refs.label.textContent = currentLabel;
-        if (isRequired) {
+        // A label's content model is phrasing only, so the subset renders inline here (core §4.2.1). With a
+        // view model the parse runs on the authored template and the values fill its leaves.
+        if (vm) writeRichText(refs.label, vm.labelTemplate.value, { inline: true, interpolate: vm.interpolate });
+        else writeRichText(refs.label, labelText, { inline: true });
+        if (isRequired && showRequiredMarker) {
             const indicator = document.createElement('abbr');
             indicator.className = 'formspec-required usa-label--required';
             indicator.setAttribute('title', 'required');
@@ -182,8 +202,8 @@ export function bindSharedFieldEffects(
     // hidden while empty; text that appears or clears later toggles visibility and aria-describedby.
     if (vm) {
         disposers.push(effect(() => {
-            showFieldText(refs.hint, vm.hint.value);
-            showFieldText(descEl, vm.description.value);
+            showFieldText(refs.hint, vm.hint.value, vm.hintTemplate.value, vm.interpolate);
+            showFieldText(descEl, vm.description.value, vm.descriptionTemplate.value, vm.interpolate);
             syncDescribedBy();
         }));
     }

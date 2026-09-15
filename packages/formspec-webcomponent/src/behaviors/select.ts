@@ -94,6 +94,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
                         placeholder: placeholderText,
                         vm,
                         labelText,
+                        presentation,
                         getOptions: () =>
                             ctx.engine.getOptions?.(fieldPath) || item?.options || [],
                     },
@@ -101,7 +102,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
                 );
             }
 
-            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs);
+            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
 
             const selectEl = refs.control.querySelector('select') || refs.control;
 

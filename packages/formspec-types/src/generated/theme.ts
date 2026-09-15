@@ -71,11 +71,17 @@ export type PresentationBlock = {
     | 'Panel'
     | 'Modal'
     | 'Popover'
+    | 'RepeatCards'
+    | 'Hidden'
   )[];
   /**
    * CSS class name(s) applied to matching items. UNIQUE CASCADE BEHAVIOR: unlike all other PresentationBlock properties, cssClass uses union semantics — classes accumulate across cascade levels (defaults + selectors + item overrides) with duplicates removed. Order preserved: defaults first, then selectors in document order, then item overrides. This ensures adding a class at one level does not remove classes from other levels.
    */
   cssClass?: string | string[];
+  /**
+   * Whether a required item shows a visible required marker (the asterisk) beside its label. 'marker' (the processing-model default when absent) shows it; 'none' suppresses it — the posture for a form where every field is required, which marks nothing useful by marking everything. Cascades like any other PresentationBlock property, so a selector or per-item override can restore the marker on the one optional field. Visible marker only: a renderer MUST leave the programmatic required signal (aria-required, or its platform equivalent) unchanged, because assistive technology reads the state, not the asterisk. Theme specification §5.2.
+   */
+  requiredIndicator?: 'marker' | 'none';
 };
 /**
  * Criteria for which items this selector applies to. MUST contain at least one of 'type' or 'dataType'. When both are present, an item must satisfy both (AND semantics).

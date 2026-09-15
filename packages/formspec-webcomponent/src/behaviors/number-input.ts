@@ -62,7 +62,7 @@ export function useNumberInput(ctx: BehaviorContext, comp: any): NumberInputBeha
         },
 
         bind(refs: FieldRefs): () => void {
-            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs);
+            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
 
             const bindableInput = refs.control.querySelector('input') || refs.control;
 

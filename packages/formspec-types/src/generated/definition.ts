@@ -27,7 +27,7 @@ export type Item = {
    */
   type: 'group' | 'field' | 'display';
   /**
-   * Primary human-readable label. Implementations MUST display this (or a 'labels' alternative) when rendering the Item. MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1).
+   * Primary human-readable label. Implementations MUST display this (or a 'labels' alternative) when rendering the Item. MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1). MAY use the rich-text subset — paragraphs, '- ' lists, **strong**, _emphasis_, [text](https|http|mailto URI) and nothing else — parsed after interpolation, with interpolated values always literal (core §4.2.1).
    */
   label: string;
   /**
@@ -35,7 +35,7 @@ export type Item = {
    */
   description?: string;
   /**
-   * Short instructional text displayed alongside the input (e.g., below the label or as placeholder guidance). Distinct from 'description', which is typically shown on demand. MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1).
+   * Short instructional text displayed alongside the input (e.g., below the label or as placeholder guidance). Distinct from 'description', which is typically shown on demand. MAY contain FEL {{expression}} interpolation evaluated in the Item's scope (core §4.2.1). MAY use the rich-text subset — paragraphs, '- ' lists, **strong**, _emphasis_, [text](https|http|mailto URI) and nothing else — parsed after interpolation, with interpolated values always literal (core §4.2.1).
    */
   hint?: string;
   /**

@@ -3,6 +3,7 @@ import { effect } from '@preact/signals-core';
 import type { AdapterContext } from '../types';
 import type { DisplayComponentBehavior } from '../display-behaviors';
 import { renderMarkdown } from '../display-markdown';
+import { writeRichText } from '../rich-text-dom.js';
 import { formatMoney } from '../../format';
 
 function applySurfaceProps(el: HTMLElement, comp: any, resolveToken: (value: unknown) => unknown): void {
@@ -29,7 +30,7 @@ export function renderDefaultHeading(behavior: DisplayComponentBehavior, parent:
         );
     } else {
         host.watchCompText(comp, 'text', comp.text || '', (text) => {
-            el.textContent = text;
+            writeRichText(el, text, { inline: true });
         });
     }
     actx.applyCssClass(el, comp);
@@ -63,8 +64,10 @@ export function renderDefaultText(behavior: DisplayComponentBehavior, parent: HT
         );
     } else {
         host.watchCompText(comp, 'text', comp.text || '', (text) => {
+            // `format: 'markdown'` is the Component-tier opt-in (wider grammar, HTML string); everything else
+            // goes through the core §4.2.1 subset, built as DOM.
             if (isMarkdown && text) el.innerHTML = renderMarkdown(text);
-            else el.textContent = text;
+            else writeRichText(el, text, { inline: true });
         });
     }
     actx.applyCssClass(el, comp);
@@ -133,7 +136,7 @@ export function renderDefaultAlert(behavior: DisplayComponentBehavior, parent: H
         );
     } else {
         host.watchCompText(comp, 'text', comp.text || '', (text) => {
-            textSpan.textContent = text;
+            writeRichText(textSpan, text, { inline: true });
         });
     }
     el.appendChild(textSpan);

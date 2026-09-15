@@ -90,7 +90,7 @@ export function useFileUpload(ctx: BehaviorContext, comp: any): FileUploadBehavi
         },
 
         bind(refs: FieldRefs): () => void {
-            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs);
+            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
 
             // Wire adapter's file-list rebuild callback
             fileListCallback = (refs as any)._rebuildFileList || null;

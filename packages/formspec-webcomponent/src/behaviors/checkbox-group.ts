@@ -66,7 +66,7 @@ export function useCheckboxGroup(ctx: BehaviorContext, comp: any): CheckboxGroup
         },
 
         bind(refs: FieldRefs): () => void {
-            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs);
+            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
             currentOptionControls = refs.optionControls;
 
             // Register change listeners on each checkbox via optionControls

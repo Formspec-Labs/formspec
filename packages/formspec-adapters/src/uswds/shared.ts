@@ -1,5 +1,6 @@
 /** @filedesc Shared DOM construction for USWDS field adapters — root, label, hint, error. */
 import type { FieldBehavior } from '@formspec-org/webcomponent';
+import { writeRichText } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
 import { buildOptionList, clearOptionNodes } from '../shared/option-list.js';
 import { createInputSkeleton, linkInputAdornments, type InputSkeletonOptions, type InputSkeletonResult } from '../shared/input-factory.js';
@@ -60,19 +61,23 @@ export function createUSWDSFieldDOM(
     }
 
     const label = el(asGroup ? 'legend' : 'label', labelAttrs);
-    label.textContent = behavior.label;
+    // Label and legend take phrasing content only, so the rich-text subset renders inline (core §4.2.1).
+    writeRichText(label, behavior.label, { inline: true });
     content.appendChild(label);
 
     // Description and hint (behavior resolves them through the view model: Locale + {{}} interpolation).
     // Always rendered, hidden while empty: interpolated text can arrive after render, and
     // bindSharedFieldEffects keeps text, visibility, and aria-describedby current.
     const desc = el('div', { class: 'usa-hint formspec-description', id: `${fieldId}-desc` });
-    desc.textContent = behavior.description ?? '';
+    writeRichText(desc, behavior.description);
     desc.hidden = !behavior.description;
     content.appendChild(desc);
 
-    const hint = el('span', { class: 'usa-hint', id: `${fieldId}-hint` });
-    hint.textContent = behavior.hint ?? '';
+    // A div, not a span: a hint carrying the rich-text subset may hold paragraphs and a `ul.usa-list`, neither
+    // of which is phrasing content. `usa-hint` is a type class, and the form group lays its children out as
+    // blocks either way.
+    const hint = el('div', { class: 'usa-hint', id: `${fieldId}-hint` });
+    writeRichText(hint, behavior.hint);
     hint.hidden = !behavior.hint;
     content.appendChild(hint);
 
@@ -158,7 +163,8 @@ export function renderUSWDSBooleanControl(
     input.name = behavior.fieldPath;
 
     const checkboxLabel = el('label', { class: 'usa-checkbox__label', for: behavior.id });
-    checkboxLabel.textContent = options.labelText;
+    // The certification checkbox carries a statute link inside its label — inline subset, `for` untouched.
+    writeRichText(checkboxLabel, options.labelText, { inline: true });
     if (behavior.presentation.labelPosition === 'hidden') checkboxLabel.classList.add('usa-sr-only');
 
     // Remove the original label from root — usa-checkbox uses its own label

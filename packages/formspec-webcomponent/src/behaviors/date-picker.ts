@@ -64,7 +64,7 @@ export function useDatePicker(ctx: BehaviorContext, comp: any): DatePickerBehavi
         },
 
         bind(refs: FieldRefs): () => void {
-            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs);
+            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
 
             const bindableInput = refs.control.querySelector('input') || refs.control;
 

@@ -2781,8 +2781,9 @@ The subset is display only: it never changes Instance data, validation, or the
 Response. A processor that does not implement it MUST render the source string
 as plain text — the `- ` bullets and `**` stay visible — and MUST NOT reject
 the Definition. Where the host presentation forbids block content (a field
-label, or a group's legend), a renderer MUST keep the inline constructs and MAY
-flatten paragraphs and list entries into line-separated inline runs.
+label, a group's legend, or a display element whose content model is phrasing
+only), a renderer MUST keep the inline constructs and MAY flatten paragraphs
+and list entries into line-separated inline runs.
 
 The retired EXT-1 `privacy` sibling block is not part of the Definition
 schema. Safe-address and other field-level protection semantics use

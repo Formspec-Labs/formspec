@@ -51,7 +51,7 @@ export function useToggle(ctx: BehaviorContext, comp: any): ToggleBehavior {
         },
 
         bind(refs: FieldRefs): () => void {
-            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs);
+            const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
 
             const checkbox = refs.control.querySelector('input[type="checkbox"]') || refs.control;
 

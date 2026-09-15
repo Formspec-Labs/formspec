@@ -5545,9 +5545,10 @@ characters renders exactly as written.</p>
 validation, or the Response. A processor that does not implement it MUST
 render the source string as plain text — the <code>-</code> bullets and
 <code>**</code> stay visible — and MUST NOT reject the Definition. Where
-the host presentation forbids block content (a field label, or a group’s
-legend), a renderer MUST keep the inline constructs and MAY flatten
-paragraphs and list entries into line-separated inline runs.</p>
+the host presentation forbids block content (a field label, a group’s
+legend, or a display element whose content model is phrasing only), a
+renderer MUST keep the inline constructs and MAY flatten paragraphs and
+list entries into line-separated inline runs.</p>
 <p>The retired EXT-1 <code>privacy</code> sibling block is not part of
 the Definition schema. Safe-address and other field-level protection
 semantics use <code>accessControl.class</code> and the Privacy Profile /

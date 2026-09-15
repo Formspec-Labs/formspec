@@ -44,6 +44,12 @@ function mockFieldVM(overrides: Partial<{
             label: computed(() => labelSig.value),
             hint: computed(() => hintSig.value),
             description: computed(() => descSig.value),
+            // A real VM carries the pre-interpolation template beside each resolved string; with no `{{}}` in
+            // these fixtures the two are the same string.
+            labelTemplate: computed(() => labelSig.value),
+            hintTemplate: computed(() => hintSig.value),
+            descriptionTemplate: computed(() => descSig.value),
+            interpolate: (t: string) => t,
             required: computed(() => requiredSig.value),
             visible: computed(() => visibleSig.value),
             readonly: computed(() => readonlySig.value),

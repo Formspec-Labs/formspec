@@ -4,6 +4,7 @@ import type { AdapterContext, DisplayComponentBehavior, DataTableBehavior } from
 import {
     formatMoney,
     renderMarkdown,
+    writeRichText,
     renderDefaultProgressBar,
     renderDefaultDataTable,
 } from '@formspec-org/webcomponent';
@@ -48,7 +49,7 @@ export function renderUSWDSHeading(behavior: DisplayComponentBehavior, parent: H
         );
     } else {
         host.watchCompText(comp, 'text', comp.text || '', (text) => {
-            el.textContent = text;
+            writeRichText(el, text, { inline: true });
         });
     }
     wrap.appendChild(el);
@@ -85,8 +86,10 @@ export function renderUSWDSText(behavior: DisplayComponentBehavior, parent: HTML
         );
     } else {
         host.watchCompText(comp, 'text', comp.text || '', (text) => {
+            // `format: 'markdown'` is the Component-tier opt-in (wider grammar, HTML string); everything else
+            // goes through the core §4.2.1 subset, built as DOM.
             if (isMarkdown && text) el.innerHTML = renderMarkdown(text);
-            else el.textContent = text;
+            else writeRichText(el, text, { inline: true });
         });
     }
     wrap.appendChild(el);
@@ -169,7 +172,7 @@ export function renderUSWDSAlert(behavior: DisplayComponentBehavior, parent: HTM
         );
     } else {
         host.watchCompText(comp, 'text', comp.text || comp.description || '', (text) => {
-            p.textContent = text;
+            writeRichText(p, text, { inline: true });
         });
     }
     body.appendChild(p);

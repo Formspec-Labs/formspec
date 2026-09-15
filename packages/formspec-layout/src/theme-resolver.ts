@@ -53,6 +53,12 @@ export interface PresentationBlock {
      * after the final union any exact matches from lower levels are removed.
      */
     cssClassReplace?: string | string[];
+    /**
+     * Whether a required item shows the visible required marker. `'none'` suppresses the asterisk and nothing
+     * else — the programmatic required state (`aria-required`) stays (theme spec §5.2). Absent means
+     * `'marker'`.
+     */
+    requiredIndicator?: 'marker' | 'none';
 }
 
 /** Criteria for a theme selector rule: matches items by type, dataType, or both. */
@@ -237,6 +243,7 @@ function mergeBlocks(lower: PresentationBlock, higher: PresentationBlock): Prese
     if (higher.widget !== undefined) merged.widget = higher.widget;
     if (higher.labelPosition !== undefined) merged.labelPosition = higher.labelPosition;
     if (higher.fallback !== undefined) merged.fallback = higher.fallback;
+    if (higher.requiredIndicator !== undefined) merged.requiredIndicator = higher.requiredIndicator;
 
     // cssClassReplace: higher level explicitly replaces matching lower classes
     const replaceClasses = normalizeCssClass(higher.cssClassReplace);
