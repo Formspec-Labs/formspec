@@ -53,6 +53,11 @@ export interface FieldRefs {
     skipSharedReadonlyControl?: boolean;
     /** When true, {@link bindSharedFieldEffects} sets `aria-describedby` on `refs.control` (group container) instead of the inner input. */
     skipAriaDescribedBy?: boolean;
+    /**
+     * Adapter-owned value carrier when the visible control is not the value element (USWDS date picker:
+     * hidden ISO input + `setCalendarValue`). Defaults to `control` when absent.
+     */
+    valueIO?: { element: HTMLInputElement; write: (value: string) => void };
 }
 
 export interface FieldBehavior {

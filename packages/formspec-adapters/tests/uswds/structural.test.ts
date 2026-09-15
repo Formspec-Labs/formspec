@@ -1,5 +1,5 @@
 /** @filedesc Structural DOM tests for canonical USWDS adapter components. */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { renderTextInput } from '../../src/uswds/text-input';
 import { renderNumberInput } from '../../src/uswds/number-input';
 import { renderRadioGroup } from '../../src/uswds/radio-group';
@@ -213,7 +213,7 @@ describe('USWDS Select', () => {
 // ── DatePicker ─────────────────────────────────────────────────────
 
 describe('USWDS DatePicker', () => {
-    it('renders usa-date-picker shell with text input and default format hint', () => {
+    it('renders usa-date-picker shell with text input and default format hint (pre-enhancement)', () => {
         const parent = makeParent();
         renderDatePicker(mockDatePicker(), parent, mockAdapterContext());
         expect(parent.querySelector('.usa-date-picker')).toBeTruthy();
@@ -228,6 +228,34 @@ describe('USWDS DatePicker', () => {
         const parent = makeParent();
         renderDatePicker(mockDatePicker({ width: 'lg' }), parent, mockAdapterContext());
         expect(parent.querySelector('input.usa-input.usa-input--lg')).toBeTruthy();
+    });
+
+    it('sets min/max on the input for dataType date, not just datetime-local (enhanceDatePicker reads them before wrapping)', () => {
+        const parent = makeParent();
+        renderDatePicker(mockDatePicker({ minDate: '2020-01-01', maxDate: '2030-12-31' }), parent, mockAdapterContext());
+        const input = parent.querySelector('input.usa-input') as HTMLInputElement;
+        expect(input.getAttribute('min')).toBe('2020-01-01');
+        expect(input.getAttribute('max')).toBe('2030-12-31');
+    });
+
+    it('mounts USWDS date-picker JS: enhanced DOM carries the calendar button and the internal/external input split', async () => {
+        const parent = makeParent();
+        renderDatePicker(mockDatePicker(), parent, mockAdapterContext());
+
+        // USWDS's own date-picker JS mounts asynchronously (dynamic import, fired-and-forgotten from the
+        // synchronous AdapterRenderFn — see src/uswds/date-picker.ts); a fixed setTimeout(0) races the
+        // import's transform/fetch and is flaky, so poll instead.
+        const external = await vi.waitFor(() => {
+            const found = parent.querySelector<HTMLInputElement>('input.usa-date-picker__external-input');
+            expect(found).toBeTruthy();
+            return found!;
+        });
+
+        expect(parent.querySelector('.usa-date-picker__button')).toBeTruthy();
+        expect(external.type).toBe('text');
+        const internal = parent.querySelector('input.usa-date-picker__internal-input') as HTMLInputElement;
+        expect(internal).toBeTruthy();
+        expect(internal.getAttribute('aria-hidden')).toBe('true');
     });
 });
 

@@ -1,5 +1,9 @@
 /** @filedesc E2E test harness entry point: registers formspec-render and exposes engine globals. */
-import { FormspecRender } from '../../../packages/formspec-webcomponent/src/index';
+import { FormspecRender, globalRegistry } from '../../../packages/formspec-webcomponent/src/index';
+// Same relative-source rule as FormspecRender above: the USWDS adapter must share this harness's
+// formspec-webcomponent module graph, or globalRegistry.registerAdapter() below registers into a
+// different ComponentRegistry instance than the one <formspec-render> actually reads from.
+import { uswdsAdapter } from '../../../packages/formspec-adapters/src/uswds/index';
 // Import from the same package path as formspec-webcomponent so both share
 // a single WASM module instance. Using relative source paths would create a
 // separate module graph entry and the webcomponent would see uninitialized WASM.
@@ -14,6 +18,9 @@ import {
 } from '@formspec-org/engine';
 
 customElements.define('formspec-render', FormspecRender);
+
+globalRegistry.registerAdapter(uswdsAdapter);
+(window as any).globalRegistry = globalRegistry;
 
 const renderer = document.createElement('formspec-render');
 document.getElementById('app')?.appendChild(renderer);

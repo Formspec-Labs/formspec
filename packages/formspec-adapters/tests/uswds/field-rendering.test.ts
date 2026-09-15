@@ -400,13 +400,18 @@ describe('USWDS field text — hints and descriptions', () => {
         expect(el.querySelector('#field-story-hint')?.textContent).toBe('Use at most 12 words.');
     });
 
-    it('keeps the date format hint visible and described when the item has no hint', () => {
+    it('keeps the date format hint visible and described when the item has no hint', async () => {
         const el = renderForm([{ key: 'start', type: 'field', dataType: 'date', label: 'Start date' }]);
-        const input = el.querySelector('#field-start') as HTMLInputElement;
         const format = el.querySelector('#field-start-format') as HTMLElement;
         expect(format.textContent).toBe('MM/DD/YYYY');
         expect(format.hidden).toBe(false);
-        expect(input.getAttribute('aria-describedby')).toBe('field-start-format');
+
+        // USWDS's date-picker JS mounts asynchronously (dynamic import); bind() — and so
+        // aria-describedby — only lands once that resolves (src/uswds/date-picker.ts).
+        await vi.waitFor(() => {
+            const input = el.querySelector('#field-start') as HTMLInputElement;
+            expect(input?.getAttribute('aria-describedby')).toBe('field-start-format');
+        });
     });
 
     it('shows a hint and description that start empty once they get text, and hides them again', () => {
