@@ -4,15 +4,22 @@
   "version": "1.0.0",
   "status": "active",
   "title": "Item text interpolation",
-  "description": "Core §4.2.1: Item label, labels, description, and hint carry {{expression}} evaluated in the Item's repeat-instance scope under Locale §3.3.1 rules.",
+  "description": "Core \u00a74.2.1: Item label, labels, description, and hint carry {{expression}} evaluated in the Item's repeat-instance scope under Locale \u00a73.3.1 rules.",
   "items": [
-    { "key": "qty", "type": "field", "dataType": "integer", "label": "Quantity" },
+    {
+      "key": "qty",
+      "type": "field",
+      "dataType": "integer",
+      "label": "Quantity"
+    },
     {
       "key": "total",
       "type": "field",
       "dataType": "integer",
       "label": "Total: {{$total}}",
-      "labels": { "short": "Tot {{$qty}}x" },
+      "labels": {
+        "short": "Tot {{$qty}}x"
+      },
       "hint": "{{$qty}} items at 5 each",
       "description": "Computed from {{$qty}} items"
     },
@@ -30,19 +37,37 @@
       "label": "Bad {{$qty +}}, {{noSuchField}}, {{nope(1)}} kept",
       "hint": "Still {{$qty}}"
     },
-    { "key": "note", "type": "display", "label": "Summary for {{$qty}} items" },
+    {
+      "key": "note",
+      "type": "display",
+      "label": "Summary for {{$qty}} items"
+    },
     {
       "key": "rows",
       "type": "group",
       "label": "Rows",
       "repeatable": true,
       "children": [
-        { "key": "name", "type": "field", "dataType": "string", "label": "Name {{@index}}", "hint": "Row {{@index}} of {{@count}}" },
-        { "key": "summary", "type": "display", "label": "Row {{@index}}: {{$name}}" }
+        {
+          "key": "name",
+          "type": "field",
+          "dataType": "string",
+          "label": "Name {{@index}}",
+          "hint": "Row {{@index}} of {{@count}}",
+          "description": "Before: {{prev().name}} / after: {{next().name}}"
+        },
+        {
+          "key": "summary",
+          "type": "display",
+          "label": "Row {{@index}}: {{$name}}"
+        }
       ]
     }
   ],
   "binds": [
-    { "path": "total", "calculate": "$qty * 5" }
+    {
+      "path": "total",
+      "calculate": "$qty * 5"
+    }
   ]
 }

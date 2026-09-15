@@ -2,15 +2,43 @@
   "id": "core.item-text-repeat-row-scope",
   "kind": "ITEM_TEXT",
   "definitionPath": "tests/conformance/suite/fixtures/item-text.definition.json",
-  "inputData": { "qty": 3, "rows": [{ "name": "Alpha" }, { "name": "Beta" }] },
+  "inputData": {
+    "qty": 3,
+    "rows": [
+      {
+        "name": "Alpha"
+      },
+      {
+        "name": "Beta"
+      }
+    ]
+  },
   "expected": {
-    "rows[0].name": { "label": "Name 1", "hint": "Row 1 of 2" },
-    "rows[0].summary": { "label": "Row 1: Alpha" },
-    "rows[1].name": { "label": "Name 2", "hint": "Row 2 of 2" },
-    "rows[1].summary": { "label": "Row 2: Beta" }
+    "rows[0].name": {
+      "label": "Name 1",
+      "hint": "Row 1 of 2",
+      "description": "Before:  / after: Beta"
+    },
+    "rows[0].summary": {
+      "label": "Row 1: Alpha"
+    },
+    "rows[1].name": {
+      "label": "Name 2",
+      "hint": "Row 2 of 2",
+      "description": "Before: Alpha / after: "
+    },
+    "rows[1].summary": {
+      "label": "Row 2: Beta"
+    }
   },
   "legacyCoverage": [
-    { "path": "crates/formspec-eval/tests/integration/shared_suite.rs", "check": "item_text_repeat_row_scope" },
-    { "path": "packages/formspec-engine/tests/shared-suite.test.mjs", "check": "core.item-text-repeat-row-scope" }
+    {
+      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
+      "check": "item_text_repeat_row_scope"
+    },
+    {
+      "path": "packages/formspec-engine/tests/shared-suite.test.mjs",
+      "check": "core.item-text-repeat-row-scope"
+    }
   ]
 }

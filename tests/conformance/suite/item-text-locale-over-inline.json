@@ -3,19 +3,40 @@
   "kind": "ITEM_TEXT",
   "definitionPath": "tests/conformance/suite/fixtures/item-text.definition.json",
   "localePath": "tests/conformance/suite/fixtures/item-text.fr.locale.json",
-  "inputData": { "qty": 3, "rows": [{ "name": "Alpha" }] },
+  "inputData": {
+    "qty": 3,
+    "rows": [
+      {
+        "name": "Alpha"
+      }
+    ]
+  },
   "expected": {
     "total": {
       "label": "Total : 15",
-      "labels": { "short": "Tot. 3" },
+      "labels": {
+        "short": "Tot. 3"
+      },
       "hint": "3 articles",
       "description": "Computed from 3 items"
     },
-    "rows[0].name": { "label": "Nom 1", "hint": "Row 1 of 1" },
-    "rows[0].summary": { "label": "Ligne 1 : Alpha" }
+    "rows[0].name": {
+      "label": "Nom 1",
+      "hint": "Row 1 of 1",
+      "description": "Before:  / after: "
+    },
+    "rows[0].summary": {
+      "label": "Ligne 1 : Alpha"
+    }
   },
   "legacyCoverage": [
-    { "path": "crates/formspec-eval/tests/integration/shared_suite.rs", "check": "item_text_locale_over_inline" },
-    { "path": "packages/formspec-engine/tests/shared-suite.test.mjs", "check": "core.item-text-locale-over-inline" }
+    {
+      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
+      "check": "item_text_locale_over_inline"
+    },
+    {
+      "path": "packages/formspec-engine/tests/shared-suite.test.mjs",
+      "check": "core.item-text-locale-over-inline"
+    }
   ]
 }

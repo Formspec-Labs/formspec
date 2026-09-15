@@ -932,15 +932,21 @@ Processors MUST apply the following rules:
    diagnostics for the expression, even if the coerced value is `null`.
 3. Expression results are coerced to strings. `null` becomes the
    empty string `""` **unless** rule 3a applies.
-3a. If the expression result is `null` **and** the trimmed source
-   contains neither a `$` field reference sigil nor an `@` context
-   reference sigil **and** the parsed expression is not an
+3a. If the expression result is `null` **and** the expression does not
+   read instance data **and** the parsed expression is not an
    **interpolation static literal** (see below), processors MUST treat
    the interpolation as failed and MUST preserve the literal text
    `{{<original expression>}}` (same as rule 2). This distinguishes
-   intentional empty output for missing `$field` values from expressions
+   intentional empty output for missing values from expressions
    that do not reference instance data (e.g. author typos or invalid
    operator sequences) that happen to evaluate to `null`.
+
+   An expression **reads instance data** when it contains a `$` field
+   reference, an `@` context reference, or a call to one of the
+   repeat-context navigation functions `prev()`, `next()` or `parent()`.
+   Navigation counts because a boundary row is a legitimate absence:
+   `{{prev().total}}` on the first row MUST render as empty text, not as
+   its own template.
 
    An **interpolation static literal** is any of: the `null`, boolean,
    numeric, string, date, or datetime literals; an array or object

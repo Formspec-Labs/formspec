@@ -1705,16 +1705,22 @@ the expression, even if the coerced value is <code>null</code>.</p></li>
 <li><p>Expression results are coerced to strings. <code>null</code>
 becomes the empty string <code>""</code> <strong>unless</strong> rule 3a
 applies. 3a. If the expression result is <code>null</code>
-<strong>and</strong> the trimmed source contains neither a
-<code>$</code> field reference sigil nor an <code>@</code> context
-reference sigil <strong>and</strong> the parsed expression is not an
+<strong>and</strong> the expression does not read instance data
+<strong>and</strong> the parsed expression is not an
 <strong>interpolation static literal</strong> (see below), processors
 MUST treat the interpolation as failed and MUST preserve the literal
 text <code>{{&lt;original expression&gt;}}</code> (same as rule 2). This
-distinguishes intentional empty output for missing <code>$field</code>
-values from expressions that do not reference instance data (e.g. author
-typos or invalid operator sequences) that happen to evaluate to
+distinguishes intentional empty output for missing values from
+expressions that do not reference instance data (e.g. author typos or
+invalid operator sequences) that happen to evaluate to
 <code>null</code>.</p>
+<p>An expression <strong>reads instance data</strong> when it contains a
+<code>$</code> field reference, an <code>@</code> context reference, or
+a call to one of the repeat-context navigation functions
+<code>prev()</code>, <code>next()</code> or <code>parent()</code>.
+Navigation counts because a boundary row is a legitimate absence:
+<code>{{prev().total}}</code> on the first row MUST render as empty
+text, not as its own template.</p>
 <p>An <strong>interpolation static literal</strong> is any of: the
 <code>null</code>, boolean, numeric, string, date, or datetime literals;
 an array or object literal whose elements or property values are

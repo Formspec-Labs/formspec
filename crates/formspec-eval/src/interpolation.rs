@@ -19,7 +19,7 @@
 
 use fel_core::{
     Environment, ExtensionFunctions, FormspecEnvironment, Value,
-    expr_is_interpolation_static_literal, has_error_diagnostics, parse,
+    expr_is_interpolation_static_literal, expr_references_instance_data, has_error_diagnostics, parse,
 };
 
 use crate::fel_eval::Fel;
@@ -111,12 +111,24 @@ pub fn interpolation_text(
         return Err("evaluation recorded error diagnostics".to_string());
     }
     if value.is_null() {
-        let trimmed = expression.trim();
-        let has_sigil = trimmed.contains('$') || trimmed.contains('@');
-        let static_literal =
-            parse(expression).is_ok_and(|ast| expr_is_interpolation_static_literal(&ast));
-        if !has_sigil && !static_literal {
-            return Err("null result without a $ or @ reference".to_string());
+        // Rule 3a: a null keeps the template only when the expression reads no instance data — an author's
+        // typo, not a value that is legitimately absent. `prev()` on the first row reads a row that is not
+        // there, so it renders as empty text, like a missing `$field`. An expression that will not parse
+        // reaches here only when evaluation recorded no error, so fall back to the sigils it spells.
+        let reads_data = match parse(expression) {
+            Ok(ast) => {
+                if expr_is_interpolation_static_literal(&ast) {
+                    return Ok(display_text(value));
+                }
+                expr_references_instance_data(&ast)
+            }
+            Err(_) => {
+                let trimmed = expression.trim();
+                trimmed.contains('$') || trimmed.contains('@')
+            }
+        };
+        if !reads_data {
+            return Err("null result without a reference to instance data".to_string());
         }
     }
     Ok(display_text(value))
