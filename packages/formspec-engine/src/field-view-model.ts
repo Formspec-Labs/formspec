@@ -97,7 +97,7 @@ const CODE_SYNTHESIS: Record<string, string> = {
     external: 'EXTERNAL_FAILED',
 };
 
-interface ResolvedPresentationString<T extends string | null> {
+export interface ResolvedPresentationString<T extends string | null> {
     value: T;
     needAnchors: string[];
 }
@@ -139,6 +139,37 @@ function resolveLocaleItemString(
     return null;
 }
 
+/** Inputs to the Item hint / description cascade, read inside a computed like {@link ItemLabelSource}. */
+export interface ItemHelpTextSource {
+    localeStore: LocaleStore;
+    itemKey: string;
+    /** Which help-text property to resolve. */
+    property: 'hint' | 'description';
+    /** The Definition's inline `hint` / `description`, when it has one. */
+    inlineText: string | null | undefined;
+    context: string | null;
+    /** Resolves `{{expression}}` in the Item's binding scope (Locale §3.3.1). */
+    interpolate: (template: string) => string;
+}
+
+/**
+ * Hint or description a respondent sees for any Item (Core §4.2.1, Locale §3.1.2): Locale
+ * `<key>.<property>@context` → Locale `<key>.<property>` → the inline property — the label cascade
+ * minus its Definition-side context step, since neither property has a `labels`-like sibling.
+ * `null` when no source has it.
+ */
+export function resolveItemHelpText(source: ItemHelpTextSource): ResolvedPresentationString<string | null> {
+    const { localeStore, itemKey, property, inlineText, context, interpolate } = source;
+    const fromLocale = resolveLocaleItemString(localeStore, itemKey, property, context, interpolate);
+    if (fromLocale) {
+        return fromLocale;
+    }
+    if (inlineText === null || inlineText === undefined) {
+        return { value: null, needAnchors: [] };
+    }
+    return { value: interpolate(inlineText), needAnchors: [] };
+}
+
 /**
  * Label a respondent sees for any Item (Locale §3.1–3.3): Locale `<key>.label@context` → Locale
  * `<key>.label` → Definition `labels[context]` → inline `label`, `{{}}` resolved through `interpolate`.
@@ -160,16 +191,17 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
     // definition-unique `key` — never by group path or repeat instance path.
     const { rx, localeStore, itemKey, interpolate } = deps;
 
-    /** Hint / description cascade (Locale §3.1.2): Locale `@context` → Locale → inline; no Definition context step. */
-    function resolveLocaleString(
+    const helpText = (
         property: 'hint' | 'description',
-        fallback: string | null | undefined,
-    ): ResolvedPresentationString<string | null> {
-        const fromLocale = resolveLocaleItemString(localeStore, itemKey, property, deps.getLabelContext(), interpolate);
-        if (fromLocale) return fromLocale;
-        if (fallback === null || fallback === undefined) return { value: null, needAnchors: [] };
-        return { value: interpolate(fallback), needAnchors: [] };
-    }
+        inlineText: string | null | undefined,
+    ): ResolvedPresentationString<string | null> => resolveItemHelpText({
+        localeStore,
+        itemKey,
+        property,
+        inlineText,
+        context: deps.getLabelContext(),
+        interpolate,
+    });
 
     // ── Label: shared Item label cascade ──
 
@@ -186,11 +218,11 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
 
     // ── Hint / description: Locale @context → Locale → inline ──
 
-    const hintResolution = rx.computed(() => resolveLocaleString('hint', deps.getItemHint()));
+    const hintResolution = rx.computed(() => helpText('hint', deps.getItemHint()));
     const hint = rx.computed(() => hintResolution.value.value);
     const hintNeedAnchors = rx.computed(() => hintResolution.value.needAnchors);
 
-    const descriptionResolution = rx.computed(() => resolveLocaleString('description', deps.getItemDescription()));
+    const descriptionResolution = rx.computed(() => helpText('description', deps.getItemDescription()));
     const description = rx.computed(() => descriptionResolution.value.value);
     const descriptionNeedAnchors = rx.computed(() => descriptionResolution.value.needAnchors);
 

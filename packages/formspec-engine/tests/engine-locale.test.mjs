@@ -650,6 +650,51 @@ test('getItemLabelSignal resolves display and group labels through the field lab
   assert.deepEqual(seen, ['Row 2: Beta', 'Row 2: Gamma', 'L2 Gamma', 'Ligne 2']);
 });
 
+test('getItemHintSignal and getItemDescriptionSignal resolve display and group help text, reactively', async () => {
+  const { effect } = await import('@preact/signals-core');
+  const engine = new FormEngine(minDef({
+    items: [
+      {
+        key: 'jobs',
+        type: 'group',
+        label: 'Jobs',
+        description: 'All employers',
+        repeatable: true,
+        minRepeat: 2,
+        children: [
+          { key: 'employer', type: 'field', dataType: 'string', label: 'Employer' },
+          { key: 'note', type: 'display', label: 'Row {{@index}}', hint: 'Row {{@index}} of {{@count}}' },
+        ],
+      },
+    ],
+  }));
+
+  const hint = engine.getItemHintSignal('jobs[1].note');
+  const description = engine.getItemDescriptionSignal('jobs');
+  assert.equal(hint.value, 'Row 2 of 2', 'a display Item resolves its inline hint in its row scope');
+  assert.equal(description.value, 'All employers');
+  assert.equal(engine.getItemHintSignal('jobs[1].employer'), engine.getFieldVM('jobs[1].employer').hint);
+  assert.equal(engine.getItemDescriptionSignal('jobs[1].note').value, null, 'no source, no description');
+  assert.equal(engine.getItemHintSignal('nope'), undefined);
+
+  const seen = [];
+  const stop = effect(() => { seen.push(hint.value); });
+
+  engine.loadLocale(makeLocale('fr', {
+    'note.hint': 'Ligne {{@index}}',
+    'note.hint@short': 'L{{@index}} sur {{@count}}',
+  }));
+  engine.setLocale('fr');
+  assert.equal(hint.value, 'Ligne 2', 'Locale <key>.hint replaces the inline hint');
+  engine.setLabelContext('short');
+  assert.equal(hint.value, 'L2 sur 2', 'Locale <key>.hint@context wins (Locale §3.1.2)');
+  assert.equal(description.value, 'All employers', 'no Definition-side context step for description');
+  engine.setLabelContext(null);
+  stop();
+
+  assert.deepEqual(seen, ['Row 2 of 2', 'Ligne 2', 'L2 sur 2', 'Ligne 2']);
+});
+
 test('getLabel reads label context reactively', async () => {
   const { computed } = await import('@preact/signals-core');
   const engine = new FormEngine(minDef({

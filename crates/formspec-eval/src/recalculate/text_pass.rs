@@ -57,8 +57,8 @@ pub(super) struct TextPass<'a> {
     request: &'a ItemTextRequest,
     /// Inline text by un-indexed dotted Item path.
     sources: HashMap<String, InlineText>,
-    /// Locale `label@<context>` contexts by Item key, gathered once.
-    locale_contexts: HashMap<&'a str, BTreeSet<&'a str>>,
+    /// Locale `<property>@<context>` contexts by Item key then property, gathered once.
+    locale_contexts: HashMap<&'a str, HashMap<&'a str, BTreeSet<&'a str>>>,
     /// Resolved text by instance path.
     pub(super) text: HashMap<String, ItemText>,
 }
@@ -78,10 +78,18 @@ impl<'a> TextPass<'a> {
                 },
             );
         }
-        let mut locale_contexts: HashMap<&str, BTreeSet<&str>> = HashMap::new();
+        // Locale §3.1.2: `@context` applies to every text property, not just `label`.
+        let mut locale_contexts: HashMap<&str, HashMap<&str, BTreeSet<&str>>> = HashMap::new();
         for key in request.locale_strings.keys() {
-            if let Some((item_key, context)) = key.split_once(".label@") {
-                locale_contexts.entry(item_key).or_default().insert(context);
+            if let Some((item_and_property, context)) = key.split_once('@')
+                && let Some((item_key, property)) = item_and_property.rsplit_once('.')
+            {
+                locale_contexts
+                    .entry(item_key)
+                    .or_default()
+                    .entry(property)
+                    .or_default()
+                    .insert(context);
             }
         }
         Self {
@@ -121,13 +129,20 @@ impl Visit for TextPass<'_> {
                 .map(String::as_str)
         };
 
+        let by_property = self.locale_contexts.get(item.key.as_str());
+        let locale_contexts = |property: &str| {
+            by_property
+                .and_then(|properties| properties.get(property))
+                .into_iter()
+                .flatten()
+                .copied()
+        };
+
         // Locale §3.1.2 cascade per context: Locale `label@context` → Locale `label` →
         // Definition `labels[context]` → Definition `label`.
-        let mut contexts: BTreeSet<&str> = inline.labels.keys().map(String::as_str).collect();
-        if let Some(from_locale) = self.locale_contexts.get(item.key.as_str()) {
-            contexts.extend(from_locale);
-        }
-        let labels = contexts
+        let mut label_contexts: BTreeSet<&str> = inline.labels.keys().map(String::as_str).collect();
+        label_contexts.extend(locale_contexts("label"));
+        let labels = label_contexts
             .into_iter()
             .map(|context| {
                 let template = locale(&format!("label@{context}"))
@@ -139,6 +154,20 @@ impl Visit for TextPass<'_> {
             })
             .collect();
 
+        // Same cascade minus the Definition-side context step: `hint` and `description` have no
+        // `labels`-like sibling, so a context with no Locale `@context` key resolves to the
+        // context-less value and is left out.
+        let contextual = |property: &str, fallback: Option<&str>| -> HashMap<String, String> {
+            locale_contexts(property)
+                .filter_map(|context| {
+                    let template = locale(&format!("{property}@{context}"))
+                        .or_else(|| locale(property))
+                        .or(fallback)?;
+                    Some((context.to_string(), interpolate(template)))
+                })
+                .collect()
+        };
+
         let text = ItemText {
             label: interpolate(
                 locale("label")
@@ -146,9 +175,11 @@ impl Visit for TextPass<'_> {
                     .unwrap_or_default(),
             ),
             labels,
+            descriptions: contextual("description", inline.description.as_deref()),
             description: locale("description")
                 .or(inline.description.as_deref())
                 .map(interpolate),
+            hints: contextual("hint", inline.hint.as_deref()),
             hint: locale("hint").or(inline.hint.as_deref()).map(interpolate),
         };
         self.text.insert(item.path.clone(), text);

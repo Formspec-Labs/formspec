@@ -540,3 +540,25 @@ def test_evaluate_definition_item_text_prefers_locale_strings():
         context={"itemText": {"localeStrings": {"qty.label": "Quantité {{$qty}}"}}},
     )
     assert result.item_text["qty"]["label"] == "Quantité 2"
+
+
+def test_evaluate_definition_item_text_resolves_context_hint_and_description():
+    """Locale §3.1.2: `@context` applies to hint and description, not just label."""
+    result = evaluate_definition(
+        _ITEM_TEXT_DEFINITION,
+        {"qty": 2},
+        context={
+            "itemText": {
+                "localeStrings": {
+                    "qty.label@short": "Q{{$qty}}",
+                    "qty.hint@short": "Max {{$qty}}",
+                    "qty.description@short": "Ordre {{$qty}}",
+                }
+            }
+        },
+    )
+    assert result.item_text["qty"]["labels"] == {"short": "Q2"}
+    assert result.item_text["qty"]["hints"] == {"short": "Max 2"}
+    assert result.item_text["qty"]["descriptions"] == {"short": "Ordre 2"}
+    # The context-less resolution still falls back to the Definition's inline text.
+    assert result.item_text["qty"]["hint"] == "Up to 2"

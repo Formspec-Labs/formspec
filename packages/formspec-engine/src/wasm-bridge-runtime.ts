@@ -398,12 +398,19 @@ export function wasmEvaluateDefinition(
     variables: any;
     required: Record<string, boolean>;
     readonly: Record<string, boolean>;
-    /** Resolved Item text by instance path; present only when `context.itemText` asked for it. */
+    /**
+     * Resolved Item text by instance path; present only when `context.itemText` asked for it.
+     *
+     * `label` / `description` / `hint` are the context-less resolutions; `labels` / `descriptions` /
+     * `hints` carry the per-display-context ones (Locale §3.1.2), each omitted when empty.
+     */
     itemText?: Record<string, {
         label: string;
         labels?: Record<string, string>;
         description?: string;
+        descriptions?: Record<string, string>;
         hint?: string;
+        hints?: Record<string, string>;
     }>;
 } {
     const resultJson = wasm().evaluateDefinition(

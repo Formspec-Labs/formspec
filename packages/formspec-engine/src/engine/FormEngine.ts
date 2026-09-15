@@ -42,7 +42,12 @@ import { LocaleStore, type LocaleDocument } from '../locale.js';
 import { FetchIssuerFetcher } from '../issuer/IssuerFetcher.js';
 import { IssuerStore } from '../issuer/IssuerStore.js';
 import type { Issuer, IssuerSource, ResolvedIssuer } from '../issuer/types.js';
-import { createFieldViewModel, resolveItemLabel, type FieldViewModel } from '../field-view-model.js';
+import {
+    createFieldViewModel,
+    resolveItemHelpText,
+    resolveItemLabel,
+    type FieldViewModel,
+} from '../field-view-model.js';
 import { createFormViewModel, type FormViewModel } from '../form-view-model.js';
 import {
     wasmCreateFelContext,
@@ -162,6 +167,8 @@ export class FormEngine implements IFormEngine {
     private readonly _localeStore: LocaleStore;
     private readonly _fieldViewModels: Record<string, FieldViewModel> = {};
     private readonly _itemLabelSignals = new Map<string, ReadonlyEngineSignal<string>>();
+    /** Hint / description signals for Items with no field view model, keyed `<property>:<instance path>`. */
+    private readonly _itemHelpTextSignals = new Map<string, ReadonlyEngineSignal<string | null>>();
     private _formViewModel!: FormViewModel;
     private readonly _labelContextSignal: EngineSignal<string | null>;
 
@@ -951,6 +958,50 @@ export class FormEngine implements IFormEngine {
         }).value);
         this._itemLabelSignals.set(path, label);
         return label;
+    }
+
+    /**
+     * Reactive hint a respondent sees for the Item at instance `path` — field, display, or group. Same
+     * cascade as `FieldViewModel.hint` (Locale `<key>.hint@context` → `<key>.hint` → inline `hint`; no
+     * Definition-side context step), `{{}}` interpolated in the Item's scope. `null` when no source has
+     * one; `undefined` when no Item has that path.
+     */
+    public getItemHintSignal(path: string): ReadonlyEngineSignal<string | null> | undefined {
+        return this.itemHelpTextSignal(path, 'hint');
+    }
+
+    /** {@link FormEngine.getItemHintSignal} for the Item's `description`. */
+    public getItemDescriptionSignal(path: string): ReadonlyEngineSignal<string | null> | undefined {
+        return this.itemHelpTextSignal(path, 'description');
+    }
+
+    private itemHelpTextSignal(
+        path: string,
+        property: 'hint' | 'description',
+    ): ReadonlyEngineSignal<string | null> | undefined {
+        const fieldVM = this._fieldViewModels[path];
+        if (fieldVM) {
+            return property === 'hint' ? fieldVM.hint : fieldVM.description;
+        }
+        const key = `${property}:${path}`;
+        const cached = this._itemHelpTextSignals.get(key);
+        if (cached) {
+            return cached;
+        }
+        const item = path ? this._groupItems.get(path) ?? this._groupItems.get(toBasePath(path)) : undefined;
+        if (!item) {
+            return undefined;
+        }
+        const resolved = this._rx.computed(() => resolveItemHelpText({
+            localeStore: this._localeStore,
+            itemKey: item.key,
+            property,
+            inlineText: item[property],
+            context: this._labelContextSignal.value,
+            interpolate: (template) => this._interpolate(template, path),
+        }).value);
+        this._itemHelpTextSignals.set(key, resolved);
+        return resolved;
     }
 
     public loadLocale(doc: LocaleDocument): void {
@@ -1822,6 +1873,11 @@ export class FormEngine implements IFormEngine {
         for (const path of this._itemLabelSignals.keys()) {
             if (path.startsWith(repeatPrefix)) {
                 this._itemLabelSignals.delete(path);
+            }
+        }
+        for (const key of this._itemHelpTextSignals.keys()) {
+            if (key.slice(key.indexOf(':') + 1).startsWith(repeatPrefix)) {
+                this._itemHelpTextSignals.delete(key);
             }
         }
 

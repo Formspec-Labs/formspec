@@ -46,7 +46,7 @@
         "RESPONSE_VALIDATION",
         "ITEM_TEXT"
       ],
-      "description": "Execution mode for this case. ITEM_TEXT compares resolved Item text (Core §4.2.1 text interpolation) at the listed instance paths."
+      "description": "Execution mode for this case. ITEM_TEXT compares resolved Item text (Core §4.2.1 text resolution and interpolation) at the listed instance paths: label / hint / description, plus the per-display-context labels / hints / descriptions a case lists (Locale §3.1.2)."
     },
     "definitionPath": {
       "type": "string",
@@ -170,7 +170,7 @@
       "then": {
         "properties": {
           "expected": {
-            "description": "Resolved Item text by instance path (e.g. 'rows[0].name'). Each entry lists label, and labels / description / hint only when the Item has them.",
+            "description": "Resolved Item text by instance path (e.g. 'rows[0].name'). Each entry lists label, and description / hint only when the Item has them; labels / descriptions / hints carry the per-display-context resolutions (Locale §3.1.2), listed only for contexts a Locale or the Definition supplies.",
             "additionalProperties": {
               "type": "object",
               "additionalProperties": false,
@@ -179,7 +179,9 @@
                 "label": { "type": "string" },
                 "labels": { "type": "object", "additionalProperties": { "type": "string" } },
                 "description": { "type": "string" },
-                "hint": { "type": "string" }
+                "descriptions": { "type": "object", "additionalProperties": { "type": "string" } },
+                "hint": { "type": "string" },
+                "hints": { "type": "object", "additionalProperties": { "type": "string" } }
               }
             }
           }

@@ -96,8 +96,11 @@ pub struct ItemTextRequest {
 
 /// Display text for one Item instance, `{{expression}}` resolved in its scope.
 ///
-/// Each property follows the Locale cascade (§3.1.1–§3.1.2): Locale string, then the
-/// Definition's inline text, interpolated under Locale §3.3.1.
+/// Each property follows the Locale cascade (§3.1.1–§3.1.2) for a display context `c`: Locale
+/// `<key>.<property>@c`, then Locale `<key>.<property>`, then — for `label` only — the Definition's
+/// `labels[c]`, then the inline property; interpolated under Locale §3.3.1. The context-less
+/// resolution is [`ItemText::label`] / `description` / `hint`; per-context results live in
+/// [`ItemText::labels`] / `descriptions` / `hints`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ItemText {
     /// Primary label (`""` when neither Locale nor Definition has one).
@@ -108,6 +111,13 @@ pub struct ItemText {
     pub description: Option<String>,
     /// Instructional hint, when the Locale or Definition has it.
     pub hint: Option<String>,
+    /// Context descriptions by context name, for every Locale `description@context` key.
+    ///
+    /// No Definition-side context alternative exists for `description`, so a context without such a
+    /// Locale key resolves to [`ItemText::description`] and is left out.
+    pub descriptions: HashMap<String, String>,
+    /// Context hints by context name, for every Locale `hint@context` key ([`ItemText::descriptions`]).
+    pub hints: HashMap<String, String>,
 }
 
 /// Result of the full evaluation cycle.

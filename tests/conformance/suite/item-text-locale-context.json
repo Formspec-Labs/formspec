@@ -1,0 +1,25 @@
+{
+  "id": "core.item-text-locale-context",
+  "kind": "ITEM_TEXT",
+  "definitionPath": "tests/conformance/suite/fixtures/item-text.definition.json",
+  "localePath": "tests/conformance/suite/fixtures/item-text-context.es.locale.json",
+  "inputData": { "qty": 3 },
+  "expected": {
+    "total": {
+      "label": "Total: 15",
+      "labels": { "short": "Tot. 3" },
+      "hint": "3 articulos",
+      "hints": { "short": "3 art." },
+      "description": "Calculado de 3",
+      "descriptions": { "short": "De 3" }
+    },
+    "note": {
+      "label": "Resumen de 3",
+      "hints": { "short": "Res. 3" }
+    }
+  },
+  "legacyCoverage": [
+    { "path": "crates/formspec-eval/tests/integration/shared_suite.rs", "check": "item_text_locale_context" },
+    { "path": "packages/formspec-engine/tests/shared-suite.test.mjs", "check": "core.item-text-locale-context" }
+  ]
+}

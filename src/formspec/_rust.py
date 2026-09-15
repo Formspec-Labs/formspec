@@ -150,8 +150,9 @@ class ProcessingResult(msgspec.Struct, frozen=True):
     # dicts with path, expression, message, and shapeId for shapes. Never validation results.
     diagnostics: list[dict] = msgspec.field(default_factory=list)
     # Resolved Item text by instance path (Core §4.2.1), `{{}}` interpolated in the Item's scope:
-    # dicts with label and optional labels / description / hint. Empty unless the evaluation
-    # context carried ``itemText``.
+    # dicts with label and optional labels / description / hint, plus per-display-context
+    # labels / descriptions / hints (Locale §3.1.2). Empty unless the evaluation context
+    # carried ``itemText``.
     item_text: dict[str, dict] = msgspec.field(default_factory=dict)
 
 

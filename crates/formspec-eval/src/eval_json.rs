@@ -67,7 +67,7 @@ pub fn evaluation_result_to_json_value_styled(
     Value::Object(root)
 }
 
-/// `{ label, labels?, description?, hint? }`: absent properties are omitted.
+/// `{ label, labels?, description?, descriptions?, hint?, hints? }`: absent properties are omitted.
 fn item_text_to_json_object(text: &ItemText) -> Value {
     let mut m = Map::new();
     m.insert("label".into(), json!(text.label));
@@ -77,8 +77,14 @@ fn item_text_to_json_object(text: &ItemText) -> Value {
     if let Some(description) = &text.description {
         m.insert("description".into(), json!(description));
     }
+    if !text.descriptions.is_empty() {
+        m.insert("descriptions".into(), json!(text.descriptions));
+    }
     if let Some(hint) = &text.hint {
         m.insert("hint".into(), json!(hint));
+    }
+    if !text.hints.is_empty() {
+        m.insert("hints".into(), json!(text.hints));
     }
     Value::Object(m)
 }

@@ -177,3 +177,9 @@ fn item_text_failed_expression_literal() {
 fn item_text_locale_over_inline() {
     run_item_text_case("item-text-locale-over-inline.json");
 }
+
+/// Locale §3.1.2 / Core §4.2.1: `@context` applies to `hint` and `description`, not just `label`.
+#[test]
+fn item_text_locale_context() {
+    run_item_text_case("item-text-locale-context.json");
+}

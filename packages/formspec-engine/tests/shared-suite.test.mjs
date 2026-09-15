@@ -216,9 +216,10 @@ function runProcessingArtifacts(caseDoc) {
 }
 
 /**
- * Core §4.2.1 Item text through the engine's reactive view models: `label` for every Item,
- * `labels` per Definition/Locale context, and `hint` / `description` where a field view model
- * exposes them. Compared against the case's paths only.
+ * Core §4.2.1 Item text through the engine's reactive Item signals: `label`, `hint`, and
+ * `description` for every Item — field, display, or group — plus the per-context resolutions
+ * (`labels` / `hints` / `descriptions`, Locale §3.1.2) the case lists. Compared against the
+ * case's paths only.
  */
 function runItemTextCase(caseDoc) {
   const definition = normalizeDefinitionForEngine(readJson(path.join(repoRoot, caseDoc.definitionPath)));
@@ -230,23 +231,33 @@ function runItemTextCase(caseDoc) {
   }
   engine.loadResponseData(loadInputPayload(caseDoc));
 
+  // `label` / `labels` read the Item label signal; `hint` / `description` and their per-context
+  // maps read the Item help-text signals, so a display or group Item is covered like a field.
+  const readers = {
+    label: (itemPath) => engine.getItemLabelSignal(itemPath).value,
+    hint: (itemPath) => engine.getItemHintSignal(itemPath)?.value,
+    description: (itemPath) => engine.getItemDescriptionSignal(itemPath)?.value,
+  };
+  const contextKey = { label: 'labels', hint: 'hints', description: 'descriptions' };
+
   const actual = {};
   for (const [itemPath, expected] of Object.entries(caseDoc.expected)) {
-    const resolved = { label: engine.getItemLabelSignal(itemPath).value };
-    if (expected.labels) {
-      resolved.labels = {};
-      for (const context of Object.keys(expected.labels)) {
+    const resolved = {};
+    for (const [property, read] of Object.entries(readers)) {
+      const value = read(itemPath);
+      if (value !== null && value !== undefined) {
+        resolved[property] = value;
+      }
+      const contexts = expected[contextKey[property]];
+      if (!contexts) {
+        continue;
+      }
+      resolved[contextKey[property]] = {};
+      for (const context of Object.keys(contexts)) {
         engine.setLabelContext(context);
-        resolved.labels[context] = engine.getItemLabelSignal(itemPath).value;
+        resolved[contextKey[property]][context] = read(itemPath);
       }
       engine.setLabelContext(null);
-    }
-    const fieldVM = engine.getFieldVM(itemPath);
-    if (fieldVM?.description.value !== null && fieldVM?.description.value !== undefined) {
-      resolved.description = fieldVM.description.value;
-    }
-    if (fieldVM?.hint.value !== null && fieldVM?.hint.value !== undefined) {
-      resolved.hint = fieldVM.hint.value;
     }
     actual[itemPath] = resolved;
   }

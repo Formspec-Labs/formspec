@@ -472,6 +472,10 @@ export interface IFormEngine {
     getLabel(item: FormItem): string;
     /** Reactive Locale-resolved, `{{}}`-interpolated label of the field, display, or group Item at `path`. */
     getItemLabelSignal(path: string): ReadonlyEngineSignal<string> | undefined;
+    /** The same for the Item's `hint`; `null` when neither Locale nor Definition has one. */
+    getItemHintSignal(path: string): ReadonlyEngineSignal<string | null> | undefined;
+    /** The same for the Item's `description`; `null` when neither Locale nor Definition has one. */
+    getItemDescriptionSignal(path: string): ReadonlyEngineSignal<string | null> | undefined;
 
     loadLocale(doc: LocaleDocument): void;
     setLocale(code: string): void;
