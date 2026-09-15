@@ -11,15 +11,9 @@ export interface AdapterResolution {
     missingAdapter?: string;
 }
 
-/**
- * The adapter a Theme document was authored against, or `undefined`.
- *
- * Read structurally: the optional top-level `adapter` field is being added to
- * `schemas/theme.schema.json` and `@formspec-org/types` in a parallel change.
- */
+/** The adapter a Theme document was authored against (theme-spec §2.4), or `undefined`. */
 export function themeAdapterName(theme: ThemeDocument | null): string | undefined {
-    const named = (theme as (ThemeDocument & { adapter?: unknown }) | null)?.adapter;
-    return typeof named === 'string' && named.length > 0 ? named : undefined;
+    return theme?.adapter || undefined;
 }
 
 /**

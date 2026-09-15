@@ -101,6 +101,12 @@ export interface ThemeDocument {
     pages?: Page[];
     breakpoints?: Record<string, number>;
     stylesheets?: string[];
+    /**
+     * Registered name of the render adapter this theme's selectors, widgetConfig, and cssClass are
+     * written for. Absent means the renderer's default adapter; an unregistered name is
+     * THEME-ADAPTER-MISSING. See `specs/theme/theme-spec.md` §2.4.
+     */
+    adapter?: string;
     extensions?: Extensions;
     /**
      * CSS class merge strategy applied after cascade resolution.
