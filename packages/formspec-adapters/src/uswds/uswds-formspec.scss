@@ -54,6 +54,13 @@ $fs-trailing-checkbox-size: 1.25rem !default;
   margin-top: var(--formspec-spacing-field, #{units(3)});
 }
 
+// USWDS's normalize zeroes legend padding page-wide; the base layer forwards no global reset, so on a page
+// without USWDS's own CSS the UA's 2px would inset every question and group title from its hint. Scoped to
+// the render root, so a host page's own legends are left alone.
+.formspec-container legend {
+  padding: 0;
+}
+
 // USWDS types its own paragraphs with `typeset-p`: no block margins, one paragraph gap only between
 // siblings. Rich text (core §4.2.1) renders `p.formspec-rich-paragraph`, which has no USWDS class, and a
 // trimmed build forwards no global reset — so without these the UA's 1em margins own the rhythm: a hint

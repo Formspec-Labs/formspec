@@ -87,6 +87,11 @@ describe('USWDS rules layer carries only Formspec\'s own rules (ADR 0063 D-4)', 
         expect(declarationsFor(css, '.formspec-rich-paragraph')).toMatch(/margin-top:0;margin-bottom:0/);
     });
 
+    it("zeroes the UA legend padding inside the render root, as USWDS's normalize does page-wide", () => {
+        // Without it a question's title sits 2px right of its hint on any page that lacks USWDS's global reset.
+        expect(declarationsFor(css, '.formspec-container legend')).toMatch(/padding:0/);
+    });
+
     it('keeps the native modal dialog in the top layer and scrollable', () => {
         const dialog = declarationsFor(css, 'dialog.usa-modal');
         expect(dialog).toMatch(/position:fixed/);
