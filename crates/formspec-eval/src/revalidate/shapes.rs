@@ -167,13 +167,22 @@ impl Validation<'_> {
             let saved_aliases = siblings.bind(env, concrete_path);
             row.enter(concrete_path, env, values, self.index);
 
-            // Build a row-scoped environment: instantiate [*] references in the constraint
+            // Build a row-scoped environment: instantiate [*] references in the constraint.
+            // A field target binds `$` to its value, null when the row left it empty — the same answer a
+            // concrete target gives. Only a row target (`rows[*]`, a path ending in its index) leaves `$`
+            // to the repeat context, where it is the row itself.
             let prev_dollar = env.data.remove("");
-            if let Some(val) = values.get(concrete_path.as_str()) {
-                env.data.insert(
-                    String::new(),
-                    json_to_runtime_fel_typed(val, siblings.data_type(concrete_path)),
-                );
+            match values.get(concrete_path.as_str()) {
+                Some(val) => {
+                    env.data.insert(
+                        String::new(),
+                        json_to_runtime_fel_typed(val, siblings.data_type(concrete_path)),
+                    );
+                }
+                None if !concrete_path.ends_with(']') => {
+                    env.data.insert(String::new(), fel_core::Value::Null);
+                }
+                None => {}
             }
 
             let active = shape

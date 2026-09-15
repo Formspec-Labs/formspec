@@ -709,6 +709,72 @@ fn bind_constraint_and_message_see_the_repeat_row() {
 }
 
 #[test]
+fn wildcard_shape_on_an_empty_field_still_sees_null_not_the_row() {
+    let def = json!({
+        "items": [{
+            "key": "rows", "type": "group", "repeatable": true,
+            "children": [{ "key": "email", "type": "field", "dataType": "string" }]
+        }],
+        "shapes": [{ "id": "blank-ok", "target": "rows[*].email", "constraint": "$ = null", "message": "Must be blank" }]
+    });
+
+    let mut data = HashMap::new();
+    data.insert("rows".to_string(), json!([{ "other": "x" }]));
+
+    let result = evaluate(&def, &data, &EvalOptions::default());
+    assert_eq!(
+        result.validations,
+        vec![],
+        "an absent field is null, as it is for a concrete target"
+    );
+}
+
+#[test]
+fn a_nested_wildcard_shape_reaches_its_parent_row() {
+    let def = json!({
+        "items": [{
+            "key": "rows", "type": "group", "repeatable": true,
+            "children": [
+                { "key": "label", "type": "field", "dataType": "string" },
+                {
+                    "key": "inner", "type": "group", "repeatable": true,
+                    "children": [{ "key": "qty", "type": "field", "dataType": "integer" }]
+                }
+            ]
+        }],
+        "shapes": [{
+            "id": "inner-check", "target": "rows[*].inner[*].qty", "constraint": "false",
+            "message": "{{parent().label}} row {{@index}} of {{@count}}"
+        }]
+    });
+
+    let mut data = HashMap::new();
+    data.insert(
+        "rows".to_string(),
+        json!([
+            { "label": "outerA", "inner": [{ "qty": 1 }, { "qty": 2 }] },
+            { "label": "outerB", "inner": [{ "qty": 3 }] }
+        ]),
+    );
+
+    let result = evaluate(&def, &data, &EvalOptions::default());
+    let messages: Vec<_> = result
+        .validations
+        .iter()
+        .map(|v| v.message.as_str())
+        .collect();
+    // The outer row moves with the inner one: outerB's inner row reads outerB, not the row before it.
+    assert_eq!(
+        messages,
+        vec![
+            "outerA row 1 of 2",
+            "outerA row 2 of 2",
+            "outerB row 1 of 1"
+        ]
+    );
+}
+
+#[test]
 fn required_with_empty_string_fails() {
     let def = json!({
         "items": [

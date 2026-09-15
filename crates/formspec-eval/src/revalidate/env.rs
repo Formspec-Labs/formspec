@@ -107,23 +107,26 @@ fn collect_repeat_group_arrays(
     }
 }
 
-/// The FEL repeat context (`@index`, `@count`, `@current`, `prev()`, `next()`) for concrete row paths
-/// visited in order, as a wildcard Shape visits `rows[0].qty`, `rows[1].qty`, ….
+/// The FEL repeat context (`@index`, `@count`, `@current`, `prev()`, `next()`, `parent()`) for concrete row
+/// paths visited in order, as a wildcard Shape visits `rows[0].qty`, `rows[1].qty`, ….
 ///
-/// Revalidation never writes values, so a group's rows are built once when its first path is entered
-/// and only `current`/`index` move after that; the recalculate walk's `InstanceScope` also refreshes a
-/// row its calculates wrote, which validation has no need for.
+/// Every enclosing repeat is entered, outermost first, so `parent()` reads the outer row exactly as it does
+/// for a Bind constraint under the recalculate walk's `InstanceScope`. Revalidation never writes values, so
+/// a group's rows are built once when its first path is entered and only `current`/`index` move after that;
+/// `InstanceScope` also refreshes a row its calculates wrote, which validation has no need for.
 pub(super) struct RowContext {
-    /// Group path whose rows are lent to the env's innermost repeat context.
-    group: Option<String>,
+    /// Group path and instance of each repeat currently pushed, outermost first.
+    entered: Vec<(String, usize)>,
 }
 
 impl RowContext {
     pub(super) fn new() -> Self {
-        Self { group: None }
+        Self {
+            entered: Vec::new(),
+        }
     }
 
-    /// Point the repeat context at the innermost repeat instance of `concrete_path`.
+    /// Point the repeat context at every repeat instance `concrete_path` sits in, outermost first.
     pub(super) fn enter(
         &mut self,
         concrete_path: &str,
@@ -131,41 +134,69 @@ impl RowContext {
         values: &HashMap<String, Value>,
         index: &ResponseIndex,
     ) {
-        let mut segments = Path::parse(concrete_path).segments;
-        let Some(at) = segments
-            .iter()
-            .rposition(|s| matches!(s, PathSegment::Indexed(_)))
-        else {
-            return self.finish(env);
-        };
-        let PathSegment::Indexed(instance) = segments[at] else {
-            unreachable!()
-        };
-        segments.truncate(at);
-        let group = Path { segments }.to_string();
+        let wanted = enclosing_instances(concrete_path);
 
-        if self.group.as_deref() == Some(group.as_str())
-            && let Some(context) = env.repeat_context.as_mut()
-            && instance < context.collection.len()
-        {
-            context.current = context.collection[instance].clone();
-            context.index = instance + 1;
-            return;
+        // Keep the contexts the last path shared with this one; leave the rest, innermost first.
+        let keep = wanted
+            .iter()
+            .zip(&self.entered)
+            .take_while(|(want, have)| want.0 == have.0)
+            .count();
+        while self.entered.len() > keep {
+            self.entered.pop();
+            env.pop_repeat();
         }
-        self.finish(env);
-        let rows = index.repeats.fel_rows(&group, values, &index.data_types);
-        if let Some(current) = rows.get(instance).cloned() {
+
+        // A kept context moves to this path's row instead of being rebuilt: same group, a later row. The
+        // env's chain runs innermost-first, and after the pops above its innermost is `entered[keep - 1]`.
+        let mut context = env.repeat_context.as_mut();
+        for level in (0..keep).rev() {
+            let Some(current) = context else { break };
+            let instance = wanted[level].1;
+            if self.entered[level].1 != instance && instance < current.collection.len() {
+                current.current = current.collection[instance].clone();
+                current.index = instance + 1;
+                self.entered[level].1 = instance;
+            }
+            context = current.parent.as_deref_mut();
+        }
+
+        for (group, instance) in &wanted[keep.min(wanted.len())..] {
+            let rows = index.repeats.fel_rows(group, values, &index.data_types);
+            let Some(current) = rows.get(*instance).cloned() else {
+                return;
+            };
             env.push_repeat(current, instance + 1, rows.len(), rows);
-            self.group = Some(group);
+            self.entered.push((group.clone(), *instance));
         }
     }
 
-    /// Pop the repeat context this pushed, if any.
+    /// Pop every repeat context this pushed.
     pub(super) fn finish(&mut self, env: &mut FormspecEnvironment) {
-        if self.group.take().is_some() {
+        for _ in self.entered.drain(..) {
             env.pop_repeat();
         }
     }
+}
+
+/// Every repeat instance `concrete_path` sits in, outermost first: `rows[1].inner[0].qty` →
+/// `[("rows", 1), ("rows[1].inner", 0)]`.
+fn enclosing_instances(concrete_path: &str) -> Vec<(String, usize)> {
+    let mut enclosing = Vec::new();
+    let mut prefix: Vec<PathSegment> = Vec::new();
+    for segment in Path::parse(concrete_path).segments {
+        if let PathSegment::Indexed(instance) = segment {
+            enclosing.push((
+                Path {
+                    segments: prefix.clone(),
+                }
+                .to_string(),
+                instance,
+            ));
+        }
+        prefix.push(segment);
+    }
+    enclosing
 }
 
 /// Response values grouped by parent path, built once per revalidation.
