@@ -1809,6 +1809,29 @@ describe('planDefinitionFallback', () => {
         expect(plan({ items: { notes: { widgetConfig: { rows: 5 } } } }).props.maxLines).toBe(5);
     });
 
+    // Theme `items`/`selectors` apply to display Items too, and adapters ship display widgets.
+    it('honors a theme widget on a display Item, carrying its widgetConfig into props', () => {
+        const items = [{ key: 'weekNotice', type: 'display', label: 'Certify for the week of {{$week}}' }];
+        const theme = {
+            items: { weekNotice: { widget: 'Alert', widgetConfig: { severity: 'info', title: 'This week' } } },
+        };
+        const node = planDefinitionFallback(items, makeCtx({ items, theme, findItem: (k) => findItems(items, k) }))[0];
+
+        expect(node.component).toBe('Alert');
+        expect(node.category).toBe('display');
+        expect(node.props.severity).toBe('info');
+        expect(node.props.title).toBe('This week');
+        expect(node.props.text).toBe('Certify for the week of {{$week}}');
+    });
+
+    it('plans an unthemed display Item as Text', () => {
+        const items = [{ key: 'weekNotice', type: 'display', label: 'Certify for the week' }];
+        const node = planDefinitionFallback(items, makeCtx({ items, findItem: (k) => findItems(items, k) }))[0];
+
+        expect(node.component).toBe('Text');
+        expect(node.props.text).toBe('Certify for the week');
+    });
+
     it('plans a simple field with default component', () => {
         const items = [
             { key: 'name', type: 'field', dataType: 'string', label: 'Full Name', hint: 'Enter your name' },

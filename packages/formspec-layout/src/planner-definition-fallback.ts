@@ -150,9 +150,11 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
     }
 
     const displayPresentation = item.presentation as Record<string, unknown> | undefined;
-    const displayWidget = widgetTokenToComponent(
-        (displayPresentation as { widgetHint?: string } | undefined)?.widgetHint,
-    ) ?? 'Text';
+    // Same ladder as a field: theme `widget` (with its fallback chain), then the Item's own
+    // `widgetHint`, then the default. Theme §items/selectors bind display Items too.
+    const displayWidget = resolveWidget(presentation, planCtx.isComponentAvailable ?? (() => true))
+        || widgetTokenToComponent((displayPresentation as { widgetHint?: string } | undefined)?.widgetHint)
+        || 'Text';
     const { widgetHint: _wh, cssClass: _dc, labelPosition: _dl, ...displayPresentationProps } = displayPresentation ?? {};
     // The static inline label goes in the component's text prop (Divider's is `label`, component §5.15);
     // `bindPath` lets renderers resolve the live label (Locale, FEL `{{}}`) and Bind relevance for this Item.
@@ -161,7 +163,9 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
         id: planCtx.nextId('display'),
         component: displayWidget,
         category: 'display',
-        props: { [textProp]: item.label || '', ...displayPresentationProps },
+        // Display components read their configuration off props (Alert's `severity`/`title`), so the
+        // theme's widgetConfig lands there — the cascade outranks the Item's own presentation hints.
+        props: { [textProp]: item.label || '', ...displayPresentationProps, ...presentation.widgetConfig },
         style: gridPlacementStyleFromLayout((displayPresentation as { layout?: unknown } | undefined)?.layout),
         cssClasses: normalizeCssClass(presentation.cssClass),
         children: [],
