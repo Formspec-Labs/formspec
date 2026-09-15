@@ -19,6 +19,7 @@ import {
     resolveTokenInContext,
 } from './node-utils.js';
 import { planDefinitionItem } from './planner-definition-fallback.js';
+import { carryWidthStop } from './planner-width-stops.js';
 import {
     componentTreeOwnsPages,
     findComponentNodeByPath,
@@ -169,6 +170,7 @@ export function planComponentTree(
         if (componentType === 'TextInput' && fieldItem.dataType === 'text') {
             props.maxLines ??= presentation.widgetConfig?.rows ?? 3;
         }
+        carryWidthStop(componentType, presentation.widgetConfig, props);
 
         const presClasses = normalizeCssClass(presentation.cssClass);
         if (presClasses.length > 0) {

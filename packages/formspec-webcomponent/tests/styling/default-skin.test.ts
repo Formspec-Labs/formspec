@@ -37,16 +37,6 @@ function render(items: any[], children: any[], theme?: any) {
 
 const style = (el: Element, prop: string) => getComputedStyle(el).getPropertyValue(prop);
 
-/** No Component Document: the definition-fallback planner picks each widget from `dataType`. */
-function renderFallback(items: any[], theme?: any) {
-    const el = document.createElement('formspec-render') as any;
-    document.body.appendChild(el);
-    if (theme) el.themeDocument = { $formspecTheme: '1.0', version: '1.0.0', targetDefinition: { url: 'urn:test:skin' }, ...theme };
-    el.definition = { $formspec: '1.0', url: 'urn:test:skin', version: '1.0.0', title: 'Skin', items };
-    el.render();
-    return el;
-}
-
 describe('default skin — NumberInput stepper with prefix/suffix', () => {
     it('draws one bordered box: the adornment group inside the stepper has no border or radius of its own', () => {
         const el = render(
@@ -74,13 +64,22 @@ describe('default skin — NumberInput stepper with prefix/suffix', () => {
 
 describe('default skin — widgetConfig.width (theme §4.2 Width Stops)', () => {
     it('caps TextInput, NumberInput, MoneyInput, DatePicker, and Select at their width-stop max-width', () => {
-        const el = renderFallback(
+        // An authored Component Document tree (Studio output shape): planComponentTree plans this,
+        // not planDefinitionFallback, and must carry widgetConfig.width the same way.
+        const el = render(
             [
                 { key: 'zip', type: 'field', dataType: 'string', label: 'ZIP' },
                 { key: 'qty', type: 'field', dataType: 'integer', label: 'Qty' },
                 { key: 'fee', type: 'field', dataType: 'money', label: 'Fee' },
                 { key: 'dob', type: 'field', dataType: 'date', label: 'DOB' },
                 { key: 'state', type: 'field', dataType: 'choice', label: 'State', options: [{ value: 'NJ', label: 'NJ' }] },
+            ],
+            [
+                { component: 'TextInput', bind: 'zip' },
+                { component: 'NumberInput', bind: 'qty' },
+                { component: 'MoneyInput', bind: 'fee' },
+                { component: 'DatePicker', bind: 'dob' },
+                { component: 'Select', bind: 'state' },
             ],
             {
                 items: {
@@ -103,12 +102,13 @@ describe('default skin — widgetConfig.width (theme §4.2 Width Stops)', () => 
     });
 
     it('ignores an unrecognized width value — the control keeps filling the form column', () => {
-        const el = renderFallback(
+        const el = render(
             [{ key: 'zip', type: 'field', dataType: 'string', label: 'ZIP' }],
+            [{ component: 'TextInput', bind: 'zip' }],
             { items: { zip: { widgetConfig: { width: 'huge' } } } },
         );
         const input = el.querySelector('[data-name="zip"] input')!;
-        expect(input.className).toBe('formspec-input');
+        expect(input.className).not.toMatch(/formspec-input--/);
     });
 });
 

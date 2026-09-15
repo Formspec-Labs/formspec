@@ -22,6 +22,7 @@ import {
     type PlannedPage,
 } from './planner-page-mode.js';
 import { buildThemePageNodes, collectAssignedTopLevelKeys } from './planner-theme-pages.js';
+import { carryWidthStop } from './planner-width-stops.js';
 
 export function planDefinitionFallback(
     items: FormItem[],
@@ -66,9 +67,6 @@ function wrapGridFlow(children: LayoutNode[], item: FormItem, ctx: PlanContext):
         children: columns === CANVAS_COLUMNS ? children.map(spanWholeCanvasRow) : children,
     }];
 }
-
-/** Widgets whose control an adapter can size to the expected answer (theme §4.2 Width Stops). */
-const WIDTH_STOP_WIDGETS = new Set(['TextInput', 'NumberInput', 'MoneyInput', 'DatePicker', 'Select']);
 
 /** The 12-column canvas: `columns: 12` is a placement grid, not a request for twelve equal columns. */
 const CANVAS_COLUMNS = 12;
@@ -172,9 +170,7 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
         if (widget === 'TextInput' && fieldItem.dataType === 'text') {
             fieldProps.maxLines ??= presentation.widgetConfig?.rows ?? 3;
         }
-        if (WIDTH_STOP_WIDGETS.has(widget) && presentation.widgetConfig?.width !== undefined) {
-            fieldProps.width ??= presentation.widgetConfig.width;
-        }
+        carryWidthStop(widget, presentation.widgetConfig, fieldProps);
 
         return {
             id: planCtx.nextId('field'),

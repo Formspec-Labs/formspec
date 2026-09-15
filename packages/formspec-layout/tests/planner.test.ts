@@ -90,6 +90,25 @@ describe('planComponentTree', () => {
         expect(plan({ items: { notes: { widgetConfig: { rows: 5 } } } }).props.maxLines).toBe(5);
     });
 
+    it('carries widgetConfig.width to props for TextInput, NumberInput, MoneyInput, DatePicker, and Select (theme §4.2 Width Stops)', () => {
+        // Component Document authored forms (Studio output, most e2e fixtures) go through this planner,
+        // not planDefinitionFallback — the carry must hold on both paths or Studio-authored width is dead.
+        const items = [{ key: 'zip', type: 'field', dataType: 'string', label: 'ZIP' }];
+        const plan = (component: string) =>
+            planComponentTree(
+                { component: 'Stack', children: [{ component, bind: 'zip' }] },
+                makeCtx({
+                    items,
+                    theme: { items: { zip: { widgetConfig: { width: 'sm' } } } },
+                    findItem: (k) => findItems(items, k),
+                }),
+            ).children[0];
+
+        for (const component of ['TextInput', 'NumberInput', 'MoneyInput', 'DatePicker', 'Select']) {
+            expect(plan(component).props.width).toBe('sm');
+        }
+    });
+
     it('plans a display component bound to a display Item as that Item (label text, path link, no value bind)', () => {
         const items = [
             {
