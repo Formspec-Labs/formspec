@@ -17,12 +17,12 @@ function hostSlice() {
     };
 }
 
-function mountGroup(title: string | null) {
+function mountGroup(title: string | null, headingLevel = 'h3') {
     const behavior: GroupLayoutBehavior = {
         comp: { cssClasses: [], props: {}, style: undefined, accessibility: undefined },
         host: hostSlice() as never,
         titleText: title === null ? null : signal(title),
-        headingLevel: 'h3',
+        headingLevel,
         renderChildren: vi.fn((parent: HTMLElement) => {
             const field = document.createElement('input');
             parent.appendChild(field);
@@ -76,6 +76,18 @@ describe('USWDS bound group', () => {
         expect(fieldset!.querySelector('input')).not.toBeNull();
     });
 
+    it('gives a section-level group the large legend, so it reads as a heading not a question', () => {
+        const { parent } = mountGroup('Eligibility Questions');
+        const legend = parent.querySelector('legend');
+        expect(legend!.className).toBe('usa-legend usa-legend--large');
+    });
+
+    it('keeps a nested group on the plain legend — USWDS has no middle size', () => {
+        const { parent } = mountGroup('Mailing address', 'h4');
+        const legend = parent.querySelector('legend');
+        expect(legend!.className).toBe('usa-legend');
+    });
+
     it('emits no Formspec default group chrome', () => {
         const { parent } = mountGroup('Mailing address');
         expect(parent.querySelector('.formspec-group')).toBeNull();
@@ -102,6 +114,8 @@ describe('USWDS repeatable group', () => {
         expect(rows).toHaveLength(2);
         expect(rows[0].querySelector('legend.usa-legend')?.textContent).toBe('Employer on record 1');
         expect(rows[1].querySelector('legend.usa-legend')?.textContent).toBe('Employer on record 2');
+        // Rows are peers inside one section: the fieldset boundary carries the grouping, not a heading size.
+        expect(rows[0].querySelector('legend')!.className).toBe('usa-legend');
     });
 
     it('renders Add as an outline usa-button', () => {

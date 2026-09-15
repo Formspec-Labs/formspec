@@ -6,6 +6,12 @@ import {
     type RepeatGroupLayoutBehavior,
 } from '@formspec-org/webcomponent';
 
+/**
+ * Heading depths that read as a form section rather than a question group. The renderer starts groups at
+ * `h3`; the shallower tags are covered so a change of starting depth cannot silently flatten every legend.
+ */
+const SECTION_HEADING_LEVELS = new Set(['h1', 'h2', 'h3']);
+
 /** Classes and inline presentation the theme cascade resolved onto the planner node. */
 function applyNodePresentation(el: HTMLElement, comp: any, actx: AdapterContext): void {
     if (comp.cssClasses?.length > 0) actx.applyClassValue(el, comp.cssClasses);
@@ -24,7 +30,11 @@ export function renderUSWDSGroup(
     if (behavior.titleText) {
         el.className = 'usa-fieldset';
         const legend = document.createElement('legend');
-        legend.className = 'usa-legend';
+        // A section's legend is USWDS's large legend; a nested group takes the plain one — the size a
+        // question's own legend uses. USWDS has no middle size, so depth beyond that changes nothing.
+        legend.className = SECTION_HEADING_LEVELS.has(behavior.headingLevel)
+            ? 'usa-legend usa-legend--large'
+            : 'usa-legend';
         watchText(actx, behavior.titleText, (text) => { legend.textContent = text; });
         el.appendChild(legend);
     }
