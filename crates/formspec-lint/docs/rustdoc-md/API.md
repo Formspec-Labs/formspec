@@ -37,12 +37,12 @@ Pass 3c (E603/E604): Module contribution resolution + payload-schema validation 
 Pass 3e (E608/E609): Posture admission — module field-equality + actor URN scan (ADR 0150 §4.4/§5.4)
 Pass 4 (E400): FEL expression compilation
 Pass 5 (E500): Dependency cycle detection
-Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
+Pass 6 (W700-W714/E710): Theme — token validation, contrast, reference integrity, page semantics
 Pass 7 (E800-E807/W800-W807): Components — tree validation, type compatibility, bind resolution
 Pass 8 (E606-E607/E610, E900-E902): Surface route graph and Response
 cross-field invariants (ADR 0150 §6)
 Registry-only E611 is emitted by the TypeScript AppGraphValidator, not this crate.
-Pass 9 (E1100-E1802/W1100-W1800): Companion document semantic lint
+Pass 9 (E1100-E1805/W1100-W1802): Companion document semantic lint
 
 ## Documentation
 
@@ -146,7 +146,7 @@ Pass 9 (E1100-E1802/W1100-W1800): Companion document semantic lint
 - [`pass_modules`](#pass_modules) - Pass 3c: Module contribution resolution (E603 / E604) and bundle-graph
 - [`pass_ontology`](#pass_ontology) - Pass 9: Ontology document semantic checks and static-analysis facts.
 - [`pass_response`](#pass_response) - Pass 8 — Response cross-field invariants.
-- [`pass_theme`](#pass_theme) - Pass 6: Theme document semantic checks (W700-W712, E710).
+- [`pass_theme`](#pass_theme) - Pass 6: Theme document semantic checks (W700-W714, E710).
 - [`posture_admission`](#posture_admission) - ADR 0150 §4.4/§5.4 posture admission matchers — Rust authority for lint;
 - [`references`](#references) - Pass 3: Reference validation — checks bind paths and shape targets resolve against the item tree.
 - [`tree`](#tree) - Pass 2: Tree indexing — flattens the item tree into a lookup index.
@@ -371,7 +371,7 @@ fixtures with the same root cause.
 
 ## Module: pass_theme
 
-Pass 6: Theme document semantic checks (W700-W712, E710).
+Pass 6: Theme document semantic checks (W700-W714, E710).
 
 
 
@@ -569,12 +569,12 @@ Result of checking a component against a dataType.
 
 **Trait Implementations:**
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &Compatibility) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> Compatibility`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &Compatibility) -> bool`
 
 
 
@@ -821,6 +821,7 @@ Canonical lint diagnostic code (registry-driven).
 - `E607` - Registry code `E607`.
 - `E610` - Registry code `E610`.
 - `E611` - Registry code `E611`.
+- `E612` - Registry code `E612`.
 - `W700` - Registry code `W700`.
 - `W701` - Registry code `W701`.
 - `W702` - Registry code `W702`.
@@ -834,6 +835,7 @@ Canonical lint diagnostic code (registry-driven).
 - `E710` - Registry code `E710`.
 - `W711` - Registry code `W711`.
 - `W712` - Registry code `W712`.
+- `W714` - Registry code `W714`.
 - `E800` - Registry code `E800`.
 - `E801` - Registry code `E801`.
 - `E802` - Registry code `E802`.
@@ -882,6 +884,7 @@ Canonical lint diagnostic code (registry-driven).
 - `E1302` - Registry code `E1302`.
 - `E1303` - Registry code `E1303`.
 - `E1304` - Registry code `E1304`.
+- `E1305` - Registry code `E1305`.
 - `W1300` - Registry code `W1300`.
 - `W1301` - Registry code `W1301`.
 - `E1310` - Registry code `E1310`.
@@ -920,6 +923,7 @@ Canonical lint diagnostic code (registry-driven).
 - `E1802` - Registry code `E1802`.
 - `E1803` - Registry code `E1803`.
 - `E1804` - Registry code `E1804`.
+- `E1805` - Registry code `E1805`.
 - `W1802` - Registry code `W1802`.
 
 **Methods:**
@@ -932,8 +936,6 @@ Canonical lint diagnostic code (registry-driven).
 
 **Trait Implementations:**
 
-- **FromStr**
-  - `fn from_str(s: &str) -> Result<Self, <Self as >::Err>`
 - **Deserialize**
   - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
 - **Serialize**
@@ -952,6 +954,8 @@ Canonical lint diagnostic code (registry-driven).
   - `fn eq(self: &Self, other: &&str) -> bool`
 - **PartialEq**
   - `fn eq(self: &Self, other: &str) -> bool`
+- **FromStr**
+  - `fn from_str(s: &str) -> Result<Self, <Self as >::Err>`
 
 ---
 
@@ -1068,10 +1072,10 @@ fn lint_component(component: &serde_json::Value, definition: Option<&serde_json:
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> MappingStaticAnalysis`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1739,12 +1743,10 @@ Severity of a lint diagnostic (sorting, validity, and JSON wire values).
 
 - `fn as_wire_str(self: Self) -> &'static str` - Wire string for JSON diagnostics (`error` / `warning` / `info`).
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
-- **PartialOrd**
-  - `fn partial_cmp(self: &Self, other: &Self) -> Option<Ordering>`
 - **Ord**
   - `fn cmp(self: &Self, other: &Self) -> Ordering`
 - **PartialEq**
@@ -1753,6 +1755,8 @@ Severity of a lint diagnostic (sorting, validity, and JSON wire values).
   - `fn clone(self: &Self) -> LintSeverity`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialOrd**
+  - `fn partial_cmp(self: &Self, other: &Self) -> Option<Ordering>`
 
 
 
