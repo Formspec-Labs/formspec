@@ -6222,7 +6222,11 @@ sizing.</p>
 <p>A renderer SHOULD honor both on the Item’s whole rendering — its
 label, help text, and control — and MUST keep them beneath state: a tone
 never hides a validation error or a read-only treatment. They are author
-defaults, so a Theme (Tier 2) styles over them.</p>
+defaults, so a Theme (Tier 2) styles over them. <code>size</code> scales
+what the Item draws, its own spacing included, and a <code>size</code>
+inside another one compounds, so a <code>compact</code> Item inside a
+<code>large</code> group reads near the form’s normal scale rather than
+smaller than it.</p>
 <h5 id="accessibility">4.2.5.4 Accessibility</h5>
 <p>The <code>accessibility</code> sub-object provides metadata for
 assistive technologies.</p>

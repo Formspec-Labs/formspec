@@ -33,6 +33,8 @@ pub(crate) struct PlatformContrastPair {
 pub(crate) struct TokenRegistry {
     token_types: HashMap<String, String>,
     all_keys: HashSet<String>,
+    /// Tokens each adapter resolves for itself while a Theme leaves them unset (registry §2.5).
+    adapter_default: HashSet<String>,
     default_values: HashMap<String, String>,
     derived_from: HashMap<String, String>,
     contrast_pairs: Vec<PlatformContrastPair>,
@@ -42,6 +44,7 @@ impl TokenRegistry {
     fn from_json(json: &Value) -> Self {
         let mut token_types = HashMap::new();
         let mut all_keys = HashSet::new();
+        let mut adapter_default = HashSet::new();
         let mut default_values = HashMap::new();
         let mut derived_from = HashMap::new();
 
@@ -65,6 +68,9 @@ impl TokenRegistry {
                         }
                         if let Some(source) = entry.get("derivedFrom").and_then(Value::as_str) {
                             derived_from.insert(token_key.clone(), source.to_string());
+                        }
+                        if entry.get("adapterDefault").and_then(Value::as_bool) == Some(true) {
+                            adapter_default.insert(token_key.clone());
                         }
                     }
                 }
@@ -109,6 +115,7 @@ impl TokenRegistry {
         TokenRegistry {
             token_types,
             all_keys,
+            adapter_default,
             default_values,
             derived_from,
             contrast_pairs,
@@ -125,6 +132,11 @@ impl TokenRegistry {
 
     fn all_keys(&self) -> &HashSet<String> {
         &self.all_keys
+    }
+
+    /// Whether the adapter, not the platform theme, supplies this token's value when a Theme is silent.
+    fn is_adapter_default(&self, key: &str) -> bool {
+        self.adapter_default.contains(key)
     }
 
     /// Return inferred renderer relationships checked when either side changes.
@@ -322,13 +334,16 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
 
     for key in registry.all_keys() {
         if !tokens.contains_key(key.as_str()) {
+            let source = if registry.is_adapter_default(key) {
+                "the adapter's own value will be used"
+            } else {
+                "platform default will be used"
+            };
             diags.push(metadata::with_metadata(LintDiagnostic::info(
                 crate::LintCode::W709,
                 PASS,
                 "$.tokens",
-                format!(
-                    "Platform token '{key}' not declared in theme (platform default will be used)"
-                ),
+                format!("Platform token '{key}' not declared in theme ({source})"),
             )));
         }
     }

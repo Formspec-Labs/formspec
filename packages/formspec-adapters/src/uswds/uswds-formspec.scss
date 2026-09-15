@@ -40,7 +40,9 @@ $fs-rhythm-blocks: '.usa-form-group, .formspec-uswds-text-wrap, .formspec-uswds-
 
 // A section — a group USWDS titles with its large legend — opens further from what precedes it than two
 // questions sit apart. The Theme retunes it through `spacing.section` (Theme spec §3.2); unset, USWDS's own
-// units-6 stands, twice its field margin.
+// units-6 stands, twice its field margin. The gap stands at the top of a form too, as USWDS's own field
+// margin does — and a `:first-child` guard could not tell that case apart anyway, since a themed layout
+// wraps each item in its own grid cell.
 .usa-form-group:has(> .usa-fieldset > .usa-legend--large) {
   margin-top: var(--formspec-spacing-section, #{units(6)});
 }
@@ -256,11 +258,11 @@ dialog.usa-modal::backdrop {
 
 // Core §4.2.5.3 styleHints, carried onto an item's root as classes. Zero specificity: they are the author's
 // defaults, so USWDS's own states (an error bar) and a Theme class win over them. A tone is a leading bar in
-// USWDS's palette, the shape of its alert and summary box; muted takes the hint color, which USWDS's choice
-// labels set for themselves; size scales the item's words and controls together.
+// USWDS's palette, the shape of its alert and summary box; muted takes the hint color; size scales the
+// item's words and controls together. The bar is logical, so it leads in an RTL form too.
 :where(.formspec-emphasis-primary, .formspec-emphasis-success, .formspec-emphasis-warning, .formspec-emphasis-danger) {
-  border-left: units(0.5) solid var(--formspec-emphasis-tone);
-  padding-left: units(2);
+  border-inline-start: units(0.5) solid var(--formspec-emphasis-tone);
+  padding-inline-start: units(2);
 }
 
 :where(.formspec-emphasis-primary) { --formspec-emphasis-tone: #{color('primary')}; }
@@ -268,8 +270,15 @@ dialog.usa-modal::backdrop {
 :where(.formspec-emphasis-warning) { --formspec-emphasis-tone: #{color('warning')}; }
 :where(.formspec-emphasis-danger) { --formspec-emphasis-tone: #{color('error')}; }
 
-.formspec-emphasis-muted,
-.formspec-emphasis-muted :is(.usa-radio__label, .usa-checkbox__label) {
+// Muted recedes every word in the item. USWDS's choice labels paint their own ink, so the rule that reaches
+// them matches their specificity rather than beating it: later in the cascade it wins, and any Theme rule
+// with a class of its own still wins over both.
+:where(.formspec-emphasis-muted) {
+  color: color('base');
+}
+
+:where(.formspec-emphasis-muted) .usa-radio__label,
+:where(.formspec-emphasis-muted) .usa-checkbox__label {
   color: color('base');
 }
 

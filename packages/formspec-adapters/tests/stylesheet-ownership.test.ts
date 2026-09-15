@@ -127,7 +127,7 @@ describe('every adapter sheet maps the core §4.2.5.3 styleHints classes', () =>
     });
 
     it('keeps a tone beneath USWDS states, so an error bar still shows', () => {
-        expect(readUswdsFormspecCss()).toMatch(/:where\(\.formspec-emphasis-primary,[^)]*\)\{border-left:/);
+        expect(readUswdsFormspecCss()).toMatch(/:where\(\.formspec-emphasis-primary,[^)]*\)\{border-inline-start:/);
     });
 });
 

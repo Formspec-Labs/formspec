@@ -3008,7 +3008,10 @@ NOT CSS — renderers map them to their own palette and sizing.
 A renderer SHOULD honor both on the Item's whole rendering — its label,
 help text, and control — and MUST keep them beneath state: a tone never
 hides a validation error or a read-only treatment. They are author
-defaults, so a Theme (Tier 2) styles over them.
+defaults, so a Theme (Tier 2) styles over them. `size` scales what the
+Item draws, its own spacing included, and a `size` inside another one
+compounds, so a `compact` Item inside a `large` group reads near the
+form's normal scale rather than smaller than it.
 
 ##### 4.2.5.4 Accessibility
 

@@ -39,6 +39,31 @@ fn minimal_theme_with_empty_tokens_only_emits_w709() {
     );
 }
 
+#[test]
+fn w709_says_the_adapter_supplies_a_rhythm_token_the_platform_theme_never_carries() {
+    let diags = lint_theme(&json!({ "tokens": {} }), None);
+    let message = |key: &str| {
+        with_code(&diags, "W709")
+            .into_iter()
+            .find(|d| d.message.contains(key))
+            .map(|d| d.message.clone())
+            .unwrap_or_default()
+    };
+
+    // token-registry-spec §2.5: an adapter-default token has no platform value to fall back to.
+    assert!(
+        message("spacing.field").contains("adapter"),
+        "got: {}",
+        message("spacing.field")
+    );
+    assert!(
+        !message("spacing.section").contains("platform default"),
+        "got: {}",
+        message("spacing.section")
+    );
+    assert!(message("spacing.md").contains("platform default"));
+}
+
 // ── 2. Valid hex color — no W700 ────────────────────────────
 
 #[test]

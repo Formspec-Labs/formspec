@@ -21,6 +21,11 @@ const DEFINITION = {
       key: 'mustFix', type: 'field', dataType: 'string', label: 'Must fix',
       presentation: { styleHints: { emphasis: 'primary' } },
     },
+    {
+      key: 'quiet', type: 'field', dataType: 'choice', label: 'Quiet choice',
+      options: [{ value: 'y', label: 'Yes' }, { value: 'n', label: 'No' }],
+      presentation: { styleHints: { emphasis: 'muted' } },
+    },
   ],
   binds: [{ path: 'mustFix', required: 'true' }],
 };
@@ -62,6 +67,10 @@ for (const { adapter, textSelector, loaded } of [
 
       expect(await styleOf(page, textSelector, 'color')).not.toBe(plainColor);
       expect(await styleOf(page, '.formspec-emphasis-muted', 'zoom')).toBe('0.875');
+
+      // A choice label paints its own ink in USWDS, so muted has to reach it too.
+      const choiceLabel = '[data-name="quiet"] label';
+      expect(await styleOf(page, choiceLabel, 'color')).not.toBe(await styleOf(page, '[data-name="plain"] label', 'color'));
     });
   });
 }
