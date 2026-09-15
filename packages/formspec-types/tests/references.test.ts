@@ -128,15 +128,52 @@ describe('resolveFieldReferences', () => {
     expect(all.every((entry) => !('target' in entry))).toBe(true);
   });
 
-  it('resolves $ref pointers with shallow sibling overrides', () => {
+  it('resolves $ref pointers with shallow sibling overrides and the key as id', () => {
     const [rule] = resolveFieldReferences(documents, 'household.members.income', 'human').documentation ?? [];
     expect(rule).toEqual({
+      id: 'incomeRule',
       type: 'documentation',
       audience: 'human',
       title: 'Income rule (overridden title)',
       content: 'Count gross monthly income.',
       priority: 'primary',
     });
+  });
+
+  it('keeps the referenceDefs key as id even when an override declares one', () => {
+    const document = referencesDocument(
+      [{ target: 'income', $ref: '#/referenceDefs/incomeRule', id: 'other' }],
+      {
+        incomeRule: {
+          type: 'documentation',
+          audience: 'human',
+          title: 'Income rule',
+          content: 'Count gross monthly income.',
+        },
+      },
+    );
+    const [rule] = resolveFieldReferences([document], 'income', 'human').documentation ?? [];
+    expect(rule?.id).toBe('incomeRule');
+  });
+
+  it('treats one referenceDefs entry bound to several targets as a single reference', () => {
+    const document = referencesDocument(
+      [
+        { target: 'household', $ref: '#/referenceDefs/incomeRule' },
+        { target: 'household.income', $ref: '#/referenceDefs/incomeRule' },
+        { target: '#', $ref: '#/referenceDefs/incomeRule' },
+      ],
+      {
+        incomeRule: {
+          type: 'documentation',
+          audience: 'human',
+          title: 'Income rule',
+          content: 'Count gross monthly income.',
+        },
+      },
+    );
+    const resolved = resolveFieldReferences([document], 'household.income', 'human');
+    expect(resolved.documentation?.map((entry) => entry.id)).toEqual(['incomeRule']);
   });
 
   it('fails loudly when any document carries a $ref naming no referenceDefs entry', () => {

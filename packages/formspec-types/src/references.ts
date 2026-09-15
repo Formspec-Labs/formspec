@@ -108,7 +108,9 @@ function resolveBinding(raw: ReferencesDocument['references'][number], document:
   const base = key === undefined ? undefined : document.referenceDefs?.[key];
   if (!base) throw new Error(`Unknown reference definition: ${raw.$ref}`);
   const { $ref: _ref, ...overrides } = raw;
-  return { ...base, ...overrides } as BoundEntry;
+  // The key is the resolved identity — an override may not restate or change it
+  // (`references-spec.md` §4.6.3 rule 5), so it is applied after the overrides.
+  return { ...base, ...overrides, id: key } as BoundEntry;
 }
 
 /** The field path, its index-stripped and wildcard forms, every ancestor of each, and `#`. */
@@ -139,8 +141,11 @@ function audienceMatches(entry: ReferenceAudience, requested: ReferenceAudience)
  * target the exact path, an explicitly walked ancestor (index-stripped and
  * `[*]` forms for repeat paths), or `#` — an explicit walk, not inheritance
  * (`references-spec.md` §4.5). `$ref` bindings resolve with shallow sibling
- * overrides; each group sorts primary → supplementary → background, keeping
- * document order within a tier. Resolved entries drop their `target`.
+ * overrides and take the `referenceDefs` key as `id` (§4.6.3 rule 5), so one
+ * definition bound to a group and to its child is collected once, not twice —
+ * that is one reference reused, not a duplicate id (§2.3). Each group sorts
+ * primary → supplementary → background, keeping document order within a tier.
+ * Resolved entries drop their `target`.
  *
  * Throws when any binding in any document carries an unresolvable `$ref`: a
  * broken document is an error, not a silently thinner answer.
@@ -152,11 +157,16 @@ export function resolveFieldReferences(
 ): Partial<Record<string, Reference[]>> {
   const candidates = targetCandidates(path);
   const grouped = new Map<string, BoundEntry[]>();
+  const seenIds = new Set<string>();
 
   for (const document of documents) {
     for (const raw of document.references ?? []) {
       const entry = resolveBinding(raw, document);
       if (!candidates.has(entry.target) || !audienceMatches(entry.audience, audience)) continue;
+      if (typeof entry.id === 'string') {
+        if (seenIds.has(entry.id)) continue;
+        seenIds.add(entry.id);
+      }
       const bucket = grouped.get(entry.type) ?? [];
       bucket.push(entry);
       grouped.set(entry.type, bucket);
