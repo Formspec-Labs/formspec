@@ -1,9 +1,8 @@
 /**
  * @filedesc Tailwind CSS render adapter — utility-first styling on semantic HTML elements.
  *
- * Core layout plugins (`Card`, `ActionButton`, `ValidationSummary`) are not adapter-rendered;
- * they use `formspec-*` classes. Import **`formspec-adapters/tailwind-formspec-core.css`** in your
- * app (before host overrides) for sensible defaults, or supply your own styles.
+ * Core layout plugins (`Card`, `ActionButton`, `ValidationSummary`) are not adapter-rendered; they use
+ * `formspec-*` classes, which `tailwind-formspec-core.css` styles — declared below, linked by the renderer.
  */
 import type { RenderAdapter } from '@formspec-org/webcomponent';
 import { renderTextInput } from './text-input';
@@ -28,11 +27,12 @@ import { renderTabs } from './tabs';
  * Requires Tailwind CSS to be loaded (CDN or built).
  * Does NOT require any JavaScript framework — bind() replaces it.
  *
- * No `integrationCSS`: controls are styled only via emitted classes; injected global
- * rules would fight the host Tailwind build and `!important` would block theme overrides.
+ * `stylesheets` carries only the `formspec-*` plugin defaults: controls are styled by the utility classes the
+ * adapter emits, which the host's own Tailwind build compiles.
  */
 export const tailwindAdapter: RenderAdapter = {
     name: 'tailwind',
+    stylesheets: [new URL('../tailwind-formspec-core.css', import.meta.url).href],
     components: {
         TextInput: renderTextInput,
         NumberInput: renderNumberInput,

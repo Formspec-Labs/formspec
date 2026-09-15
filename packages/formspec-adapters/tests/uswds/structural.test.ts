@@ -343,11 +343,6 @@ describe('USWDS Tabs', () => {
 // ── Integration CSS ───────────────────────────────────────────────
 
 describe('Integration CSS', () => {
-    it('does not inject integrationCSS (consumers link ./uswds-integration.css)', async () => {
-        const { uswdsAdapter } = await import('../../src/uswds/index.js');
-        expect(uswdsAdapter.integrationCSS).toBeUndefined();
-    });
-
     it('contains .formspec-required using USWDS error token', async () => {
         const { readUswdsIntegrationCss } = await import('../helpers.js');
         const css = readUswdsIntegrationCss();

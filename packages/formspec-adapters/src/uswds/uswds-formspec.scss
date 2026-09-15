@@ -1,14 +1,21 @@
 // @filedesc USWDS Sass entry — @forward component packages + minimal Formspec-only glue (no duplicate USWDS patterns).
 //
-// Compiled by `npm run build:css` into dist/uswds-formspec.css and dist/uswds-integration.css.
+// Compiled by `npm run build:css` into the one shipped artifact, dist/uswds-integration.css.
 
 // ---------------------------------------------------------------------------
 // USWDS core (settings, functions, mixins, tokens) — no output CSS
 // ---------------------------------------------------------------------------
-// Use USWDS default type roles (Source Sans Pro Web, Merriweather, Roboto Mono) — matches dist `uswds.css` / federal defaults.
+// Use USWDS default type roles (Source Sans Pro Web, Merriweather, Roboto Mono) — matches dist `uswds.css` /
+// federal defaults. The `@uswds` asset roots are resolved against the installed package and inlined as data
+// URIs by scripts/build-css.mjs, so the artifact is self-contained: no font or image ships beside it.
 @forward 'uswds-core' with (
   $theme-show-notifications: false,
   $theme-input-max-width: none,
+  $theme-font-path: '@uswds/fonts',
+  $theme-image-path: '@uswds/img',
+  $theme-font-browser-compatibility: false,
+  // The type roles above use 400/700 roman + italic only; `false` drops six unreachable 300-weight faces.
+  $theme-font-weight-light: false,
 );
 
 // ---------------------------------------------------------------------------
@@ -57,12 +64,13 @@ $fs-tabs-panel-padding-top: units(3) !default;
 $fs-divider-margin: units(4) 0 !default;
 $fs-trailing-checkbox-size: 1.25rem !default;
 
-// Let .usa-form typography (prose / system stack) win over Formspec layout tokens on the render root.
-.usa-form .formspec-container {
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  overflow: visible;
+// USWDS types the document (`body` typeset + global heading styles in uswds-global), which a trimmed build
+// never forwards, and `.usa-prose` reaches only its direct children. The render root is this stylesheet's
+// `body`: without these two lines every node without a `usa-*` class — including `emit-node`'s
+// `.formspec-group-title` — falls back to the UA serif whenever the host page styles nothing.
+.formspec-container {
+  @include typeset;
+  @include usa-headings-styles;
 }
 
 // USWDS `.usa-form` applies `max-width: units("mobile")` from the `mobile-lg` breakpoint — correct for

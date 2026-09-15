@@ -480,11 +480,6 @@ describe('tailwindAdapter shape', () => {
             expect(tailwindAdapter.components[name], `Missing component: ${name}`).toBeDefined();
         }
     });
-
-    it('does not inject integrationCSS (host Tailwind owns all control styling)', async () => {
-        const { tailwindAdapter } = await import('../../src/tailwind/index');
-        expect(tailwindAdapter.integrationCSS).toBeUndefined();
-    });
 });
 
 describe('tailwind core CSS defaults', () => {

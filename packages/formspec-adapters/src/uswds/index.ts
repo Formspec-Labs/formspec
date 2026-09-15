@@ -39,12 +39,13 @@ import {
 /**
  * USWDS v3 adapter for formspec-webcomponent.
  *
- * Emits USWDS markup patterns using `usa-*` CSS classes.
- * Requires `@uswds/uswds` v3 CSS (or equivalent) to be loaded.
- * Does NOT require USWDS component JavaScript — layout and inputs use native behavior or `bind()`.
+ * Emits USWDS markup patterns using `usa-*` CSS classes and owns their presentation: `stylesheets` points at
+ * the self-contained build of `uswds-formspec.scss` (typefaces and icons inlined), which the renderer links.
+ * Hosts import nothing. Does NOT require USWDS component JavaScript — inputs use native behavior or `bind()`.
  */
 export const uswdsAdapter: RenderAdapter = {
     name: 'uswds',
+    stylesheets: [new URL('../uswds-integration.css', import.meta.url).href],
     components: {
         Section: renderUSWDSSection,
         Stack: renderUSWDSStack,
