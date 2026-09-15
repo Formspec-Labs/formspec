@@ -1,11 +1,4 @@
-/* @filedesc Default adapter visual styling — loaded when no design-system adapter is active. */
+/* @filedesc Layout + default skin in one file, for renderers that link no stylesheets themselves. */
 
 @import "./formspec-layout.css";
-@import "./styles/default.tokens.css";
-@import "./styles/default.base.css";
-@import "./styles/default.utilities.css";
-@import "./styles/default.inputs.css";
-@import "./styles/default.surfaces.css";
-@import "./styles/default.navigation.css";
-@import "./styles/default.data.css";
-@import "./styles/default.accessibility.css";
+@import "./formspec-skin.css";

@@ -58,11 +58,14 @@ describe('Field spacing token ownership', () => {
         expect(extractRuleProp(layoutStructuralCSS, '.formspec-stack', 'gap')).toBe('var(--formspec-spacing-field, 0.75rem)');
     });
 
-    it('keeps React and WC source CSS as thin wrappers over the canonical bundled asset', () => {
+    it('keeps React and WC source CSS as thin wrappers over the canonical assets', () => {
+        // React links no stylesheets itself, so it wraps the combined layout + skin bundle.
         expect(reactCSS).toContain('@import "../../formspec-layout/src/formspec-default.css";');
         expect(reactCSS).not.toContain('@import "../../formspec-layout/src/formspec-layout.css";');
         expect(reactCSS).not.toContain('./formspec-react-addon.css');
-        expect(wcCSS).toContain('@import "../../formspec-layout/src/formspec-default.css";');
+        // <formspec-render> links formspec-layout.css for every adapter, so its default is the skin alone.
+        expect(wcCSS).toContain('@import "../../formspec-layout/src/formspec-skin.css";');
+        expect(wcCSS).not.toContain('formspec-default.css');
     });
 
     it('defines spacing tokens in the canonical layout-owned theme', () => {

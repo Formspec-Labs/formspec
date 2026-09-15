@@ -1,0 +1,10 @@
+/* @filedesc Default adapter skin — visual rules only; structural layout is linked separately. */
+
+@import "./styles/default.tokens.css";
+@import "./styles/default.base.css";
+@import "./styles/default.utilities.css";
+@import "./styles/default.inputs.css";
+@import "./styles/default.surfaces.css";
+@import "./styles/default.navigation.css";
+@import "./styles/default.data.css";
+@import "./styles/default.accessibility.css";
