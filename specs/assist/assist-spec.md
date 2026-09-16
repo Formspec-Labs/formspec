@@ -547,7 +547,7 @@ interface ReferenceEntry {
   type: ReferenceType;
   uri?: string;
   content?: string | object;
-  excerpt?: string;
+  description?: string;
   rel?: string;
   priority?: "primary" | "supplementary" | "background";
 }
@@ -576,11 +576,11 @@ its own: a provider MUST cut it at 1024 UTF-8 bytes, on a character boundary,
 with a trailing `…`.
 
 `ReferenceEntry` on the wire is a projection of the References Document
-entry: `title`, `type`, `uri`, `excerpt`, `rel`, `priority` always;
+entry: `title`, `type`, `uri`, `description`, `rel`, `priority` always;
 `content` only when the call carried `includeContent: true` (§3.2). Reference
 `content` is the largest and least trusted text a provider relays (§11), so
 the consumer asks for it. `truncated` is present whenever the §5.2 byte cap
-cut anything — stripped `content` or `excerpt` leaves `omitted` empty;
+cut anything — stripped `content` or `description` leaves `omitted` empty;
 dropped entries are counted per type so the consumer knows what it did not
 see.
 
@@ -621,7 +621,7 @@ To resolve `FieldHelp.references`, a conformant provider MUST:
     types first (`background` before `supplementary` before `primary`; an
     absent `priority` ranks as `supplementary`; within a tier, the later
     `type` group first, then the last entry in document order): strip
-    `content`, then strip `excerpt`, then drop whole entries — never below
+    `content`, then strip `description`, then drop whole entries — never below
     one entry per `type` that had any. Record dropped entries in
     `FieldHelp.truncated.omitted` by type. At the floor the payload MAY still
     exceed `maxBytes`; the consumer raises `maxBytes`, asks again with a
@@ -1052,7 +1052,7 @@ specification supplies, and what stays open.
 | WebMCP threat | Assist mechanism | Residual gap |
 |---|---|---|
 | §6.3.1.1 Tool poisoning via metadata | Tool names, titles, descriptions, and schemas are provider constants (§7.2); no form, sidecar, or respondent text reaches them. | A host registering its own tools beside Assist owns its own metadata. |
-| §6.3.1.2 Output injection | References `content` is off by default and the help payload is byte-capped (§5.1–§5.2); `field.help` and `field.describe` carry `untrustedContentHint` (§7.2); consumers parse structured results, never prose (§2.2). | `title` and `excerpt` from a compromised sidecar still reach the agent; the hint informs, it does not sanitize. |
+| §6.3.1.2 Output injection | References `content` is off by default and the help payload is byte-capped (§5.1–§5.2); `field.help` and `field.describe` carry `untrustedContentHint` (§7.2); consumers parse structured results, never prose (§2.2). | `title` and `description` from a compromised sidecar still reach the agent; the hint informs, it does not sanitize. |
 | §6.3.1.3 Tool implementation as target | All tool input is untrusted: paths and values are validated before use, readonly and non-relevant targets are refused, respondent-written values are replaced only compare-and-set (`expected`), and every write runs the same engine path as the UI (§4.3). | An engine defect reachable from the UI is reachable from Assist. |
 | §6.3.2 Misrepresentation of intent | Imperative titles and accurate descriptions (§7.2); `consequentialHint` on every writing tool; the browser's gate is the boundary (§7.1(4)). | Provider-side confirmation is UX — a user agent that drives the page can click it ([webmcp#288][webmcp-288]). |
 | §6.3.3 Over-parameterization | Inputs are paths, values, and enum switches; `profile.match` returns no values and no provenance, `profile.apply` takes paths only (§3.5, §6.1). | `field.describe` returns the current value; the tool is useless without it. |
@@ -1138,15 +1138,29 @@ interface AssistFixture {
   registries?: object[];                 // RegistryDocument[]
   profile?: object;                      // UserProfile (§6.1) — Assist-owned, no core schema
   setup?: {
-    // Pre-writes the compare-and-set guard (§4.3 rule 6) needs to distinguish a
-    // respondent-held value from the assistant's own, applied via the engine's
-    // setValue(path, value, { source }) before the provider is constructed.
+    // Pre-writes the compare-and-set guard (§4.3 rule 6) needs to tell a respondent-held
+    // value from the assistant's own: each entry is recorded with that write source
+    // (§4.3 rule 6) before the provider is constructed.
     writes?: Array<{ path: string; value: unknown; source: "user" | "assist" }>;
-    confirm?: boolean;                   // fed to confirmProfileApply for profile.apply cases
+    // Fed to confirmProfileApply for profile.apply cases. Absent (not `false`) means no
+    // confirmation mechanism is configured at all — the fixture for §3.5's
+    // `x-confirmation-required` depends on this distinction.
+    confirm?: boolean;
   };
   call: { tool: string; input: Record<string, unknown> };
   expect:
-    | { result: object }                 // partial — matched key-by-key against the parsed tool result
+    | {
+        result: object;                  // partial — matched key-by-key against the parsed tool result
+        // RFC 6901 pointers into `result` whose subtrees are checked by deep equality instead
+        // of the partial match above — closing the gap where an implementation that leaks an
+        // extra key (a stray `value`/`source` on a `ProfileMatch`, content that should have been
+        // stripped) still passes a subset check. An array pointer (`/matches`) requires the same
+        // length, in the same order, compared elementwise.
+        exact?: string[];
+        // Exactly what the provider's confirmation mechanism received, in order — proves §3.5
+        // skips are decided before confirmation runs, not merely that the final result looks right.
+        confirmation?: Array<{ path: string; value: unknown }>;
+      }
     | { error: { code: string; retryable: boolean; path?: string } };
 }
 ```
@@ -1155,18 +1169,25 @@ A conformant implementation loads every fixture, builds a live form from
 `definition`/`definitionRef`, applies `setup.writes`, constructs its Assist
 Provider (wiring `setup.confirm` into whatever `confirm: true` requires),
 invokes `call.tool` with `call.input`, and checks the parsed result against
-`expect.result` (present keys must match; the shape is intentionally partial,
-not exhaustive) or `expect.error`. `tests/conformance/spec/test_assist_fixtures.py`
-validates the corpus itself — envelope shape and that every embedded or
-`definitionRef`'d document is schema-valid — since the Python suite cannot
-execute a TypeScript provider;
+`expect.result` (present keys must match, `expect.exact` pointers deep-equal),
+or `expect.error`. A WebMCP-only port never sees this MCP-family envelope —
+it observes `{ error: ToolError }` on failure (§4.1) rather than
+`isError: true` with a JSON `text` — so it checks the same `expect` against
+whatever value or `{ error }` its own `execute` returns.
+`tests/conformance/spec/test_assist_fixtures.py` validates the corpus itself
+— envelope shape and that every embedded or `definitionRef`'d document is
+schema-valid — since the Python suite cannot execute a TypeScript provider;
 [`packages/formspec-assist/tests/conformance-fixtures.test.ts`][ts-runner] is
 the runner that actually drives them.
 
 Scoped out of the fixture corpus (kept as SHOULD/policy, verified by
 implementation-specific tests instead): `ToolError.message` wording, the
 WebMCP registration profile (§7.2), registered-schema stripping, `title`/
-`description` length caps, and renderer write-marking (§8.4).
+`description` length caps, and renderer write-marking (§8.4). Also out of
+scope: RECOMMENDED-only values (§6.2's confidence table) beyond the one
+reference number this corpus's own provider produces, and the MAY/SHOULD
+field-key fallback (§6.2 step 4) — a fixture that only exercises a MAY is not
+pinning a MUST.
 
 [fixtures-dir]: ../../tests/conformance/fixtures/assist/
 [ts-runner]: ../../packages/formspec-assist/tests/conformance-fixtures.test.ts

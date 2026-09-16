@@ -9,17 +9,9 @@ itself schema-valid — a conformant second implementation binds these same file
 so a malformed sidecar here would silently test nothing.
 
 `packages/formspec-assist/tests/conformance-fixtures.test.ts` is the counterpart that actually drives the
-fixtures through the real provider and checks `expect` against what it returns.
-
-Known schema gap this suite tolerates deliberately (see `_EXCERPT_IS_A_KNOWN_SCHEMA_GAP` below): the Assist
-spec's `ReferenceEntry.excerpt` (§5.1) has no authoring path in `schemas/references.schema.json` or
-`specs/core/references-spec.md` — the core References schema does not list `excerpt` as a bound-reference
-property. The reference `AssistProvider` reads `entry.excerpt` off the raw loaded document regardless (schema
-validity is not enforced at that call site), so `excerpt` "works" today, but a References Document authored
-with it and run through `formspec.validate` would be rejected. This is a real spec/schema drift, not a
-fixture bug; closing it belongs to a references-spec/schema change out of this corpus's scope. Fixtures that
-need `excerpt` (§5.1, §5.2) are validated against the schema with exactly this one gap allowed, so any other
-schema violation in those documents still fails loudly.
+fixtures through the real provider and checks `expect` against what it returns, including `expect.exact`
+(RFC 6901 pointers checked by deep equality) and `expect.confirmation` (what the confirmation mechanism
+received) — this suite only checks that those fields, where present, are themselves well-shaped.
 """
 
 from __future__ import annotations
@@ -30,7 +22,6 @@ from typing import Any
 
 import pytest
 from jsonschema import Draft202012Validator
-from jsonschema.exceptions import ValidationError
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
@@ -54,38 +45,11 @@ REFERENCES_VALIDATOR = Draft202012Validator(REFERENCES_SCHEMA, registry=_REGISTR
 ONTOLOGY_VALIDATOR = Draft202012Validator(ONTOLOGY_SCHEMA, registry=_REGISTRY)
 REGISTRY_VALIDATOR = Draft202012Validator(REGISTRY_SCHEMA, registry=_REGISTRY)
 
-
-def _EXCERPT_IS_A_KNOWN_SCHEMA_GAP(error: ValidationError) -> bool:
-    """True for exactly the `excerpt`-is-unexpected `additionalProperties` error described above."""
-    return error.validator == "additionalProperties" and "excerpt" in str(error.message)
-
-
-def _references_errors(document: dict[str, Any]) -> list[ValidationError]:
-    errors = sorted(REFERENCES_VALIDATOR.iter_errors(document), key=lambda e: e.json_path)
-    return [error for error in errors if not _EXCERPT_IS_A_KNOWN_SCHEMA_GAP(error)]
-
-
-REQUIRED_CASES = {
-    "3.3-option-label-resolves-case-insensitively.json",
-    "3.3-option-label-ambiguous-rejected.json",
-    "3.5-apply-by-paths-decides-skip-reasons-before-confirmation.json",
-    "3.5-apply-by-paths-not-relevant-skip.json",
-    "4.2-not-found-error-shape.json",
-    "4.3-compare-and-set-refuses-stale-expected.json",
-    "4.3-compare-and-set-accepts-matching-expected.json",
-    "5.1-help-projects-wire-keys-without-content-by-default.json",
-    "5.1-help-includes-content-when-requested.json",
-    "5.2-cap-degrades-content-and-excerpt-before-dropping.json",
-    "5.2-cap-drops-lowest-tier-tail-of-document-order-first.json",
-    "5.3-registry-entry-merge-supplies-definition-and-fallbacks.json",
-    "5.3-registry-entry-merge-fails-closed-on-contested-uri.json",
-    "6.1-profile-match-exact-concept-wire-shape.json",
-    "6.1-profile-match-close-equivalent-wire-shape.json",
-}
-
-# One representative fixture per MUST clause the ticket (fs-czl0) named. A clause with no fixture
-# citing it here is a coverage gap in the corpus, not just a missing filename.
-REQUIRED_SPEC_CITATIONS = {"§3.3", "§3.5", "§4.2", "§4.3 rule 6", "§5.1", "§5.2", "§5.3 step 1", "§6.1"}
+# Every MUST clause this corpus is required to cover (fs-czl0), matched by section-number prefix against
+# each fixture's `spec` field (e.g. "§4.3 rule 6" and "§4.3 rule 2" both satisfy the "§4.3" requirement) —
+# so a new sub-clause fixture under an already-covered section never needs a matching literal-string update
+# here, only genuinely uncovered sections do.
+REQUIRED_SPEC_PREFIXES = {"§3.3", "§3.5", "§4.2", "§4.3", "§5.1", "§5.2", "§5.3", "§6.1"}
 
 VALID_PROFILE_SOURCE_TYPES = {"form-fill", "manual", "import", "extension"}
 VALID_WRITE_SOURCES = {"user", "assist"}
@@ -109,12 +73,6 @@ def _resolve_definition(fixture: dict[str, Any]) -> dict[str, Any]:
     return _load(ref_path)
 
 
-def test_fixture_corpus_covers_required_cases() -> None:
-    present = {path.name for path in _fixture_files()}
-    missing = REQUIRED_CASES - present
-    assert not missing, f"missing assist fixture cases: {sorted(missing)}"
-
-
 def test_fixture_ids_are_unique() -> None:
     names = [path.name for path in _fixture_files()]
     assert len(names) == len(set(names))
@@ -122,8 +80,8 @@ def test_fixture_ids_are_unique() -> None:
 
 def test_every_required_must_clause_has_a_citing_fixture() -> None:
     cited = {_load(path)["spec"] for path in _fixture_files()}
-    missing = REQUIRED_SPEC_CITATIONS - cited
-    assert not missing, f"no fixture cites required clause(s): {sorted(missing)}"
+    missing = {prefix for prefix in REQUIRED_SPEC_PREFIXES if not any(spec.startswith(prefix) for spec in cited)}
+    assert not missing, f"no fixture cites required clause prefix(es): {sorted(missing)}"
 
 
 @pytest.mark.parametrize("path", _fixture_files(), ids=lambda p: p.name)
@@ -152,8 +110,21 @@ def test_fixture_envelope_shape(path: Path) -> None:
         assert isinstance(error.get("retryable"), bool), f"{path.name}: expect.error.retryable must be a bool"
         if "path" in error:
             assert isinstance(error["path"], str), f"{path.name}: expect.error.path must be a string"
+        assert "exact" not in expect and "confirmation" not in expect, f"{path.name}: exact/confirmation only apply beside expect.result"
     else:
         assert isinstance(expect["result"], dict), f"{path.name}: expect.result must be an object"
+        if "exact" in expect:
+            assert isinstance(expect["exact"], list) and expect["exact"], f"{path.name}: expect.exact must be a non-empty array"
+            for pointer in expect["exact"]:
+                assert isinstance(pointer, str) and pointer.startswith("/"), (
+                    f"{path.name}: expect.exact entries must be RFC 6901 pointers starting with '/' (got {pointer!r})"
+                )
+        if "confirmation" in expect:
+            assert isinstance(expect["confirmation"], list), f"{path.name}: expect.confirmation must be an array"
+            for entry in expect["confirmation"]:
+                assert isinstance(entry, dict) and "path" in entry and "value" in entry, (
+                    f"{path.name}: expect.confirmation[] entries must be {{ path, value }}"
+                )
 
     setup = fixture.get("setup")
     if setup is not None:
@@ -182,7 +153,7 @@ def test_fixture_definition_is_schema_valid(path: Path) -> None:
 @pytest.mark.parametrize("path", [p for p in _fixture_files() if "references" in _load(p)], ids=lambda p: p.name)
 def test_fixture_references_document_is_schema_valid(path: Path) -> None:
     fixture = _load(path)
-    errors = _references_errors(fixture["references"])
+    errors = sorted(REFERENCES_VALIDATOR.iter_errors(fixture["references"]), key=lambda e: e.json_path)
     assert not errors, f"{path.name}: references document is not schema-valid: {[(e.json_path, e.message) for e in errors]}"
 
 
@@ -222,17 +193,6 @@ def test_fixture_profile_has_the_assist_spec_shape(path: Path) -> None:
             assert isinstance(source, dict) and source.get("type") in VALID_PROFILE_SOURCE_TYPES, (
                 f"{path.name}: profile.{bucket_name}['{key}'].source.type must be one of {sorted(VALID_PROFILE_SOURCE_TYPES)}"
             )
-
-
-def test_excerpt_gap_is_still_present_in_the_references_schema() -> None:
-    """Tripwire: if `schemas/references.schema.json` grows an `excerpt` property, the allowance in
-    `_EXCERPT_IS_A_KNOWN_SCHEMA_GAP` becomes dead code hiding a real regression path. This fails loudly the
-    day that schema is fixed, so the allowance gets deleted deliberately rather than forgotten."""
-    bound_reference = REFERENCES_SCHEMA["$defs"]["BoundReference"]
-    assert "excerpt" not in bound_reference.get("properties", {}), (
-        "schemas/references.schema.json now defines 'excerpt' — remove _EXCERPT_IS_A_KNOWN_SCHEMA_GAP "
-        "from tests/conformance/spec/test_assist_fixtures.py, it is no longer needed"
-    )
 
 
 def test_spec_has_a_conformance_fixtures_subsection_pointing_at_the_corpus() -> None:

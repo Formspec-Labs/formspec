@@ -16,8 +16,7 @@
         "title": "EIN Instructions",
         "uri": "https://example.org/ein",
         "content": "Use the IRS-issued EIN.",
-        "excerpt": "IRS-issued.",
-        "description": "Long explanation",
+        "description": "IRS-issued.",
         "mediaType": "text/plain",
         "tags": ["tax"],
         "priority": "primary",
@@ -39,15 +38,14 @@
             "title": "EIN Instructions",
             "type": "documentation",
             "uri": "https://example.org/ein",
-            "excerpt": "IRS-issued.",
+            "description": "IRS-issued.",
             "rel": "defines",
             "priority": "primary",
             "content": "Use the IRS-issued EIN."
           }
         ]
       },
-      "concept": { "concept": "x-concept-org-ein" },
-      "equivalents": []
+      "concept": { "concept": "x-concept-org-ein" }
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "$formspecAssistFixture": "1.0",
-  "title": "Once degrading content and excerpt is not enough, the cap drops whole entries lowest-tier first, tail of document order first, never below one entry per type",
+  "title": "Once degrading content and description is not enough, the cap drops whole entries lowest-tier first, tail of document order first, never below one entry per type",
   "spec": "§5.2",
   "definitionRef": "definitions/grant-application.json",
   "references": {
@@ -23,7 +23,7 @@
         "title": "DocBgOne",
         "uri": "https://example.org/DocBgOne",
         "priority": "background",
-        "excerpt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "description": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "content": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       {
@@ -33,7 +33,7 @@
         "title": "DocBgTwo",
         "uri": "https://example.org/DocBgTwo",
         "priority": "background",
-        "excerpt": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "description": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "content": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       {
@@ -43,7 +43,7 @@
         "title": "RegBgOne",
         "uri": "https://example.org/RegBgOne",
         "priority": "background",
-        "excerpt": "cccccccccccccccccccccccccccccc",
+        "description": "cccccccccccccccccccccccccccccc",
         "content": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
       },
       {
@@ -53,7 +53,7 @@
         "title": "RegBgTwo",
         "uri": "https://example.org/RegBgTwo",
         "priority": "background",
-        "excerpt": "dddddddddddddddddddddddddddddd",
+        "description": "dddddddddddddddddddddddddddddd",
         "content": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
     ]
@@ -75,6 +75,7 @@
         ]
       },
       "truncated": { "omitted": { "regulation": 1 } }
-    }
+    },
+    "exact": ["/truncated"]
   }
 }

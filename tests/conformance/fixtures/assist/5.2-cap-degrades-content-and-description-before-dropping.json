@@ -1,6 +1,6 @@
 {
   "$formspecAssistFixture": "1.0",
-  "title": "Under the byte cap, the lowest-priority, latest-in-document-order entries lose content, then excerpt, before any whole entry is dropped",
+  "title": "Under the byte cap, the lowest-priority, latest-in-document-order entries lose content, then description, before any whole entry is dropped",
   "spec": "§5.2",
   "definitionRef": "definitions/grant-application.json",
   "references": {
@@ -23,7 +23,7 @@
         "title": "DocBgOne",
         "uri": "https://example.org/DocBgOne",
         "priority": "background",
-        "excerpt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "description": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "content": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       {
@@ -33,7 +33,7 @@
         "title": "DocBgTwo",
         "uri": "https://example.org/DocBgTwo",
         "priority": "background",
-        "excerpt": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "description": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "content": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       {
@@ -43,7 +43,7 @@
         "title": "RegBgOne",
         "uri": "https://example.org/RegBgOne",
         "priority": "background",
-        "excerpt": "cccccccccccccccccccccccccccccc",
+        "description": "cccccccccccccccccccccccccccccc",
         "content": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
       },
       {
@@ -53,7 +53,7 @@
         "title": "RegBgTwo",
         "uri": "https://example.org/RegBgTwo",
         "priority": "background",
-        "excerpt": "dddddddddddddddddddddddddddddd",
+        "description": "dddddddddddddddddddddddddddddd",
         "content": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
     ]
@@ -67,15 +67,16 @@
       "references": {
         "documentation": [
           { "title": "DocPrimary", "type": "documentation", "uri": "https://example.org/doc-primary", "priority": "primary" },
-          { "title": "DocBgOne", "type": "documentation", "uri": "https://example.org/DocBgOne", "priority": "background", "excerpt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
-          { "title": "DocBgTwo", "type": "documentation", "uri": "https://example.org/DocBgTwo", "priority": "background", "excerpt": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+          { "title": "DocBgOne", "type": "documentation", "uri": "https://example.org/DocBgOne", "priority": "background", "description": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+          { "title": "DocBgTwo", "type": "documentation", "uri": "https://example.org/DocBgTwo", "priority": "background", "description": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
         ],
         "regulation": [
-          { "title": "RegBgOne", "type": "regulation", "uri": "https://example.org/RegBgOne", "priority": "background", "excerpt": "cccccccccccccccccccccccccccccc" },
+          { "title": "RegBgOne", "type": "regulation", "uri": "https://example.org/RegBgOne", "priority": "background", "description": "cccccccccccccccccccccccccccccc" },
           { "title": "RegBgTwo", "type": "regulation", "uri": "https://example.org/RegBgTwo", "priority": "background" }
         ]
       },
       "truncated": { "omitted": {} }
-    }
+    },
+    "exact": ["/truncated"]
   }
 }

@@ -52,15 +52,7 @@
         "verified": true
       }
     },
-    "fields": {
-      "contactEmail": {
-        "value": "owner@example.org",
-        "confidence": 0.4,
-        "source": { "type": "manual", "timestamp": "2026-03-26T12:00:00.000Z" },
-        "lastUsed": "2026-03-26T12:00:00.000Z",
-        "verified": false
-      }
-    }
+    "fields": {}
   },
   "setup": {
     "confirm": true
@@ -83,6 +75,10 @@
         { "path": "contactEmail", "reason": "x-not-matched" },
         { "path": "derivedScore", "reason": "READONLY" }
       ]
-    }
+    },
+    "confirmation": [
+      { "path": "organization.name", "value": "Acme Foundation" },
+      { "path": "organization.ein", "value": "12-3456789" }
+    ]
   }
 }

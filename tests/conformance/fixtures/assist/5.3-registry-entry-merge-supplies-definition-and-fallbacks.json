@@ -44,8 +44,7 @@
         "system": "https://www.irs.gov/terms",
         "code": "EIN",
         "display": "Employer Identification Number (registry)"
-      },
-      "equivalents": []
+      }
     }
   }
 }

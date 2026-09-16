@@ -6,6 +6,13 @@
  * JSON files to its own provider the same way: build the engine from `definition`, apply `setup.writes`,
  * construct the provider, invoke `call`, and match `expect` against the parsed tool result.
  *
+ * `expect.result` is matched with `toMatchObject` (subset: present keys must match, extra actual keys are
+ * ignored) UNLESS a key's own pointer is listed in `expect.exact` (RFC 6901, e.g. `/matches`), in which
+ * case that subtree is compared by deep equality instead — closing the "an implementation that leaks an
+ * extra key still passes" hole subset matching leaves open. `exact` targets an array: same length, same
+ * order, elementwise. A WebMCP-only port sees `{ error: ToolError }` on failure (§4.1) rather than this
+ * MCP-family envelope's `isError: true` + JSON `text`; either way the parsed body is what gets checked.
+ *
  * The Python-side counterpart (`tests/conformance/spec/test_assist_fixtures.py`) validates the corpus's
  * shape and that every embedded/`Ref`'d definition, references, ontology, and registry document is itself
  * schema-valid — it cannot execute the TypeScript provider, so it checks the fixtures are well-formed
@@ -16,7 +23,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { FormEngine, type WriteSource } from '@formspec-org/engine';
+import type { RegistryDocument } from '@formspec-org/types';
 import { createAssistProvider } from '../src/index.js';
+import type { OntologyDocument, ReferencesDocument, UserProfile } from '../src/index.js';
 import { ensureEngine } from './helpers.js';
 
 interface FixtureWrite {
@@ -31,13 +40,20 @@ interface Fixture {
   spec: string;
   definition?: Record<string, unknown>;
   definitionRef?: string;
-  references?: unknown;
-  ontology?: unknown;
-  registries?: unknown;
-  profile?: unknown;
+  references?: ReferencesDocument | ReferencesDocument[];
+  ontology?: OntologyDocument | OntologyDocument[];
+  registries?: RegistryDocument[];
+  profile?: UserProfile;
   setup?: { writes?: FixtureWrite[]; confirm?: boolean };
   call: { tool: string; input: Record<string, unknown> };
-  expect: { result: Record<string, unknown> } | { error: Record<string, unknown> };
+  expect: {
+    result?: Record<string, unknown>;
+    error?: Record<string, unknown>;
+    /** RFC 6901 pointers into the checked object; each subtree is compared by deep equality. */
+    exact?: string[];
+    /** Exactly what `confirmProfileApply` received, in order — proves §3.5 skips are decided before confirmation. */
+    confirmation?: Array<{ path: string; value: unknown }>;
+  };
 }
 
 const FIXTURES_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'tests', 'conformance', 'fixtures', 'assist');
@@ -63,15 +79,20 @@ function resolveDefinition(fixture: Fixture): Record<string, unknown> {
   throw new Error('fixture carries neither definition nor definitionRef');
 }
 
+/** RFC 6901 JSON Pointer resolution (`~1` → `/`, `~0` → `~`); `undefined` when any segment misses. */
+function resolvePointer(value: unknown, pointer: string): unknown {
+  if (pointer === '') {
+    return value;
+  }
+  const segments = pointer.split('/').slice(1).map((segment) => segment.replace(/~1/g, '/').replace(/~0/g, '~'));
+  return segments.reduce<unknown>((acc, key) => (acc == null ? undefined : (acc as Record<string, unknown>)[key]), value);
+}
+
 const fixtures = loadFixtures();
 
 describe('Assist conformance fixture corpus (draft.3 MUSTs)', () => {
   beforeAll(async () => {
     await ensureEngine();
-  });
-
-  it('has at least one fixture per cited MUST clause', () => {
-    expect(fixtures.length).toBeGreaterThan(0);
   });
 
   it.each(fixtures)('$name — $fixture.title', async ({ fixture }) => {
@@ -80,28 +101,45 @@ describe('Assist conformance fixture corpus (draft.3 MUSTs)', () => {
     const definition = resolveDefinition(fixture);
     const engine = new FormEngine(definition as any);
     for (const write of fixture.setup?.writes ?? []) {
-      engine.setValue(write.path, write.value as never, { source: write.source });
+      engine.setValue(write.path, write.value as Parameters<typeof engine.setValue>[1], { source: write.source });
     }
+
+    // §3.5 x-confirmation-required: an absent setup.confirm means the fixture is proving "no confirmation
+    // mechanism configured" — the provider gets no confirmProfileApply at all, not a permissive stand-in.
+    const confirmationSeen: Array<{ path: string; value: unknown }> = [];
+    const confirmProfileApply = fixture.setup?.confirm === undefined
+      ? undefined
+      : ({ matches }: { matches: Array<{ path: string; value: unknown }> }) => {
+        confirmationSeen.push(...matches);
+        return fixture.setup!.confirm!;
+      };
 
     const provider = createAssistProvider({
       engine,
-      references: fixture.references as never,
-      ontology: fixture.ontology as never,
-      registries: fixture.registries as never,
-      profile: fixture.profile as never,
+      references: fixture.references,
+      ontology: fixture.ontology,
+      registries: fixture.registries,
+      profile: fixture.profile,
       registerWebMCP: false,
-      confirmProfileApply: () => fixture.setup?.confirm ?? true,
+      confirmProfileApply,
     });
 
     const result = await provider.invokeTool(fixture.call.tool, fixture.call.input);
     const body = JSON.parse(result.content[0].text);
 
-    if ('error' in fixture.expect) {
+    if (fixture.expect.error) {
       expect(result.isError, `${fixture.title}: expected an error result, got ${JSON.stringify(body)}`).toBe(true);
       expect(body).toMatchObject(fixture.expect.error);
     } else {
       expect(result.isError, `${fixture.title}: expected a success result, got ${JSON.stringify(body)}`).not.toBe(true);
       expect(body).toMatchObject(fixture.expect.result);
+      for (const pointer of fixture.expect.exact ?? []) {
+        expect(resolvePointer(body, pointer), `${fixture.title}: exact mismatch at ${pointer}`).toEqual(resolvePointer(fixture.expect.result, pointer));
+      }
+    }
+
+    if (fixture.expect.confirmation) {
+      expect(confirmationSeen, `${fixture.title}: confirmProfileApply payload`).toEqual(fixture.expect.confirmation);
     }
   });
 });

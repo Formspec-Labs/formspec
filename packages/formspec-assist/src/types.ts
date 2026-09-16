@@ -91,7 +91,7 @@ export interface FieldHelp {
   commonMistakes?: string[];
   /**
    * Present when the §5.2 byte cap cut anything: `omitted` counts whole entries dropped per reference
-   * type (empty when only `content` / `excerpt` were stripped). Raise `maxBytes` or narrow `audience`.
+   * type (empty when only `content` / `description` were stripped). Raise `maxBytes` or narrow `audience`.
    */
   truncated?: { omitted: Partial<Record<string, number>> };
 }

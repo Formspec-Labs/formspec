@@ -1,0 +1,17 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "field.set refuses a non-relevant field with NOT_RELEVANT, retryable once the field becomes relevant",
+  "spec": "§4.3 rule 3",
+  "definitionRef": "definitions/grant-application-ein-not-relevant.json",
+  "call": {
+    "tool": "formspec.field.set",
+    "input": { "path": "organization.ein", "value": "12-3456789" }
+  },
+  "expect": {
+    "error": {
+      "code": "NOT_RELEVANT",
+      "retryable": true,
+      "path": "organization.ein"
+    }
+  }
+}

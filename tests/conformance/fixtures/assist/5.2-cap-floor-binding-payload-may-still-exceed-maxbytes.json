@@ -1,0 +1,35 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "When every type is already down to its one-entry floor with nothing left to strip, the cap stops dropping and the payload MAY still exceed maxBytes",
+  "spec": "§5.2",
+  "definitionRef": "definitions/grant-application.json",
+  "references": {
+    "$formspecReferences": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.org/forms/grant" },
+    "references": [
+      { "target": "contactEmail", "type": "documentation", "audience": "agent", "title": "documentation-entry", "uri": "https://example.org/refs/documentation/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" },
+      { "target": "contactEmail", "type": "regulation", "audience": "agent", "title": "regulation-entry", "uri": "https://example.org/refs/regulation/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" },
+      { "target": "contactEmail", "type": "policy", "audience": "agent", "title": "policy-entry", "uri": "https://example.org/refs/policy/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" },
+      { "target": "contactEmail", "type": "glossary", "audience": "agent", "title": "glossary-entry", "uri": "https://example.org/refs/glossary/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" },
+      { "target": "contactEmail", "type": "schema", "audience": "agent", "title": "schema-entry", "uri": "https://example.org/refs/schema/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" },
+      { "target": "contactEmail", "type": "context", "audience": "agent", "title": "context-entry", "uri": "https://example.org/refs/context/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" }
+    ]
+  },
+  "call": {
+    "tool": "formspec.field.help",
+    "input": { "path": "contactEmail", "maxBytes": 512 }
+  },
+  "expect": {
+    "result": {
+      "references": {
+        "documentation": [{ "title": "documentation-entry", "type": "documentation", "uri": "https://example.org/refs/documentation/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" }],
+        "regulation": [{ "title": "regulation-entry", "type": "regulation", "uri": "https://example.org/refs/regulation/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" }],
+        "policy": [{ "title": "policy-entry", "type": "policy", "uri": "https://example.org/refs/policy/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" }],
+        "glossary": [{ "title": "glossary-entry", "type": "glossary", "uri": "https://example.org/refs/glossary/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" }],
+        "schema": [{ "title": "schema-entry", "type": "schema", "uri": "https://example.org/refs/schema/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" }],
+        "context": [{ "title": "context-entry", "type": "context", "uri": "https://example.org/refs/context/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "priority": "background" }]
+      }
+    }
+  }
+}

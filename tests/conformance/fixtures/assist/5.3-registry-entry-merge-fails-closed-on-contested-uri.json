@@ -59,8 +59,8 @@
     "result": {
       "concept": {
         "concept": "https://www.irs.gov/terms/employer-identification-number"
-      },
-      "equivalents": []
-    }
+      }
+    },
+    "exact": ["/concept"]
   }
 }

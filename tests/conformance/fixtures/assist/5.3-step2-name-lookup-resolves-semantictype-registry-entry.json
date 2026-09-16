@@ -1,0 +1,40 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "With no Ontology binding, a loaded Registry entry whose name matches the field's semanticType resolves as an empty binding merged per step 1",
+  "spec": "§5.3 step 2",
+  "definitionRef": "definitions/grant-application.json",
+  "registries": [
+    {
+      "$formspecRegistry": "1.1",
+      "publisher": { "name": "Example", "url": "https://example.org" },
+      "published": "2026-03-26T00:00:00Z",
+      "entries": [
+        {
+          "name": "x-concept-org-name",
+          "category": "concept",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "The legal name of the organization.",
+          "compatibility": { "formspecVersion": "^1.0.0" },
+          "conceptUri": "https://schema.org/name",
+          "conceptSystem": "https://schema.org",
+          "conceptCode": "name"
+        }
+      ]
+    }
+  ],
+  "call": {
+    "tool": "formspec.field.help",
+    "input": { "path": "organization.name" }
+  },
+  "expect": {
+    "result": {
+      "concept": {
+        "concept": "https://schema.org/name",
+        "definition": "The legal name of the organization.",
+        "system": "https://schema.org",
+        "code": "name"
+      }
+    }
+  }
+}

@@ -290,7 +290,7 @@ export function capUtf8(value: string, maxBytes: number): string {
 }
 
 /** The wire projection of a References entry (§5.1): the small, trusted-enough keys; `content` only on request. */
-const WIRE_REFERENCE_KEYS = ['title', 'type', 'uri', 'excerpt', 'rel', 'priority'] as const;
+const WIRE_REFERENCE_KEYS = ['title', 'type', 'uri', 'description', 'rel', 'priority'] as const;
 
 const PRIORITY_RANK: Record<string, number> = { primary: 0, supplementary: 1, background: 2 };
 
@@ -313,9 +313,9 @@ function projectReferenceEntry(entry: ReferenceEntry, includeContent: boolean): 
 
 /**
  * The model-facing projection of a `FieldHelp` (Assist spec §5.1–5.2): each reference entry keeps
- * `title`, `type`, `uri`, `excerpt`, `rel`, `priority` (+ `content` when `includeContent`), and the
+ * `title`, `type`, `uri`, `description`, `rel`, `priority` (+ `content` when `includeContent`), and the
  * serialized `references` object is held under `maxBytes` (UTF-8 bytes of compact JSON) by degrading
- * before dropping: strip `content`, then `excerpt`, then whole entries — never below one entry per
+ * before dropping: strip `content`, then `description`, then whole entries — never below one entry per
  * type. Every pass takes the lowest priority tier first (`background` → `supplementary` → `primary`);
  * within a tier, a later type group first, then the last entry in document order. `truncated.omitted`
  * counts dropped entries per type and is present whenever anything was cut. `concept.definition` is cut on its
@@ -344,7 +344,7 @@ export function minimizeFieldHelp(help: FieldHelp, options: FieldHelpOptions = {
   // not O(cuts × total bytes). Stripping a key changes the entry's own length; dropping an entry from a
   // bucket that keeps at least one other removes the entry and one separating comma.
   let total = utf8Length(references);
-  const stripKey = (key: 'content' | 'excerpt') => ({ entry }: (typeof candidates)[number]): boolean => {
+  const stripKey = (key: 'content' | 'description') => ({ entry }: (typeof candidates)[number]): boolean => {
     if (entry[key] === undefined) {
       return false;
     }
@@ -355,7 +355,7 @@ export function minimizeFieldHelp(help: FieldHelp, options: FieldHelpOptions = {
   };
   const cuts: Array<(candidate: (typeof candidates)[number]) => boolean> = [
     stripKey('content'),
-    stripKey('excerpt'),
+    stripKey('description'),
     ({ type, entry }) => {
       const bucket = references[type];
       if (bucket.length <= 1) {

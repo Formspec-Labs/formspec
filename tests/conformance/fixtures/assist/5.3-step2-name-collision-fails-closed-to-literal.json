@@ -1,0 +1,55 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "A semanticType name claimed by two differing loaded registry entries resolves nothing at step 2; the binding falls to the step 3 literal",
+  "spec": "§5.3 step 2",
+  "definitionRef": "definitions/grant-application.json",
+  "registries": [
+    {
+      "$formspecRegistry": "1.1",
+      "publisher": { "name": "Example", "url": "https://example.org" },
+      "published": "2026-03-26T00:00:00Z",
+      "entries": [
+        {
+          "name": "x-concept-org-name",
+          "category": "concept",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "The legal name of the organization.",
+          "compatibility": { "formspecVersion": "^1.0.0" },
+          "conceptUri": "https://schema.org/name",
+          "conceptSystem": "https://schema.org",
+          "conceptCode": "name"
+        }
+      ]
+    },
+    {
+      "$formspecRegistry": "1.1",
+      "publisher": { "name": "Example", "url": "https://example.org" },
+      "published": "2026-03-26T00:00:00Z",
+      "entries": [
+        {
+          "name": "x-concept-org-name",
+          "category": "concept",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "The legal name of the organization.",
+          "compatibility": { "formspecVersion": "^1.0.0" },
+          "conceptUri": "https://example.org/other-name",
+          "conceptSystem": "https://schema.org",
+          "conceptCode": "name"
+        }
+      ]
+    }
+  ],
+  "call": {
+    "tool": "formspec.field.help",
+    "input": { "path": "organization.name" }
+  },
+  "expect": {
+    "result": {
+      "concept": {
+        "concept": "x-concept-org-name"
+      }
+    }
+  }
+}

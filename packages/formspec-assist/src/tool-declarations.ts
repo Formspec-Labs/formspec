@@ -79,7 +79,7 @@ export function buildToolDeclarations(): ToolDeclaration[] {
       description:
         'Get authoritative guidance for one field: definition, examples, the rule behind it, and the concept it represents. '
         + 'Use it when a value\'s meaning or format is unclear, or when a validation message needs explaining. '
-        + 'Returns titled entries with an excerpt and source link each; pass includeContent for the full text.',
+        + 'Returns titled entries with a description and source link each; pass includeContent for the full text.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -91,7 +91,7 @@ export function buildToolDeclarations(): ToolDeclaration[] {
           },
           includeContent: {
             type: 'boolean',
-            description: 'Include each entry\'s full text, not just the excerpt. Defaults to false.',
+            description: 'Include each entry\'s full text, not just the description. Defaults to false.',
           },
           maxBytes: {
             type: 'integer',

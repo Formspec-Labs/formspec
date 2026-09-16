@@ -1,0 +1,17 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "field.set refuses a calculated/readonly field with READONLY, not retryable",
+  "spec": "§4.3 rule 2",
+  "definitionRef": "definitions/grant-application.json",
+  "call": {
+    "tool": "formspec.field.set",
+    "input": { "path": "derivedScore", "value": 5 }
+  },
+  "expect": {
+    "error": {
+      "code": "READONLY",
+      "retryable": false,
+      "path": "derivedScore"
+    }
+  }
+}

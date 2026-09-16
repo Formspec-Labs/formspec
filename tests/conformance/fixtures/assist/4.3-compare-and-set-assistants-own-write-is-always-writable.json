@@ -1,0 +1,21 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "A field the assistant itself last wrote is always writable again, without an expected witness",
+  "spec": "§4.3 rule 6",
+  "definitionRef": "definitions/grant-application.json",
+  "setup": {
+    "writes": [
+      { "path": "contactEmail", "value": "agent1@example.org", "source": "assist" }
+    ]
+  },
+  "call": {
+    "tool": "formspec.field.set",
+    "input": { "path": "contactEmail", "value": "agent2@example.org" }
+  },
+  "expect": {
+    "result": {
+      "accepted": true,
+      "value": "agent2@example.org"
+    }
+  }
+}

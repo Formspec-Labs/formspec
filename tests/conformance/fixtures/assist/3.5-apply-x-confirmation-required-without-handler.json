@@ -1,0 +1,16 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "confirm: true with no confirmation mechanism configured is refused x-confirmation-required, not silently applied",
+  "spec": "§3.5",
+  "definitionRef": "definitions/grant-application.json",
+  "call": {
+    "tool": "formspec.profile.apply",
+    "input": { "confirm": true }
+  },
+  "expect": {
+    "error": {
+      "code": "x-confirmation-required",
+      "retryable": false
+    }
+  }
+}

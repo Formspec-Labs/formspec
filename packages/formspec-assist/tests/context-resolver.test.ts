@@ -301,7 +301,7 @@ function bulkyReferences(): ReferencesDocument {
       audience: 'agent',
       title: `Entry ${index} (${tiers[index % 3]})`,
       uri: `https://example.org/refs/${index}`,
-      excerpt: `Excerpt ${index} ${'x'.repeat(300)}`,
+      description: `Description ${index} ${'x'.repeat(300)}`,
       content: `Content ${index} ${'y'.repeat(2000)}`,
       priority: tiers[index % 3],
       rel: 'see-also',
@@ -320,7 +320,7 @@ describe('Field help output minimization (draft.3 C4, §5.1–5.2)', () => {
     return JSON.parse(result.content[0].text) as FieldHelp;
   }
 
-  it('projects each wire entry to title, type, uri, excerpt, rel, priority — content only on request', async () => {
+  it('projects each wire entry to title, type, uri, description, rel, priority — content only on request', async () => {
     const provider = createAssistProvider({
       engine: createEngine(),
       references: referencesDoc([
@@ -332,8 +332,7 @@ describe('Field help output minimization (draft.3 C4, §5.1–5.2)', () => {
           title: 'EIN Instructions',
           uri: 'https://example.org/ein',
           content: 'Use the IRS-issued EIN.',
-          excerpt: 'IRS-issued.',
-          description: 'Long explanation',
+          description: 'IRS-issued.',
           mediaType: 'text/plain',
           tags: ['tax'],
           priority: 'primary',
@@ -345,13 +344,13 @@ describe('Field help output minimization (draft.3 C4, §5.1–5.2)', () => {
 
     const minimal = await help(provider, {});
     expect(minimal.references.documentation).toEqual([
-      { title: 'EIN Instructions', type: 'documentation', uri: 'https://example.org/ein', excerpt: 'IRS-issued.', rel: 'defines', priority: 'primary' },
+      { title: 'EIN Instructions', type: 'documentation', uri: 'https://example.org/ein', description: 'IRS-issued.', rel: 'defines', priority: 'primary' },
     ]);
     expect(minimal.truncated).toBeUndefined();
 
     const withContent = await help(provider, { includeContent: true });
     expect(withContent.references.documentation?.[0]).toMatchObject({ title: 'EIN Instructions', content: 'Use the IRS-issued EIN.' });
-    expect(withContent.references.documentation?.[0]).not.toHaveProperty('description');
+    expect(withContent.references.documentation?.[0]).not.toHaveProperty('mediaType');
 
     // field.describe embeds the same minimized projection.
     const described = await provider.invokeTool('formspec.field.describe', { path: 'organization.ein' });
@@ -359,7 +358,7 @@ describe('Field help output minimization (draft.3 C4, §5.1–5.2)', () => {
     expect(JSON.parse(described.content[0].text).help.references.documentation[0]).not.toHaveProperty('content');
 
     // The in-page method is not a model-facing tool: it keeps the full entry.
-    expect(provider.getFieldHelp('organization.ein').references.documentation?.[0]).toMatchObject({ content: 'Use the IRS-issued EIN.', description: 'Long explanation' });
+    expect(provider.getFieldHelp('organization.ein').references.documentation?.[0]).toMatchObject({ content: 'Use the IRS-issued EIN.', description: 'IRS-issued.', mediaType: 'text/plain' });
   });
 
   it('caps serialized references at 4096 bytes by default and counts what it omitted per type', async () => {
@@ -372,8 +371,8 @@ describe('Field help output minimization (draft.3 C4, §5.1–5.2)', () => {
     const omitted = Object.values(payload.truncated?.omitted ?? {}).reduce((sum, count) => sum + (count ?? 0), 0);
     expect(payload.truncated).toBeDefined();
     expect(kept + omitted).toBe(12);
-    // Degrade before drop: excerpts go before any entry does.
-    expect(Object.values(payload.references).flat().some((entry) => entry?.excerpt === undefined)).toBe(true);
+    // Degrade before drop: descriptions go before any entry does.
+    expect(Object.values(payload.references).flat().some((entry) => entry?.description === undefined)).toBe(true);
 
     const uncapped = await provider.invokeTool('formspec.field.help', { path: 'contactEmail', maxBytes: 65536 });
     const full = JSON.parse(uncapped.content[0].text) as FieldHelp;
@@ -381,13 +380,13 @@ describe('Field help output minimization (draft.3 C4, §5.1–5.2)', () => {
     expect(Object.values(full.references).flat()).toHaveLength(12);
   });
 
-  it('degrades before it drops: content, then excerpt, then whole entries — lowest tier and tail of document order first, never below one per type', () => {
+  it('degrades before it drops: content, then description, then whole entries — lowest tier and tail of document order first, never below one per type', () => {
     // ~300 bytes each so every step below stays above the 512-byte floor.
     const entry = (title: string, priority?: 'primary' | 'supplementary' | 'background') => ({
       title,
       type: 'documentation',
       uri: `https://example.org/${title}/${'x'.repeat(200)}`,
-      excerpt: `excerpt ${title} ${'e'.repeat(40)}`,
+      description: `description ${title} ${'e'.repeat(40)}`,
       content: `content ${title} ${'c'.repeat(40)}`,
       ...(priority ? { priority } : {}),
     });
@@ -402,7 +401,7 @@ describe('Field help output minimization (draft.3 C4, §5.1–5.2)', () => {
     const shape = (result: FieldHelp) => Object.fromEntries(
       Object.entries(result.references).map(([type, entries]) => [
         type,
-        entries?.map((item) => `${item.title}${'content' in item ? '+c' : ''}${'excerpt' in item ? '+e' : ''}`),
+        entries?.map((item) => `${item.title}${'content' in item ? '+c' : ''}${'description' in item ? '+d' : ''}`),
       ]),
     );
     const sizeOf = (result: FieldHelp) => utf8Bytes(result.references);
@@ -411,8 +410,8 @@ describe('Field help output minimization (draft.3 C4, §5.1–5.2)', () => {
     expect(full.truncated).toBeUndefined();
     expect(full).not.toBe(help);
     expect(shape(full)).toEqual({
-      documentation: ['doc-primary+c+e', 'doc-supp-1+c+e', 'doc-supp-2+c+e', 'doc-bg+c+e'],
-      regulation: ['reg-primary+c+e', 'reg-bg+c+e'],
+      documentation: ['doc-primary+c+d', 'doc-supp-1+c+d', 'doc-supp-2+c+d', 'doc-bg+c+d'],
+      regulation: ['reg-primary+c+d', 'reg-bg+c+d'],
     });
 
     // Walk the cap down one degradation at a time: step n is the smallest cap that forces n cuts.
@@ -427,18 +426,18 @@ describe('Field help output minimization (draft.3 C4, §5.1–5.2)', () => {
     // Step 1: the later type group's background entry loses its content first.
     expect(after(1).truncated).toEqual({ omitted: {} });
     expect(shape(after(1))).toEqual({
-      documentation: ['doc-primary+c+e', 'doc-supp-1+c+e', 'doc-supp-2+c+e', 'doc-bg+c+e'],
-      regulation: ['reg-primary+c+e', 'reg-bg+e'],
+      documentation: ['doc-primary+c+d', 'doc-supp-1+c+d', 'doc-supp-2+c+d', 'doc-bg+c+d'],
+      regulation: ['reg-primary+c+d', 'reg-bg+d'],
     });
 
-    // Steps 2–6 strip the remaining content before any excerpt goes; step 7 takes the first excerpt.
+    // Steps 2–6 strip the remaining content before any description goes; step 7 takes the first description.
     expect(shape(after(6))).toEqual({
-      documentation: ['doc-primary+e', 'doc-supp-1+e', 'doc-supp-2+e', 'doc-bg+e'],
-      regulation: ['reg-primary+e', 'reg-bg+e'],
+      documentation: ['doc-primary+d', 'doc-supp-1+d', 'doc-supp-2+d', 'doc-bg+d'],
+      regulation: ['reg-primary+d', 'reg-bg+d'],
     });
     expect(shape(after(7))).toEqual({
-      documentation: ['doc-primary+e', 'doc-supp-1+e', 'doc-supp-2+e', 'doc-bg+e'],
-      regulation: ['reg-primary+e', 'reg-bg'],
+      documentation: ['doc-primary+d', 'doc-supp-1+d', 'doc-supp-2+d', 'doc-bg+d'],
+      regulation: ['reg-primary+d', 'reg-bg'],
     });
     expect(after(12).truncated).toEqual({ omitted: {} });
 

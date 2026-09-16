@@ -1,6 +1,6 @@
 {
   "$formspecAssistFixture": "1.0",
-  "title": "field.help projects a reference entry to title/type/uri/excerpt/rel/priority; content is absent by default",
+  "title": "field.help projects a reference entry to title/type/uri/description/rel/priority; content is absent by default",
   "spec": "§5.1",
   "definitionRef": "definitions/grant-application.json",
   "references": {
@@ -16,8 +16,7 @@
         "title": "EIN Instructions",
         "uri": "https://example.org/ein",
         "content": "Use the IRS-issued EIN.",
-        "excerpt": "IRS-issued.",
-        "description": "Long explanation",
+        "description": "IRS-issued.",
         "mediaType": "text/plain",
         "tags": ["tax"],
         "priority": "primary",
@@ -39,14 +38,14 @@
             "title": "EIN Instructions",
             "type": "documentation",
             "uri": "https://example.org/ein",
-            "excerpt": "IRS-issued.",
+            "description": "IRS-issued.",
             "rel": "defines",
             "priority": "primary"
           }
         ]
       },
-      "concept": { "concept": "x-concept-org-ein" },
-      "equivalents": []
-    }
+      "concept": { "concept": "x-concept-org-ein" }
+    },
+    "exact": ["/references"]
   }
 }
