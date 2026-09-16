@@ -211,7 +211,7 @@ formspec/registries/signature-method-registry.json
 
 No kernel, no MCP, no live signing state. The method URI is read out of the **COSE protected header**, never out of the JSON record, so a record claiming a method its envelope does not carry cannot pass. The signature is **detached** (`payload = null`, ADR 0109 consumer shape), which is what makes the tamper control meaningful: the verifier must rebuild the preimage from the export on disk. Changing one byte — the respondent Surface's `id` — flips the verdict to `failed`.
 
-**Recorded choice, restated so it is not mistaken for a promotion.** The domain tag `formspec.spike-v10.bundle-export.signed-payload.v1` is spike-local. Every primitive under it is shipped substrate: RFC 8785 JCS via `canonicalize`, `@integrity-stack/cose` byte helpers, `@integrity-stack/signature-adapter-webcrypto`, the shipped registry.
+**Recorded choice, restated so it is not mistaken for a promotion.** The domain tag `formspec.spike-v10.bundle-export.signed-payload.v1` is spike-local. Every primitive under it is shipped substrate: RFC 8785 JCS via `canonicalize`, `@formspec-org/integrity-cose` byte helpers, `@formspec-org/integrity-signature-adapter-webcrypto`, the shipped registry.
 
 ## Method notes
 

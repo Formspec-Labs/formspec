@@ -1,4 +1,4 @@
-# Its own workspace root: this crate's dependencies live in the private `integrity-stack` sibling, so it is
+# Its own workspace root: this crate's dependencies live in the `integrity-stack` sibling and are not on crates.io yet, so it is
 # excluded from the repository workspace (see ../../Cargo.toml) and builds where that sibling is checked out.
 [workspace]
 
