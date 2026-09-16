@@ -339,11 +339,6 @@ export class RawProject implements IProjectCore {
 
   export(): ProjectBundle {
     const url = this._state.definition.url;
-    const { targetDefinition: themeTarget, ...restTheme } = this._state.theme;
-    // theme-spec §2.2.1: preserve absent = bundle scope. Never `themeTarget ?? { url }`.
-    const exportTheme: ThemeState = themeTarget
-      ? { ...restTheme, targetDefinition: themeTarget }
-      : restTheme;
 
     // mapping.schema.json requires `rules` minItems 1: a rule-less mapping is authoring
     // scaffolding (the seeded `default`, a freshly created tab), not a document.
@@ -363,28 +358,18 @@ export class RawProject implements IProjectCore {
       ...(componentExport.derived ? {} : {
         component: withComponentEnvelope({ ...this._state.component, tree: componentExport.tree }, url),
       }),
-      theme: {
-        ...withThemeEnvelope(exportTheme),
-      },
+      // theme-spec §2.2.1: an absent targetDefinition is bundle scope and stays absent
+      // (never `?? { url }`); the document's own key order is kept.
+      theme: withThemeEnvelope(this._state.theme),
       mappings: exportMappings,
     };
 
-    // Export locale documents with $formspecLocale envelope
+    // Locale state is the document (import keeps it whole, envelope included), so export it
+    // whole: picking fields here dropped `formats` and reordered what an author wrote.
     if (Object.keys(this._state.locales).length > 0) {
       bundle.locales = {};
       for (const [code, ls] of Object.entries(this._state.locales)) {
-        bundle.locales[code] = {
-          $formspecLocale: '2.0',
-          locale: ls.locale,
-          version: ls.version,
-          target: ls.target,
-          strings: ls.strings,
-          ...(ls.fallback ? { fallback: ls.fallback } : {}),
-          ...(ls.name ? { name: ls.name } : {}),
-          ...(ls.title ? { title: ls.title } : {}),
-          ...(ls.description ? { description: ls.description } : {}),
-          ...(ls.url ? { url: ls.url } : {}),
-        };
+        bundle.locales[code] = { $formspecLocale: '2.0', ...ls };
       }
     }
 

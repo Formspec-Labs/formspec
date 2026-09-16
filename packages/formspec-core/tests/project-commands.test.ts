@@ -71,6 +71,56 @@ describe('project.import', () => {
     expect(project.canUndo).toBe(true);
   });
 
+  it('keeps a Theme document\'s identity (url, version, name, title, description) through import → export', () => {
+    const project = createRawProject();
+    const theme = {
+      $formspecTheme: '1.0',
+      version: '0.3.0',
+      url: 'https://demo.example/theme',
+      name: 'demo-uswds',
+      title: 'Demo — USWDS',
+      description: 'How the form looks.',
+      targetDefinition: { url: 'urn:formspec:imported' },
+      tokens: { 'spacing.field': '2rem' },
+    };
+    project.dispatch({
+      type: 'project.import',
+      payload: {
+        definitions: [{ $formspec: '1.0', url: 'urn:formspec:imported', version: '1.0.0', title: 'Imported', items: [] }],
+        theme,
+      },
+    });
+
+    expect(project.state.theme).not.toHaveProperty('$formspecTheme');
+    expect(project.export().theme).toEqual(theme);
+    // Key order survives too: a saved file is the file that was opened.
+    expect(Object.keys(project.export().theme)).toEqual(Object.keys(theme));
+  });
+
+  it('keeps every Locale field (formats included) and its key order through import → export', () => {
+    const project = createRawProject();
+    const locale = {
+      $formspecLocale: '2.0',
+      locale: 'en',
+      version: '1.0.0',
+      url: 'https://demo.example/locales/en',
+      name: 'demo-en',
+      target: { kind: 'definition', url: 'urn:formspec:imported' },
+      formats: { date: { medium: 'MM/dd/yyyy' } },
+      strings: { 'name.label': 'Name' },
+    };
+    project.dispatch({
+      type: 'project.import',
+      payload: {
+        definitions: [{ $formspec: '1.0', url: 'urn:formspec:imported', version: '1.0.0', title: 'Imported', items: [] }],
+        locales: { en: locale },
+      },
+    });
+
+    expect(project.export().locales!.en).toEqual(locale);
+    expect(Object.keys(project.export().locales!.en as object)).toEqual(Object.keys(locale));
+  });
+
   it('imports mapping documents as working mapping state', () => {
     const project = createRawProject();
     project.dispatch({

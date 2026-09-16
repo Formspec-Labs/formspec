@@ -26,7 +26,7 @@ export function withComponentEnvelope(body: ComponentState, definitionUrl: strin
 export function withThemeEnvelope(body: ThemeState): ThemeDocument {
   return {
     $formspecTheme: '1.0',
-    version: '0.1.0',
+    ...(body.version === undefined ? { version: '0.1.0' } : {}),
     ...body,
   } as ThemeDocument;
 }
@@ -39,17 +39,13 @@ export function viewThemeDocument(theme: ThemeState): ThemeDocument {
   return theme as unknown as ThemeDocument;
 }
 
-/** Strip envelope fields from an imported theme document into working state. */
+/**
+ * Strip the spec-version marker from an imported theme document into working state. The
+ * document's identity (`url`, `version`, `name`, `title`, `description`) stays: a manifest pins
+ * a Theme by (url, version), so dropping them would make a saved bundle stop resolving.
+ */
 export function themeStateFromDocument(doc: ThemeDocument): ThemeState {
-  const {
-    $formspecTheme: _v,
-    url: _url,
-    version: _version,
-    name: _name,
-    title: _title,
-    description: _description,
-    ...rest
-  } = doc;
+  const { $formspecTheme: _v, ...rest } = doc;
   return rest as ThemeState;
 }
 

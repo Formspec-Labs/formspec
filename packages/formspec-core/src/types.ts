@@ -41,6 +41,12 @@ export interface ComponentState {
  * Handlers read/write defaults, selectors, items, pages, etc.
  */
 export interface ThemeState {
+  /** Document identity, kept from an imported Theme; export mints `version` only when absent. */
+  url?: string;
+  version?: string;
+  name?: string;
+  title?: string;
+  description?: string;
   targetDefinition?: { url: string; compatibleVersions?: string };
   tokens?: Record<string, unknown>;
   defaults?: Record<string, unknown>;
