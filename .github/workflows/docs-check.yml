@@ -11,6 +11,7 @@ on:
       - "scripts/run-spec-contract-tests.mjs"
       - "package.json"
       - "package-lock.json"
+      - ".github/workflows/docs-check.yml"
   push:
     branches:
       - main
@@ -23,6 +24,7 @@ on:
       - "scripts/run-spec-contract-tests.mjs"
       - "package.json"
       - "package-lock.json"
+      - ".github/workflows/docs-check.yml"
 
 jobs:
   docs-check:
