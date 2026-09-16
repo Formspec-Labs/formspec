@@ -6,8 +6,11 @@ import { createEngine, ensureEngine, FakeModelContext, makeOntology, makeProfile
 
 /** Every `additionalProperties` occurrence in a JSON-Schema-shaped object, at any depth. */
 function additionalPropertiesAt(schema: unknown, location = ''): string[] {
-  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
+  if (!schema || typeof schema !== 'object') {
     return [];
+  }
+  if (Array.isArray(schema)) {
+    return schema.flatMap((child, index) => additionalPropertiesAt(child, `${location}[${index}]`));
   }
   const found = 'additionalProperties' in schema ? [location || '<root>'] : [];
   for (const [key, child] of Object.entries(schema)) {

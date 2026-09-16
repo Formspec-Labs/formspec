@@ -1316,7 +1316,8 @@ export class FormspecRender extends HTMLElement {
         if (this.assistAnnounceFrame !== null) return;
         this.assistAnnounceFrame = requestAnimationFrame(() => {
             this.assistAnnounceFrame = null;
-            const labels = this.pendingAssistLabels.splice(0).join(', ');
+            // One field is one field, however many signals moved for it in this frame.
+            const labels = [...new Set(this.pendingAssistLabels.splice(0))].join(', ');
             // Chrome string `$ui.assist.filled` (Locale §3.1.10; assist-spec §8.4): `$label` is every field written this frame.
             this.ensureAssistAnnouncer().textContent = uiText(this.engine ?? undefined, 'assist.filled', { label: labels }).value;
         });

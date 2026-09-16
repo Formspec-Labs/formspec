@@ -49,18 +49,23 @@ export function unwrapToolResult(result: ToolResult): unknown {
  * strict declaration and still refuses unknown keys.
  */
 function withoutAdditionalProperties(schema: Record<string, unknown>): Record<string, unknown> {
-  const { additionalProperties: _dropped, properties, items, ...rest } = schema;
+  const { additionalProperties: _dropped, properties, items, anyOf, oneOf, allOf, ...rest } = schema;
+  const strip = (value: unknown): unknown =>
+    value && typeof value === 'object' && !Array.isArray(value) ? withoutAdditionalProperties(value as Record<string, unknown>) : value;
+  const stripAll = (branches: unknown): unknown => (Array.isArray(branches) ? branches.map(strip) : branches);
   return {
     ...rest,
     ...(properties && typeof properties === 'object'
       ? {
         properties: Object.fromEntries(
-          Object.entries(properties as Record<string, Record<string, unknown>>)
-            .map(([key, property]) => [key, withoutAdditionalProperties(property)]),
+          Object.entries(properties as Record<string, unknown>).map(([key, property]) => [key, strip(property)]),
         ),
       }
       : {}),
-    ...(items && typeof items === 'object' ? { items: withoutAdditionalProperties(items as Record<string, unknown>) } : {}),
+    ...(items !== undefined ? { items: strip(items) } : {}),
+    ...(anyOf !== undefined ? { anyOf: stripAll(anyOf) } : {}),
+    ...(oneOf !== undefined ? { oneOf: stripAll(oneOf) } : {}),
+    ...(allOf !== undefined ? { allOf: stripAll(allOf) } : {}),
   };
 }
 

@@ -177,7 +177,8 @@ export interface AssistProvider {
   loadReferences(refs: ReferencesDocument | ReferencesDocument[]): void;
   loadOntology(ontology: OntologyDocument | OntologyDocument[]): void;
   /** Make `profile` current and persist it. After a `'default'` WebMCP registration without a profile, this also registers the `profile.*` tools. */
-  loadProfile(profile: UserProfile): void;
+  /** Resolves once any profile tools this adds to WebMCP are acknowledged (immediately when none are). */
+  loadProfile(profile: UserProfile): Promise<void>;
   /** The full in-page help object; the `field.help` tool returns its minimized projection (§5.1). */
   getFieldHelp(path: string, audience?: 'human' | 'agent' | 'both'): FieldHelp;
   getProgress(): FormProgress;

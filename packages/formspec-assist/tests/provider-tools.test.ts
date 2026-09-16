@@ -1276,17 +1276,44 @@ describe('Profile capability (draft.3 C2)', () => {
     await provider.ready;
     expect(await registered(modelContext)).not.toEqual(expect.arrayContaining(profileTools));
 
-    provider.loadProfile(makeProfile());
-    await nextTask();
+    // loadProfile resolves once the host has acknowledged the added tools — no timing guess needed.
+    await provider.loadProfile(makeProfile());
     expect(await registered(modelContext)).toEqual(expect.arrayContaining(profileTools));
 
     // Idempotent: a second profile load does not try to register twice (the fake rejects duplicates).
-    provider.loadProfile(makeProfile());
-    await nextTask();
+    await provider.loadProfile(makeProfile());
     expect((await registered(modelContext)).filter((name) => name.startsWith('formspec.profile.'))).toHaveLength(3);
 
     provider.detach();
     await nextTask();
     expect(await registered(modelContext)).toEqual([]);
+  });
+
+  it('profile.learn creates the capability too: the profile tools register after a learn on a profile-less provider', async () => {
+    const modelContext = new FakeModelContext();
+    const engine = createEngine();
+    engine.setValue('organization.name', 'Acme');
+    const provider = createAssistProvider({ engine, modelContext, ontology: makeOntology() });
+    await provider.ready;
+    expect(provider.hasProfile()).toBe(false);
+
+    const learned = await provider.invokeTool('formspec.profile.learn', {});
+    expect(learned.isError).not.toBe(true);
+    expect(provider.hasProfile()).toBe(true);
+    await nextTask();
+    expect(await registered(modelContext)).toEqual(expect.arrayContaining(profileTools));
+  });
+
+  it('a refused first registration leaves no orphan profile tools to register later', async () => {
+    const modelContext = new FakeModelContext();
+    const first = createAssistProvider({ engine: createEngine(), modelContext });
+    await first.ready;
+    const second = createAssistProvider({ engine: createEngine(), modelContext });
+    await expect(second.ready).rejects.toThrow('duplicate tool');
+
+    await second.loadProfile(makeProfile());
+    expect((await registered(modelContext)).filter((name) => name.startsWith('formspec.profile.'))).toHaveLength(0);
+    second.dispose();
+    first.dispose();
   });
 });

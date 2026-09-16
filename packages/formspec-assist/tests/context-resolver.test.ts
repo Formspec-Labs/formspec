@@ -299,22 +299,7 @@ describe('Field help output minimization (draft.3 C4, §5.1–5.2)', () => {
     // At the floor nothing more can go: the payload stays over the cap rather than emptying a type.
     const floor = minimizeFieldHelp(help, { includeContent: true, maxBytes: 1 });
     expect(shape(floor)).toEqual({ documentation: ['doc-primary'], regulation: ['reg-primary'] });
-    expect(utf8Bytes(floor.references)).toBeGreaterThan(512);
+    expect(utf8Bytes(floor.references)).toBeGreaterThan(1);
   });
 
-  it('raises a maxBytes below 512 to 512 (§5.2 step 10)', () => {
-    const help: FieldHelp = {
-      path: 'contactEmail',
-      label: 'Contact Email',
-      references: {
-        documentation: [
-          { title: 'a', type: 'documentation', uri: 'https://example.org/a' },
-          { title: 'b', type: 'documentation', uri: 'https://example.org/b' },
-        ],
-      },
-    };
-    const minimized = minimizeFieldHelp(help, { maxBytes: 1 });
-    expect(minimized.truncated).toBeUndefined();
-    expect(minimized.references.documentation).toHaveLength(2);
-  });
 });

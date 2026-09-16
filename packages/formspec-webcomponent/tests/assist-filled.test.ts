@@ -97,6 +97,19 @@ describe('assistant-written fields (assist-spec §8, draft.3 C6)', () => {
         expect(liveRegion(el)!.textContent).toBe('Legal name, Employer ID, Region filled by your assistant');
     });
 
+    it('announces again when the assistant rewrites a field it already wrote (the value changed, the source did not)', async () => {
+        const el = mount();
+        const region = liveRegion(el)!;
+        el.engine.setValue('ein', '123456789', { source: 'assist' });
+        await nextFrame();
+        expect(region.textContent).toBe('Employer ID filled by your assistant');
+        region.textContent = '';
+
+        el.engine.setValue('ein', '987654321', { source: 'assist' });
+        await nextFrame();
+        expect(region.textContent).toBe('Employer ID filled by your assistant');
+    });
+
     it('does not re-announce a field that is re-rendered while still assistant-written, and keeps its mark', async () => {
         const el = mount();
         el.engine.setValue('ein', '123456789', { source: 'assist' });

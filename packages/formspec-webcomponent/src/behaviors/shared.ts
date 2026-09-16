@@ -370,6 +370,9 @@ export function bindSharedFieldEffects(
         let mounted = false;
         disposers.push(effect(() => {
             const byAssist = vm.writeSource.value === 'assist';
+            // Subscribing to the value too: the assistant rewriting its own field keeps the source at 'assist', and
+            // that write must be announced as well (§8.4 "each write batch").
+            vm.value.value;
             // Untracked: the touch bump reads `touchedVersion`, and the label follows the Locale — neither re-announces.
             untracked(() => {
                 syncAttribute(refs.root, 'data-formspec-agent-filled', byAssist ? '' : null);

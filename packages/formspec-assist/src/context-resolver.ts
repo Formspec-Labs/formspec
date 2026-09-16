@@ -202,7 +202,6 @@ export function collectFieldMetadata(definition: FormDefinition): Map<string, Fi
 
 /** Assist spec §5.2 step 10: the default cap on serialized `references`, and the floor a smaller request is raised to. */
 export const DEFAULT_HELP_MAX_BYTES = 4096;
-export const MIN_HELP_MAX_BYTES = 512;
 
 /** The wire projection of a References entry (§5.1): the small, trusted-enough keys; `content` only on request. */
 const WIRE_REFERENCE_KEYS = ['title', 'type', 'uri', 'excerpt', 'rel', 'priority'] as const;
@@ -237,7 +236,8 @@ function projectReferenceEntry(entry: ReferenceEntry, includeContent: boolean): 
  */
 export function minimizeFieldHelp(help: FieldHelp, options: FieldHelpOptions = {}): FieldHelp {
   const includeContent = options.includeContent === true;
-  const maxBytes = Math.max(MIN_HELP_MAX_BYTES, options.maxBytes ?? DEFAULT_HELP_MAX_BYTES);
+  // `maxBytes` below the floor is refused upstream by the tool schema (`minimum: 512`); in-process callers get the default.
+  const maxBytes = options.maxBytes ?? DEFAULT_HELP_MAX_BYTES;
   const references: Record<string, WireEntry[]> = {};
   const candidates: Array<{ type: string; entry: WireEntry; rank: number; typeIndex: number; index: number }> = [];
   Object.entries(help.references).forEach(([type, entries], typeIndex) => {
@@ -253,28 +253,40 @@ export function minimizeFieldHelp(help: FieldHelp, options: FieldHelpOptions = {
 
   const omitted: Record<string, number> = {};
   let cut = false;
-  let over = utf8Length(references) > maxBytes;
+  // Running byte total: each cut re-measures only the entry it touched, so the loop costs O(total bytes),
+  // not O(cuts × total bytes). Stripping a key changes the entry's own length; dropping an entry from a
+  // bucket that keeps at least one other removes the entry and one separating comma.
+  let total = utf8Length(references);
+  const stripKey = (key: 'content' | 'excerpt') => ({ entry }: (typeof candidates)[number]): boolean => {
+    if (entry[key] === undefined) {
+      return false;
+    }
+    const before = utf8Length(entry);
+    delete entry[key];
+    total += utf8Length(entry) - before;
+    return true;
+  };
   const cuts: Array<(candidate: (typeof candidates)[number]) => boolean> = [
-    ({ entry }) => entry.content !== undefined && delete entry.content,
-    ({ entry }) => entry.excerpt !== undefined && delete entry.excerpt,
+    stripKey('content'),
+    stripKey('excerpt'),
     ({ type, entry }) => {
       const bucket = references[type];
       if (bucket.length <= 1) {
         return false;
       }
       bucket.splice(bucket.indexOf(entry), 1);
+      total -= utf8Length(entry) + 1;
       omitted[type] = (omitted[type] ?? 0) + 1;
       return true;
     },
   ];
   for (const apply of cuts) {
     for (const candidate of candidates) {
-      if (!over) {
+      if (total <= maxBytes) {
         break;
       }
       if (apply(candidate)) {
         cut = true;
-        over = utf8Length(references) > maxBytes;
       }
     }
   }

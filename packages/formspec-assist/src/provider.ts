@@ -75,7 +75,6 @@ function isEmptyValue(value: unknown): boolean {
   return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
 }
 
-/** Structural equality over JSON values (what `expected` round-trips through). */
 // Input readers for the write tools; validateToolInput has already enforced each shape.
 
 function readWriteEntries(input: Record<string, unknown>): WriteRequest[] {
@@ -266,15 +265,27 @@ class AssistProviderImpl implements AssistProvider {
     this.resolver.setOntologies(this.ontologies);
   }
 
-  public loadProfile(profile: UserProfile): void {
+  public loadProfile(profile: UserProfile): Promise<void> {
     this.currentProfile = profile;
     this.profileStore.save(profile);
+    return this.enableProfileCapability();
+  }
+
+  /**
+   * A profile exists now (loaded or learned): flip the capability and, when the WebMCP registration went
+   * out profile-less, add the three profile tools (§7.2 — registration is additive). Resolves when the
+   * host acknowledges them; immediately when there is nothing to add.
+   */
+  private enableProfileCapability(): Promise<void> {
     this.profileCapable = true;
     const modelContext = this.pendingProfileTools;
-    if (modelContext) {
-      this.pendingProfileTools = undefined;
-      this.profileRegistration = this.register(modelContext, PROFILE_WEBMCP_TOOLS).controller;
+    if (!modelContext) {
+      return Promise.resolve();
     }
+    this.pendingProfileTools = undefined;
+    const registration = this.register(modelContext, PROFILE_WEBMCP_TOOLS);
+    this.profileRegistration = registration.controller;
+    return registration.ready;
   }
 
   public getFieldHelp(path: string, audience: 'human' | 'agent' | 'both' = 'agent'): FieldHelp {
@@ -400,6 +411,8 @@ class AssistProviderImpl implements AssistProvider {
     }
     const registration = this.register(modelContext, tools);
     this.webmcpRegistration = registration.controller;
+    // A refused first registration must not leave three orphan profile tools to register later.
+    registration.ready.catch(() => { this.pendingProfileTools = undefined; });
     return registration.ready;
   }
 
@@ -668,6 +681,7 @@ class AssistProviderImpl implements AssistProvider {
       this.currentProfile = mutableProfile;
     }
     this.profileStore.save(mutableProfile);
+    void this.enableProfileCapability();
     return { savedConcepts, savedFields };
   }
 
@@ -817,7 +831,7 @@ class AssistProviderImpl implements AssistProvider {
     const currentValue = vm.value.value;
     if (!isEmptyValue(currentValue) && vm.writeSource.value !== 'assist') {
       if (expected === undefined) {
-        return toolError('x-user-edited', `${path} holds a value the respondent wrote; read it with field.describe and pass it as expected to replace it`, path);
+        return toolError('x-user-edited', `${path} holds a value the assistant did not write; read it with field.describe and pass it as expected to replace it`, path);
       }
       if (!deepEqual(expected, currentValue)) {
         return toolError('x-user-edited', `${path} changed since it was read; call field.describe again and pass the current value as expected`, path);
