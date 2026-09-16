@@ -1,6 +1,6 @@
 # `@formspec/signature-adapter-webcrypto`
 
-Thin Formspec-stamping facade (24 LOC) over `@integrity-stack/signature-adapter-webcrypto`. Extends `IntegrityWebCryptoVerifier` and pins three Formspec-owned constants:
+Thin Formspec-stamping facade (24 LOC) over `@formspec-org/integrity-signature-adapter-webcrypto`. Extends `IntegrityWebCryptoVerifier` and pins three Formspec-owned constants:
 
 - `adapterId` — `urn:formspec:adapter:webcrypto@1` (surfaces in Formspec verifier-output records)
 - `adapterVersion` — `0.1.0`

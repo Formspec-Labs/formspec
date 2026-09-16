@@ -15,7 +15,7 @@ import {
   resolvePayload,
   sigStructureBytes,
 } from './index';
-import { protectedHeaderBytesForAlg } from '@integrity-stack/cose';
+import { protectedHeaderBytesForAlg } from '@formspec-org/integrity-cose';
 
 const SIG_METHOD_ED25519 = 'urn:formspec:sig-method:ed25519-cose-sign1@1';
 const RECEIPT_METHOD_ED25519 = 'urn:formspec:receipt-method:ed25519-cose-sign1@1';

@@ -1,9 +1,9 @@
 import canonicalize from 'canonicalize';
-import { decodeCoseSign1 } from '@integrity-stack/cose';
+import { decodeCoseSign1 } from '@formspec-org/integrity-cose';
 import {
   uri,
   type VerificationReceipt,
-} from '@integrity-stack/signature-port';
+} from '@formspec-org/integrity-signature-port';
 import {
   printParseErrorCode,
   visit,

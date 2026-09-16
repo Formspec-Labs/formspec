@@ -16,7 +16,8 @@
       "@formspec-org/assist",
       "@formspec-org/surface",
       "@formspec-org/surface-react",
-      "@formspec-org/walk"
+      "@formspec-org/walk",
+      "@formspec-org/surface-bundle-signing"
     ],
     [
       "@formspec-org/adapters"

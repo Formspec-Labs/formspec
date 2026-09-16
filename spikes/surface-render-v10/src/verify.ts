@@ -3,8 +3,8 @@
  * export. Runs BEFORE anything renders.
  *
  * **Every cryptographic primitive here is shipped substrate, unchanged.** JCS
- * (`canonicalize`), the COSE_Sign1 helpers (`@integrity-stack/cose`), the
- * verifier adapter (`@integrity-stack/signature-adapter-webcrypto`) and the
+ * (`canonicalize`), the COSE_Sign1 helpers (`@formspec-org/integrity-cose`), the
+ * verifier adapter (`@formspec-org/integrity-signature-adapter-webcrypto`) and the
  * shipped method registry (`formspec/registries/signature-method-registry.json`)
  * are read, not reimplemented. The domain tag is the lifecycle spike's
  * spike-local tag; this file is its second consumer, which is the point — a
@@ -21,13 +21,13 @@
  * pass. Same rule the lifecycle spike's offline check runs on.
  */
 import canonicalize from 'canonicalize';
-import { decodeCoseSign1WithMethodUri } from '@integrity-stack/cose';
-import { WebCryptoVerifier } from '@integrity-stack/signature-adapter-webcrypto';
+import { decodeCoseSign1WithMethodUri } from '@formspec-org/integrity-cose';
+import { WebCryptoVerifier } from '@formspec-org/integrity-signature-adapter-webcrypto';
 import {
   keyRefRawPublicKey,
   uri,
   type SignatureMethodRegistry,
-} from '@integrity-stack/signature-port';
+} from '@formspec-org/integrity-signature-port';
 import methodRegistry from '../../../registries/signature-method-registry.json';
 import {
   INPUT_PATHS,

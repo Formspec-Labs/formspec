@@ -2,7 +2,7 @@ import type {
   SignatureMethodRegistry,
   VerificationReceipt,
   Verifier,
-} from '@integrity-stack/signature-port';
+} from '@formspec-org/integrity-signature-port';
 
 export type JsonPrimitive = null | boolean | number | string;
 export type JsonValue = JsonPrimitive | JsonObject | readonly JsonValue[];

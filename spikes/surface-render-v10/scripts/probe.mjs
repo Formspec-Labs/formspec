@@ -389,8 +389,8 @@ const main = async () => {
     primitivesUsed: {
       canonicalization:
         'canonicalize (RFC 8785 JCS), domain-framed formspec.spike-v10.bundle-export.signed-payload.v1',
-      coseHelpers: '@integrity-stack/cose — decodeCoseSign1WithMethodUri',
-      verifier: '@integrity-stack/signature-adapter-webcrypto — WebCryptoVerifier',
+      coseHelpers: '@formspec-org/integrity-cose — decodeCoseSign1WithMethodUri',
+      verifier: '@formspec-org/integrity-signature-adapter-webcrypto — WebCryptoVerifier',
       methodRegistry: `formspec/registries/signature-method-registry.json v${signature.clean.methodRegistryVersion}`,
       note:
         'All shipped, all unchanged. Ed25519 verified natively in Chromium WebCrypto. The only new code is the caller.',

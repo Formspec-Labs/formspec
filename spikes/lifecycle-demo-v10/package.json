@@ -14,9 +14,9 @@
     "@formspec-org/mcp-wireframes": "file:../../../formspec-studio/packages/formspec-mcp-wireframes",
     "@formspec-org/studio-core": "file:../../../formspec-studio/packages/formspec-studio-core",
     "@formspec-org/types": "file:../../packages/formspec-types",
-    "@integrity-stack/cose": "file:../../../integrity-stack/packages/integrity-cose",
-    "@integrity-stack/signature-adapter-webcrypto": "file:../../../integrity-stack/packages/integrity-signature-adapter-webcrypto",
-    "@integrity-stack/signature-port": "file:../../../integrity-stack/packages/integrity-signature-port",
+    "@formspec-org/integrity-cose": "file:../../../integrity-stack/packages/integrity-cose",
+    "@formspec-org/integrity-signature-adapter-webcrypto": "file:../../../integrity-stack/packages/integrity-signature-adapter-webcrypto",
+    "@formspec-org/integrity-signature-port": "file:../../../integrity-stack/packages/integrity-signature-port",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "canonicalize": "^3.0.0"

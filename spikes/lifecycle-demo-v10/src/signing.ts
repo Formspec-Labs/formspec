@@ -4,8 +4,8 @@
  *
  * **Everything cryptographic here is shipped substrate.** JCS canonicalization
  * (`canonicalize`, the same package `studio-core` uses for trace digests), the
- * COSE_Sign1 byte helpers (`@integrity-stack/cose`), the verifier adapter
- * (`@integrity-stack/signature-adapter-webcrypto`), and the method registry
+ * COSE_Sign1 byte helpers (`@formspec-org/integrity-cose`), the verifier adapter
+ * (`@formspec-org/integrity-signature-adapter-webcrypto`), and the method registry
  * (`formspec/registries/signature-method-registry.json`) are all read, not
  * reimplemented. The only thing the spike supplies is a dev key and a domain
  * tag — see the recorded choice below.
@@ -49,9 +49,9 @@ import {
   deriveKid,
   encodeCoseSign1,
   sigStructureBytes,
-} from '@integrity-stack/cose';
-import { WebCryptoVerifier } from '@integrity-stack/signature-adapter-webcrypto';
-import { keyRefRawPublicKey, uri, type SignatureMethodRegistry } from '@integrity-stack/signature-port';
+} from '@formspec-org/integrity-cose';
+import { WebCryptoVerifier } from '@formspec-org/integrity-signature-adapter-webcrypto';
+import { keyRefRawPublicKey, uri, type SignatureMethodRegistry } from '@formspec-org/integrity-signature-port';
 import { SPIKE_ROOT } from './harness.js';
 
 /** ADR 0111 domain separation. Spike-local; see the file docstring. */

@@ -7,13 +7,13 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "test": "node ../../scripts/build-when-sibling.mjs vitest run",
-    "typecheck": "node ../../scripts/build-when-sibling.mjs tsc --noEmit"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@integrity-stack/signature-adapter-webcrypto": "file:../../../integrity-stack/packages/integrity-signature-adapter-webcrypto",
     "@formspec/signature-cose": "0.1.0",
-    "@formspec/signature-port": "0.1.0"
+    "@formspec/signature-port": "0.1.0",
+    "@formspec-org/integrity-signature-adapter-webcrypto": "^0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

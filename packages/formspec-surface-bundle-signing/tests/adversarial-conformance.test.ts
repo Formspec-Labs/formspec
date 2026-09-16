@@ -4,14 +4,14 @@ import {
   detachedSignatureProtectedHeader,
   encodeCoseSign1,
   sigStructureBytes,
-} from '@integrity-stack/cose';
-import { WebCryptoVerifier } from '@integrity-stack/signature-adapter-webcrypto';
+} from '@formspec-org/integrity-cose';
+import { WebCryptoVerifier } from '@formspec-org/integrity-signature-adapter-webcrypto';
 import {
   StaticKeyResolver,
   semVer,
   uri,
   type SignatureMethodRegistry,
-} from '@integrity-stack/signature-port';
+} from '@formspec-org/integrity-signature-port';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   admitVerifiedSurfaceBundle,

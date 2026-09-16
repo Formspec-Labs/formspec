@@ -2,8 +2,8 @@ name: CI
 
 # Every job checks this repository out into `formspec/` and its public sibling `fel-core/` beside it, because
 # the Rust crates depend on fel-core by relative path (`../../../fel-core`) — the stack couples siblings by
-# path until they are published. The signature family, whose dependencies live in the private
-# `integrity-stack` sibling, is excluded from the workspace (Cargo.toml) and runs through `make test-rust`
+# path until they are published. The signature family, whose Rust dependencies live in the
+# `integrity-stack` sibling and are not on crates.io yet, is excluded from the workspace (Cargo.toml) and runs through `make test-rust`
 # wherever that sibling is checked out.
 
 on:

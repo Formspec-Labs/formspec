@@ -184,7 +184,7 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 
    **Approach:** Drop private, add tsc/tsup build emitting dist/, add publishConfig.access, add exports map (mirror @formspec-org/adapters), add files, license, repository. Add build step to root scripts.
 
-   **Note on signature-cose:** Package is a 21-line near-pure re-export shim of @integrity-stack/cose with renames. Either commit to documenting it as the Formspec-profile binding layer (and add minimal but real value), or delete the package and consumers import @integrity-stack/cose directly. Don't ship a hop that adds nothing.
+   **Note on signature-cose:** Package is a 21-line near-pure re-export shim of @formspec-org/integrity-cose with renames. Either commit to documenting it as the Formspec-profile binding layer (and add minimal but real value), or delete the package and consumers import @formspec-org/integrity-cose directly. Don't ship a hop that adds nothing.
 
    **Acceptance:** All three TS signature packages publish-ready: private removed, build step emits dist, exports map locks down public surface. Decision on signature-cose existence documented.
 

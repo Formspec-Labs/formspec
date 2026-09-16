@@ -1,8 +1,8 @@
 [workspace]
 # This workspace builds from a checkout of THIS repository plus one public sibling, `fel-core` — what the
 # npm packages, the WASM bundle and the Python extension are made of, and what a clone of formspec alone
-# can resolve. The crates below carry the signature family, whose dependencies live in the private sibling
-# `integrity-stack`; cargo must resolve every member's manifest before it does anything, so keeping them in
+# can resolve. The crates below carry the signature family, whose dependencies live in the `integrity-stack` sibling
+# and are not on crates.io yet; cargo must resolve every member's manifest before it does anything, so keeping them in
 # would make a lone checkout unbuildable. They are excluded, not deleted: `make test-rust` runs them
 # whenever that sibling is present, which is how the stack and a developer's tree see them.
 members = [

@@ -8,7 +8,7 @@ import {
   protectedHeaderBytes,
   sigStructureBytes,
 } from '@formspec/signature-cose';
-import { protectedHeaderBytesForAlg } from '@integrity-stack/cose';
+import { protectedHeaderBytesForAlg } from '@formspec-org/integrity-cose';
 import { WebCryptoVerifier, decodeCoseSign1 } from './index';
 import {
   keyRefKid,

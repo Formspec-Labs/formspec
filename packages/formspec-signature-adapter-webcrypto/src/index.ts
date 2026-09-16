@@ -3,10 +3,10 @@
 import {
   WebCryptoVerifier as IntegrityWebCryptoVerifier,
   type WebCryptoVerifierOptions,
-} from '@integrity-stack/signature-adapter-webcrypto';
+} from '@formspec-org/integrity-signature-adapter-webcrypto';
 
-export { decodeCoseSign1 } from '@integrity-stack/signature-adapter-webcrypto';
-export type { WebCryptoVerifierOptions } from '@integrity-stack/signature-adapter-webcrypto';
+export { decodeCoseSign1 } from '@formspec-org/integrity-signature-adapter-webcrypto';
+export type { WebCryptoVerifierOptions } from '@formspec-org/integrity-signature-adapter-webcrypto';
 
 const ADAPTER_ID = 'urn:formspec:adapter:webcrypto@1';
 const ADAPTER_VERSION = '0.1.0';

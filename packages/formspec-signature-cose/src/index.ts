@@ -1,6 +1,6 @@
 /** @filedesc Formspec COSE_Sign1 compatibility shim over integrity-stack. */
 
-export type { CoseSign1 } from '@integrity-stack/cose';
+export type { CoseSign1 } from '@formspec-org/integrity-cose';
 export {
   COSE_LABEL_ALG,
   COSE_LABEL_KID,
@@ -16,7 +16,7 @@ export {
   extractMethodUri,
   resolvePayload,
   sigStructureBytes,
-} from '@integrity-stack/cose';
+} from '@formspec-org/integrity-cose';
 
 /**
  * Formspec response-signing URI prefix (`urn:formspec:sig-method:`).

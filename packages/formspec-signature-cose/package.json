@@ -7,11 +7,11 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "test": "node ../../scripts/build-when-sibling.mjs vitest run",
-    "typecheck": "node ../../scripts/build-when-sibling.mjs tsc --noEmit"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@integrity-stack/cose": "file:../../../integrity-stack/packages/integrity-cose"
+    "@formspec-org/integrity-cose": "^0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
