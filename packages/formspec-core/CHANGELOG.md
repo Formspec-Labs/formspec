@@ -1,5 +1,11 @@
 # @formspec-org/core
 
+## 2.0.2
+
+### Patch Changes
+
+- @formspec-org/engine@2.0.2
+
 ## 2.0.1
 
 ### Patch Changes
