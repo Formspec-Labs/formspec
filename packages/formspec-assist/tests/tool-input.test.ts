@@ -59,7 +59,7 @@ describe('tool input validation messages (draft.3 C1)', () => {
     expect(rejection('formspec.profile.apply', { paths: 'contactEmail' })?.message)
       .toBe('input.paths must be an array of a string or an object { path, expected }');
     expect(rejection('formspec.profile.apply', { paths: [12] })?.message)
-      .toBe('input.paths[0] must be a string');
+      .toBe('input.paths[0] must be a string or an object { path, expected } (got 12)');
     expect(rejection('formspec.field.set', { path: 'contactEmail', overwrite: true })?.message)
       .toBe('unexpected input property "overwrite"; accepted: path, value, expected');
     expect(rejection('formspec.field.help', { path: 'contactEmail', maxBytes: 1.5 })?.message)
