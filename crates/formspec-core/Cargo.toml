@@ -7,7 +7,7 @@ description = "Formspec core processing — FEL analysis, path utils, schema val
 repository = "https://github.com/Formspec-Labs/formspec"
 
 [dependencies]
-fel-core = { version = "0.2.0", path = "../../../fel-core" }
+fel-core = { version = "0.3.0", path = "../../../fel-core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 
