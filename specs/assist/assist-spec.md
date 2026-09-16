@@ -240,7 +240,7 @@ bijection.
 | Tool | Input | Output | Notes |
 |---|---|---|---|
 | `formspec.field.set` | `{ path: string, value?: unknown, expected?: unknown }` | `SetValueResult` | MUST reject writes to readonly, calculated, or non-relevant fields. A respondent-written value is replaced only when `expected` equals it (§4.3 rule 6); otherwise `x-user-edited`. |
-| `formspec.field.bulkSet` | `{ entries: Array<{ path: string, value: unknown, expected?: unknown }> }` | `BulkSetResult` | MAY partially succeed; each entry is independent unless a transport defines stronger atomicity. `expected` is per entry. |
+| `formspec.field.bulkSet` | `{ entries: Array<{ path: string, value?: unknown, expected?: unknown }> }` | `BulkSetResult` | MAY partially succeed; each entry is independent unless a transport defines stronger atomicity. `expected` is per entry. |
 
 For a choice field (one with options), `value` MAY be an option's label
 instead of its value; the provider stores the option value. Label matching is
@@ -335,7 +335,7 @@ arrived, and where. The shapes below are normative for input validation:
 | enum | `input.filter must be one of: all, required, empty, invalid, relevant (got "foo")` |
 | unknown key | `unexpected input property "mode"; accepted: profile` |
 | missing required | `missing required input property "path" (string: field path, e.g. "organization.ein")` |
-| type | `input.entries must be an array of { path, value }` |
+| type | `input.entries must be an array of { path, value, expected }` |
 
 Providers MAY define additional `x-`-prefixed error codes. Consumers MUST treat
 unknown non-`x-` codes as generic failures.
@@ -464,6 +464,10 @@ interface BulkSetResult {
   summary: { accepted: number; rejected: number; skipped: number; errors: number };
 }
 
+`skipped` counts entries refused by §4.3 rule 6; `rejected` counts every
+other refusal; `errors` counts entries carrying an `error` (`rejected +
+skipped`); `accepted + rejected + skipped` equals the entry count.
+
 `skipped` counts entries refused by §4.3 rule 6; each carries `accepted: false` and `error.code` `x-user-edited`.
 
 interface ProfileApplyResult {
@@ -563,9 +567,10 @@ interface ConceptEquivalent {
 entry: `title`, `type`, `uri`, `excerpt`, `rel`, `priority` always;
 `content` only when the call carried `includeContent: true` (§3.2). Reference
 `content` is the largest and least trusted text a provider relays (§11), so
-the consumer asks for it. `truncated` is present only when the §5.2 byte cap
-dropped entries, and counts them per type so the consumer knows what it did
-not see.
+the consumer asks for it. `truncated` is present whenever the §5.2 byte cap
+cut anything — stripped `content` or `excerpt` leaves `omitted` empty;
+dropped entries are counted per type so the consumer knows what it did not
+see.
 
 ### 5.2 References Resolution
 
@@ -598,15 +603,17 @@ To resolve `FieldHelp.references`, a conformant provider MUST:
 9. Project each entry to the wire shape (§5.1): omit `content` unless the
    call carried `includeContent: true`.
 10. Cap the serialized `references` object — UTF-8 bytes of compact JSON —
-    at `maxBytes` (default 4096, minimum 512; a smaller request is raised to
-    512). While it is over the cap, degrade before dropping, always taking
-    the entry with the lowest effective priority across all types first
-    (`background` before `supplementary` before `primary`; an absent
-    `priority` ranks as `supplementary`; last in document order first within
-    a tier): strip `content`, then strip `excerpt`, then drop whole entries
-    — never below one entry per `type` that had any. Record dropped entries
-    in `FieldHelp.truncated.omitted` by type. The consumer raises `maxBytes`,
-    asks again with a narrower `audience`, or fetches by `uri`.
+    at `maxBytes` (default 4096, minimum 512; a smaller request is refused
+    with `INVALID_VALUE`). While it is over the cap, degrade before dropping,
+    always taking the entry with the lowest effective priority across all
+    types first (`background` before `supplementary` before `primary`; an
+    absent `priority` ranks as `supplementary`; within a tier, the later
+    `type` group first, then the last entry in document order): strip
+    `content`, then strip `excerpt`, then drop whole entries — never below
+    one entry per `type` that had any. Record dropped entries in
+    `FieldHelp.truncated.omitted` by type. At the floor the payload MAY still
+    exceed `maxBytes`; the consumer raises `maxBytes`, asks again with a
+    narrower `audience`, or fetches by `uri`.
 
 ### 5.3 Ontology Resolution Cascade
 
@@ -663,7 +670,7 @@ interface ProfileMatch {
   path: string;
   concept?: string;
   confidence: number;
-  relationship?: "exact" | "close" | "broader" | "narrower" | "related" | "field-key";
+  relationship: "exact" | "close" | "broader" | "narrower" | "related" | "field-key";
 }
 ```
 
@@ -700,8 +707,9 @@ When implementing `formspec.profile.learn`, a provider:
 - **MUST NOT** transmit profile data off-device or off-origin without explicit
   user consent.
 
-The reference profile store is origin-scoped `localStorage`. In private
-browsing it is ephemeral: the browser discards it at session end, and
+The reference implementation keeps the profile in memory unless the host
+injects a storage backend; the intended browser backend is origin-scoped
+`localStorage`, which private browsing discards at session end, so
 `formspec.profile.learn` persists nothing beyond the session (WebMCP §6.3.5).
 
 ## 7. Transport Bindings
@@ -1014,7 +1022,7 @@ specification supplies, and what stays open.
 | §6.3.2 Misrepresentation of intent | Imperative titles and accurate descriptions (§7.2); `consequentialHint` on every writing tool; the browser's gate is the boundary (§7.1(4)). | Provider-side confirmation is UX — a user agent that drives the page can click it ([webmcp#288][webmcp-288]). |
 | §6.3.3 Over-parameterization | Inputs are paths, values, and enum switches; `profile.match` returns no values and no provenance, `profile.apply` takes paths only (§3.5, §6.1). | `field.describe` returns the current value; the tool is useless without it. |
 | §6.3.4 Same-origin | `exposedTo` is the host's decision (§7.2); in an undelegated cross-origin frame `registerTool` throws `NotAllowedError` and the binding is a no-op. | A host that delegates the `tools` policy delegates the whole catalog. |
-| §6.3.5 Private browsing | The reference profile store is origin `localStorage`, ephemeral in private mode; profile data never leaves the origin without consent (§6.3). | In normal mode learned values persist until the user clears them. |
+| §6.3.5 Private browsing | The profile store is host-injected (in memory by default; origin `localStorage` in the browser), ephemeral in private mode; profile data never leaves the origin without consent (§6.3). | In normal mode learned values persist until the user clears them. |
 | §6.4.1 Permissions policy | The binding never polyfills `document.modelContext`; `tools` defaults to `'self'` (§7.2). | None owned here. |
 | §6.4.2 Input lengths | Tool descriptions ≤ 500 and property descriptions ≤ 150 characters (§7.2); `tooldescription` / `toolparamdescription` capped and markup-stripped (§8.2); help payload byte-capped (§5.2). | Field `value` input is unbounded; the engine's `dataType` coercion is the check. |
 
