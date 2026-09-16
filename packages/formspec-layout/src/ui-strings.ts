@@ -5,7 +5,7 @@
  * key the schema's `ChromeStringKey` enum admits — kept one-for-one by
  * `packages/formspec-layout/tests/ui-strings.test.ts`, which reads `schemas/locale.schema.json` directly.
  * A template's `{{$name}}` placeholders are renderer-supplied literal parameters (label, index, total,
- * count, max) filled by {@link fillUiParams} — never FEL, never the form scope.
+ * count, max, status, reason) filled by {@link fillUiParams} — never FEL, never the form scope.
  */
 export const UI_STRINGS = {
     'select.placeholder': 'Select…',
@@ -75,6 +75,13 @@ export const UI_STRINGS = {
     'validationSummary.issueCount': 'There are {{$count}} issues to review on this form.',
     'action.submit': 'Submit',
     'action.inProgress': 'In progress.',
+    'action.completed': 'Completed',
+    'action.blocked': 'Blocked',
+    'action.failed': 'Failed',
+    'action.deferred': 'Deferred',
+    'action.unresolved': 'Unresolved',
+    'action.status': '{{$status}}.',
+    'action.statusReason': '{{$status}}: {{$reason}}',
     'screener.submit': 'Check Eligibility',
     'screener.answerOne': 'Please answer at least one question',
 } as const;

@@ -39,10 +39,13 @@ describe('the React renderer draws its own words from the shared inventory', () 
         // Every key the renderer asks for exists in the closed inventory (Locale §3.1.10).
         for (const key of consumed) expect(UI_STRINGS, key).toHaveProperty(key);
         // The list itself, so a key leaving the renderer is visible in the diff. The repeat renderer also
-        // picks between `repeat.row`, `repeat.rowOf` and `repeat.rowNamed` through a variable, so that
-        // third key is resolved the same way without appearing as a literal here.
+        // picks between `repeat.row`, `repeat.rowOf` and `repeat.rowNamed` through a variable, and the
+        // action button picks its `action.<status>` word from a map, so those keys are resolved the same
+        // way without appearing as literals here.
         expect([...consumed].sort()).toEqual([
             'action.inProgress',
+            'action.status',
+            'action.statusReason',
             'action.submit',
             'alert.dismiss',
             'dataTable.addRow',

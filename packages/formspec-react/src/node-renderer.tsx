@@ -16,10 +16,10 @@ import {
     type ResponseActionInvocationPorts,
     type ResponseActionInvocationResult,
 } from '@formspec-org/engine';
-import type { LayoutNode } from '@formspec-org/layout';
+import type { ChromeStringKey, LayoutNode } from '@formspec-org/layout';
 import type { ResponseActionInvokerResult, SubmitResult } from './context';
 import { useFormspecContext } from './context';
-import { useChromeText } from './use-chrome-text';
+import { useChromeText, type ChromeText } from './use-chrome-text';
 import { useSignal } from './use-signal';
 import { useField } from './use-field';
 import { useForm } from './use-form';
@@ -129,20 +129,25 @@ type ActionFeedback =
     | { phase: 'pending'; message: string }
     | { phase: 'settled'; message: string };
 
+/** One chrome key per invocation status — the word the renderer says, authorable like every other. */
+const ACTION_STATUS_KEYS = {
+    completed: 'action.completed',
+    blocked: 'action.blocked',
+    failed: 'action.failed',
+    deferred: 'action.deferred',
+    unresolved: 'action.unresolved',
+} as const satisfies Record<ResponseActionInvocationResult<unknown>['status'], ChromeStringKey>;
+
 function actionResultMessage(
+    chrome: ChromeText,
     result: Pick<ResponseActionInvocationResult<unknown>, 'status' | 'failureReason'>,
 ): string {
-    const statusLabel = {
-        completed: 'Completed',
-        blocked: 'Blocked',
-        failed: 'Failed',
-        deferred: 'Deferred',
-        unresolved: 'Unresolved',
-    }[result.status];
-    const failureReason = result.failureReason?.trim();
-    return failureReason
-        ? `${statusLabel}: ${failureReason}`
-        : `${statusLabel}.`;
+    const status = chrome(ACTION_STATUS_KEYS[result.status]);
+    const reason = result.failureReason?.trim();
+    // The sentence is a template too: a locale decides its own punctuation and word order.
+    return reason
+        ? chrome('action.statusReason', { status, reason })
+        : chrome('action.status', { status });
 }
 
 function ActionButtonNode({ node }: { node: LayoutNode }) {
@@ -295,13 +300,13 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         const invocation = invoke(invocationContext);
         const tracked = invocation.then(
             (result) => {
-                setFeedback({ phase: 'settled', message: actionResultMessage(result) });
+                setFeedback({ phase: 'settled', message: actionResultMessage(chrome, result) });
                 return result;
             },
             (error: unknown) => {
                 setFeedback({
                     phase: 'settled',
-                    message: actionResultMessage({
+                    message: actionResultMessage(chrome, {
                         status: 'failed',
                         failureReason: errorMessage(error),
                     }),
@@ -323,7 +328,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             },
         );
         return tracked;
-    }, [invoke]);
+    }, [chrome, invoke]);
 
     useEffect(() => {
         if (

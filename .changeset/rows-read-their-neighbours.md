@@ -21,5 +21,5 @@ and the platform Theme no longer overrides a design system's own gaps.
 An adapter declares the render root's classes, so a design system's form rules apply
 from whichever build the page loads. Every renderer-drawn word resolves through
 `$ui.<key>` and follows a locale switch, including the wizard's step wording, the data
-table, the validation summary, the file-upload dropzone and the screener. React tracks
-group heading depth, as the web component does.
+table, the validation summary, the file-upload dropzone, the screener and an action's
+result line. React tracks group heading depth, as the web component does.

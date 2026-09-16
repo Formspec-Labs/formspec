@@ -183,6 +183,13 @@ export type ChromeStringKey =
   | '$ui.validationSummary.issueCount'
   | '$ui.action.submit'
   | '$ui.action.inProgress'
+  | '$ui.action.completed'
+  | '$ui.action.blocked'
+  | '$ui.action.failed'
+  | '$ui.action.deferred'
+  | '$ui.action.unresolved'
+  | '$ui.action.status'
+  | '$ui.action.statusReason'
   | '$ui.screener.submit'
   | '$ui.screener.answerOne';
 /**

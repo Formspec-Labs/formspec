@@ -270,6 +270,29 @@ for (const [file, source] of runtimeSources) {
   if (match) fail(file, "Surface or Formspec CSS override", match[0].trim());
 }
 
+// The words a renderer says for itself, declared once in the chrome-string inventory (Locale spec
+// §3.1.10). A tenant's data reads "Completed" and so does a status line; spelling alone cannot tell
+// the host copying the artifact from the host speaking its own closed, authorable vocabulary. Read
+// from the inventory rather than listed here, so a word the renderer never declared stays a finding.
+const chromeInventoryPath = resolve(
+  demoDirectory,
+  "../../..",
+  "packages/formspec-layout/src/ui-strings.ts"
+);
+const chromeVocabulary = new Set(
+  [
+    ...(await readFile(chromeInventoryPath, "utf8")).matchAll(
+      /^\s*['"][\w.]+['"]:\s*(['"])(.*?)\1,$/gmu
+    ),
+  ].map(([, , value]) => value)
+);
+if (chromeVocabulary.size === 0) {
+  fail(
+    relative(resolve(demoDirectory, "../../.."), chromeInventoryPath),
+    "chrome string inventory unreadable — the guard cannot tell renderer vocabulary from tenant data"
+  );
+}
+
 const identifierValues = new Set();
 const copyValues = new Set();
 const sampleValues = new Set();
@@ -307,7 +330,11 @@ function addIdentifier(value) {
 }
 
 function addCopy(value) {
-  if (typeof value === "string" && value.length >= 8) {
+  if (
+    typeof value === "string" &&
+    value.length >= 8 &&
+    !chromeVocabulary.has(value)
+  ) {
     copyValues.add(value);
   }
 }
@@ -321,7 +348,11 @@ function addSampleValues(value) {
     Object.values(value).forEach(addSampleValues);
     return;
   }
-  if (typeof value === "string" && value.length > 1) {
+  if (
+    typeof value === "string" &&
+    value.length > 1 &&
+    !chromeVocabulary.has(value)
+  ) {
     sampleValues.add(value);
   }
 }
