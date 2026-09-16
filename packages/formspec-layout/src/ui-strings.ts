@@ -85,6 +85,7 @@ export const UI_STRINGS = {
     'action.statusReason': '{{$status}}: {{$reason}}',
     'screener.submit': 'Check Eligibility',
     'screener.answerOne': 'Please answer at least one question',
+    'assist.filled': '{{$label}} filled by your assistant',
 } as const;
 
 /** Closed suffix set for `$ui.<ChromeStringKey>` (Locale spec §3.1.10), one-for-one with the schema enum. */

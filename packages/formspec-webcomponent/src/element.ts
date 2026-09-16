@@ -48,7 +48,8 @@ import {
     type LayoutHostEvidence,
     type ReferencesDocumentLike,
 } from '@formspec-org/layout';
-import { buildPlatformTheme, fillUiParams, mergePlatformAndTenantTheme, resolveFieldHelp } from '@formspec-org/layout';
+import { buildPlatformTheme, mergePlatformAndTenantTheme, resolveFieldHelp } from '@formspec-org/layout';
+import { uiText } from './adapters/ui-text';
 import { toolText, TOOL_DESCRIPTION_MAX } from './adapters/tool-text.js';
 const defaultThemeJson = buildPlatformTheme();
 const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1', '1.2']);
@@ -59,12 +60,6 @@ const STYLE_REVEAL_TIMEOUT_MS = 2000;
 /** WebMCP tool name for the rendered form (assist-spec §8.2) when `<formspec-render tool-name>` names none. */
 const DEFAULT_TOOL_NAME = 'formspec.form.fill';
 
-/**
- * Renderer chrome text (Locale §3.1.10 shape) for the assistant-filled announcement (assist-spec §8): `$label` is
- * the plain label of every field written in one frame. An authored `$ui.assist.filled` Locale string wins.
- */
-const ASSIST_FILLED_KEY = '$ui.assist.filled';
-const ASSIST_FILLED_DEFAULT = '{{$label}} filled by your assistant';
 
 /** A submit event as a WebMCP-capable browser fires it (declarative explainer): both members absent elsewhere. */
 interface AgentSubmitEvent extends SubmitEvent {
@@ -1322,8 +1317,8 @@ export class FormspecRender extends HTMLElement {
         this.assistAnnounceFrame = requestAnimationFrame(() => {
             this.assistAnnounceFrame = null;
             const labels = this.pendingAssistLabels.splice(0).join(', ');
-            const template = this.engine?.lookupLocaleString(ASSIST_FILLED_KEY) ?? ASSIST_FILLED_DEFAULT;
-            this.ensureAssistAnnouncer().textContent = fillUiParams(template, { label: labels });
+            // Chrome string `$ui.assist.filled` (Locale §3.1.10; assist-spec §8.4): `$label` is every field written this frame.
+            this.ensureAssistAnnouncer().textContent = uiText(this.engine ?? undefined, 'assist.filled', { label: labels }).value;
         });
     }
 

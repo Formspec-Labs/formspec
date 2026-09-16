@@ -192,7 +192,8 @@ export type ChromeStringKey =
   | '$ui.action.status'
   | '$ui.action.statusReason'
   | '$ui.screener.submit'
-  | '$ui.screener.answerOne';
+  | '$ui.screener.answerOne'
+  | '$ui.assist.filled';
 /**
  * Extension object whose keys must be prefixed with x-.
  */

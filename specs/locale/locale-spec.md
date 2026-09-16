@@ -854,6 +854,7 @@ with the schema by test):
 | `screener.continue` | `Continue` | none |
 | `screener.required` | `Required` | none |
 | `screener.back` | `Back to screening` | none |
+| `assist.filled` | `{{$label}} filled by your assistant` | `$label` — announced when an Assist tool writes the field (Assist spec §8.4) |
 
 Parameters are renderer-supplied, read-only values (a repeat's group label,
 row index, row total, character count, character max) written `{{$name}}` and

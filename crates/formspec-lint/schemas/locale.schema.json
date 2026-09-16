@@ -462,7 +462,8 @@
         "$ui.action.status",
         "$ui.action.statusReason",
         "$ui.screener.submit",
-        "$ui.screener.answerOne"
+        "$ui.screener.answerOne",
+        "$ui.assist.filled"
       ],
       "description": "Closed one-to-one mapping to the renderer chrome string inventory (Locale spec §3.1.10, packages/formspec-layout/src/ui-strings.ts). A new chrome string requires a Locale schema revision."
     }
