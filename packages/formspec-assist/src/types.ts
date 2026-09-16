@@ -14,6 +14,7 @@ import type {
   ValidationReport,
   ValidationResult,
 } from '@formspec-org/types';
+import type { WebMCP } from 'webmcp-types';
 
 export interface StorageBackend {
   getItem(key: string): string | null;
@@ -105,11 +106,22 @@ export interface ToolResult {
   isError?: boolean;
 }
 
+/** WebMCP `ToolAnnotations`: the hints a browser or agent uses to gate a call (Assist spec §7.2). */
+export type ToolAnnotations = WebMCP.ToolAnnotations;
+
 export interface ToolDeclaration {
+  /** `formspec.{category}.{action}`; WebMCP-legal (1–128 chars of `[A-Za-z0-9_.-]`). */
   name: string;
+  /** Human-readable label a browser shows in its consent UI. */
+  title: string;
   description: string;
   inputSchema: Record<string, unknown>;
-  annotations?: Record<string, unknown>;
+  annotations?: ToolAnnotations;
+}
+
+export interface InvokeToolOptions {
+  /** Cancellation from the caller; WebMCP passes the agent's signal through `execute`. */
+  signal?: AbortSignal;
 }
 
 export interface AssistProviderOptions {
@@ -125,12 +137,18 @@ export interface AssistProviderOptions {
   confirmProfileApply?: (request: {
     matches: Array<{ path: string; value: unknown }>;
   }) => boolean | Promise<boolean>;
+  /** Register the catalog on `modelContext` (default: `document.modelContext`). Default `true`; a no-op when neither exists. */
   registerWebMCP?: boolean;
+  /** The WebMCP surface to register on. Hosts inject a polyfill or a fake here; the provider never installs one. */
+  modelContext?: WebMCP.ModelContext;
   now?: () => Date;
 }
 
 export interface AssistProvider {
+  /** Settles once WebMCP registration is acknowledged (immediately when not registering). Rejects if the host refused a tool. */
+  readonly ready: Promise<void>;
   attach(engine: IFormEngine): void;
+  /** Unregister from WebMCP. Idempotent. */
   detach(): void;
   dispose(): void;
   loadReferences(refs: ReferencesDocument | ReferencesDocument[]): void;
@@ -139,7 +157,7 @@ export interface AssistProvider {
   getFieldHelp(path: string, audience?: 'human' | 'agent' | 'both'): FieldHelp;
   getProgress(): FormProgress;
   matchProfile(profileRef?: string): ProfileMatch[];
-  invokeTool(name: string, input: Record<string, unknown>): Promise<ToolResult>;
+  invokeTool(name: string, input: Record<string, unknown>, options?: InvokeToolOptions): Promise<ToolResult>;
   getTools(): ToolDeclaration[];
 }
 

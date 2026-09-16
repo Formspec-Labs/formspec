@@ -74,11 +74,25 @@ const provider = createAssistProvider({
   registries: [registryDoc],     // RegistryDocument[] or RegistryEntry[]
   storage: localStorage,         // StorageBackend for profile persistence
   profileMatchThreshold: 0.5,    // Minimum confidence for profile matches
-  confirmProfileApply: (req) =>  // Human-in-the-loop confirmation handler
+  confirmProfileApply: (req) =>  // Provider-side confirmation for confirm: true
     confirm(`Apply ${req.matches.length} values?`),
-  registerWebMCP: true,          // Register tools on navigator.modelContext
+  registerWebMCP: true,          // Register on document.modelContext (default)
+  modelContext: undefined,       // Or inject a WebMCP.ModelContext (polyfill, fake)
 });
+await provider.ready;            // WebMCP registration acknowledged
 ```
+
+## WebMCP
+
+The browser transport is [WebMCP](https://webmachinelearning.github.io/webmcp/) (`document.modelContext`, W3C WebML CG draft; Chrome 149 / Edge 150 origin trials, `chrome://flags/#enable-webmcp-testing` locally). Types come from the CG's [`webmcp-types`](https://www.npmjs.com/package/webmcp-types).
+
+- Every tool registers with `registerTool(tool, { signal })`; `detach()` aborts the signal, which unregisters them and fires `toolchange`.
+- Each tool carries a `title` (shown in browser consent UI), per-property `description`s, and annotations: `readOnlyHint` on introspection, `consequentialHint` on writes (`field.set`, `field.bulkSet`, `profile.apply`, `profile.learn`), `untrustedContentHint` where sidecar content is relayed (`field.help`, `field.describe`). Browsers and agents use `consequentialHint` to gate their own confirmation prompt; `confirmProfileApply` is the provider-side gate on top.
+- `execute` returns the payload object directly — the browser JSON-stringifies it — and returns errors as `{ error: ToolError }` values, because a rejected `execute` reaches the caller as a bare `UnknownError`.
+- The provider never installs a polyfill. When `document.modelContext` is absent (every browser without the trial/flag), registration is a no-op and `ready` resolves. Hosts that want in-page agents there load a polyfill first — [`@mcp-b/webmcp-polyfill`](https://www.npmjs.com/package/@mcp-b/webmcp-polyfill) tracks the draft and the declarative WPT suite — or pass their own `modelContext`.
+- `registerAssistTools(provider, modelContext, { signal })` is exported for hosts that own the registration lifecycle themselves.
+
+In-page consumers discover and call tools with `document.modelContext.getTools()` / `executeTool(tool, input)`; the browser's own agent reads them without page script.
 
 ## Sidecar Documents
 
@@ -94,11 +108,11 @@ Both target a specific definition URL and optional version range. Multiple docum
 ```
 ┌─────────────────────────────────────────────┐
 │  AssistProvider                              │
-│  ├── Tool Catalog (14 tools)                │
+│  ├── Tool Catalog (see getTools())          │
 │  ├── ContextResolver (references + ontology)│
 │  ├── ProfileMatcher (concept-based autofill) │
 │  ├── ProfileStore (persistent storage)       │
-│  └── WebMCP shim (browser registration)      │
+│  └── WebMCP binding (document.modelContext)  │
 └─────────────────────────────────────────────┘
          │
          ▼
@@ -123,4 +137,4 @@ npx vitest run --reporter=verbose
 npx vitest
 ```
 
-65 tests across 5 files covering all 14 tools, error codes, profile workflows, sidecar resolution, page navigation, repeat groups, and WebMCP discovery.
+Coverage spans the tool catalog, error codes, profile workflows, sidecar resolution, page navigation, repeat groups, and the WebMCP binding (against a spec-shaped fake `ModelContext` in `tests/helpers.ts`).

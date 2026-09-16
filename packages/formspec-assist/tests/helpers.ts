@@ -1,5 +1,6 @@
 import { FormEngine, initFormspecEngine, initFormspecEngineTools } from '@formspec-org/engine';
 import type { ComponentDocument, ThemeDocument } from '@formspec-org/types';
+import type { WebMCP } from 'webmcp-types';
 import type {
   OntologyDocument,
   ReferencesDocument,
@@ -289,5 +290,64 @@ export class MemoryStorage implements StorageBackend {
 
   removeItem(key: string): void {
     this.values.delete(key);
+  }
+}
+
+/**
+ * In-memory `document.modelContext` stand-in that follows the WebMCP draft's
+ * registerTool / getTools / executeTool steps closely enough to act as a test
+ * oracle: duplicate names reject, aborting the registration signal unregisters
+ * and fires `toolchange`, and `executeTool` returns the JSON-serialized result.
+ */
+export class FakeModelContext extends EventTarget implements WebMCP.ModelContext {
+  public ontoolchange: ((this: WebMCP.ModelContext, ev: Event) => unknown) | null = null;
+  private readonly tools = new Map<string, WebMCP.ModelContextTool>();
+
+  public registerTool(tool: WebMCP.ModelContextTool, options: WebMCP.ModelContextRegisterToolOptions = {}): Promise<void> {
+    if (this.tools.has(tool.name)) {
+      return Promise.reject(new Error(`InvalidStateError: duplicate tool ${tool.name}`));
+    }
+    if (tool.name.length === 0 || tool.name.length > 128 || !/^[A-Za-z0-9_.-]+$/.test(tool.name) || tool.description.length === 0) {
+      return Promise.reject(new Error(`InvalidStateError: invalid tool ${tool.name}`));
+    }
+    if (options.signal?.aborted) {
+      return Promise.reject(options.signal.reason);
+    }
+    this.tools.set(tool.name, tool);
+    options.signal?.addEventListener('abort', () => {
+      this.tools.delete(tool.name);
+      this.fireToolChange();
+    });
+    this.fireToolChange();
+    return Promise.resolve();
+  }
+
+  public getTools(): Promise<WebMCP.RegisteredTool[]> {
+    const tools = [...this.tools.values()]
+      .map(({ execute: _execute, ...tool }) => ({
+        ...tool,
+        title: tool.title ?? '',
+        window: globalThis as unknown as Window,
+        origin: 'https://example.org',
+      }))
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    return Promise.resolve(tools);
+  }
+
+  public async executeTool(tool: WebMCP.RegisteredTool, inputObject: object = {}, options: WebMCP.ModelContextExecuteToolOptions = {}): Promise<string> {
+    const registered = this.tools.get(tool.name);
+    if (!registered) {
+      throw new Error('UnknownError');
+    }
+    const controller = new AbortController();
+    options.signal?.addEventListener('abort', () => controller.abort(options.signal?.reason));
+    const result = await registered.execute(inputObject as Record<string, unknown>, { signal: controller.signal });
+    return JSON.stringify(result);
+  }
+
+  private fireToolChange(): void {
+    const event = new Event('toolchange');
+    this.ontoolchange?.call(this, event);
+    this.dispatchEvent(event);
   }
 }

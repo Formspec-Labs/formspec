@@ -14,16 +14,18 @@ import { ContextResolver, collectFieldMetadata, normalizeFieldPath } from './con
 import { AssistError, isAssistError } from './errors.js';
 import { ProfileMatcher } from './profile-matcher.js';
 import { ProfileStore } from './profile-store.js';
-import { ensureModelContext, type ModelContextLike, type ModelContextTool } from './webmcp-shim.js';
+import { registerAssistTools, resolveModelContext } from './webmcp-binding.js';
 import type {
   AssistProvider,
   AssistProviderOptions,
   FieldHelp,
   FormProgress,
+  InvokeToolOptions,
   OntologyDocument,
   ProfileApplyResult,
   ProfileMatch,
   ReferencesDocument,
+  ToolAnnotations,
   ToolDeclaration,
   ToolResult,
   UserProfile,
@@ -48,7 +50,7 @@ interface FieldStatus {
   dataType: string;
 }
 
-type ToolHandler = (input: Record<string, unknown>) => Promise<unknown> | unknown;
+type ToolHandler = (input: Record<string, unknown>, options: InvokeToolOptions) => Promise<unknown> | unknown;
 type ToolSchema = {
   type?: string;
   enum?: readonly unknown[];
@@ -57,8 +59,6 @@ type ToolSchema = {
   required?: string[];
   additionalProperties?: boolean;
 };
-
-const ASSIST_DISCOVERY_VERSION = '1.0';
 
 function isEmptyValue(value: unknown): boolean {
   return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
@@ -261,139 +261,181 @@ function assertEngineCompatibility(engine: IFormEngine): void {
   }
 }
 
+const READ_ONLY: ToolAnnotations = { readOnlyHint: true };
+/** Relays sidecar content (References `content`, possibly fetched from third-party URIs) — flagged so agents spotlight it. */
+const READ_ONLY_UNTRUSTED: ToolAnnotations = { readOnlyHint: true, untrustedContentHint: true };
+/** Writes the respondent's form or profile — the browser/agent gates these behind its own confirmation. */
+const CONSEQUENTIAL: ToolAnnotations = { consequentialHint: true };
+
+const PATH_PROPERTY = { type: 'string', description: 'Field path, e.g. "organization.ein" or "items[0].amount".' };
+const VALUE_PROPERTY = { description: 'New value. Omit or pass null to clear the field.' };
+const ENTRIES_SCHEMA = {
+  type: 'array',
+  description: 'Field writes; each entry is applied independently.',
+  items: {
+    type: 'object',
+    properties: { path: PATH_PROPERTY, value: VALUE_PROPERTY },
+    required: ['path'],
+    additionalProperties: false,
+  },
+};
+const PROFILE_REF_PROPERTY = { type: 'string', description: 'Profile id. Defaults to the active profile.' };
+
 function buildToolDeclarations(): ToolDeclaration[] {
   return [
     {
       name: 'formspec.form.describe',
-      description: 'Describe the active form.',
+      title: 'Describe form',
+      description: 'Title, description, version, field and page counts, and completion status of the active form.',
       inputSchema: { type: 'object', additionalProperties: false },
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY,
     },
     {
       name: 'formspec.field.list',
-      description: 'List fields with summary state.',
-      inputSchema: { type: 'object', properties: { filter: { type: 'string', enum: ['all', 'required', 'empty', 'invalid', 'relevant'] } }, additionalProperties: false },
-      annotations: { readOnlyHint: true },
+      title: 'List fields',
+      description: 'List fields with label, data type, and required/relevant/readonly/filled/valid flags.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          filter: {
+            type: 'string',
+            enum: ['all', 'required', 'empty', 'invalid', 'relevant'],
+            description: 'Which fields to include. Defaults to "relevant" (currently shown fields).',
+          },
+        },
+        additionalProperties: false,
+      },
+      annotations: READ_ONLY,
     },
     {
       name: 'formspec.field.describe',
-      description: 'Describe a field with live state and help.',
-      inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'], additionalProperties: false },
-      annotations: { readOnlyHint: true },
+      title: 'Describe field',
+      description: 'Live state of one field: value, options, validation, repeat metadata, and resolved help.',
+      inputSchema: { type: 'object', properties: { path: PATH_PROPERTY }, required: ['path'], additionalProperties: false },
+      annotations: READ_ONLY_UNTRUSTED,
     },
     {
       name: 'formspec.field.help',
-      description: 'Resolve field help from references and ontology sidecars.',
+      title: 'Field help',
+      description: 'Contextual help for one field from References and Ontology sidecars: documentation, examples, regulations, concept identity.',
       inputSchema: {
         type: 'object',
         properties: {
-          path: { type: 'string' },
-          audience: { type: 'string', enum: ['human', 'agent', 'both'] },
+          path: PATH_PROPERTY,
+          audience: {
+            type: 'string',
+            enum: ['human', 'agent', 'both'],
+            description: 'Whose help entries to return. Defaults to "agent".',
+          },
         },
         required: ['path'],
         additionalProperties: false,
       },
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_UNTRUSTED,
     },
     {
       name: 'formspec.form.progress',
-      description: 'Get form completion progress.',
+      title: 'Form progress',
+      description: 'Filled, valid, and required counts across the form, plus per-page progress when pages are known.',
       inputSchema: { type: 'object', additionalProperties: false },
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY,
     },
     {
       name: 'formspec.field.set',
-      description: 'Set a single field value.',
+      title: 'Set field value',
+      description: 'Write one field value. Rejects readonly and non-relevant fields; returns the validation results the write triggered.',
       inputSchema: {
         type: 'object',
-        properties: { path: { type: 'string' }, value: {} },
+        properties: { path: PATH_PROPERTY, value: VALUE_PROPERTY },
         required: ['path'],
         additionalProperties: false,
       },
+      annotations: CONSEQUENTIAL,
     },
     {
       name: 'formspec.field.bulkSet',
-      description: 'Set multiple field values.',
+      title: 'Set multiple field values',
+      description: 'Write several field values in one call. Entries succeed or fail independently.',
       inputSchema: {
         type: 'object',
-        properties: {
-          entries: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: { path: { type: 'string' }, value: {} },
-              required: ['path'],
-              additionalProperties: false,
-            },
-          },
-        },
+        properties: { entries: ENTRIES_SCHEMA },
         required: ['entries'],
         additionalProperties: false,
       },
+      annotations: CONSEQUENTIAL,
     },
     {
       name: 'formspec.form.validate',
-      description: 'Get the full validation report.',
-      inputSchema: {
-        type: 'object',
-        properties: { profile: { type: 'string', enum: ['live', 'on-submit', 'on-demand', 'off'] } },
-        additionalProperties: false,
-      },
-      annotations: { readOnlyHint: true },
-    },
-    {
-      name: 'formspec.field.validate',
-      description: 'Get validation results for a single field.',
-      inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'], additionalProperties: false },
-      annotations: { readOnlyHint: true },
-    },
-    {
-      name: 'formspec.profile.match',
-      description: 'Match profile values to form fields.',
-      inputSchema: { type: 'object', properties: { profileRef: { type: 'string' } }, additionalProperties: false },
-      annotations: { readOnlyHint: true },
-    },
-    {
-      name: 'formspec.profile.apply',
-      description: 'Apply matched profile values to the form.',
+      title: 'Validate form',
+      description: 'Full validation report for the form.',
       inputSchema: {
         type: 'object',
         properties: {
-          matches: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: { path: { type: 'string' }, value: {} },
-              required: ['path'],
-              additionalProperties: false,
-            },
+          profile: {
+            type: 'string',
+            enum: ['live', 'on-submit', 'on-demand', 'off'],
+            description: 'Validation profile to evaluate under. Defaults to "live".',
           },
-          confirm: { type: 'boolean' },
+        },
+        additionalProperties: false,
+      },
+      annotations: READ_ONLY,
+    },
+    {
+      name: 'formspec.field.validate',
+      title: 'Validate field',
+      description: 'Validation results for one field.',
+      inputSchema: { type: 'object', properties: { path: PATH_PROPERTY }, required: ['path'], additionalProperties: false },
+      annotations: READ_ONLY,
+    },
+    {
+      name: 'formspec.profile.match',
+      title: 'Match profile',
+      description: 'Suggest values from the user profile for writable fields, matched by ontology concept identity with a confidence score.',
+      inputSchema: { type: 'object', properties: { profileRef: PROFILE_REF_PROPERTY }, additionalProperties: false },
+      annotations: READ_ONLY,
+    },
+    {
+      name: 'formspec.profile.apply',
+      title: 'Apply profile values',
+      description: 'Write suggested profile values to the form. Pass confirm: true to require the user to approve first.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          matches: ENTRIES_SCHEMA,
+          confirm: { type: 'boolean', description: 'Require explicit user confirmation before writing.' },
         },
         required: ['matches'],
         additionalProperties: false,
       },
+      annotations: CONSEQUENTIAL,
     },
     {
       name: 'formspec.profile.learn',
-      description: 'Learn reusable values from the current form state.',
-      inputSchema: { type: 'object', properties: { profileRef: { type: 'string' } }, additionalProperties: false },
+      title: 'Save values to profile',
+      description: 'Save the current form values to the user profile for reuse on other forms, keyed by ontology concept.',
+      inputSchema: { type: 'object', properties: { profileRef: PROFILE_REF_PROPERTY }, additionalProperties: false },
+      annotations: CONSEQUENTIAL,
     },
     {
       name: 'formspec.form.pages',
-      description: 'Get page progress for the active form.',
+      title: 'Page progress',
+      description: 'Per-page field and filled counts and completion.',
       inputSchema: { type: 'object', additionalProperties: false },
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY,
     },
     {
       name: 'formspec.form.nextIncomplete',
-      description: 'Get the next incomplete page or field.',
+      title: 'Next incomplete',
+      description: 'The next field or page that still needs attention, with the reason (required, invalid, or empty).',
       inputSchema: {
         type: 'object',
-        properties: { scope: { type: 'string', enum: ['field', 'page'] } },
+        properties: {
+          scope: { type: 'string', enum: ['field', 'page'], description: 'Return the next field (default) or the next page.' },
+        },
         additionalProperties: false,
       },
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY,
     },
   ];
 }
@@ -412,11 +454,10 @@ class AssistProviderImpl implements AssistProvider {
   private readonly declarations: ToolDeclaration[];
   private pageSequence: Array<{ id: string; title?: string; fields: string[] }> = [];
   private fieldOrder: string[] = [];
-  private modelContext?: ModelContextLike;
-  private readonly registeredToolNames = new Set<string>();
+  private webmcpRegistration?: AbortController;
+  public readonly ready: Promise<void>;
   private readonly now: () => Date;
   private readonly confirmProfileApply?: AssistProviderOptions['confirmProfileApply'];
-  private readonly discoveryEnabled: boolean;
 
   public constructor(options: AssistProviderOptions) {
     assertEngineCompatibility(options.engine);
@@ -429,7 +470,6 @@ class AssistProviderImpl implements AssistProvider {
     this.currentProfile = options.profile ?? this.profileStore.load('default') ?? this.profileStore.load();
     this.now = options.now ?? (() => new Date());
     this.confirmProfileApply = options.confirmProfileApply;
-    this.discoveryEnabled = options.registerWebMCP !== false;
     const registryEntries = flattenRegistryEntries(options.registries);
     this.resolver = new ContextResolver(this.engine, this.references, this.ontologies, registryEntries);
     this.matcher = new ProfileMatcher(
@@ -441,9 +481,7 @@ class AssistProviderImpl implements AssistProvider {
     for (const declaration of this.declarations) {
       this.tools.set(declaration.name, this.buildToolHandler(declaration.name));
     }
-    if (this.discoveryEnabled) {
-      this.registerWithModelContext();
-    }
+    this.ready = this.registerWithModelContext(options);
   }
 
   public attach(engine: IFormEngine): void {
@@ -451,19 +489,11 @@ class AssistProviderImpl implements AssistProvider {
     this.engine = engine;
     this.resolver.setEngine(engine);
     this.refreshEngineDerivedState();
-    if (this.discoveryEnabled) {
-      this.emitDiscoveryEvent();
-    }
   }
 
   public detach(): void {
-    if (!this.modelContext) {
-      return;
-    }
-    for (const name of this.registeredToolNames) {
-      this.modelContext.unregisterTool(name);
-    }
-    this.registeredToolNames.clear();
+    this.webmcpRegistration?.abort();
+    this.webmcpRegistration = undefined;
   }
 
   public dispose(): void {
@@ -510,7 +540,7 @@ class AssistProviderImpl implements AssistProvider {
     return this.declarations.map((tool) => ({ ...tool }));
   }
 
-  public async invokeTool(name: string, input: Record<string, unknown>): Promise<ToolResult> {
+  public async invokeTool(name: string, input: Record<string, unknown>, options: InvokeToolOptions = {}): Promise<ToolResult> {
     const handler = this.tools.get(name);
     if (!handler) {
       return jsonError('UNSUPPORTED', `Unknown tool: ${name}`);
@@ -520,7 +550,7 @@ class AssistProviderImpl implements AssistProvider {
       if (declaration) {
         validateToolInput(declaration.inputSchema as ToolSchema, input);
       }
-      const payload = await handler(input);
+      const payload = await handler(input, options);
       return jsonResult(payload);
     } catch (error) {
       if (isToolResult(error)) {
@@ -568,9 +598,10 @@ class AssistProviderImpl implements AssistProvider {
           matches: this.matchProfile(typeof input.profileRef === 'string' ? input.profileRef : undefined),
         });
       case 'formspec.profile.apply':
-        return (input) => this.applyProfileMatches(
+        return (input, options) => this.applyProfileMatches(
           readEntries(input),
           input.confirm === true,
+          options.signal,
         );
       case 'formspec.profile.learn':
         return (input) => this.learnProfile(typeof input.profileRef === 'string' ? input.profileRef : undefined);
@@ -587,17 +618,13 @@ class AssistProviderImpl implements AssistProvider {
     }
   }
 
-  private registerWithModelContext(): void {
-    this.modelContext = ensureModelContext();
-    for (const declaration of this.declarations) {
-      const tool: ModelContextTool = {
-        ...declaration,
-        handler: (input) => this.invokeTool(declaration.name, input),
-      };
-      this.modelContext.registerTool(tool);
-      this.registeredToolNames.add(tool.name);
+  private registerWithModelContext(options: AssistProviderOptions): Promise<void> {
+    const modelContext = options.registerWebMCP === false ? undefined : options.modelContext ?? resolveModelContext();
+    if (!modelContext) {
+      return Promise.resolve();
     }
-    this.emitDiscoveryEvent();
+    this.webmcpRegistration = new AbortController();
+    return registerAssistTools(this, modelContext, { signal: this.webmcpRegistration.signal });
   }
 
   private refreshEngineDerivedState(): void {
@@ -709,12 +736,16 @@ class AssistProviderImpl implements AssistProvider {
   private async applyProfileMatches(
     entries: Array<{ path: string; value: unknown }>,
     confirm: boolean,
+    signal?: AbortSignal,
   ): Promise<ProfileApplyResult> {
     if (confirm) {
       if (!this.confirmProfileApply) {
         throw new AssistError('x-confirmation-required', 'Profile application requires an explicit confirmation handler');
       }
       const approved = await this.confirmProfileApply({ matches: entries });
+      if (signal?.aborted) {
+        throw new AssistError('x-cancelled', 'Tool execution was cancelled before the values were applied');
+      }
       if (!approved) {
         return {
           filled: [],
@@ -892,26 +923,6 @@ class AssistProviderImpl implements AssistProvider {
       return this.profileStore.load(profileRef);
     }
     return this.currentProfile ?? this.profileStore.load('default') ?? this.profileStore.load();
-  }
-
-  private emitDiscoveryEvent(): void {
-    const candidate = globalThis as typeof globalThis & {
-      document?: { dispatchEvent?: (event: unknown) => boolean };
-      CustomEvent?: new (type: string, init?: { detail?: Record<string, unknown> }) => { type: string; detail?: Record<string, unknown> };
-    };
-    if (!candidate.document || typeof candidate.document.dispatchEvent !== 'function') {
-      return;
-    }
-    const detail = {
-      protocolVersion: ASSIST_DISCOVERY_VERSION,
-      definitionUrl: this.engine.getDefinition().url,
-      definitionVersion: this.engine.getDefinition().version,
-      tools: this.declarations.map((tool) => tool.name),
-    };
-    const event = candidate.CustomEvent
-      ? new candidate.CustomEvent('formspec-tools-available', { detail })
-      : { type: 'formspec-tools-available', detail };
-    candidate.document.dispatchEvent(event);
   }
 
   private fieldStatus(path: string): FieldStatus {

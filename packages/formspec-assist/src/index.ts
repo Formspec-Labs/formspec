@@ -3,7 +3,7 @@
 export { createAssistProvider } from './provider.js';
 export { ContextResolver } from './context-resolver.js';
 export { targetDefinitionMatches } from '@formspec-org/types';
-export { ensureModelContext } from './webmcp-shim.js';
+export { registerAssistTools, resolveModelContext, unwrapToolResult } from './webmcp-binding.js';
 
 export type {
   AssistProvider,
@@ -13,6 +13,7 @@ export type {
   ConceptEquivalent,
   FieldHelp,
   FormProgress,
+  InvokeToolOptions,
   OntologyDocument,
   ProfileApplyResult,
   ProfileEntry,
@@ -22,6 +23,7 @@ export type {
   ReferencesDocument,
   SetValueResult,
   StorageBackend,
+  ToolAnnotations,
   ToolDeclaration,
   ToolResult,
   UserProfile,

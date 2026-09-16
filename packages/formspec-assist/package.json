@@ -20,7 +20,9 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
@@ -29,7 +31,8 @@
   "dependencies": {
     "@formspec-org/engine": "*",
     "@formspec-org/layout": "*",
-    "@formspec-org/types": "*"
+    "@formspec-org/types": "*",
+    "webmcp-types": "^0.1.8"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
