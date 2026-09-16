@@ -643,8 +643,11 @@ resolve them in the following order:
    `<system>#<code>`), the binding's entries first and winning on a shared
    URI, then the entry's remaining ones. The entry's `relations` (or
    `metadata.relations`) are never equivalents (Extension Registry spec §3.2). A
-   binding therefore need not repeat its entry's equivalents. Among loaded
-   entries with the same `conceptUri`, the last-loaded wins.
+   binding therefore need not repeat its entry's equivalents. When two loaded
+   entries claim the same `conceptUri`, the provider MUST merge neither — the
+   binding stays bare; an unqualified collision fails closed, as in the
+   Registry specification §2.2. A `[*]`-keyed binding is preferred over a
+   dotted key for the same path.
 2. **Registry concept entry** — a loaded registry entry whose `name` matches
    the field's `semanticType` (last-loaded wins), resolved as an empty
    binding merged per step 1, so it yields `definition` from `description`.
