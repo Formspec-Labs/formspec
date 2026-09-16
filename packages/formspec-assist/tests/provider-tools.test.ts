@@ -4,6 +4,7 @@ import { createAssistProvider } from '../src/index.js';
 import {
   createEngine,
   ensureEngine,
+  FakeModelContext,
   makeComponent,
   makeDefinition,
   makeOntology,
@@ -11,6 +12,7 @@ import {
   makeReferences,
   makeTheme,
   MemoryStorage,
+  nextTask,
 } from './helpers.js';
 
 describe('Assist provider tools', () => {
@@ -139,12 +141,11 @@ describe('Assist provider tools', () => {
     expect(result.matches.some((m: { path: string }) => m.path === 'organization.ein')).toBe(true);
   });
 
-  it('formspec.profile.apply fills matched values', async () => {
+  it('formspec.profile.apply fills the requested paths from the in-page match set', async () => {
     const provider = createFullProvider();
-    const result = await parse(provider, 'formspec.profile.apply', {
-      matches: [{ path: 'contactEmail', value: 'owner@example.org' }],
-    });
-    expect(result.filled).toEqual([{ path: 'contactEmail', value: 'owner@example.org' }]);
+    const result = await parse(provider, 'formspec.profile.apply', { paths: ['organization.ein'] });
+    expect(result.filled).toEqual([{ path: 'organization.ein' }]);
+    expect(result.skipped).toEqual([]);
   });
 
   it('formspec.profile.learn saves reusable values', async () => {
@@ -277,22 +278,21 @@ describe('Assist provider tools', () => {
 
   // T-7: profile.apply declined path
 
-  it('profile.apply with confirm returns all entries as DECLINED when handler returns false', async () => {
+  it('profile.apply with confirm returns every current match as DECLINED when the handler returns false', async () => {
     const provider = createAssistProvider({
       engine: createEngine(),
+      ontology: makeOntology(),
+      profile: makeProfile(),
+      profileMatchThreshold: 0.3,
       confirmProfileApply: () => false,
       registerWebMCP: false,
     });
-    const result = await parse(provider, 'formspec.profile.apply', {
-      matches: [
-        { path: 'contactEmail', value: 'owner@example.org' },
-        { path: 'organization.name', value: 'Acme' },
-      ],
-      confirm: true,
-    });
+    const result = await parse(provider, 'formspec.profile.apply', { confirm: true });
     expect(result.filled).toHaveLength(0);
-    expect(result.skipped).toHaveLength(2);
-    expect(result.skipped.every((s: { reason: string }) => s.reason === 'DECLINED')).toBe(true);
+    expect(result.skipped.map((entry: { path: string; reason: string }) => [entry.path, entry.reason])).toEqual([
+      ['organization.ein', 'DECLINED'],
+      ['contactEmail', 'DECLINED'],
+    ]);
   });
 
   // T-12: INVALID_PATH error code
@@ -458,7 +458,8 @@ describe('Assist provider tools', () => {
     const engine = createEngine();
     engine.getFieldVM('contactEmail')?.setValue('owner@example.org');
     const provider = createAssistProvider({ engine, registerWebMCP: false });
-    const result = await parse(provider, 'formspec.field.set', { path: 'contactEmail' });
+    // Clearing a respondent-written value is an overwrite: it needs the compare-and-set witness like any other.
+    const result = await parse(provider, 'formspec.field.set', { path: 'contactEmail', expected: 'owner@example.org' });
     expect(result.accepted).toBe(true);
     const postValue = engine.getFieldVM('contactEmail')?.value.value;
     expect(postValue === null || postValue === undefined || postValue === '').toBe(true);
@@ -482,31 +483,32 @@ describe('Assist provider tools', () => {
     const engine = createEngine();
     const provider = createAssistProvider({
       engine,
+      ontology: makeOntology(),
+      profile: makeProfile(),
       registerWebMCP: false,
     });
 
-    const blocked = await provider.invokeTool('formspec.profile.apply', {
-      matches: [{ path: 'contactEmail', value: 'owner@example.org' }],
-      confirm: true,
-    });
+    const blocked = await provider.invokeTool('formspec.profile.apply', { paths: ['organization.ein'], confirm: true });
     expect(blocked.isError).toBe(true);
     expect(JSON.parse(blocked.content[0].text).code).toBe('x-confirmation-required');
-    expect(engine.getFieldVM('contactEmail')?.value.value).toBe('');
+    expect(engine.getFieldVM('organization.ein')?.value.value).toBe('');
 
+    const seen: Array<{ path: string; value: unknown }> = [];
     const confirmedProvider = createAssistProvider({
       engine: createEngine(),
-      confirmProfileApply: () => true,
+      ontology: makeOntology(),
+      profile: makeProfile(),
+      confirmProfileApply: ({ matches }) => {
+        seen.push(...matches);
+        return true;
+      },
       registerWebMCP: false,
     });
 
-    const confirmed = await confirmedProvider.invokeTool('formspec.profile.apply', {
-      matches: [{ path: 'contactEmail', value: 'owner@example.org' }],
-      confirm: true,
-    });
+    const confirmed = await confirmedProvider.invokeTool('formspec.profile.apply', { paths: ['organization.ein'], confirm: true });
     expect(confirmed.isError).not.toBe(true);
-    expect(JSON.parse(confirmed.content[0].text).filled).toEqual([
-      { path: 'contactEmail', value: 'owner@example.org' },
-    ]);
+    expect(seen).toEqual([{ path: 'organization.ein', value: '12-3456789' }]);
+    expect(JSON.parse(confirmed.content[0].text).filled).toEqual([{ path: 'organization.ein' }]);
   });
 
   it('supports profile-scoped match and learn operations', async () => {
@@ -536,17 +538,21 @@ describe('Assist provider tools', () => {
 
     const matchResult = await provider.invokeTool('formspec.profile.match', { profileRef: 'secondary' });
     expect(matchResult.isError).not.toBe(true);
-    expect(JSON.parse(matchResult.content[0].text).matches.find((match: { path: string }) => match.path === 'organization.ein').value)
-      .toBe('98-7654321');
+    expect(JSON.parse(matchResult.content[0].text).matches.find((match: { path: string }) => match.path === 'organization.ein'))
+      .toEqual({ path: 'organization.ein', concept: 'https://www.irs.gov/terms/employer-identification-number', confidence: 1, relationship: 'exact' });
 
     engine.getFieldVM('organization.ein')?.setValue('11-1111111');
     engine.getFieldVM('organization.name')?.setValue('New Org');
     const learnResult = await provider.invokeTool('formspec.profile.learn', { profileRef: 'secondary' });
     expect(learnResult.isError).not.toBe(true);
 
-    const learnedMatches = provider.matchProfile('secondary');
-    expect(learnedMatches.find((match) => match.path === 'organization.ein')?.value).toBe('11-1111111');
-    expect(learnedMatches.find((match) => match.path === 'organization.name')?.value).toBe('New Org');
+    // The wire carries no values (C4); the persisted profile is where learned values are observable.
+    const stored = JSON.parse(storage.getItem('formspec-assist:profiles') ?? '[]') as Array<{ id: string; concepts: Record<string, { value: unknown }>; fields: Record<string, { value: unknown }> }>;
+    const secondary = stored.find((profile) => profile.id === 'secondary');
+    expect(secondary?.concepts['https://www.irs.gov/terms/employer-identification-number']?.value).toBe('11-1111111');
+    // No registry here, so organization.name learns under its literal semanticType (§5.3 step 3).
+    expect(secondary?.concepts['x-concept-org-name']?.value).toBe('New Org');
+    expect(provider.matchProfile('secondary').map((match) => match.path)).toEqual(['organization.ein', 'organization.name']);
   });
 
   it('filters readonly fields from profile match suggestions', async () => {
@@ -788,13 +794,11 @@ describe('Assist provider tools', () => {
       message: expect.stringMatching(/path/i),
     });
 
-    const invalidMatches = await provider.invokeTool('formspec.profile.apply', {
-      matches: [{ path: 12, value: 'owner@example.org' }],
-    });
-    expect(invalidMatches.isError).toBe(true);
-    expect(JSON.parse(invalidMatches.content[0].text)).toMatchObject({
+    const invalidPaths = await provider.invokeTool('formspec.profile.apply', { paths: [12] });
+    expect(invalidPaths.isError).toBe(true);
+    expect(JSON.parse(invalidPaths.content[0].text)).toMatchObject({
       code: 'INVALID_VALUE',
-      message: expect.stringMatching(/path/i),
+      message: expect.stringMatching(/paths/i),
     });
 
     const invalidValidateMode = await provider.invokeTool('formspec.form.validate', { mode: 'eventual' });
@@ -862,4 +866,427 @@ describe('Assist provider tools', () => {
     });
   });
 
+});
+
+describe('Stale-write guard (draft.3 C5, §4.3 rule 6): compare-and-set', () => {
+  beforeAll(async () => {
+    await ensureEngine();
+  });
+
+  const read = (result: { content: Array<{ text: string }> }) => JSON.parse(result.content[0].text);
+
+  it('refuses to overwrite a respondent-written value without proof the agent read it', async () => {
+    const engine = createEngine();
+    engine.setValue('contactEmail', 'typed@example.org');
+    const provider = createAssistProvider({ engine, registerWebMCP: false });
+
+    const result = await provider.invokeTool('formspec.field.set', { path: 'contactEmail', value: 'agent@example.org' });
+    expect(result.isError).toBe(true);
+    expect(read(result)).toEqual({
+      code: 'x-user-edited',
+      message: expect.stringMatching(/field\.describe.*expected/),
+      path: 'contactEmail',
+      retryable: false,
+    });
+    // No value echo: the agent reads the field through field.describe, never through an error.
+    expect(JSON.stringify(read(result))).not.toContain('typed@example.org');
+    expect(engine.getFieldVM('contactEmail')?.value.value).toBe('typed@example.org');
+    expect(engine.getFieldVM('contactEmail')?.writeSource.value).toBe('user');
+  });
+
+  it('writes over a respondent value when expected deep-equals the current value, recording the assistant as the writer', async () => {
+    const engine = createEngine();
+    engine.setValue('contactEmail', 'typed@example.org');
+    const provider = createAssistProvider({ engine, registerWebMCP: false });
+
+    const stale = await provider.invokeTool('formspec.field.set', { path: 'contactEmail', value: 'agent@example.org', expected: 'old@example.org' });
+    expect(read(stale)).toMatchObject({ code: 'x-user-edited', message: expect.stringMatching(/changed since/) });
+
+    const described = read(await provider.invokeTool('formspec.field.describe', { path: 'contactEmail' }));
+    const result = await provider.invokeTool('formspec.field.set', { path: 'contactEmail', value: 'agent@example.org', expected: described.value });
+    expect(result.isError).not.toBe(true);
+    expect(read(result)).toMatchObject({ accepted: true, value: 'agent@example.org' });
+    expect(engine.getFieldVM('contactEmail')?.writeSource.value).toBe('assist');
+  });
+
+  it('compares expected structurally for array values', async () => {
+    const engine = new FormEngine({
+      $formspec: '1.0',
+      url: 'https://example.org/forms/multi',
+      version: '1.0.0',
+      title: 'Multi',
+      items: [{ key: 'tags', type: 'field', dataType: 'multiChoice', label: 'Tags', options: [{ value: 'r', label: 'Red' }, { value: 'g', label: 'Green' }] }],
+    } as any);
+    engine.setValue('tags', ['r', 'g']);
+    const provider = createAssistProvider({ engine, registerWebMCP: false });
+
+    const mismatch = read(await provider.invokeTool('formspec.field.set', { path: 'tags', value: ['g'], expected: ['g', 'r'] }));
+    expect(mismatch.code).toBe('x-user-edited');
+    const match = read(await provider.invokeTool('formspec.field.set', { path: 'tags', value: ['g'], expected: ['r', 'g'] }));
+    expect(match).toMatchObject({ accepted: true, value: ['g'] });
+  });
+
+  it('always allows writing an empty field and re-writing the assistant\'s own value', async () => {
+    const engine = createEngine();
+    const provider = createAssistProvider({ engine, registerWebMCP: false });
+
+    const first = await provider.invokeTool('formspec.field.set', { path: 'contactEmail', value: 'agent@example.org' });
+    expect(first.isError).not.toBe(true);
+    const second = await provider.invokeTool('formspec.field.set', { path: 'contactEmail', value: 'agent2@example.org' });
+    expect(second.isError).not.toBe(true);
+    expect(engine.getFieldVM('contactEmail')?.value.value).toBe('agent2@example.org');
+
+    // The respondent takes the field back; the assistant is locked out again.
+    engine.setValue('contactEmail', 'mine@example.org');
+    const third = await provider.invokeTool('formspec.field.set', { path: 'contactEmail', value: 'agent3@example.org' });
+    expect(read(third).code).toBe('x-user-edited');
+  });
+
+  it('treats a hydrated response value as the respondent\'s', async () => {
+    const engine = createEngine();
+    engine.loadResponseData({ contactEmail: 'hydrated@example.org' });
+    const provider = createAssistProvider({ engine, registerWebMCP: false });
+
+    const result = await provider.invokeTool('formspec.field.set', { path: 'contactEmail', value: 'agent@example.org' });
+    expect(read(result).code).toBe('x-user-edited');
+  });
+
+  it('refuses a calculated field as READONLY rather than misreading its null write source as the respondent\'s', async () => {
+    const engine = new FormEngine({
+      $formspec: '1.0',
+      url: 'https://example.org/forms/calc',
+      version: '1.0.0',
+      title: 'Calc',
+      items: [
+        { key: 'a', type: 'field', dataType: 'integer', label: 'A' },
+        { key: 'double', type: 'field', dataType: 'integer', label: 'Double', calculate: '$a * 2' },
+        { key: 'viaBind', type: 'field', dataType: 'integer', label: 'Via bind' },
+      ],
+      binds: [{ path: 'viaBind', calculate: '$a + 1' }],
+    } as any);
+    engine.setValue('a', 4);
+    const provider = createAssistProvider({ engine, registerWebMCP: false });
+    expect(engine.getFieldVM('double')?.value.value).toBe(8);
+
+    expect(read(await provider.invokeTool('formspec.field.set', { path: 'double', value: 1 }))).toMatchObject({ code: 'READONLY', path: 'double' });
+    expect(read(await provider.invokeTool('formspec.field.set', { path: 'viaBind', value: 1 }))).toMatchObject({ code: 'READONLY', path: 'viaBind' });
+    const described = read(await provider.invokeTool('formspec.field.describe', { path: 'viaBind' }));
+    expect(described).toMatchObject({ calculated: true, expression: '$a + 1' });
+  });
+
+  it('bulkSet counts guarded entries as skipped and honours a per-entry expected', async () => {
+    const engine = createEngine();
+    engine.setValue('organization.name', 'Typed Org');
+    const provider = createAssistProvider({ engine, registerWebMCP: false });
+
+    const guarded = read(await provider.invokeTool('formspec.field.bulkSet', {
+      entries: [
+        { path: 'organization.name', value: 'Agent Org' },
+        { path: 'contactEmail', value: 'agent@example.org' },
+        { path: 'nonexistent', value: 'x' },
+      ],
+    }));
+    expect(guarded.summary).toEqual({ accepted: 1, rejected: 1, skipped: 1, errors: 2 });
+    expect(guarded.results.find((entry: { path: string }) => entry.path === 'organization.name')).toMatchObject({
+      accepted: false,
+      error: { code: 'x-user-edited', retryable: false },
+    });
+    expect(guarded.results.find((entry: { path: string }) => entry.path === 'organization.name').error).not.toHaveProperty('currentValue');
+    expect(engine.getFieldVM('organization.name')?.value.value).toBe('Typed Org');
+
+    const overwritten = read(await provider.invokeTool('formspec.field.bulkSet', {
+      entries: [{ path: 'organization.name', value: 'Agent Org', expected: 'Typed Org' }],
+    }));
+    expect(overwritten.summary).toEqual({ accepted: 1, rejected: 0, skipped: 0, errors: 0 });
+    expect(engine.getFieldVM('organization.name')?.value.value).toBe('Agent Org');
+  });
+
+  it('profile.apply skips guarded paths with x-user-edited unless the path entry carries a matching expected', async () => {
+    const engine = createEngine();
+    engine.setValue('organization.ein', '99-9999999');
+    const provider = createAssistProvider({ engine, ontology: makeOntology(), profile: makeProfile(), registerWebMCP: false });
+
+    const skipped = read(await provider.invokeTool('formspec.profile.apply', { paths: ['organization.ein'] }));
+    expect(skipped).toMatchObject({ filled: [], skipped: [{ path: 'organization.ein', reason: 'x-user-edited' }] });
+
+    const stale = read(await provider.invokeTool('formspec.profile.apply', { paths: [{ path: 'organization.ein', expected: '11-1111111' }] }));
+    expect(stale.skipped).toEqual([{ path: 'organization.ein', reason: 'x-user-edited' }]);
+
+    const filled = read(await provider.invokeTool('formspec.profile.apply', { paths: [{ path: 'organization.ein', expected: '99-9999999' }] }));
+    expect(filled.filled).toEqual([{ path: 'organization.ein' }]);
+    expect(engine.getFieldVM('organization.ein')?.value.value).toBe('12-3456789');
+    expect(engine.getFieldVM('organization.ein')?.writeSource.value).toBe('assist');
+  });
+});
+
+describe('Option-label writes (draft.3 C3, §3.3)', () => {
+  beforeAll(async () => {
+    await ensureEngine();
+  });
+
+  const read = (result: { content: Array<{ text: string }> }) => JSON.parse(result.content[0].text);
+
+  function makeChoiceEngine() {
+    return new FormEngine({
+      $formspec: '1.0',
+      url: 'https://example.org/forms/choice',
+      version: '1.0.0',
+      title: 'Choice form',
+      items: [
+        {
+          key: 'state',
+          type: 'field',
+          dataType: 'choice',
+          label: 'State',
+          options: [
+            { value: 'CA', label: 'California' },
+            { value: 'NY', label: 'New York' },
+          ],
+        },
+        {
+          key: 'kind',
+          type: 'field',
+          dataType: 'choice',
+          label: 'Kind',
+          options: [
+            { value: 'other-a', label: 'Other' },
+            { value: 'other-b', label: 'other' },
+          ],
+        },
+        {
+          key: 'tags',
+          type: 'field',
+          dataType: 'multiChoice',
+          label: 'Tags',
+          options: [
+            { value: 'r', label: 'Red' },
+            { value: 'g', label: 'Green' },
+          ],
+        },
+        { key: 'note', type: 'field', dataType: 'string', label: 'Note' },
+      ],
+    } as any);
+  }
+
+  it('accepts an option label case-insensitively and stores the option value', async () => {
+    const engine = makeChoiceEngine();
+    const provider = createAssistProvider({ engine, registerWebMCP: false });
+
+    const byLabel = read(await provider.invokeTool('formspec.field.set', { path: 'state', value: 'new york' }));
+    expect(byLabel).toMatchObject({ accepted: true, value: 'NY' });
+    expect(engine.getFieldVM('state')?.value.value).toBe('NY');
+
+    const byValue = read(await provider.invokeTool('formspec.field.set', { path: 'state', value: 'CA' }));
+    expect(byValue).toMatchObject({ accepted: true, value: 'CA' });
+
+    const cleared = read(await provider.invokeTool('formspec.field.set', { path: 'state', value: null }));
+    expect(cleared.accepted).toBe(true);
+  });
+
+  it('rejects an unknown or ambiguous label with the option list', async () => {
+    const provider = createAssistProvider({ engine: makeChoiceEngine(), registerWebMCP: false });
+
+    const unknown = read(await provider.invokeTool('formspec.field.set', { path: 'state', value: 'Kalifornia' }));
+    expect(unknown).toEqual({
+      code: 'INVALID_VALUE',
+      message: 'state accepts one of: CA — California, NY — New York (got "Kalifornia")',
+      path: 'state',
+      retryable: true,
+    });
+
+    const ambiguous = read(await provider.invokeTool('formspec.field.set', { path: 'kind', value: 'OTHER' }));
+    expect(ambiguous).toMatchObject({
+      code: 'INVALID_VALUE',
+      message: expect.stringMatching(/ambiguous.*other-a — Other, other-b — other/),
+    });
+  });
+
+  it('maps every element of a multiChoice write and leaves non-choice fields alone', async () => {
+    const engine = makeChoiceEngine();
+    const provider = createAssistProvider({ engine, registerWebMCP: false });
+
+    const tags = read(await provider.invokeTool('formspec.field.bulkSet', {
+      entries: [
+        { path: 'tags', value: ['red', 'g'] },
+        { path: 'note', value: 'California' },
+      ],
+    }));
+    expect(tags.summary.accepted).toBe(2);
+    expect(engine.getFieldVM('tags')?.value.value).toEqual(['r', 'g']);
+    expect(engine.getFieldVM('note')?.value.value).toBe('California');
+  });
+
+  it('profile.apply resolves a profile label to the option value', async () => {
+    const engine = makeChoiceEngine();
+    const now = '2026-03-26T12:00:00.000Z';
+    const provider = createAssistProvider({
+      engine,
+      profile: {
+        id: 'default', label: 'Default', created: now, updated: now, concepts: {},
+        fields: { state: { value: 'california', confidence: 1, source: { type: 'manual', timestamp: now }, lastUsed: now, verified: true } },
+      },
+      profileMatchThreshold: 0.3,
+      registerWebMCP: false,
+    });
+
+    const result = read(await provider.invokeTool('formspec.profile.apply', {}));
+    expect(result.filled).toEqual([{ path: 'state' }]);
+    expect(engine.getFieldVM('state')?.value.value).toBe('CA');
+  });
+});
+
+describe('Apply by path (draft.3 C4, §3.5)', () => {
+  beforeAll(async () => {
+    await ensureEngine();
+  });
+
+  const read = (result: { content: Array<{ text: string }> }) => JSON.parse(result.content[0].text);
+
+  function makeMatchingProvider(extra: Partial<Parameters<typeof createAssistProvider>[0]> = {}) {
+    // organization.ein (exact concept) and organization.name (registry concept) match; contactEmail is field-key below threshold.
+    return createAssistProvider({
+      engine: createEngine(),
+      ontology: makeOntology(),
+      profile: makeProfile(),
+      registries: [
+        {
+          $formspecRegistry: '1.1',
+          publisher: { name: 'Example', url: 'https://example.org' },
+          published: '2026-03-26T00:00:00Z',
+          entries: [
+            {
+              name: 'x-concept-org-name',
+              category: 'concept',
+              version: '1.0.0',
+              status: 'stable',
+              description: 'Organization name',
+              compatibility: { formspecVersion: '^1.0.0' },
+              conceptUri: 'https://schema.org/name',
+              conceptSystem: 'https://schema.org',
+              conceptCode: 'name',
+            },
+          ],
+        },
+      ],
+      registerWebMCP: false,
+      ...extra,
+    });
+  }
+
+  it('applies every current match when paths is omitted, reporting paths only', async () => {
+    const provider = makeMatchingProvider();
+    const result = read(await provider.invokeTool('formspec.profile.apply', {}));
+    expect(result.filled).toEqual([{ path: 'organization.ein' }, { path: 'organization.name' }]);
+    expect(result.skipped).toEqual([]);
+    expect(result.validation).toHaveProperty('valid');
+  });
+
+  it('shows the human only the resolvable subset, in the caller\'s order, and reports the rest as skipped', async () => {
+    const seen: Array<Array<{ path: string; value: unknown }>> = [];
+    const provider = makeMatchingProvider({
+      confirmProfileApply: ({ matches }) => {
+        seen.push(matches);
+        return true;
+      },
+    });
+
+    const result = read(await provider.invokeTool('formspec.profile.apply', {
+      paths: ['organization.name', 'nope', 'contactEmail', 'derivedScore', 'organization.ein'],
+      confirm: true,
+    }));
+    expect(seen).toEqual([[
+      { path: 'organization.name', value: 'Acme Foundation' },
+      { path: 'organization.ein', value: '12-3456789' },
+    ]]);
+    expect(result.skipped).toEqual([
+      { path: 'nope', reason: 'NOT_FOUND' },
+      { path: 'contactEmail', reason: 'x-not-matched' },
+      { path: 'derivedScore', reason: 'READONLY' },
+    ]);
+    expect(result.filled).toEqual([{ path: 'organization.name' }, { path: 'organization.ein' }]);
+  });
+
+  it('reports NOT_RELEVANT for a hidden field the match set left out', async () => {
+    const definition = {
+      ...makeDefinition(),
+      items: makeDefinition().items.map((item) => (
+        item.key === 'organization'
+          ? { ...item, children: item.children.map((child) => (child.key === 'ein' ? { ...child, relevant: 'false' } : child)) }
+          : item
+      )),
+    };
+    const provider = makeMatchingProvider({ engine: new FormEngine(definition as any) });
+    const result = read(await provider.invokeTool('formspec.profile.apply', { paths: ['organization.ein'] }));
+    expect(result.skipped).toEqual([{ path: 'organization.ein', reason: 'NOT_RELEVANT' }]);
+  });
+
+  it('decides guarded paths before confirmation', async () => {
+    const engine = createEngine();
+    engine.setValue('organization.ein', '99-9999999');
+    const seen: Array<Array<{ path: string; value: unknown }>> = [];
+    const provider = makeMatchingProvider({
+      engine,
+      confirmProfileApply: ({ matches }) => {
+        seen.push(matches);
+        return true;
+      },
+    });
+
+    const result = read(await provider.invokeTool('formspec.profile.apply', { confirm: true }));
+    expect(seen).toEqual([[{ path: 'organization.name', value: 'Acme Foundation' }]]);
+    expect(result.skipped).toEqual([{ path: 'organization.ein', reason: 'x-user-edited' }]);
+    expect(result.filled).toEqual([{ path: 'organization.name' }]);
+  });
+
+  it('never calls the confirmation handler when nothing is writable', async () => {
+    let calls = 0;
+    const provider = makeMatchingProvider({
+      confirmProfileApply: () => {
+        calls += 1;
+        return true;
+      },
+    });
+    const result = read(await provider.invokeTool('formspec.profile.apply', { paths: ['nope'], confirm: true }));
+    expect(calls).toBe(0);
+    expect(result).toMatchObject({ filled: [], skipped: [{ path: 'nope', reason: 'NOT_FOUND' }] });
+  });
+});
+
+describe('Profile capability (draft.3 C2)', () => {
+  beforeAll(async () => {
+    await ensureEngine();
+  });
+
+  const registered = async (modelContext: FakeModelContext) => (await modelContext.getTools()).map((tool) => tool.name);
+  const profileTools = ['formspec.profile.apply', 'formspec.profile.learn', 'formspec.profile.match'];
+
+  it('hasProfile is a capability: a configured profile or store, not the default in-memory store', () => {
+    expect(createAssistProvider({ engine: createEngine(), registerWebMCP: false }).hasProfile()).toBe(false);
+    expect(createAssistProvider({ engine: createEngine(), profile: makeProfile(), registerWebMCP: false }).hasProfile()).toBe(true);
+    expect(createAssistProvider({ engine: createEngine(), storage: new MemoryStorage(), registerWebMCP: false }).hasProfile()).toBe(true);
+
+    const late = createAssistProvider({ engine: createEngine(), registerWebMCP: false });
+    late.loadProfile(makeProfile());
+    expect(late.hasProfile()).toBe(true);
+  });
+
+  it('registers the profile tools additively when a profile arrives after a default registration, and detach removes them too', async () => {
+    const modelContext = new FakeModelContext();
+    const provider = createAssistProvider({ engine: createEngine(), modelContext });
+    await provider.ready;
+    expect(await registered(modelContext)).not.toEqual(expect.arrayContaining(profileTools));
+
+    provider.loadProfile(makeProfile());
+    await nextTask();
+    expect(await registered(modelContext)).toEqual(expect.arrayContaining(profileTools));
+
+    // Idempotent: a second profile load does not try to register twice (the fake rejects duplicates).
+    provider.loadProfile(makeProfile());
+    await nextTask();
+    expect((await registered(modelContext)).filter((name) => name.startsWith('formspec.profile.'))).toHaveLength(3);
+
+    provider.detach();
+    await nextTask();
+    expect(await registered(modelContext)).toEqual([]);
+  });
 });

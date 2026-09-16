@@ -9,31 +9,33 @@ import {
   type RegistryDocument,
   type ValidationResult,
 } from '@formspec-org/types';
-import { ContextResolver, collectFieldMetadata, normalizeFieldPath } from './context-resolver.js';
+import { ContextResolver, collectFieldMetadata, minimizeFieldHelp, normalizeFieldPath } from './context-resolver.js';
 import { AssistError, isAssistError, jsonError, jsonResult, toolError } from './errors.js';
 import { buildToolDeclarations } from './tool-declarations.js';
 import {
   readAudience,
-  readEntries,
   readNextIncompleteScope,
   readPath,
   readValidationProfile,
   validateToolInput,
   type ToolSchema,
 } from './tool-input.js';
-import { ProfileMatcher } from './profile-matcher.js';
+import { ProfileMatcher, toWireMatch, type ResolvedProfileMatch } from './profile-matcher.js';
 import { ProfileStore } from './profile-store.js';
-import { registerAssistTools, resolveModelContext } from './webmcp-binding.js';
+import { PROFILE_WEBMCP_TOOLS, registerAssistTools, resolveModelContext, type RegisterAssistToolsOptions } from './webmcp-binding.js';
+import type { WebMCP } from 'webmcp-types';
 import type {
   AssistProvider,
   AssistProviderOptions,
   FieldHelp,
+  FieldHelpOptions,
   FormProgress,
   InvokeToolOptions,
   OntologyDocument,
   ProfileApplyResult,
   ProfileMatch,
   ReferencesDocument,
+  SetValueResult,
   ToolDeclaration,
   ToolError,
   ToolResult,
@@ -60,8 +62,96 @@ interface FieldStatus {
 }
 
 type ToolHandler = (input: Record<string, unknown>, options: InvokeToolOptions) => Promise<unknown> | unknown;
+type FieldVM = NonNullable<ReturnType<IFormEngine['getFieldVM']>>;
+/** One write request: `expected` is the compare-and-set witness for a respondent-written value (§4.3 rule 6). */
+interface WriteRequest {
+  path: string;
+  value?: unknown;
+  expected?: unknown;
+}
+
 function isEmptyValue(value: unknown): boolean {
   return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
+}
+
+/** Structural equality over JSON values (what `expected` round-trips through). */
+function deepEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) {
+    return true;
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length
+      && left.every((entry, index) => deepEqual(entry, right[index]));
+  }
+  if (left && right && typeof left === 'object' && typeof right === 'object') {
+    const leftKeys = Object.keys(left).sort();
+    const rightKeys = Object.keys(right).sort();
+    return deepEqual(leftKeys, rightKeys)
+      && leftKeys.every((key) => deepEqual((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]));
+  }
+  return false;
+}
+
+// Input readers for the write tools; validateToolInput has already enforced each shape.
+
+function readWriteEntries(input: Record<string, unknown>): WriteRequest[] {
+  return (input.entries as WriteRequest[]).map(({ path, value, expected }) => ({ path, value, expected }));
+}
+
+function readApplyPaths(input: Record<string, unknown>): Array<{ path: string; expected?: unknown }> | undefined {
+  if (!Array.isArray(input.paths)) {
+    return undefined;
+  }
+  return (input.paths as Array<string | { path: string; expected?: unknown }>)
+    .map((entry) => (typeof entry === 'string' ? { path: entry } : { path: entry.path, expected: entry.expected }));
+}
+
+function readFieldHelpOptions(input: Record<string, unknown>): FieldHelpOptions {
+  return {
+    includeContent: input.includeContent === true,
+    ...(typeof input.maxBytes === 'number' ? { maxBytes: input.maxBytes } : {}),
+  };
+}
+
+const describeOptions = (options: Array<{ value: string; label: string }>): string =>
+  options.map((option) => `${option.value} — ${option.label}`).join(', ');
+
+/**
+ * Assist spec §3.3: a choice write may name the option by its label. An option value passes through
+ * untouched (the engine coerces it as it does for the UI); otherwise a case-insensitive exact label
+ * match yields the value. `multiChoice` arrays map element-wise. The error names every option.
+ */
+function resolveOptionValue(
+  path: string,
+  options: Array<{ value: string; label: string }>,
+  value: unknown,
+): { value: unknown } | ToolError {
+  if (options.length === 0 || isEmptyValue(value)) {
+    return { value };
+  }
+  if (Array.isArray(value)) {
+    const resolved: unknown[] = [];
+    for (const element of value) {
+      const result = resolveOptionValue(path, options, element);
+      if ('code' in result) {
+        return result;
+      }
+      resolved.push(result.value);
+    }
+    return { value: resolved };
+  }
+  if (options.some((option) => option.value === value || option.value === String(value))) {
+    return { value };
+  }
+  const wanted = String(value).toLowerCase();
+  const byLabel = options.filter((option) => option.label.toLowerCase() === wanted);
+  if (byLabel.length === 1) {
+    return { value: byLabel[0].value };
+  }
+  const shown = JSON.stringify(value);
+  return byLabel.length === 0
+    ? toolError('INVALID_VALUE', `${path} accepts one of: ${describeOptions(options)} (got ${shown})`, path)
+    : toolError('INVALID_VALUE', `${shown} is ambiguous for ${path}; pass the option value: ${describeOptions(byLabel)}`, path);
 }
 
 function arrayify<T>(value?: T | T[]): T[] {
@@ -127,10 +217,15 @@ class AssistProviderImpl implements AssistProvider {
   private readonly declarations: ToolDeclaration[];
   private pageSequence: Array<{ id: string; title?: string; fields: string[] }> = [];
   private fieldOrder: string[] = [];
+  private calculatedPaths = new Set<string>();
   private webmcpRegistration?: AbortController;
+  private profileRegistration?: AbortController;
+  /** Set when a `'default'` registration went out without the profile tools; `loadProfile` adds them. */
+  private pendingProfileTools?: WebMCP.ModelContext;
   public readonly ready: Promise<void>;
   private readonly now: () => Date;
   private readonly confirmProfileApply?: AssistProviderOptions['confirmProfileApply'];
+  private profileCapable: boolean;
 
   public constructor(options: AssistProviderOptions) {
     assertEngineCompatibility(options.engine);
@@ -140,6 +235,7 @@ class AssistProviderImpl implements AssistProvider {
     this.component = options.component;
     this.theme = options.theme;
     this.profileStore = new ProfileStore(options.storage);
+    this.profileCapable = options.profile !== undefined || options.storage !== undefined;
     this.currentProfile = options.profile ?? this.profileStore.load('default') ?? this.profileStore.load();
     this.now = options.now ?? (() => new Date());
     this.confirmProfileApply = options.confirmProfileApply;
@@ -167,6 +263,9 @@ class AssistProviderImpl implements AssistProvider {
   public detach(): void {
     this.webmcpRegistration?.abort();
     this.webmcpRegistration = undefined;
+    this.profileRegistration?.abort();
+    this.profileRegistration = undefined;
+    this.pendingProfileTools = undefined;
   }
 
   public dispose(): void {
@@ -186,6 +285,12 @@ class AssistProviderImpl implements AssistProvider {
   public loadProfile(profile: UserProfile): void {
     this.currentProfile = profile;
     this.profileStore.save(profile);
+    this.profileCapable = true;
+    const modelContext = this.pendingProfileTools;
+    if (modelContext) {
+      this.pendingProfileTools = undefined;
+      this.profileRegistration = this.register(modelContext, PROFILE_WEBMCP_TOOLS).controller;
+    }
   }
 
   public getFieldHelp(path: string, audience: 'human' | 'agent' | 'both' = 'agent'): FieldHelp {
@@ -199,9 +304,18 @@ class AssistProviderImpl implements AssistProvider {
     };
   }
 
-  public matchProfile(_profileRef?: string): ProfileMatch[] {
+  public matchProfile(profileRef?: string): ProfileMatch[] {
+    return this.resolveProfileMatches(profileRef).map(toWireMatch);
+  }
+
+  public hasProfile(): boolean {
+    return this.profileCapable;
+  }
+
+  /** The current match set with values — what `profile.apply` writes from. Never leaves the page. */
+  private resolveProfileMatches(profileRef?: string): ResolvedProfileMatch[] {
     return this.matcher.match(
-      this.resolveProfile(_profileRef),
+      this.resolveProfile(profileRef),
       this.engine.getFieldPaths().filter((path) => {
         const vm = this.engine.getFieldVM(path);
         return this.engine.isPathRelevant(path) && !!vm && !vm.readonly.value;
@@ -256,13 +370,13 @@ class AssistProviderImpl implements AssistProvider {
       case 'formspec.field.describe':
         return (input) => this.describeField(readPath(input));
       case 'formspec.field.help':
-        return (input) => this.getFieldHelp(readPath(input), readAudience(input));
+        return (input) => minimizeFieldHelp(this.getFieldHelp(readPath(input), readAudience(input)), readFieldHelpOptions(input));
       case 'formspec.form.progress':
         return () => this.getProgress();
       case 'formspec.field.set':
-        return (input) => this.setField(readPath(input), input.value);
+        return (input) => this.setField({ path: readPath(input), value: input.value, expected: input.expected });
       case 'formspec.field.bulkSet':
-        return (input) => this.bulkSet(readEntries(input));
+        return (input) => this.bulkSet(readWriteEntries(input));
       case 'formspec.form.validate':
         return (input) => this.engine.getValidationReport({ profile: readValidationProfile(input) });
       case 'formspec.field.validate':
@@ -274,11 +388,7 @@ class AssistProviderImpl implements AssistProvider {
           matches: this.matchProfile(typeof input.profileRef === 'string' ? input.profileRef : undefined),
         });
       case 'formspec.profile.apply':
-        return (input, options) => this.applyProfileMatches(
-          readEntries(input),
-          input.confirm === true,
-          options.signal,
-        );
+        return (input, options) => this.applyProfile(readApplyPaths(input), input.confirm === true, options.signal);
       case 'formspec.profile.learn':
         return (input) => this.learnProfile(typeof input.profileRef === 'string' ? input.profileRef : undefined);
       case 'formspec.form.pages':
@@ -296,13 +406,26 @@ class AssistProviderImpl implements AssistProvider {
 
   private registerWithModelContext(options: AssistProviderOptions): Promise<void> {
     const modelContext = options.registerWebMCP === false ? undefined : options.modelContext ?? resolveModelContext();
-    // Tool selection (§7.2 registration profile) is applied by the binding; see WebMCPRegistrationOptions.
     if (!modelContext) {
       return Promise.resolve();
     }
+    // Tool selection (§7.2 registration profile) is applied by the binding; see WebMCPRegistrationOptions.
+    const tools = typeof options.registerWebMCP === 'object' ? options.registerWebMCP.tools : undefined;
+    if (tools !== 'all' && !this.hasProfile()) {
+      this.pendingProfileTools = modelContext;
+    }
+    const registration = this.register(modelContext, tools);
+    this.webmcpRegistration = registration.controller;
+    return registration.ready;
+  }
+
+  /** One registration under its own AbortController; aborting it (detach) unregisters. `ready` never rejects unhandled. */
+  private register(
+    modelContext: WebMCP.ModelContext,
+    tools: RegisterAssistToolsOptions['tools'],
+  ): { controller: AbortController; ready: Promise<void> } {
     const controller = new AbortController();
-    this.webmcpRegistration = controller;
-    const ready = registerAssistTools(this, modelContext, { signal: controller.signal }).catch((reason: unknown) => {
+    const ready = registerAssistTools(this, modelContext, { signal: controller.signal, tools }).catch((reason: unknown) => {
       // Detaching before the host acknowledged registration aborts the pending promises; that is our
       // own lifecycle, not a refusal.
       if (controller.signal.aborted) {
@@ -312,7 +435,7 @@ class AssistProviderImpl implements AssistProvider {
     });
     // A refusal still rejects `ready` for hosts that await it; nobody else should see an unhandled rejection.
     ready.catch(() => undefined);
-    return ready;
+    return { controller, ready };
   }
 
   private refreshEngineDerivedState(): void {
@@ -325,7 +448,21 @@ class AssistProviderImpl implements AssistProvider {
         ? this.theme
         : undefined,
     });
-    this.fieldOrder = [...collectFieldMetadata(this.engine.getDefinition()).keys()];
+    const fields = collectFieldMetadata(definition);
+    this.fieldOrder = [...fields.keys()];
+    this.calculatedPaths = new Set([
+      ...[...fields.values()].filter(({ item }) => typeof (item as ExtendedFormItem).calculate === 'string').map(({ path }) => path),
+      ...(definition.binds ?? []).filter((bind) => bind.calculate).map((bind) => bind.path.replace(/\[\*\]/g, '')),
+    ]);
+  }
+
+  /** The `calculate` expression owning `basePath`, from its item or a Bind; the engine refuses writes to these (§4.3 rule 2). */
+  private calculateExpression(basePath: string): string | undefined {
+    const item = findItem(this.engine.getDefinition(), basePath) as ExtendedFormItem | undefined;
+    if (typeof item?.calculate === 'string') {
+      return item.calculate;
+    }
+    return this.engine.getDefinition().binds?.find((bind) => bind.calculate && bind.path.replace(/\[\*\]/g, '') === basePath)?.calculate;
   }
 
   private listFields(filter: string): FieldStatus[] {
@@ -352,7 +489,7 @@ class AssistProviderImpl implements AssistProvider {
     const vm = this.requireField(path);
     const basePath = normalizeFieldPath(path);
     const item = findItem(this.engine.getDefinition(), basePath) as ExtendedFormItem | undefined;
-    const expression = typeof item?.calculate === 'string' ? item.calculate : undefined;
+    const expression = this.calculateExpression(basePath);
     const widgetHint = item?.presentation?.widgetHint;
     const indexMatch = path.match(/^(.*)\[(\d+)\]/);
     const repeatIndex = indexMatch ? Number.parseInt(indexMatch[2], 10) : undefined;
@@ -382,21 +519,22 @@ class AssistProviderImpl implements AssistProvider {
       ...(repeatCount !== undefined ? { repeatCount } : {}),
       ...(minRepeat !== undefined ? { minRepeat } : {}),
       ...(maxRepeat !== undefined ? { maxRepeat } : {}),
-      help: this.getFieldHelp(path),
+      help: minimizeFieldHelp(this.getFieldHelp(path)),
     };
   }
 
-  private setField(path: string, value: unknown): Record<string, unknown> {
-    const result = this.trySetField(path, value);
+  private setField(request: WriteRequest): SetValueResult {
+    const result = this.trySetField(request);
     if ('code' in result) {
-      throw jsonError(result.code, result.message, result.path);
+      throw jsonResult(result, true);
     }
     return result;
   }
 
-  private bulkSet(entries: Array<{ path: string; value: unknown }>): Record<string, unknown> {
+  /** `summary`: `accepted` + `rejected` + `skipped` = entries; `skipped` is the §4.3 rule 6 refusals; `errors` counts every entry carrying an error. */
+  private bulkSet(entries: WriteRequest[]): Record<string, unknown> {
     const results = entries.map((entry) => {
-      const result = this.trySetField(entry.path, entry.value);
+      const result = this.trySetField(entry);
       if ('code' in result) {
         return {
           path: entry.path,
@@ -411,46 +549,71 @@ class AssistProviderImpl implements AssistProvider {
         validation: result.validation,
       };
     });
+    const skipped = results.filter((entry) => entry.error?.code === 'x-user-edited').length;
     return {
       results,
       summary: {
         accepted: results.filter((entry) => entry.accepted).length,
-        rejected: results.filter((entry) => !entry.accepted).length,
+        rejected: results.filter((entry) => !entry.accepted).length - skipped,
+        skipped,
         errors: results.filter((entry) => entry.error).length,
       },
     };
   }
 
-  private async applyProfileMatches(
-    entries: Array<{ path: string; value: unknown }>,
+  /**
+   * Assist spec §3.5: values come from the current match set, never from tool input. Every path that
+   * cannot be written is decided before confirmation, so the respondent only ever approves values that
+   * will land; the write itself re-runs the same checks, since the form may move while the dialog is up.
+   */
+  private async applyProfile(
+    paths: Array<{ path: string; expected?: unknown }> | undefined,
     confirm: boolean,
     signal?: AbortSignal,
   ): Promise<ProfileApplyResult> {
-    if (confirm) {
-      if (!this.confirmProfileApply) {
-        throw new AssistError('x-confirmation-required', 'Profile application requires an explicit confirmation handler');
+    if (confirm && !this.confirmProfileApply) {
+      throw new AssistError('x-confirmation-required', 'Profile application requires an explicit confirmation handler');
+    }
+    const matches = new Map(this.resolveProfileMatches().map((match) => [match.path, match]));
+    const skipped: Array<{ path: string; reason: string }> = [];
+    const pending: WriteRequest[] = [];
+    const requested: Array<{ path: string; expected?: unknown }> = paths ?? [...matches.keys()].map((path) => ({ path }));
+    for (const { path, expected } of requested) {
+      const located = this.locateWritable(path);
+      const match = matches.get(path);
+      const plan = 'code' in located
+        ? located
+        // Writable, so the matcher saw the field and had nothing for it (§6.2).
+        : !match ? toolError('x-not-matched', `No profile match for ${path}`, path)
+          : this.guardWrite(located, { path, value: match.value, expected });
+      if ('code' in plan) {
+        skipped.push({ path, reason: plan.code });
+      } else {
+        pending.push({ path, value: plan.value, expected });
       }
-      const approved = await this.confirmProfileApply({ matches: entries, signal });
+    }
+
+    if (confirm && pending.length > 0) {
+      const approved = await this.confirmProfileApply!({ matches: pending.map(({ path, value }) => ({ path, value })), signal });
       if (signal?.aborted) {
         throw new AssistError('x-cancelled', 'Tool execution was cancelled before the values were applied');
       }
       if (!approved) {
         return {
           filled: [],
-          skipped: entries.map((entry) => ({ path: entry.path, reason: 'DECLINED' })),
+          skipped: [...skipped, ...pending.map(({ path }) => ({ path, reason: 'DECLINED' }))],
           validation: this.engine.getValidationReport(),
         };
       }
     }
 
-    const filled: Array<{ path: string; value: unknown }> = [];
-    const skipped: Array<{ path: string; reason: string }> = [];
-    for (const entry of entries) {
-      const result = this.trySetField(entry.path, entry.value);
+    const filled: Array<{ path: string }> = [];
+    for (const request of pending) {
+      const result = this.trySetField(request);
       if ('code' in result) {
-        skipped.push({ path: entry.path, reason: result.code });
+        skipped.push({ path: request.path, reason: result.code });
       } else {
-        filled.push({ path: entry.path, value: entry.value });
+        filled.push({ path: request.path });
       }
     }
     return {
@@ -645,28 +808,58 @@ class AssistProviderImpl implements AssistProvider {
     return vm;
   }
 
-  private trySetField(path: string, value: unknown):
-    | { accepted: true; value: unknown; validation: ValidationResult[] }
-    | ToolError {
+  /** The field at `path` if a write may target it (§4.3 rules 1–3): unknown, readonly, calculated, or hidden fields are refused. */
+  private locateWritable(path: string): FieldVM | ToolError {
     const vm = this.engine.getFieldVM(path);
     if (!vm) {
       return toolError('NOT_FOUND', `Unknown field path: ${path}`, path);
     }
-    if (vm.readonly.value) {
+    // The engine refuses calculated writes silently and records no source; name it before the guard can misread it.
+    if (vm.readonly.value || this.calculatedPaths.has(normalizeFieldPath(path))) {
       return toolError('READONLY', `Field is readonly: ${path}`, path);
     }
     if (!vm.visible.value) {
       return toolError('NOT_RELEVANT', `Field is not relevant: ${path}`, path);
     }
+    return vm;
+  }
+
+  /**
+   * The value a write to `vm` will store, or why it is refused: the compare-and-set guard (§4.3 rule 6 —
+   * a respondent-written value is replaced only when `expected` equals it) and option-label resolution
+   * (§3.3). No side effects.
+   */
+  private guardWrite(vm: FieldVM, { path, value, expected }: WriteRequest): { value: unknown } | ToolError {
+    const currentValue = vm.value.value;
+    if (!isEmptyValue(currentValue) && vm.writeSource.value !== 'assist') {
+      if (expected === undefined) {
+        return toolError('x-user-edited', `${path} holds a value the respondent wrote; read it with field.describe and pass it as expected to replace it`, path);
+      }
+      if (!deepEqual(expected, currentValue)) {
+        return toolError('x-user-edited', `${path} changed since it was read; call field.describe again and pass the current value as expected`, path);
+      }
+    }
+    return resolveOptionValue(path, vm.options.value, value);
+  }
+
+  private trySetField(request: WriteRequest): SetValueResult | ToolError {
+    const vm = this.locateWritable(request.path);
+    if ('code' in vm) {
+      return vm;
+    }
+    const plan = this.guardWrite(vm, request);
+    if ('code' in plan) {
+      return plan;
+    }
     try {
-      vm.setValue(value ?? null);
+      vm.setValue(plan.value ?? null, { source: 'assist' });
       return {
         accepted: true,
         value: vm.value.value,
-        validation: this.fieldValidation(path),
+        validation: this.fieldValidation(request.path),
       };
     } catch (error) {
-      return toolError('INVALID_VALUE', error instanceof Error ? error.message : String(error), path);
+      return toolError('INVALID_VALUE', error instanceof Error ? error.message : String(error), request.path);
     }
   }
 }

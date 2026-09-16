@@ -62,7 +62,39 @@ describe('Profile matching', () => {
     });
 
     const match = provider.matchProfile().find((entry) => entry.path === 'organization.ein');
-    expect(match).toMatchObject({ concept: 'https://schema.org/taxID', value: '12-3456789', relationship: 'close', confidence: 0.8 });
+    expect(match).toEqual({ path: 'organization.ein', concept: 'https://schema.org/taxID', relationship: 'close', confidence: 0.8 });
+  });
+
+  // Draft.3 C4 (§6.1): the wire match names the field and the concept it matched through — never the value or its provenance.
+  it('reports matches without values or provenance; concept only for concept-identity matches, relationship always', () => {
+    const provider = createAssistProvider({
+      engine: createEngine(),
+      ontology: makeOntology(),
+      profile: makeProfile(),
+      storage: new MemoryStorage(),
+      profileMatchThreshold: 0.3,
+      registerWebMCP: false,
+    });
+
+    const matches = provider.matchProfile();
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+    for (const match of matches) {
+      expect(Object.keys(match).sort()).toEqual(expect.arrayContaining(['confidence', 'path', 'relationship']));
+      expect(match).not.toHaveProperty('value');
+      expect(match).not.toHaveProperty('source');
+      expect(['exact', 'close', 'broader', 'narrower', 'related', 'field-key']).toContain(match.relationship);
+    }
+    expect(matches.find((match) => match.path === 'organization.ein')).toEqual({
+      path: 'organization.ein',
+      concept: 'https://www.irs.gov/terms/employer-identification-number',
+      confidence: 1,
+      relationship: 'exact',
+    });
+    expect(matches.find((match) => match.path === 'contactEmail')).toEqual({
+      path: 'contactEmail',
+      confidence: 0.3,
+      relationship: 'field-key',
+    });
   });
 
   it('allows explicit low-confidence field-key fallback when configured', () => {

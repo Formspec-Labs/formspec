@@ -14,7 +14,9 @@ import type {
   ConceptBinding,
   ConceptEquivalent,
   FieldHelp,
+  FieldHelpOptions,
   OntologyDocument,
+  ReferenceEntry,
   ReferencesDocument,
 } from './types.js';
 
@@ -196,6 +198,92 @@ export class ContextResolver {
 
 export function collectFieldMetadata(definition: FormDefinition): Map<string, FieldMetadata> {
   return buildFieldMetadata(definition);
+}
+
+/** Assist spec §5.2 step 10: the default cap on serialized `references`, and the floor a smaller request is raised to. */
+export const DEFAULT_HELP_MAX_BYTES = 4096;
+export const MIN_HELP_MAX_BYTES = 512;
+
+/** The wire projection of a References entry (§5.1): the small, trusted-enough keys; `content` only on request. */
+const WIRE_REFERENCE_KEYS = ['title', 'type', 'uri', 'excerpt', 'rel', 'priority'] as const;
+
+const PRIORITY_RANK: Record<string, number> = { primary: 0, supplementary: 1, background: 2 };
+
+const utf8Length = (value: unknown): number => new TextEncoder().encode(JSON.stringify(value)).length;
+
+type WireEntry = Record<string, unknown>;
+
+function projectReferenceEntry(entry: ReferenceEntry, includeContent: boolean): WireEntry {
+  const projected: WireEntry = {};
+  for (const key of WIRE_REFERENCE_KEYS) {
+    if (entry[key] !== undefined) {
+      projected[key] = entry[key];
+    }
+  }
+  if (includeContent && entry.content !== undefined) {
+    projected.content = entry.content;
+  }
+  return projected;
+}
+
+/**
+ * The model-facing projection of a `FieldHelp` (Assist spec §5.1–5.2): each reference entry keeps
+ * `title`, `type`, `uri`, `excerpt`, `rel`, `priority` (+ `content` when `includeContent`), and the
+ * serialized `references` object is held under `maxBytes` (UTF-8 bytes of compact JSON) by degrading
+ * before dropping: strip `content`, then `excerpt`, then whole entries — never below one entry per
+ * type. Every pass takes the lowest priority tier first (`background` → `supplementary` → `primary`);
+ * within a tier, a later type group first, then the last entry in document order. `truncated.omitted`
+ * counts dropped entries per type and is present whenever anything was cut. Pure; the input is not mutated.
+ */
+export function minimizeFieldHelp(help: FieldHelp, options: FieldHelpOptions = {}): FieldHelp {
+  const includeContent = options.includeContent === true;
+  const maxBytes = Math.max(MIN_HELP_MAX_BYTES, options.maxBytes ?? DEFAULT_HELP_MAX_BYTES);
+  const references: Record<string, WireEntry[]> = {};
+  const candidates: Array<{ type: string; entry: WireEntry; rank: number; typeIndex: number; index: number }> = [];
+  Object.entries(help.references).forEach(([type, entries], typeIndex) => {
+    if (!entries || entries.length === 0) {
+      return;
+    }
+    references[type] = entries.map((entry) => projectReferenceEntry(entry, includeContent));
+    references[type].forEach((entry, index) => {
+      candidates.push({ type, entry, rank: PRIORITY_RANK[String(entry.priority ?? 'supplementary')] ?? 1, typeIndex, index });
+    });
+  });
+  candidates.sort((left, right) => right.rank - left.rank || right.typeIndex - left.typeIndex || right.index - left.index);
+
+  const omitted: Record<string, number> = {};
+  let cut = false;
+  let over = utf8Length(references) > maxBytes;
+  const cuts: Array<(candidate: (typeof candidates)[number]) => boolean> = [
+    ({ entry }) => entry.content !== undefined && delete entry.content,
+    ({ entry }) => entry.excerpt !== undefined && delete entry.excerpt,
+    ({ type, entry }) => {
+      const bucket = references[type];
+      if (bucket.length <= 1) {
+        return false;
+      }
+      bucket.splice(bucket.indexOf(entry), 1);
+      omitted[type] = (omitted[type] ?? 0) + 1;
+      return true;
+    },
+  ];
+  for (const apply of cuts) {
+    for (const candidate of candidates) {
+      if (!over) {
+        break;
+      }
+      if (apply(candidate)) {
+        cut = true;
+        over = utf8Length(references) > maxBytes;
+      }
+    }
+  }
+
+  return {
+    ...help,
+    references: references as FieldHelp['references'],
+    ...(cut ? { truncated: { omitted } } : {}),
+  };
 }
 
 export function normalizeFieldPath(path: string): string {

@@ -1,6 +1,17 @@
 /** @filedesc Ontology-aware profile matching for formspec-assist. */
 
-import type { ConceptBinding, ProfileMatch, UserProfile } from './types.js';
+import type { ConceptBinding, ProfileEntrySource, ProfileMatch, UserProfile } from './types.js';
+
+/** A match with the value it would write and where that value came from. In-page only: the wire gets {@link ProfileMatch}. */
+export interface ResolvedProfileMatch extends ProfileMatch {
+  value: unknown;
+  source: ProfileEntrySource;
+}
+
+/** Project a resolved match to the wire shape (Assist spec §6.1): no value, no provenance, `concept` only when matched by concept. */
+export function toWireMatch({ path, concept, confidence, relationship }: ResolvedProfileMatch): ProfileMatch {
+  return { path, ...(concept !== undefined ? { concept } : {}), confidence, relationship };
+}
 
 function equivalentKey(system?: string, code?: string): string | null {
   if (!system || !code) {
@@ -25,9 +36,7 @@ function confidenceForRelationship(type?: string): number {
   }
 }
 
-function profileRelationship(
-  type?: string,
-): NonNullable<ProfileMatch['relationship']> {
+function profileRelationship(type?: string): ProfileMatch['relationship'] {
   switch (type) {
     case undefined:
     case 'exact':
@@ -48,12 +57,12 @@ export class ProfileMatcher {
     private readonly threshold = 0.5,
   ) {}
 
-  public match(profile: UserProfile | undefined, fieldPaths: string[]): ProfileMatch[] {
+  public match(profile: UserProfile | undefined, fieldPaths: string[]): ResolvedProfileMatch[] {
     if (!profile) {
       return [];
     }
 
-    const matches: ProfileMatch[] = [];
+    const matches: ResolvedProfileMatch[] = [];
     for (const path of fieldPaths) {
       const concept = this.resolveConcept(path);
       if (concept?.concept && profile.concepts[concept.concept]) {
@@ -69,7 +78,7 @@ export class ProfileMatcher {
         continue;
       }
 
-      let equivalentMatch: ProfileMatch | undefined;
+      let equivalentMatch: ResolvedProfileMatch | undefined;
       for (const equivalent of concept?.equivalents ?? []) {
         const key = equivalent.concept ?? equivalentKey(equivalent.system, equivalent.code);
         if (!key || !profile.concepts[key]) {

@@ -60,13 +60,17 @@ export interface UserProfile {
   fields: Record<string, ProfileEntry>;
 }
 
+/**
+ * A field the active profile can fill (Assist spec §6.1). The wire shape carries no value and no
+ * provenance: values stay in-page until `profile.apply`, where the respondent sees them.
+ * `concept` is present when the match came through concept identity (exact or equivalent), absent for
+ * a `field-key` match.
+ */
 export interface ProfileMatch {
   path: string;
   concept?: string;
-  value: unknown;
   confidence: number;
-  relationship?: 'exact' | 'close' | 'broader' | 'narrower' | 'related' | 'field-key';
-  source: ProfileEntrySource;
+  relationship: 'exact' | 'close' | 'broader' | 'narrower' | 'related' | 'field-key';
 }
 
 export interface FieldHelp {
@@ -77,6 +81,19 @@ export interface FieldHelp {
   equivalents?: ConceptEquivalent[];
   summary?: string;
   commonMistakes?: string[];
+  /**
+   * Present when the §5.2 byte cap cut anything: `omitted` counts whole entries dropped per reference
+   * type (empty when only `content` / `excerpt` were stripped). Raise `maxBytes` or narrow `audience`.
+   */
+  truncated?: { omitted: Partial<Record<string, number>> };
+}
+
+/** `formspec.field.help` output controls (Assist spec §3.2, §5.1–5.2). */
+export interface FieldHelpOptions {
+  /** Include each entry's `content`; off by default because it is the largest, least trusted text relayed. */
+  includeContent?: boolean;
+  /** Cap on the serialized `references` object in UTF-8 bytes. Default 4096; anything below 512 is raised to 512. */
+  maxBytes?: number;
 }
 
 export interface FormProgress extends EngineFormProgress {
@@ -130,12 +147,20 @@ export interface AssistProviderOptions {
   registries?: RegistryDocument[] | RegistryEntry[];
   storage?: StorageBackend;
   profileMatchThreshold?: number;
-  /** Provider-side confirmation for `confirm: true`. `signal` aborts when the caller cancels — dismiss the dialog. */
+  /**
+   * Provider-side confirmation for `confirm: true`. `matches` is exactly what approval writes — every
+   * path already decided (unknown, unmatched, readonly, non-relevant, respondent-written without a matching
+   * `expected`) is skipped before the handler runs, in the caller's order. `signal` aborts when the caller
+   * cancels — dismiss the dialog.
+   */
   confirmProfileApply?: (request: {
     matches: Array<{ path: string; value: unknown }>;
     signal?: AbortSignal;
   }) => boolean | Promise<boolean>;
-  /** Register on `modelContext` (default: `document.modelContext`). `true`/object registers (default); `false` skips; a no-op when no context exists. */
+  /**
+   * Register on `modelContext` (default: `document.modelContext`). `true` registers the `'default'` set;
+   * an object picks the set (§7.2 registration profile); `false` skips; a no-op when no context exists.
+   */
   registerWebMCP?: boolean | WebMCPRegistrationOptions;
   /** The WebMCP surface to register on. Hosts inject a polyfill or a fake here; the provider never installs one. */
   modelContext?: WebMCP.ModelContext;
@@ -151,10 +176,15 @@ export interface AssistProvider {
   dispose(): void;
   loadReferences(refs: ReferencesDocument | ReferencesDocument[]): void;
   loadOntology(ontology: OntologyDocument | OntologyDocument[]): void;
+  /** Make `profile` current and persist it. After a `'default'` WebMCP registration without a profile, this also registers the `profile.*` tools. */
   loadProfile(profile: UserProfile): void;
+  /** The full in-page help object; the `field.help` tool returns its minimized projection (§5.1). */
   getFieldHelp(path: string, audience?: 'human' | 'agent' | 'both'): FieldHelp;
   getProgress(): FormProgress;
+  /** Wire-shaped matches for the active (or named) profile — no values; `profile.apply` resolves them in-page. */
   matchProfile(profileRef?: string): ProfileMatch[];
+  /** Profile capability: a profile was given or loaded, or a storage backend was configured. Gates the `profile.*` tools in a `'default'` WebMCP registration. */
+  hasProfile(): boolean;
   invokeTool(name: string, input: Record<string, unknown>, options?: InvokeToolOptions): Promise<ToolResult>;
   getTools(): ToolDeclaration[];
 }
@@ -165,8 +195,9 @@ export interface SetValueResult {
   validation: ValidationResult[];
 }
 
+/** Assist spec §4.4. `filled` names paths only — the value is on the form, not in the tool result. */
 export interface ProfileApplyResult {
-  filled: Array<{ path: string; value: unknown }>;
+  filled: Array<{ path: string }>;
   skipped: Array<{ path: string; reason: string }>;
   validation?: ValidationReport;
 }
