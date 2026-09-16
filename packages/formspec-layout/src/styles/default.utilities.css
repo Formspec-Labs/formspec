@@ -114,10 +114,11 @@
   cursor: default;
 }
 
-/* A section — a group this skin titles at section depth (h1–h3) — opens further from what precedes it than
- * two questions sit apart. The stack's gap is already the field rhythm, so the margin carries the rest; the
- * Theme retunes either through `spacing.field` / `spacing.section` (Theme spec §3.2). */
-.formspec-group:has(> :is(h1, h2, h3).formspec-group-title:not(.formspec-sr-only)) {
+/* A section — a titled group at the form's root depth (`formspec-group--section`, whatever heading level the
+ * host started the form at) — opens further from what precedes it than two questions sit apart. The stack's
+ * gap is already the field rhythm, so the margin carries the rest; the Theme retunes either through
+ * `spacing.field` / `spacing.section` (Theme spec §3.2). A hidden title keeps the gap a question takes. */
+.formspec-group--section:has(> .formspec-group-title:not(.formspec-sr-only)) {
   margin-top: max(0px, calc(var(--formspec-spacing-section, 1.5rem) - var(--formspec-spacing-field, 0.75rem)));
 }
 

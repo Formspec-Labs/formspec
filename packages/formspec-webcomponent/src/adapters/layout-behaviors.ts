@@ -110,8 +110,14 @@ export interface GroupLayoutBehavior {
     titleHidden: boolean;
     /** The group's live hint (Locale `<key>.hint`, `{{}}`), or null when it has none. */
     hintText: LocalizedText | null;
-    /** Heading tag for the title at this depth: `'h3'`…`'h6'`. */
+    /** Heading tag for the title at this depth: `'h1'`…`'h6'`, from the host's root level downward. */
     headingLevel: string;
+    /**
+     * A section: a titled group at the form's root depth — the form's own division, which an adapter titles
+     * and spaces apart from the nested groups inside it. Structural, not a heading number: the same group
+     * is a section whatever depth the host started the form at.
+     */
+    section: boolean;
     /** Render the group's children into `parent`, scoped to the group's own path. */
     renderChildren(parent: HTMLElement): void;
     /** Hides the group while it is not relevant. */
@@ -170,8 +176,10 @@ export interface RepeatGroupLayoutBehavior {
      * the accessible markup (a legend keeps naming the fieldset) and leaves the page.
      */
     titleHidden: boolean;
-    /** Heading tag for a row heading at this depth: `'h3'`…`'h6'`. */
+    /** Heading tag for a row heading at this depth: `'h1'`…`'h6'`, from the host's root level downward. */
     headingLevel: string;
+    /** A repeat at the form's root depth — see {@link GroupLayoutBehavior.section}. */
+    section: boolean;
     /** "Add Employer" — Locale `<key>.addLabel`, else derived from the group label. */
     addLabel: LocalizedText;
     /**

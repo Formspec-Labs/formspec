@@ -35,6 +35,7 @@ function mountCards(options: {
         titleText: options.title == null ? null : signal(options.title),
         titleHidden: options.titleHidden ?? false,
         headingLevel: options.headingLevel ?? 'h3',
+        section: (options.headingLevel ?? 'h3') === 'h3',
         addLabel: signal('Add another job'),
         renderRows: (build) => {
             effect(() => build({

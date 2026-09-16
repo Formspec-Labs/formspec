@@ -7,7 +7,9 @@ import { applySurfaceProps } from './layout';
 export const renderGroup: AdapterRenderFn<GroupLayoutBehavior> = (behavior, parent, actx) => {
     const node = behavior.comp;
     const el = document.createElement('div');
-    el.className = 'formspec-group';
+    // `formspec-group--section`: a titled group at the form's root depth. The skins key the section gap on
+    // it, so the same group is a section whatever heading depth the host started the form at.
+    el.className = behavior.section && behavior.titleText ? 'formspec-group formspec-group--section' : 'formspec-group';
     if (node.cssClasses?.length > 0) actx.applyClassValue(el, node.cssClasses);
     actx.applyAccessibility(el, node);
     actx.applyStyle(el, node.style);

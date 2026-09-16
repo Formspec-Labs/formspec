@@ -8,30 +8,28 @@ import {
 } from '@formspec-org/webcomponent';
 
 /**
- * Heading depths that read as a form section rather than a question group. The renderer starts groups at
- * `h3`; the shallower tags are covered so a change of starting depth cannot silently flatten every legend.
+ * A group's legend, with the group's heading inside it. A section (a titled group at the form's root depth)
+ * reads as USWDS's large legend, a nested group as the plain one (the size a question's own legend uses —
+ * USWDS has no middle size), and a hidden title keeps naming the fieldset and leaves the page
+ * (`usa-sr-only`, never `display:none`). The heading is a real `h1`–`h6` (a legend may hold heading
+ * content), so a screen reader's heading outline reaches every section and group in order, as the default
+ * adapter's headings do; the rules layer gives it the legend's own type. `formspec-group-title` names the
+ * role structurally, so an adapter variant can style a group's title without also catching a question's
+ * legend, which shares every other USWDS class; `data-heading-level` carries the depth for a variant that
+ * wants a third size (NJ's bold sub-heads at one depth, plain question legends below it).
  */
-const SECTION_HEADING_LEVELS = new Set(['h1', 'h2', 'h3']);
-
-/**
- * A group's legend: a section reads as USWDS's large legend, a nested group as the plain one (the size a
- * question's own legend uses — USWDS has no middle size), and a hidden title keeps naming the fieldset and
- * leaves the page (`usa-sr-only`, never `display:none`). `formspec-group-title` names the role
- * structurally, as the default adapter's group title does, so an adapter variant can style a group's
- * title without also catching a question's legend, which shares every other USWDS class.
- */
-function createGroupLegend(titleHidden: boolean, headingLevel: string): HTMLLegendElement {
+function createGroupLegend(title: GroupTitle): { legend: HTMLLegendElement; heading: HTMLElement } {
     const legend = document.createElement('legend');
-    legend.className = titleHidden
+    legend.className = title.titleHidden
         ? 'usa-legend formspec-group-title usa-sr-only'
-        : SECTION_HEADING_LEVELS.has(headingLevel)
+        : title.section
             ? 'usa-legend formspec-group-title usa-legend--large'
             : 'usa-legend formspec-group-title';
-    // The heading depth this legend stands for (the default adapter renders a real h3–h6). USWDS types
-    // only two legend sizes, so a variant that wants a third — NJ's bold sub-heads at one depth, plain
-    // question legends below it — keys on this.
-    legend.dataset.headingLevel = headingLevel;
-    return legend;
+    legend.dataset.headingLevel = title.headingLevel;
+    const heading = document.createElement(title.headingLevel);
+    heading.className = 'formspec-group-heading';
+    legend.appendChild(heading);
+    return { legend, heading };
 }
 
 /** Classes and inline presentation the theme cascade resolved onto the planner node. */
@@ -42,7 +40,7 @@ function applyNodePresentation(el: HTMLElement, comp: any, actx: AdapterContext)
 }
 
 /** The title fields every group behavior shares; a repeat has no hint. */
-type GroupTitle = Pick<GroupLayoutBehavior, 'titleText' | 'titleHidden' | 'headingLevel'> & {
+type GroupTitle = Pick<GroupLayoutBehavior, 'titleText' | 'titleHidden' | 'headingLevel' | 'section'> & {
     hintText?: GroupLayoutBehavior['hintText'];
 };
 
@@ -62,8 +60,8 @@ function buildGroupShell(root: HTMLElement, title: GroupTitle, actx: AdapterCont
     fieldset.className = 'usa-fieldset';
     root.appendChild(fieldset);
 
-    const legend = createGroupLegend(title.titleHidden, title.headingLevel);
-    watchText(actx, title.titleText, (text) => { legend.textContent = text; });
+    const { legend, heading } = createGroupLegend(title);
+    watchText(actx, title.titleText, (text) => { heading.textContent = text; });
     fieldset.appendChild(legend);
 
     if (title.hintText) {

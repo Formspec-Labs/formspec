@@ -12,7 +12,7 @@ import type { LayoutComponentProps } from '../../component-map';
 import { useWhen } from '../../use-when';
 import { projectionMetadataAttrs } from '../../projection-metadata.js';
 import { routeLandmarkAttrs } from '../../route-landmark.js';
-import { HeadingLevelContext, useHeadingLevel } from '../../heading-level';
+import { HeadingLevelContext, useHeadingLevel, useIsSection } from '../../heading-level';
 import { useChromeText } from '../../use-chrome-text';
 
 /**
@@ -122,6 +122,7 @@ function stackJustifyContent(value: string | undefined): React.CSSProperties['ju
 function StackLayout({ node, children, themeClass, style }: LayoutProps) {
     const props = node.props ?? {};
     const headingLevel = useHeadingLevel();
+    const section = useIsSection();
     const direction = props.direction as string | undefined;
     const alignment = props.align as string | undefined;
     const justify = props.justify as string | undefined;
@@ -146,7 +147,7 @@ function StackLayout({ node, children, themeClass, style }: LayoutProps) {
     if (title && node.bindPath) {
         return (
             <section
-                className={mergeClasses('formspec-group', themeClass)}
+                className={mergeClasses(section ? 'formspec-group formspec-group--section' : 'formspec-group', themeClass)}
                 style={surfaceStyle(props, style)}
                 {...elevationAttrs(props)}
                 {...accessibilityAttrs(node)}

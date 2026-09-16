@@ -68,6 +68,17 @@ $fs-rhythm-blocks: '.usa-form-group, .formspec-uswds-text-wrap, .formspec-uswds-
   @include usa-headings-styles;
 }
 
+// A group's heading sits inside its legend (a real h1–h6, so heading navigation reaches it); the legend's
+// own type is the look. `font: inherit` hands over family, size, weight and line height — `usa-legend`,
+// `--large`, and a variant's own weight rule all land on the legend — the case and tracking USWDS gives an
+// h6 (uppercase, letter-spaced) hand back too, and the UA heading margin goes.
+.usa-legend > .formspec-group-heading {
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  margin: 0;
+}
+
 // USWDS types its own paragraphs with `typeset-p`: no block margins, one paragraph gap only between
 // siblings. Rich text (core §4.2.1) renders `p.formspec-rich-paragraph`, which has no USWDS class, and a
 // trimmed build forwards no global reset — so without these the UA's 1em margins own the rhythm: a hint

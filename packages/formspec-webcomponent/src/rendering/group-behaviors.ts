@@ -94,6 +94,7 @@ export function buildGroupBehavior(
         titleHidden: node.labelPosition === 'hidden',
         hintText,
         headingLevel: `h${Math.min(headingLevel, 6)}`,
+        section: headingLevel === host.rootHeadingLevel,
 
         renderChildren(parent: HTMLElement): void {
             for (const child of node.children) emitChild(child, parent, path, childHeadingLevel, cleanupFns);
@@ -192,6 +193,7 @@ export function buildRepeatGroupBehavior(
         titleText,
         titleHidden: node.labelPosition === 'hidden',
         headingLevel: `h${Math.min(headingLevel, 6)}`,
+        section: headingLevel === host.rootHeadingLevel,
         addLabel: computed(() =>
             localeText('addLabel', path).value ?? uiText(host.engine, 'repeat.add', { label: groupLabel.value }).value),
 

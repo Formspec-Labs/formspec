@@ -94,6 +94,12 @@ export interface ValidationTargetMetadata {
  */
 export interface RenderHost {
     engine: IFormEngine;
+    /**
+     * The heading depth of the form's own divisions — one below the heading the page places above the form
+     * (`<formspec-render heading-level>`). A titled group at this depth is a section; each titled group puts
+     * its children one level deeper.
+     */
+    rootHeadingLevel: number;
     _definition: FormDefinition | null;
     _componentDocument: ComponentDocument | null;
     _themeDocument: ThemeDocument | null;

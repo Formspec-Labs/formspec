@@ -77,6 +77,8 @@ function staticDisplayHost(): DisplayHostSlice {
 export interface SkeletonOptions {
     adapterName: string;
     actx: AdapterContext;
+    /** The depth the form's sections render at (`FormspecRender.headingLevel`); defaults to the live render's. */
+    headingLevel?: number;
     resolveToken: (val: unknown) => unknown;
     /** Bind paths gated by `relevant`: the engine decides them, so they stay out of the reservation. */
     conditionalPaths?: ReadonlySet<string>;
@@ -93,6 +95,7 @@ export interface SkeletonOptions {
  */
 export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: SkeletonOptions): number {
     const { adapterName, actx } = options;
+    const rootHeadingLevel = options.headingLevel ?? 3;
     const isConditional = conditionalMatcher(options.conditionalPaths ?? new Set());
     const adapterFor = (type: string) => globalRegistry.resolveAdapterFn(type, adapterName);
     let fields = 0;
@@ -140,6 +143,7 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
                 host: layoutHost(into, headingLevel),
                 bindKey: String(current.props.bind),
                 headingLevel: `h${Math.min(headingLevel, 6)}`,
+                section: headingLevel === rootHeadingLevel,
                 addLabel: chrome('repeat.add', { label }),
                 renderRows: (build: (rows: unknown) => void) => build({
                     count,
@@ -175,6 +179,7 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
                 titleHidden: current.labelPosition === 'hidden',
                 hintText: null,
                 headingLevel: `h${Math.min(headingLevel, 6)}`,
+                section: headingLevel === rootHeadingLevel,
                 renderChildren: (target: HTMLElement) => {
                     for (const child of current.children ?? []) walk(child as LayoutNode, target, childLevel);
                 },
@@ -202,7 +207,7 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
         for (const child of current.children ?? []) walk(child as LayoutNode, target, childLevel);
     }
 
-    walk(node, parent, 3);
+    walk(node, parent, rootHeadingLevel);
 
     for (const control of parent.querySelectorAll('input, select, textarea, button')) {
         (control as HTMLInputElement).disabled = true;

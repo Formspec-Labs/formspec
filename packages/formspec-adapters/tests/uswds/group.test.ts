@@ -20,7 +20,7 @@ function hostSlice() {
 function mountGroup(
     title: string | null,
     headingLevel = 'h3',
-    options: { titleHidden?: boolean; hint?: string } = {},
+    options: { titleHidden?: boolean; hint?: string; section?: boolean } = {},
 ) {
     const behavior: GroupLayoutBehavior = {
         comp: { cssClasses: [], props: {}, style: undefined, accessibility: undefined },
@@ -29,6 +29,8 @@ function mountGroup(
         titleHidden: options.titleHidden ?? false,
         hintText: options.hint === undefined ? null : signal(options.hint),
         headingLevel,
+        // The renderer marks a titled group at the form's root depth; these tests say so explicitly.
+        section: options.section ?? headingLevel === 'h3',
         renderChildren: vi.fn((parent: HTMLElement) => {
             const field = document.createElement('input');
             parent.appendChild(field);
@@ -57,6 +59,7 @@ function mountRepeat(options: {
         titleText: options.title == null ? null : signal(options.title),
         titleHidden: options.titleHidden ?? false,
         headingLevel: options.headingLevel ?? 'h3',
+        section: (options.headingLevel ?? 'h3') === 'h3',
         addLabel: signal('Add Employer on record'),
         renderRows: (build) => {
             effect(() => build({
@@ -92,16 +95,35 @@ describe('USWDS bound group', () => {
         expect(fieldset!.querySelector('input')).not.toBeNull();
     });
 
-    it('gives a section-level group the large legend, so it reads as a heading not a question', () => {
-        const { parent } = mountGroup('Eligibility Questions');
+    it('gives a section the large legend, so it reads as a heading not a question', () => {
+        const { parent } = mountGroup('Eligibility Questions', 'h3', { section: true });
         const legend = parent.querySelector('legend');
         expect(legend!.className).toBe('usa-legend formspec-group-title usa-legend--large');
     });
 
     it('keeps a nested group on the plain legend — USWDS has no middle size', () => {
-        const { parent } = mountGroup('Mailing address', 'h4');
+        const { parent } = mountGroup('Mailing address', 'h4', { section: false });
         const legend = parent.querySelector('legend');
         expect(legend!.className).toBe('usa-legend formspec-group-title');
+    });
+
+    it('sizes a section by what it is, not by its heading number', () => {
+        // A host that starts the form at h2 (its page h1 titles the form): the section is still large, and
+        // the h3 nested inside it is still plain.
+        expect(mountGroup('Eligibility Questions', 'h2', { section: true }).parent.querySelector('legend')!.className)
+            .toBe('usa-legend formspec-group-title usa-legend--large');
+        expect(mountGroup('Retirement and pension', 'h3', { section: false }).parent.querySelector('legend')!.className)
+            .toBe('usa-legend formspec-group-title');
+    });
+
+    it('puts a real heading inside the legend, so heading navigation reaches every group', () => {
+        const { parent } = mountGroup('Retirement and pension', 'h4', { section: false });
+        const heading = parent.querySelector('legend > h4.formspec-group-heading');
+        expect(heading?.textContent).toBe('Retirement and pension');
+        expect(parent.querySelector('legend')!.childNodes).toHaveLength(1);
+        // A hidden title keeps its heading in the accessible tree: sr-only legend, heading inside it.
+        const hidden = mountGroup('Work', 'h3', { titleHidden: true, section: false }).parent;
+        expect(hidden.querySelector('legend.usa-sr-only > h3.formspec-group-heading')?.textContent).toBe('Work');
     });
 
     it('records the heading depth the legend stands for, so a variant can size a third level', () => {

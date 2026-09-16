@@ -209,10 +209,11 @@
     padding: 0.95rem 1rem 1rem;
   }
 
-  /* A section — a group titled at section depth — opens further from what precedes it than two questions
-   * sit apart; the stack's gap is already the field rhythm, so the margin carries the rest (Theme §3.2).
+  /* A section — a titled group at the form's root depth (`formspec-group--section`) — opens further from
+   * what precedes it than two questions sit apart; the stack's gap is already the field rhythm, so the margin
+   * carries the rest (Theme §3.2).
    */
-  .formspec-group:has(> :is(h1, h2, h3).formspec-group-title:not(.formspec-sr-only)) {
+  .formspec-group--section:has(> .formspec-group-title:not(.formspec-sr-only)) {
     margin-top: max(0px, calc(var(--formspec-spacing-section, 1.5rem) - var(--formspec-spacing-field, 0.75rem)));
   }
 

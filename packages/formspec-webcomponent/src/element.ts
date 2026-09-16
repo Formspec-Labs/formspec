@@ -40,6 +40,7 @@ import {
     planComponentTree,
     planDefinitionFallback,
     ensureActionButton,
+    ensureValidationSummary,
     preparePlanContext,
     mergeFormPresentationForPlanning,
     type ComponentGraphProjectionContext,
@@ -178,7 +179,7 @@ import { parseQueryIssuerOverride } from './issuer/queryOverride';
  */
 export class FormspecRender extends HTMLElement {
     static get observedAttributes(): string[] {
-        return ['data-formspec-appearance', 'issuer-override', 'issuer-allowed-origins'];
+        return ['data-formspec-appearance', 'issuer-override', 'issuer-allowed-origins', 'heading-level', 'show-validation-summary'];
     }
 
     // ── Internal state ────────────────────────────────────────────────
@@ -208,6 +209,7 @@ export class FormspecRender extends HTMLElement {
     private _issuerOverride: IssuerSource | undefined;
     private _issuerAllowedOrigins: string[] = [];
     private _issuerChromeEpoch = 0;
+    private _headingLevel = 3;
 
     constructor() {
         super();
@@ -219,6 +221,14 @@ export class FormspecRender extends HTMLElement {
         if (name === 'data-formspec-appearance') {
             this.syncRootContainerAppearance();
             this.scheduleRender();
+            return;
+        }
+        if (name === 'heading-level') {
+            this.headingLevel = Number(this.getAttribute('heading-level'));
+            return;
+        }
+        if (name === 'show-validation-summary') {
+            this.showValidationSummary = this.hasAttribute('show-validation-summary');
             return;
         }
         if (name === 'issuer-override') {
@@ -254,6 +264,7 @@ export class FormspecRender extends HTMLElement {
     private _initialData: FormDataRecord | null = null;
     /** Whether to auto-inject an ActionButton node into the layout plan. Defaults to true. */
     private _showSubmit = true;
+    private _showValidationSummary = false;
     /** Shared pending state for submit flows (e.g. async host submits). */
     /** @internal */ _submitPendingSignal = signal(false);
     /** Latest submit detail payload (`{ response, validationReport }`). */
@@ -593,6 +604,30 @@ export class FormspecRender extends HTMLElement {
         return this._themeDocument;
     }
 
+    /**
+     * The heading depth of the form's own divisions — one below the heading the page places above the form,
+     * so a screen reader's heading outline runs unbroken from the page into the form. `2` under a page whose
+     * `h1` titles the form; the default, `3`, suits a form under a page's own `h2`. Each titled group puts its
+     * children one level deeper; the level the sections take is what makes them sections. Attribute
+     * `heading-level` sets it too.
+     */
+    set headingLevel(level: number) {
+        const next = Number.isInteger(level) ? Math.min(6, Math.max(1, level)) : 3;
+        if (next === this._headingLevel) return;
+        this._headingLevel = next;
+        if (this.engine) this.scheduleRender();
+        else this.renderPlaceholder();
+    }
+
+    get headingLevel(): number {
+        return this._headingLevel;
+    }
+
+    /** @internal The depth the form's sections render at — {@link headingLevel}, as the render host reads it. */
+    get rootHeadingLevel(): number {
+        return this._headingLevel;
+    }
+
     /** Host override of the render adapter for this element only — outranks the theme's `adapter`. */
     set adapter(val: string | null) {
         this._adapter = val ?? null;
@@ -701,6 +736,21 @@ export class FormspecRender extends HTMLElement {
 
     set showSubmit(val: boolean) {
         this._showSubmit = val;
+        this.scheduleRender();
+    }
+
+    /**
+     * Whether to open the form with a validation summary — the latest submit's findings, each a link to its
+     * field — when the documents place none (attribute `show-validation-summary`). Off by default: a
+     * Component document decides where a summary goes; this is for a form rendered from its Definition alone.
+     */
+    get showValidationSummary(): boolean {
+        return this._showValidationSummary;
+    }
+
+    set showValidationSummary(val: boolean) {
+        if (val === this._showValidationSummary) return;
+        this._showValidationSummary = val;
         this.scheduleRender();
     }
 
@@ -940,7 +990,7 @@ export class FormspecRender extends HTMLElement {
         }
 
         const plan = this.buildPlan();
-        if (plan) emitNodeFn(this._renderHost, plan, container, '');
+        if (plan) emitNodeFn(this._renderHost, plan, container, '', this._headingLevel);
     }
 
     /**
@@ -981,6 +1031,7 @@ export class FormspecRender extends HTMLElement {
                     });
                 }
             }
+            if (this._showValidationSummary) ensureValidationSummary(plan, planCtx.nextId);
             return plan;
         } else {
             const plans = planDefinitionFallback(this._definition.items, planCtx);
@@ -1007,6 +1058,7 @@ export class FormspecRender extends HTMLElement {
                     });
                 }
             }
+            if (this._showValidationSummary) ensureValidationSummary(wrapperNode, planCtx.nextId);
             return wrapperNode;
         }
     }
@@ -1028,6 +1080,7 @@ export class FormspecRender extends HTMLElement {
         const discard: Array<() => void> = [];
         renderSkeletonFn(plan, container, {
             adapterName: this.resolvedAdapterName,
+            headingLevel: this._headingLevel,
             actx: {
                 onDispose: (fn: () => void) => discard.push(fn),
                 applyCssClass: (el, comp) => this.applyCssClass(el, comp),
