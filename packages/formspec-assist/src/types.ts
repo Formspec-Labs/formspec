@@ -88,6 +88,20 @@ export interface ToolResult {
   isError?: boolean;
 }
 
+/** Assist spec §4.2. `retryable`: the same call can succeed with corrected arguments; otherwise ask the human. */
+export interface ToolError {
+  code: string;
+  message: string;
+  path?: string;
+  retryable: boolean;
+}
+
+/** Which catalog tools a WebMCP registration exposes (Assist spec §7.2 registration profile). */
+export interface WebMCPRegistrationOptions {
+  /** `'default'`: the non-overlapping set (+ `profile.*` when a profile is configured). `'all'`: every catalog tool. */
+  tools?: 'default' | 'all';
+}
+
 /** WebMCP `ToolAnnotations`: the hints a browser or agent uses to gate a call (Assist spec §7.2). */
 export type ToolAnnotations = WebMCP.ToolAnnotations;
 
@@ -121,8 +135,8 @@ export interface AssistProviderOptions {
     matches: Array<{ path: string; value: unknown }>;
     signal?: AbortSignal;
   }) => boolean | Promise<boolean>;
-  /** Register the catalog on `modelContext` (default: `document.modelContext`). Default `true`; a no-op when neither exists. */
-  registerWebMCP?: boolean;
+  /** Register on `modelContext` (default: `document.modelContext`). `true`/object registers (default); `false` skips; a no-op when no context exists. */
+  registerWebMCP?: boolean | WebMCPRegistrationOptions;
   /** The WebMCP surface to register on. Hosts inject a polyfill or a fake here; the provider never installs one. */
   modelContext?: WebMCP.ModelContext;
   now?: () => Date;

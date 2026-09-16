@@ -10,7 +10,7 @@ import {
   type ValidationResult,
 } from '@formspec-org/types';
 import { ContextResolver, collectFieldMetadata, normalizeFieldPath } from './context-resolver.js';
-import { AssistError, isAssistError } from './errors.js';
+import { AssistError, isAssistError, jsonError, jsonResult, toolError } from './errors.js';
 import { buildToolDeclarations } from './tool-declarations.js';
 import {
   readAudience,
@@ -35,6 +35,7 @@ import type {
   ProfileMatch,
   ReferencesDocument,
   ToolDeclaration,
+  ToolError,
   ToolResult,
   UserProfile,
 } from './types.js';
@@ -61,17 +62,6 @@ interface FieldStatus {
 type ToolHandler = (input: Record<string, unknown>, options: InvokeToolOptions) => Promise<unknown> | unknown;
 function isEmptyValue(value: unknown): boolean {
   return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
-}
-
-function jsonResult(payload: unknown, isError = false): ToolResult {
-  return {
-    content: [{ type: 'text', text: JSON.stringify(payload) }],
-    ...(isError ? { isError: true } : {}),
-  };
-}
-
-function jsonError(code: string, message: string, path?: string): ToolResult {
-  return jsonResult({ code, message, ...(path ? { path } : {}) }, true);
 }
 
 function arrayify<T>(value?: T | T[]): T[] {
@@ -306,6 +296,7 @@ class AssistProviderImpl implements AssistProvider {
 
   private registerWithModelContext(options: AssistProviderOptions): Promise<void> {
     const modelContext = options.registerWebMCP === false ? undefined : options.modelContext ?? resolveModelContext();
+    // Tool selection (§7.2 registration profile) is applied by the binding; see WebMCPRegistrationOptions.
     if (!modelContext) {
       return Promise.resolve();
     }
@@ -656,16 +647,16 @@ class AssistProviderImpl implements AssistProvider {
 
   private trySetField(path: string, value: unknown):
     | { accepted: true; value: unknown; validation: ValidationResult[] }
-    | { code: string; message: string; path: string } {
+    | ToolError {
     const vm = this.engine.getFieldVM(path);
     if (!vm) {
-      return { code: 'NOT_FOUND', message: `Unknown field path: ${path}`, path };
+      return toolError('NOT_FOUND', `Unknown field path: ${path}`, path);
     }
     if (vm.readonly.value) {
-      return { code: 'READONLY', message: `Field is readonly: ${path}`, path };
+      return toolError('READONLY', `Field is readonly: ${path}`, path);
     }
     if (!vm.visible.value) {
-      return { code: 'NOT_RELEVANT', message: `Field is not relevant: ${path}`, path };
+      return toolError('NOT_RELEVANT', `Field is not relevant: ${path}`, path);
     }
     try {
       vm.setValue(value ?? null);
@@ -675,11 +666,7 @@ class AssistProviderImpl implements AssistProvider {
         validation: this.fieldValidation(path),
       };
     } catch (error) {
-      return {
-        code: 'INVALID_VALUE',
-        message: error instanceof Error ? error.message : String(error),
-        path,
-      };
+      return toolError('INVALID_VALUE', error instanceof Error ? error.message : String(error), path);
     }
   }
 }

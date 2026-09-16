@@ -25,6 +25,8 @@ export type {
   StorageBackend,
   ToolAnnotations,
   ToolDeclaration,
+  ToolError,
   ToolResult,
+  WebMCPRegistrationOptions,
   UserProfile,
 } from './types.js';

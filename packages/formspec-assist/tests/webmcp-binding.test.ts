@@ -55,7 +55,7 @@ describe('WebMCP binding', () => {
 
     const [set] = (await modelContext.getTools()).filter((tool) => tool.name === 'formspec.field.set');
     const result = JSON.parse(await modelContext.executeTool(set, { path: 'nope', value: 1 }));
-    expect(result).toEqual({ error: { code: 'NOT_FOUND', message: expect.any(String), path: 'nope' } });
+    expect(result).toEqual({ error: { code: 'NOT_FOUND', message: expect.any(String), path: 'nope', retryable: true } });
   });
 
   it('detach() unregisters through the AbortSignal and fires toolchange', async () => {
@@ -103,7 +103,7 @@ describe('WebMCP binding', () => {
     release(true);
     const result = await pending;
     expect(result.isError).toBe(true);
-    expect(JSON.parse(result.content[0].text)).toEqual({ code: 'x-cancelled', message: expect.any(String) });
+    expect(JSON.parse(result.content[0].text)).toEqual({ code: 'x-cancelled', message: expect.any(String), retryable: false });
     expect(engine.getFieldVM('contactEmail')?.value.value).toBe('');
   });
 
