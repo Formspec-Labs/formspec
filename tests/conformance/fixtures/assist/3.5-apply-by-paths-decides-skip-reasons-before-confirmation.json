@@ -1,0 +1,88 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "profile.apply decides every requested path's fate — filled, or skipped NOT_FOUND / x-not-matched / READONLY — before confirmation runs, in the caller's order",
+  "spec": "§3.5",
+  "definitionRef": "definitions/grant-application.json",
+  "ontology": {
+    "$formspecOntology": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.org/forms/grant" },
+    "concepts": {
+      "organization.ein": { "concept": "https://www.irs.gov/terms/employer-identification-number" }
+    }
+  },
+  "registries": [
+    {
+      "$formspecRegistry": "1.1",
+      "publisher": { "name": "Example", "url": "https://example.org" },
+      "published": "2026-03-26T00:00:00Z",
+      "entries": [
+        {
+          "name": "x-concept-org-name",
+          "category": "concept",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "Organization name",
+          "compatibility": { "formspecVersion": "^1.0.0" },
+          "conceptUri": "https://schema.org/name",
+          "conceptSystem": "https://schema.org",
+          "conceptCode": "name"
+        }
+      ]
+    }
+  ],
+  "profile": {
+    "id": "default",
+    "label": "Default",
+    "created": "2026-03-26T12:00:00.000Z",
+    "updated": "2026-03-26T12:00:00.000Z",
+    "concepts": {
+      "https://www.irs.gov/terms/employer-identification-number": {
+        "value": "12-3456789",
+        "confidence": 1,
+        "source": { "type": "manual", "timestamp": "2026-03-26T12:00:00.000Z" },
+        "lastUsed": "2026-03-26T12:00:00.000Z",
+        "verified": true
+      },
+      "https://schema.org/name": {
+        "value": "Acme Foundation",
+        "confidence": 1,
+        "source": { "type": "manual", "timestamp": "2026-03-26T12:00:00.000Z" },
+        "lastUsed": "2026-03-26T12:00:00.000Z",
+        "verified": true
+      }
+    },
+    "fields": {
+      "contactEmail": {
+        "value": "owner@example.org",
+        "confidence": 0.4,
+        "source": { "type": "manual", "timestamp": "2026-03-26T12:00:00.000Z" },
+        "lastUsed": "2026-03-26T12:00:00.000Z",
+        "verified": false
+      }
+    }
+  },
+  "setup": {
+    "confirm": true
+  },
+  "call": {
+    "tool": "formspec.profile.apply",
+    "input": {
+      "paths": ["organization.name", "nope", "contactEmail", "derivedScore", "organization.ein"],
+      "confirm": true
+    }
+  },
+  "expect": {
+    "result": {
+      "filled": [
+        { "path": "organization.name" },
+        { "path": "organization.ein" }
+      ],
+      "skipped": [
+        { "path": "nope", "reason": "NOT_FOUND" },
+        { "path": "contactEmail", "reason": "x-not-matched" },
+        { "path": "derivedScore", "reason": "READONLY" }
+      ]
+    }
+  }
+}

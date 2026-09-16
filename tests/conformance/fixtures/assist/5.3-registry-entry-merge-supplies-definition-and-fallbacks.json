@@ -1,0 +1,51 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "The Registry concept entry a binding names by conceptUri supplies definition, and display/system/code fall back to the entry when the binding has none",
+  "spec": "§5.3 step 1",
+  "definitionRef": "definitions/grant-application.json",
+  "ontology": {
+    "$formspecOntology": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.org/forms/grant" },
+    "concepts": {
+      "organization.ein": { "concept": "https://www.irs.gov/terms/employer-identification-number" }
+    }
+  },
+  "registries": [
+    {
+      "$formspecRegistry": "1.1",
+      "publisher": { "name": "Example", "url": "https://example.org" },
+      "published": "2026-03-26T00:00:00Z",
+      "entries": [
+        {
+          "name": "x-onto-ein",
+          "category": "concept",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "IRS Employer Identification Number — a 9-digit tax identifier assigned to business entities.",
+          "compatibility": { "formspecVersion": "^1.0.0" },
+          "conceptUri": "https://www.irs.gov/terms/employer-identification-number",
+          "conceptSystem": "https://www.irs.gov/terms",
+          "conceptCode": "EIN",
+          "metadata": { "displayName": "Employer Identification Number (registry)" }
+        }
+      ]
+    }
+  ],
+  "call": {
+    "tool": "formspec.field.help",
+    "input": { "path": "organization.ein" }
+  },
+  "expect": {
+    "result": {
+      "concept": {
+        "concept": "https://www.irs.gov/terms/employer-identification-number",
+        "definition": "IRS Employer Identification Number — a 9-digit tax identifier assigned to business entities.",
+        "system": "https://www.irs.gov/terms",
+        "code": "EIN",
+        "display": "Employer Identification Number (registry)"
+      },
+      "equivalents": []
+    }
+  }
+}

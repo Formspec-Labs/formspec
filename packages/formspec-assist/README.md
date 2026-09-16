@@ -147,3 +147,5 @@ npx vitest
 ```
 
 Coverage spans the tool catalog, error codes, profile workflows, sidecar resolution, page navigation, repeat groups, and the WebMCP binding (against a spec-shaped fake `ModelContext` in `tests/helpers.ts`).
+
+`tests/conformance-fixtures.test.ts` replays the cross-implementation corpus at [`tests/conformance/fixtures/assist/`](../../tests/conformance/fixtures/assist/) — one fixture per draft.3 MUST clause, runnable by any conformant Assist Provider (spec §12 "Conformance fixtures").

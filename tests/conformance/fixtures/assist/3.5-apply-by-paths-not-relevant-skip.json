@@ -1,0 +1,42 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "profile.apply skips a requested path with reason NOT_RELEVANT when the field is not currently relevant",
+  "spec": "§3.5",
+  "definitionRef": "definitions/grant-application-ein-not-relevant.json",
+  "ontology": {
+    "$formspecOntology": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.org/forms/grant" },
+    "concepts": {
+      "organization.ein": { "concept": "https://www.irs.gov/terms/employer-identification-number" }
+    }
+  },
+  "profile": {
+    "id": "default",
+    "label": "Default",
+    "created": "2026-03-26T12:00:00.000Z",
+    "updated": "2026-03-26T12:00:00.000Z",
+    "concepts": {
+      "https://www.irs.gov/terms/employer-identification-number": {
+        "value": "12-3456789",
+        "confidence": 1,
+        "source": { "type": "manual", "timestamp": "2026-03-26T12:00:00.000Z" },
+        "lastUsed": "2026-03-26T12:00:00.000Z",
+        "verified": true
+      }
+    },
+    "fields": {}
+  },
+  "call": {
+    "tool": "formspec.profile.apply",
+    "input": { "paths": ["organization.ein"] }
+  },
+  "expect": {
+    "result": {
+      "filled": [],
+      "skipped": [
+        { "path": "organization.ein", "reason": "NOT_RELEVANT" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "A choice field accepts an option's label, case-insensitively, and stores the option value",
+  "spec": "§3.3",
+  "definitionRef": "definitions/choice-form.json",
+  "call": {
+    "tool": "formspec.field.set",
+    "input": { "path": "state", "value": "new york" }
+  },
+  "expect": {
+    "result": {
+      "accepted": true,
+      "value": "NY",
+      "validation": []
+    }
+  }
+}

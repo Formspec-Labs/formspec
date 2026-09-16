@@ -1,0 +1,17 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "A NOT_FOUND failure carries code, retryable: true, and the offending path",
+  "spec": "§4.2",
+  "definitionRef": "definitions/grant-application.json",
+  "call": {
+    "tool": "formspec.field.set",
+    "input": { "path": "nonexistent", "value": "x" }
+  },
+  "expect": {
+    "error": {
+      "code": "NOT_FOUND",
+      "retryable": true,
+      "path": "nonexistent"
+    }
+  }
+}

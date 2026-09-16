@@ -1,0 +1,21 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "A write to a respondent-held value proceeds when expected deep-equals the current value",
+  "spec": "§4.3 rule 6",
+  "definitionRef": "definitions/grant-application.json",
+  "setup": {
+    "writes": [
+      { "path": "contactEmail", "value": "typed@example.org", "source": "user" }
+    ]
+  },
+  "call": {
+    "tool": "formspec.field.set",
+    "input": { "path": "contactEmail", "value": "agent@example.org", "expected": "typed@example.org" }
+  },
+  "expect": {
+    "result": {
+      "accepted": true,
+      "value": "agent@example.org"
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "When two loaded registries claim the same conceptUri with differing declarations, the provider merges neither; the binding stays bare",
+  "spec": "§5.3 step 1",
+  "definitionRef": "definitions/grant-application.json",
+  "ontology": {
+    "$formspecOntology": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.org/forms/grant" },
+    "concepts": {
+      "organization.ein": { "concept": "https://www.irs.gov/terms/employer-identification-number" }
+    }
+  },
+  "registries": [
+    {
+      "$formspecRegistry": "1.1",
+      "publisher": { "name": "Example", "url": "https://example.org" },
+      "published": "2026-03-26T00:00:00Z",
+      "entries": [
+        {
+          "name": "x-onto-ein",
+          "category": "concept",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "IRS Employer Identification Number — a 9-digit tax identifier assigned to business entities.",
+          "compatibility": { "formspecVersion": "^1.0.0" },
+          "conceptUri": "https://www.irs.gov/terms/employer-identification-number",
+          "conceptSystem": "https://www.irs.gov/terms",
+          "conceptCode": "EIN",
+          "metadata": { "displayName": "Employer Identification Number (registry)" }
+        }
+      ]
+    },
+    {
+      "$formspecRegistry": "1.1",
+      "publisher": { "name": "Example", "url": "https://example.org" },
+      "published": "2026-03-26T00:00:00Z",
+      "entries": [
+        {
+          "name": "x-onto-ein-rival",
+          "category": "concept",
+          "version": "1.0.0",
+          "status": "stable",
+          "description": "A rival definition of record.",
+          "compatibility": { "formspecVersion": "^1.0.0" },
+          "conceptUri": "https://www.irs.gov/terms/employer-identification-number",
+          "conceptSystem": "https://www.irs.gov/terms",
+          "conceptCode": "EIN",
+          "metadata": { "displayName": "Employer Identification Number (registry)" }
+        }
+      ]
+    }
+  ],
+  "call": {
+    "tool": "formspec.field.help",
+    "input": { "path": "organization.ein" }
+  },
+  "expect": {
+    "result": {
+      "concept": {
+        "concept": "https://www.irs.gov/terms/employer-identification-number"
+      },
+      "equivalents": []
+    }
+  }
+}

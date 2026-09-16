@@ -1,0 +1,81 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "Under the byte cap, the lowest-priority, latest-in-document-order entries lose content, then excerpt, before any whole entry is dropped",
+  "spec": "§5.2",
+  "definitionRef": "definitions/grant-application.json",
+  "references": {
+    "$formspecReferences": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.org/forms/grant" },
+    "references": [
+      {
+        "target": "contactEmail",
+        "type": "documentation",
+        "audience": "agent",
+        "title": "DocPrimary",
+        "uri": "https://example.org/doc-primary",
+        "priority": "primary"
+      },
+      {
+        "target": "contactEmail",
+        "type": "documentation",
+        "audience": "agent",
+        "title": "DocBgOne",
+        "uri": "https://example.org/DocBgOne",
+        "priority": "background",
+        "excerpt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "content": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "target": "contactEmail",
+        "type": "documentation",
+        "audience": "agent",
+        "title": "DocBgTwo",
+        "uri": "https://example.org/DocBgTwo",
+        "priority": "background",
+        "excerpt": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "content": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      {
+        "target": "contactEmail",
+        "type": "regulation",
+        "audience": "agent",
+        "title": "RegBgOne",
+        "uri": "https://example.org/RegBgOne",
+        "priority": "background",
+        "excerpt": "cccccccccccccccccccccccccccccc",
+        "content": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      {
+        "target": "contactEmail",
+        "type": "regulation",
+        "audience": "agent",
+        "title": "RegBgTwo",
+        "uri": "https://example.org/RegBgTwo",
+        "priority": "background",
+        "excerpt": "dddddddddddddddddddddddddddddd",
+        "content": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ]
+  },
+  "call": {
+    "tool": "formspec.field.help",
+    "input": { "path": "contactEmail", "includeContent": true, "maxBytes": 700 }
+  },
+  "expect": {
+    "result": {
+      "references": {
+        "documentation": [
+          { "title": "DocPrimary", "type": "documentation", "uri": "https://example.org/doc-primary", "priority": "primary" },
+          { "title": "DocBgOne", "type": "documentation", "uri": "https://example.org/DocBgOne", "priority": "background", "excerpt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+          { "title": "DocBgTwo", "type": "documentation", "uri": "https://example.org/DocBgTwo", "priority": "background", "excerpt": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+        ],
+        "regulation": [
+          { "title": "RegBgOne", "type": "regulation", "uri": "https://example.org/RegBgOne", "priority": "background", "excerpt": "cccccccccccccccccccccccccccccc" },
+          { "title": "RegBgTwo", "type": "regulation", "uri": "https://example.org/RegBgTwo", "priority": "background" }
+        ]
+      },
+      "truncated": { "omitted": {} }
+    }
+  }
+}

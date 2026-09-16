@@ -1,0 +1,51 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "profile.match reports a match made through a close concept equivalent at 0.8 confidence, still with no value and no source",
+  "spec": "§6.1",
+  "definitionRef": "definitions/grant-application.json",
+  "ontology": {
+    "$formspecOntology": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.org/forms/grant" },
+    "concepts": {
+      "organization.ein": {
+        "concept": "https://www.irs.gov/terms/employer-identification-number",
+        "equivalents": [
+          { "concept": "https://schema.org/taxID", "system": "https://schema.org", "code": "taxID", "type": "close" }
+        ]
+      }
+    }
+  },
+  "profile": {
+    "id": "schema-org",
+    "label": "schema.org profile",
+    "created": "2026-03-26T12:00:00.000Z",
+    "updated": "2026-03-26T12:00:00.000Z",
+    "fields": {},
+    "concepts": {
+      "https://schema.org/taxID": {
+        "value": "12-3456789",
+        "confidence": 1,
+        "verified": true,
+        "lastUsed": "2026-03-26T12:00:00.000Z",
+        "source": { "type": "manual", "timestamp": "2026-03-26T12:00:00.000Z" }
+      }
+    }
+  },
+  "call": {
+    "tool": "formspec.profile.match",
+    "input": {}
+  },
+  "expect": {
+    "result": {
+      "matches": [
+        {
+          "path": "organization.ein",
+          "concept": "https://schema.org/taxID",
+          "confidence": 0.8,
+          "relationship": "close"
+        }
+      ]
+    }
+  }
+}

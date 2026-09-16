@@ -1,0 +1,66 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "profile.match reports an exact concept match as path, concept, confidence, relationship only — no value, no source",
+  "spec": "§6.1",
+  "definitionRef": "definitions/grant-application.json",
+  "ontology": {
+    "$formspecOntology": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.org/forms/grant" },
+    "concepts": {
+      "organization.ein": {
+        "concept": "https://www.irs.gov/terms/employer-identification-number",
+        "system": "https://www.irs.gov/terms",
+        "display": "Employer Identification Number",
+        "code": "EIN"
+      }
+    }
+  },
+  "profile": {
+    "id": "default",
+    "label": "Default",
+    "created": "2026-03-26T12:00:00.000Z",
+    "updated": "2026-03-26T12:00:00.000Z",
+    "concepts": {
+      "https://www.irs.gov/terms/employer-identification-number": {
+        "value": "12-3456789",
+        "confidence": 1,
+        "source": { "type": "manual", "timestamp": "2026-03-26T12:00:00.000Z" },
+        "lastUsed": "2026-03-26T12:00:00.000Z",
+        "verified": true
+      },
+      "https://schema.org/name": {
+        "value": "Acme Foundation",
+        "confidence": 1,
+        "source": { "type": "manual", "timestamp": "2026-03-26T12:00:00.000Z" },
+        "lastUsed": "2026-03-26T12:00:00.000Z",
+        "verified": true
+      }
+    },
+    "fields": {
+      "contactEmail": {
+        "value": "owner@example.org",
+        "confidence": 0.4,
+        "source": { "type": "manual", "timestamp": "2026-03-26T12:00:00.000Z" },
+        "lastUsed": "2026-03-26T12:00:00.000Z",
+        "verified": false
+      }
+    }
+  },
+  "call": {
+    "tool": "formspec.profile.match",
+    "input": {}
+  },
+  "expect": {
+    "result": {
+      "matches": [
+        {
+          "path": "organization.ein",
+          "concept": "https://www.irs.gov/terms/employer-identification-number",
+          "confidence": 1,
+          "relationship": "exact"
+        }
+      ]
+    }
+  }
+}

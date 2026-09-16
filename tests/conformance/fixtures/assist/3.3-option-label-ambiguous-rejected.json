@@ -1,0 +1,17 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "An ambiguous option label is rejected as INVALID_VALUE naming every candidate option",
+  "spec": "§3.3",
+  "definitionRef": "definitions/choice-form.json",
+  "call": {
+    "tool": "formspec.field.set",
+    "input": { "path": "kind", "value": "OTHER" }
+  },
+  "expect": {
+    "error": {
+      "code": "INVALID_VALUE",
+      "retryable": true,
+      "path": "kind"
+    }
+  }
+}

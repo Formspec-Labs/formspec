@@ -1,0 +1,22 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "A write to a respondent-held value without a matching expected is refused x-user-edited, not retryable, nothing written",
+  "spec": "§4.3 rule 6",
+  "definitionRef": "definitions/grant-application.json",
+  "setup": {
+    "writes": [
+      { "path": "contactEmail", "value": "typed@example.org", "source": "user" }
+    ]
+  },
+  "call": {
+    "tool": "formspec.field.set",
+    "input": { "path": "contactEmail", "value": "agent@example.org" }
+  },
+  "expect": {
+    "error": {
+      "code": "x-user-edited",
+      "retryable": false,
+      "path": "contactEmail"
+    }
+  }
+}

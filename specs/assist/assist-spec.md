@@ -1112,3 +1112,61 @@ A renderer hosting an Assist Provider:
 
 - **MUST** mark assistant-written fields with `data-formspec-agent-filled`
   and show their validation immediately (§8.4).
+
+### 12.4 Conformance Fixtures
+
+Schema validity is necessary but not sufficient (root `CLAUDE.md`,
+"Conformance is the portability bar"): Assist has no top-level document
+schema (§1.2), so the behavioral MUSTs that most need cross-implementation
+proof — error shape, option-label resolution, help projection and the byte
+cap's degrade order, the stale-write guard, `profile.apply` skip reasons, and
+the Registry merge — are pinned as runnable fixtures instead of prose
+examples.
+
+The corpus lives at [`tests/conformance/fixtures/assist/`][fixtures-dir], one
+JSON file per MUST clause, named `<section>-<slug>.json`. Each fixture is:
+
+```typescript
+interface AssistFixture {
+  $formspecAssistFixture: "1.0";
+  title: string;
+  spec: string;                          // e.g. "§4.3 rule 6"
+  definition?: object;                   // a Formspec Definition, inline …
+  definitionRef?: string;                // … or a path relative to the fixture directory
+  references?: object;                   // ReferencesDocument
+  ontology?: object;                     // OntologyDocument
+  registries?: object[];                 // RegistryDocument[]
+  profile?: object;                      // UserProfile (§6.1) — Assist-owned, no core schema
+  setup?: {
+    // Pre-writes the compare-and-set guard (§4.3 rule 6) needs to distinguish a
+    // respondent-held value from the assistant's own, applied via the engine's
+    // setValue(path, value, { source }) before the provider is constructed.
+    writes?: Array<{ path: string; value: unknown; source: "user" | "assist" }>;
+    confirm?: boolean;                   // fed to confirmProfileApply for profile.apply cases
+  };
+  call: { tool: string; input: Record<string, unknown> };
+  expect:
+    | { result: object }                 // partial — matched key-by-key against the parsed tool result
+    | { error: { code: string; retryable: boolean; path?: string } };
+}
+```
+
+A conformant implementation loads every fixture, builds a live form from
+`definition`/`definitionRef`, applies `setup.writes`, constructs its Assist
+Provider (wiring `setup.confirm` into whatever `confirm: true` requires),
+invokes `call.tool` with `call.input`, and checks the parsed result against
+`expect.result` (present keys must match; the shape is intentionally partial,
+not exhaustive) or `expect.error`. `tests/conformance/spec/test_assist_fixtures.py`
+validates the corpus itself — envelope shape and that every embedded or
+`definitionRef`'d document is schema-valid — since the Python suite cannot
+execute a TypeScript provider;
+[`packages/formspec-assist/tests/conformance-fixtures.test.ts`][ts-runner] is
+the runner that actually drives them.
+
+Scoped out of the fixture corpus (kept as SHOULD/policy, verified by
+implementation-specific tests instead): `ToolError.message` wording, the
+WebMCP registration profile (§7.2), registered-schema stripping, `title`/
+`description` length caps, and renderer write-marking (§8.4).
+
+[fixtures-dir]: ../../tests/conformance/fixtures/assist/
+[ts-runner]: ../../packages/formspec-assist/tests/conformance-fixtures.test.ts

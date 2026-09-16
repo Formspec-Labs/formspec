@@ -1,0 +1,45 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.org/forms/choice",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Choice form",
+  "items": [
+    {
+      "key": "state",
+      "type": "field",
+      "dataType": "choice",
+      "label": "State",
+      "options": [
+        { "value": "CA", "label": "California" },
+        { "value": "NY", "label": "New York" }
+      ]
+    },
+    {
+      "key": "kind",
+      "type": "field",
+      "dataType": "choice",
+      "label": "Kind",
+      "options": [
+        { "value": "other-a", "label": "Other" },
+        { "value": "other-b", "label": "other" }
+      ]
+    },
+    {
+      "key": "tags",
+      "type": "field",
+      "dataType": "multiChoice",
+      "label": "Tags",
+      "options": [
+        { "value": "r", "label": "Red" },
+        { "value": "g", "label": "Green" }
+      ]
+    },
+    {
+      "key": "note",
+      "type": "field",
+      "dataType": "string",
+      "label": "Note"
+    }
+  ]
+}

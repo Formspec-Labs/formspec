@@ -1,0 +1,53 @@
+{
+  "$formspecAssistFixture": "1.0",
+  "title": "field.help includes the reference entry's content only when the call carries includeContent: true",
+  "spec": "§5.1",
+  "definitionRef": "definitions/grant-application.json",
+  "references": {
+    "$formspecReferences": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.org/forms/grant" },
+    "references": [
+      {
+        "target": "organization.ein",
+        "type": "documentation",
+        "audience": "agent",
+        "id": "ein-guide",
+        "title": "EIN Instructions",
+        "uri": "https://example.org/ein",
+        "content": "Use the IRS-issued EIN.",
+        "excerpt": "IRS-issued.",
+        "description": "Long explanation",
+        "mediaType": "text/plain",
+        "tags": ["tax"],
+        "priority": "primary",
+        "rel": "defines"
+      }
+    ]
+  },
+  "call": {
+    "tool": "formspec.field.help",
+    "input": { "path": "organization.ein", "includeContent": true }
+  },
+  "expect": {
+    "result": {
+      "path": "organization.ein",
+      "label": "Employer Identification Number",
+      "references": {
+        "documentation": [
+          {
+            "title": "EIN Instructions",
+            "type": "documentation",
+            "uri": "https://example.org/ein",
+            "excerpt": "IRS-issued.",
+            "rel": "defines",
+            "priority": "primary",
+            "content": "Use the IRS-issued EIN."
+          }
+        ]
+      },
+      "concept": { "concept": "x-concept-org-ein" },
+      "equivalents": []
+    }
+  }
+}
