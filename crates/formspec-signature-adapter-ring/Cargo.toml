@@ -8,7 +8,9 @@ version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "Formspec ring-crypto signature adapter — implements Verifier port using ring"
-repository = "https://github.com/Formspec-org/formspec"
+repository = "https://github.com/Formspec-Labs/formspec"
+# Not on crates.io until the integrity-stack crates this depends on are: they are path siblings today.
+publish = false
 
 [dependencies]
 formspec-signature-cose = { version = "0.1.0", path = "../formspec-signature-cose" }

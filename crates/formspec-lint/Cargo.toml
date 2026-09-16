@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "Formspec Linter — 8-pass static analysis pipeline"
-repository = "https://github.com/Formspec-org/formspec"
+repository = "https://github.com/Formspec-Labs/formspec"
 
 [dependencies]
 csscolorparser = "0.8.3"

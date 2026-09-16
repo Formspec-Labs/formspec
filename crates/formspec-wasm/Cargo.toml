@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "WASM bindings for Formspec — exposes fel-core and formspec-core to TypeScript"
-repository = "https://github.com/Formspec-org/formspec"
+repository = "https://github.com/Formspec-Labs/formspec"
 publish = false
 readme = "README.md"
 

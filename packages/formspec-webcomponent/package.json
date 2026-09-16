@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Formspec-org/formspec.git",
+    "url": "git+https://github.com/Formspec-Labs/formspec.git",
     "directory": "packages/formspec-webcomponent"
   },
   "publishConfig": {

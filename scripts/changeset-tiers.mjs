@@ -19,6 +19,7 @@ export const TIER_PACKAGES = {
     '@formspec-org/surface',
     '@formspec-org/surface-react',
     '@formspec-org/surface-bundle-signing',
+    '@formspec-org/walk',
   ],
   integration: ['@formspec-org/adapters', '@formspec-org/studio-core'],
   ai: ['@formspec-org/mcp', '@formspec-org/chat'],

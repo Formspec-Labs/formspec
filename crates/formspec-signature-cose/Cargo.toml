@@ -8,7 +8,9 @@ version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "Formspec COSE_Sign1 decode helpers for signature adapters"
-repository = "https://github.com/Formspec-org/formspec"
+repository = "https://github.com/Formspec-Labs/formspec"
+# Not on crates.io until the integrity-stack crates this depends on are: they are path siblings today.
+publish = false
 
 [dependencies]
 integrity-cose = { path = "../../../integrity-stack/crates/integrity-cose" }

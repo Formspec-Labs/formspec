@@ -1,0 +1,61 @@
+name: Publish crates
+
+# Publishes this repository's crates to crates.io through crates.io Trusted Publishing (OIDC; no
+# long-lived token in the repository): each crate's settings on crates.io name this repository and
+# this workflow file, and rust-lang/crates-io-auth-action exchanges the job's identity token for a
+# short-lived publish token.
+#
+# The crates depend on fel-core by sibling path (see Cargo.toml); crates.io resolves that dependency by
+# its version, so the fel-core version the manifests name must be on crates.io first
+# (Formspec-Labs/fel-core, its own publish workflow). Publishing order follows the dependency chain,
+# and each crate is published only when its Cargo.toml version is not on crates.io yet, so re-running
+# a tag is safe. formspec-py and formspec-wasm are `publish = false`; the signature crates and the
+# cross-stack fixture harness stay `publish = false` until the integrity-stack crates they depend on
+# are on crates.io.
+on:
+  push:
+    tags: ["crates-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.repository == 'Formspec-Labs/formspec'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: formspec
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: formspec
+      - name: Check out the fel-core sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/fel-core
+          path: fel-core
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: formspec
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+      - name: Publish, in dependency order, whatever is not on crates.io yet
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          set -euo pipefail
+          for crate in formspec-changeset formspec-core formspec-eval formspec-lint; do
+            local=$(cargo metadata --no-deps --format-version 1 | jq -r --arg c "$crate" '.packages[] | select(.name == $c) | .version')
+            if curl -sf -A "formspec publish workflow (github.com/Formspec-Labs/formspec)" "https://crates.io/api/v1/crates/$crate/versions" | jq -e --arg v "$local" '[.versions[].num] | index($v) != null' >/dev/null; then
+              echo "$crate $local is on crates.io already; skipping"
+              continue
+            fi
+            echo "publishing $crate $local"
+            cargo publish -p "$crate" --locked
+          done

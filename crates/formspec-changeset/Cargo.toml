@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license = "BUSL-1.1"
 description = "Changeset dependency analysis — key extraction and connected-component grouping"
-repository = "https://github.com/Formspec-org/formspec"
+repository = "https://github.com/Formspec-Labs/formspec"
 
 [dependencies]
 regex = "1"
