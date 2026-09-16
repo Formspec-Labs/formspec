@@ -40,7 +40,7 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
         const header = document.createElement('div');
         header.className = 'usa-step-indicator__header';
 
-        const heading = document.createElement('h4');
+        const heading = document.createElement(behavior.headingLevel);
         heading.className = 'usa-step-indicator__heading';
 
         const counter = document.createElement('span');
@@ -79,7 +79,7 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
             index: i,
             labelledById: panelLabelId,
             decoratePanel: (panelEl) => {
-                const panelHeading = document.createElement('h2');
+                const panelHeading = document.createElement(behavior.headingLevel);
                 panelHeading.id = panelLabelId;
                 panelHeading.className =
                     'usa-step-indicator__heading formspec-uswds-wizard__panel-heading';

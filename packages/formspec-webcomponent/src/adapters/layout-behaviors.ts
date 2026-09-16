@@ -12,6 +12,7 @@ export interface SectionLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
     titleText: LocalizedText | null;
+    /** Heading tag for the title at this depth: `'h1'`…`'h6'`, from the host's root level downward. */
     headingLevel: string;
     descriptionText: LocalizedText | null;
 }

@@ -14,7 +14,7 @@ export function renderUSWDSCollapsible(
     if (comp.id) root.id = comp.id;
     root.className = 'usa-accordion formspec-collapsible';
 
-    const heading = document.createElement('h4');
+    const heading = document.createElement(`h${host.headingLevel}`);
     heading.className = 'usa-accordion__heading';
 
     const button = document.createElement('button');

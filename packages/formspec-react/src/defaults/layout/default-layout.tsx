@@ -220,11 +220,12 @@ function GridLayout({ node, children, themeClass, style }: LayoutProps) {
 
 // ── Card / Section ────────────────────────────────────────────────
 
+/** Card (component §5.16): its title is a heading at the card's depth, and heads the children one deeper. */
 function CardLayout({ node, children, themeClass, style }: LayoutProps) {
     const props = node.props ?? {};
     const label = node.fieldItem?.label || (props.title as string | undefined);
     const subtitle = props.subtitle as string | undefined;
-    const headingLevel = Math.min(6, Math.max(1, (props.headingLevel as number | undefined) ?? 3));
+    const headingLevel = useHeadingLevel();
     const Heading = `h${headingLevel}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
     return (
@@ -237,7 +238,9 @@ function CardLayout({ node, children, themeClass, style }: LayoutProps) {
         >
             {label && <Heading className="formspec-card-title">{label}</Heading>}
             {subtitle && <p className="formspec-card-subtitle">{subtitle}</p>}
-            {children}
+            <HeadingLevelContext.Provider value={label ? headingLevel + 1 : headingLevel}>
+                {children}
+            </HeadingLevelContext.Provider>
         </section>
     );
 }
@@ -266,11 +269,12 @@ export function DividerLayout({
 
 // ── Section ──────────────────────────────────────────────────────
 
+/** Section (component §5.1): its title is a heading at the section's depth, and heads the children one deeper. */
 function SectionLayout({ node, children, themeClass, style }: LayoutProps) {
     const props = node.props ?? {};
     const title = props.title as string | undefined;
     const description = props.description as string | undefined;
-    const headingLevel = Math.min(6, Math.max(1, (props.headingLevel as number | undefined) ?? 2));
+    const headingLevel = useHeadingLevel();
     const Heading = `h${headingLevel}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
     return (
@@ -283,7 +287,9 @@ function SectionLayout({ node, children, themeClass, style }: LayoutProps) {
         >
             {title && <Heading>{title}</Heading>}
             {description && <p className="formspec-section-description">{description}</p>}
-            {children}
+            <HeadingLevelContext.Provider value={title ? headingLevel + 1 : headingLevel}>
+                {children}
+            </HeadingLevelContext.Provider>
         </section>
     );
 }

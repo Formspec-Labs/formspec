@@ -13,6 +13,7 @@ function hostSlice() {
         resolveToken: (v: unknown) => v,
         engine: {} as never,
         cleanupFns: [],
+        headingLevel: 3,
         findItemByKey: () => null,
     };
 }

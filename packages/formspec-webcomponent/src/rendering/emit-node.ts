@@ -17,6 +17,7 @@ import type { ValidationResult } from '@formspec-org/types';
 import { useWizard } from '../behaviors/wizard';
 import { useTabs } from '../behaviors/tabs';
 import { buildGroupBehavior, buildRepeatGroupBehavior, type EmitChild } from './group-behaviors';
+import { headsChildren } from './heading-depth';
 
 export type { RenderHost } from '../hub-types.js';
 
@@ -282,9 +283,11 @@ export function renderActualComponent(
     const componentType = comp.component;
     const plugin = globalRegistry.get(componentType);
     // Children render into this component's scope unless a repeat row pass hands them its own list, and at
-    // this component's heading depth: a Grid cell or a Section body is not a new page section.
+    // this component's heading depth — a Grid cell or a Stack body is not a new page section — unless the
+    // component heads them, as a titled group does (`buildGroupBehavior`): then they sit one deeper.
+    const childHeadingLevel = headsChildren(comp) ? Math.min(headingLevel + 1, 6) : headingLevel;
     const renderChild: RenderContext['renderComponent'] = (child, childParent, pfx, scope = cleanupFns) =>
-        renderComponent(host, child, childParent, pfx, scope, headingLevel);
+        renderComponent(host, child, childParent, pfx, scope, childHeadingLevel);
 
     const ctx: RenderContext = {
         engine: host.engine,
@@ -292,6 +295,7 @@ export function renderActualComponent(
         themeDocument: host._themeDocument,
         adapterName: host.resolvedAdapterName,
         prefix,
+        headingLevel: Math.min(headingLevel, 6),
         submit: (opts) => host.submit(opts),
         resolveActionRef: (actionRef, nodeId) => host.resolveActionRef(actionRef, nodeId),
         invokeAction: (actionRef, nodeId) => host.invokeAction(actionRef, nodeId),
@@ -325,6 +329,7 @@ export function renderActualComponent(
             resolveWidgetClassSlots: (p: PresentationBlock) => host.resolveWidgetClassSlots(p),
             findItemByKey: (key: string) => host.findItemByKey(key),
             renderComponent: renderChild,
+            headingLevel: Math.min(headingLevel, 6),
             submit: (opts) => host.submit(opts),
             registryEntries: host._registryEntries,
             rerender: () => host.render(),

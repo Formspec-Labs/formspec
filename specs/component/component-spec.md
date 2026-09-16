@@ -78,6 +78,7 @@ Section references (§N) refer to this document unless prefixed with
   - [§3.4 Nesting Constraints](#34-nesting-constraints)
   - [§3.5 AccessibilityBlock](#35-accessibilityblock)
   - [§3.6 Localizable String Properties](#36-localizable-string-properties)
+  - [§3.7 Heading Depth](#37-heading-depth)
 - [§4 Slot Binding](#4-slot-binding)
   - [§4.1 The bind Property](#41-the-bind-property)
   - [§4.2 Bind Resolution Rules](#42-bind-resolution-rules)
@@ -634,6 +635,27 @@ property are addressable.
 Array-valued properties use bracket indexing with numeric indices
 (e.g., `$component.mainTabs.tabLabels[0]`).
 
+### 3.7 Heading Depth
+
+A heading a renderer draws for a component — a Section or Card title,
+a titled bound group's, a ValidationSummary's, an Accordion item's, a
+wizard step's — sits at the component's **heading depth**:
+
+- The tree's root sits at the depth the host hands the form. Renderers
+  SHOULD let the host set it (the web component's `heading-level`
+  attribute) and MUST default to 3 — one below a page whose `h1` and
+  `h2` title the form.
+- A titled Section, a titled Card, and a titled bound group place their
+  children one level deeper. A Stack or Grid `title` heads a row of
+  content, not a division of the form, and adds no depth; so does a
+  Panel, Collapsible or Accordion title, which not every renderer draws
+  as a heading.
+- Depth is capped at 6.
+
+`Heading.level` (§5.13) is authored and exempt. The rule keeps the
+outline unbroken from the page into the form: no renderer skips a level
+between a heading and the headings beneath it.
+
 ---
 
 ## 4. Slot Binding
@@ -869,7 +891,8 @@ within a Stack for single-page sectioned forms.
 
 - MUST render as a block-level section element (e.g., `<section>` or
   equivalent).
-- When `title` is present, MUST render it as a heading element.
+- When `title` is present, MUST render it as a heading element at the
+  Section's heading depth, its children one deeper (§3.7).
 - When `formPresentation.pageMode` is `"wizard"`, the Section MUST be
   shown/hidden according to the current step navigation state.
 - MUST render children in array order within the section.
@@ -1570,7 +1593,8 @@ a visual boundary with optional title and subtitle.
 
 - MUST render as a visually distinct surface with a border or
   shadow.
-- When `title` is present, MUST render a card header.
+- When `title` is present, MUST render a card header whose title is a
+  heading at the Card's heading depth, its children one deeper (§3.7).
 - MUST render children in array order within the card body.
 
 #### Example

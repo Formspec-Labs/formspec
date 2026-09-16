@@ -92,6 +92,7 @@ function makeMinimalBehaviorContext(fieldPath = 'test') {
         resolveWidgetClassSlots: () => ({}),
         findItemByKey: () => null,
         renderComponent: () => {},
+        headingLevel: 3,
         submit: () => null,
         registryEntries: new Map(),
         rerender: () => {},

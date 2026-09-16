@@ -33,6 +33,7 @@ function makeBehaviorContext(items: any[], prefix = '') {
         resolveWidgetClassSlots: () => ({}),
         findItemByKey: (key: string) => items.find((i: any) => i.key === key) || null,
         renderComponent: () => {},
+        headingLevel: 3,
         submit: () => null,
         registryEntries: new Map(),
         rerender: () => {},

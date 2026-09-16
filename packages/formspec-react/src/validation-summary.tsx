@@ -11,6 +11,7 @@ import {
 import type { ValidationResult } from '@formspec-org/types';
 import { useFormspecContext } from './context';
 import { useChromeText } from './use-chrome-text';
+import { useHeadingLevel } from './heading-level';
 import { useSignal } from './use-signal';
 import { focusFieldIn } from './use-focus-field';
 
@@ -52,6 +53,7 @@ export function ValidationSummary({
 }: ValidationSummaryProps) {
     const { engine, touchedVersion, latestSubmit } = useFormspecContext();
     const chrome = useChromeText();
+    const Heading = `h${useHeadingLevel()}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Reading the signals here re-renders on every change they carry: touch, submit, live validation.
@@ -140,7 +142,7 @@ export function ValidationSummary({
             role={containerRole}
             className={summaryClassName}
         >
-            <h2 className="formspec-validation-summary-title">{headerText}</h2>
+            <Heading className="formspec-validation-summary-title">{headerText}</Heading>
             {renderRows(errors)}
             {renderRows(warnings)}
         </div>

@@ -15,6 +15,7 @@ function mockDisplayBehavior(comp: Record<string, unknown>) {
         host: {
             prefix: '',
             cleanupFns: [],
+            headingLevel: 3,
             engine: { signals: {}, variableSignals: {} },
             resolveToken: (v: unknown) => v,
             watchCompText: (_c: unknown, _p: string, fallback: string, write: (t: string) => void) => write(fallback),

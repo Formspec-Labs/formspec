@@ -85,7 +85,7 @@ export function renderUSWDSAccordion(
 
             for (let i = 0; i < count; i++) {
                 const contentId = `${idPrefix}panel-${i}`;
-                const heading = document.createElement('h4');
+                const heading = document.createElement(`h${host.headingLevel}`);
                 heading.className = 'usa-accordion__heading';
 
                 const button = document.createElement('button');
@@ -152,7 +152,7 @@ export function renderUSWDSAccordion(
         const children: any[] = comp.children || [];
         for (let i = 0; i < children.length; i++) {
             const contentId = `${idPrefix}panel-${i}`;
-            const heading = document.createElement('h4');
+            const heading = document.createElement(`h${host.headingLevel}`);
             heading.className = 'usa-accordion__heading';
 
             const button = document.createElement('button');

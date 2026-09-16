@@ -13,6 +13,7 @@ function mount(comp: Record<string, unknown> = {}) {
             prefix: '',
             engine: {} as never,
             cleanupFns: [],
+            headingLevel: 3,
             findItemByKey: () => null,
             resolveToken: (v: unknown) => v,
         } as never,

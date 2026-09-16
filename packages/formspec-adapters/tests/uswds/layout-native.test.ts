@@ -24,6 +24,7 @@ function layoutHost() {
         resolveToken: (v: string) => v,
         engine: {} as any,
         cleanupFns: [] as (() => void)[],
+        headingLevel: 3,
         findItemByKey: () => undefined,
     };
 }

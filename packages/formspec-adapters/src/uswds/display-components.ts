@@ -115,7 +115,7 @@ export function renderUSWDSCard(behavior: DisplayComponentBehavior, parent: HTML
     if (comp.title) {
         const header = document.createElement('div');
         header.className = 'usa-card__header';
-        const h = document.createElement('h3');
+        const h = document.createElement(`h${host.headingLevel}`);
         h.className = 'usa-card__heading';
         host.watchCompText(comp, 'title', comp.title, (text) => { h.textContent = text; });
         header.appendChild(h);
@@ -156,7 +156,7 @@ export function renderUSWDSAlert(behavior: DisplayComponentBehavior, parent: HTM
     body.className = 'usa-alert__body';
 
     if (comp.title) {
-        const h = document.createElement('h3');
+        const h = document.createElement(`h${host.headingLevel}`);
         h.className = 'usa-alert__heading';
         host.watchCompText(comp, 'title', comp.title, (text) => { h.textContent = text; });
         body.appendChild(h);
@@ -297,7 +297,7 @@ export function renderUSWDSValidationSummary(
 
             const body = document.createElement('div');
             body.className = 'usa-alert__body';
-            const heading = document.createElement('h3');
+            const heading = document.createElement(`h${host.headingLevel}`);
             heading.className = 'usa-alert__heading';
             heading.textContent = uiText(host.engine, 'validationSummary.heading').value;
             body.appendChild(heading);

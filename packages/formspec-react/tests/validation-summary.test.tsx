@@ -5,6 +5,7 @@ import { initFormspecEngine, createFormEngine } from '@formspec-org/engine';
 import { FormspecProvider, useFormspecContext } from '../src/context';
 import { FormspecNode } from '../src/node-renderer';
 import { ValidationSummary } from '../src/validation-summary';
+import { HeadingLevelContext, RootHeadingLevelContext } from '../src/heading-level';
 import { actRender } from './render-utils';
 
 beforeAll(async () => {
@@ -59,5 +60,20 @@ describe('ValidationSummary — repeat rows', () => {
 
         act(() => link!.click());
         expect(document.activeElement).toBe(container.querySelector('input[name="rows[1].rowName"]'));
+    });
+
+    it('draws its heading at the depth the page hands the form, beside the sections', () => {
+        const engine = createFormEngine(definition);
+        act(() => engine.setValue('rows[0].rowName', 'filled'));
+        const container = actRender(
+            <FormspecProvider engine={engine}>
+                <RootHeadingLevelContext.Provider value={2}>
+                    <HeadingLevelContext.Provider value={2}>
+                        <SummaryWithForm />
+                    </HeadingLevelContext.Provider>
+                </RootHeadingLevelContext.Provider>
+            </FormspecProvider>,
+        );
+        expect(container.querySelector('.formspec-validation-summary-title')?.tagName).toBe('H2');
     });
 });

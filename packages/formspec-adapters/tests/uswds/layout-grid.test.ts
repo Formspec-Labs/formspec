@@ -11,6 +11,7 @@ function mockHost(): GridLayoutBehavior['host'] {
         resolveToken: (v) => v,
         engine: {} as GridLayoutBehavior['host']['engine'],
         cleanupFns: [],
+        headingLevel: 3,
         findItemByKey: () => undefined,
     };
 }

@@ -9,6 +9,8 @@ export interface LayoutHostSlice {
     engine: RenderContext['engine'];
     cleanupFns: RenderContext['cleanupFns'];
     findItemByKey: RenderContext['findItemByKey'];
+    /** The depth a heading this layout draws over its children sits at — see {@link RenderContext.headingLevel}. */
+    headingLevel: RenderContext['headingLevel'];
 }
 
 export function layoutHostSlice(ctx: RenderContext): LayoutHostSlice {
@@ -19,5 +21,6 @@ export function layoutHostSlice(ctx: RenderContext): LayoutHostSlice {
         engine: ctx.engine,
         cleanupFns: ctx.cleanupFns,
         findItemByKey: ctx.findItemByKey,
+        headingLevel: ctx.headingLevel,
     };
 }

@@ -77,15 +77,16 @@ export function uswdsGridCellClassForChild(
     return equalGridCellClass(columnCount);
 }
 
-/** Internal helper to render standard USWDS layout title/description headers. */
+/** Internal helper to render standard USWDS layout title/description headers, the title at the layout's depth. */
 export function renderUSWDSLayoutHeader(
     el: HTMLElement,
     titleText: LocalizedText | null,
     descriptionText: LocalizedText | null,
     actx: AdapterContext,
+    headingLevel: number,
 ): void {
     if (titleText) {
-        const h = document.createElement('h3');
+        const h = document.createElement(`h${headingLevel}`);
         h.className = 'formspec-layout-title';
         watchText(actx, titleText, (text) => { h.textContent = text; });
         el.appendChild(h);

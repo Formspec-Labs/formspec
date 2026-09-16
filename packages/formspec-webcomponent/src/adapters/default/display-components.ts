@@ -85,10 +85,10 @@ export function renderDefaultCard(behavior: DisplayComponentBehavior, parent: HT
     if (comp.id) el.id = comp.id;
     el.className = 'formspec-card';
     if (comp.title) {
-        const h3 = document.createElement('h3');
-        h3.className = 'formspec-card-title';
-        host.watchCompText(comp, 'title', comp.title, (text) => { h3.textContent = text; });
-        el.appendChild(h3);
+        const h = document.createElement(`h${host.headingLevel}`);
+        h.className = 'formspec-card-title';
+        host.watchCompText(comp, 'title', comp.title, (text) => { h.textContent = text; });
+        el.appendChild(h);
     }
     if (comp.subtitle) {
         const sub = document.createElement('p');
@@ -284,7 +284,7 @@ export function renderDefaultValidationSummary(
                 : errorCount === 1
                     ? 'validationSummary.fixOne'
                     : 'validationSummary.fixMany';
-            const header = document.createElement('h2');
+            const header = document.createElement(`h${host.headingLevel}`);
             header.className = 'formspec-validation-summary-title';
             header.textContent = uiText(host.engine, headerKey, { count: errorCount }).value;
             el.appendChild(header);

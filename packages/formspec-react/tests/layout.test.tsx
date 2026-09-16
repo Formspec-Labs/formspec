@@ -9,6 +9,7 @@ import type { LayoutNode } from '@formspec-org/layout';
 import { FormspecNode } from '../src/node-renderer';
 import { FormspecProvider } from '../src/context';
 import type { LayoutComponentProps } from '../src/component-map';
+import { HeadingLevelContext, RootHeadingLevelContext } from '../src/heading-level';
 
 beforeAll(async () => {
     await initFormspecEngine();
@@ -387,14 +388,14 @@ describe('Section layout', () => {
         expect(container.querySelector('section.formspec-section')).toBeTruthy();
     });
 
-    it('renders h2 title when provided', () => {
+    it('renders the title as a heading at the section\'s depth — h3 at the root by default', () => {
         const container = renderNode({
             id: 'page-2', component: 'Section', category: 'layout',
             props: { title: 'Step 1' }, cssClasses: [], children: [],
         });
-        const h2 = container.querySelector('section.formspec-section h2');
-        expect(h2).toBeTruthy();
-        expect(h2!.textContent).toBe('Step 1');
+        const heading = container.querySelector('section.formspec-section h3');
+        expect(heading).toBeTruthy();
+        expect(heading!.textContent).toBe('Step 1');
     });
 
     it('renders p.formspec-section-description when description provided', () => {
@@ -912,48 +913,47 @@ describe('Popover layout', () => {
 
 // ── Heading hierarchy ─────────────────────────────────────────────
 
-describe('Heading level customization', () => {
-    it('CardLayout defaults to h3 for title', () => {
+describe('Heading depth', () => {
+    const outline = (container: HTMLElement) =>
+        [...container.querySelectorAll('h1, h2, h3, h4, h5, h6')].map((h) => `${h.tagName.toLowerCase()} ${h.textContent}`);
+
+    it('draws a Card title at the depth the card sits at, h3 at the root by default', () => {
         const container = renderNode({
             id: 'card-h1', component: 'Card', category: 'layout',
             props: { title: 'Card Title' }, cssClasses: [], children: [],
         });
         expect(container.querySelector('h3.formspec-card-title')).toBeTruthy();
-        expect(container.querySelector('h2.formspec-card-title')).toBeNull();
     });
 
-    it('CardLayout renders h2 when headingLevel=2', () => {
-        const container = renderNode({
-            id: 'card-h2', component: 'Card', category: 'layout',
-            props: { title: 'Card Title', headingLevel: 2 }, cssClasses: [], children: [],
+    it('nests what a titled Section or Card heads one level deeper; an untitled one adds no depth', () => {
+        const card = (id: string, title?: string): LayoutNode => ({
+            id, component: 'Card', category: 'layout', props: title ? { title } : {}, cssClasses: [],
+            children: [{ id: `${id}-inner`, component: 'Section', category: 'layout', props: { title: 'Inner' }, cssClasses: [], children: [] }],
         });
-        expect(container.querySelector('h2.formspec-card-title')).toBeTruthy();
-        expect(container.querySelector('h3.formspec-card-title')).toBeNull();
+        const container = renderNode({
+            id: 'sec', component: 'Section', category: 'layout',
+            props: { title: 'Outer' }, cssClasses: [],
+            children: [card('titled', 'Your record'), card('bare')],
+        });
+        expect(outline(container)).toEqual(['h3 Outer', 'h4 Your record', 'h5 Inner', 'h4 Inner']);
     });
 
-    it('CardLayout clamps headingLevel to 1–6 (7 → h6)', () => {
-        const container = renderNode({
-            id: 'card-h3', component: 'Card', category: 'layout',
-            props: { title: 'Card Title', headingLevel: 7 }, cssClasses: [], children: [],
+    it('takes the depth the page hands the form through the heading-level contexts', () => {
+        const engine = createFormEngine(simpleDef);
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        flushSync(() => {
+            createRoot(container).render(
+                <FormspecProvider engine={engine}>
+                    <RootHeadingLevelContext.Provider value={2}>
+                        <HeadingLevelContext.Provider value={2}>
+                            <FormspecNode node={{ id: 's', component: 'Section', category: 'layout', props: { title: 'About you' }, cssClasses: [], children: [] }} />
+                        </HeadingLevelContext.Provider>
+                    </RootHeadingLevelContext.Provider>
+                </FormspecProvider>
+            );
         });
-        expect(container.querySelector('h6.formspec-card-title')).toBeTruthy();
-    });
-
-    it('PageLayout defaults to h2 for title', () => {
-        const container = renderNode({
-            id: 'page-h1', component: 'Section', category: 'layout',
-            props: { title: 'Page Title' }, cssClasses: [], children: [],
-        });
-        expect(container.querySelector('section.formspec-section h2')).toBeTruthy();
-    });
-
-    it('PageLayout renders h3 when headingLevel=3', () => {
-        const container = renderNode({
-            id: 'page-h2', component: 'Section', category: 'layout',
-            props: { title: 'Page Title', headingLevel: 3 }, cssClasses: [], children: [],
-        });
-        expect(container.querySelector('section.formspec-section h3')).toBeTruthy();
-        expect(container.querySelector('section.formspec-section h2')).toBeNull();
+        expect(outline(container)).toEqual(['h2 About you']);
     });
 
     it('ModalLayout defaults to h2 for title', () => {

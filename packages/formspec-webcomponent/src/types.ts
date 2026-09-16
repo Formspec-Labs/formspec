@@ -99,6 +99,15 @@ export interface RenderContext {
     isSubmitPending: () => boolean;
 
     /**
+     * The heading depth this component sits at, 1–6: the form's root depth (`<formspec-render heading-level>`)
+     * at the top of the form, one deeper inside each titled group and each container that heads its
+     * children. A heading the component draws over its content — a Card or Panel title, a Section's, an
+     * Accordion item's, a validation summary's — is `h${headingLevel}`; children rendered through
+     * {@link renderComponent} sit one deeper when this component drew such a heading.
+     */
+    headingLevel: number;
+
+    /**
      * Recursively render a child component descriptor into a parent element. Its effects register on
      * `cleanupFns` when given (a repeat row pass's own list), else on this context's {@link cleanupFns}.
      */

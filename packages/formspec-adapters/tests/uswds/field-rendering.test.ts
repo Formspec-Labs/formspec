@@ -20,11 +20,12 @@ afterEach(() => {
 
 function renderForm(
     items: any[],
-    options: { binds?: any[]; theme?: any; locale?: any; componentTree?: any } = {},
+    options: { binds?: any[]; theme?: any; locale?: any; componentTree?: any; headingLevel?: number } = {},
 ): any {
     globalRegistry.setAdapter('uswds');
     const el = document.createElement('formspec-render') as any;
     document.body.appendChild(el);
+    if (options.headingLevel) el.headingLevel = options.headingLevel;
     if (options.locale) {
         el.localeDocuments = [options.locale];
         el.locale = options.locale.locale;
@@ -58,7 +59,7 @@ describe('USWDS validation summary', () => {
         selectors: [{ match: { dataType: 'choice' }, apply: { widget: 'RadioGroup' } }],
     };
 
-    it('lists each finding as a link to its field, a radio group included, worded with the live label', () => {
+    it('lists each finding as a link to its field, a radio group included, worded with the live label, under a heading at the form\'s depth', () => {
         const el = renderForm(
             [
                 { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
@@ -67,6 +68,7 @@ describe('USWDS validation summary', () => {
             {
                 binds: [{ path: 'name', required: 'true' }, { path: 'able', required: 'true' }],
                 theme: radioTheme,
+                headingLevel: 2,
                 componentTree: {
                     component: 'Stack',
                     children: [
@@ -79,6 +81,8 @@ describe('USWDS validation summary', () => {
         );
         el.submit({ profile: 'on-submit', emitEvent: false });
 
+        // A page whose h1 titles the form hands it heading-level 2: the summary's heading is an h2, like a section's.
+        expect(el.querySelector('.formspec-validation-summary .usa-alert__heading')?.tagName).toBe('H2');
         const links = [...el.querySelectorAll('.formspec-validation-summary a.formspec-validation-summary-link')] as HTMLAnchorElement[];
         expect(links.map((a) => a.getAttribute('href'))).toEqual(['#field-name', '#field-able']);
         expect(links.map((a) => a.className)).toEqual(Array(2).fill('usa-link formspec-validation-summary-link formspec-focus-ring'));

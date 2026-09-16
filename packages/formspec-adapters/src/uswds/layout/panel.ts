@@ -19,7 +19,7 @@ export function renderUSWDSPanel(behavior: PanelLayoutBehavior, parent: HTMLElem
     if (titleText) {
         const header = document.createElement('div');
         header.className = 'usa-card__header';
-        const h = document.createElement('h3');
+        const h = document.createElement(`h${host.headingLevel}`);
         h.className = 'usa-card__heading';
         watchText(actx, titleText, (text) => { h.textContent = text; });
         header.appendChild(h);

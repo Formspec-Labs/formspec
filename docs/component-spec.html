@@ -90,6 +90,8 @@ AccessibilityBlock</a></li>
 <li><a href="#localizable-string-properties"
 id="toc-localizable-string-properties">3.6 Localizable String
 Properties</a></li>
+<li><a href="#heading-depth" id="toc-heading-depth">3.7 Heading
+Depth</a></li>
 </ul></li>
 <li><a href="#slot-binding" id="toc-slot-binding">4. Slot Binding</a>
 <ul>
@@ -362,6 +364,7 @@ Tree Semantics (single root)</a></li>
 <li><a href="#35-accessibilityblock">§3.5 AccessibilityBlock</a></li>
 <li><a href="#36-localizable-string-properties">§3.6 Localizable String
 Properties</a></li>
+<li><a href="#37-heading-depth">§3.7 Heading Depth</a></li>
 </ul></li>
 <li><a href="#4-slot-binding">§4 Slot Binding</a>
 <ul>
@@ -1486,6 +1489,26 @@ with an <code>id</code> property are addressable.</p>
 </table>
 <p>Array-valued properties use bracket indexing with numeric indices
 (e.g., <code>$component.mainTabs.tabLabels[0]</code>).</p>
+<h3 id="heading-depth">3.7 Heading Depth</h3>
+<p>A heading a renderer draws for a component — a Section or Card title,
+a titled bound group’s, a ValidationSummary’s, an Accordion item’s, a
+wizard step’s — sits at the component’s <strong>heading
+depth</strong>:</p>
+<ul>
+<li>The tree’s root sits at the depth the host hands the form. Renderers
+SHOULD let the host set it (the web component’s
+<code>heading-level</code> attribute) and MUST default to 3 — one below
+a page whose <code>h1</code> and <code>h2</code> title the form.</li>
+<li>A titled Section, a titled Card, and a titled bound group place
+their children one level deeper. A Stack or Grid <code>title</code>
+heads a row of content, not a division of the form, and adds no depth;
+so does a Panel, Collapsible or Accordion title, which not every
+renderer draws as a heading.</li>
+<li>Depth is capped at 6.</li>
+</ul>
+<p><code>Heading.level</code> (§5.13) is authored and exempt. The rule
+keeps the outline unbroken from the page into the form: no renderer
+skips a level between a heading and the headings beneath it.</p>
 <hr />
 <h2 id="slot-binding">4. Slot Binding</h2>
 <p>Slot binding is the mechanism by which components in the presentation
@@ -1855,7 +1878,8 @@ sectioned forms.</p>
 <li>MUST render as a block-level section element (e.g.,
 <code>&lt;section&gt;</code> or equivalent).</li>
 <li>When <code>title</code> is present, MUST render it as a heading
-element.</li>
+element at the Section’s heading depth, its children one deeper
+(§3.7).</li>
 <li>When <code>formPresentation.pageMode</code> is
 <code>"wizard"</code>, the Section MUST be shown/hidden according to the
 current step navigation state.</li>
@@ -3062,7 +3086,9 @@ provide a visual boundary with optional title and subtitle.</p>
 <ul>
 <li>MUST render as a visually distinct surface with a border or
 shadow.</li>
-<li>When <code>title</code> is present, MUST render a card header.</li>
+<li>When <code>title</code> is present, MUST render a card header whose
+title is a heading at the Card’s heading depth, its children one deeper
+(§3.7).</li>
 <li>MUST render children in array order within the card body.</li>
 </ul>
 <h4 id="example-13">Example</h4>

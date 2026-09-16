@@ -22,6 +22,7 @@ function repeatBehavior() {
             resolveToken: (v: string) => v,
             engine: {} as any,
             cleanupFns: [],
+            headingLevel: 3,
             findItemByKey: () => null,
         },
         repeatCount: count,

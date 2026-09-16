@@ -53,15 +53,16 @@ function stackJustifyContent(value: unknown): string | undefined {
     }
 }
 
-/** Internal helper to render standard layout title/description headers. */
+/** Internal helper to render standard layout title/description headers, the title at the layout's depth. */
 function renderLayoutHeader(
     el: HTMLElement,
     titleText: LocalizedText | null,
     descriptionText: LocalizedText | null,
     actx: AdapterContext,
+    headingLevel: number,
 ): void {
     if (titleText) {
-        const h = document.createElement('h3');
+        const h = document.createElement(`h${headingLevel}`);
         h.className = 'formspec-layout-title';
         watchText(actx, titleText, (text) => { h.textContent = text; });
         el.appendChild(h);
@@ -116,7 +117,7 @@ export function renderStack(behavior: StackLayoutBehavior, parent: HTMLElement, 
     actx.applyStyle(el, comp.style);
     applySurfaceProps(el, comp, host.resolveToken);
 
-    renderLayoutHeader(el, titleText, descriptionText, actx);
+    renderLayoutHeader(el, titleText, descriptionText, actx, host.headingLevel);
 
     parent.appendChild(el);
     for (const child of comp.children || []) {
@@ -148,7 +149,7 @@ export function renderGrid(behavior: GridLayoutBehavior, parent: HTMLElement, ac
     actx.applyStyle(el, comp.style);
     applySurfaceProps(el, comp, host.resolveToken);
 
-    renderLayoutHeader(el, titleText, descriptionText, actx);
+    renderLayoutHeader(el, titleText, descriptionText, actx, host.headingLevel);
 
     parent.appendChild(el);
     for (const child of comp.children || []) {

@@ -9,6 +9,7 @@ function mockHost(): DisplayComponentBehavior['host'] {
         engine: {} as any,
         prefix: '',
         cleanupFns: [],
+        headingLevel: 3,
         watchCompText: (_c, _p, fb, write) => write(fb),
         renderComponent: vi.fn(),
         resolveToken: (v) => v,
@@ -33,14 +34,16 @@ describe('USWDS display', () => {
         expect(parent.querySelector('h2')?.textContent).toBe('Hi');
     });
 
-    it('renderUSWDSCard uses usa-card structure', () => {
+    it('renderUSWDSCard uses usa-card structure, its heading at the depth the card sits at', () => {
         const parent = document.createElement('div');
         const behavior: DisplayComponentBehavior = {
             comp: { title: 'T', children: [] },
-            host: mockHost(),
+            host: { ...mockHost(), headingLevel: 2 },
         };
         renderUSWDSCard(behavior, parent, mockAdapterContext());
-        expect(parent.querySelector('.usa-card .usa-card__heading')?.textContent).toBe('T');
+        const heading = parent.querySelector('.usa-card .usa-card__heading');
+        expect(heading?.textContent).toBe('T');
+        expect(heading?.tagName).toBe('H2');
     });
 
     it('renderUSWDSAlert uses usa-alert body', () => {

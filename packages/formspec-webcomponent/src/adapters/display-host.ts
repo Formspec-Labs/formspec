@@ -27,6 +27,8 @@ export interface DisplayHostSlice {
     focusField(path: string): boolean;
     latestSubmitDetailSignal: RenderContext['latestSubmitDetailSignal'];
     touchedVersion: RenderContext['touchedVersion'];
+    /** The depth a heading this component draws sits at — see {@link RenderContext.headingLevel}. */
+    headingLevel: RenderContext['headingLevel'];
 }
 
 /** A display Item a node was planned from, with its instance path in the current render scope. */
@@ -103,5 +105,6 @@ export function displayHostSlice(ctx: RenderContext): DisplayHostSlice {
         focusField: (path) => ctx.focusField(path),
         latestSubmitDetailSignal: ctx.latestSubmitDetailSignal,
         touchedVersion: ctx.touchedVersion,
+        headingLevel: ctx.headingLevel,
     };
 }

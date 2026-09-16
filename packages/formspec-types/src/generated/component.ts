@@ -1003,7 +1003,7 @@ export interface ValidationSummary extends ComponentBase {
    */
   showFieldErrors?: boolean;
   /**
-   * Whether to render clickable links/buttons that call focusField(path) for jumpable targets.
+   * Whether each field finding renders as a link (<a>) to its field — its fragment names the field's control, activation moves focus there through focusField(path).
    */
   jumpLinks?: boolean;
   /**

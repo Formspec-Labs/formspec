@@ -6,6 +6,7 @@ import { globalRegistry } from '../registry';
 import type { AdapterContext } from '../adapters/types';
 import { uiText } from '../adapters/ui-text';
 import type { DisplayHostSlice } from '../adapters/display-host';
+import { headsChildren } from './heading-depth';
 import type { LayoutHostSlice } from '../adapters/layout-host';
 import { nodeDescriptor, repeatAdapterType } from './emit-node';
 
@@ -57,10 +58,11 @@ function placeholderFieldBehavior(node: LayoutNode): Record<string, unknown> {
 }
 
 /** Text without the engine: whatever the planner already put on the node. */
-function staticDisplayHost(): DisplayHostSlice {
+function staticDisplayHost(headingLevel: number): DisplayHostSlice {
     return {
         engine: undefined as never,
         prefix: '',
+        headingLevel,
         cleanupFns: [],
         watchCompText: (comp, prop, fallback, write) =>
             write(pendingText(String((comp as unknown as Record<string, unknown>)[prop] ?? fallback ?? ''))),
@@ -100,9 +102,10 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
     const adapterFor = (type: string) => globalRegistry.resolveAdapterFn(type, adapterName);
     let fields = 0;
 
-    const layoutHost = (into: HTMLElement, headingLevel: number): LayoutHostSlice => ({
-        renderComponent: (child, target) => walk(child as LayoutNode, (target ?? into) as HTMLElement, headingLevel),
+    const layoutHost = (into: HTMLElement, headingLevel: number, childHeadingLevel = headingLevel): LayoutHostSlice => ({
+        renderComponent: (child, target) => walk(child as LayoutNode, (target ?? into) as HTMLElement, childHeadingLevel),
         prefix: '',
+        headingLevel: Math.min(headingLevel, 6),
         resolveToken: options.resolveToken as LayoutHostSlice['resolveToken'],
         engine: undefined as never,
         cleanupFns: [],
@@ -189,16 +192,18 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
         }
 
         if (current.category === 'display') {
-            attempt(current.component, { comp: nodeDescriptor(current), host: staticDisplayHost() }, into);
+            attempt(current.component, { comp: nodeDescriptor(current), host: staticDisplayHost(Math.min(headingLevel, 6)) }, into);
             return;
         }
 
-        // Layout containers: their own chrome when the adapter has it, otherwise just their children.
+        // Layout containers: their own chrome when the adapter has it, otherwise just their children, one
+        // heading level deeper when the container heads them — the live render's rule.
         const title = current.props?.title as string | undefined;
-        const childLevel = title ? Math.min(headingLevel + 1, 6) : headingLevel;
+        const descriptor = nodeDescriptor(current);
+        const childLevel = headsChildren(descriptor) ? Math.min(headingLevel + 1, 6) : headingLevel;
         const drew = attempt(current.component, {
             comp: { ...current, children: [] },
-            host: layoutHost(into, childLevel),
+            host: layoutHost(into, headingLevel, childLevel),
             titleText: title ? signal(pendingText(title)) : null,
             descriptionText: current.props?.description ? signal(pendingText(String(current.props.description))) : null,
             headingLevel: `h${Math.min(headingLevel, 6)}`,

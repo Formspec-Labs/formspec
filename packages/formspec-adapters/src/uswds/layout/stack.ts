@@ -54,7 +54,7 @@ export function renderUSWDSStack(behavior: StackLayoutBehavior, parent: HTMLElem
     actx.applyStyle(row, comp.style);
     applyUSWDSSurfaceProps(row, comp, host.resolveToken);
 
-    renderUSWDSLayoutHeader(row, titleText, descriptionText, actx);
+    renderUSWDSLayoutHeader(row, titleText, descriptionText, actx, host.headingLevel);
 
     for (const child of comp.children || []) {
         const cell = document.createElement('div');

@@ -50,6 +50,7 @@ export function useWizard(ctx: BehaviorContext, comp: any): WizardBehavior {
         steps,
         stepTitle,
         activeStepTitle,
+        headingLevel: `h${ctx.headingLevel}`,
         showSideNav,
         showProgress,
         allowSkip,

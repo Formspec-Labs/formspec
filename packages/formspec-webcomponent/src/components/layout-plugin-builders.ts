@@ -31,7 +31,7 @@ function hostWithTitleDescription(comp: any, ctx: RenderContext) {
 export function buildSectionBehavior(comp: any, ctx: RenderContext): SectionLayoutBehavior {
     return {
         ...hostWithTitleDescription(comp, ctx),
-        headingLevel: comp.headingLevel || 'h2',
+        headingLevel: `h${ctx.headingLevel}`,
     };
 }
 

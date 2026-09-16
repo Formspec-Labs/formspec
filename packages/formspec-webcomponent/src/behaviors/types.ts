@@ -278,6 +278,11 @@ export interface WizardBehavior {
     stepTitle(index: number): import('../adapters/layout-behaviors').LocalizedText;
     /** The step being shown, by the same rule — for chrome that names only the active one. */
     activeStepTitle: import('../adapters/layout-behaviors').LocalizedText;
+    /**
+     * Heading tag for a step's heading, `'h1'`…`'h6'`: the wizard's own depth, where each step's Section
+     * would have drawn its title — the step's content sits one deeper.
+     */
+    headingLevel: string;
     showSideNav: boolean;
     showProgress: boolean;
     allowSkip: boolean;
@@ -337,6 +342,8 @@ export interface BehaviorContext {
     /** Human-facing References bound to `fieldPath`, in presentation order (References spec §7). */
     fieldHelp?: (fieldPath: string) => readonly FieldHelpReference[];
     renderComponent: (comp: LayoutNode | ComponentDescriptor, parent: HTMLElement, prefix?: string) => void;
+    /** The depth a heading this component draws sits at, 1–6 — see `RenderContext.headingLevel`. */
+    headingLevel: number;
     submit: (options?: {
         profile?: ValidationProfile;
         validationTuple?: ValidationOverride;

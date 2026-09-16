@@ -27,11 +27,12 @@ export type EmitChild = (
     scope: Array<() => void>,
 ) => void;
 
-/** The slice layout adapters get, scoped to the group's own path. */
+/** The slice layout adapters get, scoped to the group's own path and heading depth. */
 function groupHostSlice(
     host: RenderHost,
     path: string,
     cleanupFns: Array<() => void>,
+    headingLevel: number,
     renderComponent: LayoutHostSlice['renderComponent'],
 ): LayoutHostSlice {
     return {
@@ -41,6 +42,7 @@ function groupHostSlice(
         engine: host.engine,
         cleanupFns,
         findItemByKey: host.findItemByKey,
+        headingLevel: Math.min(headingLevel, 6),
     };
 }
 
@@ -88,7 +90,7 @@ export function buildGroupBehavior(
 
     return {
         comp: node,
-        host: groupHostSlice(host, path, cleanupFns, (child, parent, pfx) =>
+        host: groupHostSlice(host, path, cleanupFns, headingLevel, (child, parent, pfx) =>
             emitChild(child as LayoutNode, parent, pfx ?? path, childHeadingLevel, cleanupFns)),
         titleText,
         titleHidden: node.labelPosition === 'hidden',
@@ -187,7 +189,7 @@ export function buildRepeatGroupBehavior(
 
     return {
         comp: node,
-        host: groupHostSlice(host, path, cleanupFns, (child, parent, pfx) =>
+        host: groupHostSlice(host, path, cleanupFns, headingLevel, (child, parent, pfx) =>
             emitChild(child as LayoutNode, parent, pfx ?? path, childHeadingLevel, cleanupFns)),
         bindKey,
         titleText,
