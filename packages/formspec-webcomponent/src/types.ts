@@ -161,13 +161,6 @@ export interface RenderContext {
 
     /** Adapter context for the headless behavior→adapter pipeline. */
     adapterContext: AdapterContext;
-
-    /**
-     * Whether the render root is the opt-in declarative WebMCP `<form>` (assist-spec §8.2), not the default
-     * `<div>`. Gates the submit-intent {@link ComponentPlugin}'s native `type="submit"` and each field's native
-     * `required` — both no-ops outside the tool form, where the browser never reads either.
-     */
-    isDeclarativeToolForm: boolean;
 }
 
 /**

@@ -339,7 +339,6 @@ export function renderActualComponent(
             isDeclarativeToolForm: host.isDeclarativeToolForm(),
         },
         adapterContext: adapterContextFor(host, cleanupFns),
-        isDeclarativeToolForm: host.isDeclarativeToolForm(),
     };
 
     // pageMode-driven rendering: a planner-marked Stack root with direct Section children triggers the

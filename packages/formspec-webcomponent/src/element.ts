@@ -715,13 +715,19 @@ export class FormspecRender extends HTMLElement {
 
     /**
      * Formspec owns validation and submission: no native constraint bubbles, and a submission never navigates.
-     * A respondent submission — Enter's implicit submission or a click on the native submit button, the only
-     * ActionButton `type="submit"` ever renders (`ensureActionButton`'s actionable rule) — runs the same
-     * submit-intent Action a click runs, through the one path both use, {@link invokeAction}; the
-     * ActionButton's own click handler skips that call once it is the native submit button, so this runs
-     * exactly once. An agent-invoked submission runs the intent too, then answers through `respondWith()` with
-     * the ValidationReport *the submission produced* (assist-spec §8.2 SHOULD) — the intent runs before the
-     * answer is built. No submit-intent Action published: fall back to the engine's current report.
+     * A respondent submission — a click on the native submit button, or Enter's implicit submission of it —
+     * carries that button as `event.submitter`; that's this listener's ONLY signal that a real submit-intent
+     * button (rather than the browser's own no-button implicit-submission fallback — a form with no default
+     * button and at most one text-like field submits directly on Enter, `submitter: null`) is what triggered
+     * this. `bindNativeSubmitEligibility` (components/interactive.ts) keeps a Wizard's button non-`submit`
+     * off its last step so it can't BE that submitter there, but this check is the one that actually decides
+     * whether to act — required, since a submitter-less submission is not a respondent action to run anything
+     * for. A qualifying submission runs the same submit-intent Action a click runs, through the one path both
+     * use, {@link invokeAction}; the ActionButton's own click handler skips that call once it is the native
+     * submit button, so this runs exactly once. An agent-invoked submission runs the intent too, then answers
+     * through `respondWith()` with the ValidationReport *the submission produced* (assist-spec §8.2 SHOULD) —
+     * the intent runs before the answer is built. No submit-intent Action published: fall back to the
+     * engine's current report.
      */
     private createToolForm(): HTMLFormElement {
         const form = document.createElement('form');
@@ -730,7 +736,10 @@ export class FormspecRender extends HTMLElement {
             event.preventDefault();
             const actionRef = this.injectedSubmitActionRef();
             if (event.agentInvoked !== true) {
-                if (actionRef) void this.invokeAction(actionRef);
+                const submitter = event.submitter;
+                if (actionRef && submitter instanceof HTMLButtonElement && submitter.type === 'submit') {
+                    void this.invokeAction(actionRef, submitter.id || undefined);
+                }
                 return;
             }
             if (typeof event.respondWith !== 'function' || !this.engine) return;

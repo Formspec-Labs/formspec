@@ -3,6 +3,22 @@ import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
 import { minimalComponentDoc } from './helpers/engine-fixtures';
 
 let FormspecRender: any;
+let globalRegistry: any;
+
+/**
+ * A test-only adapter shaped exactly like packages/formspec-adapters/src/uswds/action-button.ts: draws its
+ * own `type="button"` and hands the button to `behavior.bind()` — fs-8kpq review MAJOR 1's repro for "an
+ * adapter that hardcodes a button type must still become invokable."
+ */
+function mockUswdsLikeActionButton(behavior: any, parent: HTMLElement, actx: any): void {
+    const button = document.createElement('button');
+    if (behavior.id) button.id = behavior.id;
+    button.type = 'button';
+    button.className = 'formspec-action formspec-submit mock-uswds-button';
+    button.textContent = behavior.defaultLabel || 'Submit';
+    parent.appendChild(button);
+    actx.onDispose(behavior.bind({ root: button }));
+}
 
 const DEFINITION = {
     $formspec: '1.0',
@@ -26,7 +42,9 @@ const DEFINITION = {
 beforeAll(async () => {
     const mod = await import('../src/index');
     FormspecRender = mod.FormspecRender;
+    globalRegistry = mod.globalRegistry;
     if (!customElements.get('formspec-render')) customElements.define('formspec-render', FormspecRender);
+    globalRegistry.registerAdapter({ name: 'test-uswds-like', components: { ActionButton: mockUswdsLikeActionButton } });
 });
 
 afterEach(() => {
@@ -197,6 +215,43 @@ describe('submit-intent ActionButton is the tool form\'s native submit button, w
         for (const radio of radios) expect((radio as HTMLInputElement).required).toBe(true);
     });
 
+    it('checkbox groups never get native required — it would read as "check every box" (fs-8kpq review MAJOR 3)', () => {
+        const el = document.createElement('formspec-render') as any;
+        el.setAttribute('tool-name', '');
+        document.body.appendChild(el);
+        el.componentDocument = minimalComponentDoc({
+            component: 'Stack',
+            children: [{ component: 'CheckboxGroup', bind: 'pets' }],
+        }, { targetDefinition: { url: 'urn:test:webmcp-checkbox' } });
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:webmcp-checkbox',
+            version: '1.0.0',
+            title: 'Pets',
+            items: [{
+                key: 'pets', type: 'field', label: 'Pets', dataType: 'multiChoice',
+                options: [{ value: 'cat', label: 'Cat' }, { value: 'dog', label: 'Dog' }],
+            }],
+            binds: [{ path: 'pets', required: 'true' }],
+        };
+        el.render();
+        const checkboxes = el.querySelectorAll('input[name="pets"]');
+        expect(checkboxes.length).toBe(2);
+        for (const checkbox of checkboxes) expect((checkbox as HTMLInputElement).required).toBe(false);
+    });
+
+    it('overrides an adapter\'s hardcoded type="button" (USWDS\'s action-button.ts renders type="button") under the tool form (fs-8kpq review MAJOR 1)', () => {
+        const el = mountTool();
+        el.adapter = 'test-uswds-like';
+        el.responseActionsDocument = responseActionsDoc([{ id: 'submit' }]);
+        el.render();
+        const button = el.querySelector('.formspec-submit') as HTMLButtonElement;
+        expect(button.type).toBe('submit');
+        const invokeSpy = vi.spyOn(el, 'invokeAction');
+        button.click(); // the adapter's own click handler must defer to the form's submit listener too
+        expect(invokeSpy).toHaveBeenCalledTimes(1);
+    });
+
     it('never becomes the native submit button for a non-submit-intent Action (e.g. Save Draft)', () => {
         const el = mountTool();
         el.responseActionsDocument = responseActionsDoc([{ id: 'save-draft', intent: 'save' }]);
@@ -221,7 +276,8 @@ describe('submit-intent ActionButton is the tool form\'s native submit button, w
         expect(button.type).toBe('submit');
         button.click(); // a native submit button's click also fires the enclosing form's `submit` event
         expect(invokeSpy).toHaveBeenCalledTimes(1);
-        expect(invokeSpy).toHaveBeenCalledWith('submit');
+        // nodeId comes from event.submitter.id (MAJOR 2 review); the auto-injected button carries none.
+        expect(invokeSpy).toHaveBeenCalledWith('submit', undefined);
     });
 
     it('runs the submit-intent Action for an agent-invoked submission before answering', async () => {
@@ -294,7 +350,7 @@ describe('wizard page mode: the native submit button is only actionable on the l
         expect(button.type).toBe('button');
     });
 
-    it('an Enter-driven submit event on the final page runs the submit intent once, not twice', () => {
+    it('clicking the native submit button on the final page runs the submit intent once, not twice', () => {
         const el = mountWizardTool();
         const wizardRoot = el.querySelector('.formspec-wizard') as HTMLElement;
         wizardRoot.dispatchEvent(new CustomEvent('formspec-wizard-set-step', { detail: { index: 1 } }));
@@ -303,8 +359,24 @@ describe('wizard page mode: the native submit button is only actionable on the l
 
         const invokeSpy = vi.spyOn(el, 'invokeAction');
         // happy-dom (like a real browser) fires the form's native `submit` event when a type="submit"
-        // button inside it is clicked — the same sequence Chromium's implicit (Enter) submission runs.
+        // button inside it is clicked, with that button as event.submitter — the same sequence Chromium's
+        // implicit (Enter) submission runs when this button is the form's default button.
         button.click();
         expect(invokeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('a submission with no submitter — the browser\'s own no-default-button implicit-submit fallback — does not run the intent', () => {
+        // fs-8kpq review MAJOR 2: on a non-final step the button is type="button", so it is not the form's
+        // default button — but a form with no default button and at most one text-like field still submits
+        // directly on Enter (HTML implicit submission), with submitter: null. That is not a respondent
+        // choosing to submit, so it must not run the submit-intent Action.
+        const el = mountWizardTool();
+        const button = el.querySelector('.formspec-submit') as HTMLButtonElement;
+        expect(button.type).toBe('button'); // step 0: non-final
+
+        const invokeSpy = vi.spyOn(el, 'invokeAction');
+        const form = root(el) as HTMLFormElement;
+        form.requestSubmit(); // no submitter argument — submitter is null, exactly like the no-button fallback
+        expect(invokeSpy).not.toHaveBeenCalled();
     });
 });

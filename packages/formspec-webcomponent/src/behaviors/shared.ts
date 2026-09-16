@@ -214,7 +214,12 @@ export function bindSharedFieldEffects(
         if (!checkboxGroup) stateTarget.setAttribute('aria-required', String(isRequired));
         // Assist spec §8.2: under the opt-in tool form (novalidate — no browser validation bubble to suppress),
         // native `required` on each named control is the synthesized schema's only signal for `required[]`.
-        if (ctx.isDeclarativeToolForm) {
+        // Skipped for a checkbox group: `required` on an individual checkbox means "this one must be checked",
+        // not "at least one of the group must be" — setting it on every option would read as "check every
+        // box" to a declarative-tool synthesizer, degrading the schema (§8.2 MUST NOT). A radio group is a
+        // single value across same-named radios, so `required` on each carries the conventional HTML meaning
+        // and stays.
+        if (ctx.isDeclarativeToolForm && !checkboxGroup) {
             for (const el of namedControls(refs.root)) {
                 syncAttribute(el, 'required', isRequired ? '' : null);
             }

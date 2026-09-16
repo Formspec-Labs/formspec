@@ -51,6 +51,35 @@ function bindNativeSubmitEligibility(button: HTMLButtonElement, cleanupFns: Arra
     cleanupFns.push(() => document.removeEventListener('formspec-page-change', onPageChange));
 }
 
+/**
+ * Wire an ActionButton's click to invoke its Action, and — for a submit-intent Action under the opt-in tool
+ * form — make it the tool form's native submit button wherever actionable (assist-spec §8.2; see
+ * {@link bindNativeSubmitEligibility}). One seam for both ActionButton render paths, the adapter-drawn button
+ * and the plain fallback below: an adapter that hardcodes `type="button"` (USWDS's does) still becomes
+ * invokable, because this runs after the adapter draws the button and overrides its type. A `type="submit"`
+ * button's click also fires the form's native `submit` event, and `createToolForm`'s listener (element.ts)
+ * runs the intent from there, so the click handler always skips the direct call once the button carries that
+ * type — running it in both places would run it twice.
+ */
+function bindActionButtonSubmit(
+    button: HTMLButtonElement,
+    ctx: RenderContext,
+    action: Record<string, unknown> | null,
+    invoke: () => void,
+): () => void {
+    const disposers: Array<() => void> = [];
+    if (ctx.behaviorContext.isDeclarativeToolForm && action?.intent === 'submit') {
+        bindNativeSubmitEligibility(button, disposers);
+    }
+    const handleClick = () => {
+        if (button.type === 'submit') return;
+        invoke();
+    };
+    button.addEventListener('click', handleClick);
+    disposers.push(() => button.removeEventListener('click', handleClick));
+    return () => disposers.forEach((dispose) => dispose());
+}
+
 /** Renders a tabbed interface via the behavior-adapter pipeline. */
 export const TabsPlugin: ComponentPlugin = {
     type: 'Tabs',
@@ -88,13 +117,10 @@ export const ActionButtonPlugin: ComponentPlugin = {
                         button.textContent = pending ? pendingLabel.value : defaultLabel.value;
                         button.disabled = !actionResolved || (disableWhenPending ? pending : false);
                     });
-                    const handleClick = () => {
-                        void ctx.invokeAction(actionRef, comp.id);
-                    };
-                    button.addEventListener('click', handleClick);
+                    const disposeSubmitBind = bindActionButtonSubmit(button, ctx, action, () => void ctx.invokeAction(actionRef, comp.id));
                     return () => {
                         disposeEffect();
-                        button.removeEventListener('click', handleClick);
+                        disposeSubmitBind();
                     };
                 },
             }, parent, ctx.adapterContext);
@@ -117,17 +143,7 @@ export const ActionButtonPlugin: ComponentPlugin = {
             button.textContent = pending ? pendingLabel.value : defaultLabel.value;
             button.disabled = !actionResolved || (disableWhenPending ? pending : false);
         }));
-        // Assist spec §8.2: the tool form's only native submit button, where actionable — see
-        // bindNativeSubmitEligibility. Default (no tool-name) rendering never reaches here: type stays "button".
-        if (ctx.isDeclarativeToolForm && action?.intent === 'submit') {
-            bindNativeSubmitEligibility(button, ctx.cleanupFns);
-        }
-        button.addEventListener('click', () => {
-            // A native submit button's click also fires the form's `submit` event (the tool form's listener
-            // runs the intent from there — createToolForm in element.ts); running it here too would run it twice.
-            if (button.type === 'submit') return;
-            void ctx.invokeAction(actionRef, comp.id);
-        });
+        ctx.cleanupFns.push(bindActionButtonSubmit(button, ctx, action, () => void ctx.invokeAction(actionRef, comp.id)));
         parent.appendChild(button);
     },
 };

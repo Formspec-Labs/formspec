@@ -939,16 +939,31 @@ A `toolautosubmit`-absent tool is discoverable but inert without a native
 submit button, so the renderer's submit-intent control MUST be `type="submit"`
 wherever it is actually the respondent's next action — always, when
 `formPresentation.pageMode` is not `"wizard"`; only on the Wizard's last
-Section otherwise, since every Section stays mounted (merely hidden) once
-built and a browser's implicit (Enter) submission clicks the first submit
-button in tree order regardless of visibility, so an unconditional
-`type="submit"` would let Enter submit from any earlier step. Every control
-whose bind is required MUST also carry the native `required` attribute even
-though the form is `novalidate` — it is the only signal a browser's schema
-synthesizer has for `required[]`, since `aria-required` is not read for that
-purpose. Whether the submission that triggers `respondWith()` came from the
-agent or the respondent, the submit-intent Action MUST run before the answer
-is built, so the `SHOULD` above resolves to the report that submission
+Section otherwise. The invariant behind that split: the native submit button
+MUST be actionable only where the respondent can currently act on it, since a
+user agent's implicit (Enter) submission clicks the first submit button in
+tree order regardless of visibility, and an unconditionally `type="submit"`
+control would let Enter submit from a step the respondent has not reached.
+That type discipline alone is not sufficient — some user agents submit a form
+directly on Enter, with no submitter, when it has no default button and few
+enough fields — so a renderer MUST also refuse to run the submit-intent
+Action for a submission whose `submitter` is not that native submit button; a
+renderer MUST still prevent such a submission from navigating but MUST NOT
+run anything for it. A required bind's control MUST also carry the native
+`required` attribute even though the form is `novalidate` — the only signal a
+browser's schema synthesizer has for `required[]`, since `aria-required` is
+not read for that purpose — except a checkbox group's controls, where
+`required` on one control means "this one must be checked" rather than "pick
+at least one" and would misstate the schema; a renderer MUST NOT set it
+there, accepting the missing `required[]` entry instead (§8.2's own MUST NOT
+degrade accessibility applies equally to a schema annotation that misstates
+intent). A Wizard's declarative tool is invokable only while the respondent
+is on the last Section: a WebMCP browser fills every named control across
+every Section before it ever looks for the submit button, so an agent that
+must fill a multi-step form SHOULD use a live Assist Provider (§7.2) instead.
+Whether the submission that triggers `respondWith()` came from the agent or
+the respondent, the submit-intent Action MUST run before the answer is
+built, so the `SHOULD` above resolves to the report that submission
 produced, never a stale or independently recomputed one.
 
 [webmcp-declarative]: https://github.com/webmachinelearning/webmcp/blob/main/declarative-api-explainer.md
