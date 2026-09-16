@@ -211,12 +211,14 @@ $fs-rhythm-blocks: '.usa-form-group, .formspec-uswds-text-wrap, .formspec-uswds-
 
 // The Modal is a native <dialog> carrying `usa-modal` itself: the browser is the overlay (top layer,
 // backdrop, Escape, focus trap), so there is no usa-modal-wrapper/-overlay markup and no USWDS modal JS.
-// Four declarations reconcile the box with the UA dialog: `.usa-modal`'s `position: relative` would pull
+// These declarations reconcile the box with the UA dialog: `.usa-modal`'s `position: relative` would pull
 // an open dialog out of the top layer's fixed centering into page flow; its `margin: 1.25rem auto` would
 // over-constrain a fixed, inset-0 box into filling the viewport height; the UA border and padding are not
 // USWDS's; and `overflow: auto` keeps content taller than the UA max-height scrollable instead of
 // spilling off-screen. The width leaves usa-modal-overlay's side gutter on narrow screens; `.usa-modal`
-// and `--lg` still cap it.
+// and `--lg` still cap it. A closed dialog is `display: none` in the UA sheet; `.usa-modal`'s
+// `display: inline-block` (USWDS hides its own modal through a wrapper) outranks that, so the closed
+// state is restated here — otherwise Close closes the dialog and leaves its box painted on the page.
 dialog.usa-modal {
   position: fixed;
   margin: auto;
@@ -224,6 +226,10 @@ dialog.usa-modal {
   border: 0;
   width: calc(100% - #{units(3) * 2});
   overflow: auto;
+
+  &:not([open]) {
+    display: none;
+  }
 }
 
 dialog.usa-modal::backdrop {

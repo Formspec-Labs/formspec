@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@preact/signals-core';
 import type { ModalLayoutBehavior } from '@formspec-org/webcomponent';
 import { renderUSWDSModal } from '../../src/uswds/layout/modal';
-import { mockAdapterContext } from '../helpers';
+import { mockAdapterContext, readUswdsAdapterCss } from '../helpers';
 
 function mount(comp: Record<string, unknown> = {}) {
     const behavior: ModalLayoutBehavior = {
@@ -47,6 +47,27 @@ describe('USWDS Modal', () => {
         expect(dialog.style.top).toBe('');
         dialog.close();
         expect(dialog.open).toBe(false);
+    });
+
+    it('disappears when closed, under USWDS\'s own modal rules', () => {
+        // `.usa-modal` sets `display: inline-block` (USWDS hides its modal through a wrapper), which
+        // outranks the UA's `dialog:not([open]) { display: none }`. Close would then close the dialog and
+        // leave its box painted; the rules layer restates the closed state.
+        const style = document.createElement('style');
+        style.textContent = readUswdsAdapterCss();
+        document.head.appendChild(style);
+        try {
+            const { dialog, trigger } = mount();
+            expect(getComputedStyle(dialog).display).toBe('none');
+            trigger.click();
+            expect(dialog.open).toBe(true);
+            expect(getComputedStyle(dialog).display).not.toBe('none');
+            dialog.close();
+            expect(dialog.open).toBe(false);
+            expect(getComputedStyle(dialog).display).toBe('none');
+        } finally {
+            style.remove();
+        }
     });
 
     it('anchors near its trigger only when the spec sets placement', async () => {

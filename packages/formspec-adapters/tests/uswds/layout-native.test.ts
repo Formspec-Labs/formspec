@@ -276,7 +276,7 @@ describe('USWDS layout natives', () => {
         expect(card.style.background).toBe('#fff');
     });
 
-    it('renderUSWDSModal keeps the dialog hidden until the trigger opens it', () => {
+    it('renderUSWDSModal keeps the dialog closed until the trigger opens it, with no switch of its own', () => {
         const parent = document.createElement('div');
         const behavior: ModalLayoutBehavior = {
             comp: { children: [], triggerLabel: 'Open details' },
@@ -289,9 +289,10 @@ describe('USWDS layout natives', () => {
         const trigger = Array.from(parent.querySelectorAll('button')).find((el) => el.textContent === 'Open details') as HTMLButtonElement | null;
         expect(dialog).not.toBeNull();
         expect(trigger?.textContent).toBe('Open details');
-        expect(dialog?.hidden).toBe(true);
-        expect(dialog?.getAttribute('hidden')).toBe('');
-        // A closed <dialog> is not rendered natively; an inline display would be a second switch to keep.
+        expect(dialog?.open).toBe(false);
+        // The `open` attribute is the one switch: the rules layer's `dialog.usa-modal:not([open])` hides a
+        // closed dialog (tests/uswds/modal.test.ts), so neither `hidden` nor an inline display is kept in step.
+        expect(dialog?.hasAttribute('hidden')).toBe(false);
         expect(dialog?.style.display).toBe('');
     });
 });
