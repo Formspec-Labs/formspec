@@ -4,7 +4,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { computed, signal as createSignal } from '@preact/signals-core';
 import { useChromeText } from './use-chrome-text';
-import type { LayoutNode } from '@formspec-org/layout';
+import type { LayoutNode, ValidationSummaryComp } from '@formspec-org/layout';
 import type { FormItem } from '@formspec-org/types';
 import { useFormspecContext, findItemByKey } from './context.js';
 import { useSignal } from './use-signal';
@@ -169,7 +169,7 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
             return <DataTableDisplay node={node} cssClass={cssClass} style={style} metadataAttrs={graphAttrs} />;
 
         case 'ValidationSummary':
-            return <ValidationSummaryDisplay />;
+            return <ValidationSummaryDisplay node={node} />;
 
         case 'Text':
         default: {
@@ -627,21 +627,7 @@ function DataTableDisplay({
     );
 }
 
-function ValidationSummaryDisplay() {
-    const { engine, touchedVersion } = useFormspecContext();
-    const touched = useSignal(touchedVersion);
-    useSignal(engine.structureVersion);
-
-    if (touched === 0) {
-        return null;
-    }
-
-    const report = engine.getValidationReport({ profile: 'live' });
-    const results = report.results.map((r) => ({
-        path: r.path || '',
-        // The words the field itself shows (Locale validation-message cascade), not the processor's.
-        message: engine.resolveValidationMessage(r) || 'Validation error',
-        severity: r.severity || 'error',
-    }));
-    return <ValidationSummary results={results} autoFocus={false} />;
+/** A placed ValidationSummary: its own props (source, mode, showFieldErrors, jumpLinks, dedupe) decide what shows. */
+function ValidationSummaryDisplay({ node }: { node: LayoutNode }) {
+    return <ValidationSummary comp={(node.props ?? {}) as ValidationSummaryComp} autoFocus={false} />;
 }

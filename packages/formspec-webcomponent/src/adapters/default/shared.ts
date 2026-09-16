@@ -51,6 +51,9 @@ export function createFieldDOM(
     const root = document.createElement(asGroup ? 'fieldset' : 'div');
     root.className = asGroup ? 'formspec-fieldset' : 'formspec-field';
     root.dataset.name = behavior.fieldPath;
+    // A field's id names its control — or its group when the control is a set of options, so a fragment
+    // (`#field-…`, a validation summary's jump link) lands on every field the same way.
+    if (asGroup) root.id = fieldId;
     // data-bind: the base item key (last segment of fieldPath, no array indices).
     // Used by the Theme mode authoring overlay to look up theme overrides by itemKey.
     const itemKey = behavior.fieldPath.replace(/\[\d+\]/g, '').split('.').pop();

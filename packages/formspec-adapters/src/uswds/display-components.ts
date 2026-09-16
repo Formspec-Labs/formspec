@@ -314,17 +314,21 @@ export function renderUSWDSValidationSummary(
             const list = document.createElement('ul');
             list.className = 'usa-list';
 
-            for (const { message, labeled, jumpPath } of rows) {
+            for (const { message, text, jumpPath, jumpHref } of rows) {
                 const li = document.createElement('li');
-                if (jumpPath !== null) {
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'usa-button usa-button--unstyled formspec-validation-summary-link formspec-focus-ring';
-                    button.textContent = labeled;
-                    button.addEventListener('click', () => {
+                if (jumpPath !== null && jumpHref !== null) {
+                    // A link to the control — a place on the page, which is what a screen reader calls it and
+                    // what USWDS's own error pattern draws. The click lands the focus the way `focusField`
+                    // does (disclosures opened, wizard step revealed); the fragment names the same control.
+                    const link = document.createElement('a');
+                    link.href = jumpHref;
+                    link.className = 'usa-link formspec-validation-summary-link formspec-focus-ring';
+                    link.textContent = text;
+                    link.addEventListener('click', (event) => {
+                        event.preventDefault();
                         host.focusField(jumpPath);
                     });
-                    li.appendChild(button);
+                    li.appendChild(link);
                 } else {
                     // Match USWDS comparison pane: plain message bullets (no label prefix, no icons).
                     li.appendChild(document.createTextNode(message));

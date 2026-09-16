@@ -4366,8 +4366,9 @@ shape-level findings.</td>
 <td>boolean</td>
 <td><code>false</code></td>
 <td>No</td>
-<td>Whether to render clickable links or buttons that call
-<code>focusField(path)</code> for jumpable targets.</td>
+<td>Whether each field finding renders as a link to its field — an
+<code>&lt;a&gt;</code> whose fragment names the field’s control,
+activated through <code>focusField(path)</code>.</td>
 </tr>
 <tr>
 <td><code>dedupe</code></td>
@@ -4385,8 +4386,20 @@ collapsed into a single row.</td>
 <li>MUST display each finding’s severity (error, warning, info) and
 message text.</li>
 <li>When <code>jumpLinks</code> is <code>true</code> and the finding has
-a <code>path</code>, MUST render a clickable control that calls
-<code>focusField(path)</code>.</li>
+a <code>path</code>, MUST render the finding as a link
+(<code>&lt;a&gt;</code>) whose fragment names the field’s control, and
+on activation MUST move focus there through
+<code>focusField(path)</code> (revealing a hidden step or disclosure
+first). A link, not a button: the row navigates to a place, which is
+what assistive technology announces, and a link wraps as text where a
+button cannot.</li>
+<li>A field’s control id names the control, or its group when the
+control is a set of options (radio, checkbox), so a fragment lands on
+every field the same way.</li>
+<li>Each field finding MUST be worded through
+<code>$ui.validationSummary.row</code> (Locale spec §3.1.10) with the
+field’s live label and the message the field itself shows; a form-level
+finding shows its message alone.</li>
 <li>When <code>dedupe</code> is <code>true</code>, MUST collapse
 duplicate findings before rendering.</li>
 <li>When no findings are present, the component SHOULD render nothing

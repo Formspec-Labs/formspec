@@ -2425,7 +2425,7 @@ event detail). Optionally renders jump links that invoke
 | `source` | string | `"live"` | No | Validation source. `"live"` reads continuous engine state; `"submit"` reads the latest `formspec-submit` event detail. |
 | `mode` | string | `"continuous"` | No | Validation mode used when `source` is `"live"`. MUST be one of `"continuous"` or `"submit"`. |
 | `showFieldErrors` | boolean | `false` | No | Whether to include bind-level field errors in addition to shape-level findings. |
-| `jumpLinks` | boolean | `false` | No | Whether to render clickable links or buttons that call `focusField(path)` for jumpable targets. |
+| `jumpLinks` | boolean | `false` | No | Whether each field finding renders as a link to its field — an `<a>` whose fragment names the field's control, activated through `focusField(path)`. |
 | `dedupe` | boolean | `true` | No | Whether duplicate messages (same severity, path, and message) are collapsed into a single row. |
 
 #### Rendering Requirements
@@ -2434,7 +2434,18 @@ event detail). Optionally renders jump links that invoke
 - MUST display each finding's severity (error, warning, info) and
   message text.
 - When `jumpLinks` is `true` and the finding has a `path`, MUST
-  render a clickable control that calls `focusField(path)`.
+  render the finding as a link (`<a>`) whose fragment names the
+  field's control, and on activation MUST move focus there through
+  `focusField(path)` (revealing a hidden step or disclosure first).
+  A link, not a button: the row navigates to a place, which is what
+  assistive technology announces, and a link wraps as text where a
+  button cannot.
+- A field's control id names the control, or its group when the
+  control is a set of options (radio, checkbox), so a fragment lands
+  on every field the same way.
+- Each field finding MUST be worded through `$ui.validationSummary.row`
+  (Locale spec §3.1.10) with the field's live label and the message the
+  field itself shows; a form-level finding shows its message alone.
 - When `dedupe` is `true`, MUST collapse duplicate findings before
   rendering.
 - When no findings are present, the component SHOULD render nothing

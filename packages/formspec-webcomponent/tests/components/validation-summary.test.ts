@@ -117,6 +117,25 @@ describe('ValidationSummary — source: live', () => {
         expect(summary.textContent).toContain('Name');
     });
 
+    it('links each field row to its control, worded through $ui.validationSummary.row with the live label', () => {
+        const el = renderWithValidationSummary({ jumpLinks: true });
+        el.localeDocuments = [{
+            $formspecLocale: '2.0', version: '1.0.0', locale: 'en', target: { kind: 'definition', url: 'urn:test:form' },
+            strings: { 'name.label': 'Legal name', '$ui.validationSummary.row': '{{$label}} — {{$message}}' },
+        }];
+        el.locale = 'en';
+        el.render();
+        (el.querySelector('.formspec-submit') as HTMLButtonElement).click();
+
+        const link = el.querySelector('.formspec-validation-summary a.formspec-validation-summary-link') as HTMLAnchorElement;
+        expect(link.getAttribute('href')).toBe('#field-name');
+        expect(link.textContent).toMatch(/^Legal name — /);
+        expect(el.querySelector('#field-name')).not.toBeNull();
+
+        link.click();
+        expect(document.activeElement).toBe(el.querySelector('#field-name'));
+    });
+
     it('remains hidden on initial load when the form is valid', () => {
         const el = renderWithValidationSummary({ source: 'live', mode: 'submit', showFieldErrors: true });
         // Set the required field so form is valid

@@ -50,6 +50,49 @@ function renderForm(
     return el;
 }
 
+describe('USWDS validation summary', () => {
+    const radioTheme = {
+        $formspecTheme: '1.0',
+        version: '1.0.0',
+        targetDefinition: { url: 'urn:test:uswds-fields' },
+        selectors: [{ match: { dataType: 'choice' }, apply: { widget: 'RadioGroup' } }],
+    };
+
+    it('lists each finding as a link to its field, a radio group included, worded with the live label', () => {
+        const el = renderForm(
+            [
+                { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+                { key: 'able', type: 'field', dataType: 'choice', label: 'Able?', options: [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }] },
+            ],
+            {
+                binds: [{ path: 'name', required: 'true' }, { path: 'able', required: 'true' }],
+                theme: radioTheme,
+                componentTree: {
+                    component: 'Stack',
+                    children: [
+                        { component: 'ValidationSummary', source: 'submit', showFieldErrors: true, jumpLinks: true },
+                        { component: 'TextInput', bind: 'name' },
+                        { component: 'RadioGroup', bind: 'able' },
+                    ],
+                },
+            },
+        );
+        el.submit({ profile: 'on-submit', emitEvent: false });
+
+        const links = [...el.querySelectorAll('.formspec-validation-summary a.formspec-validation-summary-link')] as HTMLAnchorElement[];
+        expect(links.map((a) => a.getAttribute('href'))).toEqual(['#field-name', '#field-able']);
+        expect(links.map((a) => a.className)).toEqual(Array(2).fill('usa-link formspec-validation-summary-link formspec-focus-ring'));
+        expect(links[1].textContent).toMatch(/^Able\?: /);
+        // The radio group's fieldset carries the field's id: the fragment names the group, the options sit beneath it.
+        const group = el.querySelector('#field-able') as HTMLElement;
+        expect(group.tagName).toBe('FIELDSET');
+        expect(group.querySelector('#field-able-0')).not.toBeNull();
+
+        links[1].click();
+        expect(document.activeElement).toBe(group.querySelector('#field-able-0'));
+    });
+});
+
 describe('USWDS error messages — aria-describedby', () => {
     const requiredBind = (path: string) => ({ path, required: 'true' });
     const radioTheme = {

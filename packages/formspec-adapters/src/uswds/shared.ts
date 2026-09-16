@@ -45,7 +45,10 @@ export function createUSWDSFieldDOM(
     // USWDS's own template wraps the fieldset: `div.usa-form-group > fieldset.usa-fieldset > legend`.
     // The error modifier is a left border, and a fieldset paints its border through the legend's vertical
     // midpoint — put it on the fieldset and the red bar starts halfway down every multi-line question.
-    const content = asGroup ? el('fieldset', { class: 'usa-fieldset' }) : root;
+    // A field's id names its control — or its group when the control is a set of options, so a fragment
+    // (`#field-…`, a validation summary's jump link) lands on every field the same way. The options take
+    // `id-0`, `id-1`, … beneath it.
+    const content = asGroup ? el('fieldset', { class: 'usa-fieldset', id: fieldId }) : root;
     if (asGroup) root.appendChild(content);
 
     // Label

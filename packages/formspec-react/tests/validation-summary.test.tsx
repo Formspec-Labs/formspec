@@ -52,8 +52,10 @@ describe('ValidationSummary — repeat rows', () => {
             </FormspecProvider>,
         );
 
-        const link = container.querySelector<HTMLButtonElement>('.formspec-validation-summary-link');
+        // A link to the control — the same rows and wording the web component's adapters draw.
+        const link = container.querySelector<HTMLAnchorElement>('a.formspec-validation-summary-link');
         expect(link?.textContent).toMatch(/^Row name: /);
+        expect(link?.getAttribute('href')).toBe('#' + container.querySelector('input[name="rows[1].rowName"]')!.id);
 
         act(() => link!.click());
         expect(document.activeElement).toBe(container.querySelector('input[name="rows[1].rowName"]'));

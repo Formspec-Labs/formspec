@@ -291,7 +291,7 @@ export function renderDefaultValidationSummary(
 
             const severityIcon: Record<string, string> = { error: '✕', warning: '!', info: 'i' };
 
-            for (const { severity, labeled, jumpPath } of rows) {
+            for (const { severity, text, jumpPath, jumpHref } of rows) {
                 const row = document.createElement('div');
                 row.className = `formspec-shape-${severity}`;
                 const icon = document.createElement('span');
@@ -299,19 +299,21 @@ export function renderDefaultValidationSummary(
                 icon.setAttribute('aria-hidden', 'true');
                 icon.textContent = severityIcon[severity] ?? '!';
                 row.appendChild(icon);
-                if (jumpPath !== null) {
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'formspec-validation-summary-link formspec-focus-ring';
-                    button.textContent = labeled;
-                    button.addEventListener('click', () => {
+                if (jumpPath !== null && jumpHref !== null) {
+                    // A link to the control — a place on the page; the click lands the focus as `focusField` does.
+                    const link = document.createElement('a');
+                    link.href = jumpHref;
+                    link.className = 'formspec-validation-summary-link formspec-focus-ring';
+                    link.textContent = text;
+                    link.addEventListener('click', (event) => {
+                        event.preventDefault();
                         host.focusField(jumpPath);
                     });
-                    row.appendChild(button);
+                    row.appendChild(link);
                 } else {
-                    const text = document.createElement('span');
-                    text.textContent = labeled;
-                    row.appendChild(text);
+                    const span = document.createElement('span');
+                    span.textContent = text;
+                    row.appendChild(span);
                 }
                 el.appendChild(row);
             }

@@ -181,6 +181,7 @@ export type ChromeStringKey =
   | '$ui.validationSummary.errorCount'
   | '$ui.validationSummary.issueCountOne'
   | '$ui.validationSummary.issueCount'
+  | '$ui.validationSummary.row'
   | '$ui.action.submit'
   | '$ui.action.inProgress'
   | '$ui.action.completed'

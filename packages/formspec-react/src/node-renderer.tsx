@@ -154,6 +154,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     const chrome = useChromeText();
     const {
         onSubmit,
+        recordSubmit,
         onHostEvent,
         onActionFinding,
         onActionResult,
@@ -205,6 +206,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
                         ? { id: semanticControlScope.responseId }
                         : {}),
                 });
+                recordSubmit(result);
                 // Move focus to the first invalid field in this provider's form, as the webcomponent submit does.
                 const report = result.validationReport;
                 const scope = controlRef.current?.closest<HTMLElement>('.formspec-theme-scope');
@@ -283,6 +285,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         onActionResult,
         onHostEvent,
         onSubmit,
+        recordSubmit,
         responseActionInvoker,
         resolveActionIdempotencyKey,
         responseActionsDocument,
