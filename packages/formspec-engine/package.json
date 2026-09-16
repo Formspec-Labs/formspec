@@ -70,6 +70,7 @@
     "@formspec-org/types": "*"
   },
   "devDependencies": {
+    "canonicalize": "^3.0.0",
     "fast-check": "^4.6.0",
     "typescript": "^5.0.0"
   }

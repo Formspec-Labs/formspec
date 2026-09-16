@@ -558,6 +558,36 @@
         "intent": "Audit pin of the Issuer that actually rendered. Inside signed-payload digest by JCS canonicalization (no profile change)."
       }
     },
+    "displayedLocale": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "version", "locale"],
+      "description": "Submit-time pin of the Locale document whose strings the respondent saw: its url, version, and normalized locale tag. Omitted when no Locale document was loaded — the Definition's inline wording was shown instead. Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload).",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "version": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string",
+          "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$"
+        }
+      },
+      "examples": [
+        {
+          "url": "https://example.gov/locales/es.json",
+          "version": "1.0.0",
+          "locale": "es"
+        }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Audit pin of the wording the respondent certified to. Inside signed-payload digest by JCS canonicalization (no profile change)."
+      }
+    },
     "id": {
       "type": "string",
       "description": "A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId.",

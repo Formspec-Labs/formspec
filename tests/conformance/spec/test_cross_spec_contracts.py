@@ -574,8 +574,8 @@ class TestResponseSchema:
     def test_s2_1_6__closed_world_property_set(self):
         expected = {
             "$formspecResponse", "definitionUrl", "definitionVersion", "status", "data",
-            "authored", "displayedIssuer", "id", "author", "subject", "authoredSignatures",
-            "metadata", "validationResults", "extensions",
+            "authored", "displayedIssuer", "displayedLocale", "id", "author", "subject",
+            "authoredSignatures", "metadata", "validationResults", "extensions",
         }
         assert _prop_keys(RESP_S) == expected
 

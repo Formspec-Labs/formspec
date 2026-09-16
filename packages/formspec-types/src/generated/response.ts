@@ -61,6 +61,14 @@ export interface FormResponse {
     version: string;
   };
   /**
+   * Submit-time pin of the Locale document whose strings the respondent saw: its url, version, and normalized locale tag. Omitted when no Locale document was loaded — the Definition's inline wording was shown instead. Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload).
+   */
+  displayedLocale?: {
+    url: string;
+    version: string;
+    locale: string;
+  };
+  /**
    * A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId.
    */
   id?: string;

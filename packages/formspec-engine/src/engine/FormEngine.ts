@@ -832,6 +832,7 @@ export class FormEngine implements IFormEngine {
             completionEligible: trigger === 'submit',
             timestamp: this.nowISO(),
             displayedIssuer: this.getDisplayedIssuerPin(),
+            displayedLocale: this.getDisplayedLocalePin(),
             meta,
         }) as unknown as FormResponse;
     }
@@ -2047,6 +2048,22 @@ export class FormEngine implements IFormEngine {
         }
 
         return undefined;
+    }
+
+    /**
+     * Submit-time pin of the Locale document whose strings the respondent saw — mirrors
+     * {@link getDisplayedIssuerPin}. Reads the document {@link LocaleStore.getActiveDocument}
+     * resolves for the active locale tag. Undefined when no Locale document is active, or when
+     * the active document carries no `url` of its own (Locale §url is OPTIONAL, unlike Issuer's;
+     * an un-addressable document has no independent-verification value to pin, so it is treated
+     * like "no Locale document loaded" — the Definition's inline wording).
+     */
+    private getDisplayedLocalePin(): { url: string; version: string; locale: string } | undefined {
+        const doc = this._localeStore.getActiveDocument();
+        if (!doc || !doc.url) {
+            return undefined;
+        }
+        return { url: doc.url, version: doc.version, locale: doc.locale };
     }
 }
 

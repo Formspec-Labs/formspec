@@ -240,6 +240,7 @@ export function buildFormspecResponseEnvelope(options: {
     completionEligible?: boolean;
     timestamp: string;
     displayedIssuer?: { url: string; version: string };
+    displayedLocale?: { url: string; version: string; locale: string };
     meta?: {
         id?: string;
         author?: { id: string; name?: string };
@@ -276,6 +277,9 @@ export function buildFormspecResponseEnvelope(options: {
     }
     if (options.displayedIssuer) {
         response.displayedIssuer = options.displayedIssuer;
+    }
+    if (options.displayedLocale) {
+        response.displayedLocale = options.displayedLocale;
     }
     if (authoredSignatures) {
         response.authoredSignatures = authoredSignatures;
