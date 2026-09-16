@@ -60,6 +60,39 @@ describe('pre-engine skeleton', () => {
         expect(container.textContent).toContain(LONG_HINT);
     });
 
+    it('shows a value as pending, never its expression', () => {
+        const el = mount();
+        el.definition = {
+            ...DEFINITION,
+            items: [
+                {
+                    key: 'week',
+                    type: 'display',
+                    label: "Claiming for the week of **{{formatDate(@instance('claimant').start, 'medium')}} to {{formatDate(@instance('claimant').end, 'medium')}}**",
+                },
+                { key: 'pension', type: 'field', dataType: 'boolean', label: 'Any pension from {{$payerName}}?', hint: 'Paid by {{$payerName}}' },
+                {
+                    key: 'jobs',
+                    type: 'group',
+                    label: 'Jobs',
+                    repeatable: true,
+                    children: [{ key: 'employer', type: 'field', dataType: 'string', label: 'Employer' }],
+                },
+            ],
+            binds: [],
+        };
+        const text = el.querySelector('.formspec-container')!.textContent!;
+        // The engine owns every `{{}}` value. Until it lands the skeleton marks the place, at a value's
+        // length rather than an expression's, so what the reader sees is a form loading, not its source.
+        expect(text).not.toContain('{{');
+        expect(text).not.toContain('}}');
+        expect(text).toContain('Claiming for the week of … to …');
+        expect(text).toContain('Any pension from …?');
+        expect(text).toContain('Paid by …');
+        // Repeat chrome comes from the shared inventory, filled — the same words the live render draws.
+        expect(text).toContain('Add Jobs');
+    });
+
     it('renders text, not bars — nothing is left to animate', () => {
         const el = mount();
         el.definition = DEFINITION;

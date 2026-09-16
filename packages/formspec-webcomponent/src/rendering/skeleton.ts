@@ -4,6 +4,7 @@ import type { LayoutNode } from '@formspec-org/layout';
 import { Path } from '@formspec-org/types';
 import { globalRegistry } from '../registry';
 import type { AdapterContext } from '../adapters/types';
+import { uiText } from '../adapters/ui-text';
 import type { DisplayHostSlice } from '../adapters/display-host';
 import type { LayoutHostSlice } from '../adapters/layout-host';
 import { nodeDescriptor, repeatAdapterType } from './emit-node';
@@ -21,9 +22,16 @@ function fieldId(path: string): string {
 }
 
 /**
- * Everything the skeleton can answer without an engine. Text is the Definition's own string: a Locale
- * override or an interpolated `{{}}` value is the same length class, so the height it reserves holds.
+ * Authored text as the skeleton may show it. A Locale override is the same length class as the
+ * Definition's string, so the string itself holds the height; a `{{}}` expression is not — it is
+ * the engine's to evaluate, and its source is many times longer than the value it stands for. Each
+ * one becomes a single mark, so the reader sees a form loading, not its source.
  */
+function pendingText(text: string): string {
+    return text.replace(/\{\{[\s\S]*?\}\}/g, '\u2026');
+}
+
+/** Everything the skeleton can answer without an engine. */
 function placeholderFieldBehavior(node: LayoutNode): Record<string, unknown> {
     const comp = nodeDescriptor(node) as unknown as Record<string, unknown>;
     const item = (node.fieldItem ?? {}) as Record<string, unknown>;
@@ -32,9 +40,9 @@ function placeholderFieldBehavior(node: LayoutNode): Record<string, unknown> {
         ...comp,
         fieldPath: path,
         id: fieldId(path),
-        label: (item.label as string) ?? String(item.key ?? ''),
-        hint: (item.hint as string) ?? null,
-        description: (comp.description as string) ?? null,
+        label: pendingText((item.label as string) ?? String(item.key ?? '')),
+        hint: item.hint ? pendingText(String(item.hint)) : null,
+        description: comp.description ? pendingText(String(comp.description)) : null,
         dataType: item.dataType,
         presentation: node.presentation ?? {},
         widgetClassSlots: {},
@@ -55,7 +63,7 @@ function staticDisplayHost(): DisplayHostSlice {
         prefix: '',
         cleanupFns: [],
         watchCompText: (comp, prop, fallback, write) =>
-            write(String((comp as unknown as Record<string, unknown>)[prop] ?? fallback ?? '')),
+            write(pendingText(String((comp as unknown as Record<string, unknown>)[prop] ?? fallback ?? ''))),
         renderComponent: () => {},
         resolveToken: (val) => val,
         findItemByKey: () => null,
@@ -120,25 +128,29 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
 
         if (current.isRepeatTemplate && current.props?.bind) {
             const path = current.bindPath ?? String(current.props.bind);
-            const label = options.itemLabel?.(path) ?? String(current.props.bind);
+            const label = pendingText(options.itemLabel?.(path) ?? String(current.props.bind));
             const count = Math.max(1, options.repeatCount?.(path) ?? 1);
+            // The chrome the live render draws, from the same inventory, in its English default: no
+            // engine yet means no Locale yet.
+            const chrome = (key: Parameters<typeof uiText>[1], params: Record<string, string | number>) =>
+                uiText(undefined, key, params);
             // Same routing as the live render, so the swap does not change the repeat's shape.
             attempt(repeatAdapterType(current, adapterName), {
                 comp: current,
                 host: layoutHost(into, headingLevel),
                 bindKey: String(current.props.bind),
                 headingLevel: `h${Math.min(headingLevel, 6)}`,
-                addLabel: signal(`Add ${label}`),
+                addLabel: chrome('repeat.add', { label }),
                 renderRows: (build: (rows: unknown) => void) => build({
                     count,
                     // Theme widgetConfig locks land on the template's props; a Remove the form forbids
                     // must not appear even for a moment.
                     canRemove: current.props.allowRemove !== false,
                     rowText: (index: number) => ({
-                        label: signal(`${label} ${index + 1}`),
-                        ariaLabel: signal(`${label} ${index + 1} of ${count}`),
-                        removeLabel: signal(`Remove ${label}`),
-                        removeAriaLabel: signal(`Remove ${label} ${index + 1}`),
+                        label: chrome('repeat.row', { label, index: index + 1 }),
+                        ariaLabel: chrome('repeat.rowOf', { label, index: index + 1, total: count }),
+                        removeLabel: chrome('repeat.remove', { label }),
+                        removeAriaLabel: chrome('repeat.remove', { label: `${label} ${index + 1}` }),
                     }),
                     renderRow: (_index: number, target: HTMLElement) => {
                         for (const child of current.children ?? []) walk(child as LayoutNode, target, headingLevel);
@@ -159,7 +171,7 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
             attempt('Group', {
                 comp: current,
                 host: layoutHost(into, childLevel),
-                titleText: title ? signal(title) : null,
+                titleText: title ? signal(pendingText(title)) : null,
                 titleHidden: current.labelPosition === 'hidden',
                 hintText: null,
                 headingLevel: `h${Math.min(headingLevel, 6)}`,
@@ -182,8 +194,8 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
         const drew = attempt(current.component, {
             comp: { ...current, children: [] },
             host: layoutHost(into, childLevel),
-            titleText: title ? signal(title) : null,
-            descriptionText: current.props?.description ? signal(String(current.props.description)) : null,
+            titleText: title ? signal(pendingText(title)) : null,
+            descriptionText: current.props?.description ? signal(pendingText(String(current.props.description))) : null,
             headingLevel: `h${Math.min(headingLevel, 6)}`,
         }, into);
         const target = drew ? (into.lastElementChild as HTMLElement | null) ?? into : into;
