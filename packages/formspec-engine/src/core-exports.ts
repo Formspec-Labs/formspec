@@ -44,6 +44,8 @@ export type {
     SchemaValidationResult,
     SchemaValidator,
     SchemaValidatorSchemas,
+    SetValueOptions,
+    WriteSource,
 } from './interfaces.js';
 export type { EvalDiagnostic } from './diff.js';
 export type { FelExtensionFunctionRegistration } from './extension-functions.js';

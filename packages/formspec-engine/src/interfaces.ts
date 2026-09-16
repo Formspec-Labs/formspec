@@ -399,6 +399,14 @@ export interface RelevanceExplanation {
 
 // ── Main engine interface ───────────────────────────────────────────
 
+/** Who wrote a field: the respondent (`'user'`, the default) or an Assist tool (`'assist'`). */
+export type WriteSource = 'user' | 'assist';
+
+export interface SetValueOptions {
+    /** Recorded on the field's `writeSource` signal; Assist uses it to refuse overwriting a respondent's own typing. */
+    source?: WriteSource;
+}
+
 export interface IFormEngine {
     readonly signals: Record<string, EngineSignal<FormFieldValue>>;
     readonly relevantSignals: Record<string, EngineSignal<boolean>>;
@@ -442,7 +450,7 @@ export interface IFormEngine {
 
     compileExpression(expression: string, currentItemName?: string): () => FormFieldValue;
 
-    setValue(name: string, value: FormFieldValue): void;
+    setValue(name: string, value: FormFieldValue, options?: SetValueOptions): void;
 
     getValidationReport(): ValidationReport;
     getValidationReport(options: { profile?: EnabledValidationProfile }): ValidationReport;

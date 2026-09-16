@@ -1,6 +1,7 @@
 /** @filedesc FieldViewModel — per-field reactive state with locale resolution and FEL interpolation. */
 
 import type { OptionEntry } from '@formspec-org/types';
+import type { SetValueOptions, WriteSource } from './interfaces.js';
 import type { EngineReactiveRuntime, EngineSignal, ReadonlyEngineSignal } from './reactivity/types.js';
 import type { LocaleStore } from './locale.js';
 
@@ -53,7 +54,9 @@ export interface FieldViewModel {
     readonly optionsState: ReadonlyEngineSignal<{ loading: boolean; error: string | null }>;
 
     // ── Write ──
-    setValue(value: any): void;
+    setValue(value: any, options?: SetValueOptions): void;
+    /** Who last wrote this field; null until written. */
+    readonly writeSource: ReadonlyEngineSignal<WriteSource | null>;
 }
 
 export interface ResolvedValidationResult {
@@ -99,7 +102,8 @@ export interface FieldViewModelDeps {
     getOptions: () => EngineSignal<OptionEntry[]>;
     getOptionsState: () => EngineSignal<{ loading: boolean; error: string | null }>;
     getOptionSetName: () => string | undefined;
-    setFieldValue: (value: any) => void;
+    setFieldValue: (value: any, options?: SetValueOptions) => void;
+    getWriteSource: () => EngineSignal<WriteSource | null>;
     /** Resolves `{{expression}}` in the field's binding scope (Locale §3.3.1). */
     interpolate: (template: string) => string;
     /** {@link FieldViewModelDeps.interpolate} with bare `$` bound to the field, as in its Bind: validation messages. */
@@ -409,6 +413,7 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
         options,
         optionsState,
         setValue: deps.setFieldValue,
+        writeSource: deps.getWriteSource(),
     };
 }
 

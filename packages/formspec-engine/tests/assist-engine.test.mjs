@@ -63,3 +63,23 @@ test('getProgress reports required, filled, valid, and completion counts', () =>
     complete: true,
   });
 });
+
+test('a write records who made it, so assist can guard a respondent\'s own typing', () => {
+  const engine = new FormEngine(makeDefinition());
+  const vm = engine.getFieldVM('contactEmail');
+  assert.equal(vm.writeSource.value, null);
+
+  vm.setValue('me@example.org');
+  assert.equal(vm.writeSource.value, 'user');
+  assert.equal(engine.writeSources['contactEmail'].value, 'user');
+
+  vm.setValue('agent@example.org', { source: 'assist' });
+  assert.equal(vm.writeSource.value, 'assist');
+
+  engine.setValue('contactEmail', 'me-again@example.org');
+  assert.equal(vm.writeSource.value, 'user');
+
+  // Calculated fields never record a source: the write is refused before it lands.
+  engine.setValue('derivedScore', 9, { source: 'assist' });
+  assert.equal(engine.writeSources['derivedScore'].value, null);
+});

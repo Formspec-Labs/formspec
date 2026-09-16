@@ -37,6 +37,7 @@ function makeMinimalDeps(overrides = {}) {
         getOptionsState: () => rt.signal({ loading: false, error: null }),
         getOptionSetName: () => undefined,
         setFieldValue: (_v) => {},
+        getWriteSource: () => rt.signal(null),
         interpolate: (template) => interpolateMessage(template, (expr) => `[${expr}]`).text,
         interpolateMessage: (template) => interpolateMessage(template, (expr) => `[${expr}]`).text,
         ...overrides,
@@ -373,14 +374,15 @@ test('FieldViewModel validation code synthesis from constraintKind', () => {
     assert.equal(vm.firstError.value, 'Obligatoire');
 });
 
-test('FieldViewModel setValue delegates to engine', () => {
+test('FieldViewModel setValue delegates to engine, options included', () => {
     const captured = [];
     const deps = makeMinimalDeps({
-        setFieldValue: (v) => captured.push(v),
+        setFieldValue: (v, options) => captured.push([v, options]),
     });
     const vm = createFieldViewModel(deps);
     vm.setValue('test@example.com');
-    assert.deepEqual(captured, ['test@example.com']);
+    vm.setValue('agent@example.com', { source: 'assist' });
+    assert.deepEqual(captured, [['test@example.com', undefined], ['agent@example.com', { source: 'assist' }]]);
 });
 
 test('FieldViewModel identity properties', () => {

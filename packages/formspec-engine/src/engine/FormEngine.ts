@@ -14,6 +14,8 @@ import type {
 import { diffEvalResults, type EvalDiagnostic, type EvalResult, type EvalValidation } from '../diff.js';
 import { FelExtensionFunctions, type FelExtensionFunctionRegistration } from '../extension-functions.js';
 import type {
+    SetValueOptions,
+    WriteSource,
     AuthoredSignatureInput,
     EngineReplayApplyResult,
     EngineReplayEvent,
@@ -127,6 +129,8 @@ export class FormEngine implements IFormEngine {
     public readonly readonlySignals: Record<string, EngineSignal<boolean>> = {};
     public readonly errorSignals: Record<string, EngineSignal<string | null>> = {};
     public readonly validationResults: Record<string, EngineSignal<ValidationResult[]>> = {};
+    /** Who last wrote each field (`'user'` by default, `'assist'` for Assist-driven writes); null until written. */
+    public readonly writeSources: Record<string, EngineSignal<WriteSource | null>> = {};
     public readonly shapeResults: Record<string, EngineSignal<ValidationResult[]>> = {};
     public readonly repeats: Record<string, EngineSignal<number>> = {};
     public readonly optionSignals: Record<string, EngineSignal<OptionEntry[]>> = {};
@@ -512,7 +516,7 @@ export class FormEngine implements IFormEngine {
         };
     }
 
-    public setValue(name: string, value: FormFieldValue): void {
+    public setValue(name: string, value: FormFieldValue, options: SetValueOptions = {}): void {
         if (typeof name !== 'string') {
             throw new TypeError('setValue path cannot be null');
         }
@@ -525,6 +529,7 @@ export class FormEngine implements IFormEngine {
         }
 
         if (this.writeFieldData(name, value)) {
+            (this.writeSources[name] ??= this._rx.signal<WriteSource | null>(null)).value = options.source ?? 'user';
             this._evaluate();
         }
     }
@@ -1330,6 +1335,7 @@ export class FormEngine implements IFormEngine {
             this.requiredSignals[path] ??= this._rx.signal(false);
             this.readonlySignals[path] ??= this._rx.signal(false);
             this.validationResults[path] ??= this._rx.signal([]);
+            this.writeSources[path] ??= this._rx.signal<WriteSource | null>(null);
             this.errorSignals[path] ??= this._rx.signal(null);
 
             if (item.type === 'field') {
@@ -1370,6 +1376,7 @@ export class FormEngine implements IFormEngine {
             this.requiredSignals[path] ??= this._rx.signal(false);
             this.readonlySignals[path] ??= this._rx.signal(false);
             this.validationResults[path] ??= this._rx.signal([]);
+            this.writeSources[path] ??= this._rx.signal<WriteSource | null>(null);
             this.errorSignals[path] ??= this._rx.signal(null);
 
             if (item.type === 'field') {
@@ -1964,7 +1971,8 @@ export class FormEngine implements IFormEngine {
             getOptions: () => this.optionSignals[basePath] ?? this._rx.signal([]),
             getOptionsState: () => this.optionStateSignals[basePath] ?? this._rx.signal({ loading: false, error: null }),
             getOptionSetName: () => item.optionSet,
-            setFieldValue: (value) => this.setValue(path, value),
+            setFieldValue: (value, options) => this.setValue(path, value, options),
+            getWriteSource: () => (this.writeSources[path] ??= this._rx.signal<WriteSource | null>(null)),
             interpolate: (template) => this._interpolate(template, path),
             interpolateMessage: (template) => this._interpolate(template, path, true),
         });
