@@ -1,5 +1,5 @@
 /** @filedesc USWDS v3 adapter for MoneyInput — usa-input-group (fixed currency) or grid row (editable code + amount). */
-import { widthStopClass, type MoneyInputBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
+import { uiText, watchText, widthStopClass, type MoneyInputBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
 import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
@@ -41,13 +41,17 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
         currencyInput.placeholder = 'USD';
         currencyInput.id = `${behavior.id}-currency`;
         currencyInput.name = `${behavior.fieldPath}__currency`;
-        currencyInput.setAttribute('aria-label', `${behavior.label} currency code`);
+        // Named "<label> <$ui.money.currency>", both live, so a locale switch renames it too.
+        label.id ||= `${behavior.id}-label`;
+        const currencyName = el('span', { hidden: '', id: `${behavior.id}-currency-label` }); // named by reference, not read as content
+        watchText(actx, uiText(actx.engine, 'money.currency'), (text) => { currencyName.textContent = text; });
+        currencyInput.setAttribute('aria-labelledby', `${label.id} ${currencyName.id}`);
         currencyInput.maxLength = 3;
 
         const row = el('div', { class: 'grid-row grid-gap-1' });
         const curCell = el('div', { class: 'grid-col-12 tablet:grid-col-3' });
         const amtCell = el('div', { class: 'grid-col-12 tablet:grid-col-9' });
-        curCell.appendChild(currencyInput);
+        curCell.append(currencyName, currencyInput);
         amtCell.appendChild(amountInput);
         row.appendChild(curCell);
         row.appendChild(amtCell);

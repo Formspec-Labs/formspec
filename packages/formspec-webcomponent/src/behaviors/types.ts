@@ -269,8 +269,8 @@ export interface WizardRefs {
 export interface WizardBehavior {
     id?: string;
     compOverrides: ComponentPresentationOverrides;
-    /** Each step's authored title, empty when the Component Document names none. */
-    steps: ReadonlyArray<{ id: string; title: string }>;
+    /** Each step, with its planned title live: a group's label, a chrome key, or the authored title; empty when none. */
+    steps: ReadonlyArray<{ id: string; title: import('../adapters/layout-behaviors').LocalizedText }>;
     /**
      * A step's heading: its authored title, else the renderer's own numbering (Locale §3.1.10
      * `$ui.wizard.stepTitle`). Live, so a locale switch renames every step.

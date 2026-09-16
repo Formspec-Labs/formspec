@@ -1033,8 +1033,7 @@ result — if present.</li>
 <li>Inline <code>constraintMessage</code> on the Bind (Definition), for
 a <code>CONSTRAINT_FAILED</code> result.</li>
 <li>The <code>ValidationResult.message</code>: the processor-generated
-message, or for a <code>REQUIRED</code> result the Bind’s inline
-<code>requiredMessage</code> (core Phase 3 step 1b).</li>
+message (core Phase 3 step 1b).</li>
 </ol>
 <p>Steps 2 and 3 never apply to another code: a
 <code>CONSTRAINT_PARSE_ERROR</code> falls from step 1 straight to step
@@ -1541,6 +1540,12 @@ with the schema by test):</p>
 <td><code>wizard.collapseNavigation</code></td>
 <td><code>Collapse navigation</code></td>
 <td>none</td>
+</tr>
+<tr>
+<td><code>wizard.otherItems</code></td>
+<td><code>Additional items</code></td>
+<td>none — titles the step a wizard makes for top-level items outside
+any group</td>
 </tr>
 <tr>
 <td><code>modal.close</code></td>

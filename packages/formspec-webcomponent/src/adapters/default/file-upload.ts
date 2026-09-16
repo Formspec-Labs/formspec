@@ -86,6 +86,9 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
     if (behavior.dragDrop) {
         const dropZone = document.createElement('div');
         dropZone.className = 'formspec-file-drop-zone formspec-focus-ring';
+        const dropZoneName = document.createElement('span');
+        dropZoneName.hidden = true; // referenced by aria-labelledby, not read as content
+        dropZone.appendChild(dropZoneName);
 
         const content = document.createElement('div');
         content.className = 'formspec-file-drop-content';
@@ -106,9 +109,11 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
 
         dropZone.setAttribute('tabindex', '0');
         dropZone.setAttribute('role', 'button');
-        watchText(actx, uiText(actx.engine, 'fileUpload.dropzone'), (text) => {
-            dropZone.setAttribute('aria-label', text);
-        });
+        // Named "<label> <$ui.fileUpload.dropzone>": the first Tab stop says which field it belongs to.
+        fieldDOM.label.id ||= `${behavior.id}-label`;
+        dropZoneName.id = `${behavior.id}-dropzone-label`;
+        watchText(actx, uiText(actx.engine, 'fileUpload.dropzone'), (text) => { dropZoneName.textContent = text; });
+        dropZone.setAttribute('aria-labelledby', `${fieldDOM.label.id} ${dropZoneName.id}`);
         dropZone.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();

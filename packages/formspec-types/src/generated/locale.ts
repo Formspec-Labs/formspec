@@ -137,6 +137,7 @@ export type ChromeStringKey =
   | '$ui.wizard.progress'
   | '$ui.wizard.step'
   | '$ui.wizard.collapseNavigation'
+  | '$ui.wizard.otherItems'
   | '$ui.modal.close'
   | '$ui.alert.dismiss'
   | '$ui.validationSummary.heading'

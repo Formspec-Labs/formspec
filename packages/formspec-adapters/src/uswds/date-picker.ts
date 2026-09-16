@@ -19,15 +19,16 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
 
     if (p.labelPosition === 'start') root.classList.add('formspec-label-start');
 
-    // Format hint when the item has none. Static and separate from `hint`, whose text the view model owns.
+    const useTextDate = behavior.inputType === 'date';
+    // Format hint when the item has none, for the text-typed date picker whose format is not the browser's
+    // to show. Static and separate from `hint`, whose text the view model owns.
     let formatHint: HTMLElement | undefined;
-    if (!behavior.hint) {
+    if (!behavior.hint && useTextDate) {
         formatHint = el('span', { class: 'usa-hint', id: `${behavior.id}-format` });
         watchText(actx, uiText(actx.engine, 'date.format'), (text) => { formatHint!.textContent = text; });
         root.appendChild(formatHint);
     }
 
-    const useTextDate = behavior.inputType === 'date';
     // No groupClass: DatePickerBehavior carries no prefix/suffix, so createInputSkeleton's
     // group-wrap branch (triggered only by prefix || suffix) never fires — a `usa-date-picker`
     // groupClass here would be dead configuration. The useTextDate shell below carries that

@@ -646,7 +646,7 @@ describe('Assist provider tools', () => {
     expect(themePages.pages.map((page: { id: string; title?: string }) => [page.id, page.title])).toEqual([
       ['theme-contact', 'Theme Contact'],
       ['theme-details', 'Theme Details'],
-      [expect.stringMatching(/^fallback-section-/), 'Additional Items'],
+      [expect.stringMatching(/^fallback-section-/), 'Additional items'],
     ]);
     expect(themePages.pages.map((page: { id: string; fieldCount: number }) => [page.id, page.fieldCount])).toEqual([
       ['theme-contact', 1],
@@ -754,7 +754,7 @@ describe('Assist provider tools', () => {
       },
       expect.objectContaining({
         id: expect.stringMatching(/^fallback-section-/),
-        title: 'Additional Items',
+        title: 'Additional items',
         fieldCount: 5,
         filledCount: 1,
         complete: false,

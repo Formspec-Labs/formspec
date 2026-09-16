@@ -1429,8 +1429,9 @@ recalculation guarantee, borrowed from XForms.
       `"error"` and the Bind’s `constraintMessage`.
    b. If the field has a `required` Bind that evaluated to `true`, and the
       field’s value is empty (`null`, empty string `""`, or empty array `[]`), record a ValidationResult with
-      severity `"error"` and a processor-generated message (or the Bind’s
-      `requiredMessage`, if provided).
+      severity `"error"` and a processor-generated message. A Locale Document
+      may replace it (`<key>.requiredMessage`, Locale spec §3.1.4); a Bind
+      carries no required message of its own.
 2. For each Validation Shape whose target paths intersect the affected
    subgraph, evaluate the Shape’s constraint expressions and record
    ValidationResult entries for any failures.

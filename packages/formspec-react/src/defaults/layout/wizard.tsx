@@ -6,6 +6,7 @@ import type { LayoutNode } from '@formspec-org/layout';
 import type { LayoutComponentProps } from '../../component-map';
 import { useFormspecContext } from '../../context';
 import { useChromeText } from '../../use-chrome-text';
+import { plannedTitle } from '../../use-localized-node';
 import type { FormspecContextValue } from '../../context';
 import { projectionMetadataAttrs } from '../../projection-metadata.js';
 import { routeLandmarkAttrs } from '../../route-landmark.js';
@@ -79,7 +80,11 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
     const allowSkip = !!node.props?.allowSkip;
     const showSideNav = !!(node.props?.sidenav as boolean | undefined);
 
+    // A step's planned title (its group's live label, its chrome key), else its authored title. `useChromeText`
+    // above subscribes to the locale signal, so a switch re-renders every title; a group label that
+    // interpolates is read at that moment, not tracked.
     const stepTitle = (idx: number): string =>
+        plannedTitle(engine, stepNodes[idx]?.props) ||
         (stepNodes[idx]?.props?.title as string | undefined) ||
         (stepNodes[idx]?.fieldItem?.label as string | undefined) ||
         chrome('wizard.stepTitle', { index: idx + 1 });

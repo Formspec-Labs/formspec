@@ -16,6 +16,7 @@ const LAYERS = {
   '@formspec-org/layout':   1,
   '@formspec-org/assist':   2,
   '@formspec-org/webcomponent': 2,
+  '@formspec-org/walk':         2,
   '@formspec-org/core':         2,
   '@formspec-org/react':        2,
   '@formspec-org/surface':      2,

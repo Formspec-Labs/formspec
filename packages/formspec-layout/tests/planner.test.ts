@@ -1764,7 +1764,7 @@ describe('planComponentTree', () => {
         expect(node.children[0].children[0].children[0].component).toBe('RadioGroup');
         expect(node.children[0].children[0].children[0].bindPath).toBe('pageOne.priority');
         expect(node.children[1].component).toBe('Section');
-        expect(node.children[1].props.title).toBe('Additional Items');
+        expect(node.children[1].props.title).toBe('Additional items');
         expect(node.children[1].children[0].component).toBe('TextInput');
         expect(node.children[1].children[0].bindPath).toBe('intro');
     });
@@ -2299,7 +2299,7 @@ describe('planDefinitionFallback', () => {
         expect(pages[0].props.title).toBe('Applicant');
         expect(pages[0].children[0].component).toBe('Grid');
         expect(pages[1].props.title).toBe('Review');
-        expect(pages[2].props.title).toBe('Additional Items');
+        expect(pages[2].props.title).toBe('Additional items');
         expect(pages[2].children[0].bindPath).toBe('intro');
     });
 
@@ -2374,7 +2374,7 @@ describe('planDefinitionFallback', () => {
         expect(nodes[2].props.title).toBe('Review');
         expect(nodes[2].children[0].bindPath).toBe('review');
         expect(nodes[3].component).toBe('Section');
-        expect(nodes[3].props.title).toBe('Additional Items');
+        expect(nodes[3].props.title).toBe('Additional items');
         expect(nodes[3].children[0].bindPath).toBe('intro');
     });
 });

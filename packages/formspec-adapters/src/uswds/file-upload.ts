@@ -15,9 +15,12 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
         tabindex: '0',
         role: 'button',
     });
-    watchText(actx, uiText(actx.engine, 'fileUpload.dropzoneKeyboard'), (text) => {
-        target.setAttribute('aria-label', text);
-    });
+    // Named "<label> <$ui.fileUpload.dropzoneKeyboard>": the first Tab stop says which field it belongs to.
+    label.id ||= `${behavior.id}-label`;
+    const targetName = el('span', { hidden: '', id: `${behavior.id}-dropzone-label` }); // named by reference, not read as content
+    watchText(actx, uiText(actx.engine, 'fileUpload.dropzoneKeyboard'), (text) => { targetName.textContent = text; });
+    target.appendChild(targetName);
+    target.setAttribute('aria-labelledby', `${label.id} ${targetName.id}`);
     target.addEventListener('keydown', (e: KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();

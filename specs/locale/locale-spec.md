@@ -566,9 +566,8 @@ When resolving a validation message, the cascade is:
    result — if present.
 3. Inline `constraintMessage` on the Bind (Definition), for a
    `CONSTRAINT_FAILED` result.
-4. The `ValidationResult.message`: the processor-generated message, or
-   for a `REQUIRED` result the Bind's inline `requiredMessage` (core
-   Phase 3 step 1b).
+4. The `ValidationResult.message`: the processor-generated message
+   (core Phase 3 step 1b).
 
 Steps 2 and 3 never apply to another code: a `CONSTRAINT_PARSE_ERROR`
 falls from step 1 straight to step 4.
@@ -836,6 +835,7 @@ with the schema by test):
 | `wizard.progress` | `Form progress` | none |
 | `wizard.step` | `Step` | none |
 | `wizard.collapseNavigation` | `Collapse navigation` | none |
+| `wizard.otherItems` | `Additional items` | none — titles the step a wizard makes for top-level items outside any group |
 | `modal.close` | `Close` | none |
 | `alert.dismiss` | `Dismiss` | none |
 | `validationSummary.heading` | `Please correct the following` | none |

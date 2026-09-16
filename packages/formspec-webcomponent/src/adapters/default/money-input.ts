@@ -41,13 +41,19 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
         // Link currency badge to amount input via data-describedby-base for bind() to pick up
         amountInput.setAttribute('data-describedby-base', currencyId);
     } else {
+        // Named "<label> <$ui.money.currency>": a reader landing on it first still hears which field it is in.
+        fieldDOM.label.id ||= `${behavior.id}-label`;
+        const currencyName = document.createElement('span');
+        currencyName.id = `${behavior.id}-currency-label`;
+        currencyName.hidden = true; // referenced by aria-labelledby, not read as content
+        watchText(actx, uiText(actx.engine, 'money.currency'), (text) => { currencyName.textContent = text; });
         const currencyInput = document.createElement('input');
         currencyInput.type = 'text';
         currencyInput.className = 'formspec-input formspec-money-currency-input';
         currencyInput.placeholder = 'Currency';
         currencyInput.name = `${behavior.fieldPath}__currency`;
-        watchText(actx, uiText(actx.engine, 'money.currency'), (text) => { currencyInput.setAttribute('aria-label', text); });
-        container.appendChild(currencyInput);
+        currencyInput.setAttribute('aria-labelledby', `${fieldDOM.label.id} ${currencyName.id}`);
+        container.append(currencyName, currencyInput);
     }
 
     container.appendChild(amountInput);

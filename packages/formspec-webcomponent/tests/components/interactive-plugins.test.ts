@@ -517,7 +517,7 @@ describe('pageMode tabs (Stack + Pages + formPresentation)', () => {
 
         const buttons = el.querySelectorAll('.formspec-tab');
         expect(buttons.length).toBe(3);
-        expect(buttons[2].textContent).toBe('Additional Items');
+        expect(buttons[2].textContent).toBe('Additional items');
 
         const tabsContainer = el.querySelector('.formspec-tabs') as HTMLElement;
         expect(tabsContainer).not.toBeNull();

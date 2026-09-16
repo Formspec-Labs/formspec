@@ -3,6 +3,8 @@ import { computed, type ReadonlySignal } from '@preact/signals-core';
 import { ComponentPlugin, RenderContext } from '../types';
 import { globalRegistry } from '../registry';
 import { renderWithDisplayItemRelevance } from '../adapters/display-host';
+import { uiText } from '../adapters/ui-text.js';
+import type { ChromeStringKey } from '@formspec-org/layout';
 
 export type LayoutBehaviorBuilder = (comp: any, ctx: RenderContext) => unknown;
 
@@ -40,6 +42,29 @@ export function compText(
         ctx.engine.localeSignal.value;
         return resolveCompText(ctx, comp, prop, typeof fallback === 'function' ? fallback() : fallback);
     });
+}
+
+/**
+ * The live title of a node the planner titled: a page made from a group is titled by that group's label
+ * (`titleBind`, so a Locale's `<key>.label` and a `{{}}` reach it); a page nobody authored by its `$ui`
+ * chrome key (`titleKey`); anything else by its `$component.<id>.title` string, else the inline title.
+ * A node arrives either flattened (`comp.title`) or as a layout node (`comp.props.title`).
+ */
+export function plannedTitle(
+    ctx: Pick<RenderContext, 'engine' | 'prefix'>,
+    comp: { id?: string; title?: unknown; titleBind?: unknown; titleKey?: unknown; props?: Record<string, unknown> },
+): ReadonlySignal<string> {
+    const prop = (name: 'title' | 'titleBind' | 'titleKey') => {
+        const value = comp[name] ?? comp.props?.[name];
+        return typeof value === 'string' ? value : undefined;
+    };
+    const titleBind = prop('titleBind');
+    const titleKey = prop('titleKey');
+    const inline = compText(ctx, comp, 'title', prop('title') ?? '');
+    return computed(() =>
+        (titleBind && ctx.engine.getItemLabelSignal(titleBind)?.value)
+        || (titleKey && uiText(ctx.engine, titleKey as ChromeStringKey).value)
+        || inline.value);
 }
 
 export function runLayoutAdapter<T>(type: string, behavior: T, parent: HTMLElement, ctx: RenderContext): void {

@@ -235,7 +235,9 @@ describe('layout components — FileUpload', () => {
         const dropZone = el.querySelector('.formspec-file-drop-zone') as HTMLElement;
         expect(dropZone).not.toBeNull();
         expect(dropZone.textContent).toContain('Drag & drop a file here');
-        expect(dropZone.getAttribute('aria-label')).toContain('Drop files here');
+        // Named by the field's label first, then the drop-zone chrome: the first Tab stop says which field it is.
+        const nameIds = dropZone.getAttribute('aria-labelledby')!.split(' ');
+        expect(nameIds.map((id) => el.querySelector(`#${id}`)?.textContent?.trim())).toEqual(['Document', 'Drop files here or click to browse']);
         const fileInput = el.querySelector('.formspec-file-upload input[type="file"]') as HTMLInputElement;
         expect(fileInput.getAttribute('accept')).toBe('.pdf,.doc');
         const list = el.querySelector('.formspec-file-upload .formspec-file-list') as HTMLUListElement;

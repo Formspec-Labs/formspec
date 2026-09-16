@@ -7,6 +7,10 @@ import { createNodeIdGenerator } from './node-utils.js';
 export type PlannedPage = {
     id?: string;
     title: string;
+    /** Path of the group item whose live label titles the page, so a Locale's `<key>.label` renames the step. */
+    titleBind?: string;
+    /** The `$ui` chrome key the title comes from, for a page nobody authored. */
+    titleKey?: string;
     children: LayoutNode[];
 };
 
@@ -26,6 +30,8 @@ export function emitPageModePages(
         props: {
             ...(page.id ? { id: page.id } : {}),
             title: page.title || `Page ${index + 1}`,
+            ...(page.titleBind ? { titleBind: page.titleBind } : {}),
+            ...(page.titleKey ? { titleKey: page.titleKey } : {}),
         },
         cssClasses: [],
         children: page.children,
@@ -45,7 +51,7 @@ function buildFallbackSections(
         id: nextId('fallback-section'),
         component: 'Section',
         category: 'layout' as const,
-        props: { title: 'Additional Items' },
+        props: { title: 'Additional items', titleKey: 'wizard.otherItems' },
         cssClasses: [],
         children: orphans,
     }];
@@ -73,6 +79,7 @@ export function buildDefinitionPages(
         );
         pages.push({
             title,
+            titleBind: node.bindPath ?? item.key,
             children: [stripTitleFromGroupNode(node)],
         });
     }
@@ -158,6 +165,7 @@ export function applyGeneratedPageMode(
             );
             pages.push({
                 title,
+                titleBind: node.bindPath ?? item.key,
                 children: [stripTitleFromGroupNode(node)],
             });
         } else {

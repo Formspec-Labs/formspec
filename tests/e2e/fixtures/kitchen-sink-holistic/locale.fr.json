@@ -1,0 +1,22 @@
+{
+  "$formspecLocale": "2.0",
+  "version": "1.0.0",
+  "locale": "fr",
+  "target": { "kind": "definition", "url": "https://example.org/forms/kitchen-sink-holistic" },
+  "title": "Kitchen Sink Holistic v2 — French wording",
+  "description": "A partial French Locale for the Definition walk: some item labels, a hint, one option label per cascade level (field key and $optionSet key), the repeat chrome, and one $ui override. Keys it leaves out fall back to the Definition's inline text — the walk expects exactly that.",
+  "strings": {
+    "fullName.label": "Nom complet",
+    "fullName.hint": "Saisissez votre nom légal.",
+    "profileMode.label": "Mode de profil",
+    "profileMode.options.basic.label": "Simple",
+    "$optionSet.communicationModes.email.label": "Courriel",
+    "lineItems.label": "Lignes",
+    "lineItems.rowLabel": "Ligne {{@index}}",
+    "lineItems.addLabel": "Ajouter une ligne",
+    "lineItems.removeLabel": "Retirer la ligne {{@index}}",
+    "$ui.validationSummary.row": "{{$label}} — {{$message}}",
+    "$ui.wizard.next": "Suivant",
+    "$ui.wizard.nextStep": "Étape suivante"
+  }
+}

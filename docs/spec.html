@@ -2419,8 +2419,9 @@ definition error: its <code>null</code> result passes. If the result is
 <code>true</code>, and the field’s value is empty (<code>null</code>,
 empty string <code>""</code>, or empty array <code>[]</code>), record a
 ValidationResult with severity <code>"error"</code> and a
-processor-generated message (or the Bind’s <code>requiredMessage</code>,
-if provided).</li>
+processor-generated message. A Locale Document may replace it
+(<code>&lt;key&gt;.requiredMessage</code>, Locale spec §3.1.4); a Bind
+carries no required message of its own.</li>
 </ol></li>
 <li>For each Validation Shape whose target paths intersect the affected
 subgraph, evaluate the Shape’s constraint expressions and record

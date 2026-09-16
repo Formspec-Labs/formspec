@@ -29,6 +29,7 @@ export const UI_STRINGS = {
     'wizard.progress': 'Form progress',
     'wizard.step': 'Step',
     'wizard.collapseNavigation': 'Collapse navigation',
+    'wizard.otherItems': 'Additional items',
     'modal.close': 'Close',
     'alert.dismiss': 'Dismiss',
     'validationSummary.heading': 'Please correct the following',

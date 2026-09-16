@@ -444,8 +444,9 @@ function renderPageModeTabs(host: RenderHost, comp: ComponentDescriptor, parent:
     const formPres = effectiveFormPresentation(host);
     const tabsComp = {
         component: 'Tabs',
+        // No tabLabels: each page's own planned title (its group's live label, its chrome key, its authored
+        // title) labels its tab through the tabs behavior, so a Locale reaches it.
         children: pageChildren,
-        tabLabels: pageChildren.map((p) => String(p.title ?? (p.props as { title?: string } | undefined)?.title ?? '')),
         placement: tabPlacementFromPresentation(formPres.tabPosition),
         defaultTab: defaultTabFromPresentation(formPres.defaultTab),
         cssClass: comp.cssClass,

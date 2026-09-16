@@ -440,7 +440,8 @@ h6.formspec-heading {
 }
 
 .formspec-field--readonly .formspec-label::after {
-  content: 'Read only';
+  /* Alt text empty: the badge is not part of the accessible name — the control's readonly state is what a reader says. */
+  content: 'Read only' / '';
   display: inline-block;
   padding: 0.25rem 0.5rem;
   border: 1px solid var(--formspec-default-readonly-badge-border);

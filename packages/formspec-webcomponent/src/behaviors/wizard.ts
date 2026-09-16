@@ -3,6 +3,7 @@ import { computed, signal } from '@preact/signals-core';
 import { effect } from '@preact/signals-core';
 import type { WizardBehavior, WizardRefs, BehaviorContext } from './types';
 import { uiText } from '../adapters/ui-text.js';
+import { plannedTitle } from '../components/layout-plugin-factory';
 import { touchFieldsInContainer } from '../submit/index.js';
 
 export function useWizard(ctx: BehaviorContext, comp: any): WizardBehavior {
@@ -16,18 +17,16 @@ export function useWizard(ctx: BehaviorContext, comp: any): WizardBehavior {
 
     const steps = children.map((child: any, i: number) => ({
         id: child.id || `step-${i}`,
-        title: (child?.props?.title as string | undefined) ?? '',
+        title: plannedTitle(ctx, child),
     }));
 
     /**
-     * The authored title, else the renderer's own numbering — one site for every adapter. The authored
-     * title wins: a Locale that translates `$ui.wizard.stepTitle` renames the steps nobody titled, never
-     * the ones the Component Document names.
+     * The step's planned title (its group's live label, its chrome key, or its authored title — one
+     * resolver with the Section that heads the panel), else the renderer's own numbering. Live, so a
+     * locale switch renames every step.
      */
     const stepTitle = (index: number) =>
-        computed(
-            () => steps[index]?.title || uiText(ctx.engine, 'wizard.stepTitle', { index: index + 1 }).value,
-        );
+        computed(() => steps[index]?.title.value || uiText(ctx.engine, 'wizard.stepTitle', { index: index + 1 }).value);
     const activeStepTitle = computed(() => stepTitle(currentStep.value).value);
 
     const wizardId = comp.id;

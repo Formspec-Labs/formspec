@@ -1,7 +1,7 @@
 /** @filedesc Layout behavior builders consumed by layout plugin registration tables. */
 import type { RenderContext } from '../types';
 import { layoutHostSlice } from '../adapters/layout-host';
-import { compText } from './layout-plugin-factory';
+import { compText, plannedTitle } from './layout-plugin-factory';
 import { effect } from '@preact/signals-core';
 import { repeatAffordances, renderRepeatRows } from '../rendering/repeat-affordances';
 import { itemLabel } from '../rendering/item-label';
@@ -23,7 +23,7 @@ function hostWithTitleDescription(comp: any, ctx: RenderContext) {
     return {
         comp,
         host: layoutHostSlice(ctx),
-        titleText: comp.title ? compText(ctx, comp, 'title', comp.title) : null,
+        titleText: comp.title || comp.titleBind || comp.titleKey ? plannedTitle(ctx, comp) : null,
         descriptionText: comp.description ? compText(ctx, comp, 'description', comp.description) : null,
     };
 }

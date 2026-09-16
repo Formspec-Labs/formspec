@@ -164,7 +164,7 @@ describe('resolvePageSequence', () => {
             { id: 'theme-details', title: 'Theme Details', fields: ['details.summary'] },
             {
                 id: expect.stringMatching(/^fallback-section-/),
-                title: 'Additional Items',
+                title: 'Additional items',
                 fields: ['organization.name', 'organization.ein'],
             },
         ]);
@@ -261,7 +261,7 @@ describe('resolvePageSequence', () => {
             { id: 'theme-org', title: 'Theme Org', fields: ['organization.name'] },
             {
                 id: expect.stringMatching(/^fallback-section-/),
-                title: 'Additional Items',
+                title: 'Additional items',
                 fields: ['contactEmail', 'details.summary'],
             },
         ]);
@@ -317,7 +317,7 @@ describe('resolvePageSequence', () => {
             { id: 'theme-details', title: 'Theme Details', fields: ['details.summary'] },
             {
                 id: expect.stringMatching(/^fallback-section-/),
-                title: 'Additional Items',
+                title: 'Additional items',
                 fields: ['organization.name', 'organization.ein', 'contactEmail'],
             },
         ]);

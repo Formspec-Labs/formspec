@@ -4,7 +4,10 @@
 import { createContext, useContext, useMemo } from 'react';
 import { computed, signal } from '@preact/signals-core';
 import type { LayoutNode } from '@formspec-org/layout';
+import type { ChromeStringKey } from '@formspec-org/layout';
+import type { IFormEngine } from '@formspec-org/engine/render';
 import { useFormspecContext, findItemByKey } from './context';
+import { chromeText } from './use-chrome-text';
 import { useSignal } from './use-signal';
 
 /** The innermost repeat instance (`jobs[1]`) around the node being rendered; '' outside repeats. */
@@ -26,6 +29,19 @@ const LOCALIZABLE_ARRAY_PROPS: Record<string, { prop: string; subProp?: string }
 };
 
 const UNCHANGED = signal<Record<string, unknown> | null>(null);
+
+/**
+ * The live title of a node the planner titled (same rule as the web component's `plannedTitle`): a page
+ * made from a group is titled by that group's label (`titleBind`), a page nobody authored by its `$ui`
+ * chrome key (`titleKey`); undefined for any other node. Read inside a locale-signal subscription.
+ */
+export function plannedTitle(engine: IFormEngine, props: Record<string, unknown> | undefined): string | undefined {
+    const titleBind = typeof props?.titleBind === 'string' ? props.titleBind : undefined;
+    const titleKey = typeof props?.titleKey === 'string' ? props.titleKey : undefined;
+    return (titleBind && engine.getItemLabelSignal(titleBind)?.value)
+        || (titleKey && chromeText(engine, titleKey as ChromeStringKey))
+        || undefined;
+}
 
 function literalOf(value: unknown): string | undefined {
     if (typeof value === 'string') return value;
@@ -49,7 +65,8 @@ export function useLocalizedNode(node: LayoutNode): LayoutNode {
         const props = node.props ?? {};
         const id = typeof props.id === 'string' ? props.id : null;
         const groupPath = node.scopeChange && node.bindPath && typeof props.title === 'string' ? node.bindPath : null;
-        if (!id && !groupPath) return UNCHANGED;
+        const planned = typeof props.titleBind === 'string' || typeof props.titleKey === 'string';
+        if (!id && !groupPath && !planned) return UNCHANGED;
         const group = groupPath ? findItemByKey(engine.getDefinition().items ?? [], groupPath) : null;
         return computed(() => {
             engine.localeSignal.value;
@@ -85,6 +102,8 @@ export function useLocalizedNode(node: LayoutNode): LayoutNode {
                 const label = engine.getItemLabelSignal(groupPath)?.value;
                 if (label && label !== group.label) set('title', label);
             }
+            const planned = plannedTitle(engine, props);
+            if (planned && planned !== (next ?? props).title) set('title', planned);
             return next;
         });
     }, [engine, instance, node]);
