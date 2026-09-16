@@ -736,12 +736,16 @@ WebMCP support.
 
 ### 8.2 Declarative WebMCP Attributes
 
-Where the renderer emits a native `<form>`, it SHOULD emit WebMCP's declarative
-attributes ([explainer][webmcp-declarative]):
+A renderer SHOULD offer, as a host opt-in, to render the form as a native
+`<form>` carrying WebMCP's declarative attributes
+([explainer][webmcp-declarative]). It MUST NOT do so by default: a declarative
+fill tool beside an active Assist Provider is the overlapping-tool shape WebMCP
+warns against, and a native `<form>` in light DOM nests inside any host form
+around it. A page MUST NOT expose both tiers for the same form.
 
 | Attribute | On | Value |
 |---|---|---|
-| `toolname` | `<form>` | WebMCP-legal, unique per document; `formspec.form.fill` is RECOMMENDED for a page with one form. |
+| `toolname` | `<form>` | WebMCP-legal, unique per document; `formspec.form.fill` is RECOMMENDED for a page with one form. Never one of the §3 catalog names. |
 | `tooldescription` | `<form>` | The Definition `description`, else `title`. |
 | `toolautosubmit` | `<form>` | **Absent by default.** Without it the agent fills and the respondent submits — the passive tier's human-in-the-loop. Renderers MUST NOT add it unless the host explicitly opts in. |
 | `name` | each control | The field path; it becomes the property name in the synthesized schema. |
