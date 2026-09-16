@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
+import type { WebMCP } from 'webmcp-types';
 import { createAssistProvider, registerAssistTools } from '../src/index.js';
 import { createEngine, ensureEngine, FakeModelContext } from './helpers.js';
 
@@ -99,6 +100,17 @@ describe('WebMCP binding', () => {
     const result = JSON.parse(await pending);
     expect(result).toEqual({ error: { code: 'x-cancelled', message: expect.any(String) } });
     expect(engine.getFieldVM('contactEmail')?.value.value).toBe('');
+  });
+
+  it('tolerates execute() being called without options, as polyfill extension bridges do', async () => {
+    const captured: WebMCP.ModelContextTool[] = [];
+    const modelContext = { registerTool: async (tool: WebMCP.ModelContextTool) => { captured.push(tool); } } as unknown as WebMCP.ModelContext;
+    const provider = createAssistProvider({ engine: createEngine(), registerWebMCP: false });
+    await registerAssistTools(provider, modelContext);
+
+    const describe = captured.find((tool) => tool.name === 'formspec.form.describe')!;
+    const result = await (describe.execute as (input: object) => Promise<unknown>)({});
+    expect(result).toMatchObject({ title: 'Grant Application' });
   });
 
   it('registerAssistTools is usable standalone with a caller-owned signal', async () => {

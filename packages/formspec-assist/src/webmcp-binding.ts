@@ -22,7 +22,8 @@ function toModelContextTool(provider: AssistProvider, declaration: ToolDeclarati
     description: declaration.description,
     inputSchema: declaration.inputSchema,
     ...(declaration.annotations ? { annotations: declaration.annotations } : {}),
-    execute: async (input, { signal }) => unwrapToolResult(await provider.invokeTool(declaration.name, input, { signal })),
+    // Options are required by the draft, but polyfill extension bridges call `execute(args)` bare.
+    execute: async (input, options) => unwrapToolResult(await provider.invokeTool(declaration.name, input, { signal: options?.signal })),
   };
 }
 
