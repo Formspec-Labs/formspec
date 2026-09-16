@@ -3,7 +3,7 @@
 export { createAssistProvider } from './provider.js';
 export { ContextResolver } from './context-resolver.js';
 export { targetDefinitionMatches } from '@formspec-org/types';
-export { registerAssistTools, resolveModelContext, unwrapToolResult } from './webmcp-binding.js';
+export { registerAssistTools } from './webmcp-binding.js';
 
 export type {
   AssistProvider,

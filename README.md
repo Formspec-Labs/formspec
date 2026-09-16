@@ -39,7 +39,7 @@ Per-ADR detail → [`thoughts/TODO.md`](thoughts/TODO.md). Blocked stack-level A
 | 0031 — Schema Parity Phase 3 | ~65% | `registry.json` missing from `examples/grant-application/` (kitchen-sink fixture exists but incomplete: no `retired` status, `examples` arrays, `mappingDslVersion`, `extensions`). No `source` + `static:true` instance. `Modal.trigger:"auto"` missing. |
 | 0040 — MCP Tool Consolidation | ~55% | 49 actual tools (vs 28 target). `outputSchema` not wired (`grep` returns zero in `formspec-mcp/`). Actual tool count not updated in ADR. |
 | 0048 — i18n | ~45% | `formatNumber()` and `formatDate()` as callable FEL built-ins (helper functions exist but not in evaluator dispatch). Locale lint rules L101/L201/L301/L401 (zero matches in `formspec-lint/`). Conformance Tier 2. |
-| 0053 — WebMCP | ~40% | PostMessage/CustomEvent/HTTP/MCPWebSocket transport shims (only InProcess exists). `data-formspec-*` assist annotations (only render-layer `appearance`/`theme-href` exist). `requestUserInteraction()` not wired (uses custom `confirmProfileApply` callback). `formspec-assist-chat` package (doesn't exist). Pluggable transport abstraction. |
+| 0053 — WebMCP | ~60% | WebMCP binding tracks the 2026-09-15 draft (`document.modelContext`, annotations, AbortSignal lifecycle; no polyfill by design). Missing: PostMessage/HTTP/MCPWebSocket transport adapters (only in-process + WebMCP exist), §8.2 declarative `tool*` attributes in the renderer, `formspec-assist-chat` package. |
 
 ### Blocked (design gate)
 

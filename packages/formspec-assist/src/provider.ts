@@ -537,13 +537,16 @@ class AssistProviderImpl implements AssistProvider {
   }
 
   public getTools(): ToolDeclaration[] {
-    return this.declarations.map((tool) => ({ ...tool }));
+    return structuredClone(this.declarations);
   }
 
   public async invokeTool(name: string, input: Record<string, unknown>, options: InvokeToolOptions = {}): Promise<ToolResult> {
     const handler = this.tools.get(name);
     if (!handler) {
       return jsonError('UNSUPPORTED', `Unknown tool: ${name}`);
+    }
+    if (options.signal?.aborted) {
+      return jsonError('x-cancelled', 'Invocation was cancelled before it started');
     }
     try {
       const declaration = this.declarations.find((tool) => tool.name === name);
@@ -623,8 +626,19 @@ class AssistProviderImpl implements AssistProvider {
     if (!modelContext) {
       return Promise.resolve();
     }
-    this.webmcpRegistration = new AbortController();
-    return registerAssistTools(this, modelContext, { signal: this.webmcpRegistration.signal });
+    const controller = new AbortController();
+    this.webmcpRegistration = controller;
+    const ready = registerAssistTools(this, modelContext, { signal: controller.signal }).catch((reason: unknown) => {
+      // Detaching before the host acknowledged registration aborts the pending promises; that is our
+      // own lifecycle, not a refusal.
+      if (controller.signal.aborted) {
+        return;
+      }
+      throw reason;
+    });
+    // A refusal still rejects `ready` for hosts that await it; nobody else should see an unhandled rejection.
+    ready.catch(() => undefined);
+    return ready;
   }
 
   private refreshEngineDerivedState(): void {
@@ -742,7 +756,7 @@ class AssistProviderImpl implements AssistProvider {
       if (!this.confirmProfileApply) {
         throw new AssistError('x-confirmation-required', 'Profile application requires an explicit confirmation handler');
       }
-      const approved = await this.confirmProfileApply({ matches: entries });
+      const approved = await this.confirmProfileApply({ matches: entries, signal });
       if (signal?.aborted) {
         throw new AssistError('x-cancelled', 'Tool execution was cancelled before the values were applied');
       }

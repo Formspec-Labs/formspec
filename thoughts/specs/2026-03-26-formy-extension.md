@@ -185,7 +185,7 @@ interface VaultContents {
 
 ### 4.1 Mode 1: Full Assist Provider
 
-**Detection:** Content script listens for `CustomEvent('formspec-tools-available')` on `document.`
+**Detection:** `document.modelContext.getTools()` lists `formspec.*` tools (native WebMCP), or the polyfill's bridge reports them; `toolchange` on `document.modelContext` signals arrival.
 
 **Behavior:**
 - Extension announces itself via `CustomEvent('formspec-consumer-connect')` (spec §8.6)
@@ -197,7 +197,7 @@ interface VaultContents {
 
 ### 4.2 Mode 2: Bootstrap Assist Provider
 
-**Detection:** `document.querySelector('formspec-render')` exists but no `formspec-tools-available` event within 2 seconds of DOM ready.
+**Detection:** `document.querySelector('formspec-render')` exists but no `formspec.*` tool appears via `getTools()` within 2 seconds of DOM ready.
 
 **Behavior:**
 - Content script reads `element.engine` from the `<formspec-render>` element
@@ -211,7 +211,7 @@ interface VaultContents {
 
 ### 4.3 Mode 3: Plain HTML Form (Degraded)
 
-**Detection:** No `<formspec-render>`, no `data-formspec-form`, no `formspec-tools-available` within 2 seconds.
+**Detection:** No `<formspec-render>`, no `data-formspec-form`, no `formspec.*` tool within 2 seconds.
 
 **Behavior:**
 - Content script scans the DOM for `<form>` elements
@@ -285,7 +285,7 @@ The side panel is the extension's primary UI. It uses Chrome's Side Panel API (`
 When the user clicks "Fill All" or "Fill Selected":
 
 1. Extension calls `formspec.profile.apply` with `confirm: true`
-2. In Mode 1, the in-page provider calls `client.requestUserInteraction()` — the browser shows a confirmation prompt
+2. In Mode 1, the tool carries `consequentialHint`, so the browser/agent may prompt before calling; the in-page provider's `confirmProfileApply` handler then shows the form's own confirmation (assist-spec §7.1(4))
 3. In Mode 2/3, the extension shows its own confirmation dialog in the side panel
 4. User reviews and approves/rejects each field
 5. Applied fields are highlighted briefly in the page (green flash)

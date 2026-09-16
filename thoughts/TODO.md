@@ -310,12 +310,6 @@ P1 deep-dive 2026-05-14: 20 tickets grouped into 8 merge groups M9-M16. Componen
 
    **Acceptance:** Tickets 0031-006..0031-011 close. Six entries on registry.json mapping statuses across all 4 lifecycle states (incl. retired).
 
-- **M15 — Assist consent (requestUserInteraction) (~2h)** · `fs-gjqi` · P1
-
-   Wire requestUserInteraction into profile.apply confirm flow + tool schema annotations. Test: packages/formspec-assist/tests/ — requestUserInteraction called when confirm: true.
-
-   **Acceptance:** Ticket 0053-013 closes. requestUserInteraction wired into profile.apply confirm flow + tool schema annotations.
-
 - **M11 — Extensions back-sync x-budget-version + x-help-link (~1h)** · `fs-gxys` · P1
 
    Add missing x-budget-version + x-help-link; align benchmark reference copy too. Scope: three-way divergence between example, benchmark reference, engine fixture. Fix example AND benchmark; engine fixture is canonical — consider making it source of truth. Test: grep across 3 copies.
@@ -340,6 +334,10 @@ P1 deep-dive 2026-05-14: 20 tickets grouped into 8 merge groups M9-M16. Componen
 
    **Acceptance:** Tickets 0029-034, 0029-035, 0029-043, 0029-045, 0029-060, 0029-061 close. All touch component.json — single commit.
 
+**Recently closed (kept for traceability; archive when stale):**
+
+- ~~**M15 — Assist consent (requestUserInteraction) (~2h)**~~ `fs-gjqi` · CLOSED — Wire requestUserInteraction into profile.apply confirm flow + tool schema annotations.
+
 <!-- tk:end -->
 
 ### Key scope-expansion findings
@@ -362,7 +360,7 @@ P1 deep-dive 2026-05-14: 20 tickets grouped into 8 merge groups M9-M16. Componen
 | M12 | Python conformance | All 6 constraintKind values found in fixtures |
 | M13 | `cargo nextest run -p formspec-core` | Registry entries pass schema validation (registry_client) |
 | M14 | `packages/formspec-assist/tests/` | Transport registration + tool invoke round-trips |
-| M15 | `packages/formspec-assist/tests/` | `requestUserInteraction` called when `confirm: true` |
+| M15 | `packages/formspec-assist/tests/webmcp-binding.test.ts` | write tools carry `consequentialHint`; `confirmProfileApply` receives the abort signal; nothing written after cancel |
 | M16 | `npm run build` | Package builds; `createChatSession` returns ChatSession |
 
 ---

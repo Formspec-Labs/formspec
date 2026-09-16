@@ -116,8 +116,10 @@ export interface AssistProviderOptions {
   registries?: RegistryDocument[] | RegistryEntry[];
   storage?: StorageBackend;
   profileMatchThreshold?: number;
+  /** Provider-side confirmation for `confirm: true`. `signal` aborts when the caller cancels — dismiss the dialog. */
   confirmProfileApply?: (request: {
     matches: Array<{ path: string; value: unknown }>;
+    signal?: AbortSignal;
   }) => boolean | Promise<boolean>;
   /** Register the catalog on `modelContext` (default: `document.modelContext`). Default `true`; a no-op when neither exists. */
   registerWebMCP?: boolean;
@@ -127,7 +129,7 @@ export interface AssistProviderOptions {
 }
 
 export interface AssistProvider {
-  /** Settles once WebMCP registration is acknowledged (immediately when not registering). Rejects if the host refused a tool. */
+  /** Settles once WebMCP registration is acknowledged (immediately when not registering, or when detached first). Rejects only if the host refused a tool. */
   readonly ready: Promise<void>;
   attach(engine: IFormEngine): void;
   /** Unregister from WebMCP. Idempotent. */

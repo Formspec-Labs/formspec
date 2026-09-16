@@ -233,7 +233,7 @@ The `value` property in `formspec.field.set` MAY be omitted. An omitted `value` 
 
 | Tool | Input | Output | Notes |
 |---|---|---|---|
-| `formspec.form.validate` | `{ mode?: "continuous" \| "submit" }` | `ValidationReport` | Default mode is `"continuous"`. |
+| `formspec.form.validate` | `{ profile?: ValidationProfile }` | `ValidationReport` | `ValidationProfile` is the core vocabulary (`live`, `on-submit`, `on-demand`, `off`); default `"live"`. |
 | `formspec.field.validate` | `{ path: string }` | `{ results: ValidationResult[] }` | Field-scoped validation only. |
 
 ### 3.5 Optional Profile Tools
@@ -267,6 +267,10 @@ That object is the normative result. How it travels is a binding detail (§7):
 | MCP, HTTP, browser messaging, in-process (§7.3–§7.5) | MCP `CallToolResult`: `text` is the JSON result object | same envelope, `isError: true`, `text` is the JSON `ToolError` |
 | WebMCP (§7.2) | the result object itself; the browser serializes it | `{ "error": ToolError }`, returned — never thrown |
 
+A WebMCP result whose only top-level key is `error`, holding an object with
+`code`, is a `ToolError`. Result objects MUST NOT define a top-level `error`
+key; the key is reserved.
+
 ```typescript
 interface ToolResult {            // MCP-family envelope
   content: Array<{ type: "text"; text: string }>;
@@ -278,7 +282,8 @@ Consumers MUST parse the JSON payload before using it.
 
 ### 4.2 Error Contract
 
-Error responses set `isError: true` and JSON-stringify a `ToolError` object:
+An error result is a `ToolError` object, carried per §4.1 (MCP-family
+bindings: `isError: true` with the JSON in `text`; WebMCP: `{ error: ToolError }`):
 
 ```typescript
 interface ToolError {
@@ -304,7 +309,7 @@ The following `x-`-prefixed error codes are RECOMMENDED for common provider cond
 | --- | --- |
 | `x-confirmation-required` | A mutation requiring `confirm: true` was requested but no confirmation mechanism is available. |
 | `x-invalid-sidecar` | A loaded References or Ontology document has a structural error or its `targetDefinition` does not match the active form. |
-| `x-cancelled` | The caller aborted the invocation (e.g. the WebMCP `execute` signal) before the mutation was applied. Nothing was written. |
+| `x-cancelled` | The caller aborted the invocation before the mutation was applied. Nothing was written. Observable by in-process callers; a WebMCP caller sees its own abort reason instead (§7.2). |
 
 ### 4.3 Mutation Rules
 
@@ -641,8 +646,12 @@ A conformant WebMCP binding:
   `ToolError` as `{ error: ToolError }` rather than rejecting: WebMCP delivers
   a rejected `execute` as a bare `UnknownError` and discards the reason.
 - **MUST** honor `execute`'s `signal`: no mutation may be applied after the
-  abort; an invocation already past its confirmation step reports
-  `x-cancelled`.
+  abort, and the signal MUST reach any provider-side confirmation so the
+  dialog can be dismissed. The binding reports `x-cancelled`; the WebMCP
+  caller observes its own abort reason and never sees that result.
+- **MUST** treat the document as hosting one Assist Provider at a time: names
+  are fixed, so a second provider's registrations are refused wholesale.
+  Construct a new provider only after the previous one was detached.
 - **MUST NOT** install a polyfill on `document.modelContext`. The object is
   per-document, `SecureContext`-only, and gated by the `tools` permissions
   policy (default `'self'`); which polyfill, if any, is the host page's call.
@@ -659,7 +668,7 @@ Annotation mapping:
 |---|---|---|
 | §3.2 introspection, §3.4 validation, §3.6 navigation, `formspec.profile.match` | `readOnlyHint: true` | No state change. |
 | `formspec.field.help`, `formspec.field.describe` | `readOnlyHint: true`, `untrustedContentHint: true` | Relay References `content`, which may be fetched from third-party URIs. |
-| §3.3 mutation, `formspec.profile.apply`, `formspec.profile.learn` | `consequentialHint: true` | Write the respondent's form or profile; browsers and agents gate consequential tools behind their own confirmation (WebMCP §6.4.5). |
+| §3.3 mutation, `formspec.profile.apply`, `formspec.profile.learn` | `consequentialHint: true` | Write the respondent's form or profile; the hint lets browsers and agents gate consequential tools behind their own confirmation (WebMCP §6.4.5). It is advisory — the provider-side gate is the only guaranteed one. |
 
 `consequentialHint` is the consumer-side layer of §7.1(4). The provider-side
 `confirm: true` handler on `formspec.profile.apply` remains required.
@@ -811,8 +820,9 @@ The page already exposes a conformant Assist Provider.
 
 The extension:
 
-- discovers tools through the provider's binding — under WebMCP,
-  `document.modelContext.getTools()` from a content script,
+- discovers tools through the provider's binding — under native WebMCP,
+  `document.modelContext.getTools()`; a polyfilled page exposes only a
+  page-world object, so the polyfill's own bridge is the discovery path,
 - invokes the full tool catalog,
 - treats provider-returned help and validation as authoritative.
 

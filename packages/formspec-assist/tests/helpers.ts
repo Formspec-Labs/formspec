@@ -295,9 +295,11 @@ export class MemoryStorage implements StorageBackend {
 
 /**
  * In-memory `document.modelContext` stand-in that follows the WebMCP draft's
- * registerTool / getTools / executeTool steps closely enough to act as a test
- * oracle: duplicate names reject, aborting the registration signal unregisters
- * and fires `toolchange`, and `executeTool` returns the JSON-serialized result.
+ * registerTool / getTools / executeTool steps where they differ from a naive
+ * map: duplicate or malformed names reject; `registerTool` resolves from a
+ * queued task, and aborting its signal before then rejects it; `toolchange`
+ * fires from a queued task; `executeTool` rejects the caller on abort and
+ * never observes the tool's natural result afterwards.
  */
 export class FakeModelContext extends EventTarget implements WebMCP.ModelContext {
   public ontoolchange: ((this: WebMCP.ModelContext, ev: Event) => unknown) | null = null;
@@ -314,12 +316,15 @@ export class FakeModelContext extends EventTarget implements WebMCP.ModelContext
       return Promise.reject(options.signal.reason);
     }
     this.tools.set(tool.name, tool);
-    options.signal?.addEventListener('abort', () => {
-      this.tools.delete(tool.name);
-      this.fireToolChange();
+    return new Promise<void>((resolve, reject) => {
+      options.signal?.addEventListener('abort', () => {
+        this.tools.delete(tool.name);
+        this.queueToolChange();
+        reject(options.signal?.reason);
+      });
+      this.queueToolChange();
+      setTimeout(resolve, 0);
     });
-    this.fireToolChange();
-    return Promise.resolve();
   }
 
   public getTools(): Promise<WebMCP.RegisteredTool[]> {
@@ -334,20 +339,38 @@ export class FakeModelContext extends EventTarget implements WebMCP.ModelContext
     return Promise.resolve(tools);
   }
 
-  public async executeTool(tool: WebMCP.RegisteredTool, inputObject: object = {}, options: WebMCP.ModelContextExecuteToolOptions = {}): Promise<string> {
+  public executeTool(tool: WebMCP.RegisteredTool, inputObject: object = {}, options: WebMCP.ModelContextExecuteToolOptions = {}): Promise<string> {
     const registered = this.tools.get(tool.name);
     if (!registered) {
-      throw new Error('UnknownError');
+      return Promise.reject(new Error('UnknownError'));
     }
-    const controller = new AbortController();
-    options.signal?.addEventListener('abort', () => controller.abort(options.signal?.reason));
-    const result = await registered.execute(inputObject as Record<string, unknown>, { signal: controller.signal });
-    return JSON.stringify(result);
+    if (options.signal?.aborted) {
+      return Promise.reject(options.signal.reason);
+    }
+    return new Promise<string>((resolve, reject) => {
+      const controller = new AbortController();
+      let settled = false;
+      options.signal?.addEventListener('abort', () => {
+        settled = true;
+        controller.abort(options.signal?.reason);
+        reject(options.signal?.reason);
+      });
+      const input = JSON.parse(JSON.stringify(inputObject)) as Record<string, unknown>;
+      Promise.resolve(registered.execute(input, { signal: controller.signal })).then(
+        (result) => { if (!settled) resolve(JSON.stringify(result)); },
+        () => { if (!settled) reject(new Error('UnknownError')); },
+      );
+    });
   }
 
-  private fireToolChange(): void {
-    const event = new Event('toolchange');
-    this.ontoolchange?.call(this, event);
-    this.dispatchEvent(event);
+  private queueToolChange(): void {
+    setTimeout(() => {
+      const event = new Event('toolchange');
+      this.ontoolchange?.call(this, event);
+      this.dispatchEvent(event);
+    }, 0);
   }
 }
+
+/** One macrotask, so queued-task effects (`registerTool` resolution, `toolchange`) have run. */
+export const nextTask = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
