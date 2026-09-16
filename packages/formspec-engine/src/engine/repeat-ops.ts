@@ -4,7 +4,8 @@ import type { FormItem } from '@formspec-org/types';
 import type { ValidationResult } from '@formspec-org/types';
 import type { OptionEntry } from '@formspec-org/types';
 import type { EngineSignal } from '../reactivity/types.js';
-import type { RemoteOptionsState } from '../interfaces.js';
+import type {
+    WriteSource, RemoteOptionsState } from '../interfaces.js';
 
 /** Remove indexed paths under a repeat root from signal stores and `_data` (reactive structure only). */
 export function clearRepeatIndexedSubtree(options: {
@@ -15,6 +16,7 @@ export function clearRepeatIndexedSubtree(options: {
     readonlySignals: Record<string, EngineSignal<boolean>>;
     errorSignals: Record<string, EngineSignal<string | null>>;
     validationResults: Record<string, EngineSignal<ValidationResult[]>>;
+    writeSources: Record<string, EngineSignal<WriteSource | null>>;
     optionSignals: Record<string, EngineSignal<OptionEntry[]>>;
     optionStateSignals: Record<string, EngineSignal<RemoteOptionsState>>;
     repeats: Record<string, EngineSignal<number>>;
@@ -28,6 +30,7 @@ export function clearRepeatIndexedSubtree(options: {
         options.readonlySignals,
         options.errorSignals,
         options.validationResults,
+        options.writeSources,
         options.optionSignals,
         options.optionStateSignals,
         options.repeats,

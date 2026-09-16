@@ -466,6 +466,7 @@ export class FormEngine implements IFormEngine {
         select: (rows: Record<string, unknown>[]) => Record<string, unknown>[],
     ): void {
         const snapshots: Record<string, unknown>[] = [];
+        const sourceSnapshots: Record<string, unknown>[] = [];
         for (let current = 0; current < this.repeats[path].value; current += 1) {
             snapshots.push(
                 snapshotRepeatGroupTree(
@@ -475,7 +476,17 @@ export class FormEngine implements IFormEngine {
                     (repeatPath) => this.repeats[repeatPath]?.value ?? 0,
                 ),
             );
+            // Provenance moves with its row: a respondent's typing must not inherit an assist tag from the row above.
+            sourceSnapshots.push(
+                snapshotRepeatGroupTree(
+                    item.children ?? [],
+                    `${path}[${current}]`,
+                    (fieldPath) => this.writeSources[fieldPath]?.value ?? null,
+                    (repeatPath) => this.repeats[repeatPath]?.value ?? 0,
+                ),
+            );
         }
+        const kept = new Map(snapshots.map((row, index) => [row, sourceSnapshots[index]]));
         const rows = select(snapshots);
 
         this._rx.batch(() => {
@@ -495,6 +506,18 @@ export class FormEngine implements IFormEngine {
                         }
                     },
                 );
+                const sources = kept.get(rows[current]);
+                if (sources) {
+                    applyRepeatGroupTreeSnapshot(
+                        item.children ?? [],
+                        `${path}[${current}]`,
+                        sources,
+                        (fieldPath, source) => {
+                            (this.writeSources[fieldPath] ??= this._rx.signal<WriteSource | null>(null)).value =
+                                (source as WriteSource | null) ?? null;
+                        },
+                    );
+                }
             }
             this.structureVersion.value += 1;
         });
@@ -1938,6 +1961,7 @@ export class FormEngine implements IFormEngine {
             readonlySignals: this.readonlySignals,
             errorSignals: this.errorSignals,
             validationResults: this.validationResults,
+            writeSources: this.writeSources,
             optionSignals: this.optionSignals,
             optionStateSignals: this.optionStateSignals,
             repeats: this.repeats,

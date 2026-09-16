@@ -83,3 +83,32 @@ test('a write records who made it, so assist can guard a respondent\'s own typin
   engine.setValue('derivedScore', 9, { source: 'assist' });
   assert.equal(engine.writeSources['derivedScore'].value, null);
 });
+
+test('write sources travel with their row when a repeat instance is removed', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'https://example.org/forms/rows',
+    version: '1.0.0',
+    title: 'Rows',
+    items: [
+      {
+        key: 'items', type: 'group', label: 'Items', repeatable: true,
+        children: [{ key: 'amount', type: 'field', dataType: 'string', label: 'Amount' }],
+      },
+    ],
+  });
+  engine.addRepeatInstance('items');
+  engine.addRepeatInstance('items');
+  engine.addRepeatInstance('items');
+  engine.setValue('items[0].amount', '10', { source: 'assist' });
+  engine.setValue('items[1].amount', '20', { source: 'assist' });
+  engine.setValue('items[2].amount', '30');
+
+  engine.removeRepeatInstance('items', 0);
+
+  assert.equal(engine.getFieldVM('items[0].amount').value.value, '20');
+  assert.equal(engine.writeSources['items[0].amount'].value, 'assist');
+  assert.equal(engine.getFieldVM('items[1].amount').value.value, '30');
+  assert.equal(engine.writeSources['items[1].amount'].value, 'user');
+  assert.equal(engine.writeSources['items[2].amount'], undefined);
+});
