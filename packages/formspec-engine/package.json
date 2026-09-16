@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/engine",
   "description": "Client-side form state engine with FEL expression language, reactive signals, and validation",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {

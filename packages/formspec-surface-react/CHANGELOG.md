@@ -1,5 +1,15 @@
 # @formspec-org/surface-react
 
+## 2.0.2
+
+### Patch Changes
+
+- @formspec-org/engine@2.0.2
+- @formspec-org/app-graph@2.0.2
+- @formspec-org/layout@2.0.2
+- @formspec-org/react@2.0.2
+- @formspec-org/surface@2.0.2
+
 ## 2.0.1
 
 ### Patch Changes

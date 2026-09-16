@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/assist",
   "description": "Reference implementation of the Formspec Assist interoperability specification",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "type": "module",
   "license": "BUSL-1.1",
   "repository": {
@@ -29,8 +29,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@formspec-org/engine": "^2.0.1",
-    "@formspec-org/layout": "^2.0.1",
+    "@formspec-org/engine": "^2.0.2",
+    "@formspec-org/layout": "^2.0.2",
     "@formspec-org/types": "^0.2.0",
     "webmcp-types": "^0.1.8"
   },

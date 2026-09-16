@@ -1,5 +1,12 @@
 # @formspec-org/surface
 
+## 2.0.2
+
+### Patch Changes
+
+- @formspec-org/app-graph@2.0.2
+- @formspec-org/layout@2.0.2
+
 ## 2.0.1
 
 ### Patch Changes
