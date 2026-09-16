@@ -86,6 +86,17 @@ describe('render lifecycle', () => {
         expect(el.querySelector('.formspec-field')).not.toBeNull();
     });
 
+    it('names the Definition on the render root for a passive consumer (Assist spec §8.1)', () => {
+        const def = singleFieldDef();
+        el.definition = def;
+        el.render();
+        const root = el.querySelector('[data-formspec-form]') as HTMLElement;
+        expect(root.classList.contains('formspec-container')).toBe(true);
+        expect(root.dataset.formspecUrl).toBe(def.url);
+        expect(root.dataset.formspecVersion).toBe(def.version);
+        expect(root.dataset.formspecTitle).toBe(def.title);
+    });
+
     it('renders host-supplied Component graph identity as inert DOM metadata', () => {
         el.componentGraph = {
             component: {

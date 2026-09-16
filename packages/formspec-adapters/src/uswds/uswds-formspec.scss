@@ -220,6 +220,39 @@ $fs-rhythm-blocks: '.usa-form-group, .formspec-uswds-text-wrap, .formspec-uswds-
 
 // Validation summary: spacing comes from inner .usa-alert.margin-bottom-2 (Real USWDS pane parity).
 
+// Issuer chrome (Issuer spec): who is asking, drawn by the renderer at the top of the form — a logo when the
+// Issuer has one, its display name, the organization breadcrumb, a support address. USWDS has no pattern for
+// an in-form identity strip (its Identifier is a page footer), so the look is Formspec's own in USWDS's
+// units and palette: one row, the logo capped at a comfortable height, the name in the body weight USWDS
+// gives a label, the breadcrumb in hint color. It opens the form with the field gap above it, the gap USWDS
+// gives the first field; the section after it brings its own section gap, so the strip adds none below.
+.fs-issuer-chrome {
+  display: flex;
+  align-items: center;
+  gap: units(2);
+  margin-top: var(--formspec-spacing-field, #{units(3)});
+}
+
+.fs-issuer-logo {
+  max-height: units(6);
+  width: auto;
+}
+
+.fs-issuer-name {
+  font-weight: font-weight('bold');
+}
+
+.fs-issuer-org-breadcrumb {
+  color: color('base');
+  font-size: size('body', '2xs');
+}
+
+.fs-issuer-query-indicator {
+  margin-left: auto;
+  color: color('base');
+  font-size: size('body', '2xs');
+}
+
 // The Modal is a native <dialog> carrying `usa-modal` itself: the browser is the overlay (top layer,
 // backdrop, Escape, focus trap), so there is no usa-modal-wrapper/-overlay markup and no USWDS modal JS.
 // These declarations reconcile the box with the UA dialog: `.usa-modal`'s `position: relative` would pull

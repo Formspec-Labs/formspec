@@ -466,3 +466,32 @@ hr.formspec-divider {
   border-top: none;
   padding-top: 10px;
 }
+
+/* Issuer chrome (Issuer spec): who is asking, at the top of the form — logo, display name, organization
+   breadcrumb, support address. One row; it opens the form with the field gap above it and adds none below,
+   the first section brings its own. */
+.fs-issuer-chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.fs-issuer-logo {
+  max-height: 3rem;
+  width: auto;
+}
+
+.fs-issuer-name {
+  font-weight: 600;
+}
+
+.fs-issuer-org-breadcrumb,
+.fs-issuer-query-indicator {
+  color: var(--formspec-default-text-subtle);
+  font-size: 0.875rem;
+}
+
+.fs-issuer-query-indicator {
+  margin-left: auto;
+}

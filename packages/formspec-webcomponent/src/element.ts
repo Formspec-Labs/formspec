@@ -976,6 +976,12 @@ export class FormspecRender extends HTMLElement {
         container.removeAttribute('aria-busy');
         this.syncRootContainerAppearance();
         container.replaceChildren();
+        // Assist spec §8.1: passive identity a browser extension or agent reads before any Assist provider
+        // is active — which Definition this is, so its References and Ontology sidecars can be found.
+        container.dataset.formspecForm = '';
+        container.dataset.formspecTitle = this._definition.title ?? '';
+        container.dataset.formspecUrl = this._definition.url;
+        container.dataset.formspecVersion = this._definition.version;
 
         emitTokenPropertiesFn(this._stylingHost, container);
         this.renderIssuerChrome(container);
