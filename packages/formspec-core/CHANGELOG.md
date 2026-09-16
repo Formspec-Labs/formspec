@@ -1,5 +1,18 @@
 # @formspec-org/core
 
+## 2.0.1
+
+### Patch Changes
+
+- <!-- tier: foundation -->
+
+  The registry refuses `2.0.0` for app-graph and surface — those numbers were used and
+  unpublished once, and npm never lets an unpublished number back. The fixed group moves
+  to 2.0.1 together so every package still carries one number.
+
+- Updated dependencies
+  - @formspec-org/engine@2.0.1
+
 ## 2.0.0
 
 ### Minor Changes
