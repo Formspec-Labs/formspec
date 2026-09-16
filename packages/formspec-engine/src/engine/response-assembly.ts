@@ -346,7 +346,8 @@ export function migrateResponseData(
     fromVersion: string,
     options: { nowIso: string },
 ): Record<string, any> {
-    if (!Array.isArray(definition.migrations)) {
+    // Core §6.7: `migrations.from[<version>]` names the descriptor; no descriptor, no change.
+    if (!definition.migrations?.from?.[fromVersion]) {
         return responseData;
     }
     return JSON.parse(

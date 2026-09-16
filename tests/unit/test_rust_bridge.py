@@ -449,23 +449,35 @@ def test_rewrite_fel_for_assembly_prefixes_imported_key():
     assert out == "$proj_amount"
 
 
-def test_apply_migrations_to_response_data_rename():
+def test_apply_migrations_to_response_data_follows_core_6_7():
+    """`migrations.from[<version>].fieldMap` (core §6.7): preserve into a nested target, drop, an
+    expression over `$`, a default for a new field, carry-forward only of paths this version has."""
     definition = {
-        "migrations": [
-            {
-                "fromVersion": "1.0.0",
-                "changes": [{"type": "rename", "from": "name", "to": "fullName"}],
-            }
-        ]
+        "items": [
+            {"key": "fullName", "type": "field", "dataType": "string"},
+            {"key": "jobs", "type": "group", "repeatable": True, "children": [
+                {"key": "employer", "type": "field", "dataType": "string"},
+                {"key": "hours", "type": "field", "dataType": "integer"},
+            ]},
+            {"key": "consent", "type": "field", "dataType": "boolean"},
+        ],
+        "migrations": {"from": {"1.0.0": {
+            "fieldMap": [
+                {"source": "name", "target": "fullName", "transform": "preserve"},
+                {"source": "employer", "target": "jobs[0].employer", "transform": "preserve"},
+                {"source": "hours", "target": "jobs[0].hours", "transform": "expression", "expression": "floor($)"},
+                {"source": "severance", "target": None, "transform": "drop"},
+            ],
+            "defaults": {"consent": False},
+        }}},
     }
     out = apply_migrations_to_response_data(
         definition,
-        {"name": "Ada"},
+        {"name": "Ada", "employer": "ACME", "hours": 7.5, "severance": "yes", "email": "ada@example.com"},
         "1.0.0",
         now_iso="2020-01-01T00:00:00Z",
     )
-    assert out.get("fullName") == "Ada"
-    assert "name" not in out
+    assert out == {"fullName": "Ada", "jobs": [{"employer": "ACME", "hours": 7}], "consent": False}
 
 
 # ── Path utility ─────────────────────────────────────────────────

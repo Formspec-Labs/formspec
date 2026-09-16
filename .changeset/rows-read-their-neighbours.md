@@ -25,3 +25,9 @@ table, the validation summary, the file-upload dropzone, the screener and an act
 result line. React tracks group heading depth, as the web component does. While the
 engine boots, the skeleton marks each `{{}}` value as pending instead of showing its
 expression, and draws its repeat chrome from the same inventory.
+
+`migrateResponse` follows core §6.7: `migrations.from[<version>].fieldMap` with
+`preserve`, `drop` and `expression` (`$` the source value, `@source` the whole source),
+nested and indexed targets, `defaults` for new fields, and carry-forward only of paths this
+version still has. The runtime had read a `[{fromVersion, changes}]` shape the schema
+rejects, so a migration authored through Studio or the Forms MCP did nothing.

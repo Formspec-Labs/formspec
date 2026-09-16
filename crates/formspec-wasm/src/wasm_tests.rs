@@ -397,14 +397,16 @@ mod tests {
 
     #[test]
     fn apply_migrations_to_response_data_wasm_rename_and_transform() {
+        // Core §6.7 shape: `migrations.from[<version>].fieldMap`, `$` bound to the source value.
         let def = json!({
-            "migrations": [{
-                "fromVersion": "1.0.0",
-                "changes": [
-                    { "type": "rename", "from": "givenName", "to": "name" },
-                    { "type": "transform", "path": "nickname", "expression": "upper(name)" }
-                ]
-            }]
+            "items": [
+                { "key": "name", "type": "field", "dataType": "string" },
+                { "key": "nickname", "type": "field", "dataType": "string" }
+            ],
+            "migrations": { "from": { "1.0.0": { "fieldMap": [
+                { "source": "givenName", "target": "name", "transform": "preserve" },
+                { "source": "givenName", "target": "nickname", "transform": "expression", "expression": "upper($)" }
+            ] } } }
         });
         let data = json!({ "givenName": "alice", "nickname": "legacy" });
         let out = apply_migrations_to_response_data_wasm(

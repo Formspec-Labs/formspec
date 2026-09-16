@@ -725,7 +725,7 @@ def apply_migrations_to_response_data(
     *,
     now_iso: str,
 ) -> dict:
-    """Apply definition `migrations` to flat response field data (FEL transforms in Rust)."""
+    """Apply `definition.migrations.from[from_version]` (core §6.7) to response data — in Rust, as every host."""
     return formspec_rust.apply_migrations_to_response_data(
         definition, data, from_version, now_iso
     )

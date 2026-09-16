@@ -116,17 +116,16 @@ test('wasmResolveOptionSetsOnDefinition inlines options from optionSets', () => 
   assert.equal(out.items[0].options[0].value, 'a');
 });
 
-test('wasmApplyMigrationsToResponseData runs rename and FEL transform', () => {
+test('wasmApplyMigrationsToResponseData applies a core §6.7 fieldMap: preserve and a FEL expression', () => {
   const def = {
-    migrations: [
-      {
-        fromVersion: '1.0.0',
-        changes: [
-          { type: 'rename', from: 'givenName', to: 'name' },
-          { type: 'transform', path: 'nickname', expression: 'upper(name)' },
-        ],
-      },
+    items: [
+      { key: 'name', type: 'field', dataType: 'string' },
+      { key: 'nickname', type: 'field', dataType: 'string' },
     ],
+    migrations: { from: { '1.0.0': { fieldMap: [
+      { source: 'givenName', target: 'name', transform: 'preserve' },
+      { source: 'givenName', target: 'nickname', transform: 'expression', expression: 'upper($)' },
+    ] } } },
   };
   const data = { givenName: 'alice', nickname: 'legacy' };
   const out = JSON.parse(

@@ -107,7 +107,9 @@ test('should fall back to default labels when context-specific label is missing'
   assert.equal(engine.getLabel(phoneItem), 'Phone Number');
 });
 
-test('should apply rename remove and add migration steps when migrating response data', () => {
+test('migrates a response from an earlier version through the Definition\'s migrations (core §6.7)', () => {
+  // v2 of a form: the v1 flat `employer` and decimal `hours` moved into a repeat row; v1's `severance`
+  // question is gone; `consent` is new and defaults to false.
   const engine = new FormEngine({
     $formspec: '1.0',
     url: 'http://example.org/test',
@@ -115,87 +117,68 @@ test('should apply rename remove and add migration steps when migrating response
     title: 'Migration Test',
     items: [
       { key: 'fullName', type: 'field', dataType: 'string', label: 'Full Name' },
-      { key: 'consent', type: 'field', dataType: 'boolean', label: 'Consent' }
+      { key: 'jobs', type: 'group', label: 'Jobs', repeatable: true, children: [
+        { key: 'employer', type: 'field', dataType: 'string', label: 'Employer' },
+        { key: 'hours', type: 'field', dataType: 'integer', label: 'Hours' },
+        { key: 'minutes', type: 'field', dataType: 'integer', label: 'Minutes' },
+      ] },
+      { key: 'consent', type: 'field', dataType: 'boolean', label: 'Consent' },
     ],
-    migrations: [
-      {
-        fromVersion: '1.0.0',
-        changes: [
-          { type: 'rename', from: 'name', to: 'fullName' },
-          { type: 'remove', path: 'legacy_field' },
-          { type: 'add', path: 'consent', default: false }
-        ]
-      }
-    ]
+    migrations: { from: { '1.0.0': {
+      description: 'name → fullName; one job became a repeat; hours split; severance removed',
+      fieldMap: [
+        { source: 'name', target: 'fullName', transform: 'preserve' },
+        { source: 'employer', target: 'jobs[0].employer', transform: 'preserve' },
+        { source: 'hours', target: 'jobs[0].hours', transform: 'expression', expression: 'floor($)' },
+        { source: 'hours', target: 'jobs[0].minutes', transform: 'expression', expression: 'round(($ - floor($)) * 60, 0)' },
+        { source: 'severance', target: null, transform: 'drop' },
+      ],
+      defaults: { consent: false },
+    } } },
   });
 
-  const result = engine.migrateResponse(
-    {
-      name: 'John Doe',
-      legacy_field: 'old_value',
-      email: 'john@example.com'
-    },
-    '1.0.0'
-  );
+  const source = { name: 'John Doe', employer: 'ACME', hours: 7.5, severance: 'yes', email: 'john@example.com' };
+  const result = engine.migrateResponse(source, '1.0.0');
 
   assert.equal(result.fullName, 'John Doe');
-  assert.equal(result.name, undefined);
-  assert.equal(result.legacy_field, undefined);
-  assert.equal(result.consent, false);
-  assert.equal(result.email, 'john@example.com');
+  assert.deepEqual(result.jobs, [{ employer: 'ACME', hours: 7, minutes: 30 }]);
+  assert.equal(result.consent, false, 'a default fills a new field');
+  assert.equal(result.name, undefined, 'a preserved source does not also carry forward');
+  assert.equal(result.severance, undefined, 'dropped by rule');
+  assert.equal(result.email, undefined, 'not an item of this version, so not carried forward');
+  assert.equal(source.hours, 7.5, 'the source is untouched');
 });
 
-test('should skip migrations earlier than fromVersion when migrating response data', () => {
+test('leaves a response alone when no migration names its version', () => {
   const engine = new FormEngine({
     $formspec: '1.0',
     url: 'http://example.org/test',
-    version: '3.0.0',
-    title: 'Migration Version Test',
-    items: [{ key: 'x', type: 'field', dataType: 'string', label: 'X' }],
-    migrations: [
-      {
-        fromVersion: '1.0.0',
-        changes: [{ type: 'rename', from: 'a', to: 'b' }]
-      },
-      {
-        fromVersion: '2.0.0',
-        changes: [{ type: 'rename', from: 'b', to: 'c' }]
-      }
-    ]
+    version: '2.0.0',
+    title: 'Migration Test',
+    items: [{ key: 'a', type: 'field', dataType: 'string', label: 'A' }],
+    migrations: { from: { '1.0.0': { fieldMap: [{ source: 'b', target: 'a', transform: 'preserve' }] } } },
   });
-
-  const result = engine.migrateResponse({ b: 'value' }, '2.0.0');
-
-  assert.equal(result.c, 'value');
-  assert.equal(result.b, undefined);
+  assert.deepEqual(engine.migrateResponse({ b: 'x' }, '1.5.0'), { b: 'x' });
 });
 
-test('should evaluate migration transform expressions against the migrating response payload', () => {
+test('an expression rule reads the whole source through @source', () => {
   const engine = new FormEngine({
     $formspec: '1.0',
     url: 'http://example.org/test',
     version: '3.0.0',
     title: 'Migration Transform Context',
     items: [
-      { key: 'name', type: 'field', dataType: 'string', label: 'Name', initialValue: '' },
-      { key: 'nickname', type: 'field', dataType: 'string', label: 'Nickname', initialValue: '' }
+      { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+      { key: 'nickname', type: 'field', dataType: 'string', label: 'Nickname' },
     ],
-    migrations: [
-      {
-        fromVersion: '1.0.0',
-        changes: [
-          { type: 'rename', from: 'givenName', to: 'name' },
-          { type: 'transform', path: 'nickname', expression: 'upper(name)' }
-        ]
-      }
-    ]
+    migrations: { from: { '1.0.0': { fieldMap: [
+      { source: 'givenName', target: 'name', transform: 'preserve' },
+      { source: 'givenName', target: 'nickname', transform: 'expression', expression: "upper($) & ' / ' & @source.familyName" },
+    ] } } },
   });
 
-  const result = engine.migrateResponse(
-    { givenName: 'alice', nickname: 'legacy' },
-    '1.0.0'
-  );
+  const result = engine.migrateResponse({ givenName: 'alice', familyName: 'Liddell', nickname: 'legacy' }, '1.0.0');
 
   assert.equal(result.name, 'alice');
-  assert.equal(result.nickname, 'ALICE');
+  assert.equal(result.nickname, 'ALICE / Liddell');
 });
