@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/layout",
   "description": "Layout algorithm for resolving Formspec theme pages, grids, and component arrangements",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -24,7 +24,9 @@
     "./formspec-layout.css": "./dist/formspec-layout.css",
     "./formspec-default.css": "./dist/formspec-default.css"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc && node ../../scripts/copy-layout-css-assets.mjs src dist",
     "test": "vitest run"
