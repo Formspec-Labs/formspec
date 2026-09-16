@@ -1,0 +1,38 @@
+{
+  "$formspecOntology": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.com/forms/ontology-context-drift",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "defaultSystem": "https://example.com/vocab",
+  "concepts": {
+    "dob": { "concept": "https://schema.org/birthDate" },
+    "name": { "concept": "https://schema.org/name" },
+    "jobs": { "concept": "https://example.com/vocab#job" },
+    "jobs[*].employer": { "concept": "https://example.com/vocab#employer-name" }
+  },
+  "context": {
+    "@context": {
+      "@version": 1.1,
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "dob": { "@id": "https://schema.org/birthDate", "@type": "xsd:string" },
+      "name": "https://schema.org/name",
+      "id": "@id"
+    }
+  },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/ontology-context-drift",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "Ontology context drift fixture definition",
+    "items": [
+      { "key": "dob", "type": "field", "label": "Date of birth", "dataType": "date" },
+      { "key": "name", "type": "field", "label": "Name", "dataType": "string" },
+      { "key": "jobs", "type": "group", "label": "Jobs", "repeatable": true, "children": [
+        { "key": "employer", "type": "field", "label": "Employer", "dataType": "string" }
+      ]}
+    ]
+  }
+}

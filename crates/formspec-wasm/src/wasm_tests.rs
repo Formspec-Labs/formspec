@@ -22,6 +22,8 @@ mod tests {
     use crate::fel_context::FelContextHandle;
     #[cfg(feature = "mapping-api")]
     use crate::mapping::execute_mapping_rules_inner;
+    #[cfg(feature = "ontology-api")]
+    use crate::ontology::derive_json_ld_context_inner;
     #[cfg(feature = "registry-api")]
     use crate::registry::find_registry_entry_inner;
     use crate::value_coerce::coerce_field_value_inner;
@@ -611,6 +613,49 @@ mod tests {
     fn find_registry_entry_inner_invalid_json() {
         let result = find_registry_entry_inner("not json", "x-test", "");
         assert!(result.is_err());
+    }
+
+    // ── derive_json_ld_context_inner: Ontology §6.2 wire shape ──────────
+
+    /// Spec: specs/ontology/ontology-spec.md §6.2 — Output is `{ context, diagnostics }` with camelCase diagnostic keys.
+    #[cfg(feature = "ontology-api")]
+    #[test]
+    fn derive_json_ld_context_inner_output_shape() {
+        let definition = json!({ "items": [
+            { "key": "dob", "type": "field", "dataType": "date" },
+            { "key": "home", "type": "group", "children": [
+                { "key": "city", "type": "field", "dataType": "string" }
+            ]},
+            { "key": "work", "type": "group", "children": [
+                { "key": "city", "type": "field", "dataType": "string" }
+            ]}
+        ]});
+        let ontology = json!({ "concepts": {
+            "dob": { "concept": "https://schema.org/birthDate" },
+            "home.city": { "concept": "urn:c:home-city" },
+            "work.city": { "concept": "urn:c:work-city" }
+        }});
+        let result =
+            derive_json_ld_context_inner(&definition.to_string(), &ontology.to_string()).unwrap();
+        let val: Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(val["context"]["@version"], 1.1);
+        assert_eq!(val["context"]["dob"]["@type"], "xsd:date");
+        assert_eq!(val["context"]["home"], "@nest");
+        assert_eq!(
+            val["diagnostics"],
+            json!([{ "kind": "collision", "path": "work.city", "key": "city", "existingId": "urn:c:home-city", "newId": "urn:c:work-city" }])
+        );
+    }
+
+    /// Spec: specs/ontology/ontology-spec.md §6.2 — Invalid JSON returns a labelled error.
+    #[cfg(feature = "ontology-api")]
+    #[test]
+    fn derive_json_ld_context_inner_invalid_json() {
+        let err = derive_json_ld_context_inner("not json", "{}").unwrap_err();
+        assert!(err.contains("invalid definition JSON"), "{err}");
+        let err = derive_json_ld_context_inner("{}", "not json").unwrap_err();
+        assert!(err.contains("invalid ontology JSON"), "{err}");
     }
 
     // ── Finding 67: execute_mapping_rules_inner ────────────────────────

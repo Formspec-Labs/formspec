@@ -1,0 +1,23 @@
+{
+  "$formspecOntology": "1.0",
+  "version": "1.0.0",
+  "name": "jsonld-roundtrip",
+  "title": "JSON-LD round-trip fixture ontology",
+  "description": "Binds the fixture Definition to a small vocabulary. `context` is intentionally absent: the conformance test derives it (Ontology spec §6.2) and lifts response.json through a JSON-LD processor.",
+  "targetDefinition": { "url": "https://example.gov/forms/weekly-certification" },
+  "defaultSystem": "https://example.gov/vocab/weekly-certification",
+  "concepts": {
+    "eligibility.ableAndAvailable": { "concept": "https://example.gov/vocab/weekly-certification#able-and-available", "display": "Able and available" },
+    "eligibility.expectedReturnDate": { "concept": "https://example.gov/vocab/weekly-certification#expected-return-date", "display": "Expected return date" },
+    "claimant": { "concept": "https://example.gov/vocab/weekly-certification#claimant", "display": "Claimant" },
+    "claimant.givenName": { "concept": "https://schema.org/givenName", "system": "https://schema.org", "display": "Given name" },
+    "claimant.birthDate": { "concept": "https://schema.org/birthDate", "system": "https://schema.org", "display": "Date of birth" },
+    "jobs": { "concept": "https://example.gov/vocab/weekly-certification#job", "display": "Job held this week" },
+    "jobs[*].employerName": { "concept": "https://example.gov/vocab/weekly-certification#employer-name", "display": "Employer name" },
+    "jobs[*].hoursWorked.hours": { "concept": "https://example.gov/vocab/weekly-certification#hours-worked", "display": "Hours worked" },
+    "jobs[*].grossEarnings": { "concept": "https://example.gov/vocab/weekly-certification#gross-earnings", "display": "Gross earnings" },
+    "jobs[*].pay": { "concept": "https://example.gov/vocab/weekly-certification#pay", "display": "Pay" },
+    "jobs[*].workType": { "concept": "https://example.gov/vocab/weekly-certification#work-type", "display": "Work type" },
+    "certified": { "concept": "https://example.gov/vocab/weekly-certification#certified", "display": "Certified" }
+  }
+}

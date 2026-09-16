@@ -1,0 +1,32 @@
+{
+  "$formspecResponse": "1.0",
+  "definitionUrl": "https://example.gov/forms/weekly-certification",
+  "definitionVersion": "1.0.0",
+  "status": "completed",
+  "authored": "2026-09-16T12:00:00Z",
+  "data": {
+    "eligibility": {
+      "ableAndAvailable": true,
+      "expectedReturnDate": "2026-09-21",
+      "notes": "unbound: must not appear in the graph"
+    },
+    "claimant": { "givenName": "Ada", "birthDate": "1990-01-02" },
+    "jobs": [
+      {
+        "employerName": "Acme",
+        "hoursWorked": { "hours": 12 },
+        "grossEarnings": 245.5,
+        "pay": { "amount": "245.50", "currency": "USD" },
+        "workType": ["part-time", "temporary"]
+      },
+      {
+        "employerName": "Bolt",
+        "hoursWorked": { "hours": 8 },
+        "grossEarnings": 160,
+        "pay": { "amount": "160.00", "currency": "USD" },
+        "workType": ["full-time"]
+      }
+    ],
+    "certified": true
+  }
+}

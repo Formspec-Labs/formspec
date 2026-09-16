@@ -18,6 +18,8 @@ export type { ResolvedProperty, ThemeCascadeInput, DefinitionCascadeInput } from
 export { resolvePageStructure } from './page-resolution.js';
 export { componentDocumentIsDerived } from './component-export.js';
 export { bindEntriesFor, mergeBindProperties } from './definition-binds.js';
+export { deriveJsonLdContext } from './jsonld-context.js';
+export type { JsonLdDerivation, JsonLdDiagnostic } from './jsonld-context.js';
 export {
   fieldPaths,
   itemPaths,

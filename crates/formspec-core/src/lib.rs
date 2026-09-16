@@ -18,6 +18,7 @@ pub mod fel_condition_group_lift;
 pub mod fel_rewrite_exact;
 pub mod json_artifacts;
 pub mod json_util;
+pub mod jsonld_context;
 pub mod option_sets;
 pub mod path_utils;
 pub mod registry_client;
@@ -59,6 +60,10 @@ pub use fel_condition_group_lift::try_lift_condition_group;
 pub use fel_rewrite_exact::{rewrite_fel_source_references, rewrite_message_template};
 pub use json_artifacts::{changelog_to_json_value, extension_usage_issues_to_json_value};
 pub use json_util::json_object_to_string_map;
+pub use jsonld_context::{
+    JsonLdDerivation, JsonLdDiagnostic, JsonLdDiagnosticKind, derive_json_ld_context,
+    json_ld_derivation_to_json_value,
+};
 pub use option_sets::resolve_option_sets_on_definition;
 pub use path_utils::{
     ItemLocation, TreeItem, definition_item_location_to_json_value, item_at_path,

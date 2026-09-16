@@ -34,6 +34,7 @@ full-wasm = [
     "definition-assembly",
     "mapping-api",
     "registry-api",
+    "ontology-api",
     "changelog-api",
     "fel-authoring",
 ]
@@ -48,6 +49,8 @@ definition-assembly = []
 mapping-api = []
 # Registry parse/lookup/lifecycle/extension usage validation.
 registry-api = []
+# Ontology JSON-LD context derivation (`deriveJsonLdContext`).
+ontology-api = []
 # Definition diff changelog (`generateChangelog`).
 changelog-api = []
 # FEL parse/tokenize/print, full deps extract, rewrites, assembly rewrite, builtin catalog.

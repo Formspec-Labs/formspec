@@ -670,6 +670,16 @@ bound concept is equivalent to a concept in another system:</p>
 </thead>
 <tbody>
 <tr>
+<td><code>concept</code></td>
+<td>string (URI)</td>
+<td>OPTIONAL</td>
+<td>The equivalent concept’s own URI, fully resolved in its system
+(<code>https://schema.org/streetAddress</code>). Consumers that match by
+concept identity — profile matching, the Assist spec’s
+concept-to-autocomplete table — match on it. When absent, processors
+MUST derive <code>&lt;system&gt;#&lt;code&gt;</code>.</td>
+</tr>
+<tr>
 <td><code>system</code></td>
 <td>string</td>
 <td>REQUIRED</td>
@@ -766,14 +776,15 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="
 <span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;display&quot;</span><span class="fu">:</span> <span class="st">&quot;Social Security Number&quot;</span><span class="fu">,</span></span>
 <span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;equivalents&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;system&quot;</span><span class="fu">:</span> <span class="st">&quot;https://schema.org&quot;</span><span class="fu">,</span></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;code&quot;</span><span class="fu">:</span> <span class="st">&quot;taxID&quot;</span><span class="fu">,</span></span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;broader&quot;</span></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span></span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;concept&quot;</span><span class="fu">:</span> <span class="st">&quot;https://schema.org/taxID&quot;</span><span class="fu">,</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;system&quot;</span><span class="fu">:</span> <span class="st">&quot;https://schema.org&quot;</span><span class="fu">,</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;code&quot;</span><span class="fu">:</span> <span class="st">&quot;taxID&quot;</span><span class="fu">,</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;broader&quot;</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h3 id="resolution-cascade">3.4 Resolution Cascade</h3>
 <p>Concept identity for a field may come from up to three sources. When
 multiple sources apply to the same field, the following cascade
@@ -1104,10 +1115,46 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="
 <span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
 <span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h3 id="auto-generation">6.2 Auto-Generation</h3>
-<p>Ontology-aware tooling SHOULD be capable of generating a JSON-LD
-context fragment from the concept bindings and vocabulary bindings in
-the document. Explicitly authored <code>context</code> entries override
-auto-generated ones.</p>
+<p>Ontology-aware tooling SHOULD generate the <code>@context</code> from
+the concept bindings; the reference derivation is
+<code>deriveJsonLdContext(definition, ontology)</code> in
+<code>@formspec-org/core</code> (Rust:
+<code>formspec_core::derive_json_ld_context</code>). It walks the
+Definition items in order under a header of <code>"@version": 1.1</code>
+and the <code>xsd</code> prefix, looking each item up by its
+<code>[*]</code> path first and its dotted path second. A bound field
+becomes <code>key: { "@id": &lt;concept&gt;, "@type": … }</code> typed
+by <code>dataType</code>: <code>integer</code>, <code>boolean</code>,
+<code>date</code>, <code>dateTime</code>, <code>time</code>,
+<code>uri</code> take the matching <code>xsd:</code> type;
+<code>decimal</code> (a JSON number, which JSON-LD types natively) and
+<code>string</code>, <code>text</code>, <code>choice</code>,
+<code>multiChoice</code> stay plain; <code>money</code> becomes a scoped
+node whose <code>amount</code> and <code>currency</code> map to
+<code>https://schema.org/value</code> (<code>xsd:decimal</code>) and
+<code>https://schema.org/currency</code>; <code>attachment</code> is
+omitted. A bound group becomes a scoped node
+<code>{ "@id", "@context": &lt;children&gt; }</code>
+(<code>"@container": "@set"</code> when repeatable), so a key reused
+across groups cannot collide; an unbound structural group becomes
+<code>"@nest"</code> with its children hoisted into the enclosing
+context; an unbound repeatable group is skipped with its children.
+Unbound fields are omitted, and inside a scoped context an unbound child
+whose key is bound outside is set to <code>null</code>. Within one
+context a key holds one term: the earlier bound term stays and a later,
+different one is omitted — never silently. The derivation returns
+<code>{ context, diagnostics }</code> with diagnostic kinds
+<code>collision</code>, <code>unbound-repeatable</code>, and
+<code>unsupported-type</code>. The derived context is the reference; an
+authored <code>context.@context</code> overrides it term by term, and
+lint reports every difference: <code>W1207</code> where an authored term
+differs, <code>W1208</code> where a derived term is missing,
+<code>W1209</code> (info) where a term is authored only,
+<code>W1210</code>–<code>W1212</code> for the three derivation
+diagnostics, and <code>W1213</code> when a <code>[*]</code> key and a
+dotted key both bind one item (the <code>[*]</code> key is used).
+Vocabulary bindings (§4) do not yet contribute <code>@vocab</code>
+typing to choice fields.</p>
 <hr />
 <h2 id="relationship-to-existing-properties">7. Relationship to Existing
 Properties</h2>
@@ -1245,7 +1292,9 @@ a warning and treat it as <code>"related"</code>.</li>
 <code>semanticType</code> matches a loaded concept registry entry, the
 ontology binding takes precedence for concept identity. The registry
 entry MAY still provide supplementary metadata (equivalents, display)
-that the ontology binding does not include.</li>
+that the ontology binding does not include. Processors find that entry
+by <code>conceptUri == binding.concept</code> as well as by
+<code>semanticType == entry.name</code>.</li>
 <li>When a vocabulary binding references an option set name that also
 matches a loaded vocabulary registry entry, the ontology binding takes
 precedence. The <code>vocabularyVersion</code> from the ontology binding
@@ -1528,10 +1577,17 @@ option sets and option values.</li>
 <li><code>W1205</code> reports use of <code>defaultSystem</code>
 fallback, and <code>W1206</code> reports concept bindings that omit
 <code>system</code> when no fallback exists.</li>
+<li><code>W1207</code>–<code>W1209</code> diff an authored
+<code>context.@context</code> against the derived one (§6.2);
+<code>W1210</code>–<code>W1212</code> surface the derivation’s
+<code>collision</code>, <code>unbound-repeatable</code>, and
+<code>unsupported-type</code> diagnostics; <code>W1213</code> reports a
+<code>[*]</code> key and a dotted key binding the same item.</li>
 </ul>
 <p>The lint pass exposes static analysis facts for downstream tooling:
 normalized concept/alignment paths, resolved item paths, resolved
-option-set/value-map coverage, and the effective concept system after
-<code>defaultSystem</code> fallback.</p>
+option-set/value-map coverage, the effective concept system after
+<code>defaultSystem</code> fallback, and the derived JSON-LD context
+with its diagnostics.</p>
 </body>
 </html>

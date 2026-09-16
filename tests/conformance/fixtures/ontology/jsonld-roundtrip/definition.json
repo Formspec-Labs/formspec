@@ -1,0 +1,36 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/weekly-certification",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "JSON-LD round-trip fixture",
+  "description": "Small Definition shaped like the weekly-certification demo: an unbound structural group, a bound structural group, a repeatable group with a nested structural group, and every value shape the context derivation types.",
+  "items": [
+    { "key": "eligibility", "type": "group", "label": "Eligibility", "children": [
+      { "key": "ableAndAvailable", "type": "field", "label": "Able and available", "dataType": "boolean" },
+      { "key": "expectedReturnDate", "type": "field", "label": "Expected return date", "dataType": "date" },
+      { "key": "notes", "type": "field", "label": "Notes", "dataType": "text" }
+    ]},
+    { "key": "claimant", "type": "group", "label": "Claimant", "children": [
+      { "key": "givenName", "type": "field", "label": "Given name", "dataType": "string" },
+      { "key": "birthDate", "type": "field", "label": "Date of birth", "dataType": "date" }
+    ]},
+    { "key": "jobs", "type": "group", "label": "Jobs", "repeatable": true, "children": [
+      { "key": "employerName", "type": "field", "label": "Employer", "dataType": "string" },
+      { "key": "hoursWorked", "type": "group", "label": "Hours worked", "children": [
+        { "key": "hours", "type": "field", "label": "Hours", "dataType": "integer" }
+      ]},
+      { "key": "grossEarnings", "type": "field", "label": "Gross earnings", "dataType": "decimal", "precision": 2 },
+      { "key": "pay", "type": "field", "label": "Pay", "dataType": "money" },
+      { "key": "workType", "type": "field", "label": "Work type", "dataType": "multiChoice", "optionSet": "workTypes" }
+    ]},
+    { "key": "certified", "type": "field", "label": "Certified", "dataType": "boolean" }
+  ],
+  "optionSets": {
+    "workTypes": { "options": [
+      { "value": "full-time", "label": "Full time" },
+      { "value": "part-time", "label": "Part time" },
+      { "value": "temporary", "label": "Temporary" }
+    ]}
+  }
+}

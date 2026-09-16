@@ -525,9 +525,34 @@ This enables form responses to participate in linked data ecosystems.
 
 ### 6.2 Auto-Generation
 
-Ontology-aware tooling SHOULD be capable of generating a JSON-LD context
-fragment from the concept bindings and vocabulary bindings in the document.
-Explicitly authored `context` entries override auto-generated ones.
+Ontology-aware tooling SHOULD generate the `@context` from the concept
+bindings; the reference derivation is `deriveJsonLdContext(definition,
+ontology)` in `@formspec-org/core` (Rust: `formspec_core::derive_json_ld_context`).
+It walks the Definition items in order under a header of `"@version": 1.1` and
+the `xsd` prefix, looking each item up by its `[*]` path first and its dotted
+path second. A bound field becomes `key: { "@id": <concept>, "@type": … }`
+typed by `dataType`: `integer`, `boolean`, `date`, `dateTime`, `time`, `uri`
+take the matching `xsd:` type; `decimal` (a JSON number, which JSON-LD types
+natively) and `string`, `text`, `choice`, `multiChoice` stay plain; `money`
+becomes a scoped node whose `amount` and `currency` map to
+`https://schema.org/value` (`xsd:decimal`) and `https://schema.org/currency`;
+`attachment` is omitted. A bound group becomes a scoped node
+`{ "@id", "@context": <children> }` (`"@container": "@set"` when repeatable),
+so a key reused across groups cannot collide; an unbound structural group
+becomes `"@nest"` with its children hoisted into the enclosing context; an
+unbound repeatable group is skipped with its children. Unbound fields are
+omitted, and inside a scoped context an unbound child whose key is bound
+outside is set to `null`. Within one context a key holds one term: the earlier
+bound term stays and a later, different one is omitted — never silently. The
+derivation returns `{ context, diagnostics }` with diagnostic kinds
+`collision`, `unbound-repeatable`, and `unsupported-type`. The derived context
+is the reference; an authored `context.@context` overrides it term by term,
+and lint reports every difference: `W1207` where an authored term differs,
+`W1208` where a derived term is missing, `W1209` (info) where a term is
+authored only, `W1210`–`W1212` for the three derivation diagnostics, and
+`W1213` when a `[*]` key and a dotted key both bind one item (the `[*]` key is
+used). Vocabulary bindings (§4) do not yet contribute `@vocab` typing to
+choice fields.
 
 ---
 
@@ -590,7 +615,7 @@ This specification defines conformance requirements for Ontology Document handli
 - Load order of multiple Ontology Documents is implementation-defined. When multiple documents bind the same path, the last-loaded document's binding takes precedence. Vocabulary bindings merge additively (last-loaded overrides for the same option set name). Alignments concatenate.
 - An Extended processor that encounters an unrecognized, non-`x-`-prefixed relationship `type` SHOULD emit a warning and treat it as `"related"`.
 - An Extended processor MUST preserve unrecognized `x-`-prefixed properties on round-trip.
-- When a concept binding's path targets a field whose `semanticType` matches a loaded concept registry entry, the ontology binding takes precedence for concept identity. The registry entry MAY still provide supplementary metadata (equivalents, display) that the ontology binding does not include.
+- When a concept binding's path targets a field whose `semanticType` matches a loaded concept registry entry, the ontology binding takes precedence for concept identity. The registry entry MAY still provide supplementary metadata (equivalents, display) that the ontology binding does not include. Processors find that entry by `conceptUri == binding.concept` as well as by `semanticType == entry.name`.
 - When a vocabulary binding references an option set name that also matches a loaded vocabulary registry entry, the ontology binding takes precedence. The `vocabularyVersion` from the ontology binding overrides the registry entry's version.
 
 ---
@@ -808,7 +833,12 @@ The Ontology semantic pass owns the `E1200`/`W1200` diagnostic family:
   resolve to Definition option sets and option values.
 - `W1205` reports use of `defaultSystem` fallback, and `W1206` reports concept
   bindings that omit `system` when no fallback exists.
+- `W1207`–`W1209` diff an authored `context.@context` against the derived one
+  (§6.2); `W1210`–`W1212` surface the derivation's `collision`,
+  `unbound-repeatable`, and `unsupported-type` diagnostics; `W1213` reports a
+  `[*]` key and a dotted key binding the same item.
 
 The lint pass exposes static analysis facts for downstream tooling: normalized
 concept/alignment paths, resolved item paths, resolved option-set/value-map
-coverage, and the effective concept system after `defaultSystem` fallback.
+coverage, the effective concept system after `defaultSystem` fallback, and the
+derived JSON-LD context with its diagnostics.

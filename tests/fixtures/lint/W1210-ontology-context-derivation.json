@@ -1,0 +1,40 @@
+{
+  "$formspecOntology": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.com/forms/ontology-context-derivation",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "defaultSystem": "https://example.com/vocab",
+  "concepts": {
+    "home.city": { "concept": "https://example.com/vocab#home-city" },
+    "work.city": { "concept": "https://example.com/vocab#work-city" },
+    "jobs[*].employer": { "concept": "https://example.com/vocab#employer-name" },
+    "scan": { "concept": "https://example.com/vocab#identity-document" },
+    "items": { "concept": "https://example.com/vocab#line-item" },
+    "items.amount": { "concept": "https://example.com/vocab#line-amount" },
+    "items[*].amount": { "concept": "https://example.com/vocab#line-amount" }
+  },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/ontology-context-derivation",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "Ontology context derivation fixture definition",
+    "items": [
+      { "key": "home", "type": "group", "label": "Home", "children": [
+        { "key": "city", "type": "field", "label": "City", "dataType": "string" }
+      ]},
+      { "key": "work", "type": "group", "label": "Work", "children": [
+        { "key": "city", "type": "field", "label": "City", "dataType": "string" }
+      ]},
+      { "key": "jobs", "type": "group", "label": "Jobs", "repeatable": true, "children": [
+        { "key": "employer", "type": "field", "label": "Employer", "dataType": "string" }
+      ]},
+      { "key": "scan", "type": "field", "label": "Scan", "dataType": "attachment" },
+      { "key": "items", "type": "group", "label": "Items", "repeatable": true, "children": [
+        { "key": "amount", "type": "field", "label": "Amount", "dataType": "decimal" }
+      ]}
+    ]
+  }
+}

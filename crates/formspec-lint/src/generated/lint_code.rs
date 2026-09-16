@@ -169,6 +169,20 @@ pub enum LintCode {
     W1205,
     /// Registry code `W1206`.
     W1206,
+    /// Registry code `W1207`.
+    W1207,
+    /// Registry code `W1208`.
+    W1208,
+    /// Registry code `W1209`.
+    W1209,
+    /// Registry code `W1210`.
+    W1210,
+    /// Registry code `W1211`.
+    W1211,
+    /// Registry code `W1212`.
+    W1212,
+    /// Registry code `W1213`.
+    W1213,
     /// Registry code `E1300`.
     E1300,
     /// Registry code `E1301`.
@@ -347,6 +361,13 @@ impl LintCode {
             LintCode::W1204 => "W1204",
             LintCode::W1205 => "W1205",
             LintCode::W1206 => "W1206",
+            LintCode::W1207 => "W1207",
+            LintCode::W1208 => "W1208",
+            LintCode::W1209 => "W1209",
+            LintCode::W1210 => "W1210",
+            LintCode::W1211 => "W1211",
+            LintCode::W1212 => "W1212",
+            LintCode::W1213 => "W1213",
             LintCode::E1300 => "E1300",
             LintCode::E1301 => "E1301",
             LintCode::E1302 => "E1302",
@@ -479,6 +500,13 @@ impl LintCode {
             LintCode::W1204 => 9,
             LintCode::W1205 => 9,
             LintCode::W1206 => 9,
+            LintCode::W1207 => 9,
+            LintCode::W1208 => 9,
+            LintCode::W1209 => 9,
+            LintCode::W1210 => 9,
+            LintCode::W1211 => 9,
+            LintCode::W1212 => 9,
+            LintCode::W1213 => 9,
             LintCode::E1300 => 9,
             LintCode::E1301 => 9,
             LintCode::E1302 => 9,
@@ -611,6 +639,13 @@ impl LintCode {
             "W1204" => Some(LintCode::W1204),
             "W1205" => Some(LintCode::W1205),
             "W1206" => Some(LintCode::W1206),
+            "W1207" => Some(LintCode::W1207),
+            "W1208" => Some(LintCode::W1208),
+            "W1209" => Some(LintCode::W1209),
+            "W1210" => Some(LintCode::W1210),
+            "W1211" => Some(LintCode::W1211),
+            "W1212" => Some(LintCode::W1212),
+            "W1213" => Some(LintCode::W1213),
             "E1300" => Some(LintCode::E1300),
             "E1301" => Some(LintCode::E1301),
             "E1302" => Some(LintCode::E1302),
@@ -743,6 +778,13 @@ impl LintCode {
         LintCode::W1204,
         LintCode::W1205,
         LintCode::W1206,
+        LintCode::W1207,
+        LintCode::W1208,
+        LintCode::W1209,
+        LintCode::W1210,
+        LintCode::W1211,
+        LintCode::W1212,
+        LintCode::W1213,
         LintCode::E1300,
         LintCode::E1301,
         LintCode::E1302,
@@ -848,6 +890,6 @@ mod tests {
 
     #[test]
     fn registry_variant_count_matches_json() {
-        assert_eq!(LintCode::ALL.len(), 126);
+        assert_eq!(LintCode::ALL.len(), 133);
     }
 }

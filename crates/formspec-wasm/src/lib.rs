@@ -15,6 +15,7 @@
 //! - `document` — `document-api`: detect type, schema plan; `lint`: `lintDocument*`
 //! - `mapping` — `mapping-api`
 //! - `registry` — `registry-api`
+//! - `ontology` — `ontology-api`: `deriveJsonLdContext` (Ontology §6.2)
 //! - `changelog` — `changelog-api`
 //! - `split_abi` — lockstep ABI version marker between runtime/tools artifacts
 //! - `json_host` — internal JSON parse/stringify helpers
@@ -33,6 +34,8 @@ mod fel_context;
 mod json_host;
 #[cfg(feature = "mapping-api")]
 mod mapping;
+#[cfg(feature = "ontology-api")]
+mod ontology;
 #[cfg(feature = "registry-api")]
 mod registry;
 mod split_abi;

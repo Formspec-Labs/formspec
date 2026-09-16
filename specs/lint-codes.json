@@ -918,6 +918,90 @@
       "state": "tested"
     },
     {
+      "code": "W1207",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology context term differs from derived",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "align the authored context term with the derived one, or keep the authored override deliberately",
+      "fixtures": [
+        "tests/fixtures/lint/W1207-ontology-context-drift.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1208",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology context missing a derived term",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "add the derived term to context.@context, or regenerate the context from the bindings",
+      "fixtures": [
+        "tests/fixtures/lint/W1207-ontology-context-drift.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1209",
+      "pass": 9,
+      "severity": "info",
+      "title": "Ontology context has an authored-only term",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "no action needed if the extra term is intended; otherwise remove it from context.@context",
+      "fixtures": [
+        "tests/fixtures/lint/W1207-ontology-context-drift.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1210",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology context term collision",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "rename one of the colliding item keys, or bind the enclosing group so its children get a scoped context",
+      "fixtures": [
+        "tests/fixtures/lint/W1210-ontology-context-derivation.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1211",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology binding lost under unbound repeatable group",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "bind the enclosing repeatable group to a concept so its instances and children can lift",
+      "fixtures": [
+        "tests/fixtures/lint/W1210-ontology-context-derivation.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1212",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology binding on a dataType without JSON-LD representation",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "remove the concept binding from the attachment field, or bind its metadata fields instead",
+      "fixtures": [
+        "tests/fixtures/lint/W1210-ontology-context-derivation.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1213",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology concept keys duplicate one item path",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "keep only the [*] key for the item; the dotted key is ignored when both exist",
+      "fixtures": [
+        "tests/fixtures/lint/W1210-ontology-context-derivation.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E1300",
       "pass": 9,
       "severity": "error",

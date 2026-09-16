@@ -424,6 +424,32 @@ export function wasmFindRegistryEntry(
     return JSON.parse(resultJson);
 }
 
+/** One thing the JSON-LD context derivation could not honor (Ontology spec §6.2). */
+export interface JsonLdContextDiagnostic {
+    kind: 'collision' | 'unbound-repeatable' | 'unsupported-type';
+    /** Dotted Definition path of the item that could not be honored. */
+    path: string;
+    /** The item's JSON key. */
+    key: string;
+    /** Term definition that stays in the context (collisions only). */
+    existingId?: string;
+    /** Term definition the item needed. */
+    newId?: string;
+}
+
+/** Derive the JSON-LD `@context` for a definition from an ontology document's concept bindings (Ontology §6.2). */
+export function wasmDeriveJsonLdContext(
+    definition: unknown,
+    ontology: unknown,
+): { context: Record<string, unknown>; diagnostics: JsonLdContextDiagnostic[] } {
+    assertWasmToolsReadySync();
+    const resultJson = wasmTools().deriveJsonLdContext(
+        JSON.stringify(definition),
+        JSON.stringify(ontology),
+    );
+    return JSON.parse(resultJson);
+}
+
 /** Validate a lifecycle transition between two registry statuses. */
 export function wasmValidateLifecycleTransition(from: string, to: string): boolean {
     assertWasmToolsReadySync();

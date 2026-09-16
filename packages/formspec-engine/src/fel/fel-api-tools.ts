@@ -29,6 +29,7 @@ export type {
 
 import {
     wasmCollectFELRewriteTargets,
+    wasmDeriveJsonLdContext,
     wasmFindRegistryEntry,
     wasmGenerateChangelog,
     wasmLintDocument,
@@ -99,6 +100,8 @@ export const parseRegistry = wasmParseRegistry;
 export const findRegistryEntry = wasmFindRegistryEntry;
 export const validateLifecycleTransition = wasmValidateLifecycleTransition;
 export const wellKnownRegistryUrl = wasmWellKnownRegistryUrl;
+export const deriveJsonLdContext = wasmDeriveJsonLdContext;
+export type { JsonLdContextDiagnostic } from '../wasm-bridge-tools.js';
 export const generateChangelog = wasmGenerateChangelog;
 export const printFEL = wasmPrintFEL;
 
