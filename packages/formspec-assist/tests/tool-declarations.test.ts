@@ -120,4 +120,12 @@ describe('tool declarations (draft.3 C3)', () => {
     }
     expect(propertyOf('formspec.field.bulkSet', 'entries').items!.additionalProperties).toBe(false);
   });
+
+  it('names round-trip through LLM tool-name grammars: WebMCP-legal, dotted, never an underscore (§3.1)', () => {
+    for (const { name } of declarations) {
+      expect(name, name).toMatch(/^formspec\.[a-z]+\.[A-Za-z]+$/);
+      expect(name.includes('_'), name).toBe(false);
+      expect(name.replace(/\./g, '_'), name).toMatch(/^[a-zA-Z0-9_-]{1,128}$/);
+    }
+  });
 });
