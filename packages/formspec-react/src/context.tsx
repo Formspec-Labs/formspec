@@ -47,6 +47,7 @@ import {
     planComponentTree,
     preparePlanContext,
     ensureActionButton,
+    ensureValidationSummary,
     mergeFormPresentationForPlanning,
     admitFieldHelpUri,
 } from '@formspec-org/layout';
@@ -180,6 +181,10 @@ export interface FormspecContextValue {
     touchedVersion: ReadonlyEngineSignal<number>;
     /** Check if a field has been touched. Read touchedVersion.value first for reactivity. */
     isTouched: (path: string) => boolean;
+    /** The latest submit through this provider's form — null before the first. A `submit`-sourced ValidationSummary reads it. */
+    latestSubmit: ReadonlyEngineSignal<SubmitResult | null>;
+    /** Record a submit's result, so `latestSubmit` follows it. The submit port calls this. */
+    recordSubmit: (result: SubmitResult) => void;
     /** Registry entries for extension resolution. */
     registryEntries: Map<string, any>;
     /** Human References for a field path. Agent-only context never enters this seam. */
@@ -371,6 +376,11 @@ export interface FormspecProviderProps {
     components?: ComponentMap;
     /** Callback for form submission. If provided, a submit button is rendered. */
     onSubmit?: (result: SubmitResult) => void;
+    /**
+     * Open the form with a validation summary — the latest submit's findings, each a link to its field —
+     * when the documents place none. Off by default: a Component document decides where a summary goes.
+     */
+    showValidationSummary?: boolean;
     /** Callback invoked for every declared hostEvent effect. */
     onHostEvent?: (eventName: string, result: SubmitResult, action: ResponseAction) => void;
     /** Callback for ActionButton actionRef resolution findings. */
@@ -424,6 +434,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         issuerOverride,
         components = {},
         onSubmit,
+        showValidationSummary = false,
         onHostEvent,
         onActionFinding,
         onActionResult,
@@ -615,8 +626,9 @@ export function FormspecProvider(props: FormspecProviderProps) {
                 ensureActionButton(root, planCtx.nextId, { pageMode, actionRef: action.id });
             }
         }
+        if (showValidationSummary) ensureValidationSummary(root, planCtx.nextId);
         return root;
-    }, [engine, componentDocument, componentGraph, hostEvidence, effectiveThemeDocument, activeBreakpoint, onSubmit, responseActionsDocument, mergedFormPresentation]);
+    }, [engine, componentDocument, componentGraph, hostEvidence, effectiveThemeDocument, activeBreakpoint, onSubmit, showValidationSummary, responseActionsDocument, mergedFormPresentation]);
 
     // §10: surface a finding when the host wires onSubmit but no submit Action
     // is published — otherwise auto-inject silently no-ops.
@@ -629,6 +641,8 @@ export function FormspecProvider(props: FormspecProviderProps) {
     // Touched tracking — stable across re-renders
     const touchedFieldsRef = useRef(new Set<string>());
     const touchedVersionSignal = useMemo(() => signal(0), []);
+    const latestSubmitSignal = useMemo(() => signal<SubmitResult | null>(null), []);
+    const recordSubmit = useCallback((result: SubmitResult) => { latestSubmitSignal.value = result; }, [latestSubmitSignal]);
 
     const touchField = useCallback((path: string) => {
         if (!touchedFieldsRef.current.has(path)) {
@@ -708,13 +722,15 @@ export function FormspecProvider(props: FormspecProviderProps) {
             touchAllFields,
             touchedVersion: touchedVersionSignal,
             isTouched,
+            latestSubmit: latestSubmitSignal,
+            recordSubmit,
             registryEntries: registryMap,
             resolveFieldHelp,
             admitFieldHelpUri,
             fieldHelpLabel,
             formPresentation: mergedFormPresentation,
         }),
-        [engine, layoutPlan, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation],
+        [engine, layoutPlan, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation],
     );
 
     return (

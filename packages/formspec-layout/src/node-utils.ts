@@ -143,31 +143,57 @@ export function ensureActionButton(
     }
     if (planContains(root, 'Wizard') || options.pageMode === 'wizard') return;
 
-    if (ACTION_MUST_BE_SIBLING_ROOTS.has(root.component)) {
-        const inner: LayoutNode = { ...root };
-        root.id = nextId('root-stack');
-        root.component = 'Stack';
-        root.category = 'layout';
-        root.props = {};
-        root.cssClasses = [];
-        root.children = [inner, actionNode];
-        delete root.style;
-        delete root.accessibility;
-        delete root.bindPath;
-        delete root.fieldItem;
-        delete root.presentation;
-        delete root.labelPosition;
-        delete root.when;
-        delete root.whenPrefix;
-        delete root.fallback;
-        delete root.repeatGroup;
-        delete root.repeatPath;
-        delete root.isRepeatTemplate;
-        delete root.scopeChange;
-        return;
-    }
+    hoistIntoStack(root, nextId).children.push(actionNode);
+}
 
-    root.children.push(actionNode);
+/**
+ * An Accordion or Tabs root cannot take a sibling as a child — it would become a panel. Turn `root` into a
+ * Stack holding the original node, in place, so a caller can add beside it; any other root is returned as is.
+ */
+function hoistIntoStack(root: LayoutNode, nextId: NodeIdGenerator): LayoutNode {
+    if (!ACTION_MUST_BE_SIBLING_ROOTS.has(root.component)) return root;
+    const inner: LayoutNode = { ...root };
+    root.id = nextId('root-stack');
+    root.component = 'Stack';
+    root.category = 'layout';
+    root.props = {};
+    root.cssClasses = [];
+    root.children = [inner];
+    delete root.style;
+    delete root.accessibility;
+    delete root.bindPath;
+    delete root.fieldItem;
+    delete root.presentation;
+    delete root.labelPosition;
+    delete root.when;
+    delete root.whenPrefix;
+    delete root.fallback;
+    delete root.repeatGroup;
+    delete root.repeatPath;
+    delete root.isRepeatTemplate;
+    delete root.scopeChange;
+    return root;
+}
+
+/**
+ * Put a `ValidationSummary` at the head of the plan unless the document already places one: the latest
+ * submit's findings, field errors included, each a jump link to its field (component spec: ValidationSummary).
+ * A form with no Component document has no way to ask for one, so a host that wants the summary a long form
+ * needs opts in, the way it opts into the submit button.
+ */
+export function ensureValidationSummary(
+    root: LayoutNode,
+    nextId: NodeIdGenerator = createNodeIdGenerator(),
+): void {
+    if (planContains(root, 'ValidationSummary')) return;
+    hoistIntoStack(root, nextId).children.unshift({
+        id: nextId('validation-summary'),
+        component: 'ValidationSummary',
+        category: 'display',
+        props: { source: 'submit', showFieldErrors: true, jumpLinks: true },
+        cssClasses: [],
+        children: [],
+    });
 }
 
 // ── Token resolution helpers ─────────────────────────────────────────

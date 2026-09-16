@@ -32,6 +32,7 @@ export {
     classifyComponent,
     createNodeIdGenerator,
     ensureActionButton,
+    ensureValidationSummary,
     extractProps,
     normalizeCssClass,
     planContains,

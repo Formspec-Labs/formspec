@@ -7,6 +7,7 @@ import {
     createNodeIdGenerator,
     preparePlanContext,
     ensureActionButton,
+    ensureValidationSummary,
     type PlanContext,
     type LayoutNode,
 } from '../src/index';
@@ -2913,5 +2914,30 @@ describe('ensureActionButton', () => {
         expect(root.children[0].component).toBe('Accordion');
         expect(root.children[0].children).toHaveLength(3);
         expect(root.children[1].component).toBe('ActionButton');
+    });
+});
+
+describe('ensureValidationSummary', () => {
+    it('opens the plan with a submit-sourced summary that links to each field', () => {
+        const root = makeNode('Stack', [makeNode('TextInput'), makeNode('ActionButton')]);
+        ensureValidationSummary(root, createNodeIdGenerator());
+        expect(root.children[0].component).toBe('ValidationSummary');
+        expect(root.children[0].props).toEqual({ source: 'submit', showFieldErrors: true, jumpLinks: true });
+        expect(root.children.map(c => c.component)).toEqual(['ValidationSummary', 'TextInput', 'ActionButton']);
+    });
+
+    it('leaves a plan alone when the document already places a summary, wherever it sits', () => {
+        const authored = makeNode('ValidationSummary');
+        const root = makeNode('Stack', [makeNode('Section', [authored]), makeNode('TextInput')]);
+        ensureValidationSummary(root, createNodeIdGenerator());
+        expect(root.children.map(c => c.component)).toEqual(['Section', 'TextInput']);
+    });
+
+    it('wraps a root Accordion in Stack so the summary is not an accordion section', () => {
+        const root = makeNode('Accordion', [makeNode('Text'), makeNode('Text')]);
+        ensureValidationSummary(root, createNodeIdGenerator());
+        expect(root.component).toBe('Stack');
+        expect(root.children.map(c => c.component)).toEqual(['ValidationSummary', 'Accordion']);
+        expect(root.children[1].children).toHaveLength(2);
     });
 });

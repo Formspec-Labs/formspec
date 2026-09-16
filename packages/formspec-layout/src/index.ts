@@ -60,6 +60,7 @@ export {
     planDefinitionFallback,
     planContains,
     ensureActionButton,
+    ensureValidationSummary,
     createNodeIdGenerator,
     preparePlanContext,
 } from './planner.js';
@@ -88,6 +89,8 @@ export type { UiStringLookup } from './character-count.js';
 // Closed renderer-chrome string inventory (Locale spec §3.1.10 `$ui.<ChromeStringKey>`)
 export { UI_STRINGS, fillUiParams } from './ui-strings.js';
 export type { ChromeStringKey } from './ui-strings.js';
+export { readValidationSummaryRows, validationResultPath } from './validation-summary.js';
+export type { ValidationSummaryComp, ValidationSummaryRow, ValidationSummarySource } from './validation-summary.js';
 
 // Platform defaults & theme generation
 export {
