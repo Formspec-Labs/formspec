@@ -207,6 +207,40 @@ describe('Registry concept entry merged into the resolved binding', () => {
     expect(provider.getFieldHelp('budgetItems[0].amount').concept?.concept).toBe('https://example.org/wildcard');
   });
 
+  it('the semanticType path fails closed too: a contested name or a contested conceptUri resolves to the literal', () => {
+    // Two entries share the name `x-onto-ein` (Registry §2.2 unqualified collision) …
+    const [a] = registry();
+    const [b] = registry({ conceptUri: 'https://example.org/other-ein' });
+    const byName = createAssistProvider({ engine: createEngine(), registries: [a, b], registerWebMCP: false });
+    expect(byName.getFieldHelp('organization.name').concept).toEqual({ concept: 'x-concept-org-name' });
+
+    // … and two differently named entries share one conceptUri: the entry is contested, so the name does not merge it.
+    const [c] = registry({ name: 'x-concept-org-name', conceptUri: 'https://schema.org/name' });
+    const [d] = registry({ name: 'x-rival', conceptUri: 'https://schema.org/name' });
+    const byUri = createAssistProvider({ engine: createEngine(), registries: [c, d], registerWebMCP: false });
+    expect(byUri.getFieldHelp('organization.name').concept).toEqual({ concept: 'x-concept-org-name' });
+  });
+
+  it('system and code travel as a pair from one source — never the Ontology defaultSystem with the entry code', () => {
+    const ontology = makeOntology();
+    ontology.defaultSystem = 'https://example.org/forms-vocab';
+    const binding = ontology.concepts!['organization.ein'];
+    delete binding.system;
+    delete binding.code;
+    const provider = createAssistProvider({ engine: createEngine(), ontology, registries: registry(), registerWebMCP: false });
+    const concept = provider.getFieldHelp('organization.ein').concept!;
+    expect([concept.system, concept.code]).toEqual(['https://www.irs.gov/terms', 'EIN']);
+
+    // A binding that names its own code keeps its own pair, with defaultSystem filling the system.
+    const own = makeOntology();
+    own.defaultSystem = 'https://example.org/forms-vocab';
+    delete own.concepts!['organization.ein'].system;
+    own.concepts!['organization.ein'].code = 'ein-local';
+    const ownProvider = createAssistProvider({ engine: createEngine(), ontology: own, registries: registry(), registerWebMCP: false });
+    const ownConcept = ownProvider.getFieldHelp('organization.ein').concept!;
+    expect([ownConcept.system, ownConcept.code]).toEqual(['https://example.org/forms-vocab', 'ein-local']);
+  });
+
   it('leaves a binding no entry names as it was — no definition', () => {
     const provider = createAssistProvider({ engine: createEngine(), ontology: makeOntology(), registerWebMCP: false });
     expect(provider.getFieldHelp('organization.ein').concept).not.toHaveProperty('definition');

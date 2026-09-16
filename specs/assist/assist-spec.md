@@ -636,9 +636,12 @@ resolve them in the following order:
    in an active Ontology Document. When multiple Ontology Documents are loaded, a provider MUST resolve concept bindings using the last-loaded document's binding for a given path. The load order is the array order in which documents were provided to the provider. This pins the Ontology Specification's implementation-defined load order (ontology §8.2) to the concrete array order of the Assist API.
    When a loaded Registry concept entry's `conceptUri` equals the binding's
    `concept`, the provider MUST merge that entry into the resolved binding:
-   `definition` ← the entry's `description`; `display`, `system`, `code` ←
-   the entry's `metadata.displayName`, `conceptSystem`, `conceptCode` only
-   where the binding (after `defaultSystem`) has none; `equivalents` ← the
+   `definition` ← the entry's `description`; `display` ← the entry's
+   `metadata.displayName` where the binding has none; `system` and `code`
+   travel as a pair from one source — the binding's own (with the Ontology
+   `defaultSystem` filling a missing `system`) when the binding names either,
+   else the entry's `conceptSystem` and `conceptCode` — never the Ontology
+   default stitched to the entry's code; `equivalents` ← the
    union keyed by each equivalent's URI (its `concept`, else
    `<system>#<code>`), the binding's entries first and winning on a shared
    URI, then the entry's remaining ones. The entry's `relations` (or
@@ -649,8 +652,11 @@ resolve them in the following order:
    Registry specification §2.2. A `[*]`-keyed binding is preferred over a
    dotted key for the same path.
 2. **Registry concept entry** — a loaded registry entry whose `name` matches
-   the field's `semanticType` (last-loaded wins), resolved as an empty
-   binding merged per step 1, so it yields `definition` from `description`.
+   the field's `semanticType`, resolved as an empty binding merged per step
+   1, so it yields `definition` from `description`. The same collision rule
+   applies: a `name` claimed by two loaded entries, or an entry whose
+   `conceptUri` is contested, resolves nothing here and falls to step 3
+   (Registry specification §2.2).
 3. **`semanticType` literal** — the raw `semanticType` string treated as a
    literal semantic annotation.
 

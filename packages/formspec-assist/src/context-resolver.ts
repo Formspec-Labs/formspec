@@ -59,14 +59,17 @@ function unionEquivalents(binding: ConceptEquivalent[] = [], fromEntry: unknown)
 
 /**
  * Assist spec §5.3: a binding merged with the Registry concept entry its URI names. The entry's `description`
- * is the `definition`; `display`, `system`, `code` fall back to the entry — `defaultSystem` is the Ontology's
- * own fallback (Ontology spec §8.2) and comes first. Never reads `relations` or `metadata.relations`.
+ * is the `definition`; `display` falls back to the entry. `system` and `code` travel as a pair from ONE
+ * source: the binding's own (with the Ontology `defaultSystem` filling a missing system) when the binding
+ * names either, else the entry's — never the Ontology default stitched to the entry's code, a pair that names
+ * nothing. Never reads `relations` or `metadata.relations`.
  */
 function mergeConceptEntry(binding: ConceptBinding, entry: RegistryEntry | undefined, defaultSystem?: string): ResolvedConcept {
   const { equivalents: own, ...rest } = binding;
   const definition = text(entry?.description);
-  const system = rest.system ?? defaultSystem ?? text(entry?.conceptSystem);
-  const code = rest.code ?? text(entry?.conceptCode);
+  const [system, code] = rest.system !== undefined || rest.code !== undefined || !entry
+    ? [rest.system ?? defaultSystem, rest.code]
+    : [text(entry.conceptSystem) ?? defaultSystem, text(entry.conceptCode)];
   const display = rest.display ?? text(entry?.metadata?.displayName);
   const equivalents = unionEquivalents(own, entry?.equivalents);
   return {
@@ -163,23 +166,34 @@ export class ContextResolver {
     this.conceptEntriesByName = new Map();
     // Two entries claiming one IRI are two "definitions of record"; Registry spec §2.2 fails closed on an
     // unqualified collision, so neither is merged (the binding stays bare) rather than last-loaded winning.
-    const contested = new Set<string>();
+    const contestedUris = new Set<string>();
+    const contestedNames = new Set<string>();
     for (const entry of entries) {
       if (entry.category !== 'concept') {
         continue;
+      }
+      if (this.conceptEntriesByName.has(entry.name)) {
+        contestedNames.add(entry.name);
       }
       this.conceptEntriesByName.set(entry.name, entry);
       const uri = text(entry.conceptUri);
       if (!uri) {
         continue;
       }
-      if (this.conceptEntriesByUri.has(uri) && this.conceptEntriesByUri.get(uri)?.name !== entry.name) {
-        contested.add(uri);
+      if (this.conceptEntriesByUri.has(uri)) {
+        contestedUris.add(uri);
       }
       this.conceptEntriesByUri.set(uri, entry);
     }
-    for (const uri of contested) {
+    for (const uri of contestedUris) {
       this.conceptEntriesByUri.delete(uri);
+    }
+    // A name lookup must not resolve an entry the URI index refused (Registry §2.2 applies to both keys).
+    for (const [name, entry] of this.conceptEntriesByName) {
+      const uri = text(entry.conceptUri);
+      if (contestedNames.has(name) || (uri !== undefined && contestedUris.has(uri))) {
+        this.conceptEntriesByName.delete(name);
+      }
     }
   }
 

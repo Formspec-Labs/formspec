@@ -126,7 +126,21 @@ pub fn derive_json_ld_context(definition: &Value, ontology: &Value) -> JsonLdDer
     let mut context = Map::new();
     context.insert("@version".into(), json!(1.1));
     context.insert("xsd".into(), Value::String(XSD_NAMESPACE.into()));
-    context.extend(terms);
+    // The header keys are reserved: an item keyed `xsd` would otherwise replace the prefix and break every
+    // `xsd:` compact IRI. (`@version` cannot collide — item keys never start with `@`.)
+    for (key, term) in terms {
+        if key == "xsd" {
+            diagnostics.push(JsonLdDiagnostic {
+                kind: JsonLdDiagnosticKind::Collision,
+                path: key.clone(),
+                key,
+                existing_id: Some(XSD_NAMESPACE.into()),
+                new_id: term.get("@id").and_then(Value::as_str).map(str::to_string),
+            });
+            continue;
+        }
+        context.insert(key, term);
+    }
     JsonLdDerivation {
         context: Value::Object(context),
         diagnostics,
@@ -432,6 +446,9 @@ fn collect_terms<'a>(
                     }
                 }
                 None if repeatable => {
+                    // Claim the key so an enclosing scope's same-named term is shadowed with `null`:
+                    // the instances must not lift under a term they were never bound to.
+                    scope.claim(key, TermDef::Unbound, &path.dotted, diagnostics);
                     report_lost_bindings(children, &path, true, concepts, diagnostics);
                 }
                 None => {
@@ -764,6 +781,43 @@ mod tests {
             "urn:c:payer-name"
         );
         assert!(derived.diagnostics.is_empty());
+    }
+
+    #[test]
+    fn unbound_repeatable_group_inside_a_scoped_context_shadows_the_outer_term() {
+        // Top-level `jobs` is bound; inside bound group `home` an UNBOUND repeatable `jobs` must not let its
+        // instances lift under the outer term — the scoped context shadows it with `null`.
+        let definition = json!({ "items": [
+            field("jobs", "string"),
+            group("home", false, vec![
+                group("jobs", true, vec![field("title", "string")]),
+            ]),
+        ]});
+        let ontology = json!({ "concepts": {
+            "jobs": concept("urn:c:job"),
+            "home": concept("urn:c:home")
+        }});
+        let derived = derive_json_ld_context(&definition, &ontology);
+        let home_scope = derived.context["home"]["@context"].as_object().expect("scoped context");
+        assert!(home_scope.contains_key("jobs"), "{}", derived.context);
+        assert_eq!(home_scope["jobs"], Value::Null);
+        assert!(derived.diagnostics.is_empty(), "{:?}", derived.diagnostics);
+    }
+
+    #[test]
+    fn an_item_keyed_xsd_reports_a_collision_and_keeps_the_prefix() {
+        let definition = json!({ "items": [field("xsd", "string"), field("dob", "date")] });
+        let ontology = json!({ "concepts": {
+            "xsd": concept("urn:c:xsd"),
+            "dob": concept("urn:c:dob")
+        }});
+        let derived = derive_json_ld_context(&definition, &ontology);
+        assert_eq!(derived.context["xsd"], Value::String(XSD_NAMESPACE.into()));
+        assert_eq!(derived.context["dob"]["@type"], "xsd:date");
+        assert_eq!(derived.diagnostics.len(), 1);
+        assert_eq!(derived.diagnostics[0].kind, JsonLdDiagnosticKind::Collision);
+        assert_eq!(derived.diagnostics[0].key, "xsd");
+        assert_eq!(derived.diagnostics[0].new_id.as_deref(), Some("urn:c:xsd"));
     }
 
     #[test]
