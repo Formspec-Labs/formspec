@@ -831,7 +831,7 @@ The Ontology semantic pass owns the `E1200`/`W1200` diagnostic family:
   do not resolve to Definition item paths.
 - `W1203` and `W1204` warn when vocabulary bindings or `valueMap` keys do not
   resolve to Definition option sets and option values.
-- `W1205` reports use of `defaultSystem` fallback, and `W1206` reports concept
+- `W1205` (info) notes a binding resolving its `system` from `defaultSystem` — the designed fallback, so it never warns; `W1206` reports concept
   bindings that omit `system` when no fallback exists.
 - `W1207`–`W1209` diff an authored `context.@context` against the derived one
   (§6.2); `W1210`–`W1212` surface the derivation's `collision`,

@@ -1574,9 +1574,10 @@ paths.</li>
 <li><code>W1203</code> and <code>W1204</code> warn when vocabulary
 bindings or <code>valueMap</code> keys do not resolve to Definition
 option sets and option values.</li>
-<li><code>W1205</code> reports use of <code>defaultSystem</code>
-fallback, and <code>W1206</code> reports concept bindings that omit
-<code>system</code> when no fallback exists.</li>
+<li><code>W1205</code> (info) notes a binding resolving its
+<code>system</code> from <code>defaultSystem</code> — the designed
+fallback, so it never warns; <code>W1206</code> reports concept bindings
+that omit <code>system</code> when no fallback exists.</li>
 <li><code>W1207</code>–<code>W1209</code> diff an authored
 <code>context.@context</code> against the derived one (§6.2);
 <code>W1210</code>–<code>W1212</code> surface the derivation’s

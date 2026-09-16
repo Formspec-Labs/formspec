@@ -900,10 +900,10 @@
     {
       "code": "W1205",
       "pass": 9,
-      "severity": "warning",
-      "title": "Ontology concept uses defaultSystem fallback",
+      "severity": "info",
+      "title": "Ontology concept resolves its system from defaultSystem",
       "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
-      "suggestedFix": "add an explicit concept system when defaultSystem fallback is not intended",
+      "suggestedFix": "nothing, when the fallback is intended; add an explicit system only where a binding belongs to a different scheme",
       "fixtures": ["tests/fixtures/lint/W1205-ontology-default-system.json"],
       "state": "tested"
     },
