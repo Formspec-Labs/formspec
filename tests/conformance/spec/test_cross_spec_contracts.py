@@ -967,6 +967,48 @@ class TestRegistrySchema:
             "date", "dateTime", "time", "uri",
         ]
 
+    def test_er3_2__concept_conditional_requires_concept_uri(self):
+        entry = _def(REG_S, "RegistryEntry")
+        branch = _find_allof_branch(entry["allOf"], "category", "concept")
+        assert branch["then"]["required"] == ["conceptUri"]
+
+    def test_er3_2__concept_relations_are_closed_and_distinct_from_equivalents(self):
+        """§3.2 concept rows: `relations[]` (same-scheme SKOS relations) is a
+        property distinct from `equivalents[]` (cross-system mappings) — the only
+        property a profile matcher reads. A relation item is closed, requires
+        `concept` + `type`, and admits `broader` / `narrower` / `related` or an
+        `x-` type — never `exact`, which would make it a mapping in disguise."""
+        entry = _def(REG_S, "RegistryEntry")
+        props = entry["properties"]
+        assert {"equivalents", "relations"} <= set(props)
+        assert props["equivalents"]["items"]["$ref"].endswith("#/$defs/ConceptEquivalent")
+
+        relations = props["relations"]
+        assert relations["type"] == "array"
+        item = relations["items"]
+        assert "$ref" not in item, "relations must not alias the ConceptEquivalent mapping shape"
+        assert item["additionalProperties"] is False
+        assert set(item["required"]) == {"concept", "type"}
+        assert set(item["properties"]) == {"concept", "type", "display"}
+        assert item["properties"]["concept"]["format"] == "uri"
+
+        # Validate instances, not just shape: a different tool family than the
+        # structural asserts above.
+        from jsonschema import Draft202012Validator
+
+        validate = Draft202012Validator(item).is_valid
+        uri = "https://example.gov/vocab/x#a"
+        assert validate({"concept": uri, "type": "broader"})
+        assert validate({"concept": uri, "type": "narrower"})
+        assert validate({"concept": uri, "type": "related", "display": "see also"})
+        assert validate({"concept": uri, "type": "x-explains", "display": "explains: A"})
+        assert not validate({"concept": uri, "type": "exact"})
+        assert not validate({"concept": uri, "type": "close"})
+        assert not validate({"concept": uri})
+        assert not validate({"type": "broader"})
+        assert not validate({"concept": uri, "type": "broader", "system": "https://example.gov"})
+        assert not validate({"concept": uri, "type": "broader", "code": "a"})
+
     def test_er3__entry_additional_properties_false(self):
         assert _def(REG_S, "RegistryEntry")["additionalProperties"] is False
 
