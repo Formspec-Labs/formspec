@@ -1,5 +1,6 @@
 /** @filedesc Ontology-aware profile matching for formspec-assist. */
 
+import { equivalentUri } from './context-resolver.js';
 import type { ConceptBinding, ProfileEntrySource, ProfileMatch, UserProfile } from './types.js';
 
 /** A match with the value it would write and where that value came from. In-page only: the wire gets {@link ProfileMatch}. */
@@ -11,13 +12,6 @@ export interface ResolvedProfileMatch extends ProfileMatch {
 /** Project a resolved match to the wire shape (Assist spec §6.1): no value, no provenance, `concept` only when matched by concept. */
 export function toWireMatch({ path, concept, confidence, relationship }: ResolvedProfileMatch): ProfileMatch {
   return { path, ...(concept !== undefined ? { concept } : {}), confidence, relationship };
-}
-
-function equivalentKey(system?: string, code?: string): string | null {
-  if (!system || !code) {
-    return null;
-  }
-  return `${system}#${code}`;
 }
 
 function confidenceForRelationship(type?: string): number {
@@ -80,7 +74,7 @@ export class ProfileMatcher {
 
       let equivalentMatch: ResolvedProfileMatch | undefined;
       for (const equivalent of concept?.equivalents ?? []) {
-        const key = equivalent.concept ?? equivalentKey(equivalent.system, equivalent.code);
+        const key = equivalentUri(equivalent);
         if (!key || !profile.concepts[key]) {
           continue;
         }

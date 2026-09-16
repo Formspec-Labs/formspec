@@ -37,6 +37,13 @@ export type BoundReference = Reference & { target: string };
 /** The schema-generated Ontology types (Ontology spec): one shape here and in the document a page publishes. */
 export type { ConceptBinding, ConceptEquivalent, OntologyDocument };
 
+/**
+ * A binding as Assist resolves it (Assist spec §5.3): the Ontology `ConceptBinding` merged with the Registry
+ * concept entry its `concept` URI names — `definition` is that entry's `description`; `display`, `system`,
+ * `code` fall back to the entry; `equivalents` are the union, the binding's winning on the same URI.
+ */
+export type ResolvedConcept = ConceptBinding & { definition?: string };
+
 export interface ProfileEntry {
   value: unknown;
   confidence: number;
@@ -77,7 +84,8 @@ export interface FieldHelp {
   path: string;
   label: string;
   references: Partial<Record<string, ReferenceEntry[]>>;
-  concept?: ConceptBinding;
+  /** On the wire, `definition` is cut at 1024 UTF-8 bytes with a trailing `…` (§5.1); in-page it is whole. */
+  concept?: ResolvedConcept;
   equivalents?: ConceptEquivalent[];
   summary?: string;
   commonMistakes?: string[];

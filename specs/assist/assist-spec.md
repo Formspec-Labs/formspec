@@ -58,6 +58,11 @@ output minimization for field help and profile match (§5.1–§5.2, §6.1),
 assistant-written fields (§8.4), the §11 threat map against WebMCP §6.3–§6.4,
 and the LLM tool-name fallback (§3.1).
 
+Draft 3 addendum: a binding's Registry concept entry is merged into the
+resolved concept — `definition` on the wire, equivalents owned once (§5.1,
+§5.3 step 1); the §8.3 autocomplete table is keyed on the field's primary
+concept URI or an `exact` equivalent's URI.
+
 ## Conventions and Terminology
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
@@ -552,6 +557,7 @@ interface ConceptBinding {
   system?: string;
   code?: string;
   display?: string;
+  definition?: string;
 }
 
 interface ConceptEquivalent {
@@ -562,6 +568,12 @@ interface ConceptEquivalent {
   type?: "exact" | "close" | "broader" | "narrower" | "related";
 }
 ```
+
+`concept.definition` is the `description` of the Registry concept entry the
+binding names by `conceptUri` (§5.3 step 1) — the plain-language meaning an
+agent grounds on. It sits outside the §5.2 `references` cap and is bounded on
+its own: a provider MUST cut it at 1024 UTF-8 bytes, on a character boundary,
+with a trailing `…`.
 
 `ReferenceEntry` on the wire is a projection of the References Document
 entry: `title`, `type`, `uri`, `excerpt`, `rel`, `priority` always;
@@ -622,8 +634,20 @@ resolve them in the following order:
 
 1. **Ontology Document binding** — a concept binding for the field's full path
    in an active Ontology Document. When multiple Ontology Documents are loaded, a provider MUST resolve concept bindings using the last-loaded document's binding for a given path. The load order is the array order in which documents were provided to the provider. This pins the Ontology Specification's implementation-defined load order (ontology §8.2) to the concrete array order of the Assist API.
+   When a loaded Registry concept entry's `conceptUri` equals the binding's
+   `concept`, the provider MUST merge that entry into the resolved binding:
+   `definition` ← the entry's `description`; `display`, `system`, `code` ←
+   the entry's `metadata.displayName`, `conceptSystem`, `conceptCode` only
+   where the binding (after `defaultSystem`) has none; `equivalents` ← the
+   union keyed by each equivalent's URI (its `concept`, else
+   `<system>#<code>`), the binding's entries first and winning on a shared
+   URI, then the entry's remaining ones. The entry's `relations` (or
+   `metadata.relations`) are never equivalents (Extension Registry spec §3.2). A
+   binding therefore need not repeat its entry's equivalents. Among loaded
+   entries with the same `conceptUri`, the last-loaded wins.
 2. **Registry concept entry** — a loaded registry entry whose `name` matches
-   the field's `semanticType`.
+   the field's `semanticType` (last-loaded wins), resolved as an empty
+   binding merged per step 1, so it yields `definition` from `description`.
 3. **`semanticType` literal** — the raw `semanticType` string treated as a
    literal semantic annotation.
 
@@ -907,7 +931,9 @@ be a §4 result object such as the `ValidationReport` the submission produced.
 ### 8.3 Ontology-to-Autocomplete Mapping
 
 Renderers SHOULD map well-known concept URIs to HTML `autocomplete` tokens when
-there is a reasonable one-to-one correspondence.
+there is a reasonable one-to-one correspondence. The table is keyed on the
+field's primary concept URI or an `exact` equivalent's URI (§5.1
+`ConceptEquivalent.concept`, derived as `<system>#<code>` when absent).
 
 | Concept URI | `autocomplete` |
 |---|---|

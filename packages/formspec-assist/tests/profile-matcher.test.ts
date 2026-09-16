@@ -97,6 +97,113 @@ describe('Profile matching', () => {
     });
   });
 
+  // fs-fy2g (§5.3 step 1): the Registry concept entry a binding names by conceptUri owns the equivalents;
+  // the binding need not repeat them.
+  const EIN = 'https://www.irs.gov/terms/employer-identification-number';
+  const registryWithEinEntry = (entry: Record<string, unknown>) => [
+    {
+      $formspecRegistry: '1.1',
+      publisher: { name: 'Example', url: 'https://example.org' },
+      published: '2026-03-26T00:00:00Z',
+      entries: [
+        {
+          name: 'x-onto-ein',
+          category: 'concept',
+          version: '1.0.0',
+          status: 'stable',
+          description: 'IRS Employer Identification Number — a 9-digit tax identifier assigned to business entities.',
+          compatibility: { formspecVersion: '^1.0.0' },
+          conceptUri: EIN,
+          conceptSystem: 'https://www.irs.gov/terms',
+          conceptCode: 'EIN',
+          metadata: { displayName: 'Employer Identification Number' },
+          ...entry,
+        },
+      ],
+    },
+  ];
+  const profileSpeaking = (uri: string) => {
+    const now = '2026-03-26T12:00:00.000Z';
+    return {
+      id: 'other-system', label: 'Other system', created: now, updated: now, fields: {},
+      concepts: { [uri]: { value: '12-3456789', confidence: 1, verified: true, lastUsed: now, source: { type: 'manual' as const, timestamp: now } } },
+    };
+  };
+
+  it("fills a binding that carries no equivalents from the registry entry its concept URI names, at the equivalence's confidence", () => {
+    const ontology = makeOntology();
+    delete ontology.concepts!['organization.ein'].equivalents;
+    const provider = createAssistProvider({
+      engine: createEngine(),
+      ontology,
+      registries: registryWithEinEntry({
+        equivalents: [
+          { concept: 'https://schema.org/taxID', system: 'https://schema.org', code: 'taxID', type: 'close' },
+          { concept: 'urn:fhir:r4#Organization.identifier', system: 'urn:fhir:r4', code: 'Organization.identifier', type: 'exact' },
+        ],
+      }),
+      profile: profileSpeaking('https://schema.org/taxID'),
+      storage: new MemoryStorage(),
+      registerWebMCP: false,
+    });
+
+    expect(provider.matchProfile().find((entry) => entry.path === 'organization.ein')).toEqual({
+      path: 'organization.ein', concept: 'https://schema.org/taxID', relationship: 'close', confidence: 0.8,
+    });
+    // The merged equivalents are the entry's, in the entry's order, once.
+    expect(provider.getFieldHelp('organization.ein').equivalents?.map((entry) => [entry.concept, entry.type])).toEqual([
+      ['https://schema.org/taxID', 'close'],
+      ['urn:fhir:r4#Organization.identifier', 'exact'],
+    ]);
+  });
+
+  it("keeps the binding's equivalent when the entry names the same URI, and appends the entry's others", () => {
+    const ontology = makeOntology();
+    ontology.concepts!['organization.ein'].equivalents = [
+      { concept: 'https://schema.org/taxID', system: 'https://schema.org', code: 'taxID', type: 'close' },
+    ];
+    const provider = createAssistProvider({
+      engine: createEngine(),
+      ontology,
+      registries: registryWithEinEntry({
+        equivalents: [
+          { concept: 'https://schema.org/taxID', system: 'https://schema.org', code: 'taxID', type: 'exact' },
+          { system: 'urn:fhir:r4', code: 'Organization.identifier', type: 'exact' },
+        ],
+      }),
+      profile: profileSpeaking('https://schema.org/taxID'),
+      storage: new MemoryStorage(),
+      registerWebMCP: false,
+    });
+
+    // Binding wins on the shared URI: close (0.8), not the entry's exact (0.95).
+    expect(provider.matchProfile().find((entry) => entry.path === 'organization.ein')).toMatchObject({ relationship: 'close', confidence: 0.8 });
+    expect(provider.getFieldHelp('organization.ein').equivalents).toEqual([
+      { concept: 'https://schema.org/taxID', system: 'https://schema.org', code: 'taxID', type: 'close' },
+      { system: 'urn:fhir:r4', code: 'Organization.identifier', type: 'exact' },
+    ]);
+  });
+
+  it("never reads an entry's relations (top-level or metadata) as equivalents", () => {
+    const ontology = makeOntology();
+    delete ontology.concepts!['organization.ein'].equivalents;
+    const neighbour = 'https://www.irs.gov/terms/taxpayer-identification-number';
+    const provider = createAssistProvider({
+      engine: createEngine(),
+      ontology,
+      registries: registryWithEinEntry({
+        relations: [{ concept: neighbour, type: 'broader' }],
+        metadata: { displayName: 'Employer Identification Number', relations: [{ concept: neighbour, type: 'broader' }] },
+      }),
+      profile: profileSpeaking(neighbour),
+      storage: new MemoryStorage(),
+      registerWebMCP: false,
+    });
+
+    expect(provider.matchProfile().find((entry) => entry.path === 'organization.ein')).toBeUndefined();
+    expect(provider.getFieldHelp('organization.ein').equivalents).toEqual([]);
+  });
+
   it('allows explicit low-confidence field-key fallback when configured', () => {
     const provider = createAssistProvider({
       engine: createEngine(),

@@ -22,6 +22,7 @@ export type {
   ProfileMatch,
   ReferenceEntry,
   ReferencesDocument,
+  ResolvedConcept,
   SetValueResult,
   StorageBackend,
   ToolAnnotations,

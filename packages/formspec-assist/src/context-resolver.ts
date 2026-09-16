@@ -18,6 +18,7 @@ import type {
   OntologyDocument,
   ReferenceEntry,
   ReferencesDocument,
+  ResolvedConcept,
 } from './types.js';
 
 interface FieldMetadata {
@@ -33,14 +34,49 @@ function wildcardPath(path: string): string {
   return path.replace(/\[\d+\]/g, '[*]');
 }
 
-function normalizeEquivalents(equivalents?: ConceptEquivalent[]): ConceptEquivalent[] | undefined {
-  if (!equivalents || equivalents.length === 0) {
-    return undefined;
+/** The URI an equivalent is matched and merged by: its own `concept`, else `<system>#<code>` (Ontology spec §3.1). */
+export function equivalentUri(equivalent: ConceptEquivalent): string | undefined {
+  if (equivalent.concept) {
+    return equivalent.concept;
   }
-  return equivalents.map((entry) => ({
-    ...entry,
-    type: entry.type ?? 'exact',
-  }));
+  return equivalent.system && equivalent.code ? `${equivalent.system}#${equivalent.code}` : undefined;
+}
+
+const text = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+
+/**
+ * Assist spec §5.3 step 1: the binding's equivalents first and winning on a shared URI, then the entry's
+ * remaining ones; an absent `type` reads as `exact`. `undefined` when there are none, so the key stays absent.
+ */
+function unionEquivalents(binding: ConceptEquivalent[] = [], fromEntry: unknown): ConceptEquivalent[] | undefined {
+  const own = new Set(binding.map(equivalentUri));
+  const merged = [
+    ...binding,
+    ...(Array.isArray(fromEntry) ? (fromEntry as ConceptEquivalent[]).filter((equivalent) => !own.has(equivalentUri(equivalent))) : []),
+  ];
+  return merged.length === 0 ? undefined : merged.map((equivalent) => ({ ...equivalent, type: equivalent.type ?? 'exact' }));
+}
+
+/**
+ * Assist spec §5.3: a binding merged with the Registry concept entry its URI names. The entry's `description`
+ * is the `definition`; `display`, `system`, `code` fall back to the entry — `defaultSystem` is the Ontology's
+ * own fallback (Ontology spec §8.2) and comes first. Never reads `relations` or `metadata.relations`.
+ */
+function mergeConceptEntry(binding: ConceptBinding, entry: RegistryEntry | undefined, defaultSystem?: string): ResolvedConcept {
+  const { equivalents: own, ...rest } = binding;
+  const definition = text(entry?.description);
+  const system = rest.system ?? defaultSystem ?? text(entry?.conceptSystem);
+  const code = rest.code ?? text(entry?.conceptCode);
+  const display = rest.display ?? text(entry?.metadata?.displayName);
+  const equivalents = unionEquivalents(own, entry?.equivalents);
+  return {
+    ...rest,
+    ...(definition !== undefined ? { definition } : {}),
+    ...(system !== undefined ? { system } : {}),
+    ...(code !== undefined ? { code } : {}),
+    ...(display !== undefined ? { display } : {}),
+    ...(equivalents !== undefined ? { equivalents } : {}),
+  };
 }
 
 function validateTargetDefinition(
@@ -86,7 +122,9 @@ export class ContextResolver {
   private fields: Map<string, FieldMetadata>;
   private references: ReferencesDocument[];
   private ontologies: OntologyDocument[];
-  private registryEntries: RegistryEntry[];
+  /** Registry `concept` entries by `conceptUri` and by `name`; last-loaded wins, as the engine indexes them. */
+  private conceptEntriesByUri = new Map<string, RegistryEntry>();
+  private conceptEntriesByName = new Map<string, RegistryEntry>();
 
   public constructor(
     engine: IFormEngine,
@@ -98,7 +136,7 @@ export class ContextResolver {
     this.fields = buildFieldMetadata(engine.getDefinition());
     this.references = [];
     this.ontologies = [];
-    this.registryEntries = registryEntries;
+    this.setRegistryEntries(registryEntries);
     this.setReferences(references);
     this.setOntologies(ontologies);
   }
@@ -121,7 +159,18 @@ export class ContextResolver {
   }
 
   public setRegistryEntries(entries: RegistryEntry[]): void {
-    this.registryEntries = entries;
+    this.conceptEntriesByUri = new Map();
+    this.conceptEntriesByName = new Map();
+    for (const entry of entries) {
+      if (entry.category !== 'concept') {
+        continue;
+      }
+      this.conceptEntriesByName.set(entry.name, entry);
+      const uri = text(entry.conceptUri);
+      if (uri) {
+        this.conceptEntriesByUri.set(uri, entry);
+      }
+    }
   }
 
   public resolve(path: string, audience: ReferenceAudience = 'agent'): FieldHelp {
@@ -139,7 +188,8 @@ export class ContextResolver {
     };
   }
 
-  public resolveConcept(path: string): ConceptBinding | undefined {
+  /** Assist spec §5.3: Ontology binding (merged with the entry its URI names), then the `semanticType` entry, then the literal. */
+  public resolveConcept(path: string): ResolvedConcept | undefined {
     const basePath = stripIndices(path);
     const wildcard = wildcardPath(path);
 
@@ -147,31 +197,16 @@ export class ContextResolver {
       const doc = this.ontologies[index];
       const binding = doc.concepts?.[basePath] ?? doc.concepts?.[wildcard];
       if (binding) {
-        return {
-          ...binding,
-          system: binding.system ?? doc.defaultSystem,
-          equivalents: normalizeEquivalents(binding.equivalents),
-        };
+        return mergeConceptEntry(binding, this.conceptEntriesByUri.get(binding.concept), doc.defaultSystem);
       }
     }
 
     const item = this.fields.get(basePath)?.item as (FormItem & { semanticType?: string }) | undefined;
     const semanticType = item?.semanticType;
     if (semanticType) {
-      const registryEntry = this.registryEntries.find((entry) => entry.category === 'concept' && entry.name === semanticType);
-      if (registryEntry?.conceptUri) {
-        return {
-          concept: String(registryEntry.conceptUri),
-          system: registryEntry.conceptSystem ? String(registryEntry.conceptSystem) : undefined,
-          code: registryEntry.conceptCode ? String(registryEntry.conceptCode) : undefined,
-          display:
-            typeof registryEntry.metadata?.displayName === 'string'
-              ? registryEntry.metadata.displayName
-              : registryEntry.description,
-          equivalents: normalizeEquivalents(registryEntry.equivalents as ConceptEquivalent[] | undefined),
-        };
-      }
-      return { concept: semanticType };
+      const entry = this.conceptEntriesByName.get(semanticType);
+      const uri = text(entry?.conceptUri);
+      return uri ? mergeConceptEntry({ concept: uri }, entry) : { concept: semanticType };
     }
 
     return undefined;
@@ -203,6 +238,26 @@ export function collectFieldMetadata(definition: FormDefinition): Map<string, Fi
 /** Assist spec §5.2 step 10: the default cap on serialized `references`, and the floor a smaller request is raised to. */
 export const DEFAULT_HELP_MAX_BYTES = 4096;
 
+/** Assist spec §5.1: the fixed cap on `concept.definition` on the wire, in UTF-8 bytes including the trailing `…`. */
+export const DEFINITION_MAX_BYTES = 1024;
+
+const ELLIPSIS = '…';
+const ELLIPSIS_BYTES = new TextEncoder().encode(ELLIPSIS).length;
+
+/** Cut `value` to `maxBytes` of UTF-8 with a trailing `…`, never inside a multi-byte character. Unchanged when it fits. */
+export function capUtf8(value: string, maxBytes: number): string {
+  const bytes = new TextEncoder().encode(value);
+  if (bytes.length <= maxBytes) {
+    return value;
+  }
+  let end = Math.max(0, maxBytes - ELLIPSIS_BYTES);
+  // Back off continuation bytes (10xxxxxx) so the cut lands on a character boundary.
+  while (end > 0 && (bytes[end] & 0xc0) === 0x80) {
+    end -= 1;
+  }
+  return `${new TextDecoder().decode(bytes.subarray(0, end))}${ELLIPSIS}`;
+}
+
 /** The wire projection of a References entry (§5.1): the small, trusted-enough keys; `content` only on request. */
 const WIRE_REFERENCE_KEYS = ['title', 'type', 'uri', 'excerpt', 'rel', 'priority'] as const;
 
@@ -232,7 +287,8 @@ function projectReferenceEntry(entry: ReferenceEntry, includeContent: boolean): 
  * before dropping: strip `content`, then `excerpt`, then whole entries — never below one entry per
  * type. Every pass takes the lowest priority tier first (`background` → `supplementary` → `primary`);
  * within a tier, a later type group first, then the last entry in document order. `truncated.omitted`
- * counts dropped entries per type and is present whenever anything was cut. Pure; the input is not mutated.
+ * counts dropped entries per type and is present whenever anything was cut. `concept.definition` is cut on its
+ * own at {@link DEFINITION_MAX_BYTES} with a trailing `…` (§5.1). Pure; the input is not mutated.
  */
 export function minimizeFieldHelp(help: FieldHelp, options: FieldHelpOptions = {}): FieldHelp {
   const includeContent = options.includeContent === true;
@@ -294,6 +350,9 @@ export function minimizeFieldHelp(help: FieldHelp, options: FieldHelpOptions = {
   return {
     ...help,
     references: references as FieldHelp['references'],
+    ...(help.concept?.definition !== undefined
+      ? { concept: { ...help.concept, definition: capUtf8(help.concept.definition, DEFINITION_MAX_BYTES) } }
+      : {}),
     ...(cut ? { truncated: { omitted } } : {}),
   };
 }

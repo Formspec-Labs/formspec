@@ -121,6 +121,104 @@ describe('Context resolution', () => {
 
 const utf8Bytes = (value: unknown): number => new TextEncoder().encode(JSON.stringify(value)).length;
 
+// fs-fy2g (§5.1, §5.3 step 1): the Registry concept entry a binding names by conceptUri supplies the definition.
+describe('Registry concept entry merged into the resolved binding', () => {
+  beforeAll(async () => {
+    await ensureEngine();
+  });
+
+  const EIN = 'https://www.irs.gov/terms/employer-identification-number';
+  const DEFINITION = 'IRS Employer Identification Number — a 9-digit tax identifier assigned to business entities.';
+  const registry = (entry: Record<string, unknown> = {}) => [
+    {
+      $formspecRegistry: '1.1',
+      publisher: { name: 'Example', url: 'https://example.org' },
+      published: '2026-03-26T00:00:00Z',
+      entries: [
+        {
+          name: 'x-onto-ein',
+          category: 'concept',
+          version: '1.0.0',
+          status: 'stable',
+          description: DEFINITION,
+          compatibility: { formspecVersion: '^1.0.0' },
+          conceptUri: EIN,
+          conceptSystem: 'https://www.irs.gov/terms',
+          conceptCode: 'EIN',
+          metadata: { displayName: 'Employer Identification Number (registry)' },
+          ...entry,
+        },
+        {
+          name: 'x-concept-org-name',
+          category: 'concept',
+          version: '1.0.0',
+          status: 'stable',
+          description: 'The legal name of the organization.',
+          compatibility: { formspecVersion: '^1.0.0' },
+          conceptUri: 'https://schema.org/name',
+          conceptSystem: 'https://schema.org',
+          conceptCode: 'name',
+        },
+      ],
+    },
+  ];
+
+  it("carries the entry's description as definition; display, system, and code fall back to the entry only when the binding has none", async () => {
+    const bare = makeOntology();
+    bare.concepts!['organization.ein'] = { concept: EIN };
+    const provider = createAssistProvider({ engine: createEngine(), ontology: bare, registries: registry(), registerWebMCP: false });
+
+    expect(provider.getFieldHelp('organization.ein').concept).toEqual({
+      concept: EIN,
+      definition: DEFINITION,
+      display: 'Employer Identification Number (registry)',
+      system: 'https://www.irs.gov/terms',
+      code: 'EIN',
+    });
+    // The wire carries it too.
+    const wire = await provider.invokeTool('formspec.field.help', { path: 'organization.ein' });
+    expect(JSON.parse(wire.content[0].text).concept).toMatchObject({ definition: DEFINITION, display: 'Employer Identification Number (registry)' });
+
+    const authored = createAssistProvider({ engine: createEngine(), ontology: makeOntology(), registries: registry(), registerWebMCP: false });
+    expect(authored.getFieldHelp('organization.ein').concept).toMatchObject({
+      definition: DEFINITION,
+      display: 'Employer Identification Number',
+      system: 'https://www.irs.gov/terms',
+      code: 'EIN',
+    });
+  });
+
+  it('leaves a binding no entry names as it was — no definition', () => {
+    const provider = createAssistProvider({ engine: createEngine(), ontology: makeOntology(), registerWebMCP: false });
+    expect(provider.getFieldHelp('organization.ein').concept).not.toHaveProperty('definition');
+  });
+
+  it('resolves a semanticType entry the same way, definition included', () => {
+    const provider = createAssistProvider({ engine: createEngine(), registries: registry(), registerWebMCP: false });
+    expect(provider.getFieldHelp('organization.name').concept).toEqual({
+      concept: 'https://schema.org/name',
+      definition: 'The legal name of the organization.',
+      system: 'https://schema.org',
+      code: 'name',
+    });
+  });
+
+  it('caps definition at 1024 UTF-8 bytes on the wire with a trailing ellipsis, cut on a character boundary; in-page keeps the full text', async () => {
+    const long = 'é'.repeat(600); // two bytes each: 1200 bytes
+    const provider = createAssistProvider({ engine: createEngine(), ontology: makeOntology(), registries: registry({ description: long }), registerWebMCP: false });
+
+    expect(provider.getFieldHelp('organization.ein').concept?.definition).toBe(long);
+    const wire = await provider.invokeTool('formspec.field.help', { path: 'organization.ein' });
+    const definition = JSON.parse(wire.content[0].text).concept.definition as string;
+    expect(new TextEncoder().encode(definition).length).toBeLessThanOrEqual(1024);
+    expect(definition.endsWith('…')).toBe(true);
+    expect(long.startsWith(definition.slice(0, -1))).toBe(true);
+    expect(definition).not.toContain('\uFFFD');
+    // 1024 - 3 (the ellipsis) = 1021 bytes of text; 510 × 'é' = 1020, the 511th would split — so 1023.
+    expect(definition).toBe(`${'é'.repeat(510)}…`);
+  });
+});
+
 function referencesDoc(references: Array<Record<string, unknown>>): ReferencesDocument {
   return {
     $formspecReferences: '1.0',

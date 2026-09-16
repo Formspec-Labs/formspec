@@ -108,7 +108,7 @@ In-page consumers discover and call tools with `document.modelContext.getTools()
 Assist resolves field context from two companion document types:
 
 - **References** — contextual help entries (documentation, examples, regulations) bound to field paths. Entries are filtered by audience (`human`, `agent`, `both`) and sorted by priority (`primary` > `supplementary` > `background`).
-- **Ontology** — semantic concept bindings that give fields stable identity across forms. Powers cross-form autofill via profile matching.
+- **Ontology** — semantic concept bindings that give fields stable identity across forms. Powers cross-form autofill via profile matching. A Registry concept entry named by a binding (`conceptUri` = the binding's `concept`, passed in `registries`) supplies the field's `definition` and its `equivalents`; bindings need not repeat them.
 
 Both target a specific definition URL and optional version range. Multiple documents of each type are supported; references merge additively, ontology uses last-loaded-wins for conflicts.
 
