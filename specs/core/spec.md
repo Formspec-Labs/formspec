@@ -490,7 +490,7 @@ The canonical structural contract for Response properties is generated from
 | `#/properties/definitionUrl` | `definitionUrl` | <code>string</code> | yes | critical | The canonical URL of the Definition this Response was created against. This is the stable logical-form identifier shared across all versions of the same form. Combined with definitionVersion to form the immutable identity reference. MUST match the 'url' property of a known Definition. |
 | `#/properties/definitionVersion` | `definitionVersion` | <code>string</code> | yes | critical | The exact version of the Definition against which this Response was created. Interpretation of the version string is governed by the Definition's versionAlgorithm (default: semver). A Response is always validated against this specific version, never against a newer version — even if one exists (Pinning Rule VP-01). Once set, this value MUST NOT change for the lifetime of the Response. |
 | `#/properties/displayedIssuer` | `displayedIssuer` | <code>object</code> | no | critical | Submit-time pin of the resolved Issuer (post-cascade). Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer pinning is a v1 non-goal. |
-| `#/properties/displayedLocale` | `displayedLocale` | <code>object</code> | no | critical | Submit-time pin of the Locale document whose strings the respondent saw: its url, version, and normalized locale tag. Omitted when no Locale document was loaded — the Definition's inline wording was shown instead. Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). |
+| `#/properties/displayedLocale` | `displayedLocale` | <code>object</code> | no | critical | Submit-time pin of the Locale document whose strings the respondent saw: its normalized locale tag and version — the document's identity within the pinned Definition (Locale §identity is target + locale) — and its url when it declares one. Omitted only when no Locale document was loaded: the Definition's inline wording was shown instead. Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Implementor-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions and MUST preserve them during round-tripping. Extensions MUST NOT alter core semantics (validation, calculation, relevance, required state). |
 | `#/properties/id` | `id` | <code>string</code> | no | — | A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId. |
 | `#/properties/metadata` | `metadata` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseMetadata</code> | Optional response metadata envelope for per-field provenance, derivation traces, and disclosures shown. |
@@ -901,9 +901,11 @@ signed-payload digest. No canonicalization-profile change is required for
 Issuer pinning.
 
 Response `displayedLocale` records the Locale document whose strings the
-respondent saw at submit time — its `url`, `version`, and normalized `locale`
-tag — mirroring `displayedIssuer`. It is absent when no Locale document was
-loaded, meaning the Definition's inline wording was shown. The pin matters
+respondent saw at submit time — its normalized `locale` tag and `version`, the
+document's identity within the pinned Definition (Locale spec: target plus
+locale), and its `url` when it declares one — mirroring `displayedIssuer`. It is
+absent only when no Locale document was loaded, meaning the Definition's inline
+wording was shown. The pin matters
 because what the respondent certified to is the wording they were shown, not
 the Definition's inline text a later reader might assume: pinning only
 `definitionUrl`/`definitionVersion` leaves the actual on-screen language

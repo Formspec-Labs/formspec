@@ -240,7 +240,7 @@ export function buildFormspecResponseEnvelope(options: {
     completionEligible?: boolean;
     timestamp: string;
     displayedIssuer?: { url: string; version: string };
-    displayedLocale?: { url: string; version: string; locale: string };
+    displayedLocale?: { url?: string; version: string; locale: string };
     meta?: {
         id?: string;
         author?: { id: string; name?: string };

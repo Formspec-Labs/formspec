@@ -2053,17 +2053,17 @@ export class FormEngine implements IFormEngine {
     /**
      * Submit-time pin of the Locale document whose strings the respondent saw — mirrors
      * {@link getDisplayedIssuerPin}. Reads the document {@link LocaleStore.getActiveDocument}
-     * resolves for the active locale tag. Undefined when no Locale document is active, or when
-     * the active document carries no `url` of its own (Locale §url is OPTIONAL, unlike Issuer's;
-     * an un-addressable document has no independent-verification value to pin, so it is treated
-     * like "no Locale document loaded" — the Definition's inline wording).
+     * resolves for the active locale tag. A Locale document's identity is its target plus its
+     * normalized locale (Locale spec), so the pin is `locale` + `version`, with the document's own
+     * `url` when it declares one (Locale §url is OPTIONAL, unlike Issuer's). Undefined only when no
+     * Locale document is active — the Definition's inline wording was shown.
      */
-    private getDisplayedLocalePin(): { url: string; version: string; locale: string } | undefined {
+    private getDisplayedLocalePin(): { url?: string; version: string; locale: string } | undefined {
         const doc = this._localeStore.getActiveDocument();
-        if (!doc || !doc.url) {
+        if (!doc) {
             return undefined;
         }
-        return { url: doc.url, version: doc.version, locale: doc.locale };
+        return { ...(doc.url ? { url: doc.url } : {}), version: doc.version, locale: doc.locale };
     }
 }
 

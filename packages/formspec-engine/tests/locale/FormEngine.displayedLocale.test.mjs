@@ -64,14 +64,13 @@ test('FormEngine pins the document actually resolved for the active tag, not the
   });
 });
 
-test('FormEngine omits displayedLocale when the active document carries no url of its own', () => {
+test('FormEngine pins locale and version when the active document declares no url of its own', () => {
+  // A Locale document's identity is its target plus its normalized locale (Locale spec); `url` is optional.
+  // The wording shown was still the Locale's, so the pin records it — without a url, never as "inline".
   const engine = new FormEngine(DEFINITION);
-  engine.loadLocale(makeLocale('es')); // no url — Locale §url is OPTIONAL, unlike Issuer's REQUIRED url
+  engine.loadLocale(makeLocale('es'));
   engine.setLocale('es');
-
-  const response = engine.getResponse();
-
-  assert.equal(response.displayedLocale, undefined);
+  assert.deepEqual(engine.getResponse().displayedLocale, { version: '1.0.0', locale: 'es' });
 });
 
 test('displayedLocale enters the signed-payload JCS preimage — the digest changes with it', () => {

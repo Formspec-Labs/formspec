@@ -61,10 +61,10 @@ export interface FormResponse {
     version: string;
   };
   /**
-   * Submit-time pin of the Locale document whose strings the respondent saw: its url, version, and normalized locale tag. Omitted when no Locale document was loaded — the Definition's inline wording was shown instead. Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload).
+   * Submit-time pin of the Locale document whose strings the respondent saw: its normalized locale tag and version — the document's identity within the pinned Definition (Locale §identity is target + locale) — and its url when it declares one. Omitted only when no Locale document was loaded: the Definition's inline wording was shown instead. Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload).
    */
   displayedLocale?: {
-    url: string;
+    url?: string;
     version: string;
     locale: string;
   };

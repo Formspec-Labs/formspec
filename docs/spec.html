@@ -1080,6 +1080,20 @@ rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer
 pinning is a v1 non-goal.</td>
 </tr>
 <tr>
+<td><code>#/properties/displayedLocale</code></td>
+<td><code>displayedLocale</code></td>
+<td><code>object</code></td>
+<td>no</td>
+<td>critical</td>
+<td>Submit-time pin of the Locale document whose strings the respondent
+saw: its normalized locale tag and version — the document’s identity
+within the pinned Definition (Locale §identity is target + locale) — and
+its url when it declares one. Omitted only when no Locale document was
+loaded: the Definition’s inline wording was shown instead. Inside the
+signed-payload preimage by the existing authoredSignatures-only omission
+rule (specs/core/spec.md §Signed Response Payload).</td>
+</tr>
+<tr>
 <td><code>#/properties/extensions</code></td>
 <td><code>extensions</code></td>
 <td><code>object</code></td>
@@ -1529,7 +1543,8 @@ rule</strong> — strip the <code>authoredSignatures</code> array before
 canonicalization; all other top-level fields (including <code>id</code>,
 <code>definitionUrl</code>, <code>definitionVersion</code>,
 <code>data</code>, <code>authored</code>, <code>displayedIssuer</code>,
-<code>validationResults</code>) are part of the canonical payload.</li>
+<code>displayedLocale</code>, <code>validationResults</code>) are part
+of the canonical payload.</li>
 <li><strong>Canonicalization identifier</strong> — currently
 <code>formspec-response-signing-v1</code>; this names the JCS-based
 canonicalization profile pinned in this section.</li>
@@ -1608,6 +1623,23 @@ above, the only top-level field omitted from the JCS preimage is
 remains inside <code>response_without_authoredSignatures</code> and
 inside the signed-payload digest. No canonicalization-profile change is
 required for Issuer pinning.</p>
+<p>Response <code>displayedLocale</code> records the Locale document
+whose strings the respondent saw at submit time — its normalized
+<code>locale</code> tag and <code>version</code>, the document’s
+identity within the pinned Definition (Locale spec: target plus locale),
+and its <code>url</code> when it declares one — mirroring
+<code>displayedIssuer</code>. It is absent only when no Locale document
+was loaded, meaning the Definition’s inline wording was shown. The pin
+matters because what the respondent certified to is the wording they
+were shown, not the Definition’s inline text a later reader might
+assume: pinning only
+<code>definitionUrl</code>/<code>definitionVersion</code> leaves the
+actual on-screen language unrecorded whenever a Locale document
+translated it. By the same <code>authoredSignatures</code>-only omission
+rule, <code>displayedLocale</code> remains inside
+<code>response_without_authoredSignatures</code> and inside the
+signed-payload digest. No canonicalization-profile change is required
+for Locale pinning.</p>
 <h4 id="intake-handoff">2.1.6.1 Intake Handoff</h4>
 <p>An <strong>Intake Handoff</strong> is the boundary record emitted
 when a Formspec intake session is ready to be accepted by a workflow,
