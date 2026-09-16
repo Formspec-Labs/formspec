@@ -183,6 +183,7 @@ import type { ExperienceDocument } from './generated/experience.js';
 import type { ResponseActionsDocument } from './generated/response-actions.js';
 import type { OntologyDocument } from './generated/ontology.js';
 import type { RegistryDocument } from './generated/registry.js';
+import type { ReferencesDocument } from './generated/references.js';
 
 export interface ProjectBundle {
   /**
@@ -219,4 +220,10 @@ export interface ProjectBundle {
    * only when at least one is authored. Registries a host loads for resolution are not here.
    */
   registries?: Record<string, RegistryDocument>;
+  /**
+   * The one authored References Document (present only when authored) — external resources
+   * (docs, regulations, knowledge bases) bound to Definition paths (References spec).
+   * Single emission, like `ontology`: one per bundle, never keyed.
+   */
+  references?: ReferencesDocument;
 }

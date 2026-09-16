@@ -10,6 +10,7 @@ function makeState(overrides: any = {}): ProjectState {
     mappings: {},
     selectedMappingId: 'default',
     extensions: { registries: [] },
+    references: overrides.references ?? null,
     versioning: { baseline: { $formspec: '1.0', url: '', version: '0.1.0', title: '', items: [] } as any, releases: [] },
   } as any;
 }
@@ -20,6 +21,14 @@ describe('normalizeState', () => {
     normalizeState(state);
     expect(state.component.targetDefinition!.url).toBe('urn:formspec:test');
     expect((state.theme as any).targetDefinition.url).toBe('urn:formspec:test');
+  });
+
+  it('syncs the authored References Document targetDefinition.url too, like ontology (fs-hu67)', () => {
+    const state = makeState({
+      references: { $formspecReferences: '1.0', version: '1.0.0', targetDefinition: { url: '' }, references: [] },
+    });
+    normalizeState(state);
+    expect((state as any).references.targetDefinition.url).toBe('urn:formspec:test');
   });
 
   it('sorts theme breakpoints by minWidth ascending', () => {

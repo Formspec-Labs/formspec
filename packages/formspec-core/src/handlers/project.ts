@@ -117,6 +117,9 @@ export const projectHandlers = {
     if (p.ontology !== undefined || replace) {
       state.ontology = p.ontology ?? null;
     }
+    if (p.references !== undefined || replace) {
+      state.references = p.references ?? null;
+    }
     if (p.registries !== undefined || replace) {
       // The id guard sits on the ingest door too, so a bad id fails here rather than mid-write.
       for (const id of Object.keys(p.registries ?? {})) assertDocumentId(id, 'registry');

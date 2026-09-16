@@ -181,6 +181,7 @@ function createDefaultState(options?: ProjectOptions): ProjectState {
     responseActions: options?.seed?.responseActions ?? null,
     ontology: options?.seed?.ontology ?? null,
     registries: { ...(options?.seed?.registries ?? {}) },
+    references: options?.seed?.references ?? null,
     versioning: options?.seed?.versioning ?? {
       baseline: structuredClone(definition),
       releases: [],
@@ -387,6 +388,9 @@ export class RawProject implements IProjectCore {
     }
     if (Object.keys(this._state.registries).length > 0) {
       bundle.registries = this._state.registries;
+    }
+    if (this._state.references) {
+      bundle.references = this._state.references;
     }
 
     return structuredClone(bundle);

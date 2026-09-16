@@ -3,7 +3,7 @@ import type { SchemaValidator } from '@formspec-org/engine/fel-tools';
 import type {
   FormItem, FormDefinition, ComponentDocument, ThemeDocument, MappingDocument,
   ScreenerDocument, ExperienceDocument, ResponseActionsDocument,
-  OntologyDocument, RegistryDocument,
+  OntologyDocument, RegistryDocument, ReferencesDocument,
   FieldRule, TargetSchema,
 } from '@formspec-org/types';
 
@@ -13,7 +13,7 @@ export type {
   FormItem, FormBind, FormShape, FormVariable, FormInstance, FormOption,
   FormDefinition, ComponentDocument, ThemeDocument, MappingDocument,
   ScreenerDocument, ExperienceDocument, ResponseActionsDocument,
-  OntologyDocument, RegistryDocument,
+  OntologyDocument, RegistryDocument, ReferencesDocument,
 } from '@formspec-org/types';
 
 // ── Internal content types ──────────────────────────────────────────
@@ -188,6 +188,11 @@ export interface ProjectState {
    * foreign stem). Stored verbatim; the resolution index in {@link extensions} is derived.
    */
   registries: Record<string, RegistryDocument>;
+  /**
+   * The one authored References Document (external resources bound to Definition paths),
+   * or null when none. Single emission, like `ontology` — never keyed.
+   */
+  references: ReferencesDocument | null;
   /** Baseline snapshot and release history for changelog generation. */
   versioning: VersioningState;
 }

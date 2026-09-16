@@ -15,6 +15,7 @@ import { experienceHandlers } from './experience.js';
 import { responseActionsHandlers } from './response-actions.js';
 import { ontologyHandlers } from './ontology.js';
 import { registryHandlers } from './registry.js';
+import { referencesHandlers } from './references.js';
 import { definitionMigrationsHandlers } from './definition-migrations.js';
 import { componentTreeHandlers } from './component-tree.js';
 import { componentPropertiesHandlers } from './component-properties.js';
@@ -39,6 +40,7 @@ export const builtinHandlers = Object.freeze({
   ...responseActionsHandlers,
   ...ontologyHandlers,
   ...registryHandlers,
+  ...referencesHandlers,
   ...definitionMigrationsHandlers,
   ...componentTreeHandlers,
   ...componentPropertiesHandlers,
