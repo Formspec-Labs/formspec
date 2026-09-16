@@ -166,13 +166,18 @@ export class ContextResolver {
     this.conceptEntriesByName = new Map();
     // Two entries claiming one IRI are two "definitions of record"; Registry spec §2.2 fails closed on an
     // unqualified collision, so neither is merged (the binding stays bare) rather than last-loaded winning.
+    // Registry §2.2: identical declarations (the same document host-loaded and authored, say) are one
+    // declaration; differing declarations of one name or one IRI are a collision.
+    const differs = (a: RegistryEntry, b: RegistryEntry): boolean =>
+      a.name !== b.name || a.version !== b.version || text(a.conceptUri) !== text(b.conceptUri);
     const contestedUris = new Set<string>();
     const contestedNames = new Set<string>();
     for (const entry of entries) {
       if (entry.category !== 'concept') {
         continue;
       }
-      if (this.conceptEntriesByName.has(entry.name)) {
+      const byName = this.conceptEntriesByName.get(entry.name);
+      if (byName && differs(byName, entry)) {
         contestedNames.add(entry.name);
       }
       this.conceptEntriesByName.set(entry.name, entry);
@@ -180,7 +185,8 @@ export class ContextResolver {
       if (!uri) {
         continue;
       }
-      if (this.conceptEntriesByUri.has(uri)) {
+      const byUri = this.conceptEntriesByUri.get(uri);
+      if (byUri && differs(byUri, entry)) {
         contestedUris.add(uri);
       }
       this.conceptEntriesByUri.set(uri, entry);

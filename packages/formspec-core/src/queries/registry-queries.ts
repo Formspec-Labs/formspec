@@ -6,6 +6,7 @@ import type {
   RegistrySummary,
   ExtensionFilter,
 } from '../types.js';
+import { jsonEqual } from '../json-equal.js';
 import { registryEntry } from '../registry-entry.js';
 
 /**
@@ -36,12 +37,20 @@ export function browseExtensions(state: ProjectState, filter?: ExtensionFilter):
 }
 
 /**
- * Resolve an extension name against all loaded registries.
+ * Resolve an extension name against all loaded registries — Registry spec §2.2: identical declarations of
+ * one name (the same document host-loaded and authored, say) are one declaration; differing declarations
+ * are an unqualified collision and resolve nothing. Never first-match.
  */
 export function resolveExtension(state: ProjectState, name: string): Record<string, unknown> | undefined {
+  let resolved: Record<string, unknown> | undefined;
   for (const reg of state.extensions.registries) {
-    const entry = reg.entries[name];
-    if (entry) return entry as unknown as Record<string, unknown>;
+    const entry = reg.entries[name] as unknown as Record<string, unknown> | undefined;
+    if (!entry) continue;
+    if (resolved === undefined) {
+      resolved = entry;
+    } else if (!jsonEqual(resolved, entry)) {
+      return undefined;
+    }
   }
-  return undefined;
+  return resolved;
 }

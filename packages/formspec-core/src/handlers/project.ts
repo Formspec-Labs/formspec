@@ -16,6 +16,7 @@ import { generatedWidgetMoves, moveGeneratedWidgets } from '../tree-reconciler.j
 import { mappingStateFromDocument, themeStateFromDocument } from '../document-envelopes.js';
 import { normalizeBindsFromUnknown } from '../definition-binds.js';
 import { normalizeBcp47 } from '@formspec-org/engine';
+import { assertDocumentId } from '../document-id.js';
 import { indexRegistryPayload, syncAuthoredRegistries } from '../registry-index.js';
 
 export const projectHandlers = {
@@ -117,6 +118,9 @@ export const projectHandlers = {
       state.ontology = p.ontology ?? null;
     }
     if (p.registries !== undefined || replace) {
+      // The id guard sits on the ingest door too, so a bad id fails here rather than mid-write.
+      for (const id of Object.keys(p.registries ?? {})) assertDocumentId(id, 'registry');
+      for (const id of Object.keys(p.mappings ?? {})) assertDocumentId(id, 'mapping');
       state.registries = { ...(p.registries ?? {}) };
       syncAuthoredRegistries(state);
     }

@@ -17,6 +17,10 @@ export function normalizeState(state: ProjectState): void {
   if (state.theme.targetDefinition) {
     state.theme.targetDefinition.url = url;
   }
+  // The authored Ontology targets this Definition too (Ontology spec §2.1 REQUIRED).
+  if (state.ontology?.targetDefinition) {
+    state.ontology.targetDefinition.url = url;
+  }
 
   // Keep Definition-targeted Locales aligned with this single-Definition
   // authoring project. App-targeted Locales name a different artifact.

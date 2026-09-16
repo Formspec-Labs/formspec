@@ -90,9 +90,9 @@ export type { LocaleState };
  * Registries provide custom data types, FEL functions, constraints, properties, and concepts.
  * Rows come from two sources and are never authored here: registries a host loads for
  * resolution (`project.loadRegistry`), and the project's own authored documents in
- * {@link ProjectState.registries}, re-indexed on every `registry.*` write. Host rows come
- * first and name resolution is first-match, so a host-loaded entry shadows an authored
- * entry of the same name.
+ * {@link ProjectState.registries}, re-indexed on every `registry.*` write. Name resolution
+ * follows Registry spec §2.2: identical declarations across rows are one declaration; differing
+ * declarations of one name resolve nothing (never first-match, never host-over-authored).
  */
 export interface ExtensionsState {
   /** All extension registries currently loaded into the project. */

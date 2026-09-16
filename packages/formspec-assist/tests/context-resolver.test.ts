@@ -188,6 +188,15 @@ describe('Registry concept entry merged into the resolved binding', () => {
     });
   });
 
+  it('the same document loaded twice is one declaration, not a collision', () => {
+    const [doc] = registry();
+    const bare = makeOntology();
+    delete bare.concepts!['organization.ein'].equivalents;
+    const provider = createAssistProvider({ engine: createEngine(), ontology: bare, registries: [doc, structuredClone(doc)], registerWebMCP: false });
+    expect(provider.getFieldHelp('organization.ein').concept?.definition).toBe(DEFINITION);
+    expect(provider.getFieldHelp('organization.name').concept).toMatchObject({ concept: 'https://schema.org/name', definition: 'The legal name of the organization.' });
+  });
+
   it('fails closed when two loaded registries claim the same conceptUri: the binding stays bare', () => {
     const [first] = registry();
     const [second] = registry({ name: 'x-onto-ein-rival', description: 'A rival definition of record.' });
@@ -208,9 +217,10 @@ describe('Registry concept entry merged into the resolved binding', () => {
   });
 
   it('the semanticType path fails closed too: a contested name or a contested conceptUri resolves to the literal', () => {
-    // Two entries share the name `x-onto-ein` (Registry §2.2 unqualified collision) …
+    // Two DIFFERING entries share the name `x-concept-org-name` (Registry §2.2 unqualified collision) …
     const [a] = registry();
-    const [b] = registry({ conceptUri: 'https://example.org/other-ein' });
+    const b = structuredClone(a);
+    b.entries[1].conceptUri = 'https://example.org/other-name';
     const byName = createAssistProvider({ engine: createEngine(), registries: [a, b], registerWebMCP: false });
     expect(byName.getFieldHelp('organization.name').concept).toEqual({ concept: 'x-concept-org-name' });
 

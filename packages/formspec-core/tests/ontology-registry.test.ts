@@ -95,6 +95,20 @@ describe('authored Ontology and Registry sidecars', () => {
     expect(project.state.ontology).toBeNull();
   });
 
+  it('name resolution follows Registry §2.2: identical declarations dedupe, differing ones fail closed', () => {
+    // The NJ shape: the authority's registry is both host-loaded (from its CDN) and authored in the bundle — one declaration.
+    const hosted = { url: 'https://authority.example/wc.registry.json', ...defaultRegistry };
+    const project = createRawProject({ seed: { definition: definition as any }, registries: [hosted] });
+    project.dispatch({ type: 'registry.setDocument', payload: { id: 'default', document: defaultRegistry } });
+    expect(project.resolveExtension('x-t-name')).toMatchObject({ conceptUri: 'urn:c:name' });
+
+    // Two DIFFERENT declarations of one name (same version, different concept): nothing resolves, by either order.
+    const rival = { url: 'https://other.example/registry', ...registryOf('x-t-name', 'urn:c:rival') };
+    const contested = createRawProject({ seed: { definition: definition as any }, registries: [rival] });
+    contested.dispatch({ type: 'registry.setDocument', payload: { id: 'default', document: defaultRegistry } });
+    expect(contested.resolveExtension('x-t-name')).toBeUndefined();
+  });
+
   it('derives the loaded registry index from the authored documents without authoring twice', () => {
     const project = createRawProject({
       seed: { definition: definition as any },
