@@ -3,5 +3,10 @@
 # `formspec-stack/.cargo/config.toml` and merge automatically when cargo
 # walks parent directories.
 
+# The browser downloads this target: size first (`z`), where the workspace release profile keeps `s` for
+# native builds. Measured on the runtime artifact with `wasm-opt -Oz` (packages/formspec-engine
+# build:wasm:*): 2,256 KB → 1,959 KB raw, 854 KB → 763 KB gzip; the NJ demo form loads in 3.1 ms
+# instead of 2.5 and an edit-and-validate round takes 0.18 ms instead of 0.16 — the 91 KB is worth
+# more than the microseconds on every connection that is not local.
 [target.wasm32-unknown-unknown]
-rustflags = ['--cfg', 'getrandom_backend="wasm_js"']
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"', '-C', 'opt-level=z']
