@@ -1588,7 +1588,7 @@
     "packages/formspec-assist/src/profile-store.ts": "Persistent profile storage for formspec-assist.",
     "packages/formspec-assist/src/provider.ts": "Assist provider implementation: tool catalog, context resolution, profile workflows, and WebMCP registration.",
     "packages/formspec-assist/src/types.ts": "Public type vocabulary for the formspec-assist package.",
-    "packages/formspec-assist/src/webmcp-shim.ts": "WebMCP-compatible shim for registering Assist tools in non-native environments.",
+    "packages/formspec-assist/src/webmcp-binding.ts": "WebMCP binding: registers Assist tools on a `document.modelContext` (Assist spec §7.2).",
     "packages/formspec-assist/vitest.config.ts": "Vitest configuration for the formspec-assist package.",
     "packages/formspec-core/API.llm.md": "@formspec/core — API Reference",
     "packages/formspec-core/README.md": "formspec-core",

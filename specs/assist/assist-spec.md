@@ -1,7 +1,7 @@
 ---
 title: Formspec Assist Specification
-version: 1.0.0-draft.1
-date: 2026-05-16
+version: 1.0.0-draft.2
+date: 2026-09-16
 depends_on:
   - specs/core/references-spec.md
   - specs/ontology/ontology-spec.md
@@ -10,8 +10,8 @@ depends_on:
 
 # Formspec Assist Specification v1.0
 
-**Version:** 1.0.0-draft.1
-**Date:** 2026-03-27
+**Version:** 1.0.0-draft.2
+**Date:** 2026-09-16
 **Editors:** Formspec Working Group
 **Companion to:** Formspec v1.0 — A JSON-Native Declarative Form Standard
 
@@ -45,6 +45,11 @@ and does not modify the core processing model. Implementors are encouraged to
 experiment with it and provide feedback, but MUST NOT treat it as a stable
 production contract until a 1.0.0 release is published.
 
+Draft 2 rebases §4.1, §7.2, §8, and §10.1 on the [WebMCP][webmcp] Community
+Group draft of 2026-09-15: `document.modelContext`, `AbortSignal` lifecycle,
+`getTools()` / `executeTool()`, tool annotations in place of the never-shipped
+`requestUserInteraction()`, and the declarative `<form>` attributes.
+
 ## Conventions and Terminology
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
@@ -70,8 +75,12 @@ Additional terms:
   ontology concept identity and secondarily by field path.
 - **Human-in-the-loop** — an explicit user confirmation step before a mutation
   with user-visible consequences is applied.
+- **Agent** / **browser's agent** — as defined by [WebMCP][webmcp]: an
+  autonomous assistant acting on a user's goals; a browser's agent is one
+  provided by or through the browser.
 
 [rfc2119]: https://www.rfc-editor.org/rfc/rfc2119
+[webmcp]: https://webmachinelearning.github.io/webmcp/
 
 ---
 
@@ -144,6 +153,7 @@ This specification does not define:
 | **Component** | Passive annotations are emitted by renderers but MUST NOT alter component semantics. |
 | **Registry** | Registry concept entries participate in the ontology resolution cascade. |
 | **Authoring MCP** | Assist is the filling-side analogue, not a replacement or extension of authoring MCP tools. |
+| **WebMCP** | The canonical browser transport (§7.2) and the declarative attribute vocabulary of §8.2. Assist owns tool semantics; WebMCP supplies registration, discovery, invocation, and annotations. |
 
 ### 1.4 Design Principles
 
@@ -243,20 +253,28 @@ The `value` property in `formspec.field.set` MAY be omitted. An omitted `value` 
 
 ## 4. Common Result, Error, and Data Contracts
 
-### 4.1 Tool Result Envelope
+### 4.1 Tool Result and Envelope
 
-Every Assist tool invocation MUST return the following envelope:
+Every Assist tool invocation yields exactly one of:
+
+- the tool-specific **result object** defined in §4.4, or
+- a **`ToolError`** object (§4.2).
+
+That object is the normative result. How it travels is a binding detail (§7):
+
+| Binding | Success | Error |
+|---|---|---|
+| MCP, HTTP, browser messaging, in-process (§7.3–§7.5) | MCP `CallToolResult`: `text` is the JSON result object | same envelope, `isError: true`, `text` is the JSON `ToolError` |
+| WebMCP (§7.2) | the result object itself; the browser serializes it | `{ "error": ToolError }`, returned — never thrown |
 
 ```typescript
-interface ToolResult {
+interface ToolResult {            // MCP-family envelope
   content: Array<{ type: "text"; text: string }>;
   isError?: boolean;
 }
 ```
 
-The `text` field MUST contain a JSON-stringified payload representing the
-tool-specific result object or error object. Consumers MUST parse this payload
-before using it.
+Consumers MUST parse the JSON payload before using it.
 
 ### 4.2 Error Contract
 
@@ -286,6 +304,7 @@ The following `x-`-prefixed error codes are RECOMMENDED for common provider cond
 | --- | --- |
 | `x-confirmation-required` | A mutation requiring `confirm: true` was requested but no confirmation mechanism is available. |
 | `x-invalid-sidecar` | A loaded References or Ontology document has a structural error or its `targetDefinition` does not match the active form. |
+| `x-cancelled` | The caller aborted the invocation (e.g. the WebMCP `execute` signal) before the mutation was applied. Nothing was written. |
 
 ### 4.3 Mutation Rules
 
@@ -596,20 +615,60 @@ Any conformant Assist transport MUST provide:
    and receive the §4 envelope.
 3. **Error preservation** — transport adapters MUST preserve `ToolError`
    semantics.
-4. **Human-in-the-loop support** — providers can pause and obtain user
-   confirmation before a requested mutation proceeds.
+4. **Human-in-the-loop support** — two independent layers, neither replacing
+   the other: the provider can pause and obtain user confirmation before a
+   requested mutation proceeds, and the binding lets the consumer's runtime
+   (browser, agent host) gate consequential tools behind its own confirmation.
 
 ### 7.2 WebMCP Binding
 
-For browser-native environments, Assist tools SHOULD be exposed through
-`navigator.modelContext`.
+[WebMCP][webmcp] exposes page-defined tools to in-page agents and the
+browser's agent through `document.modelContext`. It is the canonical browser
+transport for Assist.
 
 A conformant WebMCP binding:
 
-- **SHOULD** register tools incrementally via `registerTool()` rather than replacing the entire tool set atomically.
-- **SHOULD** use `requestUserInteraction()` or an equivalent browser-mediated
-  confirmation path for `confirm: true` mutations.
-- **MAY** install a polyfill when native WebMCP is unavailable.
+- **MUST** register each tool with
+  `document.modelContext.registerTool(tool, { signal })` and unregister by
+  aborting that signal. There is no atomic replacement; tool names MUST be
+  unique per document.
+- **MUST** use the Assist tool name verbatim. `formspec.{category}.{action}`
+  satisfies WebMCP's name grammar (1–128 ASCII alphanumerics, `_`, `-`, `.`).
+- **MUST** supply `title` (browsers show it in consent UI), `description`, a
+  JSON Schema `inputSchema` with a `description` on every property, and
+  `annotations` per the table below.
+- **MUST** return the §4 result object from `execute`, and MUST return
+  `ToolError` as `{ error: ToolError }` rather than rejecting: WebMCP delivers
+  a rejected `execute` as a bare `UnknownError` and discards the reason.
+- **MUST** honor `execute`'s `signal`: no mutation may be applied after the
+  abort; an invocation already past its confirmation step reports
+  `x-cancelled`.
+- **MUST NOT** install a polyfill on `document.modelContext`. The object is
+  per-document, `SecureContext`-only, and gated by the `tools` permissions
+  policy (default `'self'`); which polyfill, if any, is the host page's call.
+  When the object is absent the binding is a no-op.
+- **SHOULD** rely on the `toolchange` event for discovery signaling rather
+  than a custom event.
+- **MAY** pass `exposedTo` when the form is embedded cross-origin (e.g. a
+  white-label respondent shell) and the embedding document's agent should see
+  the tools.
+
+Annotation mapping:
+
+| Assist tools | `annotations` | Why |
+|---|---|---|
+| §3.2 introspection, §3.4 validation, §3.6 navigation, `formspec.profile.match` | `readOnlyHint: true` | No state change. |
+| `formspec.field.help`, `formspec.field.describe` | `readOnlyHint: true`, `untrustedContentHint: true` | Relay References `content`, which may be fetched from third-party URIs. |
+| §3.3 mutation, `formspec.profile.apply`, `formspec.profile.learn` | `consequentialHint: true` | Write the respondent's form or profile; browsers and agents gate consequential tools behind their own confirmation (WebMCP §6.4.5). |
+
+`consequentialHint` is the consumer-side layer of §7.1(4). The provider-side
+`confirm: true` handler on `formspec.profile.apply` remains required.
+
+In-page consumers discover tools with `document.modelContext.getTools()`
+(`RegisteredTool[]`, each carrying its owning `window` and `origin`) and invoke
+them with `executeTool(tool, input, { signal })`, which resolves to the
+serialized result object. The browser's agent observes the same tool map
+without running page script.
 
 ### 7.3 MCP Binding
 
@@ -649,7 +708,10 @@ surface and result envelope.
 ## 8. Declarative Browser Annotations
 
 Renderers SHOULD expose passive metadata that lets consumers identify and
-partially understand a form even when no Assist Provider is active.
+partially understand a form even when no Assist Provider is active. Two layers
+coexist: Formspec identity (§8.1) and WebMCP's declarative tool attributes
+(§8.2), which make the rendered `<form>` a browser-synthesized tool with no
+page script.
 
 ### 8.1 Form Container Annotations
 
@@ -660,17 +722,36 @@ The form container SHOULD expose:
 - `data-formspec-url`
 - `data-formspec-version`
 
-### 8.2 Field-Level Annotations
+These identify a Formspec form to extension Mode 2 (§10.2) regardless of
+WebMCP support.
 
-Where the platform allows, focusable field elements SHOULD expose:
+### 8.2 Declarative WebMCP Attributes
 
-- `toolparamdescription` — concise machine-readable field context,
-- `autocomplete` — best-effort HTML autocomplete token,
-- standard accessibility metadata such as visible labels, `aria-describedby`,
-  and other native semantics.
+Where the renderer emits a native `<form>`, it SHOULD emit WebMCP's declarative
+attributes ([explainer][webmcp-declarative]):
 
-Providers and renderers **MUST NOT** degrade accessibility to add Assist
-annotations.
+| Attribute | On | Value |
+|---|---|---|
+| `toolname` | `<form>` | WebMCP-legal, unique per document; `formspec.form.fill` is RECOMMENDED for a page with one form. |
+| `tooldescription` | `<form>` | The Definition `description`, else `title`. |
+| `toolautosubmit` | `<form>` | **Absent by default.** Without it the agent fills and the respondent submits — the passive tier's human-in-the-loop. Renderers MUST NOT add it unless the host explicitly opts in. |
+| `name` | each control | The field path; it becomes the property name in the synthesized schema. |
+| `toolparamdescription` | each control | Concise field context: the field `hint`, else `FieldHelp.summary` (§5.4), else the label. |
+| `autocomplete` | each control | Best-effort token per §8.3. |
+
+Standard accessibility metadata (visible labels, `aria-describedby`, native
+semantics) MUST remain intact. Providers and renderers **MUST NOT** degrade
+accessibility to add Assist annotations.
+
+Declarative tools are the Passive Provider tier (§2.3). The browser
+synthesizes a flat JSON Schema from named controls, so repeat groups,
+relevance, calculated fields, and FEL-driven behavior do not survive into it;
+a live Assist Provider (§7.2) is the tier that carries them. When a
+declarative submission is agent-invoked, page script MAY intercept it via
+`SubmitEvent.agentInvoked` and answer with `respondWith()`; the answer SHOULD
+be a §4 result object such as the `ValidationReport` the submission produced.
+
+[webmcp-declarative]: https://github.com/webmachinelearning/webmcp/blob/main/declarative-api-explainer.md
 
 ### 8.3 Ontology-to-Autocomplete Mapping
 
@@ -730,7 +811,8 @@ The page already exposes a conformant Assist Provider.
 
 The extension:
 
-- discovers tools through the provider,
+- discovers tools through the provider's binding — under WebMCP,
+  `document.modelContext.getTools()` from a content script,
 - invokes the full tool catalog,
 - treats provider-returned help and validation as authoritative.
 
@@ -780,7 +862,8 @@ Assist implementations handle sensitive live form data. A conformant provider:
 A conformant Assist Provider:
 
 - **MUST** implement the required core tools.
-- **MUST** return results using the envelope in §4.1.
+- **MUST** return the §4 result or error object in the envelope its binding
+  defines (§4.1).
 - **MUST** implement field-help resolution per §5.
 - **MUST** preserve core processing semantics.
 - **MUST** support at least one discovery and invocation transport.
