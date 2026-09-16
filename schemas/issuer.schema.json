@@ -76,6 +76,17 @@
         }
       ]
     },
+    "description": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/LangMap"
+        }
+      ],
+      "description": "Who this issuer is, in a sentence or two, for a reader of the document or a verifier showing it. Not rendered as chrome."
+    },
     "identifier": {
       "type": "string",
       "format": "uri"

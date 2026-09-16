@@ -24,6 +24,10 @@ const ITEM_CONTEXT_TERMINALS: &[&str] = &["label", "description", "hint"];
 const ITEM_MESSAGE_TERMINALS: &[&str] = &["constraintMessage", "requiredMessage"];
 /// Locale §3.1.1 repeatable-group chrome strings; no `@context` suffix.
 const ITEM_REPEAT_TERMINALS: &[&str] = &["rowLabel", "addLabel", "removeLabel"];
+/// References §7 field-help affordance label (`<key>.helpLabel`); no `@context` suffix.
+const ITEM_HELP_TERMINALS: &[&str] = &["helpLabel"];
+/// Response Actions: `$action.<actionId>.label` is the one localizable action property.
+const ACTION_TERMINALS: &[&str] = &["label"];
 const DATA_TERMINALS: &[&str] = &[
     "type",
     "dataType",
@@ -214,6 +218,7 @@ impl<'a> Analyzer<'a> {
             "component" => self.check_component_key(&parts[1..], json_path),
             "module" => self.check_module_key(&parts[1..], json_path),
             "ui" => self.check_ui_key(&parts[1..], json_path),
+            "action" => self.check_action_key(&parts[1..], json_path),
             other => self.diagnostics.push(error(
                 crate::LintCode::E1401,
                 PASS,
@@ -357,6 +362,18 @@ impl<'a> Analyzer<'a> {
                     "Locale page key references unknown Theme page id {:?}",
                     parts[0]
                 ),
+            ));
+        }
+    }
+
+    /// Response Actions spec: an action's `label` may be a Locale reference `$action.<actionId>.label`.
+    fn check_action_key(&mut self, parts: &[String], json_path: &str) {
+        if parts.len() != 2 || !ACTION_TERMINALS.contains(&parts[1].as_str()) {
+            self.diagnostics.push(error(
+                crate::LintCode::E1401,
+                PASS,
+                json_path,
+                "Locale $action key must use $action.<actionId>.label",
             ));
         }
     }
@@ -703,7 +720,9 @@ fn classify_item_property(property: &[String]) -> ItemProperty<'_> {
     match (terminal, property) {
         (t, [_]) if ITEM_CONTEXT_TERMINALS.contains(&t) => ItemProperty::Presentation,
         (t, [only])
-            if (ITEM_MESSAGE_TERMINALS.contains(&t) || ITEM_REPEAT_TERMINALS.contains(&t))
+            if (ITEM_MESSAGE_TERMINALS.contains(&t)
+                || ITEM_REPEAT_TERMINALS.contains(&t)
+                || ITEM_HELP_TERMINALS.contains(&t))
                 && only == t =>
         {
             ItemProperty::Presentation
@@ -1213,6 +1232,32 @@ mod tests {
             codes_at(&diagnostics, "lineItems.rowLabel@short"),
             vec![crate::LintCode::E1401]
         );
+    }
+
+    /// References §7: an item's help affordance takes its label from `<key>.helpLabel`, no `@context`.
+    #[test]
+    fn help_label_is_a_localizable_item_chrome_key() {
+        let diagnostics = lint_strings(
+            &json!({ "lineItems.helpLabel": "Ayúdeme a responder esta pregunta" }),
+            Some(nested_definition()),
+        );
+        assert!(diagnostics.is_empty(), "helpLabel must be localizable: {diagnostics:?}");
+
+        let diagnostics = lint_strings(
+            &json!({ "lineItems.helpLabel@short": "Ayuda" }),
+            Some(nested_definition()),
+        );
+        assert_eq!(codes_at(&diagnostics, "lineItems.helpLabel@short"), vec![crate::LintCode::E1401]);
+    }
+
+    /// Locale §3.1.11: `$action.<actionId>.label` names an action's label; nothing else lives under `$action`.
+    #[test]
+    fn action_keys_admit_only_the_label() {
+        let diagnostics = lint_strings(&json!({ "$action.submit.label": "Enviar" }), Some(nested_definition()));
+        assert!(diagnostics.is_empty(), "$action.<id>.label must be accepted: {diagnostics:?}");
+
+        let diagnostics = lint_strings(&json!({ "$action.submit.hint": "x" }), Some(nested_definition()));
+        assert_eq!(codes_at(&diagnostics, "$action.submit.hint"), vec![crate::LintCode::E1401]);
     }
 
     #[test]

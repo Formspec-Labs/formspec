@@ -246,6 +246,18 @@ export interface MappingDocument {
    */
   version: string;
   /**
+   * Machine-readable short name for this Mapping Document. Pattern: letters, digits, hyphens, underscores; must start with a letter.
+   */
+  name?: string;
+  /**
+   * Human-readable name for this Mapping Document.
+   */
+  title?: string;
+  /**
+   * Human-readable description of this document's purpose and scope: which system's layout it targets and why the rules are what they are. Ignored during execution.
+   */
+  description?: string;
+  /**
    * URI or stable identifier of the Formspec Definition this mapping targets. Corresponds to the Definition's 'url' property — the canonical identity that is stable across versions.
    */
   definitionRef: string;

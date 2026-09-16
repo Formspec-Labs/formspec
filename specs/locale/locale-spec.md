@@ -369,6 +369,10 @@ current number of instances. A key the Locale omits keeps its derived
 default, and the defaults survive a widget change: they describe the
 group, not the widget that renders it (theme §4.2).
 
+An item with human-audience References (References spec §7) takes one more
+chrome string, `<key>.helpLabel` — the label of the affordance that opens
+them, defaulting to `"Help me answer this question"`. No `@context` suffix.
+
 An **empty** `rowLabel` suppresses the visible row heading and nothing
 else. The instance keeps an accessible name — processors MUST fall back
 to the derived `"<label> <index>"` for the row's `aria-label` — so a
@@ -868,6 +872,22 @@ controls (USWDS's `- Select -` placeholder, for example) resolves the key with
 that default as the fallback argument: an unauthored Locale keeps the
 adapter's own default, and one authored `$ui.select.placeholder` retunes every
 adapter's placeholder through the same key.
+
+#### 3.1.11 Action Labels
+
+A Response Actions document names an action's label by Locale reference,
+`{ "ref": "$action.<actionId>.label" }` (Response Actions spec §3.3). The
+`$action` namespace carries exactly that: `$action.<actionId>.label`, with
+`<actionId>` an action `id` in the paired Response Actions document. Any other
+`$action` key is rejected by lint code E1401.
+
+```json
+{
+  "strings": {
+    "$action.submit.label": "Submit certification"
+  }
+}
+```
 
 ### 3.2 Key Resolution Rules
 

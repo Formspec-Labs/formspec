@@ -24,6 +24,18 @@ export type ResponseActionsDocument = {
    */
   version: string;
   /**
+   * Machine-readable short name for this Response Actions document. Pattern: letters, digits, hyphens, underscores; must start with a letter.
+   */
+  name?: string;
+  /**
+   * Human-readable name for this Response Actions document.
+   */
+  title?: string;
+  /**
+   * Human-readable description of this document's purpose and scope: what the actions do for the respondent and the host. Ignored during execution.
+   */
+  description?: string;
+  /**
    * Execution scope. response actions submit and validate the target Definition. app actions execute without a form submission and MUST omit targetDefinition.
    */
   scope?: 'response' | 'app';

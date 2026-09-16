@@ -243,7 +243,7 @@
         "type": "string"
       },
       "propertyNames": {
-        "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|\\$ui\\.|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$",
+        "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|\\$ui\\.|\\$action\\.|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$",
         "allOf": [
           {
             "if": {
@@ -299,7 +299,7 @@
         "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation"
       },
       "propertyNames": {
-        "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|\\$ui\\.|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$"
+        "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|\\$ui\\.|\\$action\\.|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$"
       },
       "description": "Generation provenance keyed exactly like strings. Strict data-only authoring profiles require every authored localized string to have a same-key direct current adopted Need anchor."
     },

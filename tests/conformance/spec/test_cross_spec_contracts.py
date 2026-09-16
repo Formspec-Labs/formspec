@@ -650,6 +650,8 @@ class TestMappingTopLevel:
             "targetSchema", "direction", "autoMap", "defaults", "rules",
             "adapters", "conformanceLevel", "extensions",
             "modules",
+            # A sidecar says what it is, like every other: name / title / description (ignored during execution).
+            "name", "title", "description",
         }
         assert _prop_keys(MAP_S) == expected
 

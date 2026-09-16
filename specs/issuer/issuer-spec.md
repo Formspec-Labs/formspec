@@ -175,6 +175,7 @@ The canonical structural contract is generated from
 | `#/properties/contactPoint` | `contactPoint` | <code>composite</code> | no | — | — |
 | `#/properties/defaultLanguage` | `defaultLanguage` | <code>string</code> | no | default: <code>"en"</code>; pattern: <code>^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*&#36;</code> | — |
 | `#/properties/departmentName` | `departmentName` | <code>composite</code> | no | — | — |
+| `#/properties/description` | `description` | <code>composite</code> | no | — | Who this issuer is, in a sentence or two, for a reader of the document or a verifier showing it. Not rendered as chrome. |
 | `#/properties/displayName` | `displayName` | <code>composite</code> | no | — | — |
 | `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | — |
 | `#/properties/homepage` | `homepage` | <code>string</code> | no | — | — |

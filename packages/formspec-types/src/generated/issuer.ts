@@ -31,6 +31,10 @@ export type IssuerDocument = Party & {
   kind: 'organization' | 'department' | 'program' | 'individual';
   displayName?: string | LangMap;
   shortName?: string | LangMap;
+  /**
+   * Who this issuer is, in a sentence or two, for a reader of the document or a verifier showing it. Not rendered as chrome.
+   */
+  description?: string | LangMap;
   identifier?: string;
   homepage?: string;
   /**

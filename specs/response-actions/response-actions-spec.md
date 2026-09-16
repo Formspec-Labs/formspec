@@ -103,9 +103,12 @@ Out of scope:
 |---|---|---|---|---|---|
 | `#/properties/$formspecResponseActions` | `$formspecResponseActions` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Response Actions document version. MUST be '1.0'. |
 | `#/properties/actions` | `actions` | <code>array</code> | yes | — | Named actions. Order is documentation-only; resolution is by Action.id. Each id MUST be unique within the document. |
+| `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of this document's purpose and scope: what the actions do for the respondent and the host. Ignored during execution. |
 | `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3. |
+| `#/properties/name` | `name` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9_\-]*&#36;</code> | Machine-readable short name for this Response Actions document. Pattern: letters, digits, hyphens, underscores; must start with a letter. |
 | `#/properties/scope` | `scope` | <code>string</code> | no | enum: <code>"response"</code>, <code>"app"</code>; default: <code>"response"</code> | Execution scope. response actions submit and validate the target Definition. app actions execute without a form submission and MUST omit targetDefinition. |
 | `#/properties/targetDefinition` | `targetDefinition` | <code>object</code> | no | — | The Definition this Response Actions document binds to. Identical role to Experience.targetDefinition. |
+| `#/properties/title` | `title` | <code>string</code> | no | — | Human-readable name for this Response Actions document. |
 | `#/properties/version` | `version` | <code>string</code> | yes | — | Version of this Response Actions document. SemVer RECOMMENDED. |
 | `#/properties/x-formspec-runtime` | `x-formspec-runtime` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/RuntimeRequestCatalog</code> | Typed runtime bindings for durable serviceRequest effects. The catalog describes request assembly and allowlisted outputs; the host retains origin, credential, authorization, tenant-scope, and network authority. |
 <!-- schema-ref:end -->

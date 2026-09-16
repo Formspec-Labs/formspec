@@ -966,6 +966,16 @@ Document when the resolved Definition version does not satisfy this
 range.</td>
 </tr>
 <tr>
+<td><code>#/properties/description</code></td>
+<td><code>description</code></td>
+<td><code>string</code></td>
+<td>no</td>
+<td>—</td>
+<td>Human-readable description of this document’s purpose and scope:
+which system’s layout it targets and why the rules are what they are.
+Ignored during execution.</td>
+</tr>
+<tr>
 <td><code>#/properties/direction</code></td>
 <td><code>direction</code></td>
 <td><code>string</code></td>
@@ -1000,6 +1010,15 @@ per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is
 identical to declaring the core module set. Per ADR 0150 §4.3.</td>
 </tr>
 <tr>
+<td><code>#/properties/name</code></td>
+<td><code>name</code></td>
+<td><code>string</code></td>
+<td>no</td>
+<td>pattern: <code>^[a-zA-Z][a-zA-Z0-9_-]*$</code></td>
+<td>Machine-readable short name for this Mapping Document. Pattern:
+letters, digits, hyphens, underscores; must start with a letter.</td>
+</tr>
+<tr>
 <td><code>#/properties/rules</code></td>
 <td><code>rules</code></td>
 <td><code>array</code></td>
@@ -1019,6 +1038,14 @@ last-write-wins. MUST contain at least one element.</td>
 <td>Descriptor for the external system schema targeted by this mapping.
 Determines the adapter used for serialization and the path syntax rules
 for targetPath values.</td>
+</tr>
+<tr>
+<td><code>#/properties/title</code></td>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td>no</td>
+<td>—</td>
+<td>Human-readable name for this Mapping Document.</td>
 </tr>
 <tr>
 <td><code>#/properties/version</code></td>

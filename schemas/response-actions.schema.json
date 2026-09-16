@@ -70,6 +70,21 @@
       "description": "Version of this Response Actions document. SemVer RECOMMENDED.",
       "examples": ["1.0.0"]
     },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
+      "description": "Machine-readable short name for this Response Actions document. Pattern: letters, digits, hyphens, underscores; must start with a letter.",
+      "examples": ["weekly-certification-actions"]
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable name for this Response Actions document.",
+      "examples": ["Weekly certification — submit"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of this document's purpose and scope: what the actions do for the respondent and the host. Ignored during execution."
+    },
     "scope": {
       "type": "string",
       "enum": ["response", "app"],
