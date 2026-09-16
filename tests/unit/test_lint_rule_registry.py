@@ -147,8 +147,10 @@ def test_metadata_rs_reads_registry_not_hardcoded_table() -> None:
     metadata_rs = (
         REPO_ROOT / "crates" / "formspec-lint" / "src" / "metadata.rs"
     ).read_text(encoding="utf-8")
-    assert 'include_str!("../../../specs/lint-codes.json")' in metadata_rs, (
-        "metadata.rs must embed specs/lint-codes.json via include_str! so "
+    # The crate embeds its own mirror of specs/lint-codes.json (a published crate cannot reach
+    # outside itself); crates/formspec-lint/tests/mirror_is_canonical.rs keeps the mirror byte-identical.
+    assert 'include_str!("../specs/lint-codes.json")' in metadata_rs, (
+        "metadata.rs must embed the crate's mirror of specs/lint-codes.json via include_str! so "
         "the registry is the single source of truth for authoring metadata."
     )
 
