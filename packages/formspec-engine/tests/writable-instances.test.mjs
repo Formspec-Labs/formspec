@@ -154,6 +154,47 @@ test('source instance uses static cache and fallback data', () => {
   assert.equal(engine.getInstanceData('cached', 'value'), 'fallback');
 });
 
+test('a relative instance source resolves against the page base, like any relative reference', async () => {
+  // A Definition served under /forms/v2/ names its record as `./data/claimant.json`; the engine fetches it
+  // from the page's base URL, so the same document works at any host and path.
+  const realFetch = globalThis.fetch;
+  const hadDocument = 'document' in globalThis;
+  const fetched = [];
+  globalThis.document = { baseURI: 'https://agency.example/forms/v2/index.html' };
+  globalThis.fetch = async (url) => { fetched.push(String(url)); return { ok: true, json: async () => ({ employers: ['ACME'] }) }; };
+  try {
+    const engine = new FormEngine({
+      $formspec: '1.0', url: 'https://test.example/form', version: '1.0.0', status: 'active', title: 'Test', name: 'test',
+      instances: { claimant: { source: './data/claimant.json' } },
+      items: [], binds: [],
+    });
+    await engine.waitForInstanceSources();
+    assert.deepEqual(fetched, ['https://agency.example/forms/v2/data/claimant.json']);
+    assert.deepEqual(engine.getInstanceData('claimant', 'employers'), ['ACME']);
+  } finally {
+    globalThis.fetch = realFetch;
+    if (hadDocument) { /* leave a real document alone */ } else delete globalThis.document;
+  }
+});
+
+test('a relative instance source with no page to resolve against is left to its fallback', async () => {
+  const realFetch = globalThis.fetch;
+  let fetches = 0;
+  globalThis.fetch = async () => { fetches += 1; return { ok: true, json: async () => ({}) }; };
+  try {
+    const engine = new FormEngine({
+      $formspec: '1.0', url: 'https://test.example/form', version: '1.0.0', status: 'active', title: 'Test', name: 'test',
+      instances: { claimant: { source: './data/claimant.json', data: { employers: [] } } },
+      items: [], binds: [],
+    });
+    await engine.waitForInstanceSources();
+    assert.equal(fetches, 0);
+    assert.deepEqual(engine.getInstanceData('claimant', 'employers'), []);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
 test('calculate bind targeting readonly instance throws at init', () => {
   const def = {
     $formspec: '1.0',

@@ -1194,25 +1194,41 @@ export class FormEngine implements IFormEngine {
         }
     }
 
-    /** Returns true if the source string is fetchable (HTTP(S) or absolute path). */
-    private static isFetchableSource(source: string): boolean {
-        return /^https?:\/\//i.test(source) || source.startsWith('/');
+    /**
+     * The HTTP(S) URL an instance `source` names, or null when it names something the engine does not fetch —
+     * a host-provided scheme such as `formspec-fn:`, or a relative reference with no page to resolve it.
+     * On a page, a relative reference resolves against `document.baseURI` like any other relative reference,
+     * so `./data/claimant.json` beside a Definition works under whatever path the site is served from.
+     * Elsewhere (a server, a test) an absolute URL or a root path is passed through as written.
+     */
+    private static resolveInstanceSource(source: string): string | null {
+        const base = typeof document !== 'undefined' ? document.baseURI : undefined;
+        if (base) {
+            try {
+                const url = new URL(source, base);
+                return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+            } catch {
+                return null;
+            }
+        }
+        return /^https?:\/\//i.test(source) || source.startsWith('/') ? source : null;
     }
 
     private initializeInstanceSource(name: string, instance: FormInstance): void {
-        if (!instance.source || !FormEngine.isFetchableSource(instance.source)) {
+        const source = instance.source ? FormEngine.resolveInstanceSource(instance.source) : null;
+        if (!source) {
             return;
         }
 
-        if (instance.static && FormEngine.instanceSourceCache.has(instance.source)) {
-            const cached = FormEngine.instanceSourceCache.get(instance.source);
+        if (instance.static && FormEngine.instanceSourceCache.has(source)) {
+            const cached = FormEngine.instanceSourceCache.get(source);
             if (cached !== undefined) {
                 this.instanceData[name] = cloneValue(cached) as JsonValue;
             }
             return;
         }
 
-        const task = fetch(instance.source)
+        const task = fetch(source)
             .then((response) => {
                 if (!response.ok) {
                     throw new Error(`Instance source fetch failed (${response.status})`);
@@ -1223,7 +1239,7 @@ export class FormEngine implements IFormEngine {
                 this.validateInstanceSchema(name, payload);
                 const nextValue = cloneValue(payload);
                 if (instance.static) {
-                    FormEngine.instanceSourceCache.set(instance.source!, cloneValue(nextValue));
+                    FormEngine.instanceSourceCache.set(source, cloneValue(nextValue));
                 }
                 this.instanceData[name] = nextValue;
                 this.instanceVersion.value += 1;

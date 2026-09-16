@@ -36,3 +36,9 @@ Mapping: a `valueMap` matches a boolean or number source by its string form, as 
 says and the schema's own `{"true": "Y"}` example shows; and the lint accepts a member after
 an indexed segment (`jobs[0].employerName`), the JSON path syntax the spec names and the
 runtime already executed.
+
+An instance `source` written as a relative reference (`./data/claimant.json`) resolves
+against the page that loaded the form, like any relative reference, so a Definition names
+its record beside itself and works under whatever path the site is served from. A host
+scheme such as `formspec-fn:` is still never fetched; with no page, an absolute URL or root
+path passes through as before.
