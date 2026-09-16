@@ -1634,6 +1634,7 @@
     "packages/formspec-core/src/handlers/mapping.ts": "Mapping command handlers",
     "packages/formspec-core/src/handlers/ontology.ts": "Command handler for the one authored Ontology Document: whole-document replace, null removes.",
     "packages/formspec-core/src/handlers/project.ts": "Project-level command handlers",
+    "packages/formspec-core/src/handlers/references.ts": "Command handler for the one authored References Document: whole-document replace, null removes.",
     "packages/formspec-core/src/handlers/registry.ts": "Command handlers for authored Registry Documents keyed by id; the resolution index follows every write.",
     "packages/formspec-core/src/handlers/response-actions.ts": "Command handlers for standalone Response Actions Documents: lifecycle + document-level metadata.",
     "packages/formspec-core/src/handlers/screener.ts": "Command handlers for standalone Screener Documents: metadata, items, binds, phases, and routes.",
