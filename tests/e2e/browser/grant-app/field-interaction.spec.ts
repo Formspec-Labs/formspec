@@ -30,8 +30,8 @@ test.describe('Grant App: Field Interaction', () => {
   });
 
   test('should render bound TextInput components on the grant application first wizard page', async ({ page }) => {
-    // Wizard renders the active page title as an h2 heading
-    const heading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) h2').first();
+    // The active page's section title, at whatever heading depth the page set
+    const heading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first();
     await expect(heading).toBeVisible();
     await expect(heading).toHaveText('Applicant Info');
 

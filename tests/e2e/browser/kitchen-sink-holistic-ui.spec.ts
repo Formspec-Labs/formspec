@@ -39,7 +39,7 @@ test.describe('Kitchen Sink Holistic UI Coverage', () => {
     await expect(page.getByRole('heading', { name: 'Profile', exact: true })).toBeVisible();
     await page.fill('input[name="fullName"]', 'Component User');
     await page.locator('.formspec-wizard-next').click();
-    await expect(page.locator('h2', { hasText: 'Financial' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Financial', exact: true })).toBeVisible();
     await page.locator('button.formspec-datatable-add').click();
 
     const repeatCount = await page.evaluate(() => {

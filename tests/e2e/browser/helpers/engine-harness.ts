@@ -103,14 +103,14 @@ export async function waitForValidationMatch(
   );
 }
 
-/** Wait until visible wizard panel h2 matches title. */
+/** Wait until the visible wizard panel's section title matches. */
 export async function waitForWizardPageTitle(
   page: Page,
   title: string,
   options?: { timeout?: number }
 ): Promise<void> {
   await page
-    .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+    .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
     .filter({ hasText: title })
     .first()
     .waitFor({ state: 'visible', timeout: options?.timeout ?? 5000 });
@@ -118,12 +118,12 @@ export async function waitForWizardPageTitle(
 
 function wizardPageHeading(page: Page, title: string) {
   return page
-    .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+    .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
     .filter({ hasText: title })
     .first();
 }
 
-/** Navigate wizard to a named page (by visible section h2 text). */
+/** Navigate wizard to a named page (by the visible section title). */
 export async function goToPage(page: Page, title: string): Promise<void> {
   const targetHeading = wizardPageHeading(page, title);
   if (await targetHeading.isVisible()) {

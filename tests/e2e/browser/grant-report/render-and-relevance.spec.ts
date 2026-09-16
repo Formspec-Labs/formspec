@@ -14,7 +14,7 @@ test.describe('Grant Report: Tribal Short Form Rendering', () => {
   });
 
   test('renders the wizard with Basic Information as first page', async ({ page }) => {
-    const heading = await page.locator('.formspec-wizard-panel:not(.formspec-hidden) h2').first().textContent();
+    const heading = await page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first().textContent();
     expect(heading?.trim()).toBe('Basic Information');
   });
 

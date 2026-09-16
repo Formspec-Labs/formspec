@@ -72,7 +72,7 @@ test.describe('Grant App: Subcontractor Toggle Navigation', () => {
     await nextBtn.click({ timeout: 5000 });
     await page.waitForTimeout(100);
 
-    const heading = await page.locator('.formspec-wizard-panel:not(.formspec-hidden) h2').first().textContent();
+    const heading = await page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first().textContent();
     expect(heading?.trim()).toBe('Project Phases');
   });
 
@@ -94,7 +94,7 @@ test.describe('Grant App: Subcontractor Toggle Navigation', () => {
     await nextBtn.click({ timeout: 5000 });
     await page.waitForTimeout(100);
 
-    const heading = await page.locator('.formspec-wizard-panel:not(.formspec-hidden) h2').first().textContent();
+    const heading = await page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first().textContent();
     expect(heading?.trim()).toBe('Project Phases');
   });
 });

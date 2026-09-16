@@ -11,7 +11,7 @@ test.describe('Grant App: Wizard Navigation', () => {
   });
 
   test('should render the first wizard page: Applicant Info', async ({ page }) => {
-    const heading = await page.locator('h2').first().textContent();
+    const heading = await page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first().textContent();
     expect(heading?.trim()).toBe('Applicant Info');
   });
 
@@ -35,7 +35,7 @@ test.describe('Grant App: Wizard Navigation', () => {
     await page.waitForTimeout(100);
 
     await goToPage(page, 'Budget');
-    const heading = await page.locator('.formspec-wizard-panel:not(.formspec-hidden) h2').first().textContent();
+    const heading = await page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first().textContent();
     expect(heading?.trim()).toBe('Budget');
   });
 
@@ -48,14 +48,14 @@ test.describe('Grant App: Wizard Navigation', () => {
     await page.locator('button.formspec-wizard-next').first().click();
     await page.waitForTimeout(150);
 
-    const heading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) h2').first();
+    const heading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first();
     await expect(heading).toHaveText('Project Narrative');
 
     // Click Previous → back to page 1 (Applicant Info)
     await page.locator('button.formspec-wizard-prev').first().click();
     await page.waitForTimeout(150);
 
-    const heading1 = page.locator('.formspec-wizard-panel:not(.formspec-hidden) h2').first();
+    const heading1 = page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first();
     await expect(heading1).toHaveText('Applicant Info');
   });
 

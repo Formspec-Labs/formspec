@@ -25,7 +25,7 @@ test.describe('Tribal Long: Smoke', () => {
 
   test('renders the wizard with Basic Information as first page', async ({ page }) => {
     const heading = await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+      .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
       .first()
       .textContent();
     expect(heading?.trim()).toBe('Basic Information');
@@ -50,7 +50,7 @@ test.describe('Tribal Long: Smoke', () => {
 
     for (let i = 0; i < 5; i++) {
       const heading = await page
-        .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+        .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
         .first()
         .textContent()
         .catch(() => '');
@@ -88,7 +88,7 @@ test.describe('Tribal Long: Wizard Navigation', () => {
 
     for (const title of pages) {
       const heading = await page
-        .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+        .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
         .first()
         .textContent()
         .catch(() => '');
@@ -106,7 +106,7 @@ test.describe('Tribal Long: Wizard Navigation', () => {
     await goToPage(page, 'Expenditure Details');
 
     const headingBefore = await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+      .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
       .first()
       .textContent();
     expect(headingBefore?.trim()).toBe('Expenditure Details');
@@ -115,7 +115,7 @@ test.describe('Tribal Long: Wizard Navigation', () => {
     await waitForWizardPageTitle(page, 'Expenditure Categories');
 
     const headingAfter = await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+      .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
       .first()
       .textContent();
     expect(headingAfter?.trim()).toBe('Expenditure Categories');
@@ -128,7 +128,7 @@ test.describe('Tribal Long: Wizard Navigation', () => {
     await waitForWizardPageTitle(page, 'Expenditure Details');
 
     const heading = await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+      .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
       .first()
       .textContent();
     expect(heading?.trim()).toBe('Expenditure Details');

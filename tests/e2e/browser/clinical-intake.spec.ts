@@ -441,7 +441,7 @@ test.describe('Clinical Intake: Wizard Navigation', () => {
 
   test('first page is "Patient Information"', async ({ page }) => {
     const heading = await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+      .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
       .first()
       .textContent();
     expect(heading?.trim()).toBe('Patient Information');
@@ -450,7 +450,7 @@ test.describe('Clinical Intake: Wizard Navigation', () => {
   test('can navigate to "Current Visit" page via Next', async ({ page }) => {
     await goToPage(page, 'Current Visit');
     const heading = await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+      .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
       .first()
       .textContent();
     expect(heading?.trim()).toBe('Current Visit');
@@ -459,7 +459,7 @@ test.describe('Clinical Intake: Wizard Navigation', () => {
   test('can navigate to "Medical History" page', async ({ page }) => {
     await goToPage(page, 'Medical History');
     const heading = await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+      .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
       .first()
       .textContent();
     expect(heading?.trim()).toBe('Medical History');
@@ -468,7 +468,7 @@ test.describe('Clinical Intake: Wizard Navigation', () => {
   test('can navigate to "Summary" page', async ({ page }) => {
     await goToPage(page, 'Summary');
     const heading = await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+      .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
       .first()
       .textContent();
     expect(heading?.trim()).toBe('Summary');
@@ -480,7 +480,7 @@ test.describe('Clinical Intake: Wizard Navigation', () => {
     for (const title of expectedPages) {
       await goToPage(page, title);
       const heading = await page
-        .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
+        .locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title')
         .first()
         .textContent();
       expect(heading?.trim()).toBe(title);

@@ -279,7 +279,7 @@
   text-align: left;
 }
 
-.formspec-section h2 {
+.formspec-section-title {
   margin-bottom: 0.25rem;
   padding-bottom: 0;
   border-bottom: none;
@@ -548,7 +548,7 @@
   gap: var(--formspec-spacing-field, 0.75rem);
 }
 
-.formspec-wizard-panel .formspec-section > h2 {
+.formspec-wizard-panel .formspec-section-title {
   margin: 0 0 0.35rem;
   color: var(--formspec-default-text-strong);
 }

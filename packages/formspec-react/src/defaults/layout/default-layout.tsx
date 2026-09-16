@@ -285,7 +285,7 @@ function SectionLayout({ node, children, themeClass, style }: LayoutProps) {
             {...routeLandmarkAttrs(node)}
             {...projectionMetadataAttrs(node)}
         >
-            {title && <Heading>{title}</Heading>}
+            {title && <Heading className="formspec-section-title">{title}</Heading>}
             {description && <p className="formspec-section-description">{description}</p>}
             <HeadingLevelContext.Provider value={title ? headingLevel + 1 : headingLevel}>
                 {children}

@@ -14,7 +14,7 @@ test.describe('Smoke: Grant Application Happy Path', () => {
     await mountGrantApplication(page);
 
     // 2. Verify page 1 (Applicant Info) is shown with correct fields
-    const heading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) h2').first();
+    const heading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first();
     await expect(heading).toHaveText('Applicant Info');
     await expect(page.locator('[data-name="applicantInfo.orgName"]')).toBeVisible();
     await expect(page.locator('[data-name="applicantInfo.ein"]')).toBeVisible();
@@ -27,7 +27,7 @@ test.describe('Smoke: Grant Application Happy Path', () => {
 
     // 4. Navigate to Budget page via wizard Next buttons
     await goToPage(page, 'Budget');
-    const budgetHeading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) h2').first();
+    const budgetHeading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first();
     await expect(budgetHeading).toHaveText('Budget');
 
     // 5. Add a repeat instance for budget.lineItems

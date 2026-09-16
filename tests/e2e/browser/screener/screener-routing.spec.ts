@@ -327,7 +327,7 @@ test.describe('Screener: Rendering and Route Selection', () => {
     await expect(wizard).toBeVisible();
 
     // First page heading should be visible
-    const heading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) h2').first();
+    const heading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first();
     await expect(heading).toContainText('Applicant');
 
     // Page should have visible inputs (not empty)

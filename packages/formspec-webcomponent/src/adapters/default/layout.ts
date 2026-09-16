@@ -85,7 +85,9 @@ export function renderSection(behavior: SectionLayoutBehavior, parent: HTMLEleme
     actx.applyStyle(el, comp.style);
     applySurfaceProps(el, comp, host.resolveToken);
     if (titleText) {
+        // Classed, not tag-bound: the heading sits at whatever depth the page hands the section.
         const h = document.createElement(headingLevel);
+        h.className = 'formspec-section-title';
         watchText(actx, titleText, (text) => { h.textContent = text; });
         el.appendChild(h);
     }
