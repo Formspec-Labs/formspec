@@ -5,13 +5,14 @@ import type { ValidationProfile } from '@formspec-org/types';
 
 export type ToolSchema = {
   type?: string;
+  description?: string;
   enum?: readonly unknown[];
+  minimum?: number;
   properties?: Record<string, ToolSchema>;
   items?: ToolSchema;
   required?: string[];
   additionalProperties?: boolean;
 };
-
 
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -24,62 +25,74 @@ export function readPath(input: Record<string, unknown>): string {
   return input.path;
 }
 
+// The readers below run after validateToolInput, which has already enforced each enum and shape.
+
 export function readAudience(input: Record<string, unknown>): 'human' | 'agent' | 'both' {
-  return input.audience === undefined ? 'agent' : input.audience as 'human' | 'agent' | 'both';
+  return (input.audience as 'human' | 'agent' | 'both' | undefined) ?? 'agent';
 }
 
 export function readValidationProfile(input: Record<string, unknown>): ValidationProfile {
-  if (input.profile === undefined) {
-    return 'live';
-  }
-  if (
-    input.profile === 'live'
-    || input.profile === 'on-submit'
-    || input.profile === 'on-demand'
-    || input.profile === 'off'
-  ) {
-    return input.profile;
-  }
-  throw new AssistError('INVALID_VALUE', 'Expected profile to be one of: live, on-submit, on-demand, off');
+  return (input.profile as ValidationProfile | undefined) ?? 'live';
 }
 
 export function readNextIncompleteScope(input: Record<string, unknown>): 'field' | 'page' {
-  if (input.scope === undefined) {
-    return 'field';
-  }
-  if (input.scope === 'field' || input.scope === 'page') {
-    return input.scope;
-  }
-  throw new AssistError('INVALID_VALUE', 'Expected scope to be one of: field, page');
+  return (input.scope as 'field' | 'page' | undefined) ?? 'field';
 }
 
 export function readEntries(input: Record<string, unknown>): Array<{ path: string; value: unknown }> {
-  if (!Array.isArray(input.entries) && !Array.isArray(input.matches)) {
-    throw new AssistError('INVALID_VALUE', 'Expected entries or matches array');
-  }
-  const entries = Array.isArray(input.entries) ? input.entries : input.matches;
-  return (entries as unknown[]).map((entry, index) => {
-    if (!isPlainObject(entry) || typeof entry.path !== 'string' || entry.path.length === 0) {
-      throw new AssistError('INVALID_VALUE', `Expected entries[${index}].path to be a non-empty string`);
-    }
-    return {
-      path: entry.path,
-      value: entry.value,
-    };
-  });
+  return (input.entries as Array<{ path: string; value?: unknown }>).map((entry) => ({ path: entry.path, value: entry.value }));
 }
 
-function valueMatchesType(type: string | undefined, value: unknown): boolean {
-  if (!type) {
-    return true;
+/**
+ * Assist spec §4.2: an INVALID_VALUE message names the fix. Four shapes —
+ * enum (allowed values + what was given), unknown key (accepted keys), missing
+ * required (the property's type and description), wrong type (expected shape).
+ */
+function invalid(message: string): AssistError {
+  return new AssistError('INVALID_VALUE', message);
+}
+
+function propertyName(location: string, key: string): string {
+  return location === 'input' ? key : `${location.slice('input.'.length)}.${key}`;
+}
+
+/** `{ path, value }` for an object schema with properties; empty when it has none. */
+function braces(schema: ToolSchema): string {
+  const keys = Object.keys(schema.properties ?? {});
+  return keys.length ? ` { ${keys.join(', ')} }` : '';
+}
+
+/** The expected shape a caller must supply, e.g. `an array of { path, value }`, `an integer >= 512`. */
+function shapeOf(schema: ToolSchema): string {
+  switch (schema.type) {
+    case 'array':
+      if (!schema.items?.type) {
+        return 'an array';
+      }
+      return schema.items.type === 'object' && schema.items.properties
+        ? `an array of${braces(schema.items)}`
+        : `an array of ${schema.items.type}s`;
+    case 'object':
+      return `an object${braces(schema)}`;
+    case 'integer':
+      return schema.minimum === undefined ? 'an integer' : `an integer >= ${schema.minimum}`;
+    case 'number':
+      return schema.minimum === undefined ? 'a number' : `a number >= ${schema.minimum}`;
+    default:
+      return `a ${schema.type}`;
   }
+}
+
+function matchesType(type: string, value: unknown): boolean {
   switch (type) {
     case 'array':
       return Array.isArray(value);
     case 'boolean':
       return typeof value === 'boolean';
+    case 'integer':
+      return Number.isInteger(value);
     case 'number':
-      return typeof value === 'number';
+      return typeof value === 'number' && Number.isFinite(value);
     case 'object':
       return isPlainObject(value);
     case 'string':
@@ -90,63 +103,48 @@ function valueMatchesType(type: string | undefined, value: unknown): boolean {
 }
 
 function validateAgainstSchema(schema: ToolSchema, value: unknown, location: string): void {
-  if (
-    schema.type === undefined
-    && schema.enum === undefined
-    && schema.properties === undefined
-    && schema.items === undefined
-    && schema.required === undefined
-    && schema.additionalProperties === undefined
-  ) {
-    return;
-  }
   if (schema.enum && !schema.enum.includes(value)) {
-    throw new AssistError('INVALID_VALUE', `Invalid value for ${location}`);
+    throw invalid(`${location} must be one of: ${schema.enum.map(String).join(', ')} (got ${JSON.stringify(value)})`);
   }
-
-  const schemaType = schema.type ?? 'object';
-  if (schemaType === 'array') {
-    if (!Array.isArray(value)) {
-      throw new AssistError('INVALID_VALUE', `Expected ${location} to be an array`);
-    }
-    if (schema.items) {
-      value.forEach((entry, index) => validateAgainstSchema(schema.items as ToolSchema, entry, `${location}[${index}]`));
-    }
+  if (!schema.type) {
     return;
   }
-
-  if (schemaType !== 'object') {
-    if (!valueMatchesType(schemaType, value)) {
-      throw new AssistError('INVALID_VALUE', `Invalid type for ${location}`);
-    }
+  if (!matchesType(schema.type, value)) {
+    throw invalid(`${location} must be ${shapeOf(schema)}`);
+  }
+  if (schema.minimum !== undefined && (value as number) < schema.minimum) {
+    throw invalid(`${location} must be ${shapeOf(schema)} (got ${JSON.stringify(value)})`);
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => schema.items && validateAgainstSchema(schema.items, entry, `${location}[${index}]`));
     return;
   }
-
   if (!isPlainObject(value)) {
-    throw new AssistError('INVALID_VALUE', `Expected ${location} to be an object`);
+    return;
   }
+  const properties = schema.properties ?? {};
   for (const key of schema.required ?? []) {
-    if (!(key in value)) {
-      throw new AssistError('INVALID_VALUE', `Missing required input property: ${location}.${key}`);
+    if (value[key] === undefined) {
+      const property = properties[key] ?? {};
+      const description = property.description?.replace(/\.$/, '') ?? '';
+      throw invalid(`missing required input property "${propertyName(location, key)}" (${property.type ?? 'any'}: ${description})`);
     }
   }
-  const propertyNames = new Set(Object.keys(schema.properties ?? {}));
   if (schema.additionalProperties === false) {
+    const accepted = Object.keys(properties);
     for (const key of Object.keys(value)) {
-      if (!propertyNames.has(key)) {
-        throw new AssistError('INVALID_VALUE', `Unexpected input property: ${key}`);
+      if (!(key in properties)) {
+        throw invalid(`unexpected input property "${propertyName(location, key)}"; accepted: ${accepted.length ? accepted.join(', ') : 'none'}`);
       }
     }
   }
-  for (const [key, propertySchema] of Object.entries(schema.properties ?? {})) {
-    if (!(key in value) || value[key] === undefined) {
-      continue;
+  for (const [key, property] of Object.entries(properties)) {
+    if (value[key] !== undefined) {
+      validateAgainstSchema(property, value[key], `${location}.${key}`);
     }
-    validateAgainstSchema(propertySchema as ToolSchema, value[key], `${location}.${key}`);
   }
 }
 
 export function validateToolInput(schema: ToolSchema, input: Record<string, unknown>): void {
   validateAgainstSchema(schema, input, 'input');
 }
-

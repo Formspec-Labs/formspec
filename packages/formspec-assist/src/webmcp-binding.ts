@@ -4,6 +4,34 @@ import type { WebMCP } from 'webmcp-types';
 import type { AssistProvider, ToolDeclaration, ToolResult } from './types.js';
 
 /**
+ * The §7.2 default registration: one tool per job, so a browser's consent UI and an agent's tool
+ * picker see no overlap. `field.set` ⊂ `field.bulkSet`, `field.validate` ⊂ `form.validate`,
+ * `form.pages` ⊂ `form.progress`; those three stay in the catalog and register with `'all'`.
+ */
+export const DEFAULT_WEBMCP_TOOLS: readonly string[] = [
+  'formspec.form.describe',
+  'formspec.form.progress',
+  'formspec.field.list',
+  'formspec.field.describe',
+  'formspec.field.help',
+  'formspec.field.bulkSet',
+  'formspec.form.validate',
+  'formspec.form.nextIncomplete',
+];
+
+/** Joins the default set when the provider has a profile configured (`provider.hasProfile()`). */
+export const PROFILE_WEBMCP_TOOLS: readonly string[] = [
+  'formspec.profile.match',
+  'formspec.profile.apply',
+  'formspec.profile.learn',
+];
+
+export interface RegisterAssistToolsOptions extends WebMCP.ModelContextRegisterToolOptions {
+  /** `'default'` (the default): {@link DEFAULT_WEBMCP_TOOLS} plus the profile tools when the provider has a profile; `'all'`: the whole catalog; a list: exactly those names. */
+  tools?: 'default' | 'all' | readonly string[];
+}
+
+/**
  * Unwrap the MCP `CallToolResult` envelope into the value a WebMCP `execute`
  * callback returns. The browser JSON-serializes that value for the agent, so
  * returning the envelope would hand the agent JSON nested inside JSON. Errors
@@ -15,12 +43,52 @@ export function unwrapToolResult(result: ToolResult): unknown {
   return result.isError ? { error: payload } : payload;
 }
 
+/**
+ * §7.2: a registered `inputSchema` carries no `additionalProperties`, at any depth. The registered
+ * schema is what a model reads; the gate is in-process validation (tool-input.ts), which keeps the
+ * strict declaration and still refuses unknown keys.
+ */
+function withoutAdditionalProperties(schema: Record<string, unknown>): Record<string, unknown> {
+  const { additionalProperties: _dropped, properties, items, ...rest } = schema;
+  return {
+    ...rest,
+    ...(properties && typeof properties === 'object'
+      ? {
+        properties: Object.fromEntries(
+          Object.entries(properties as Record<string, Record<string, unknown>>)
+            .map(([key, property]) => [key, withoutAdditionalProperties(property)]),
+        ),
+      }
+      : {}),
+    ...(items && typeof items === 'object' ? { items: withoutAdditionalProperties(items as Record<string, unknown>) } : {}),
+  };
+}
+
+function hasProfile(provider: AssistProvider): boolean {
+  // The guard can go once types.ts carries `hasProfile()` on AssistProvider.
+  const candidate = provider as { hasProfile?: () => boolean };
+  return typeof candidate.hasProfile === 'function' && candidate.hasProfile();
+}
+
+function selectDeclarations(provider: AssistProvider, tools: RegisterAssistToolsOptions['tools']): ToolDeclaration[] {
+  const declarations = provider.getTools();
+  if (tools === 'all') {
+    return declarations;
+  }
+  const selected = new Set(
+    tools === undefined || tools === 'default'
+      ? [...DEFAULT_WEBMCP_TOOLS, ...(hasProfile(provider) ? PROFILE_WEBMCP_TOOLS : [])]
+      : tools,
+  );
+  return declarations.filter((declaration) => selected.has(declaration.name));
+}
+
 function toModelContextTool(provider: AssistProvider, declaration: ToolDeclaration): WebMCP.ModelContextTool {
   return {
     name: declaration.name,
     title: declaration.title,
     description: declaration.description,
-    inputSchema: declaration.inputSchema,
+    inputSchema: withoutAdditionalProperties(declaration.inputSchema),
     ...(declaration.annotations ? { annotations: declaration.annotations } : {}),
     // Options are required by the draft, but polyfill extension bridges call `execute(args)` bare.
     execute: async (input, options) => unwrapToolResult(await provider.invokeTool(declaration.name, input, { signal: options?.signal })),
@@ -28,17 +96,18 @@ function toModelContextTool(provider: AssistProvider, declaration: ToolDeclarati
 }
 
 /**
- * Register every tool the provider declares on `modelContext`. Aborting
- * `options.signal` unregisters them all — the platform's own lifecycle idiom.
+ * Register the selected tools (see {@link RegisterAssistToolsOptions.tools}) on `modelContext`.
+ * Aborting `options.signal` unregisters them all — the platform's own lifecycle idiom.
  * Resolves once every registration has been acknowledged.
  */
 export async function registerAssistTools(
   provider: AssistProvider,
   modelContext: WebMCP.ModelContext,
-  options: WebMCP.ModelContextRegisterToolOptions = {},
+  options: RegisterAssistToolsOptions = {},
 ): Promise<void> {
+  const { tools, ...registerOptions } = options;
   await Promise.all(
-    provider.getTools().map((declaration) => modelContext.registerTool(toModelContextTool(provider, declaration), options)),
+    selectDeclarations(provider, tools).map((declaration) => modelContext.registerTool(toModelContextTool(provider, declaration), registerOptions)),
   );
 }
 
