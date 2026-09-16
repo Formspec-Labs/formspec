@@ -293,11 +293,28 @@ lint never reviewed.
 
 | Property | Type | Req | Description |
 |---|---|---|---|
-| `conceptUri` | string (URI) | REQUIRED | The concept IRI in the external ontology or standard. Globally unique identifier for the concept this entry represents. |
-| `conceptSystem` | string (URI) | RECOMMENDED | The ontology or concept system URI (e.g., `https://schema.org`, `https://www.irs.gov/terms`). |
+| `conceptUri` | string (URI) | REQUIRED | The concept's IRI in its defining system. Globally unique identifier for the concept this entry represents. When the publisher is the concept's authority, the IRI SHOULD resolve — to a page or JSON document carrying the same definition. |
+| `conceptSystem` | string (URI) | RECOMMENDED | The scheme `conceptUri` is minted in: the ontology or concept-system URI (e.g., `https://schema.org`, `https://www.irs.gov/terms`). |
 | `conceptCode` | string | OPTIONAL | Short code within the system (e.g., `"EIN"`, `"MR"`). |
-| `equivalents` | array | OPTIONAL | Cross-system equivalences. Each element declares `system` (URI, REQUIRED), `code` (string, REQUIRED), `display` (string, OPTIONAL), and `type` (string, OPTIONAL — defaults to `"exact"`). Relationship types follow SKOS semantics: `exact`, `close`, `broader`, `narrower`, `related`. Custom types MUST be `x-`-prefixed. |
-| `metadata` | object | OPTIONAL | Descriptive metadata (e.g., `displayName`). |
+| `equivalents` | array | OPTIONAL | Cross-system equivalences — the mapping channel. Each element is a `ConceptEquivalent` (common schema): `system` (URI, REQUIRED), `code` (string, REQUIRED), `concept` (URI, OPTIONAL — the resolved IRI consumers match on; derived as `<system>#<code>` when absent), `display` (string, OPTIONAL), and `type` (string, OPTIONAL — defaults to `"exact"`). Mapping types follow SKOS: `exact`, `close`, `broader`, `narrower`, `related`. Custom types MUST be `x-`-prefixed. |
+| `relations` | array | OPTIONAL | Semantic relations to other concepts of the **same scheme**. Each element declares `concept` (URI, REQUIRED), `type` (REQUIRED — SKOS `broader`, `narrower`, `related`, or an `x-`-prefixed custom relation such as `x-explains`), and `display` (string, OPTIONAL). Not a mapping: a profile matcher or Assist resolver MUST NOT read `relations` as equivalences (§7 item 8). |
+| `metadata` | object | OPTIONAL | Descriptive metadata. RECOMMENDED keys: `displayName` (the label) and `sources[]` of `{ title, uri }` (the law or standard the definition rests on). |
+
+A concept entry's `description` is its definition. The publisher need not be a
+third party binding to someone else's ontology: an authority — an agency
+publishing its own data dictionary — publishes its concepts as entries whose
+`conceptUri` it mints, and each such entry is the **definition of record** for
+that concept. `equivalents` then map the authority's concept onto NIEM,
+schema.org, statute, or another system; `relations` connect it to sibling
+concepts of the same scheme ("this answer explains that fact", "this date
+corrects that record") without asserting identity.
+
+A relation is one-directional as written: a `broader` relation does not
+imply the target's `narrower`, and processors MUST NOT infer the inverse. A
+relation's `concept` SHOULD name a `conceptUri` present in the same document;
+a lint MAY warn when it does not. Relations point at IRIs, not at
+`(name, version)`: the unqualified-collision rules (§2.2) and the status
+lifecycle (§6) never apply to them.
 
 A field's `semanticType` may reference a concept entry by name. When a
 processor encounters a `semanticType` value matching a loaded concept entry's
@@ -554,32 +571,43 @@ in Formspec v1.0 §1) that additionally implements the following behaviors:
 7. **Concept resolution.** When a Definition field's `semanticType` matches
    the `name` of a loaded registry entry with `category: "concept"`, the
    processor SHOULD resolve the entry and make its concept metadata (URI,
-   equivalents, display) available to downstream tooling. An unresolved
+   definition, equivalents, display) available to downstream tooling. An unresolved
    `semanticType` that does not match any loaded concept entry is NOT an
    error — `semanticType` remains a freeform string for processors that do
-   not support concept resolution.
+   not support concept resolution. A concept entry is also found when its
+   `conceptUri` equals an Ontology binding's `concept`; it then supplies
+   `description` (as the concept's definition), `metadata.displayName`,
+   `conceptSystem` / `conceptCode`, and `equivalents`, with the binding
+   winning on conflict — the Assist specification §5.3 step 1 carries the
+   merge rule.
 
-8. **Vocabulary resolution.** Vocabulary entries provide shared terminology
+8. **Relations are not mappings.** A processor that matches concepts across
+   systems (a profile matcher, an Assist resolver) MUST read only
+   `equivalents` as candidate identities. It MUST NOT read `relations` — a
+   `broader`, `narrower`, `related`, or `x-` relation names a sibling concept
+   of the same scheme, not an equivalent one.
+
+9. **Vocabulary resolution.** Vocabulary entries provide shared terminology
    metadata that complements Ontology Document vocabulary bindings. When an
    Ontology Document vocabulary binding references a `system` that matches a
    loaded vocabulary registry entry's `vocabularySystem`, the registry entry
    MAY provide default version and filter metadata. The Ontology Document's
    values take precedence when both are present.
 
-9. **Widget channel separation.** Treat `widgetShape.props`,
+10. **Widget channel separation.** Treat `widgetShape.props`,
    `dataInputs[]`, and `actionOutputs[]` as separate channels. A processor MUST
    NOT accept configuration as runtime data or infer an action from an output
    name.
 
-10. **Widget name uniqueness.** Reject duplicate `dataInputs[].name` values and
+11. **Widget name uniqueness.** Reject duplicate `dataInputs[].name` values and
     duplicate `actionOutputs[].name` values within one widget shape, even when
     the duplicate objects differ in `description`.
 
-11. **Exact Surface use.** Resolve a Surface 0.2 data or action binding only
+12. **Exact Surface use.** Resolve a Surface 0.2 data or action binding only
     against the matching Registry declaration. Do not alias an undeclared input
     or output to a same-named prop, source, action, route, or intent.
 
-12. **Renderer inventory equality.** When strict rendered-Need validation is
+13. **Renderer inventory equality.** When strict rendered-Need validation is
     active, reject a widget contribution without a valid
     `renderedConfigNodes[]` inventory and `deliveryContractId`. At runtime,
     refuse a delivered implementation whose contract id, Registry entry

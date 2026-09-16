@@ -805,15 +805,17 @@ specification):</p>
 <td><code>conceptUri</code></td>
 <td>string (URI)</td>
 <td>REQUIRED</td>
-<td>The concept IRI in the external ontology or standard. Globally
-unique identifier for the concept this entry represents.</td>
+<td>The concept’s IRI in its defining system. Globally unique identifier
+for the concept this entry represents. When the publisher is the
+concept’s authority, the IRI SHOULD resolve — to a page or JSON document
+carrying the same definition.</td>
 </tr>
 <tr>
 <td><code>conceptSystem</code></td>
 <td>string (URI)</td>
 <td>RECOMMENDED</td>
-<td>The ontology or concept system URI (e.g.,
-<code>https://schema.org</code>,
+<td>The scheme <code>conceptUri</code> is minted in: the ontology or
+concept-system URI (e.g., <code>https://schema.org</code>,
 <code>https://www.irs.gov/terms</code>).</td>
 </tr>
 <tr>
@@ -827,22 +829,57 @@ unique identifier for the concept this entry represents.</td>
 <td><code>equivalents</code></td>
 <td>array</td>
 <td>OPTIONAL</td>
-<td>Cross-system equivalences. Each element declares <code>system</code>
+<td>Cross-system equivalences — the mapping channel. Each element is a
+<code>ConceptEquivalent</code> (common schema): <code>system</code>
 (URI, REQUIRED), <code>code</code> (string, REQUIRED),
+<code>concept</code> (URI, OPTIONAL — the resolved IRI consumers match
+on; derived as <code>&lt;system&gt;#&lt;code&gt;</code> when absent),
 <code>display</code> (string, OPTIONAL), and <code>type</code> (string,
-OPTIONAL — defaults to <code>"exact"</code>). Relationship types follow
-SKOS semantics: <code>exact</code>, <code>close</code>,
-<code>broader</code>, <code>narrower</code>, <code>related</code>.
-Custom types MUST be <code>x-</code>-prefixed.</td>
+OPTIONAL — defaults to <code>"exact"</code>). Mapping types follow SKOS:
+<code>exact</code>, <code>close</code>, <code>broader</code>,
+<code>narrower</code>, <code>related</code>. Custom types MUST be
+<code>x-</code>-prefixed.</td>
+</tr>
+<tr>
+<td><code>relations</code></td>
+<td>array</td>
+<td>OPTIONAL</td>
+<td>Semantic relations to other concepts of the <strong>same
+scheme</strong>. Each element declares <code>concept</code> (URI,
+REQUIRED), <code>type</code> (REQUIRED — SKOS <code>broader</code>,
+<code>narrower</code>, <code>related</code>, or an
+<code>x-</code>-prefixed custom relation such as
+<code>x-explains</code>), and <code>display</code> (string, OPTIONAL).
+Not a mapping: a profile matcher or Assist resolver MUST NOT read
+<code>relations</code> as equivalences (§7 item 8).</td>
 </tr>
 <tr>
 <td><code>metadata</code></td>
 <td>object</td>
 <td>OPTIONAL</td>
-<td>Descriptive metadata (e.g., <code>displayName</code>).</td>
+<td>Descriptive metadata. RECOMMENDED keys: <code>displayName</code>
+(the label) and <code>sources[]</code> of <code>{ title, uri }</code>
+(the law or standard the definition rests on).</td>
 </tr>
 </tbody>
 </table>
+<p>A concept entry’s <code>description</code> is its definition. The
+publisher need not be a third party binding to someone else’s ontology:
+an authority — an agency publishing its own data dictionary — publishes
+its concepts as entries whose <code>conceptUri</code> it mints, and each
+such entry is the <strong>definition of record</strong> for that
+concept. <code>equivalents</code> then map the authority’s concept onto
+NIEM, schema.org, statute, or another system; <code>relations</code>
+connect it to sibling concepts of the same scheme (“this answer explains
+that fact”, “this date corrects that record”) without asserting
+identity.</p>
+<p>A relation is one-directional as written: a <code>broader</code>
+relation does not imply the target’s <code>narrower</code>, and
+processors MUST NOT infer the inverse. A relation’s <code>concept</code>
+SHOULD name a <code>conceptUri</code> present in the same document; a
+lint MAY warn when it does not. Relations point at IRIs, not at
+<code>(name, version)</code>: the unqualified-collision rules (§2.2) and
+the status lifecycle (§6) never apply to them.</p>
 <p>A field’s <code>semanticType</code> may reference a concept entry by
 name. When a processor encounters a <code>semanticType</code> value
 matching a loaded concept entry’s <code>name</code>, it SHOULD resolve
@@ -1169,11 +1206,25 @@ this error.</p></li>
 <li><p><strong>Concept resolution.</strong> When a Definition field’s
 <code>semanticType</code> matches the <code>name</code> of a loaded
 registry entry with <code>category: "concept"</code>, the processor
-SHOULD resolve the entry and make its concept metadata (URI,
+SHOULD resolve the entry and make its concept metadata (URI, definition,
 equivalents, display) available to downstream tooling. An unresolved
 <code>semanticType</code> that does not match any loaded concept entry
 is NOT an error — <code>semanticType</code> remains a freeform string
-for processors that do not support concept resolution.</p></li>
+for processors that do not support concept resolution. A concept entry
+is also found when its <code>conceptUri</code> equals an Ontology
+binding’s <code>concept</code>; it then supplies
+<code>description</code> (as the concept’s definition),
+<code>metadata.displayName</code>, <code>conceptSystem</code> /
+<code>conceptCode</code>, and <code>equivalents</code>, with the binding
+winning on conflict — the Assist specification §5.3 step 1 carries the
+merge rule.</p></li>
+<li><p><strong>Relations are not mappings.</strong> A processor that
+matches concepts across systems (a profile matcher, an Assist resolver)
+MUST read only <code>equivalents</code> as candidate identities. It MUST
+NOT read <code>relations</code> — a <code>broader</code>,
+<code>narrower</code>, <code>related</code>, or <code>x-</code> relation
+names a sibling concept of the same scheme, not an equivalent
+one.</p></li>
 <li><p><strong>Vocabulary resolution.</strong> Vocabulary entries
 provide shared terminology metadata that complements Ontology Document
 vocabulary bindings. When an Ontology Document vocabulary binding

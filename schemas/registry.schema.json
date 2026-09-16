@@ -394,10 +394,11 @@
         },
         "metadata": {
           "type": "object",
-          "description": "Presentation and descriptive metadata for this entry. For dataType entries, provides rendering hints (prefix, precision, formatting). For concept and vocabulary entries, provides display metadata (displayName). Open object — keys are not restricted.",
+          "description": "Presentation and descriptive metadata for this entry. For dataType entries, provides rendering hints (prefix, precision, formatting). For concept and vocabulary entries, provides display metadata. RECOMMENDED keys for concept entries: `displayName` (the label) and `sources[]` of `{ title, uri }` (the law or standard the definition rests on). Open object — keys are not restricted.",
           "examples": [
             { "prefix": "$", "precision": 2, "thousandsSeparator": true },
-            { "prefix": "EUR ", "precision": 2 }
+            { "prefix": "EUR ", "precision": 2 },
+            { "displayName": "Able and available for work", "sources": [ { "title": "20 CFR 604.3 — able and available requirement", "uri": "https://www.law.cornell.edu/cfr/text/20/604.3" } ] }
           ]
         },
         "parameters": {
@@ -602,15 +603,16 @@
         "conceptUri": {
           "type": "string",
           "format": "uri",
-          "description": "The concept IRI in the external ontology or standard. REQUIRED when category is 'concept'. This is the globally unique identifier for the concept this entry represents.",
+          "description": "The concept's IRI in its defining system. REQUIRED when category is 'concept'. This is the globally unique identifier for the concept this entry represents. When the publisher is the concept's authority (an agency publishing its own data dictionary), the entry IS the definition of record and the IRI SHOULD resolve — to a page or JSON document carrying the same definition.",
           "examples": [
             "https://www.irs.gov/terms/employer-identification-number",
             "https://schema.org/birthDate",
-            "http://terminology.hl7.org/CodeSystem/v2-0203#MR"
+            "http://terminology.hl7.org/CodeSystem/v2-0203#MR",
+            "https://vocab.example.org/weekly-certification#able-and-available"
           ],
           "x-lm": {
             "critical": true,
-            "intent": "The globally unique IRI for the concept this registry entry represents."
+            "intent": "The globally unique IRI for the concept this registry entry represents; when the publisher is the authority, the entry is the definition of record and the IRI SHOULD resolve."
           }
         },
         "conceptSystem": {
@@ -633,11 +635,45 @@
           "items": {
             "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ConceptEquivalent"
           },
-          "description": "Cross-system equivalences for this concept. Each element declares that the concept is equivalent to a concept in another system, with a SKOS-inspired relationship type. Only meaningful when category is 'concept'.",
+          "description": "Cross-system equivalences for this concept — the mapping channel. Each element declares that the concept is equivalent to a concept in another system, with a SKOS-inspired relationship type. This is the only property a profile matcher or Assist resolver reads as a candidate identity; relations between concepts of the same scheme go in `relations`. Only meaningful when category is 'concept'.",
           "examples": [
             [
               { "system": "https://schema.org", "code": "taxID", "type": "broader" },
               { "system": "urn:fhir:r4", "code": "Organization.identifier", "type": "exact" }
+            ]
+          ]
+        },
+        "relations": {
+          "type": "array",
+          "description": "Semantic relations from this concept to other concepts of the same scheme, SKOS-style (`broader`, `narrower`, `related`) or an `x-`-prefixed custom type (`x-explains`, `x-corrects`). NOT a mapping: `equivalents` carries cross-system mappings, and profile matchers and Assist resolvers MUST NOT read `relations` as equivalences. Only meaningful when category is 'concept'.",
+          "items": {
+            "type": "object",
+            "required": ["concept", "type"],
+            "additionalProperties": false,
+            "properties": {
+              "concept": {
+                "type": "string",
+                "format": "uri",
+                "description": "The related concept's IRI in the same scheme (usually another `conceptUri` in this registry)."
+              },
+              "type": {
+                "type": "string",
+                "description": "Relation type. SKOS semantic relations `broader`, `narrower`, `related`, or an `x-`-prefixed custom relation. Never `exact` or `close` — those are mapping types and belong in `equivalents`.",
+                "anyOf": [
+                  { "enum": ["broader", "narrower", "related"] },
+                  { "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$" }
+                ]
+              },
+              "display": {
+                "type": "string",
+                "description": "Human-readable label for the relation as read from this concept."
+              }
+            }
+          },
+          "examples": [
+            [
+              { "concept": "https://vocab.example.org/weekly-certification#able-and-available", "type": "x-explains", "display": "explains: Able and available for work" },
+              { "concept": "https://vocab.example.org/weekly-certification#work-search", "type": "broader" }
             ]
           ]
         },

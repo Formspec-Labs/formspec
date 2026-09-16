@@ -115,7 +115,7 @@ export type RegistryEntry = {
    */
   constraints?: {};
   /**
-   * Presentation and descriptive metadata for this entry. For dataType entries, provides rendering hints (prefix, precision, formatting). For concept and vocabulary entries, provides display metadata (displayName). Open object — keys are not restricted.
+   * Presentation and descriptive metadata for this entry. For dataType entries, provides rendering hints (prefix, precision, formatting). For concept and vocabulary entries, provides display metadata. RECOMMENDED keys for concept entries: `displayName` (the label) and `sources[]` of `{ title, uri }` (the law or standard the definition rests on). Open object — keys are not restricted.
    */
   metadata?: {};
   /**
@@ -212,7 +212,7 @@ export type RegistryEntry = {
   row?: {};
   categoryShape?: TokenCategoryShape;
   /**
-   * The concept IRI in the external ontology or standard. REQUIRED when category is 'concept'. This is the globally unique identifier for the concept this entry represents.
+   * The concept's IRI in its defining system. REQUIRED when category is 'concept'. This is the globally unique identifier for the concept this entry represents. When the publisher is the concept's authority (an agency publishing its own data dictionary), the entry IS the definition of record and the IRI SHOULD resolve — to a page or JSON document carrying the same definition.
    */
   conceptUri?: string;
   /**
@@ -224,9 +224,32 @@ export type RegistryEntry = {
    */
   conceptCode?: string;
   /**
-   * Cross-system equivalences for this concept. Each element declares that the concept is equivalent to a concept in another system, with a SKOS-inspired relationship type. Only meaningful when category is 'concept'.
+   * Cross-system equivalences for this concept — the mapping channel. Each element declares that the concept is equivalent to a concept in another system, with a SKOS-inspired relationship type. This is the only property a profile matcher or Assist resolver reads as a candidate identity; relations between concepts of the same scheme go in `relations`. Only meaningful when category is 'concept'.
    */
   equivalents?: ConceptEquivalent[];
+  /**
+   * Semantic relations from this concept to other concepts of the same scheme, SKOS-style (`broader`, `narrower`, `related`) or an `x-`-prefixed custom type (`x-explains`, `x-corrects`). NOT a mapping: `equivalents` carries cross-system mappings, and profile matchers and Assist resolvers MUST NOT read `relations` as equivalences. Only meaningful when category is 'concept'.
+   */
+  relations?: {
+    /**
+     * The related concept's IRI in the same scheme (usually another `conceptUri` in this registry).
+     */
+    concept: string;
+    /**
+     * Relation type. SKOS semantic relations `broader`, `narrower`, `related`, or an `x-`-prefixed custom relation. Never `exact` or `close` — those are mapping types and belong in `equivalents`.
+     */
+    type: (
+      | ('broader' | 'narrower' | 'related')
+      | {
+          [k: string]: unknown;
+        }
+    ) &
+      string;
+    /**
+     * Human-readable label for the relation as read from this concept.
+     */
+    display?: string;
+  }[];
   /**
    * The terminology system URI. REQUIRED when category is 'vocabulary'. Identifies the external terminology system this entry represents.
    */
