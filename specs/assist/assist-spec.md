@@ -222,7 +222,8 @@ LLM tool-name grammars (Claude, OpenAI: `^[a-zA-Z0-9_-]{1,128}$`) reject
 `.`. A consumer presenting tools to such a model MAY map `.` → `_`
 deterministically (`formspec.field.set` → `formspec_field_set`) and MUST map
 the model's call back before invoking. Providers MUST accept only the dotted
-form on the wire.
+form on the wire. Catalog names MUST NOT contain `_`, so the mapping is a
+bijection.
 
 ### 3.2 Required Core Introspection Tools
 
@@ -238,8 +239,13 @@ form on the wire.
 
 | Tool | Input | Output | Notes |
 |---|---|---|---|
-| `formspec.field.set` | `{ path: string, value?: unknown, overwrite?: boolean }` | `SetValueResult` | MUST reject writes to readonly or non-relevant fields. Without `overwrite: true`, MUST refuse a respondent-written value with `x-user-edited` (§4.3 rule 6). |
-| `formspec.field.bulkSet` | `{ entries: Array<{ path: string, value: unknown }>, overwrite?: boolean }` | `BulkSetResult` | MAY partially succeed; each entry is independent unless a transport defines stronger atomicity. `overwrite` is per call and covers every entry. |
+| `formspec.field.set` | `{ path: string, value?: unknown, expected?: unknown }` | `SetValueResult` | MUST reject writes to readonly, calculated, or non-relevant fields. A respondent-written value is replaced only when `expected` equals it (§4.3 rule 6); otherwise `x-user-edited`. |
+| `formspec.field.bulkSet` | `{ entries: Array<{ path: string, value: unknown, expected?: unknown }> }` | `BulkSetResult` | MAY partially succeed; each entry is independent unless a transport defines stronger atomicity. `expected` is per entry. |
+
+For a choice field (one with options), `value` MAY be an option's label
+instead of its value; the provider stores the option value. Label matching is
+case-insensitive and exact; no match or an ambiguous match is
+`INVALID_VALUE`, and the message lists the options as `value — label`.
 
 The `value` property in `formspec.field.set` MAY be omitted. An omitted `value` is treated as `null` and clears the field. Providers MUST treat `undefined` (from omission) identically to `null` for the purpose of setting field values.
 
@@ -255,7 +261,7 @@ The `value` property in `formspec.field.set` MAY be omitted. An omitted `value` 
 | Tool | Input | Output | Notes |
 |---|---|---|---|
 | `formspec.profile.match` | `{ profileRef?: string }` | `{ matches: ProfileMatch[] }` | Names the fields a profile can fill. The wire shape carries no values and no provenance (§6.1); values stay in-page until `profile.apply`. |
-| `formspec.profile.apply` | `{ paths?: string[], confirm?: boolean, overwrite?: boolean }` | `ProfileApplyResult` | Applies the current match set (§6.2). Omitted `paths` means every current match. Values resolve in-page from that set, never from tool input; a path with no current match is skipped with reason `NOT_FOUND`. `confirm: true` requires human-in-the-loop. When `confirm` is `true` and the provider has no confirmation mechanism, the provider MUST return an error with code `x-confirmation-required`. The provider MUST NOT silently apply values without confirmation when confirmation was explicitly requested. The confirmation shows the respondent each `{ path, value }` about to be written. `overwrite` is per call (§4.3 rule 6). |
+| `formspec.profile.apply` | `{ paths?: Array<string \| { path: string, expected: unknown }>, confirm?: boolean }` | `ProfileApplyResult` | Applies the current match set (§6.2). Omitted `paths` means every current match. Values resolve in-page from that set, never from tool input. A path that does not exist is skipped `NOT_FOUND`; one that exists but has no current match, `x-not-matched`; one that left the set because it became readonly or non-relevant, `READONLY` / `NOT_RELEVANT`. Skips are decided before confirmation, so the respondent is shown only writes that will land. `confirm: true` requires human-in-the-loop. When `confirm` is `true` and the provider has no confirmation mechanism, the provider MUST return an error with code `x-confirmation-required`. The provider MUST NOT silently apply values without confirmation when confirmation was explicitly requested. The confirmation shows the respondent each `{ path, value }` about to be written, in the caller's order. `{ path, expected }` entries follow §4.3 rule 6. |
 | `formspec.profile.learn` | `{ profileRef?: string }` | `{ savedConcepts: number, savedFields: number }` | Saves concept-bound values and permitted fallbacks. |
 
 ### 3.6 Optional Navigation Tools
@@ -315,10 +321,11 @@ interface ToolError {
 }
 ```
 
-`retryable` is `true` when the same call can succeed with corrected input:
-`NOT_FOUND`, `INVALID_PATH`, `INVALID_VALUE`, `NOT_RELEVANT`, `UNSUPPORTED`.
-It is `false` otherwise, including every `x-` code — the safe reading of an
-unknown failure is "ask the human".
+`retryable` is `true` when the same call may be retried with corrected input
+without consulting the respondent: `NOT_FOUND`, `INVALID_PATH`,
+`INVALID_VALUE`, `NOT_RELEVANT`, `UNSUPPORTED`. It is `false` otherwise,
+including every `x-` code — the safe reading of an unknown failure is "ask
+the human".
 
 `message` MUST name the fix, not just the fault: what was expected, what
 arrived, and where. The shapes below are normative for input validation:
@@ -340,7 +347,7 @@ The following `x-`-prefixed error codes are RECOMMENDED for common provider cond
 | `x-confirmation-required` | A mutation requiring `confirm: true` was requested but no confirmation mechanism is available. |
 | `x-invalid-sidecar` | A loaded References or Ontology document has a structural error or its `targetDefinition` does not match the active form. |
 | `x-cancelled` | The caller aborted the invocation before the mutation was applied. Nothing was written. Observable by in-process callers; a WebMCP caller sees its own abort reason instead (§7.2). |
-| `x-user-edited` | The target holds a value the respondent (or a hydrated response) wrote and the call did not carry `overwrite: true` (§4.3 rule 6). Nothing was written. Carries `currentValue: unknown` beside `path`, so the consumer can show the human what it would have replaced. |
+| `x-user-edited` | The target holds a value the respondent (or a hydrated response) wrote and the call's `expected` is absent or does not equal it (§4.3 rule 6). Nothing was written. The error never echoes the current value: a consumer that wants to replace it reads the field through `formspec.field.describe`, where the provider's value-visibility policy applies. |
 
 ### 4.3 Mutation Rules
 
@@ -353,17 +360,23 @@ For every mutation tool:
 5. A provider **SHOULD** support human-in-the-loop confirmation for bulk or
    profile-driven writes.
 6. A provider **MUST NOT** overwrite a filled field (§4.4) the assistant did
-   not write unless the call carries `overwrite: true`. The engine records a
-   write source per path; a write is *the assistant's own* when that source
-   is `assist`. When the target's current value is non-empty, its write
-   source is anything but `assist` (a respondent edit, a hydrated response,
-   or no source recorded), and `overwrite` is not `true`, the provider
-   refuses with `x-user-edited` and `currentValue` and writes nothing. Empty
-   fields and fields the assistant itself wrote are always writable. Applies
-   to `formspec.field.set`, `formspec.field.bulkSet`, and
-   `formspec.profile.apply`; `overwrite` is per call, not per entry. Every
-   Assist write **MUST** be recorded with source `assist` so the guard and
-   the renderer (§8.4) see the same fact.
+   not write unless the entry proves the caller has read it: the write is
+   compare-and-set. The engine records a write source per path; a write is
+   *the assistant's own* when that source is `assist`. When the target's
+   current value is non-empty and its write source is anything but `assist`
+   (a respondent edit, a hydrated response, or no source recorded), the
+   write proceeds only if the entry carries `expected` deep-equal to the
+   current value; otherwise the provider refuses with `x-user-edited` and
+   writes nothing. A blind flag is not accepted: it is exactly the
+   "overwrite an edit the agent never read" failure this rule exists to stop
+   (WebMCP issue #298), and injected sidecar text could request it. Empty
+   fields and fields the assistant itself wrote are always writable.
+   Calculated fields are refused as `READONLY` before this check. Applies per
+   entry to `formspec.field.set`, `formspec.field.bulkSet`, and
+   `formspec.profile.apply`. Every Assist write **MUST** be recorded with
+   source `assist` so the guard and the renderer (§8.4) see the same fact.
+   A deliberate read-then-replace still reaches the respondent through the
+   consumer runtime's `consequentialHint` gate (§7.1(4)).
 
 ### 4.4 Common Data Shapes
 
@@ -454,7 +467,7 @@ interface BulkSetResult {
 `skipped` counts entries refused by §4.3 rule 6; each carries `accepted: false` and `error.code` `x-user-edited`.
 
 interface ProfileApplyResult {
-  filled: Array<{ path: string; value: unknown }>;
+  filled: Array<{ path: string }>;
   skipped: Array<{ path: string; reason: string }>;
   validation?: ValidationReport;
 }
@@ -468,7 +481,13 @@ The `reason` field in skipped entries SHOULD use one of the following standard v
 | `NOT_RELEVANT` | The target field is currently not relevant. |
 | `INVALID_VALUE` | The value was rejected by the engine. |
 | `DECLINED` | The user declined the mutation during confirmation. |
-| `x-user-edited` | The target holds a respondent-written value and the call did not carry `overwrite: true` (§4.3 rule 6). |
+| `x-user-edited` | The target holds a respondent-written value and the entry's `expected` is absent or stale (§4.3 rule 6). |
+| `x-not-matched` | The path exists but has no current profile match (§6.2). |
+
+`filled` carries paths only. Every channel that returns a respondent's value
+to a consumer — `formspec.field.describe`, confirmation prompts — is subject
+to the provider's value-visibility policy (§11); results and errors never
+route around it.
 
 Providers MAY use additional `x-`-prefixed reason strings. Consumers MUST treat unrecognized reason strings as generic skips.
 
@@ -506,7 +525,7 @@ interface FieldHelp {
   equivalents?: ConceptEquivalent[];
   summary?: string;
   commonMistakes?: string[];
-  truncated?: boolean;
+  truncated?: { omitted: Partial<Record<ReferenceType, number>> };
 }
 
 type ReferenceType =
@@ -544,8 +563,9 @@ interface ConceptEquivalent {
 entry: `title`, `type`, `uri`, `excerpt`, `rel`, `priority` always;
 `content` only when the call carried `includeContent: true` (§3.2). Reference
 `content` is the largest and least trusted text a provider relays (§11), so
-the consumer asks for it. `truncated` is `true` when the §5.2 byte cap dropped
-entries.
+the consumer asks for it. `truncated` is present only when the §5.2 byte cap
+dropped entries, and counts them per type so the consumer knows what it did
+not see.
 
 ### 5.2 References Resolution
 
@@ -577,12 +597,16 @@ To resolve `FieldHelp.references`, a conformant provider MUST:
    order within a tier.
 9. Project each entry to the wire shape (§5.1): omit `content` unless the
    call carried `includeContent: true`.
-10. Cap the serialized `references` object at `maxBytes` (default 4096,
-    minimum 512; a smaller request is raised to 512). While it is over the
-    cap, drop the entry with the lowest effective priority across all types
-    — `background` before `supplementary` before `primary`, last in document
-    order first within a tier — and set `FieldHelp.truncated: true`. The
-    consumer raises `maxBytes` or asks again with a narrower `audience`.
+10. Cap the serialized `references` object — UTF-8 bytes of compact JSON —
+    at `maxBytes` (default 4096, minimum 512; a smaller request is raised to
+    512). While it is over the cap, degrade before dropping, always taking
+    the entry with the lowest effective priority across all types first
+    (`background` before `supplementary` before `primary`; an absent
+    `priority` ranks as `supplementary`; last in document order first within
+    a tier): strip `content`, then strip `excerpt`, then drop whole entries
+    — never below one entry per `type` that had any. Record dropped entries
+    in `FieldHelp.truncated.omitted` by type. The consumer raises `maxBytes`,
+    asks again with a narrower `audience`, or fetches by `uri`.
 
 ### 5.3 Ontology Resolution Cascade
 
@@ -692,14 +716,15 @@ Any conformant Assist transport MUST provide:
    and receive the §4 envelope.
 3. **Error preservation** — transport adapters MUST preserve `ToolError`
    semantics.
-4. **Human-in-the-loop support** — two independent layers, neither replacing
-   the other: the provider can pause and obtain user confirmation before a
-   requested mutation proceeds, and the binding lets the consumer's runtime
-   (browser, agent host) gate consequential tools behind its own confirmation.
-   The provider-side confirmation is UX, not a security boundary: a user
-   agent that also drives the page can click it
-   ([webmcp#288][webmcp-288]). `consequentialHint` (§7.2) is the boundary
-   the browser owns.
+4. **Human-in-the-loop support** — three layers, in order of what they can
+   bind. (a) Page preconditions (§4.3): readonly, relevance, and the
+   compare-and-set guard hold for every tool-path write regardless of which
+   agent calls. (b) The consumer runtime's confirmation, requested through
+   `consequentialHint` (§7.2): the only layer that can bind a user agent that
+   also drives the page, when that runtime honors the hint. (c) The
+   provider-side confirmation (`confirm: true`): UX for the respondent, not a
+   security boundary — a user agent that also drives the page can click it
+   ([webmcp#288][webmcp-288]).
 
 [webmcp-288]: https://github.com/webmachinelearning/webmcp/issues/288
 
@@ -736,7 +761,10 @@ A conformant WebMCP binding:
   `formspec.field.bulkSet`, `formspec.form.validate`,
   `formspec.form.nextIncomplete`, plus `formspec.profile.match`,
   `formspec.profile.apply`, and `formspec.profile.learn` when the provider
-  has a profile configured. `'all'` registers the whole catalog. Every
+  has profile *capability* — a storage backend or a loaded profile, not
+  merely default in-memory storage. A profile loaded after registration
+  adds the three profile tools then (registration is additive; only
+  replacement is non-atomic). `'all'` registers the whole catalog. Every
   registered tool costs the agent context on every turn, and the omitted
   tools overlap: `field.set` is a one-entry `bulkSet`, `field.validate` is
   one path's slice of the `form.validate` report, and `form.pages` is
@@ -982,7 +1010,7 @@ specification supplies, and what stays open.
 |---|---|---|
 | §6.3.1.1 Tool poisoning via metadata | Tool names, titles, descriptions, and schemas are provider constants (§7.2); no form, sidecar, or respondent text reaches them. | A host registering its own tools beside Assist owns its own metadata. |
 | §6.3.1.2 Output injection | References `content` is off by default and the help payload is byte-capped (§5.1–§5.2); `field.help` and `field.describe` carry `untrustedContentHint` (§7.2); consumers parse structured results, never prose (§2.2). | `title` and `excerpt` from a compromised sidecar still reach the agent; the hint informs, it does not sanitize. |
-| §6.3.1.3 Tool implementation as target | All tool input is untrusted: paths and values are validated before use, readonly and non-relevant targets are refused, respondent-written values need `overwrite`, and every write runs the same engine path as the UI (§4.3). | An engine defect reachable from the UI is reachable from Assist. |
+| §6.3.1.3 Tool implementation as target | All tool input is untrusted: paths and values are validated before use, readonly and non-relevant targets are refused, respondent-written values are replaced only compare-and-set (`expected`), and every write runs the same engine path as the UI (§4.3). | An engine defect reachable from the UI is reachable from Assist. |
 | §6.3.2 Misrepresentation of intent | Imperative titles and accurate descriptions (§7.2); `consequentialHint` on every writing tool; the browser's gate is the boundary (§7.1(4)). | Provider-side confirmation is UX — a user agent that drives the page can click it ([webmcp#288][webmcp-288]). |
 | §6.3.3 Over-parameterization | Inputs are paths, values, and enum switches; `profile.match` returns no values and no provenance, `profile.apply` takes paths only (§3.5, §6.1). | `field.describe` returns the current value; the tool is useless without it. |
 | §6.3.4 Same-origin | `exposedTo` is the host's decision (§7.2); in an undelegated cross-origin frame `registerTool` throws `NotAllowedError` and the binding is a no-op. | A host that delegates the `tools` policy delegates the whole catalog. |
@@ -1010,8 +1038,8 @@ A conformant Assist Provider:
   defines (§4.1).
 - **MUST** implement field-help resolution per §5.
 - **MUST** preserve core processing semantics.
-- **MUST** refuse to overwrite a respondent-written value without
-  `overwrite: true`, and record every Assist write with source `assist`
+- **MUST** refuse to overwrite a respondent-written value unless the entry's
+  `expected` equals it, and record every Assist write with source `assist`
   (§4.3 rule 6).
 - **MUST** set `retryable` on every `ToolError` and name the fix in
   `message` (§4.2).
