@@ -32,6 +32,17 @@ hr.formspec-divider {
   letter-spacing: 0.02em;
 }
 
+/* A field the assistant wrote (assist-spec §8): the renderer sets `data-formspec-agent-filled` on the field root
+   until the respondent edits it, and a live region says so — the attribute carries the meaning, this is the sighted
+   cue: the read-only field's left rule in the primary color over a faint tint of the surface, so text contrast
+   is the surface's own. */
+[data-formspec-agent-filled] {
+  padding-left: 0.875rem;
+  border-left: 2px solid var(--formspec-default-primary);
+  border-radius: var(--formspec-default-radius-sm);
+  background: color-mix(in srgb, var(--formspec-default-primary) 6%, var(--formspec-default-surface));
+}
+
 .formspec-group,
 .formspec-section {
   position: relative;

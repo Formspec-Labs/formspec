@@ -48,7 +48,8 @@ import {
     type LayoutHostEvidence,
     type ReferencesDocumentLike,
 } from '@formspec-org/layout';
-import { buildPlatformTheme, mergePlatformAndTenantTheme, resolveFieldHelp } from '@formspec-org/layout';
+import { buildPlatformTheme, fillUiParams, mergePlatformAndTenantTheme, resolveFieldHelp } from '@formspec-org/layout';
+import { toolText, TOOL_DESCRIPTION_MAX } from './adapters/tool-text.js';
 const defaultThemeJson = buildPlatformTheme();
 const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1', '1.2']);
 
@@ -57,6 +58,13 @@ const STYLE_REVEAL_TIMEOUT_MS = 2000;
 
 /** WebMCP tool name for the rendered form (assist-spec §8.2) when `<formspec-render tool-name>` names none. */
 const DEFAULT_TOOL_NAME = 'formspec.form.fill';
+
+/**
+ * Renderer chrome text (Locale §3.1.10 shape) for the assistant-filled announcement (assist-spec §8): `$label` is
+ * the plain label of every field written in one frame. An authored `$ui.assist.filled` Locale string wins.
+ */
+const ASSIST_FILLED_KEY = '$ui.assist.filled';
+const ASSIST_FILLED_DEFAULT = '{{$label}} filled by your assistant';
 
 /** A submit event as a WebMCP-capable browser fires it (declarative explainer): both members absent elsewhere. */
 interface AgentSubmitEvent extends SubmitEvent {
@@ -221,6 +229,10 @@ export class FormspecRender extends HTMLElement {
     private _issuerAllowedOrigins: string[] = [];
     private _issuerChromeEpoch = 0;
     private _headingLevel = 3;
+    /** Polite live region beside the render root — one per element, kept across renders so it announces reliably. */
+    private assistAnnouncer: HTMLElement | null = null;
+    private pendingAssistLabels: string[] = [];
+    private assistAnnounceFrame: number | null = null;
 
     constructor() {
         super();
@@ -1046,8 +1058,12 @@ export class FormspecRender extends HTMLElement {
         // agent fills, the respondent submits. The controls describe themselves in bindSharedFieldEffects.
         if (container instanceof HTMLFormElement) {
             container.setAttribute('toolname', this.getAttribute('tool-name') || DEFAULT_TOOL_NAME);
-            container.setAttribute('tooldescription', this._definition.description || this._definition.title);
+            container.setAttribute(
+                'tooldescription',
+                toolText(this._definition.description || this._definition.title, TOOL_DESCRIPTION_MAX),
+            );
         }
+        this.ensureAssistAnnouncer();
 
         const plan = this.buildPlan();
         if (plan) emitNodeFn(this._renderHost, plan, container, '', this._headingLevel);
@@ -1294,6 +1310,34 @@ export class FormspecRender extends HTMLElement {
     /** @internal */ resolveFieldHelp = (fieldPath: string): readonly FieldHelpReference[] =>
         this._referencesDocuments.flatMap((doc) => resolveFieldHelp(doc, fieldPath));
 
+    /**
+     * Announce assistant-written fields (assist-spec §8): every label handed in during one frame becomes a single
+     * "{labels} filled by your assistant" message — a `bulkSet` reads as one sentence, not one per field. The
+     * region sits beside the render root, created once, so it is already in the tree when its text changes.
+     * @internal
+     */
+    announceAssistFill(label: string): void {
+        this.pendingAssistLabels.push(label);
+        if (this.assistAnnounceFrame !== null) return;
+        this.assistAnnounceFrame = requestAnimationFrame(() => {
+            this.assistAnnounceFrame = null;
+            const labels = this.pendingAssistLabels.splice(0).join(', ');
+            const template = this.engine?.lookupLocaleString(ASSIST_FILLED_KEY) ?? ASSIST_FILLED_DEFAULT;
+            this.ensureAssistAnnouncer().textContent = fillUiParams(template, { label: labels });
+        });
+    }
+
+    private ensureAssistAnnouncer(): HTMLElement {
+        if (!this.assistAnnouncer) {
+            this.assistAnnouncer = document.createElement('div');
+            this.assistAnnouncer.className = 'formspec-sr-only';
+            this.assistAnnouncer.setAttribute('aria-live', 'polite');
+            this.assistAnnouncer.dataset.formspecAssistAnnouncer = '';
+        }
+        if (this.assistAnnouncer.parentNode !== this) this.appendChild(this.assistAnnouncer);
+        return this.assistAnnouncer;
+    }
+
     /** @internal */ findItemByKey = (key: string, items: FormItem[] = this._definition?.items ?? []): FormItem | null => {
         if (key == null || typeof key !== 'string') return null;
         const dot = key.indexOf('.');
@@ -1339,5 +1383,11 @@ export class FormspecRender extends HTMLElement {
             this.rootContainer.remove();
             this.rootContainer = null;
         }
+        if (this.assistAnnounceFrame !== null) {
+            cancelAnimationFrame(this.assistAnnounceFrame);
+            this.assistAnnounceFrame = null;
+            this.pendingAssistLabels = [];
+        }
+        this.assistAnnouncer?.remove();
     }
 }

@@ -341,6 +341,11 @@ export interface BehaviorContext {
     findItemByKey: (key: string) => any;
     /** Human-facing References bound to `fieldPath`, in presentation order (References spec §7). */
     fieldHelp?: (fieldPath: string) => readonly FieldHelpReference[];
+    /**
+     * Tell the respondent the assistant filled the field with this plain-text label (assist-spec §8). The host
+     * batches every call in one frame into a single live-region message; absent, the write is silent.
+     */
+    announceAssistFill?: (label: string) => void;
     renderComponent: (comp: LayoutNode | ComponentDescriptor, parent: HTMLElement, prefix?: string) => void;
     /** The depth a heading this component draws sits at, 1–6 — see `RenderContext.headingLevel`. */
     headingLevel: number;

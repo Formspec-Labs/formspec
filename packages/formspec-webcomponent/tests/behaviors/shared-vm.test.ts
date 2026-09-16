@@ -33,6 +33,7 @@ function mockFieldVM(overrides: Partial<{
     const errorsSig = signal([] as any[]);
     const optionsSig = signal([] as any[]);
     const optionsStateSig = signal({ loading: false, error: null });
+    const writeSourceSig = signal<'user' | 'assist' | null>(null);
 
     return {
         vm: {
@@ -60,6 +61,7 @@ function mockFieldVM(overrides: Partial<{
             optionsState: computed(() => optionsStateSig.value),
             disabledDisplay: 'hidden' as const,
             setValue: vi.fn(),
+            writeSource: computed(() => writeSourceSig.value),
         },
         // Expose setters for test control
         setLabel: (v: string) => { labelSig.value = v; },

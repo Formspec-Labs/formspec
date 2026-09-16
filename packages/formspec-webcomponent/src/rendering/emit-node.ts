@@ -335,6 +335,7 @@ export function renderActualComponent(
             rerender: () => host.render(),
             getFieldVM: (fieldPath: string) => host.engine.getFieldVM(fieldPath),
             fieldHelp: (fieldPath: string) => host.resolveFieldHelp(fieldPath),
+            announceAssistFill: (label: string) => host.announceAssistFill(label),
         },
         adapterContext: adapterContextFor(host, cleanupFns),
     };

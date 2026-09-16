@@ -125,6 +125,8 @@ export interface RenderHost {
     findItemByKey(key: string, items?: FormItem[]): FormItem | null;
     /** Human-facing References bound to `fieldPath`, in presentation order (References spec §7). */
     resolveFieldHelp(fieldPath: string): readonly FieldHelpReference[];
+    /** Announce an assistant-written field by label, batched per frame into one live-region message (assist-spec §8). */
+    announceAssistFill(label: string): void;
     _registryEntries: Map<string, RegistryEntry>;
     submit(options?: {
         profile?: ValidationProfile;

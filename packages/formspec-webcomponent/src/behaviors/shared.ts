@@ -1,12 +1,13 @@
 /** @filedesc Shared utilities for behavior hooks: path resolution, ID generation, token stripping, shared bind helpers. */
 import { effect, untracked, Signal } from '@preact/signals-core';
-import { type PresentationBlock, COMPATIBILITY_MATRIX, isRichText, parseRichText, richTextToPlain } from '@formspec-org/layout';
+import { type PresentationBlock, COMPATIBILITY_MATRIX } from '@formspec-org/layout';
 import type { RegistryEntry } from '@formspec-org/types';
 import type { ResolvedPresentationBlock, FieldRefs, BehaviorContext } from './types';
 import type { FieldViewModel } from '@formspec-org/engine';
 import { writeRichText } from '../adapters/rich-text-dom.js';
 import { createFieldHelpLink, DEFAULT_FIELD_HELP_LABEL } from '../adapters/field-help-link.js';
 import { uiText } from '../adapters/ui-text.js';
+import { plainText, toolText, TOOL_PARAM_DESCRIPTION_MAX } from '../adapters/tool-text.js';
 
 /** Registry entry metadata is an open object in schema; narrow for behavior reads. */
 export function readRegistryMetadata(entry: RegistryEntry | undefined): Record<string, unknown> {
@@ -120,16 +121,6 @@ function showFieldText(
     if (!el) return;
     writeRichText(el, template, { interpolate });
     el.hidden = !resolved;
-}
-
-/**
- * An authored string as plain text: the structure the author wrote (core §4.2.1 subset) flattened first, the
- * `{{}}` leaves filled after — so a respondent's value never opens a markup boundary, and no markup reaches an
- * attribute.
- */
-function plainFieldText(template: string | null | undefined, interpolate: (template: string) => string): string {
-    const source = template ?? '';
-    return interpolate(isRichText(source) ? richTextToPlain(parseRichText(source)) : source);
 }
 
 /** Set (or with `null`, remove) an attribute only when it changes: field effects re-run on every touch. */
@@ -253,13 +244,14 @@ export function bindSharedFieldEffects(
     }
 
     // Assist spec §8.2: every named control describes itself to the browser-synthesized WebMCP tool — the hint,
-    // else the label, as plain text — and follows the Locale like the visible text does. A rebuilt option set
-    // re-renders the field, so every control the adapter named is here when this runs. An option group's
-    // fieldset carries it too: a synthesizer folds same-named radios into one property and reads the group.
+    // else the label, as plain text within the §8.2 cap — and follows the Locale like the visible text does. A
+    // rebuilt option set re-renders the field, so every control the adapter named is here when this runs. An
+    // option group's fieldset carries it too: a synthesizer folds same-named radios into one property and reads
+    // the group.
     disposers.push(effect(() => {
         const interpolate = vm ? vm.interpolate : (template: string) => template;
-        const description = plainFieldText(vm ? vm.hintTemplate.value : refs.hint?.textContent, interpolate)
-            || plainFieldText(vm ? vm.labelTemplate.value : labelText, interpolate);
+        const description = toolText(vm ? vm.hintTemplate.value : refs.hint?.textContent, TOOL_PARAM_DESCRIPTION_MAX, interpolate)
+            || toolText(vm ? vm.labelTemplate.value : labelText, TOOL_PARAM_DESCRIPTION_MAX, interpolate);
         const described = refs.root.querySelectorAll('input[name], select[name], textarea[name]');
         for (const el of refs.root instanceof HTMLFieldSetElement ? [refs.root, ...described] : described) {
             syncAttribute(el, 'toolparamdescription', description || null);
@@ -369,6 +361,26 @@ export function bindSharedFieldEffects(
         refs.root.removeEventListener('focusout', markTouched);
         refs.root.removeEventListener('change', markTouched);
     });
+
+    // Assist spec §8 (draft.3 C6): a field the assistant wrote wears `data-formspec-agent-filled` (the adapters'
+    // style hook) until the respondent edits it, and is touched at once — its validation shows without a blur,
+    // since nobody will blur it. The write is announced once, on the transition: a field that mounts already
+    // assistant-written (a re-render) keeps its mark and validation but says nothing again.
+    if (vm) {
+        let mounted = false;
+        disposers.push(effect(() => {
+            const byAssist = vm.writeSource.value === 'assist';
+            // Untracked: the touch bump reads `touchedVersion`, and the label follows the Locale — neither re-announces.
+            untracked(() => {
+                syncAttribute(refs.root, 'data-formspec-agent-filled', byAssist ? '' : null);
+                if (byAssist) {
+                    markTouched();
+                    if (mounted) ctx.announceAssistFill?.(plainText(vm.labelTemplate.value, vm.interpolate));
+                }
+                mounted = true;
+            });
+        }));
+    }
 
     return disposers;
 }
