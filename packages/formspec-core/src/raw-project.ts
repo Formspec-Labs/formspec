@@ -83,7 +83,7 @@ import {
 } from './queries/index.js';
 import { evalFELWithTrace, type FelTraceResult } from '@formspec-org/engine/fel-runtime';
 import { exportComponentTree, importComponentTree } from './component-export.js';
-import { indexRegistryPayload } from './registry-index.js';
+import { indexRegistryPayload, syncAuthoredRegistries } from './registry-index.js';
 import { normalizeBindsFromUnknown } from './definition-binds.js';
 import {
   withComponentEnvelope,
@@ -167,7 +167,7 @@ function createDefaultState(options?: ProjectOptions): ProjectState {
     }
   }
 
-  return {
+  const state: ProjectState = {
     definition,
     component: componentState ?? createComponentArtifact(url),
     theme,
@@ -179,19 +179,24 @@ function createDefaultState(options?: ProjectOptions): ProjectState {
     screener: options?.seed?.screener ?? null,
     experience: options?.seed?.experience ?? null,
     responseActions: options?.seed?.responseActions ?? null,
+    ontology: options?.seed?.ontology ?? null,
+    registries: { ...(options?.seed?.registries ?? {}) },
     versioning: options?.seed?.versioning ?? {
       baseline: structuredClone(definition),
       releases: [],
     },
   };
+  syncAuthoredRegistries(state);
+  return state;
 }
 
 /**
  * Central editing surface for a Formspec artifact bundle.
  *
- * Manages four co-evolving artifacts (definition, component, theme, mapping)
- * plus extension registries and version history. Every mutation flows through a
- * command-dispatch pipeline. Queries are delegated to pure functions in `queries/`.
+ * Manages four co-evolving artifacts (definition, component, theme, mapping), the
+ * standalone sidecars (screener, experience, response actions, ontology, authored
+ * registries), plus the extension index and version history. Every mutation flows
+ * through a command-dispatch pipeline. Queries are delegated to pure functions in `queries/`.
  */
 export class RawProject implements IProjectCore {
   private _state: ProjectState;
@@ -392,6 +397,14 @@ export class RawProject implements IProjectCore {
     }
     if (this._state.responseActions) {
       bundle.responseActions = this._state.responseActions;
+    }
+    // Both serialized from authored state, never from the derived `extensions.registries`
+    // rows (the index injects a `url` the author never wrote).
+    if (this._state.ontology) {
+      bundle.ontology = this._state.ontology;
+    }
+    if (Object.keys(this._state.registries).length > 0) {
+      bundle.registries = this._state.registries;
     }
 
     return structuredClone(bundle);

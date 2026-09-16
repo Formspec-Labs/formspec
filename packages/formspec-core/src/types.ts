@@ -3,6 +3,7 @@ import type { SchemaValidator } from '@formspec-org/engine/fel-tools';
 import type {
   FormItem, FormDefinition, ComponentDocument, ThemeDocument, MappingDocument,
   ScreenerDocument, ExperienceDocument, ResponseActionsDocument,
+  OntologyDocument, RegistryDocument,
   FieldRule, TargetSchema,
 } from '@formspec-org/types';
 
@@ -12,6 +13,7 @@ export type {
   FormItem, FormBind, FormShape, FormVariable, FormInstance, FormOption,
   FormDefinition, ComponentDocument, ThemeDocument, MappingDocument,
   ScreenerDocument, ExperienceDocument, ResponseActionsDocument,
+  OntologyDocument, RegistryDocument,
 } from '@formspec-org/types';
 
 // ── Internal content types ──────────────────────────────────────────
@@ -77,10 +79,12 @@ export type { LocaleState };
 // ── Extension state ──────────────────────────────────────────────────
 
 /**
- * Read-only extension state loaded into a project.
+ * Read-only extension state: every registry the project resolves against, indexed.
  *
- * Registries provide custom data types, FEL functions, constraints, and properties.
- * They are reference data -- the project loads them but does not author them.
+ * Registries provide custom data types, FEL functions, constraints, properties, and concepts.
+ * Rows come from two sources and are never authored here: registries a host loads for
+ * resolution (`project.loadRegistry`), and the project's own authored documents in
+ * {@link ProjectState.registries}, re-indexed on every `registry.*` write.
  */
 export interface ExtensionsState {
   /** All extension registries currently loaded into the project. */
@@ -98,6 +102,11 @@ export interface LoadedRegistry {
   document: unknown;
   /** Extension entries keyed by name. Plain object for JSON serializability. */
   entries: Record<string, unknown>;
+  /**
+   * The {@link ProjectState.registries} id this row was derived from. Absent on a
+   * host-loaded registry. Derived rows are rebuilt from the authored document, never edited.
+   */
+  authoredId?: string;
 }
 
 // ── Versioning state ─────────────────────────────────────────────────
@@ -164,6 +173,13 @@ export interface ProjectState {
   experience: ExperienceDocument | null;
   /** Standalone Response Actions Document, or null if no response-actions are loaded. */
   responseActions: ResponseActionsDocument | null;
+  /** The one authored Ontology Document (concept bindings by path), or null when none. */
+  ontology: OntologyDocument | null;
+  /**
+   * Authored Registry Documents keyed by id (`default` is the bundle's own; another id is a
+   * foreign stem). Stored verbatim; the resolution index in {@link extensions} is derived.
+   */
+  registries: Record<string, RegistryDocument>;
   /** Baseline snapshot and release history for changelog generation. */
   versioning: VersioningState;
 }

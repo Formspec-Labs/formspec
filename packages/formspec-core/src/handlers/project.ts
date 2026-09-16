@@ -16,7 +16,7 @@ import { generatedWidgetMoves, moveGeneratedWidgets } from '../tree-reconciler.j
 import { mappingStateFromDocument, themeStateFromDocument } from '../document-envelopes.js';
 import { normalizeBindsFromUnknown } from '../definition-binds.js';
 import { normalizeBcp47 } from '@formspec-org/engine';
-import { indexRegistryPayload } from '../registry-index.js';
+import { indexRegistryPayload, syncAuthoredRegistries } from '../registry-index.js';
 
 export const projectHandlers = {
 
@@ -113,6 +113,13 @@ export const projectHandlers = {
     if (p.responseActions !== undefined || replace) {
       state.responseActions = p.responseActions ?? null;
     }
+    if (p.ontology !== undefined || replace) {
+      state.ontology = p.ontology ?? null;
+    }
+    if (p.registries !== undefined || replace) {
+      state.registries = { ...(p.registries ?? {}) };
+      syncAuthoredRegistries(state);
+    }
 
     // A replaced project starts its own history of versions: the changelog baseline and
     // releases described the form it replaced. Loaded registries are workspace setup and stay.
@@ -173,6 +180,11 @@ export const projectHandlers = {
 
   'project.removeRegistry': (state, payload) => {
     const { url } = payload as { url: string };
+    // A derived row is the authored document's projection: removing it removes the document,
+    // or the next sync would put the row straight back.
+    for (const row of state.extensions.registries) {
+      if (row.url === url && row.authoredId !== undefined) delete state.registries[row.authoredId];
+    }
     state.extensions.registries = state.extensions.registries.filter(r => r.url !== url);
     return { rebuildComponentTree: false };
   },
