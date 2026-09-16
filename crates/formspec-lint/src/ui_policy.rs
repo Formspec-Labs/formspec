@@ -1,4 +1,4 @@
-//! Shared UI authoring policy loaded from `specs/ui-policy.json`.
+//! Shared UI authoring policy loaded from `specs/ui-policy.json` (the crate ships a mirror; `make sync-lint-schemas` refreshes it, a test keeps it byte-identical).
 
 #![allow(clippy::missing_docs_in_private_items)]
 
@@ -7,7 +7,7 @@ use std::sync::OnceLock;
 
 use serde::Deserialize;
 
-const POLICY_JSON: &str = include_str!("../../../specs/ui-policy.json");
+const POLICY_JSON: &str = include_str!("../specs/ui-policy.json");
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

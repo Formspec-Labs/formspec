@@ -1,0 +1,1465 @@
+{
+  "$schema": "https://formspec.org/schemas/lint-registry.schema.json",
+  "version": "1.0",
+  "description": "Canonical registry of Formspec lint rule codes. Tested rules carry a normative spec pointer (specRef) and an imperative repair hint (suggestedFix) that the authoring loop surfaces to LLMs. Draft entries exist so every emitted code is discoverable \u2014 fill them in as rules graduate.",
+  "rules": [
+    {
+      "code": "E100",
+      "pass": 1,
+      "severity": "error",
+      "title": "Cannot determine document type",
+      "specRef": "specs/core/spec.md#21-core-abstractions",
+      "suggestedFix": "add a recognizable Formspec root (`items`, `components`, or `tokens`) so the document type can be detected",
+      "fixtures": [
+        "tests/fixtures/lint/E100-unknown-document-type.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E101",
+      "pass": 1,
+      "severity": "error",
+      "title": "Schema violation",
+      "specRef": "specs/core/spec.md#4-definition-schema",
+      "suggestedFix": "align the document with schemas/*.schema.json \u2014 fix the flagged property or value",
+      "fixtures": [
+        "tests/fixtures/lint/E101-schema-violation.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E200",
+      "pass": 2,
+      "severity": "error",
+      "title": "Duplicate item key",
+      "specRef": "specs/core/spec.md#213-item",
+      "suggestedFix": "rename one of the duplicate item keys \u2014 each `key` must be unique across the entire Definition",
+      "fixtures": [
+        "tests/fixtures/lint/E200-duplicate-item-key.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E201",
+      "pass": 2,
+      "severity": "error",
+      "title": "Duplicate item full path",
+      "specRef": "specs/core/spec.md#213-item",
+      "suggestedFix": "remove the duplicate item at this path, or re-key one instance so full paths are unique",
+      "fixtures": [
+        "tests/fixtures/lint/E201-duplicate-item-path.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E300",
+      "pass": 3,
+      "severity": "error",
+      "title": "Bind target not found",
+      "specRef": "specs/core/spec.md#433-path-syntax",
+      "suggestedFix": "change bind target to match an item key, or add the missing item to `items`",
+      "fixtures": [
+        "tests/fixtures/lint/E300-unresolved-bind-target.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E301",
+      "pass": 3,
+      "severity": "error",
+      "title": "Shape target references unknown item",
+      "specRef": "specs/core/spec.md#215-validation-shape",
+      "suggestedFix": "point the shape target at an existing item path, or add the referenced item to `items`",
+      "fixtures": [
+        "tests/fixtures/lint/E301-shape-target-unknown-item.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E302",
+      "pass": 3,
+      "severity": "error",
+      "title": "Undefined option set reference",
+      "specRef": "specs/core/spec.md#46-option-sets",
+      "suggestedFix": "define the named option set under `optionSets`, or change the item's `optionSet` reference",
+      "fixtures": [
+        "tests/fixtures/lint/E302-undefined-option-set.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W300",
+      "pass": 3,
+      "severity": "warning",
+      "title": "Incompatible dataType for optionSet",
+      "specRef": "specs/core/spec.md#46-option-sets",
+      "suggestedFix": "change dataType to one of string/integer/decimal/choice/multiChoice, or drop the optionSet",
+      "fixtures": [
+        "tests/fixtures/lint/W300-incompatible-optionset-datatype.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E400",
+      "pass": 4,
+      "severity": "error",
+      "title": "FEL expression failed to parse",
+      "specRef": "../fel-core/specs/fel/fel-grammar.md#4-expression-grammar",
+      "suggestedFix": "fix the FEL syntax to match the grammar \u2014 check operators, quotes, and path references",
+      "fixtures": [
+        "tests/fixtures/lint/E400-fel-parse-error.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E500",
+      "pass": 5,
+      "severity": "error",
+      "title": "Dependency cycle",
+      "specRef": "specs/core/spec.md#362-topological-ordering",
+      "suggestedFix": "break the dependency cycle \u2014 remove one bind's reference to the other",
+      "fixtures": [
+        "tests/fixtures/lint/E500-dependency-cycle.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E600",
+      "pass": 3,
+      "severity": "error",
+      "title": "Unresolved extension",
+      "specRef": "specs/core/spec.md#85-extension-namespaces",
+      "suggestedFix": "declare the extension in a loaded registry, or remove the extension key",
+      "fixtures": [
+        "tests/fixtures/lint/E600-unresolved-extension.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E601",
+      "pass": 3,
+      "severity": "warning",
+      "title": "Retired extension",
+      "specRef": "specs/registry/extension-registry.md#6-extension-lifecycle",
+      "suggestedFix": "stop using this retired extension \u2014 migrate to its replacement or remove the key",
+      "fixtures": [
+        "tests/fixtures/lint/E601-retired-extension.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E602",
+      "pass": 3,
+      "severity": "info",
+      "title": "Deprecated extension",
+      "specRef": "specs/registry/extension-registry.md#6-extension-lifecycle",
+      "suggestedFix": "plan migration away from this deprecated extension before it is retired",
+      "fixtures": [
+        "tests/fixtures/lint/E602-deprecated-extension.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E603",
+      "pass": 3,
+      "severity": "error",
+      "title": "Module-extensible enum value resolves no closed-core OR declared-module contribution",
+      "specRef": "specs/registry/extension-registry.md#4-naming-rules",
+      "suggestedFix": "add the contributing module to the document's `modules[]` declaration, or change the value to a closed-core member of the enum",
+      "fixtures": [
+        "tests/fixtures/lint/E603-module-enum-unresolved.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E604",
+      "pass": 3,
+      "severity": "error",
+      "title": "Module contribution payload mismatches the contributing module's declared payload schema (MODULE-PAYLOAD-SCHEMA-MISMATCH)",
+      "specRef": "specs/registry/extension-registry.md#32-category-specific-properties",
+      "suggestedFix": "align the consuming-document value to the contributing module's payload schema (widget.widgetShape.props, slot-type.slotShape, unit-kind.semantics, validation-mapping-row.row, or token-category.categoryShape); future module-contributed `Component.component: x-...` widget admittance gates through this pass per ADR 0150 §4.5 (deferred from Task 5)",
+      "fixtures": [
+        "tests/fixtures/lint/E604-module-payload-schema-mismatch.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E605",
+      "pass": 3,
+      "severity": "error",
+      "title": "Component node id collides with another node in the bundle (COMP-BUNDLE-ID-COLLISION)",
+      "specRef": "specs/component/component-spec.md#31-component-object-base-properties",
+      "suggestedFix": "stamp bundle-unique ids by prefixing colliding ids with the owning Component document's stem (e.g. `headerLogo` in `dashboard.component.json` -> `dashboard.headerLogo`)",
+      "fixtures": [
+        "tests/fixtures/lint/E605-comp-bundle-id-collision/"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E608",
+      "pass": 3,
+      "severity": "error",
+      "title": "Document module fails posture field-equality admission (POSTURE-MODULE-ADMISSION-DENIED)",
+      "specRef": "specs/registry/extension-registry.md#posture-admission",
+      "suggestedFix": "change the document modules[] entry to match a posture allowedModules[] row, or widen the posture entry by omitting fields that should admit any document-side value",
+      "fixtures": [
+        "tests/fixtures/lint/E608-posture-module-admission-denied.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E609",
+      "pass": 3,
+      "severity": "error",
+      "title": "Authoring actor URN is absent from posture.allowedActors[] (POSTURE-ACTOR-ADMISSION-DENIED)",
+      "specRef": "specs/registry/extension-registry.md#posture-admission",
+      "suggestedFix": "add the actor URN to posture.allowedActors[] or change generatedBy/actor to an admitted AuthorActor id",
+      "fixtures": [
+        "tests/fixtures/lint/E609-posture-actor-admission-denied.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E606",
+      "pass": 8,
+      "severity": "error",
+      "title": "Surface route is not reachable from the entry route (SURFACE-ROUTE-UNREACHABLE)",
+      "specRef": "specs/surface/surface-spec.md#route-graph-reachability",
+      "suggestedFix": "add a transition from a reachable route, embed the unreachable route via an embed-route slot, or remove the unreachable route declaration",
+      "fixtures": [
+        "tests/fixtures/lint/E606-surface-route-unreachable.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E607",
+      "pass": 8,
+      "severity": "error",
+      "title": "Surface embed-route slot binding references a route that does not exist in this surface (SURFACE-SLOT-BINDING-UNRESOLVED)",
+      "specRef": "specs/surface/surface-spec.md#slot-binding-validity",
+      "suggestedFix": "change binding.routeRef to an existing route id in this surface's routes[], or add the missing route declaration",
+      "fixtures": [
+        "tests/fixtures/lint/E607-surface-slot-binding-unresolved.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E610",
+      "pass": 8,
+      "severity": "error",
+      "title": "Surface route parameter declaration or edge binding is incomplete (SURFACE-ROUTE-PARAM-MISSING)",
+      "specRef": "specs/surface/surface-spec.md#route-parameters",
+      "suggestedFix": "align routes[].params[] with the route path's simple {name} markers, then add any missing target parameter key to transitions[].params or embed-route.binding.params",
+      "fixtures": [
+        "tests/fixtures/lint/E610-surface-route-param-missing.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E611",
+      "pass": 8,
+      "severity": "warning",
+      "title": "Surface transition has no validator-readable trigger source (SURFACE-TRANSITION-UNFIREABLE)",
+      "specRef": "specs/surface/surface-shell-spec.md#54-e611--catching-it-before-publication",
+      "suggestedFix": "add a definition-form source, map a Registry-declared widget output to this exact Response Action, embed a route that has one of those sources, or remove the transition",
+      "fixtures": [
+        "tests/conformance/fixtures/app-graph-validator/surface-response-action-triggers.case.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E612",
+      "pass": 8,
+      "severity": "error",
+      "title": "Surface widget action binding names an undeclared output or unresolved action (SURFACE-WIDGET-ACTION-REF)",
+      "specRef": "specs/app-graph/app-graph-validator-spec.md#71-vnext-surface-graph-diagnostics",
+      "suggestedFix": "declare the output in Registry widgetShape.actionOutputs and map it to one exact loaded Response Actions action id",
+      "fixtures": [
+        "tests/conformance/fixtures/app-graph-validator/surface-vnext-cross-artifact.case.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W700",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Invalid color token value",
+      "specRef": "specs/theme/theme-spec.md#32-token-categories",
+      "suggestedFix": "use a valid CSS color (hex, rgb/rgba, hsl/hsla, or named color) for this color token",
+      "fixtures": [
+        "tests/fixtures/lint/W700-invalid-color-token.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W701",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Invalid size token value",
+      "specRef": "specs/theme/theme-spec.md#32-token-categories",
+      "suggestedFix": "use a valid CSS length with unit (px, rem, em, %, \u2026) for this size token",
+      "fixtures": [
+        "tests/fixtures/lint/W701-invalid-size-token.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W702",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Invalid font weight token value",
+      "specRef": "specs/theme/theme-spec.md#32-token-categories",
+      "suggestedFix": "set font weight to a 100-step numeric (100\u2026900) or a recognized keyword (normal, bold, \u2026)",
+      "state": "tested",
+      "fixtures": [
+        "tests/fixtures/lint/W702-invalid-font-weight-token.json"
+      ]
+    },
+    {
+      "code": "W703",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Invalid duration or easing token value",
+      "specRef": "specs/theme/theme-spec.md#32-token-categories",
+      "suggestedFix": "use a valid duration (e.g. `200ms`) or an easing function (`ease-in`, `cubic-bezier(...)`)",
+      "state": "tested",
+      "fixtures": [
+        "tests/fixtures/lint/W703-invalid-number-token.json"
+      ]
+    },
+    {
+      "code": "W704",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Unresolved token reference",
+      "specRef": "specs/theme/theme-spec.md#34-token-resolution",
+      "suggestedFix": "define the token in your theme's tokens map, or use an existing token",
+      "fixtures": [
+        "tests/fixtures/lint/W704-unresolved-token-reference.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W705",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Theme item key not in paired definition",
+      "specRef": "specs/theme/theme-spec.md#54-level-3-item-key-overrides",
+      "suggestedFix": "remove the `items` override, or add an item with this key to the paired definition",
+      "fixtures": [
+        "tests/fixtures/lint/W705-theme-item-key-not-in-definition.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W706",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Page region references unknown item key",
+      "specRef": "specs/theme/theme-spec.md#63-regions-and-item-keys",
+      "suggestedFix": "change the region `key` to match an item path in the definition, or add that item",
+      "fixtures": [
+        "tests/fixtures/lint/W706-page-region-key-unknown.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W707",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Theme targetDefinition.url does not match paired definition",
+      "specRef": "specs/theme/theme-spec.md#22-target-definition-binding",
+      "suggestedFix": "align `targetDefinition.url` with the definition's `url`, or pair with the correct definition",
+      "fixtures": [
+        "tests/fixtures/lint/W707-target-definition-url-mismatch.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W708",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Unknown non-extension token",
+      "specRef": "specs/theme/theme-spec.md#31-token-structure",
+      "suggestedFix": "rename the token to a known category, or namespace custom tokens under an `x-` prefix",
+      "fixtures": [
+        "tests/fixtures/lint/W708-unknown-non-extension-token.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W709",
+      "pass": 6,
+      "severity": "info",
+      "title": "Platform token not declared",
+      "specRef": "specs/theme/theme-spec.md#31-token-structure",
+      "suggestedFix": "declare this token under `tokens` to set a project-specific default; otherwise the platform default applies \u2014 no action required",
+      "fixtures": [
+        "tests/fixtures/lint/W709-platform-token-not-declared.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E710",
+      "pass": 6,
+      "severity": "error",
+      "title": "Duplicate page id",
+      "specRef": "specs/theme/theme-spec.md#61-pages-array",
+      "suggestedFix": "rename one of the duplicate page IDs \u2014 each `pages[].id` must be unique",
+      "fixtures": [
+        "tests/fixtures/lint/E710-duplicate-page-id.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W711",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Responsive breakpoint references unknown page region",
+      "specRef": "specs/theme/theme-spec.md#64-responsive-breakpoints",
+      "suggestedFix": "declare the breakpoint under `theme.breakpoints`, or remove the unused `responsive` entry",
+      "fixtures": [
+        "tests/fixtures/lint/W711-responsive-breakpoint-undeclared.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W712",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Theme widget is incompatible with definition dataType",
+      "specRef": "specs/theme/theme-spec.md#43-cascade-level-3-item-overrides",
+      "suggestedFix": "choose a compatible widget, or set Select widgetConfig.multiple when targeting multiChoice fields",
+      "fixtures": [
+        "tests/fixtures/lint/W712-theme-widget-datatype-incompatible.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W714",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Effective Theme color pair does not meet its contrast floor",
+      "specRef": "specs/theme/theme-spec.md#38-effective-contrast-pairs",
+      "suggestedFix": "adjust either effective color token so the declared or inferred pair meets its usage contrast floor",
+      "fixtures": [
+        "tests/fixtures/lint/W714-theme-contrast-regression.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E800",
+      "pass": 7,
+      "severity": "error",
+      "title": "Component tree root must be a layout component",
+      "specRef": "specs/component/component-spec.md#32-component-tree-semantics-single-root",
+      "suggestedFix": "wrap the root in a layout component (e.g. `Section`, `Stack`, `Grid`)",
+      "fixtures": [
+        "tests/fixtures/lint/E800-non-layout-root.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E801",
+      "pass": 7,
+      "severity": "error",
+      "title": "Unknown built-in component",
+      "specRef": "specs/component/component-spec.md#5-built-in-components--core-18",
+      "suggestedFix": "use a built-in component type, or define this type in `components` as a custom component",
+      "fixtures": [
+        "tests/fixtures/lint/E801-unknown-component.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E802",
+      "pass": 7,
+      "severity": "error",
+      "title": "Component incompatible with field dataType",
+      "specRef": "specs/component/component-spec.md#46-binddatatype-compatibility-matrix",
+      "suggestedFix": "pick a component whose matrix accepts this field's `dataType`, or change the field type",
+      "fixtures": [
+        "tests/fixtures/lint/E802-component-incompatible-datatype.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E803",
+      "pass": 7,
+      "severity": "error",
+      "title": "Component requires options but field provides none",
+      "specRef": "specs/component/component-spec.md#46-binddatatype-compatibility-matrix",
+      "suggestedFix": "add `optionSet` or inline `options` to the bound field, or switch to a component that takes no options",
+      "fixtures": [
+        "tests/fixtures/lint/E803-component-requires-options.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E804",
+      "pass": 7,
+      "severity": "error",
+      "title": "Formatted-variant TextInput must bind to string field",
+      "specRef": "specs/component/component-spec.md#56-textinput",
+      "suggestedFix": "bind a formatted TextInput (variant: richtext, markdown, or latex) to a field whose dataType is string or text, or set variant back to plain",
+      "state": "tested",
+      "fixtures": [
+        "tests/fixtures/lint/E804-richtext-must-bind-string.json",
+        "tests/fixtures/lint/E804-markdown-must-bind-string.json",
+        "tests/fixtures/lint/E804-latex-must-bind-string.json"
+      ]
+    },
+    {
+      "code": "E805",
+      "pass": 7,
+      "severity": "error",
+      "title": "Component and Theme assign a field to incompatible pages",
+      "specRef": "specs/component/component-spec.md#32-component-tree-semantics-single-root",
+      "suggestedFix": "align the Theme page region with the Component direct-root Section, or remove the shadowed Theme page layout",
+      "fixtures": [
+        "tests/fixtures/lint/E805-theme-component-page-conflict.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E806",
+      "pass": 7,
+      "severity": "error",
+      "title": "Custom component instance missing required param",
+      "specRef": "specs/component/component-spec.md#7-custom-components",
+      "suggestedFix": "provide every parameter the custom component declares in its `params`, or remove the instance",
+      "fixtures": [
+        "tests/fixtures/lint/E806-custom-component-missing-param.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E807",
+      "pass": 7,
+      "severity": "error",
+      "title": "Custom component reference cycle",
+      "specRef": "specs/component/component-spec.md#74-recursion-prohibition-and-cycle-detection",
+      "suggestedFix": "break the custom-component cycle \u2014 a component must not transitively reference itself",
+      "fixtures": [
+        "tests/fixtures/lint/E807-custom-component-cycle.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W805",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Theme pages shadowed by Component page structure",
+      "specRef": "specs/component/component-spec.md#32-component-tree-semantics-single-root",
+      "suggestedFix": "remove Theme pages when the Component tree owns page Sections, or keep them only as inactive authoring hints",
+      "fixtures": [
+        "tests/fixtures/lint/W805-theme-pages-shadowed-by-component-sections.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W806",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Unsupported Component responsive override property",
+      "specRef": "specs/component/component-spec.md#8-responsive-model",
+      "suggestedFix": "move structural changes out of responsive overrides, or use a prop allowed for that component in specs/ui-policy.json",
+      "fixtures": [
+        "tests/fixtures/lint/W806-component-responsive-prop-unsupported.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W807",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Component and Theme breakpoint values differ",
+      "specRef": "specs/component/component-spec.md#8-responsive-model",
+      "suggestedFix": "make same-name Theme and Component breakpoints use the same pixel value, or rename one breakpoint",
+      "fixtures": [
+        "tests/fixtures/lint/W807-component-theme-breakpoint-mismatch.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W800",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Component bind does not resolve to a field",
+      "specRef": "specs/component/component-spec.md#42-bind-resolution-rules",
+      "suggestedFix": "point bind at an existing field key, or add that field to the definition",
+      "fixtures": [
+        "tests/fixtures/lint/W800-component-bind-unresolved.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W801",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Layout/container component should not declare a bind",
+      "specRef": "specs/component/component-spec.md#42-bind-resolution-rules",
+      "suggestedFix": "remove `bind` from layout/container components \u2014 only input components bind to fields",
+      "fixtures": [
+        "tests/fixtures/lint/W801-layout-has-bind.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W802",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Component compatibility warning (loose match)",
+      "specRef": "specs/component/component-spec.md#46-binddatatype-compatibility-matrix",
+      "suggestedFix": "pick a component whose dataType matrix includes this field's type",
+      "fixtures": [
+        "tests/fixtures/lint/W802-component-loose-compatibility.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W803",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Multiple editable inputs bind to the same field",
+      "specRef": "specs/component/component-spec.md#43-editable-binding-uniqueness",
+      "suggestedFix": "keep only one editable input bound to each field \u2014 move extra inputs to a different field",
+      "fixtures": [
+        "tests/fixtures/lint/W803-duplicate-editable-bind.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W804",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Duplicate bind in component tree",
+      "specRef": "specs/component/component-spec.md#42-bind-resolution-rules",
+      "suggestedFix": "remove one of the duplicated binds \u2014 a single field MUST NOT be bound by more than one component in the same tree",
+      "fixtures": [
+        "tests/fixtures/lint/W804-duplicate-bind-any-component.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E900",
+      "pass": 8,
+      "severity": "error",
+      "title": "Signed-payload responseId does not match top-level Response id",
+      "specRef": "specs/core/spec.md#216-response",
+      "suggestedFix": "set authoredSignatures[*].signedPayload.responseId to the top-level Response id, or correct the top-level id \u2014 the pin MUST match",
+      "fixtures": [
+        "tests/fixtures/lint/E900-signed-payload-response-id-mismatch.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E901",
+      "pass": 8,
+      "severity": "error",
+      "title": "Signed-payload definitionUrl does not match top-level Response definitionUrl",
+      "specRef": "specs/core/spec.md#216-response",
+      "suggestedFix": "set authoredSignatures[*].signedPayload.definitionUrl to the top-level Response definitionUrl \u2014 the pin MUST match",
+      "fixtures": [
+        "tests/fixtures/lint/E901-signed-payload-definition-url-mismatch.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E902",
+      "pass": 8,
+      "severity": "error",
+      "title": "Signed-payload definitionVersion does not match top-level Response definitionVersion",
+      "specRef": "specs/core/spec.md#216-response",
+      "suggestedFix": "set authoredSignatures[*].signedPayload.definitionVersion to the top-level Response definitionVersion \u2014 the pin MUST match",
+      "fixtures": [
+        "tests/fixtures/lint/E902-signed-payload-definition-version-mismatch.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E1100",
+      "pass": 9,
+      "severity": "error",
+      "title": "Invalid Mapping path syntax",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "fix the Mapping sourcePath, targetPath, defaults key, or projection source path to use the path syntax required by its source or target format",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1101",
+      "pass": 9,
+      "severity": "error",
+      "title": "Mapping FEL expression failed to parse",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "fix the Mapping expression, condition, or reverse.expression so it parses as FEL",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1102",
+      "pass": 9,
+      "severity": "error",
+      "title": "Mapping target write conflict",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "change the conflicting targetPath/default paths so one rule does not write a parent of another written path",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1103",
+      "pass": 9,
+      "severity": "error",
+      "title": "Mapping projection type contradicts enum",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "make projection.targetEnum values match projection.targetType, or remove the contradictory hint",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1104",
+      "pass": 9,
+      "severity": "error",
+      "title": "Mapping projection requiredness contradicts omission",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "do not mark an omitted/drop mapping projection as required, or set projection.emit true and map a target value",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1105",
+      "pass": 9,
+      "severity": "error",
+      "title": "Bidirectional Mapping lossy transform lacks reverse",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "add an explicit reverse block or set bidirectional to false for the lossy transform",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1106",
+      "pass": 9,
+      "severity": "error",
+      "title": "Bidirectional non-injective valueMap lacks reverse map",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "add reverse.valueMap for the non-injective valueMap.forward, or set bidirectional to false",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1100",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Duplicate Mapping target write",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "merge duplicate writes to the same targetPath or make overwrite ordering explicit in documentation",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1101",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Mapping non-static transform lacks projection hints",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "add projection.targetType or projection.targetEnum, or set projection.emit to false when the rule should not appear in static projections",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1110",
+      "pass": 9,
+      "severity": "error",
+      "title": "Mapping source path does not resolve",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "point sourcePath at an item path in the paired Definition or add the missing item",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1111",
+      "pass": 9,
+      "severity": "error",
+      "title": "Mapping inner rule source path does not resolve",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "make array.innerRules[*].sourcePath resolve relative to the active array item scope",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1112",
+      "pass": 9,
+      "severity": "error",
+      "title": "Mapping projection source path does not resolve",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "point projection.sourcePaths entries at Definition item paths or active array item paths",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1113",
+      "pass": 9,
+      "severity": "error",
+      "title": "Mapping projection requiredness contradicts Definition",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "align projection.required with Definition-derived requiredness, or remove the requiredness hint",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1110",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Mapping requiredness cannot be inferred statically",
+      "specRef": "specs/mapping/mapping-spec.md#static-semantics-and-lint",
+      "suggestedFix": "simplify the rule or add explicit projection.required only when the requiredness contract is intentional",
+      "fixtures": ["tests/fixtures/lint/E1100-mapping-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1200",
+      "pass": 9,
+      "severity": "error",
+      "title": "Invalid Ontology item path syntax",
+      "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
+      "suggestedFix": "change the Ontology concepts key or alignment field to valid Formspec item-path syntax",
+      "fixtures": ["tests/fixtures/lint/E1200-ontology-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1201",
+      "pass": 9,
+      "severity": "error",
+      "title": "Ontology targetDefinition URL mismatch",
+      "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
+      "suggestedFix": "set targetDefinition.url to the paired Definition url",
+      "fixtures": ["tests/fixtures/lint/E1200-ontology-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1202",
+      "pass": 9,
+      "severity": "error",
+      "title": "Ontology static value looks dynamic",
+      "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
+      "suggestedFix": "replace FEL-looking Ontology static values with literal ontology metadata",
+      "fixtures": ["tests/fixtures/lint/E1200-ontology-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1200",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology compatibleVersions mismatch",
+      "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
+      "suggestedFix": "adjust targetDefinition.compatibleVersions so it includes the paired Definition version",
+      "fixtures": ["tests/fixtures/lint/E1200-ontology-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1201",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology concept path unresolved",
+      "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
+      "suggestedFix": "point the concepts key at an item path in the paired Definition",
+      "fixtures": ["tests/fixtures/lint/E1200-ontology-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1202",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology alignment field unresolved",
+      "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
+      "suggestedFix": "point alignments[*].field at an item path in the paired Definition",
+      "fixtures": ["tests/fixtures/lint/E1200-ontology-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1203",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology vocabulary option set unresolved",
+      "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
+      "suggestedFix": "rename the vocabulary key to match a Definition optionSets key",
+      "fixtures": ["tests/fixtures/lint/E1200-ontology-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1204",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology vocabulary valueMap key unresolved",
+      "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
+      "suggestedFix": "make vocabulary valueMap keys match option values in the referenced option set",
+      "fixtures": ["tests/fixtures/lint/E1200-ontology-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1205",
+      "pass": 9,
+      "severity": "info",
+      "title": "Ontology concept resolves its system from defaultSystem",
+      "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
+      "suggestedFix": "nothing, when the fallback is intended; add an explicit system only where a binding belongs to a different scheme",
+      "fixtures": ["tests/fixtures/lint/W1205-ontology-default-system.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1206",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology concept omits system with no defaultSystem",
+      "specRef": "specs/ontology/ontology-spec.md#static-semantics-and-lint",
+      "suggestedFix": "add system on the concept binding or define a document-level defaultSystem",
+      "fixtures": ["tests/fixtures/lint/E1200-ontology-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1207",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology context term differs from derived",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "align the authored context term with the derived one, or keep the authored override deliberately",
+      "fixtures": [
+        "tests/fixtures/lint/W1207-ontology-context-drift.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1208",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology context missing a derived term",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "add the derived term to context.@context, or regenerate the context from the bindings",
+      "fixtures": [
+        "tests/fixtures/lint/W1207-ontology-context-drift.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1209",
+      "pass": 9,
+      "severity": "info",
+      "title": "Ontology context has an authored-only term",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "no action needed if the extra term is intended; otherwise remove it from context.@context",
+      "fixtures": [
+        "tests/fixtures/lint/W1207-ontology-context-drift.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1210",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology context term collision",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "rename one of the colliding item keys, or bind the enclosing group so its children get a scoped context",
+      "fixtures": [
+        "tests/fixtures/lint/W1210-ontology-context-derivation.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1211",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology binding lost under unbound repeatable group",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "bind the enclosing repeatable group to a concept so its instances and children can lift",
+      "fixtures": [
+        "tests/fixtures/lint/W1210-ontology-context-derivation.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1212",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology binding on a dataType without JSON-LD representation",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "remove the concept binding from the attachment field, or bind its metadata fields instead",
+      "fixtures": [
+        "tests/fixtures/lint/W1210-ontology-context-derivation.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1213",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Ontology concept keys duplicate one item path",
+      "specRef": "specs/ontology/ontology-spec.md#62-auto-generation",
+      "suggestedFix": "keep only the [*] key for the item; the dotted key is ignored when both exist",
+      "fixtures": [
+        "tests/fixtures/lint/W1210-ontology-context-derivation.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E1300",
+      "pass": 9,
+      "severity": "error",
+      "title": "References $ref does not resolve",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "point references[*].$ref at an existing #/referenceDefs/{key} entry",
+      "fixtures": ["tests/fixtures/lint/E1300-references-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1301",
+      "pass": 9,
+      "severity": "error",
+      "title": "References id does not match referenceDefs key",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "make referenceDefs.{key}.id equal the map key, or remove the explicit id",
+      "fixtures": ["tests/fixtures/lint/E1300-references-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1302",
+      "pass": 9,
+      "severity": "error",
+      "title": "Duplicate authored reference id",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "rename one duplicate reference id; repeated $ref reuse is allowed but authored ids must be unique",
+      "fixtures": ["tests/fixtures/lint/E1300-references-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1303",
+      "pass": 9,
+      "severity": "error",
+      "title": "Invalid References target path",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "use # for form-level references or a valid Formspec item path for references[*].target",
+      "fixtures": ["tests/fixtures/lint/E1300-references-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1304",
+      "pass": 9,
+      "severity": "error",
+      "title": "References static field looks dynamic",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "replace FEL-looking Reference metadata with a static literal value",
+      "fixtures": ["tests/fixtures/lint/E1300-references-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1305",
+      "pass": 9,
+      "severity": "error",
+      "title": "References $ref override declares an id",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "remove id from the $ref binding; the referenceDefs key is the resolved reference id",
+      "fixtures": ["tests/fixtures/lint/E1305-references-ref-id-override.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1300",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Unknown References type",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "use a known References type or prefix custom types with x-",
+      "fixtures": ["tests/fixtures/lint/E1300-references-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1301",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Unknown References rel",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "use a known References rel or prefix custom relationship values with x-",
+      "fixtures": ["tests/fixtures/lint/E1300-references-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1310",
+      "pass": 9,
+      "severity": "error",
+      "title": "References targetDefinition URL mismatch",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "set targetDefinition.url to the paired Definition url",
+      "fixtures": ["tests/fixtures/lint/E1300-references-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1310",
+      "pass": 9,
+      "severity": "warning",
+      "title": "References compatibleVersions mismatch",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "adjust targetDefinition.compatibleVersions so it includes the paired Definition version",
+      "fixtures": ["tests/fixtures/lint/E1300-references-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1311",
+      "pass": 9,
+      "severity": "warning",
+      "title": "References target path unresolved",
+      "specRef": "specs/core/references-spec.md#static-semantics-and-lint",
+      "suggestedFix": "point references[*].target at an item path in the paired Definition, or use # for form-level references",
+      "fixtures": ["tests/fixtures/lint/E1300-references-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1400",
+      "pass": 9,
+      "severity": "error",
+      "title": "Locale targetDefinition URL mismatch",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "set targetDefinition.url to the paired Definition url",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1400",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Locale compatibleVersions mismatch",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "adjust targetDefinition.compatibleVersions so it includes the paired Definition version",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1401",
+      "pass": 9,
+      "severity": "error",
+      "title": "Invalid Locale string key namespace or terminal",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "change the string key to a supported Locale namespace and presentation terminal",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1402",
+      "pass": 9,
+      "severity": "error",
+      "title": "Locale item key unresolved",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "key item strings by one bare, unique Item key (`city.label`, not `address.city.label` or `lineItems[0].amount.label`)",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1403",
+      "pass": 9,
+      "severity": "error",
+      "title": "Locale option key unresolved",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "make Locale option or optionSet keys match Definition option values",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1404",
+      "pass": 9,
+      "severity": "error",
+      "title": "Locale shape key unresolved",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "point $shape keys at a shape id in the paired Definition",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1405",
+      "pass": 9,
+      "severity": "error",
+      "title": "Locale interpolation failed to parse",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "fix the FEL expression inside the Locale {{ }} interpolation",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1406",
+      "pass": 9,
+      "severity": "error",
+      "title": "Locale fallback cycle",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "break the locale fallback cycle by changing or removing one fallback",
+      "fixtures": ["tests/fixtures/lint/E1406-locale-fallback-cycle.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1407",
+      "pass": 9,
+      "severity": "error",
+      "title": "Locale key targets non-presentation property",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "localize presentation text only; do not target data constraints or business-logic fields",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1410",
+      "pass": 9,
+      "severity": "error",
+      "title": "Locale page key unresolved",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "point $page keys at a page id in the supplied Theme document",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1411",
+      "pass": 9,
+      "severity": "error",
+      "title": "Locale component key unresolved",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "point $component keys at a node id in the supplied Component documents",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1401",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Locale fallback target not supplied",
+      "specRef": "specs/locale/locale-spec.md#static-semantics-and-lint",
+      "suggestedFix": "supply the fallback Locale document in lint context or remove the explicit fallback",
+      "fixtures": ["tests/fixtures/lint/E1400-locale-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1500",
+      "pass": 9,
+      "severity": "error",
+      "title": "Screener bind path unresolved",
+      "specRef": "specs/screener/screener-spec.md#static-semantics-and-lint",
+      "suggestedFix": "point screener binds at screener item paths; screener binds do not resolve against external Definitions",
+      "fixtures": ["tests/fixtures/lint/E1500-screener-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1501",
+      "pass": 9,
+      "severity": "error",
+      "title": "Screener phase or route graph is invalid",
+      "specRef": "specs/screener/screener-spec.md#static-semantics-and-lint",
+      "suggestedFix": "make phase ids unique and ensure each phase has a valid strategy and route list",
+      "fixtures": ["tests/fixtures/lint/E1500-screener-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1502",
+      "pass": 9,
+      "severity": "error",
+      "title": "Screener conditional route missing condition",
+      "specRef": "specs/screener/screener-spec.md#static-semantics-and-lint",
+      "suggestedFix": "add condition to first-match, fan-out, and override routes",
+      "fixtures": ["tests/fixtures/lint/E1500-screener-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1503",
+      "pass": 9,
+      "severity": "error",
+      "title": "Screener score-threshold route incomplete",
+      "specRef": "specs/screener/screener-spec.md#static-semantics-and-lint",
+      "suggestedFix": "add both score and threshold to score-threshold routes",
+      "fixtures": ["tests/fixtures/lint/E1500-screener-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1504",
+      "pass": 9,
+      "severity": "error",
+      "title": "Screener route target is invalid",
+      "specRef": "specs/screener/screener-spec.md#static-semantics-and-lint",
+      "suggestedFix": "use outcome:name, url|version, a URI, or a relative URI target without whitespace",
+      "fixtures": ["tests/fixtures/lint/E1500-screener-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1505",
+      "pass": 9,
+      "severity": "error",
+      "title": "Screener lifecycle metadata is inconsistent",
+      "specRef": "specs/screener/screener-spec.md#static-semantics-and-lint",
+      "suggestedFix": "make availability, resultValidity, and evaluationBinding metadata internally consistent",
+      "fixtures": ["tests/fixtures/lint/E1500-screener-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1506",
+      "pass": 9,
+      "severity": "error",
+      "title": "Determination Record is inconsistent",
+      "specRef": "specs/screener/screener-spec.md#static-semantics-and-lint",
+      "suggestedFix": "align Determination Record status, overrides.halted, phases, and version fields",
+      "fixtures": ["tests/fixtures/lint/E1506-determination-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1507",
+      "pass": 9,
+      "severity": "error",
+      "title": "Screener route message interpolation failed to parse",
+      "specRef": "specs/screener/screener-spec.md#static-semantics-and-lint",
+      "suggestedFix": "fix the FEL expression inside the Screener route message {{ }} interpolation",
+      "fixtures": ["tests/fixtures/lint/E1500-screener-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1500",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Screener first-match route shadowed",
+      "specRef": "specs/screener/screener-spec.md#static-semantics-and-lint",
+      "suggestedFix": "move unconditional first-match routes after narrower routes or make the earlier condition selective",
+      "fixtures": ["tests/fixtures/lint/E1500-screener-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1600",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Issuer kind and parentOrganization mismatch",
+      "specRef": "specs/issuer/issuer-spec.md#75-kind-disambiguation",
+      "suggestedFix": "add parentOrganization to department issuers, or remove parentOrganization from individual issuers",
+      "fixtures": ["tests/fixtures/lint/W1600-issuer-kind-parent-warning.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1700",
+      "pass": 9,
+      "severity": "error",
+      "title": "Experience targetDefinition URL mismatch",
+      "specRef": "specs/experience/experience-spec.md#10-processing-model",
+      "suggestedFix": "set targetDefinition.url to the paired Definition url",
+      "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1700",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Experience compatibleVersions mismatch",
+      "specRef": "specs/experience/experience-spec.md#10-processing-model",
+      "suggestedFix": "adjust targetDefinition.compatibleVersions so it includes the paired Definition version",
+      "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1701",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Experience reference unresolved",
+      "specRef": "specs/experience/experience-spec.md#10-processing-model",
+      "suggestedFix": "make actorRef, actorRefs, and taskRefs values match ids declared in the Experience document",
+      "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1702",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Experience ItemRef path unresolved",
+      "specRef": "specs/experience/experience-spec.md#10-processing-model",
+      "suggestedFix": "point unit.itemRefs[].path at an item path in the paired Definition",
+      "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1703",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Experience required item uncovered",
+      "specRef": "specs/experience/experience-spec.md#8-coverage",
+      "suggestedFix": "add a unit.itemRefs entry for every required visible Definition field",
+      "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1800",
+      "pass": 9,
+      "severity": "error",
+      "title": "Response Actions targetDefinition URL mismatch",
+      "specRef": "specs/response-actions/response-actions-spec.md#2-document-shape",
+      "suggestedFix": "set targetDefinition.url to the paired Definition url",
+      "fixtures": ["tests/fixtures/lint/E1800-response-actions-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1800",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Response Actions compatibleVersions mismatch",
+      "specRef": "specs/response-actions/response-actions-spec.md#2-document-shape",
+      "suggestedFix": "adjust targetDefinition.compatibleVersions so it includes the paired Definition version",
+      "fixtures": ["tests/fixtures/lint/E1800-response-actions-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1801",
+      "pass": 9,
+      "severity": "error",
+      "title": "Response Actions duplicate action id",
+      "specRef": "specs/response-actions/response-actions-spec.md#3-action-identity-and-resolution",
+      "suggestedFix": "make every actions[].id unique within the Response Actions document",
+      "fixtures": ["tests/fixtures/lint/E1801-response-actions-duplicate-id.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1802",
+      "pass": 9,
+      "severity": "error",
+      "title": "Component ActionButton actionRef unresolved",
+      "specRef": "specs/component/component-spec.md#519-actionbutton",
+      "suggestedFix": "declare a matching Response Actions actions[].id or update the ActionButton actionRef",
+      "fixtures": ["tests/fixtures/lint/E1800-response-actions-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1803",
+      "pass": 9,
+      "severity": "error",
+      "title": "VMAP-INVALID-OVERRIDE: Response Actions validation override violates the §6.3 permitted-tuple predicate",
+      "specRef": "specs/core/validation-mapping.md#62-what-overrides-cannot-do",
+      "suggestedFix": "replace the per-action validation tuple with one that satisfies VM §6.3: complete-response requires (on-submit, block-on-error); block-on-error requires complete-response; off + block-on-error is forbidden",
+      "fixtures": ["tests/fixtures/lint/E1803-response-actions-invalid-override.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1804",
+      "pass": 9,
+      "severity": "error",
+      "title": "Response Actions duplicate durable-effect idempotency key",
+      "specRef": "specs/response-actions/response-actions-spec.md#63-idempotency",
+      "suggestedFix": "make every durable effect idempotencyKey unique within the action; include effect-specific material such as @invocation.id & '/<effect-name>'",
+      "fixtures": ["tests/fixtures/lint/E1804-response-actions-duplicate-durable-idempotency-key.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1805",
+      "pass": 9,
+      "severity": "error",
+      "title": "Response Actions service request contract invalid",
+      "specRef": "specs/response-actions/response-actions-spec.md#66-service-requests",
+      "suggestedFix": "resolve every serviceRequest.requestRef to one safe x-formspec-runtime request; align path placeholders and bindings, use closed selectors, keep authority headers host-owned, and expose only allowlisted outputs",
+      "fixtures": ["tests/fixtures/lint/E1805-response-actions-service-request-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1802",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Response Actions idempotencyKey lacks @-binding",
+      "specRef": "specs/response-actions/response-actions-spec.md#63-idempotency",
+      "suggestedFix": "use a FEL expression that references at least one @-binding (e.g., \"@invocation.id & '/<effect-name>'\") so the key varies per invocation; literal-string keys silently defeat idempotency by producing the same value for every attempt",
+      "fixtures": ["tests/fixtures/lint/W1802-response-actions-static-idempotency-key.json"],
+      "state": "tested"
+    }
+  ]
+}

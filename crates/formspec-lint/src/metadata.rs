@@ -16,7 +16,7 @@ use crate::types::LintDiagnostic;
 /// Embedded contents of the canonical registry. The file is read at compile
 /// time so a typo or missing entry becomes a build-time failure rather than a
 /// deploy-time surprise.
-const REGISTRY_JSON: &str = include_str!("../../../specs/lint-codes.json");
+const REGISTRY_JSON: &str = include_str!("../specs/lint-codes.json");
 
 /// Metadata attached to a diagnostic: pointer to the normative spec clause and
 /// a short, imperative repair hint.

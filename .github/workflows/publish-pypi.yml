@@ -5,6 +5,7 @@ name: Publish PyPI
 on:
   push:
     tags: ["py-v*"]
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -30,6 +31,11 @@ jobs:
           - os: windows-latest
             target: x86_64
     steps:
+      # The repository carries content-addressed spike artifacts whose paths exceed Windows's default
+      # 260-character limit; Git needs long paths on before the checkout, or it fails mid-clone.
+      - name: Allow long paths (Windows)
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v6
         with:
           path: formspec
