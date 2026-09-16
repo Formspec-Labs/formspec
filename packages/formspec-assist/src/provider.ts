@@ -1,5 +1,6 @@
 /** @filedesc Assist provider implementation: tool catalog, context resolution, profile workflows, and WebMCP registration. */
 
+import { deepEqual } from '@formspec-org/engine';
 import type { IFormEngine, RegistryEntry } from '@formspec-org/engine';
 import { resolvePageSequence } from '@formspec-org/layout';
 import {
@@ -75,23 +76,6 @@ function isEmptyValue(value: unknown): boolean {
 }
 
 /** Structural equality over JSON values (what `expected` round-trips through). */
-function deepEqual(left: unknown, right: unknown): boolean {
-  if (Object.is(left, right)) {
-    return true;
-  }
-  if (Array.isArray(left) || Array.isArray(right)) {
-    return Array.isArray(left) && Array.isArray(right) && left.length === right.length
-      && left.every((entry, index) => deepEqual(entry, right[index]));
-  }
-  if (left && right && typeof left === 'object' && typeof right === 'object') {
-    const leftKeys = Object.keys(left).sort();
-    const rightKeys = Object.keys(right).sort();
-    return deepEqual(leftKeys, rightKeys)
-      && leftKeys.every((key) => deepEqual((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]));
-  }
-  return false;
-}
-
 // Input readers for the write tools; validateToolInput has already enforced each shape.
 
 function readWriteEntries(input: Record<string, unknown>): WriteRequest[] {

@@ -64,12 +64,6 @@ function withoutAdditionalProperties(schema: Record<string, unknown>): Record<st
   };
 }
 
-function hasProfile(provider: AssistProvider): boolean {
-  // The guard can go once types.ts carries `hasProfile()` on AssistProvider.
-  const candidate = provider as { hasProfile?: () => boolean };
-  return typeof candidate.hasProfile === 'function' && candidate.hasProfile();
-}
-
 function selectDeclarations(provider: AssistProvider, tools: RegisterAssistToolsOptions['tools']): ToolDeclaration[] {
   const declarations = provider.getTools();
   if (tools === 'all') {
@@ -77,7 +71,7 @@ function selectDeclarations(provider: AssistProvider, tools: RegisterAssistTools
   }
   const selected = new Set(
     tools === undefined || tools === 'default'
-      ? [...DEFAULT_WEBMCP_TOOLS, ...(hasProfile(provider) ? PROFILE_WEBMCP_TOOLS : [])]
+      ? [...DEFAULT_WEBMCP_TOOLS, ...(provider.hasProfile() ? PROFILE_WEBMCP_TOOLS : [])]
       : tools,
   );
   return declarations.filter((declaration) => selected.has(declaration.name));

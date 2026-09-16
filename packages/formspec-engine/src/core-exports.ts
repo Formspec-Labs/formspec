@@ -162,7 +162,7 @@ export {
 } from './init-formspec-engine.js';
 
 export { buildValidationReportEnvelope } from './engine/response-assembly.js';
-export { toValidationResults } from './engine/helpers.js';
+export { deepEqual, toValidationResults } from './engine/helpers.js';
 
 export type { LocaleDocument } from './locale.js';
 export { normalizeBcp47 } from './locale.js';

@@ -53,12 +53,12 @@ Titles are what a browser's consent UI and an agent's tool picker show. WebMCP r
 | `formspec.field.list` | List fields | Introspection | yes | List fields with filter (`all`, `required`, `empty`, `invalid`, `relevant`) |
 | `formspec.field.describe` | Describe field | Introspection | yes | Field state, validation, widget hint, repeat metadata, and help |
 | `formspec.field.help` | Get field help | Introspection | yes | Authoritative guidance for a field: definition, examples, the rule behind it (`includeContent`, `maxBytes`) |
-| `formspec.field.set` | Set field value | Mutation | | Set a single field value (`overwrite`) |
-| `formspec.field.bulkSet` | Set several field values | Mutation | yes | Set several field values; entries succeed or fail independently (`overwrite`) |
+| `formspec.field.set` | Set field value | Mutation | | Set a single field value; replacing a value the person typed needs `expected` (compare-and-set) |
+| `formspec.field.bulkSet` | Set several field values | Mutation | yes | Set several field values; entries succeed or fail independently; per-entry `expected` for compare-and-set |
 | `formspec.form.validate` | Validate form | Validation | yes | Full validation report under a profile (`live`, `on-submit`, `on-demand`, `off`) |
 | `formspec.field.validate` | Validate field | Validation | | Field-scoped validation results |
 | `formspec.profile.match` | Match saved profile | Profile | profile | Match profile values to form fields by concept identity |
-| `formspec.profile.apply` | Apply saved profile values | Profile | profile | Apply matched values by `paths`, with optional confirmation (`confirm`, `overwrite`) |
+| `formspec.profile.apply` | Apply saved profile values | Profile | profile | Apply matched values by `paths` (a path, or `{ path, expected }` to replace a typed value), with optional `confirm` |
 | `formspec.profile.learn` | Save values to profile | Profile | profile | Save form values to profile by concept identity |
 | `formspec.form.pages` | Show page progress | Navigation | | Page-level progress (also inside `form.progress`) |
 | `formspec.form.nextIncomplete` | Find next incomplete | Navigation | yes | Next incomplete field or page |

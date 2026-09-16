@@ -41,10 +41,6 @@ export function readNextIncompleteScope(input: Record<string, unknown>): 'field'
   return (input.scope as 'field' | 'page' | undefined) ?? 'field';
 }
 
-export function readEntries(input: Record<string, unknown>): Array<{ path: string; value: unknown }> {
-  return (input.entries as Array<{ path: string; value?: unknown }>).map((entry) => ({ path: entry.path, value: entry.value }));
-}
-
 /**
  * Assist spec §4.2: an INVALID_VALUE message names the fix. Four shapes —
  * enum (allowed values + what was given), unknown key (accepted keys), missing
