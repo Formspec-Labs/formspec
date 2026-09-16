@@ -188,6 +188,25 @@ describe('Registry concept entry merged into the resolved binding', () => {
     });
   });
 
+  it('fails closed when two loaded registries claim the same conceptUri: the binding stays bare', () => {
+    const [first] = registry();
+    const [second] = registry({ name: 'x-onto-ein-rival', description: 'A rival definition of record.' });
+    const bare = makeOntology();
+    delete bare.concepts!['organization.ein'].equivalents;
+    const provider = createAssistProvider({ engine: createEngine(), ontology: bare, registries: [first, second], registerWebMCP: false });
+    const concept = provider.getFieldHelp('organization.ein').concept!;
+    expect(concept).not.toHaveProperty('definition');
+    expect(concept.equivalents ?? []).toEqual([]);
+  });
+
+  it('prefers the [*] binding key over the dotted one for a repeatable-group child', () => {
+    const ontology = makeOntology();
+    ontology.concepts!['budgetItems.amount'] = { concept: 'https://example.org/dotted' };
+    ontology.concepts!['budgetItems[*].amount'] = { concept: 'https://example.org/wildcard' };
+    const provider = createAssistProvider({ engine: createEngine(), ontology, registerWebMCP: false });
+    expect(provider.getFieldHelp('budgetItems[0].amount').concept?.concept).toBe('https://example.org/wildcard');
+  });
+
   it('leaves a binding no entry names as it was — no definition', () => {
     const provider = createAssistProvider({ engine: createEngine(), ontology: makeOntology(), registerWebMCP: false });
     expect(provider.getFieldHelp('organization.ein').concept).not.toHaveProperty('definition');

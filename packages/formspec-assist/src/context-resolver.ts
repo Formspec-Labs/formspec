@@ -161,15 +161,25 @@ export class ContextResolver {
   public setRegistryEntries(entries: RegistryEntry[]): void {
     this.conceptEntriesByUri = new Map();
     this.conceptEntriesByName = new Map();
+    // Two entries claiming one IRI are two "definitions of record"; Registry spec §2.2 fails closed on an
+    // unqualified collision, so neither is merged (the binding stays bare) rather than last-loaded winning.
+    const contested = new Set<string>();
     for (const entry of entries) {
       if (entry.category !== 'concept') {
         continue;
       }
       this.conceptEntriesByName.set(entry.name, entry);
       const uri = text(entry.conceptUri);
-      if (uri) {
-        this.conceptEntriesByUri.set(uri, entry);
+      if (!uri) {
+        continue;
       }
+      if (this.conceptEntriesByUri.has(uri) && this.conceptEntriesByUri.get(uri)?.name !== entry.name) {
+        contested.add(uri);
+      }
+      this.conceptEntriesByUri.set(uri, entry);
+    }
+    for (const uri of contested) {
+      this.conceptEntriesByUri.delete(uri);
     }
   }
 
@@ -195,7 +205,8 @@ export class ContextResolver {
 
     for (let index = this.ontologies.length - 1; index >= 0; index -= 1) {
       const doc = this.ontologies[index];
-      const binding = doc.concepts?.[basePath] ?? doc.concepts?.[wildcard];
+      // The `[*]` key is the Ontology spec's form for repeatable-group children; the dotted key is accepted.
+      const binding = doc.concepts?.[wildcard] ?? doc.concepts?.[basePath];
       if (binding) {
         return mergeConceptEntry(binding, this.conceptEntriesByUri.get(binding.concept), doc.defaultSystem);
       }
