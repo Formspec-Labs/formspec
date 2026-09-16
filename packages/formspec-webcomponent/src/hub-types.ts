@@ -142,4 +142,6 @@ export interface RenderHost {
     render(): void;
     activeBreakpoint: string | null;
     resolvedAdapterName: string;
+    /** Whether the render root is the opt-in declarative WebMCP `<form>` (assist-spec §8.2), not the default `<div>`. */
+    isDeclarativeToolForm(): boolean;
 }

@@ -358,4 +358,6 @@ export interface BehaviorContext {
     rerender: () => void;
     /** Resolve the FieldViewModel for a component's bound field. Returns undefined if no VM exists. */
     getFieldVM: (fieldPath: string) => FieldViewModel | undefined;
+    /** Whether the render root is the opt-in declarative WebMCP `<form>` (assist-spec §8.2), not the default `<div>`. */
+    isDeclarativeToolForm: boolean;
 }

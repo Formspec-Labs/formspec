@@ -113,12 +113,15 @@ All events bubble and are composed.
 
 Every named control always carries `toolparamdescription` (the field hint, else its label — plain text, at most 150 characters, following the active Locale), so any DOM-reading agent can understand the form ([Assist spec §8.2](../../specs/assist/assist-spec.md)).
 
-The tool itself is opt-in. With a `tool-name` attribute — `<formspec-render tool-name>` for the default `formspec.form.fill`, or `tool-name="grants.apply"` when a page renders more than one form — the render root becomes `<form novalidate toolname tooldescription>` (`tooldescription` is the Definition `description`, else `title`, as plain text of at most 500 characters; `toolautosubmit` is never set). Adding or removing the attribute after render swaps the root on the next render. A Formspec form never navigates: the root cancels native submission, and an agent-invoked submission (`SubmitEvent.agentInvoked`) is answered through `respondWith()` with the current `ValidationReport`.
+The tool itself is opt-in. With a `tool-name` attribute — `<formspec-render tool-name>` for the default `formspec.form.fill`, or `tool-name="grants.apply"` when a page renders more than one form — the render root becomes `<form novalidate toolname tooldescription>` (`tooldescription` is the Definition `description`, else `title`, as plain text of at most 500 characters; `toolautosubmit` is never set). Adding or removing the attribute after render swaps the root on the next render. A Formspec form never navigates: the root cancels native submission.
+
+The submit-intent `ActionButton` (a Response Actions `intent: 'submit'`) is the tool's native submit button — `type="submit"` — wherever it is actually actionable for the respondent: always outside a Wizard, only on a Wizard's last step otherwise (elsewhere it stays `type="button"`). That guard matters because a Wizard keeps every step's panel mounted once built (CSS-hidden, not removed), so this button — always the last step's — sits in the DOM the whole time, and Chromium's implicit (Enter) submission clicks the first submit button in tree order even while its panel is hidden; without the guard, Enter would submit from any earlier page. Every control whose bind is required also carries native `required` (the form is `novalidate`, so no browser validation bubble follows) — a declarative-tool synthesizer's only signal for the schema's `required[]`.
+
+A respondent submission — Enter's implicit submission or a click on that button — runs the submit-intent Action, the same one the button's own click runs elsewhere. An agent-invoked submission (`SubmitEvent.agentInvoked`) runs it too, then is answered through `respondWith()` with the `ValidationReport` the submission produced (assist-spec §8.2 SHOULD) — the intent runs before the answer is built, never a stale or freshly-recomputed one.
 
 Before opting in:
 
 - The root lives in this element's light DOM. Do not wrap `<formspec-render tool-name>` in a host `<form>` — the two nest, and the host form stops owning these controls.
-- The tool is discoverable but not yet invokable: a declarative tool without `toolautosubmit` needs a native submit button to hand back to the respondent, and the rendered `ActionButton` is `type="button"`. Tracked in the stack ticket system as `fs-8kpq`.
 - A page running an Assist provider (`@formspec-org/assist`) already exposes a fill tool; do not opt in there — WebMCP guidance is against overlapping tools.
 
 ### Assistant-written fields

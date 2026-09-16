@@ -322,6 +322,11 @@ export class FormspecRender extends HTMLElement {
         return findResponseActionByIntent(this._responseActionsDocument, 'submit')?.id ?? null;
     }
 
+    /** Whether the render root is the opt-in declarative WebMCP `<form>` (assist-spec §8.2), not the default `<div>`. */
+    isDeclarativeToolForm(): boolean {
+        return this.rootContainer instanceof HTMLFormElement;
+    }
+
     /** @internal */ resolveToken = (val: unknown): unknown => resolveTokenFn(this._stylingHost, val);
     /** @internal */ resolveItemPresentation = (itemDesc: ItemDescriptor): PresentationBlock => resolveItemPresentationFn(this._stylingHost, itemDesc);
     /** @internal */ applyStyle = (el: HTMLElement, style: Record<string, string | number> | undefined): void => applyStyleFn(this._stylingHost, el, style);
@@ -709,18 +714,31 @@ export class FormspecRender extends HTMLElement {
     }
 
     /**
-     * Formspec owns validation and submission: no native constraint bubbles, and a submission never navigates —
-     * `submit()` and submit-intent Actions carry the response. An agent that filled the declarative tool is
-     * answered with the ValidationReport for what it entered (assist-spec §8.2 SHOULD).
+     * Formspec owns validation and submission: no native constraint bubbles, and a submission never navigates.
+     * A respondent submission — Enter's implicit submission or a click on the native submit button, the only
+     * ActionButton `type="submit"` ever renders (`ensureActionButton`'s actionable rule) — runs the same
+     * submit-intent Action a click runs, through the one path both use, {@link invokeAction}; the
+     * ActionButton's own click handler skips that call once it is the native submit button, so this runs
+     * exactly once. An agent-invoked submission runs the intent too, then answers through `respondWith()` with
+     * the ValidationReport *the submission produced* (assist-spec §8.2 SHOULD) — the intent runs before the
+     * answer is built. No submit-intent Action published: fall back to the engine's current report.
      */
     private createToolForm(): HTMLFormElement {
         const form = document.createElement('form');
         form.noValidate = true;
         form.addEventListener('submit', (event: AgentSubmitEvent) => {
             event.preventDefault();
-            if (event.agentInvoked === true && typeof event.respondWith === 'function' && this.engine) {
-                event.respondWith(Promise.resolve(this.engine.getValidationReport()));
+            const actionRef = this.injectedSubmitActionRef();
+            if (event.agentInvoked !== true) {
+                if (actionRef) void this.invokeAction(actionRef);
+                return;
             }
+            if (typeof event.respondWith !== 'function' || !this.engine) return;
+            const engine = this.engine;
+            event.respondWith(
+                Promise.resolve(actionRef ? this.invokeAction(actionRef) : null)
+                    .then((detail) => detail?.validationReport ?? engine.getValidationReport()),
+            );
         });
         return form;
     }

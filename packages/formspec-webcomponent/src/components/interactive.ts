@@ -29,6 +29,28 @@ function actionRefFor(comp: any): string {
     return typeof comp.actionRef === 'string' ? comp.actionRef : '';
 }
 
+/**
+ * A submit-intent ActionButton (assist-spec §8.2) is the opt-in tool-form's native submit button only where
+ * clicking it is actually the respondent's next action: always outside a Wizard (single-page, tabs), only on
+ * the Wizard's last step otherwise. That can't be read once at mount — a Wizard keeps every step's panel
+ * mounted (CSS-hidden, not removed) once built, so this button — always the last step's — sits in the DOM the
+ * whole time, and Chromium's implicit submission (Enter) clicks the first submit button in tree order even
+ * while its panel is hidden (fs-8kpq). `formspec-page-change` (behaviors/wizard.ts) is the live signal: an
+ * ancestor Wizard fires it on every step change, including once synchronously as this button mounts — before
+ * the browser can act on the type this sets first.
+ */
+function bindNativeSubmitEligibility(button: HTMLButtonElement, cleanupFns: Array<() => void>): void {
+    button.type = 'submit';
+    const onPageChange = (event: Event) => {
+        const { target } = event;
+        if (!(target instanceof Node) || !target.contains(button)) return;
+        const { index, total } = (event as CustomEvent<{ index: number; total: number }>).detail;
+        button.type = index === total - 1 ? 'submit' : 'button';
+    };
+    document.addEventListener('formspec-page-change', onPageChange);
+    cleanupFns.push(() => document.removeEventListener('formspec-page-change', onPageChange));
+}
+
 /** Renders a tabbed interface via the behavior-adapter pipeline. */
 export const TabsPlugin: ComponentPlugin = {
     type: 'Tabs',
@@ -95,7 +117,15 @@ export const ActionButtonPlugin: ComponentPlugin = {
             button.textContent = pending ? pendingLabel.value : defaultLabel.value;
             button.disabled = !actionResolved || (disableWhenPending ? pending : false);
         }));
+        // Assist spec §8.2: the tool form's only native submit button, where actionable — see
+        // bindNativeSubmitEligibility. Default (no tool-name) rendering never reaches here: type stays "button".
+        if (ctx.isDeclarativeToolForm && action?.intent === 'submit') {
+            bindNativeSubmitEligibility(button, ctx.cleanupFns);
+        }
         button.addEventListener('click', () => {
+            // A native submit button's click also fires the form's `submit` event (the tool form's listener
+            // runs the intent from there — createToolForm in element.ts); running it here too would run it twice.
+            if (button.type === 'submit') return;
             void ctx.invokeAction(actionRef, comp.id);
         });
         parent.appendChild(button);

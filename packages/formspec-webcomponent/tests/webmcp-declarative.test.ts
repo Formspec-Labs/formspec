@@ -1,5 +1,6 @@
 /** @filedesc Assist spec §8.2: with `tool-name`, the rendered form is a declarative WebMCP tool; named controls always describe themselves. */
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
+import { minimalComponentDoc } from './helpers/engine-fixtures';
 
 let FormspecRender: any;
 
@@ -151,5 +152,159 @@ describe('declarative WebMCP tool, opted in with tool-name (assist-spec §8.2)',
         expect(skeleton.tagName).toBe('FORM');
         expect(skeleton.classList.contains('formspec-skeleton')).toBe(true);
         expect(skeleton.hasAttribute('toolname')).toBe(false);
+    });
+});
+
+/** A submit-intent Response Actions document — same shape `interactive-plugins.test.ts` uses. */
+function responseActionsDoc(actions: Array<{ id: string; intent?: string }>) {
+    return {
+        $formspecResponseActions: '1.0',
+        version: '1.0.0',
+        targetDefinition: { url: 'urn:test:webmcp' },
+        actions: actions.map(({ id, intent = 'submit' }) => ({
+            id,
+            intent,
+            effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+        })),
+    };
+}
+
+describe('submit-intent ActionButton is the tool form\'s native submit button, where actionable (fs-8kpq)', () => {
+    it('stays a plain button outside the tool form, and controls stay unrequired, even with a submit-intent Action', () => {
+        const el = mount();
+        el.responseActionsDocument = responseActionsDoc([{ id: 'submit' }]);
+        el.render();
+        const button = el.querySelector('.formspec-submit') as HTMLButtonElement;
+        expect(button.type).toBe('button');
+        expect((el.querySelector('input[name="name"]') as HTMLInputElement).required).toBe(false);
+    });
+
+    it('is the native submit button on a single-page opt-in form, and required binds carry native required', () => {
+        const el = mountTool();
+        el.responseActionsDocument = responseActionsDoc([{ id: 'submit' }]);
+        el.render();
+        const button = el.querySelector('.formspec-submit') as HTMLButtonElement;
+        expect(button.type).toBe('submit');
+        expect((el.querySelector('input[name="name"]') as HTMLInputElement).required).toBe(true);
+        expect((el.querySelector('select[name="region"]') as HTMLSelectElement).required).toBe(false);
+    });
+
+    it('required on a radio group sets native required on every option, so the group folds into one required property', () => {
+        const el = mountTool({ ...DEFINITION, binds: [...(DEFINITION.binds as any[]), { path: 'kind', required: 'true' }] });
+        el.render();
+        const radios = el.querySelectorAll('input[name="kind"]');
+        expect(radios.length).toBe(2);
+        for (const radio of radios) expect((radio as HTMLInputElement).required).toBe(true);
+    });
+
+    it('never becomes the native submit button for a non-submit-intent Action (e.g. Save Draft)', () => {
+        const el = mountTool();
+        el.responseActionsDocument = responseActionsDoc([{ id: 'save-draft', intent: 'save' }]);
+        el.componentDocument = minimalComponentDoc({
+            component: 'Stack',
+            children: [
+                { component: 'TextInput', bind: 'name' },
+                { component: 'ActionButton', actionRef: 'save-draft', label: { literal: 'Save Draft' } },
+            ],
+        }, { targetDefinition: { url: 'urn:test:webmcp' } });
+        el.render();
+        const button = el.querySelector('.formspec-submit') as HTMLButtonElement;
+        expect(button.type).toBe('button');
+    });
+
+    it('clicking the native submit button on a single-page form runs the submit intent exactly once', () => {
+        const el = mountTool();
+        el.responseActionsDocument = responseActionsDoc([{ id: 'submit' }]);
+        el.render();
+        const invokeSpy = vi.spyOn(el, 'invokeAction');
+        const button = el.querySelector('.formspec-submit') as HTMLButtonElement;
+        expect(button.type).toBe('submit');
+        button.click(); // a native submit button's click also fires the enclosing form's `submit` event
+        expect(invokeSpy).toHaveBeenCalledTimes(1);
+        expect(invokeSpy).toHaveBeenCalledWith('submit');
+    });
+
+    it('runs the submit-intent Action for an agent-invoked submission before answering', async () => {
+        const el = mountTool();
+        el.responseActionsDocument = responseActionsDoc([{ id: 'submit' }]);
+        el.render();
+        const invokeSpy = vi.spyOn(el, 'invokeAction');
+        const form = root(el) as HTMLFormElement;
+        const event = agentSubmit();
+        form.dispatchEvent(event);
+        expect(invokeSpy).toHaveBeenCalledWith('submit');
+        await event.respondWith.mock.calls[0][0];
+    });
+
+    it('answers an agent-invoked submission with the ValidationReport the invoked Action\'s submission produced, not a freshly computed one', async () => {
+        const el = mountTool();
+        el.responseActionsDocument = responseActionsDoc([{ id: 'submit' }]);
+        el.render();
+        const producedReport = {
+            $formspecValidationReport: '1.0',
+            valid: true,
+            results: [],
+            counts: { error: 0, warning: 0, info: 0 },
+            timestamp: 'sentinel',
+        };
+        vi.spyOn(el, 'invokeAction').mockResolvedValue({ response: { data: {} }, validationReport: producedReport } as any);
+        const form = root(el) as HTMLFormElement;
+        const event = agentSubmit();
+        form.dispatchEvent(event);
+        const report = await event.respondWith.mock.calls[0][0];
+        expect(report).toBe(producedReport);
+    });
+});
+
+describe('wizard page mode: the native submit button is only actionable on the last step (fs-8kpq)', () => {
+    function mountWizardTool() {
+        const el = document.createElement('formspec-render') as any;
+        el.setAttribute('tool-name', '');
+        document.body.appendChild(el);
+        el.responseActionsDocument = responseActionsDoc([{ id: 'submit' }]);
+        el.componentDocument = minimalComponentDoc({
+            component: 'Stack',
+            children: [
+                { component: 'Section', title: 'Applicant', children: [{ component: 'TextInput', bind: 'name' }] },
+                { component: 'Section', title: 'Budget', children: [{ component: 'TextInput', bind: 'amount' }] },
+            ],
+        }, { targetDefinition: { url: 'urn:test:webmcp' } });
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:webmcp',
+            version: '1.0.0',
+            title: 'Grant application',
+            items: [],
+            formPresentation: { pageMode: 'wizard' },
+        };
+        el.render();
+        return el;
+    }
+
+    it('is type="button" on a non-final step and type="submit" once the wizard reaches the last step', () => {
+        const el = mountWizardTool();
+        const button = el.querySelector('.formspec-submit') as HTMLButtonElement;
+        const wizardRoot = el.querySelector('.formspec-wizard') as HTMLElement;
+        expect(button.type).toBe('button');
+
+        wizardRoot.dispatchEvent(new CustomEvent('formspec-wizard-set-step', { detail: { index: 1 } }));
+        expect(button.type).toBe('submit');
+
+        wizardRoot.dispatchEvent(new CustomEvent('formspec-wizard-set-step', { detail: { index: 0 } }));
+        expect(button.type).toBe('button');
+    });
+
+    it('an Enter-driven submit event on the final page runs the submit intent once, not twice', () => {
+        const el = mountWizardTool();
+        const wizardRoot = el.querySelector('.formspec-wizard') as HTMLElement;
+        wizardRoot.dispatchEvent(new CustomEvent('formspec-wizard-set-step', { detail: { index: 1 } }));
+        const button = el.querySelector('.formspec-submit') as HTMLButtonElement;
+        expect(button.type).toBe('submit');
+
+        const invokeSpy = vi.spyOn(el, 'invokeAction');
+        // happy-dom (like a real browser) fires the form's native `submit` event when a type="submit"
+        // button inside it is clicked — the same sequence Chromium's implicit (Enter) submission runs.
+        button.click();
+        expect(invokeSpy).toHaveBeenCalledTimes(1);
     });
 });

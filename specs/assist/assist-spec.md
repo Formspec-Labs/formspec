@@ -935,6 +935,22 @@ declarative submission is agent-invoked, page script MAY intercept it via
 `SubmitEvent.agentInvoked` and answer with `respondWith()`; the answer SHOULD
 be a §4 result object such as the `ValidationReport` the submission produced.
 
+A `toolautosubmit`-absent tool is discoverable but inert without a native
+submit button, so the renderer's submit-intent control MUST be `type="submit"`
+wherever it is actually the respondent's next action — always, when
+`formPresentation.pageMode` is not `"wizard"`; only on the Wizard's last
+Section otherwise, since every Section stays mounted (merely hidden) once
+built and a browser's implicit (Enter) submission clicks the first submit
+button in tree order regardless of visibility, so an unconditional
+`type="submit"` would let Enter submit from any earlier step. Every control
+whose bind is required MUST also carry the native `required` attribute even
+though the form is `novalidate` — it is the only signal a browser's schema
+synthesizer has for `required[]`, since `aria-required` is not read for that
+purpose. Whether the submission that triggers `respondWith()` came from the
+agent or the respondent, the submit-intent Action MUST run before the answer
+is built, so the `SHOULD` above resolves to the report that submission
+produced, never a stale or independently recomputed one.
+
 [webmcp-declarative]: https://github.com/webmachinelearning/webmcp/blob/main/declarative-api-explainer.md
 
 ### 8.3 Ontology-to-Autocomplete Mapping

@@ -130,6 +130,11 @@ function syncAttribute(el: Element, name: string, value: string | null): void {
     else el.setAttribute(name, value);
 }
 
+/** Named native controls a field draws — where a WebMCP declarative synthesizer reads `required` and `toolparamdescription` (assist-spec §8.2). */
+function namedControls(root: HTMLElement): NodeListOf<Element> {
+    return root.querySelectorAll('input[name], select[name], textarea[name]');
+}
+
 /** Warn if the component type is incompatible with the item's dataType. */
 export function warnIfIncompatible(
     componentType: string,
@@ -207,6 +212,13 @@ export function bindSharedFieldEffects(
             }
         }
         if (!checkboxGroup) stateTarget.setAttribute('aria-required', String(isRequired));
+        // Assist spec §8.2: under the opt-in tool form (novalidate — no browser validation bubble to suppress),
+        // native `required` on each named control is the synthesized schema's only signal for `required[]`.
+        if (ctx.isDeclarativeToolForm) {
+            for (const el of namedControls(refs.root)) {
+                syncAttribute(el, 'required', isRequired ? '' : null);
+            }
+        }
     }));
 
     // ARIA describedby: supplementary text ids (description and hint only while shown), plus the error
@@ -252,7 +264,7 @@ export function bindSharedFieldEffects(
         const interpolate = vm ? vm.interpolate : (template: string) => template;
         const description = toolText(vm ? vm.hintTemplate.value : refs.hint?.textContent, TOOL_PARAM_DESCRIPTION_MAX, interpolate)
             || toolText(vm ? vm.labelTemplate.value : labelText, TOOL_PARAM_DESCRIPTION_MAX, interpolate);
-        const described = refs.root.querySelectorAll('input[name], select[name], textarea[name]');
+        const described = namedControls(refs.root);
         for (const el of refs.root instanceof HTMLFieldSetElement ? [refs.root, ...described] : described) {
             syncAttribute(el, 'toolparamdescription', description || null);
         }
