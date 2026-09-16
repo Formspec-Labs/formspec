@@ -15,16 +15,16 @@ const PATH_PROPERTY = { type: 'string', description: 'Field path, e.g. "organiza
 const VALUE_PROPERTY = {
   description: 'New value. For choice fields pass the option value or its label. Dates as YYYY-MM-DD. Omit or pass null to clear.',
 };
-const OVERWRITE_PROPERTY = {
-  type: 'boolean',
-  description: 'Replace values the person already typed. Defaults to false: such fields are skipped with x-user-edited.',
+/** Compare-and-set: a value the person typed is replaced only when the caller proves it has read it. */
+const EXPECTED_PROPERTY = {
+  description: 'The current value as last read via field.describe. Required to replace a value the person typed; a mismatch is refused with x-user-edited.',
 };
 const ENTRIES_SCHEMA = {
   type: 'array',
   description: 'Field writes; each entry is applied independently.',
   items: {
     type: 'object',
-    properties: { path: PATH_PROPERTY, value: VALUE_PROPERTY },
+    properties: { path: PATH_PROPERTY, value: VALUE_PROPERTY, expected: EXPECTED_PROPERTY },
     required: ['path'],
     additionalProperties: false,
   },
@@ -119,11 +119,11 @@ export function buildToolDeclarations(): ToolDeclaration[] {
       title: 'Set field value',
       description:
         'Set one field\'s value and run the form\'s validation on it. Use it for a single write. '
-        + 'Readonly and hidden fields are refused, and a value the person already typed is kept unless overwrite is true. '
+        + 'Readonly and hidden fields are refused; a value the person already typed is replaced only when expected matches what field.describe last returned. '
         + 'Returns the stored value and the validation results the write produced.',
       inputSchema: {
         type: 'object',
-        properties: { path: PATH_PROPERTY, value: VALUE_PROPERTY, overwrite: OVERWRITE_PROPERTY },
+        properties: { path: PATH_PROPERTY, value: VALUE_PROPERTY, expected: EXPECTED_PROPERTY },
         required: ['path'],
         additionalProperties: false,
       },
@@ -134,11 +134,11 @@ export function buildToolDeclarations(): ToolDeclaration[] {
       title: 'Set several field values',
       description:
         'Set several field values in one call; each entry succeeds or fails on its own. Use it to fill a page or a batch of related fields. '
-        + 'Readonly and hidden fields are refused; values the person already typed are kept unless overwrite is true. '
+        + 'Readonly and hidden fields are refused; a value the person already typed is replaced only when that entry\'s expected matches what field.describe last returned. '
         + 'Returns a result per entry and a summary of accepted, rejected, and skipped counts.',
       inputSchema: {
         type: 'object',
-        properties: { entries: ENTRIES_SCHEMA, overwrite: OVERWRITE_PROPERTY },
+        properties: { entries: ENTRIES_SCHEMA },
         required: ['entries'],
         additionalProperties: false,
       },
@@ -188,18 +188,28 @@ export function buildToolDeclarations(): ToolDeclaration[] {
       title: 'Apply saved profile values',
       description:
         'Apply the person\'s saved profile values to the fields profile.match found on this form. '
-        + 'Pass paths to fill a subset, confirm to ask the person first, and overwrite to replace values they already typed. '
+        + 'Pass paths to fill a subset and confirm to ask the person first. A value the person already typed is replaced only when the path entry carries expected matching what field.describe last returned. '
         + 'Returns the fields filled, the fields skipped with a reason, and the form\'s validation report.',
       inputSchema: {
         type: 'object',
         properties: {
           paths: {
             type: 'array',
-            items: { type: 'string', description: 'Field path from profile.match.' },
-            description: 'Field paths to fill, from profile.match. Defaults to every current match.',
+            items: {
+              anyOf: [
+                { type: 'string', description: 'Field path from profile.match.' },
+                {
+                  type: 'object',
+                  properties: { path: PATH_PROPERTY, expected: EXPECTED_PROPERTY },
+                  required: ['path'],
+                  additionalProperties: false,
+                },
+              ],
+              description: 'A field path from profile.match, or { path, expected } to replace a value the person typed.',
+            },
+            description: 'Fields to fill, from profile.match. Defaults to every current match.',
           },
           confirm: { type: 'boolean', description: 'Ask the person to approve before writing.' },
-          overwrite: OVERWRITE_PROPERTY,
         },
         additionalProperties: false,
       },

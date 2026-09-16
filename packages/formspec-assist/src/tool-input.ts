@@ -12,6 +12,8 @@ export type ToolSchema = {
   items?: ToolSchema;
   required?: string[];
   additionalProperties?: boolean;
+  /** Alternatives; the value must satisfy at least one. */
+  anyOf?: readonly ToolSchema[];
 };
 
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -64,6 +66,9 @@ function braces(schema: ToolSchema): string {
 
 /** The expected shape a caller must supply, e.g. `an array of { path, value }`, `an integer >= 512`. */
 function shapeOf(schema: ToolSchema): string {
+  if (schema.anyOf) {
+    return schema.anyOf.map(shapeOf).join(' or ');
+  }
   switch (schema.type) {
     case 'array':
       if (!schema.items?.type) {
@@ -103,6 +108,17 @@ function matchesType(type: string, value: unknown): boolean {
 }
 
 function validateAgainstSchema(schema: ToolSchema, value: unknown, location: string): void {
+  if (schema.anyOf) {
+    for (const branch of schema.anyOf) {
+      try {
+        validateAgainstSchema(branch, value, location);
+        return;
+      } catch {
+        // try the next alternative
+      }
+    }
+    throw invalid(`${location} must be ${schema.anyOf.map(shapeOf).join(' or ')} (got ${JSON.stringify(value)})`);
+  }
   if (schema.enum && !schema.enum.includes(value)) {
     throw invalid(`${location} must be one of: ${schema.enum.map(String).join(', ')} (got ${JSON.stringify(value)})`);
   }

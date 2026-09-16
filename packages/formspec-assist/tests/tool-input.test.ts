@@ -32,11 +32,11 @@ describe('tool input validation messages (draft.3 C1)', () => {
     expect(rejection('formspec.form.validate', { mode: 'eventual' })?.message)
       .toBe('unexpected input property "mode"; accepted: profile');
     expect(rejection('formspec.profile.apply', { matches: [] })?.message)
-      .toBe('unexpected input property "matches"; accepted: paths, confirm, overwrite');
+      .toBe('unexpected input property "matches"; accepted: paths, confirm');
     expect(rejection('formspec.form.describe', { verbose: true })?.message)
       .toBe('unexpected input property "verbose"; accepted: none');
     expect(rejection('formspec.field.bulkSet', { entries: [{ path: 'a', value: 1, force: true }] })?.message)
-      .toBe('unexpected input property "entries[0].force"; accepted: path, value');
+      .toBe('unexpected input property "entries[0].force"; accepted: path, value, expected');
   });
 
   it('missing required: names the property with its type and description', () => {
@@ -53,15 +53,15 @@ describe('tool input validation messages (draft.3 C1)', () => {
 
   it('wrong type: states the expected shape', () => {
     expect(rejection('formspec.field.bulkSet', { entries: 'contactEmail' })?.message)
-      .toBe('input.entries must be an array of { path, value }');
+      .toBe('input.entries must be an array of { path, value, expected }');
     expect(rejection('formspec.field.bulkSet', { entries: ['contactEmail'] })?.message)
-      .toBe('input.entries[0] must be an object { path, value }');
+      .toBe('input.entries[0] must be an object { path, value, expected }');
     expect(rejection('formspec.profile.apply', { paths: 'contactEmail' })?.message)
       .toBe('input.paths must be an array of strings');
     expect(rejection('formspec.profile.apply', { paths: [12] })?.message)
       .toBe('input.paths[0] must be a string');
-    expect(rejection('formspec.field.set', { path: 'contactEmail', overwrite: 'yes' })?.message)
-      .toBe('input.overwrite must be a boolean');
+    expect(rejection('formspec.field.set', { path: 'contactEmail', overwrite: true })?.message)
+      .toBe('unexpected input property "overwrite"; accepted: path, value, expected');
     expect(rejection('formspec.field.help', { path: 'contactEmail', maxBytes: 1.5 })?.message)
       .toBe('input.maxBytes must be an integer >= 512');
     expect(rejection('formspec.field.help', { path: 'contactEmail', maxBytes: 100 })?.message)
@@ -70,11 +70,19 @@ describe('tool input validation messages (draft.3 C1)', () => {
 
   it('accepts every draft.3 input shape', () => {
     expect(rejection('formspec.field.help', { path: 'a', audience: 'both', includeContent: true, maxBytes: 512 })).toBeUndefined();
-    expect(rejection('formspec.field.set', { path: 'a', value: null, overwrite: true })).toBeUndefined();
+    expect(rejection('formspec.field.set', { path: 'a', value: null, expected: 'old' })).toBeUndefined();
     expect(rejection('formspec.field.set', { path: 'a' })).toBeUndefined();
-    expect(rejection('formspec.field.bulkSet', { entries: [{ path: 'a', value: [1, 2] }], overwrite: false })).toBeUndefined();
+    expect(rejection('formspec.field.bulkSet', { entries: [{ path: 'a', value: [1, 2], expected: null }] })).toBeUndefined();
     expect(rejection('formspec.profile.apply', {})).toBeUndefined();
-    expect(rejection('formspec.profile.apply', { paths: ['a', 'b'], confirm: true, overwrite: true })).toBeUndefined();
+    expect(rejection('formspec.profile.apply', { paths: ['a', { path: 'b', expected: 'typed' }], confirm: true })).toBeUndefined();
     expect(rejection('formspec.form.describe', {})).toBeUndefined();
+  });
+});
+
+describe('anyOf alternatives', () => {
+  it('accepts a path string or a { path, expected } object for profile.apply paths', () => {
+    const apply = buildToolDeclarations().find((tool) => tool.name === 'formspec.profile.apply')!;
+    expect(() => validateToolInput(apply.inputSchema as ToolSchema, { paths: ['a', { path: 'b', expected: 'old' }] })).not.toThrow();
+    expect(() => validateToolInput(apply.inputSchema as ToolSchema, { paths: [42] })).toThrow('input.paths[0] must be a string or an object { path, expected } (got 42)');
   });
 });

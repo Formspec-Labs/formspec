@@ -97,16 +97,20 @@ describe('tool declarations (draft.3 C3)', () => {
     expect(propertyOf('formspec.field.help', 'maxBytes')).toMatchObject({ type: 'integer', minimum: 512 });
   });
 
-  it('set, bulkSet, and profile.apply take a top-level overwrite flag (C5 stale-write guard)', () => {
+  it('writes are compare-and-set: set and bulkSet entries carry expected, never a blind overwrite flag (C5)', () => {
+    expect(propertyOf('formspec.field.set', 'expected').description).toMatch(/field\.describe/);
+    expect(propertyOf('formspec.field.bulkSet', 'entries').items!.properties!.expected).toBeDefined();
     for (const name of ['formspec.field.set', 'formspec.field.bulkSet', 'formspec.profile.apply']) {
-      expect(propertyOf(name, 'overwrite').type, name).toBe('boolean');
+      expect(schemaOf(name).properties!.overwrite, name).toBeUndefined();
     }
   });
 
-  it('profile.apply selects matches by path and has no required input', () => {
+  it('profile.apply selects matches by path — a string or { path, expected } — and has no required input', () => {
     const schema = schemaOf('formspec.profile.apply');
-    expect(Object.keys(schema.properties ?? {}).sort()).toEqual(['confirm', 'overwrite', 'paths']);
-    expect(schema.properties!.paths).toMatchObject({ type: 'array', items: { type: 'string' } });
+    expect(Object.keys(schema.properties ?? {}).sort()).toEqual(['confirm', 'paths']);
+    const items = schema.properties!.paths.items!;
+    expect(items.anyOf!.map((branch) => branch.type)).toEqual(['string', 'object']);
+    expect(items.anyOf![1].properties!.expected).toBeDefined();
     expect(schema.required ?? []).toEqual([]);
   });
 
