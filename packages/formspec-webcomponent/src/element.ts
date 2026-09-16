@@ -55,7 +55,7 @@ const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1', '1.2']);
 /** Longest the form stays hidden waiting on a stylesheet it linked. A blocked CDN must not hide the form. */
 const STYLE_REVEAL_TIMEOUT_MS = 2000;
 
-/** WebMCP tool name for the rendered form (assist-spec §8.2); the `tool-name` attribute overrides it. */
+/** WebMCP tool name for the rendered form (assist-spec §8.2) when `<formspec-render tool-name>` names none. */
 const DEFAULT_TOOL_NAME = 'formspec.form.fill';
 
 /** A submit event as a WebMCP-capable browser fires it (declarative explainer): both members absent elsewhere. */
@@ -174,9 +174,8 @@ import { parseQueryIssuerOverride } from './issuer/queryOverride';
  * - Manages ref-counted stylesheet injection, signal-driven DOM updates, and
  *   cleanup of effects and event listeners on disconnect.
  * - Supports replay, diagnostics snapshots, and runtime context injection.
- * - Renders the form as a declarative WebMCP tool (assist-spec §8.2): a native `<form toolname
- *   tooldescription>` whose named controls carry `toolparamdescription`; the `tool-name` attribute
- *   names the tool when a page renders more than one form.
+ * - Opt-in declarative WebMCP tool (assist-spec §8.2): with a `tool-name` attribute the render root is a
+ *   native `<form toolname tooldescription>`; named controls always carry `toolparamdescription`.
  *
  * @example
  * ```html
@@ -212,7 +211,7 @@ export class FormspecRender extends HTMLElement {
     private get activeBreakpoint(): string | null { return this._breakpoints.activeBreakpointSignal.value ?? null; }
     /** @internal */ stylesheetHrefs: string[] = [];
     /** @internal */ stylesheetRoot: Document | ShadowRoot | null = null;
-    private rootContainer: HTMLFormElement | null = null;
+    private rootContainer: HTMLDivElement | HTMLFormElement | null = null;
     private _renderPending = false;
     private _colorSchemeMedia: MediaQueryList | null = null;
     private readonly _handleColorSchemeChange = () => this.syncRootContainerAppearance();
@@ -244,7 +243,9 @@ export class FormspecRender extends HTMLElement {
             return;
         }
         if (name === 'tool-name') {
+            // The root's element type follows the attribute; the next render swaps it.
             if (this.engine) this.scheduleRender();
+            else this.renderPlaceholder();
             return;
         }
         if (name === 'issuer-override') {
@@ -678,30 +679,43 @@ export class FormspecRender extends HTMLElement {
 
     /**
      * The render root, created on first use, reset to `formspec-container` plus the adapter's root classes.
-     * A native `<form>`, so a WebMCP browser can read it as a declarative tool (assist-spec §8.2); {@link render}
-     * names the tool once there is a live form to fill, and this reset takes the name back off a boot skeleton.
+     * A `<div>`, or with `tool-name` on the element a native `<form>` a WebMCP browser reads as a declarative
+     * tool (assist-spec §8.2) — opt-in, because the root sits in light DOM (a host's own `<form>` would nest it)
+     * and a page running an Assist provider should not offer a second fill tool. {@link render} names the tool
+     * once there is a live form to fill; this reset takes the name back off a boot skeleton.
      */
-    private prepareRootContainer(...extraClasses: string[]): HTMLFormElement {
+    private prepareRootContainer(...extraClasses: string[]): HTMLDivElement | HTMLFormElement {
+        const asTool = this.hasAttribute('tool-name');
+        if (this.rootContainer && (this.rootContainer instanceof HTMLFormElement) !== asTool) {
+            this.rootContainer.remove();
+            this.rootContainer = null;
+        }
         if (!this.rootContainer) {
-            const form = document.createElement('form');
-            // Formspec owns validation and submission: no native constraint bubbles, and a submission never
-            // navigates — `submit()` and submit-intent Actions carry the response. An agent that filled the
-            // declarative tool is answered with the ValidationReport for what it entered (§8.2 SHOULD).
-            form.noValidate = true;
-            form.addEventListener('submit', (event: AgentSubmitEvent) => {
-                event.preventDefault();
-                if (event.agentInvoked === true && typeof event.respondWith === 'function' && this.engine) {
-                    event.respondWith(Promise.resolve(this.engine.getValidationReport()));
-                }
-            });
-            this.rootContainer = form;
-            this.appendChild(form);
+            this.rootContainer = asTool ? this.createToolForm() : document.createElement('div');
+            this.appendChild(this.rootContainer);
         }
         const adapterClasses = this.resolvedAdapter?.rootClasses ?? [];
         this.rootContainer.className = ['formspec-container', ...adapterClasses, ...extraClasses].join(' ');
         this.rootContainer.removeAttribute('toolname');
         this.rootContainer.removeAttribute('tooldescription');
         return this.rootContainer;
+    }
+
+    /**
+     * Formspec owns validation and submission: no native constraint bubbles, and a submission never navigates —
+     * `submit()` and submit-intent Actions carry the response. An agent that filled the declarative tool is
+     * answered with the ValidationReport for what it entered (assist-spec §8.2 SHOULD).
+     */
+    private createToolForm(): HTMLFormElement {
+        const form = document.createElement('form');
+        form.noValidate = true;
+        form.addEventListener('submit', (event: AgentSubmitEvent) => {
+            event.preventDefault();
+            if (event.agentInvoked === true && typeof event.respondWith === 'function' && this.engine) {
+                event.respondWith(Promise.resolve(this.engine.getValidationReport()));
+            }
+        });
+        return form;
     }
 
     /** @internal Styling host seam — the resolved adapter's declared class vocabulary, if it has one. */
@@ -1028,10 +1042,12 @@ export class FormspecRender extends HTMLElement {
             return;
         }
 
-        // Assist spec §8.2: the live form is a declarative WebMCP tool. Never `toolautosubmit` — the agent
-        // fills, the respondent submits. The controls describe themselves in bindSharedFieldEffects.
-        container.setAttribute('toolname', this.getAttribute('tool-name') || DEFAULT_TOOL_NAME);
-        container.setAttribute('tooldescription', this._definition.description || this._definition.title);
+        // Assist spec §8.2: a form root is the opted-in declarative WebMCP tool. Never `toolautosubmit` — the
+        // agent fills, the respondent submits. The controls describe themselves in bindSharedFieldEffects.
+        if (container instanceof HTMLFormElement) {
+            container.setAttribute('toolname', this.getAttribute('tool-name') || DEFAULT_TOOL_NAME);
+            container.setAttribute('tooldescription', this._definition.description || this._definition.title);
+        }
 
         const plan = this.buildPlan();
         if (plan) emitNodeFn(this._renderHost, plan, container, '', this._headingLevel);

@@ -109,6 +109,18 @@ All events bubble and are composed.
 | `formspec-screener-route` | Screener evaluates a route | `{ route, answers, routeType, isInternal }` |
 | `formspec-page-change` | Wizard navigates to a step | `{ index, total, title }` |
 
+## Declarative WebMCP (opt-in)
+
+Every named control always carries `toolparamdescription` (the field hint, else its label — plain text, following the active Locale), so any DOM-reading agent can understand the form ([Assist spec §8.2](../../specs/assist/assist-spec.md)).
+
+The tool itself is opt-in. With a `tool-name` attribute — `<formspec-render tool-name>` for the default `formspec.form.fill`, or `tool-name="grants.apply"` when a page renders more than one form — the render root becomes `<form novalidate toolname tooldescription>` (`tooldescription` is the Definition `description`, else `title`; `toolautosubmit` is never set). Adding or removing the attribute after render swaps the root on the next render. A Formspec form never navigates: the root cancels native submission, and an agent-invoked submission (`SubmitEvent.agentInvoked`) is answered through `respondWith()` with the current `ValidationReport`.
+
+Before opting in:
+
+- The root lives in this element's light DOM. Do not wrap `<formspec-render tool-name>` in a host `<form>` — the two nest, and the host form stops owning these controls.
+- The tool is discoverable but not yet invokable: a declarative tool without `toolautosubmit` needs a native submit button to hand back to the respondent, and the rendered `ActionButton` is `type="button"`. Tracked in the stack ticket system as `fs-8kpq`.
+- A page running an Assist provider (`@formspec-org/assist`) already exposes a fill tool; do not opt in there — WebMCP guidance is against overlapping tools.
+
 ## Component Registry
 
 All 33 built-in components register automatically on import. Add custom components by registering a plugin on the global registry singleton.
