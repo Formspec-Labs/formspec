@@ -49,17 +49,20 @@ export function themeStateFromDocument(doc: ThemeDocument): ThemeState {
   return rest as ThemeState;
 }
 
+/**
+ * Merge working Mapping state with the required Mapping envelope fields, minting each only
+ * when the state lacks it, so an imported document keeps its author's key order.
+ */
 export function withMappingEnvelope(body: MappingState, definitionUrl: string): MappingDocument {
-  const { rules, targetSchema, definitionRef, definitionVersion, ...rest } = body;
-  const extra = structuredClone(rest);
+  const document = structuredClone(body);
   return {
     $formspecMapping: '1.0',
-    version: '0.1.0',
-    definitionRef: definitionRef ?? definitionUrl,
-    definitionVersion: definitionVersion ?? '>=0.0.0',
-    targetSchema: structuredClone(targetSchema ?? { format: 'json' }),
-    rules: structuredClone(rules ?? []),
-    ...extra,
+    ...(document.version === undefined ? { version: '0.1.0' } : {}),
+    ...(document.definitionRef === undefined ? { definitionRef: definitionUrl } : {}),
+    ...(document.definitionVersion === undefined ? { definitionVersion: '>=0.0.0' } : {}),
+    ...(document.targetSchema === undefined ? { targetSchema: { format: 'json' } } : {}),
+    ...(document.rules === undefined ? { rules: [] } : {}),
+    ...document,
   } as MappingDocument;
 }
 

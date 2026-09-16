@@ -10,6 +10,7 @@
  * @module handlers/mapping
  */
 import type { CommandHandler, ProjectState, MappingState } from '../types.js';
+import { assertDocumentId } from '../document-id.js';
 import type { FieldRule, FormItem, TargetSchema } from '@formspec-org/types';
 
 type EditableFieldRule = FieldRule & { innerRules?: FieldRule[] };
@@ -49,6 +50,7 @@ export const mappingHandlers = {
       id: string;
       targetSchema?: TargetSchema;
     };
+    assertDocumentId(id, 'mapping');
     if (state.mappings[id]) throw new Error(`Mapping already exists: ${id}`);
     state.mappings[id] = {
       rules: [],
@@ -70,6 +72,7 @@ export const mappingHandlers = {
 
   'mapping.rename': (state, payload) => {
     const { oldId, newId } = payload as { oldId: string; newId: string };
+    assertDocumentId(newId, 'mapping');
     if (!state.mappings[oldId]) throw new Error(`Mapping not found: ${oldId}`);
     if (state.mappings[newId]) throw new Error(`Mapping already exists: ${newId}`);
     state.mappings[newId] = state.mappings[oldId];

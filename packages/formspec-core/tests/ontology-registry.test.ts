@@ -118,6 +118,25 @@ describe('authored Ontology and Registry sidecars', () => {
     expect(project.state.registries).toEqual({});
   });
 
+  it.each(['../escaped', 'a/b', 'a\\b', '.', '..', '', 'x\0'])('refuses the registry id %j: ids become file names', (id) => {
+    const project = createRawProject({ seed: { definition: definition as any } });
+    expect(() => project.dispatch({ type: 'registry.setDocument', payload: { id, document: defaultRegistry } })).toThrow(/id/);
+    expect(() => project.dispatch({ type: 'mapping.create', payload: { id } })).toThrow(/id/);
+    expect(() => project.dispatch({ type: 'mapping.rename', payload: { oldId: 'default', newId: id } })).toThrow(/id/);
+  });
+
+  it('project.removeRegistry on a derived row drops the authored document too', () => {
+    const project = createRawProject({ seed: { definition: definition as any } });
+    project.dispatch({ type: 'registry.setDocument', payload: { id: 'default', document: defaultRegistry } });
+    const url = project.listRegistries()[0].url;
+    expect(url).toBe('urn:formspec:registry:default');
+
+    project.dispatch({ type: 'project.removeRegistry', payload: { url } });
+
+    expect(project.listRegistries()).toEqual([]);
+    expect(project.state.registries).toEqual({});
+  });
+
   it('a replace import drops sidecars the bundle omits; a plain import keeps them', () => {
     const project = createRawProject({ seed: { definition: definition as any } });
     project.dispatch({ type: 'ontology.setDocument', payload: { document: ontology } });

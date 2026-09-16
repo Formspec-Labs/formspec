@@ -2,13 +2,14 @@
 import type { CommandHandler } from '../types.js';
 import type { RegistryDocument } from '@formspec-org/types';
 import { syncAuthoredRegistries } from '../registry-index.js';
+import { assertDocumentId } from '../document-id.js';
 
 export const registryHandlers = {
 
   /** Replace (or create) the authored Registry Document at `id`; stored verbatim. */
   'registry.setDocument': (state, payload) => {
     const { id, document } = payload as { id: string; document: RegistryDocument };
-    if (!id) throw new Error('registry.setDocument needs an id');
+    assertDocumentId(id, 'registry');
     state.registries[id] = document;
     syncAuthoredRegistries(state);
     return { rebuildComponentTree: false };

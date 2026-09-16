@@ -121,6 +121,32 @@ describe('project.import', () => {
     expect(Object.keys(project.export().locales!.en as object)).toEqual(Object.keys(locale));
   });
 
+  it('keeps a Mapping document\'s key order through import → export', () => {
+    const project = createRawProject();
+    const mapping = {
+      $formspecMapping: '1.0',
+      version: '1.0.0',
+      name: 'weekly-record-v1',
+      title: 'Weekly → batch record',
+      definitionRef: 'urn:formspec:imported',
+      definitionVersion: '^2.0.0',
+      targetSchema: { format: 'json' },
+      direction: 'forward',
+      defaults: { RECORD_VERSION: 1 },
+      rules: [{ sourcePath: 'name', targetPath: 'NAME' }],
+    };
+    project.dispatch({
+      type: 'project.import',
+      payload: {
+        definitions: [{ $formspec: '1.0', url: 'urn:formspec:imported', version: '1.0.0', title: 'Imported', items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }] }],
+        mappings: { default: mapping },
+      },
+    });
+
+    expect(project.export().mappings.default).toEqual(mapping);
+    expect(Object.keys(project.export().mappings.default)).toEqual(Object.keys(mapping));
+  });
+
   it('imports mapping documents as working mapping state', () => {
     const project = createRawProject();
     project.dispatch({
