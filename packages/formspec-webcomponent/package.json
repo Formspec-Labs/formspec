@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/webcomponent",
   "description": "Web component renderer (<formspec-render>) with pluggable component registry",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -23,16 +23,18 @@
     "./formspec-layout.css": "./dist/formspec-layout.css",
     "./formspec-default.css": "./dist/formspec-default.css"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc && node ../../scripts/copy-layout-css-assets.mjs src dist ../formspec-layout/src",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@formspec-org/engine": "*",
-    "@formspec-org/layout": "*",
-    "@formspec-org/types": "*"
+    "@formspec-org/engine": "^2.0.0",
+    "@formspec-org/layout": "^2.0.0",
+    "@formspec-org/types": "^0.2.0"
   },
   "devDependencies": {
     "happy-dom": "^17.6.1",

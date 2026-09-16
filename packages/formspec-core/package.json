@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/core",
   "description": "Core project model, handlers, and invariant layer for Formspec documents",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "type": "module",
   "license": "BUSL-1.1",
   "repository": {
@@ -25,7 +25,9 @@
     }
   },
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "codegen:component-props": "node ../../scripts/generate-component-schema-props.mjs",
     "build": "npm run codegen:component-props && node ../../scripts/copy-common-registry.mjs && tsc",
@@ -34,8 +36,8 @@
   },
   "dependencies": {
     "ajv": "^8.18.0",
-    "@formspec-org/engine": "*",
-    "@formspec-org/types": "*"
+    "@formspec-org/engine": "^2.0.0",
+    "@formspec-org/types": "^0.2.0"
   },
   "devDependencies": {
     "jsonld": "^9.0.0",

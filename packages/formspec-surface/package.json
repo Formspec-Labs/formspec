@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/surface",
-  "description": "Renderer-independent Surface shell — reads a bundle export's routes and slots and plans a navigable app",
-  "version": "0.1.0",
+  "description": "Renderer-independent Surface shell \u2014 reads a bundle export's routes and slots and plans a navigable app",
+  "version": "2.0.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -21,16 +21,18 @@
     }
   },
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@formspec-org/app-graph": "*",
-    "@formspec-org/layout": "*",
-    "@formspec-org/types": "*",
+    "@formspec-org/app-graph": "^2.0.0",
+    "@formspec-org/layout": "^2.0.0",
+    "@formspec-org/types": "^0.2.0",
     "semver": "^7.8.1"
   },
   "devDependencies": {

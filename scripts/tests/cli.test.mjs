@@ -1,4 +1,5 @@
-/** @filedesc Subprocess coverage for the CLI surfaces of both release scripts.
+/**
+ * @filedesc Subprocess coverage for the changeset tier-placement lint CLI.
  *
  * The pure exports are covered by the sibling *.test.mjs files; this file pins
  * the exit codes and stderr/stdout format that the CI release pipeline (and
@@ -14,12 +15,10 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const FILTER_SCRIPT = resolve(HERE, '..', 'changeset-tier-filter.mjs');
 const PLACEMENT_SCRIPT = resolve(HERE, '..', 'check-changeset-tier-placement.mjs');
 
 let workDir;
 let changesetDir;
-let scratchDir;
 
 function writeChangeset(name, body) {
   writeFileSync(join(changesetDir, name), body, 'utf8');
@@ -51,36 +50,11 @@ function run(script, args) {
 beforeEach(() => {
   workDir = mkdtempSync(join(tmpdir(), 'cli-test-'));
   changesetDir = join(workDir, '.changeset');
-  scratchDir = join(workDir, '.changeset-scratch');
   mkdirSync(changesetDir, { recursive: true });
 });
 
 afterEach(() => {
   rmSync(workDir, { recursive: true, force: true });
-});
-
-describe('changeset-tier-filter.mjs CLI', () => {
-  it('prints usage and exits 2 when given no args', () => {
-    const r = run(FILTER_SCRIPT, []);
-    assert.equal(r.status, 2);
-    assert.match(r.stderr, /Usage:/);
-    assert.match(r.stderr, /Valid tiers: kernel, foundation, integration, ai/);
-  });
-
-  it('prints usage and exits 2 on unknown tier', () => {
-    const r = run(FILTER_SCRIPT, ['nonsense']);
-    assert.equal(r.status, 2);
-    assert.match(r.stderr, /unknown tier: nonsense/);
-    assert.match(r.stderr, /Usage:/);
-  });
-
-  it('always logs "restored N" on --restore, even when N=0', () => {
-    // Pre-refactor behavior the CI log contract depends on: the message
-    // is emitted on every --restore invocation, not just when work happened.
-    const r = run(FILTER_SCRIPT, ['--restore']);
-    assert.equal(r.status, 0);
-    assert.match(r.stdout, /\[changeset-tier-filter\] restored \d+ changeset\(s\) from scratch/);
-  });
 });
 
 describe('check-changeset-tier-placement.mjs CLI', () => {

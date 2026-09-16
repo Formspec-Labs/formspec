@@ -42,26 +42,23 @@ jobs:
       - run: npm run build
 
   release:
-    # Sequential per-tier matrix. `max-parallel: 1` serialises tiers so only
-    # one `changeset version` PR is opened against `main` at a time — otherwise
-    # parallel jobs would race the version bump commit and clobber each other.
+    # One release train. ADR 0063's four velocity tiers still shape the changesets (fixed groups, tier
+    # sentinels, per-tier CHANGELOGs), but they cannot each drive their own changesets/action job: that
+    # action's `branch` input is the *base* branch and its head is always `changeset-release/<base>`, so
+    # four tier jobs would share one head and clobber each other (every run died on
+    # `changeset-release/changeset-release/<tier>`). One job, one "Version Packages" PR, one
+    # `changeset publish` under `latest`; a tier cadence, if wanted later, is a scheduling choice on
+    # top of this, not a matrix.
     needs: build
     if: github.repository == 'Formspec-Labs/formspec'
-    name: Release (${{ matrix.tier }})
+    name: Release
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 1
-      fail-fast: false
-      matrix:
-        # Order matters: kernel → foundation → integration → ai mirrors the
-        # dependency layering so downstream tiers see upstream bumps promptly.
-        tier: [kernel, foundation, integration, ai]
     permissions:
       contents: write
       pull-requests: write
       id-token: write
     concurrency:
-      group: publish-${{ matrix.tier }}
+      group: publish-release
       cancel-in-progress: false
     defaults:
       run:
@@ -91,25 +88,15 @@ jobs:
       - run: npm install
       - run: npm run build
 
-      - name: Filter changesets for ${{ matrix.tier }} tier
-        run: node scripts/changeset-tier-filter.mjs ${{ matrix.tier }}
-
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
         with:
           cwd: formspec
           version: npm run version
-          # Publish with a tier-scoped dist-tag. `<tier>-latest` keeps `latest`
-          # untouched so consumers opt in explicitly to a tier cadence.
-          publish: npm run release -- --tag ${{ matrix.tier }}-latest
-          title: "chore(release): ${{ matrix.tier }} tier"
-          commit: "chore(release): ${{ matrix.tier }} tier version bump"
-          branch: changeset-release/${{ matrix.tier }}
+          publish: npm run release
+          title: "chore(release): version packages"
+          commit: "chore(release): version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
-
-      - name: Restore out-of-tier changesets
-        if: always()
-        run: node scripts/changeset-tier-filter.mjs --restore

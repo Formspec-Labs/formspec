@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/engine",
   "description": "Client-side form state engine with FEL expression language, reactive signals, and validation",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -67,7 +67,7 @@
   },
   "dependencies": {
     "@preact/signals-core": "^1.6.0",
-    "@formspec-org/types": "*"
+    "@formspec-org/types": "^0.2.0"
   },
   "devDependencies": {
     "canonicalize": "^3.0.0",
