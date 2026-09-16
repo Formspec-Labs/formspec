@@ -1,4 +1,4 @@
-# @formspec-org/engine
+# @formspec-org/react
 
 ## 2.0.0
 
@@ -53,16 +53,9 @@
 ### Patch Changes
 
 - Updated dependencies [96f5f6d]
+- Updated dependencies [96f5f6d]
+- Updated dependencies [aa22031]
 - Updated dependencies [aa22031]
   - @formspec-org/types@0.2.0
-
-**Velocity tier:** 1 — Foundation
-**Target cadence:** 3–6 months
-
-All notable changes to this package will be documented in this file.
-
-## [Unreleased]
-
-### Changed
-
-- **FEL analysis wire format:** WASM/Rust `fel_analysis_to_json_value` exposes parse failures as `errors: { message, span? }[]` (not plain strings). `@formspec-org/engine` normalizes these to `FELAnalysisError` with `line`, `column`, and `offset` for backward-compatible UX; optional `span` is passed through when present.
+  - @formspec-org/engine@2.0.0
+  - @formspec-org/layout@2.0.0

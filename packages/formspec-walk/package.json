@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/walk",
   "description": "The Definition walk: Playwright + Guidepup checks derived from a Definition, Locale and Theme — run generically, or emitted as a readable spec",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -24,7 +24,10 @@
     "formspec-walk": "bin/formspec-walk.mjs"
   },
   "sideEffects": false,
-  "files": ["dist", "bin"],
+  "files": [
+    "dist",
+    "bin"
+  ],
   "scripts": {
     "build": "tsc && cp src/virtual-build.cjs src/virtual-build.d.cts dist/",
     "test": "vitest run",
@@ -41,7 +44,9 @@
     "@playwright/test": ">=1.42.0"
   },
   "peerDependenciesMeta": {
-    "@guidepup/playwright": { "optional": true }
+    "@guidepup/playwright": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "typescript": "^5.0.0",
