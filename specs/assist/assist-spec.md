@@ -1169,7 +1169,9 @@ A conformant implementation loads every fixture, builds a live form from
 `definition`/`definitionRef`, applies `setup.writes`, constructs its Assist
 Provider (wiring `setup.confirm` into whatever `confirm: true` requires),
 invokes `call.tool` with `call.input`, and checks the parsed result against
-`expect.result` (present keys must match, `expect.exact` pointers deep-equal),
+`expect.result` (present keys must match; `expect.exact` pointers deep-equal;
+`expect.ignore` pointers — values the specification only RECOMMENDS, such as an
+equivalence confidence — are removed from both sides first),
 or `expect.error`. A WebMCP-only port never sees this MCP-family envelope —
 it observes `{ error: ToolError }` on failure (§4.1) rather than
 `isError: true` with a JSON `text` — so it checks the same `expect` against

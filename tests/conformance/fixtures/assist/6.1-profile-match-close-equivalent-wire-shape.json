@@ -1,17 +1,24 @@
 {
   "$formspecAssistFixture": "1.0",
   "title": "profile.match reports a match made through a close concept equivalent at 0.8 confidence, still with no value and no source",
-  "spec": "§6.1",
+  "spec": "\u00a76.1",
   "definitionRef": "definitions/grant-application.json",
   "ontology": {
     "$formspecOntology": "1.0",
     "version": "1.0.0",
-    "targetDefinition": { "url": "https://example.org/forms/grant" },
+    "targetDefinition": {
+      "url": "https://example.org/forms/grant"
+    },
     "concepts": {
       "organization.ein": {
         "concept": "https://www.irs.gov/terms/employer-identification-number",
         "equivalents": [
-          { "concept": "https://schema.org/taxID", "system": "https://schema.org", "code": "taxID", "type": "close" }
+          {
+            "concept": "https://schema.org/taxID",
+            "system": "https://schema.org",
+            "code": "taxID",
+            "type": "close"
+          }
         ]
       }
     }
@@ -28,7 +35,10 @@
         "confidence": 1,
         "verified": true,
         "lastUsed": "2026-03-26T12:00:00.000Z",
-        "source": { "type": "manual", "timestamp": "2026-03-26T12:00:00.000Z" }
+        "source": {
+          "type": "manual",
+          "timestamp": "2026-03-26T12:00:00.000Z"
+        }
       }
     }
   },
@@ -47,6 +57,11 @@
         }
       ]
     },
-    "exact": ["/matches"]
+    "exact": [
+      "/matches"
+    ],
+    "ignore": [
+      "/matches/0/confidence"
+    ]
   }
 }

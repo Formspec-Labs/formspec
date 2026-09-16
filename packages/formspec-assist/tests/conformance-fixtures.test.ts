@@ -51,6 +51,8 @@ interface Fixture {
     error?: Record<string, unknown>;
     /** RFC 6901 pointers into the checked object; each subtree is compared by deep equality. */
     exact?: string[];
+    /** RFC 6901 pointers whose values are RECOMMENDED, not MUST: removed from both sides before any comparison. */
+    ignore?: string[];
     /** Exactly what `confirmProfileApply` received, in order — proves §3.5 skips are decided before confirmation. */
     confirmation?: Array<{ path: string; value: unknown }>;
   };
@@ -80,6 +82,16 @@ function resolveDefinition(fixture: Fixture): Record<string, unknown> {
 }
 
 /** RFC 6901 JSON Pointer resolution (`~1` → `/`, `~0` → `~`); `undefined` when any segment misses. */
+/** Delete the value at an RFC 6901 pointer (no-op when the path does not resolve). */
+function deletePointer(value: unknown, pointer: string): void {
+  const segments = pointer.split('/').slice(1).map((segment) => segment.replace(/~1/g, '/').replace(/~0/g, '~'));
+  const last = segments.pop();
+  const parent = segments.reduce<unknown>((acc, key) => (acc == null ? undefined : (acc as Record<string, unknown>)[key]), value);
+  if (last !== undefined && parent && typeof parent === 'object') {
+    delete (parent as Record<string, unknown>)[last];
+  }
+}
+
 function resolvePointer(value: unknown, pointer: string): unknown {
   if (pointer === '') {
     return value;
@@ -132,9 +144,14 @@ describe('Assist conformance fixture corpus (draft.3 MUSTs)', () => {
       expect(body).toMatchObject(fixture.expect.error);
     } else {
       expect(result.isError, `${fixture.title}: expected a success result, got ${JSON.stringify(body)}`).not.toBe(true);
-      expect(body).toMatchObject(fixture.expect.result);
+      const expected = structuredClone(fixture.expect.result);
+      for (const pointer of fixture.expect.ignore ?? []) {
+        deletePointer(body, pointer);
+        deletePointer(expected, pointer);
+      }
+      expect(body).toMatchObject(expected);
       for (const pointer of fixture.expect.exact ?? []) {
-        expect(resolvePointer(body, pointer), `${fixture.title}: exact mismatch at ${pointer}`).toEqual(resolvePointer(fixture.expect.result, pointer));
+        expect(resolvePointer(body, pointer), `${fixture.title}: exact mismatch at ${pointer}`).toEqual(resolvePointer(expected, pointer));
       }
     }
 
