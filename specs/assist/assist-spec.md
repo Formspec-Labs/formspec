@@ -1,6 +1,6 @@
 ---
 title: Formspec Assist Specification
-version: 1.0.0-draft.2
+version: 1.0.0-draft.3
 date: 2026-09-16
 depends_on:
   - specs/core/references-spec.md
@@ -10,7 +10,7 @@ depends_on:
 
 # Formspec Assist Specification v1.0
 
-**Version:** 1.0.0-draft.2
+**Version:** 1.0.0-draft.3
 **Date:** 2026-09-16
 **Editors:** Formspec Working Group
 **Companion to:** Formspec v1.0 — A JSON-Native Declarative Form Standard
@@ -49,6 +49,14 @@ Draft 2 rebases §4.1, §7.2, §8, and §10.1 on the [WebMCP][webmcp] Community
 Group draft of 2026-09-15: `document.modelContext`, `AbortSignal` lifecycle,
 `getTools()` / `executeTool()`, tool annotations in place of the never-shipped
 `requestUserInteraction()`, and the declarative `<form>` attributes.
+
+Draft 3 makes errors actionable — `ToolError.retryable`, messages that name
+the fix, `x-user-edited` (§4.2) — and adds the stale-write guard (§4.3 rule
+6), the WebMCP registration profile and permissive registered schemas (§7.2),
+output minimization for field help and profile match (§5.1–§5.2, §6.1),
+`formspec.profile.apply` keyed by path (§3.5), renderer marking of
+assistant-written fields (§8.4), the §11 threat map against WebMCP §6.3–§6.4,
+and the LLM tool-name fallback (§3.1).
 
 ## Conventions and Terminology
 
@@ -210,22 +218,28 @@ A conformant Passive Provider:
 All Assist tools use the namespace `formspec.` followed by a category and
 action: `formspec.{category}.{action}`.
 
+LLM tool-name grammars (Claude, OpenAI: `^[a-zA-Z0-9_-]{1,128}$`) reject
+`.`. A consumer presenting tools to such a model MAY map `.` → `_`
+deterministically (`formspec.field.set` → `formspec_field_set`) and MUST map
+the model's call back before invoking. Providers MUST accept only the dotted
+form on the wire.
+
 ### 3.2 Required Core Introspection Tools
 
 | Tool | Input | Output | Notes |
 |---|---|---|---|
 | `formspec.form.describe` | `{}` | `FormDescription` | High-level form metadata and status. |
 | `formspec.field.list` | `{ filter?: "all" \| "required" \| "empty" \| "invalid" \| "relevant" }` | `FieldSummary[]` | Default filter is `"relevant"`. |
-| `formspec.field.describe` | `{ path: string }` | `FieldDescription` | Includes live state and resolved help. |
-| `formspec.field.help` | `{ path: string, audience?: "human" \| "agent" \| "both" }` | `FieldHelp` | Default audience is `"agent"`. Providers MAY allow consumers to override this default. |
+| `formspec.field.describe` | `{ path: string }` | `FieldDescription` | Includes live state and resolved help, minimized at the §5.2 defaults (no `content`, 4096-byte cap). |
+| `formspec.field.help` | `{ path: string, audience?: "human" \| "agent" \| "both", includeContent?: boolean, maxBytes?: number }` | `FieldHelp` | Default audience is `"agent"`. Providers MAY allow consumers to override this default. `includeContent` defaults to `false`; `maxBytes` defaults to 4096, minimum 512 (§5.2). |
 | `formspec.form.progress` | `{}` | `FormProgress` | Progress summary across required and total fields. |
 
 ### 3.3 Required Core Mutation Tools
 
 | Tool | Input | Output | Notes |
 |---|---|---|---|
-| `formspec.field.set` | `{ path: string, value: unknown }` | `SetValueResult` | MUST reject writes to readonly or non-relevant fields. |
-| `formspec.field.bulkSet` | `{ entries: Array<{ path: string, value: unknown }> }` | `BulkSetResult` | MAY partially succeed; each entry is independent unless a transport defines stronger atomicity. |
+| `formspec.field.set` | `{ path: string, value?: unknown, overwrite?: boolean }` | `SetValueResult` | MUST reject writes to readonly or non-relevant fields. Without `overwrite: true`, MUST refuse a respondent-written value with `x-user-edited` (§4.3 rule 6). |
+| `formspec.field.bulkSet` | `{ entries: Array<{ path: string, value: unknown }>, overwrite?: boolean }` | `BulkSetResult` | MAY partially succeed; each entry is independent unless a transport defines stronger atomicity. `overwrite` is per call and covers every entry. |
 
 The `value` property in `formspec.field.set` MAY be omitted. An omitted `value` is treated as `null` and clears the field. Providers MUST treat `undefined` (from omission) identically to `null` for the purpose of setting field values.
 
@@ -240,8 +254,8 @@ The `value` property in `formspec.field.set` MAY be omitted. An omitted `value` 
 
 | Tool | Input | Output | Notes |
 |---|---|---|---|
-| `formspec.profile.match` | `{ profileRef?: string }` | `{ matches: ProfileMatch[] }` | Suggests reusable values. |
-| `formspec.profile.apply` | `{ matches: Array<{ path: string, value: unknown }>, confirm?: boolean }` | `ProfileApplyResult` | `confirm: true` requires human-in-the-loop. When `confirm` is `true` and the provider has no confirmation mechanism, the provider MUST return an error with code `x-confirmation-required`. The provider MUST NOT silently apply values without confirmation when confirmation was explicitly requested. |
+| `formspec.profile.match` | `{ profileRef?: string }` | `{ matches: ProfileMatch[] }` | Names the fields a profile can fill. The wire shape carries no values and no provenance (§6.1); values stay in-page until `profile.apply`. |
+| `formspec.profile.apply` | `{ paths?: string[], confirm?: boolean, overwrite?: boolean }` | `ProfileApplyResult` | Applies the current match set (§6.2). Omitted `paths` means every current match. Values resolve in-page from that set, never from tool input; a path with no current match is skipped with reason `NOT_FOUND`. `confirm: true` requires human-in-the-loop. When `confirm` is `true` and the provider has no confirmation mechanism, the provider MUST return an error with code `x-confirmation-required`. The provider MUST NOT silently apply values without confirmation when confirmation was explicitly requested. The confirmation shows the respondent each `{ path, value }` about to be written. `overwrite` is per call (§4.3 rule 6). |
 | `formspec.profile.learn` | `{ profileRef?: string }` | `{ savedConcepts: number, savedFields: number }` | Saves concept-bound values and permitted fallbacks. |
 
 ### 3.6 Optional Navigation Tools
@@ -297,8 +311,24 @@ interface ToolError {
     | "ENGINE_ERROR";
   message: string;
   path?: string;
+  retryable: boolean;
 }
 ```
+
+`retryable` is `true` when the same call can succeed with corrected input:
+`NOT_FOUND`, `INVALID_PATH`, `INVALID_VALUE`, `NOT_RELEVANT`, `UNSUPPORTED`.
+It is `false` otherwise, including every `x-` code — the safe reading of an
+unknown failure is "ask the human".
+
+`message` MUST name the fix, not just the fault: what was expected, what
+arrived, and where. The shapes below are normative for input validation:
+
+| Fault | Message shape |
+| --- | --- |
+| enum | `input.filter must be one of: all, required, empty, invalid, relevant (got "foo")` |
+| unknown key | `unexpected input property "mode"; accepted: profile` |
+| missing required | `missing required input property "path" (string: field path, e.g. "organization.ein")` |
+| type | `input.entries must be an array of { path, value }` |
 
 Providers MAY define additional `x-`-prefixed error codes. Consumers MUST treat
 unknown non-`x-` codes as generic failures.
@@ -310,6 +340,7 @@ The following `x-`-prefixed error codes are RECOMMENDED for common provider cond
 | `x-confirmation-required` | A mutation requiring `confirm: true` was requested but no confirmation mechanism is available. |
 | `x-invalid-sidecar` | A loaded References or Ontology document has a structural error or its `targetDefinition` does not match the active form. |
 | `x-cancelled` | The caller aborted the invocation before the mutation was applied. Nothing was written. Observable by in-process callers; a WebMCP caller sees its own abort reason instead (§7.2). |
+| `x-user-edited` | The target holds a value the respondent (or a hydrated response) wrote and the call did not carry `overwrite: true` (§4.3 rule 6). Nothing was written. Carries `currentValue: unknown` beside `path`, so the consumer can show the human what it would have replaced. |
 
 ### 4.3 Mutation Rules
 
@@ -321,6 +352,18 @@ For every mutation tool:
 4. A provider **MUST NOT** suppress core validation triggered by the write.
 5. A provider **SHOULD** support human-in-the-loop confirmation for bulk or
    profile-driven writes.
+6. A provider **MUST NOT** overwrite a filled field (§4.4) the assistant did
+   not write unless the call carries `overwrite: true`. The engine records a
+   write source per path; a write is *the assistant's own* when that source
+   is `assist`. When the target's current value is non-empty, its write
+   source is anything but `assist` (a respondent edit, a hydrated response,
+   or no source recorded), and `overwrite` is not `true`, the provider
+   refuses with `x-user-edited` and `currentValue` and writes nothing. Empty
+   fields and fields the assistant itself wrote are always writable. Applies
+   to `formspec.field.set`, `formspec.field.bulkSet`, and
+   `formspec.profile.apply`; `overwrite` is per call, not per entry. Every
+   Assist write **MUST** be recorded with source `assist` so the guard and
+   the renderer (§8.4) see the same fact.
 
 ### 4.4 Common Data Shapes
 
@@ -405,8 +448,10 @@ interface BulkSetResult {
     validation: ValidationResult[];
     error?: ToolError;
   }>;
-  summary: { accepted: number; rejected: number; errors: number };
+  summary: { accepted: number; rejected: number; skipped: number; errors: number };
 }
+
+`skipped` counts entries refused by §4.3 rule 6; each carries `accepted: false` and `error.code` `x-user-edited`.
 
 interface ProfileApplyResult {
   filled: Array<{ path: string; value: unknown }>;
@@ -423,6 +468,7 @@ The `reason` field in skipped entries SHOULD use one of the following standard v
 | `NOT_RELEVANT` | The target field is currently not relevant. |
 | `INVALID_VALUE` | The value was rejected by the engine. |
 | `DECLINED` | The user declined the mutation during confirmation. |
+| `x-user-edited` | The target holds a respondent-written value and the call did not carry `overwrite: true` (§4.3 rule 6). |
 
 Providers MAY use additional `x-`-prefixed reason strings. Consumers MUST treat unrecognized reason strings as generic skips.
 
@@ -460,6 +506,7 @@ interface FieldHelp {
   equivalents?: ConceptEquivalent[];
   summary?: string;
   commonMistakes?: string[];
+  truncated?: boolean;
 }
 
 type ReferenceType =
@@ -469,6 +516,7 @@ type ReferenceType =
 
 interface ReferenceEntry {
   title: string;
+  type: ReferenceType;
   uri?: string;
   content?: string | object;
   excerpt?: string;
@@ -491,6 +539,13 @@ interface ConceptEquivalent {
   type?: "exact" | "close" | "broader" | "narrower" | "related";
 }
 ```
+
+`ReferenceEntry` on the wire is a projection of the References Document
+entry: `title`, `type`, `uri`, `excerpt`, `rel`, `priority` always;
+`content` only when the call carried `includeContent: true` (§3.2). Reference
+`content` is the largest and least trusted text a provider relays (§11), so
+the consumer asks for it. `truncated` is `true` when the §5.2 byte cap dropped
+entries.
 
 ### 5.2 References Resolution
 
@@ -520,6 +575,14 @@ To resolve `FieldHelp.references`, a conformant provider MUST:
 8. Sort entries within a type by effective priority:
    `primary` before `supplementary` before `background`, preserving document
    order within a tier.
+9. Project each entry to the wire shape (§5.1): omit `content` unless the
+   call carried `includeContent: true`.
+10. Cap the serialized `references` object at `maxBytes` (default 4096,
+    minimum 512; a smaller request is raised to 512). While it is over the
+    cap, drop the entry with the lowest effective priority across all types
+    — `background` before `supplementary` before `primary`, last in document
+    order first within a tier — and set `FieldHelp.truncated: true`. The
+    consumer raises `maxBytes` or asks again with a narrower `audience`.
 
 ### 5.3 Ontology Resolution Cascade
 
@@ -575,12 +638,17 @@ type ProfileEntrySource =
 interface ProfileMatch {
   path: string;
   concept?: string;
-  value: unknown;
   confidence: number;
   relationship?: "exact" | "close" | "broader" | "narrower" | "related" | "field-key";
-  source: ProfileEntrySource;
 }
 ```
+
+`UserProfile` and `ProfileEntry` are the stored shape. `ProfileMatch` is the
+wire shape `formspec.profile.match` returns: a projection that names the
+field and how well it matched, with no `value` and no `source`. The value
+and its provenance (`formUrl`, `fieldPath`, timestamps) stay in-page; the
+respondent sees the value at `profile.apply` confirmation (§3.5), the agent
+never does.
 
 ### 6.2 Matching Algorithm
 
@@ -608,6 +676,10 @@ When implementing `formspec.profile.learn`, a provider:
 - **MUST NOT** transmit profile data off-device or off-origin without explicit
   user consent.
 
+The reference profile store is origin-scoped `localStorage`. In private
+browsing it is ephemeral: the browser discards it at session end, and
+`formspec.profile.learn` persists nothing beyond the session (WebMCP §6.3.5).
+
 ## 7. Transport Bindings
 
 ### 7.1 Transport-Neutral Requirements
@@ -624,6 +696,12 @@ Any conformant Assist transport MUST provide:
    the other: the provider can pause and obtain user confirmation before a
    requested mutation proceeds, and the binding lets the consumer's runtime
    (browser, agent host) gate consequential tools behind its own confirmation.
+   The provider-side confirmation is UX, not a security boundary: a user
+   agent that also drives the page can click it
+   ([webmcp#288][webmcp-288]). `consequentialHint` (§7.2) is the boundary
+   the browser owns.
+
+[webmcp-288]: https://github.com/webmachinelearning/webmcp/issues/288
 
 ### 7.2 WebMCP Binding
 
@@ -639,9 +717,31 @@ A conformant WebMCP binding:
   unique per document.
 - **MUST** use the Assist tool name verbatim. `formspec.{category}.{action}`
   satisfies WebMCP's name grammar (1–128 ASCII alphanumerics, `_`, `-`, `.`).
-- **MUST** supply `title` (browsers show it in consent UI), `description`, a
-  JSON Schema `inputSchema` with a `description` on every property, and
-  `annotations` per the table below.
+- **MUST** supply `title` (browsers show it in consent UI), `description`
+  (at most 500 characters), a JSON Schema `inputSchema` with a `description`
+  on every property (at most 150 characters each), and `annotations` per the
+  table below. Titles are imperative ("Set field value"); descriptions say
+  what the tool does, when to use it, and what comes back.
+- **MUST NOT** set `additionalProperties: false` on a registered
+  `inputSchema`. The provider validates strictly in code and answers an
+  unexpected key with `INVALID_VALUE` naming the accepted keys (§4.2). A
+  schema-level rejection carries no message, so an agent that sent one extra
+  key stalls with nothing to correct; the provider's error keeps the fix on
+  the path. Once WebMCP resolves input validation
+  ([webmcp#92][webmcp-92]) the browser will pre-validate against this
+  schema, and a permissive schema keeps the provider's error reachable.
+- **MUST** register the default profile unless the host asks for `'all'`.
+  The default registers `formspec.form.describe`, `formspec.form.progress`,
+  `formspec.field.list`, `formspec.field.describe`, `formspec.field.help`,
+  `formspec.field.bulkSet`, `formspec.form.validate`,
+  `formspec.form.nextIncomplete`, plus `formspec.profile.match`,
+  `formspec.profile.apply`, and `formspec.profile.learn` when the provider
+  has a profile configured. `'all'` registers the whole catalog. Every
+  registered tool costs the agent context on every turn, and the omitted
+  tools overlap: `field.set` is a one-entry `bulkSet`, `field.validate` is
+  one path's slice of the `form.validate` report, and `form.pages` is
+  `form.progress.pages`. The
+  omitted tools remain on the provider for the other bindings (§7.3–§7.5).
 - **MUST** return the §4 result object from `execute`, and MUST return
   `ToolError` as `{ error: ToolError }` rather than rejecting: WebMCP delivers
   a rejected `execute` as a bare `UnknownError` and discards the reason.
@@ -668,7 +768,7 @@ Annotation mapping:
 |---|---|---|
 | §3.2 introspection, §3.4 validation, §3.6 navigation, `formspec.profile.match` | `readOnlyHint: true` | No state change. |
 | `formspec.field.help`, `formspec.field.describe` | `readOnlyHint: true`, `untrustedContentHint: true` | Relay References `content`, which may be fetched from third-party URIs. |
-| §3.3 mutation, `formspec.profile.apply`, `formspec.profile.learn` | `consequentialHint: true` | Write the respondent's form or profile; the hint lets browsers and agents gate consequential tools behind their own confirmation (WebMCP §6.4.5). It is advisory — the provider-side gate is the only guaranteed one. |
+| §3.3 mutation, `formspec.profile.apply`, `formspec.profile.learn` | `consequentialHint: true` | Write the respondent's form or profile; the hint lets browsers and agents gate consequential tools behind their own confirmation (WebMCP §6.4.5). The hint is advisory to the agent; the browser's gate is the security boundary (§7.1(4)). |
 
 `consequentialHint` is the consumer-side layer of §7.1(4). The provider-side
 `confirm: true` handler on `formspec.profile.apply` remains required.
@@ -678,6 +778,8 @@ In-page consumers discover tools with `document.modelContext.getTools()`
 them with `executeTool(tool, input, { signal })`, which resolves to the
 serialized result object. The browser's agent observes the same tool map
 without running page script.
+
+[webmcp-92]: https://github.com/webmachinelearning/webmcp/issues/92
 
 ### 7.3 MCP Binding
 
@@ -746,10 +848,10 @@ around it. A page MUST NOT expose both tiers for the same form.
 | Attribute | On | Value |
 |---|---|---|
 | `toolname` | `<form>` | WebMCP-legal, unique per document; `formspec.form.fill` is RECOMMENDED for a page with one form. Never one of the §3 catalog names. |
-| `tooldescription` | `<form>` | The Definition `description`, else `title`. |
+| `tooldescription` | `<form>` | The Definition `description`, else `title`. Plain text, markup stripped, at most 500 characters. |
 | `toolautosubmit` | `<form>` | **Absent by default.** Without it the agent fills and the respondent submits — the passive tier's human-in-the-loop. Renderers MUST NOT add it unless the host explicitly opts in. |
 | `name` | each control | The field path; it becomes the property name in the synthesized schema. |
-| `toolparamdescription` | each control | Concise field context: the field `hint`, else `FieldHelp.summary` (§5.4), else the label. |
+| `toolparamdescription` | each control | Concise field context: the field `hint`, else `FieldHelp.summary` (§5.4), else the label. Plain text, markup stripped, at most 150 characters. |
 | `autocomplete` | each control | Best-effort token per §8.3. |
 
 Standard accessibility metadata (visible labels, `aria-describedby`, native
@@ -785,6 +887,22 @@ there is a reasonable one-to-one correspondence.
 | `https://schema.org/birthDate` | `bday` |
 
 This mapping is advisory. Unknown concepts MUST NOT cause an error.
+
+### 8.4 Assistant-Written Fields
+
+The respondent must be able to see what the assistant wrote and where. A
+renderer whose engine records write sources (§4.3 rule 6):
+
+- **MUST** stamp `data-formspec-agent-filled=""` on the field root of every
+  field whose current write source is `assist`, and remove it when a
+  respondent edit changes the source.
+- **MUST** treat an assistant write as touching the field, so its validation
+  shows immediately rather than waiting for blur or submit.
+- **SHOULD** announce each write batch once through its live region
+  ("{label} filled by your assistant"; the string is Locale-resolvable, with
+  English as the fallback).
+- **SHOULD** give `[data-formspec-agent-filled]` a visible style hook with
+  contrast that passes the renderer's accessibility gate.
 
 ## 9. Sidecar Discovery
 
@@ -856,17 +974,29 @@ profile matches as advisory.
 
 ## 11. Security and Privacy Considerations
 
-Assist implementations handle sensitive live form data. A conformant provider:
+Assist handles live form data and rides on WebMCP's threat model
+([WebMCP][webmcp] §6.3–§6.4). Each row names the threat, the mechanism this
+specification supplies, and what stays open.
 
-1. **MUST** treat all tool input as untrusted.
-2. **MUST** validate paths and values before acting on them.
-3. **MUST NOT** bypass readonly or relevance protections.
-4. **MUST NOT** block persistence solely because validation findings exist,
+| WebMCP threat | Assist mechanism | Residual gap |
+|---|---|---|
+| §6.3.1.1 Tool poisoning via metadata | Tool names, titles, descriptions, and schemas are provider constants (§7.2); no form, sidecar, or respondent text reaches them. | A host registering its own tools beside Assist owns its own metadata. |
+| §6.3.1.2 Output injection | References `content` is off by default and the help payload is byte-capped (§5.1–§5.2); `field.help` and `field.describe` carry `untrustedContentHint` (§7.2); consumers parse structured results, never prose (§2.2). | `title` and `excerpt` from a compromised sidecar still reach the agent; the hint informs, it does not sanitize. |
+| §6.3.1.3 Tool implementation as target | All tool input is untrusted: paths and values are validated before use, readonly and non-relevant targets are refused, respondent-written values need `overwrite`, and every write runs the same engine path as the UI (§4.3). | An engine defect reachable from the UI is reachable from Assist. |
+| §6.3.2 Misrepresentation of intent | Imperative titles and accurate descriptions (§7.2); `consequentialHint` on every writing tool; the browser's gate is the boundary (§7.1(4)). | Provider-side confirmation is UX — a user agent that drives the page can click it ([webmcp#288][webmcp-288]). |
+| §6.3.3 Over-parameterization | Inputs are paths, values, and enum switches; `profile.match` returns no values and no provenance, `profile.apply` takes paths only (§3.5, §6.1). | `field.describe` returns the current value; the tool is useless without it. |
+| §6.3.4 Same-origin | `exposedTo` is the host's decision (§7.2); in an undelegated cross-origin frame `registerTool` throws `NotAllowedError` and the binding is a no-op. | A host that delegates the `tools` policy delegates the whole catalog. |
+| §6.3.5 Private browsing | The reference profile store is origin `localStorage`, ephemeral in private mode; profile data never leaves the origin without consent (§6.3). | In normal mode learned values persist until the user clears them. |
+| §6.4.1 Permissions policy | The binding never polyfills `document.modelContext`; `tools` defaults to `'self'` (§7.2). | None owned here. |
+| §6.4.2 Input lengths | Tool descriptions ≤ 500 and property descriptions ≤ 150 characters (§7.2); `tooldescription` / `toolparamdescription` capped and markup-stripped (§8.2); help payload byte-capped (§5.2). | Field `value` input is unbounded; the engine's `dataType` coercion is the check. |
+
+Beyond the map, a conformant provider:
+
+1. **MUST NOT** block persistence solely because validation findings exist,
    unless the underlying host policy already requires that behavior outside
    Assist.
-5. **MUST NOT** transmit profile data without explicit user consent.
-6. **SHOULD** encrypt profile storage at rest where the platform allows.
-7. **SHOULD** keep privileged browser-extension capabilities separated from any
+2. **SHOULD** encrypt profile storage at rest where the platform allows.
+3. **SHOULD** keep privileged browser-extension capabilities separated from any
    page-context bootstrap code.
 
 ## 12. Conformance Summary
@@ -880,6 +1010,11 @@ A conformant Assist Provider:
   defines (§4.1).
 - **MUST** implement field-help resolution per §5.
 - **MUST** preserve core processing semantics.
+- **MUST** refuse to overwrite a respondent-written value without
+  `overwrite: true`, and record every Assist write with source `assist`
+  (§4.3 rule 6).
+- **MUST** set `retryable` on every `ToolError` and name the fix in
+  `message` (§4.2).
 - **MUST** support at least one discovery and invocation transport.
 
 ### 12.2 Consumer Requirements
@@ -887,15 +1022,22 @@ A conformant Assist Provider:
 A conformant Assist Consumer:
 
 - **MUST** parse structured result payloads.
-- **MUST** respect provider errors and unsupported-tool conditions.
+- **MUST** respect provider errors and unsupported-tool conditions; retry
+  with corrected input only when `retryable` is `true`, otherwise ask the
+  human (§4.2).
 - **SHOULD** use provider-exposed help and validation rather than substituting
   scraped UI state when provider access exists.
 - **SHOULD** surface or request confirmation for high-impact writes.
 
-### 12.3 Passive Provider Requirements
+### 12.3 Passive Provider and Renderer Requirements
 
 A conformant Passive Provider:
 
 - **MUST** preserve accessibility and native semantics.
 - **SHOULD** emit stable `data-formspec-*` metadata.
 - **MAY** omit the active tool surface entirely.
+
+A renderer hosting an Assist Provider:
+
+- **MUST** mark assistant-written fields with `data-formspec-agent-filled`
+  and show their validation immediately (§8.4).
