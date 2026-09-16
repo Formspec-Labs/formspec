@@ -41,6 +41,12 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      # The spec artifacts cite WOS specs by sibling path (scripts/spec-artifacts.config.json).
+      - name: Check out the work-spec sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/work-spec
+          path: work-spec
 
       - name: Setup Node
         uses: actions/setup-node@v6
