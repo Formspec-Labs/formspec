@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/app-graph",
   "description": "Shared AppGraphValidator report kernel and interface types",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -21,7 +21,9 @@
     }
   },
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
