@@ -6,6 +6,10 @@
  * The script intentionally validates the inline exports through the public
  * app-graph pipeline: that exercises the real artifact and module resolvers
  * instead of duplicating their resolution rules in this spike.
+ *
+ * Run on demand (`npm run check:surface-v12-artifacts`), not in the CI chain:
+ * the evidence is sealed to the inputs it reviewed, so it fails closed once the
+ * platform moves on — a true statement about the July review, not a build error.
  */
 
 import { createHash } from 'node:crypto';

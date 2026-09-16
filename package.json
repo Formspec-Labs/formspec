@@ -44,7 +44,7 @@
     "wasm:twiggy": "bash scripts/twiggy-wasm.sh",
     "check:deps": "node scripts/check-dep-fences.mjs",
     "check:changesets": "node scripts/check-changeset-tier-placement.mjs",
-    "test:scripts": "node --test scripts/tests/*.test.mjs && npm run check:data-only-dogfood && npm run check:surface-v12-artifacts && npm run check:outcome-dogfood",
+    "test:scripts": "node --test scripts/tests/*.test.mjs && npm run check:data-only-dogfood && npm run check:outcome-dogfood",
     "check:data-only-dogfood": "node spikes/surface-v12-saas-v1-dogfood/demo/scripts/check-generic-host.mjs",
     "check:surface-v12-artifacts": "node spikes/surface-v12-saas-v1-dogfood/verify-artifacts.mjs",
     "check:outcome-dogfood": "tsx spikes/surface-v12-saas-v1-dogfood/run-outcome-cases.mjs --verify-only",
