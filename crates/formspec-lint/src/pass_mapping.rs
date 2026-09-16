@@ -844,6 +844,30 @@ mod tests {
         assert_eq!(amount_rule.derived_required, Some(true));
     }
 
+    /// Mapping spec, JSON adapter: paths use dot-notation with bracket indexing (`name[0].given[0]`).
+    /// A member after an indexed segment is a path the runtime executes; the lint must not reject it.
+    #[test]
+    fn an_indexed_segment_may_be_followed_by_a_member() {
+        let mapping: Value = serde_json::json!({
+            "$formspecMapping": "1.0", "version": "1.0.0",
+            "definitionRef": "urn:test", "definitionVersion": ">=1.0.0",
+            "targetSchema": { "format": "json" },
+            "rules": [
+                { "transform": "preserve", "sourcePath": "work.jobs[0].employerName", "targetPath": "EMPLOYER" },
+                { "transform": "preserve", "sourcePath": "work.jobs[0].hoursWorked.hours", "targetPath": "rows[0].hours" }
+            ]
+        });
+
+        let analysis = analyze_mapping(&mapping, None);
+
+        let path_errors: Vec<_> = analysis
+            .diagnostics
+            .iter()
+            .filter(|diag| diag.code == crate::LintCode::E1100)
+            .collect();
+        assert!(path_errors.is_empty(), "{path_errors:?}");
+    }
+
     #[test]
     fn reverse_condition_is_checked_as_fel() {
         let mapping: Value = serde_json::from_str(include_str!(

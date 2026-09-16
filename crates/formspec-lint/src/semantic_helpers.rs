@@ -112,16 +112,21 @@ fn parse_strict_path(path: &str, flavor: PathFlavor) -> Result<Vec<StrictPathSeg
     let mut current = String::new();
     let mut i = 0;
     let mut previous_was_dot = true;
+    // `jobs[0].employerName`: the dot after a bracket opens the next member, with nothing pending.
+    let mut after_bracket = false;
 
     while i < chars.len() {
         match chars[i] {
             '.' => {
-                if current.is_empty() {
+                if current.is_empty() && !after_bracket {
                     return Err(format!("invalid dotted path syntax: '{path}'"));
                 }
-                validate_exact_segment(&current, flavor)?;
-                segments.push(StrictPathSegment::Exact(std::mem::take(&mut current)));
+                if !current.is_empty() {
+                    validate_exact_segment(&current, flavor)?;
+                    segments.push(StrictPathSegment::Exact(std::mem::take(&mut current)));
+                }
                 previous_was_dot = true;
+                after_bracket = false;
                 i += 1;
             }
             '[' => {
@@ -159,6 +164,7 @@ fn parse_strict_path(path: &str, flavor: PathFlavor) -> Result<Vec<StrictPathSeg
 
                 i = end + 1;
                 previous_was_dot = false;
+                after_bracket = true;
             }
             ']' => return Err(format!("unmatched closing bracket in path: '{path}'")),
             ch => {
@@ -167,6 +173,7 @@ fn parse_strict_path(path: &str, flavor: PathFlavor) -> Result<Vec<StrictPathSeg
                 }
                 current.push(ch);
                 previous_was_dot = false;
+                after_bracket = false;
                 i += 1;
             }
         }

@@ -31,3 +31,8 @@ expression, and draws its repeat chrome from the same inventory.
 nested and indexed targets, `defaults` for new fields, and carry-forward only of paths this
 version still has. The runtime had read a `[{fromVersion, changes}]` shape the schema
 rejects, so a migration authored through Studio or the Forms MCP did nothing.
+
+Mapping: a `valueMap` matches a boolean or number source by its string form, as the spec
+says and the schema's own `{"true": "Y"}` example shows; and the lint accepts a member after
+an indexed segment (`jobs[0].employerName`), the JSON path syntax the spec names and the
+runtime already executed.

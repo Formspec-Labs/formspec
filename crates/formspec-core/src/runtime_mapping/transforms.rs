@@ -18,8 +18,15 @@ pub(crate) fn apply_value_map(
     diagnostics: &mut Vec<MappingDiagnostic>,
     rule_default: Option<&Value>,
 ) -> Option<Value> {
+    // Map keys are JSON object keys, so they are strings; a source value matches by its string form
+    // (mapping spec: "matched by string equality" — `true` finds `"true"`, `2` finds `"2"`).
+    let key = match value {
+        Value::Bool(b) => Some(b.to_string()),
+        Value::Number(n) => Some(n.to_string()),
+        _ => None,
+    };
     for (from, to) in map {
-        if value == from {
+        if value == from || (key.is_some() && from.as_str() == key.as_deref()) {
             return Some(to.clone());
         }
     }
