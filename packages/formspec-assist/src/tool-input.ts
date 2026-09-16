@@ -71,6 +71,9 @@ function shapeOf(schema: ToolSchema): string {
   }
   switch (schema.type) {
     case 'array':
+      if (schema.items?.anyOf) {
+        return `an array of ${shapeOf(schema.items)}`;
+      }
       if (!schema.items?.type) {
         return 'an array';
       }

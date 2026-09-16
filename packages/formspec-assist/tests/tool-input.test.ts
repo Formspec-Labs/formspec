@@ -57,7 +57,7 @@ describe('tool input validation messages (draft.3 C1)', () => {
     expect(rejection('formspec.field.bulkSet', { entries: ['contactEmail'] })?.message)
       .toBe('input.entries[0] must be an object { path, value, expected }');
     expect(rejection('formspec.profile.apply', { paths: 'contactEmail' })?.message)
-      .toBe('input.paths must be an array of strings');
+      .toBe('input.paths must be an array of a string or an object { path, expected }');
     expect(rejection('formspec.profile.apply', { paths: [12] })?.message)
       .toBe('input.paths[0] must be a string');
     expect(rejection('formspec.field.set', { path: 'contactEmail', overwrite: true })?.message)
