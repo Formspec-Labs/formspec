@@ -364,13 +364,10 @@ export class RawProject implements IProjectCore {
       mappings: exportMappings,
     };
 
-    // Locale state is the document (import keeps it whole, envelope included), so export it
-    // whole: picking fields here dropped `formats` and reordered what an author wrote.
+    // Locale state is the document (import keeps it whole, `$formspecLocale` included), so
+    // export it whole: picking fields here dropped `formats` and reordered what an author wrote.
     if (Object.keys(this._state.locales).length > 0) {
-      bundle.locales = {};
-      for (const [code, ls] of Object.entries(this._state.locales)) {
-        bundle.locales[code] = { $formspecLocale: '2.0', ...ls };
-      }
+      bundle.locales = { ...this._state.locales };
     }
 
     // Single emission policy for standalone sidecars: present iff non-null in state.
