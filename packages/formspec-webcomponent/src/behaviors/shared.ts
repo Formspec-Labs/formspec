@@ -1,6 +1,6 @@
 /** @filedesc Shared utilities for behavior hooks: path resolution, ID generation, token stripping, shared bind helpers. */
 import { effect, untracked, Signal } from '@preact/signals-core';
-import { type PresentationBlock, COMPATIBILITY_MATRIX } from '@formspec-org/layout';
+import { type PresentationBlock, COMPATIBILITY_MATRIX, isRichText, parseRichText, richTextToPlain } from '@formspec-org/layout';
 import type { RegistryEntry } from '@formspec-org/types';
 import type { ResolvedPresentationBlock, FieldRefs, BehaviorContext } from './types';
 import type { FieldViewModel } from '@formspec-org/engine';
@@ -122,6 +122,16 @@ function showFieldText(
     el.hidden = !resolved;
 }
 
+/**
+ * An authored string as plain text: the structure the author wrote (core §4.2.1 subset) flattened first, the
+ * `{{}}` leaves filled after — so a respondent's value never opens a markup boundary, and no markup reaches an
+ * attribute.
+ */
+function plainFieldText(template: string | null | undefined, interpolate: (template: string) => string): string {
+    const source = template ?? '';
+    return interpolate(isRichText(source) ? richTextToPlain(parseRichText(source)) : source);
+}
+
 /** Set (or with `null`, remove) an attribute only when it changes: field effects re-run on every touch. */
 function syncAttribute(el: Element, name: string, value: string | null): void {
     if (el.getAttribute(name) === value) return;
@@ -241,6 +251,20 @@ export function bindSharedFieldEffects(
             syncDescribedBy();
         }));
     }
+
+    // Assist spec §8.2: every named control describes itself to the browser-synthesized WebMCP tool — the hint,
+    // else the label, as plain text — and follows the Locale like the visible text does. A rebuilt option set
+    // re-renders the field, so every control the adapter named is here when this runs. An option group's
+    // fieldset carries it too: a synthesizer folds same-named radios into one property and reads the group.
+    disposers.push(effect(() => {
+        const interpolate = vm ? vm.interpolate : (template: string) => template;
+        const description = plainFieldText(vm ? vm.hintTemplate.value : refs.hint?.textContent, interpolate)
+            || plainFieldText(vm ? vm.labelTemplate.value : labelText, interpolate);
+        const described = refs.root.querySelectorAll('input[name], select[name], textarea[name]');
+        for (const el of refs.root instanceof HTMLFieldSetElement ? [refs.root, ...described] : described) {
+            syncAttribute(el, 'toolparamdescription', description || null);
+        }
+    }));
 
     // Field help: the item's human References as one link, after the hint and at the end of the field block
     // (References spec §7). Built once — References are static per Definition (§2.3) — with the label alone

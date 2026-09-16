@@ -55,6 +55,15 @@ const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1', '1.2']);
 /** Longest the form stays hidden waiting on a stylesheet it linked. A blocked CDN must not hide the form. */
 const STYLE_REVEAL_TIMEOUT_MS = 2000;
 
+/** WebMCP tool name for the rendered form (assist-spec §8.2); the `tool-name` attribute overrides it. */
+const DEFAULT_TOOL_NAME = 'formspec.form.fill';
+
+/** A submit event as a WebMCP-capable browser fires it (declarative explainer): both members absent elsewhere. */
+interface AgentSubmitEvent extends SubmitEvent {
+    agentInvoked?: boolean;
+    respondWith?: (response: Promise<unknown>) => void;
+}
+
 function componentFormPresentation(componentDocument: ComponentDocument | null): unknown {
     return (componentDocument as (ComponentDocument & { formPresentation?: unknown }) | null)?.formPresentation;
 }
@@ -165,6 +174,9 @@ import { parseQueryIssuerOverride } from './issuer/queryOverride';
  * - Manages ref-counted stylesheet injection, signal-driven DOM updates, and
  *   cleanup of effects and event listeners on disconnect.
  * - Supports replay, diagnostics snapshots, and runtime context injection.
+ * - Renders the form as a declarative WebMCP tool (assist-spec §8.2): a native `<form toolname
+ *   tooldescription>` whose named controls carry `toolparamdescription`; the `tool-name` attribute
+ *   names the tool when a page renders more than one form.
  *
  * @example
  * ```html
@@ -179,7 +191,7 @@ import { parseQueryIssuerOverride } from './issuer/queryOverride';
  */
 export class FormspecRender extends HTMLElement {
     static get observedAttributes(): string[] {
-        return ['data-formspec-appearance', 'issuer-override', 'issuer-allowed-origins', 'heading-level', 'show-validation-summary'];
+        return ['data-formspec-appearance', 'issuer-override', 'issuer-allowed-origins', 'heading-level', 'show-validation-summary', 'tool-name'];
     }
 
     // ── Internal state ────────────────────────────────────────────────
@@ -200,7 +212,7 @@ export class FormspecRender extends HTMLElement {
     private get activeBreakpoint(): string | null { return this._breakpoints.activeBreakpointSignal.value ?? null; }
     /** @internal */ stylesheetHrefs: string[] = [];
     /** @internal */ stylesheetRoot: Document | ShadowRoot | null = null;
-    private rootContainer: HTMLDivElement | null = null;
+    private rootContainer: HTMLFormElement | null = null;
     private _renderPending = false;
     private _colorSchemeMedia: MediaQueryList | null = null;
     private readonly _handleColorSchemeChange = () => this.syncRootContainerAppearance();
@@ -229,6 +241,10 @@ export class FormspecRender extends HTMLElement {
         }
         if (name === 'show-validation-summary') {
             this.showValidationSummary = this.hasAttribute('show-validation-summary');
+            return;
+        }
+        if (name === 'tool-name') {
+            if (this.engine) this.scheduleRender();
             return;
         }
         if (name === 'issuer-override') {
@@ -660,14 +676,31 @@ export class FormspecRender extends HTMLElement {
         return this.resolvedAdapter?.stylesheets ?? [];
     }
 
-    /** The render root, created on first use, reset to `formspec-container` plus the adapter's root classes. */
-    private prepareRootContainer(...extraClasses: string[]): HTMLDivElement {
+    /**
+     * The render root, created on first use, reset to `formspec-container` plus the adapter's root classes.
+     * A native `<form>`, so a WebMCP browser can read it as a declarative tool (assist-spec §8.2); {@link render}
+     * names the tool once there is a live form to fill, and this reset takes the name back off a boot skeleton.
+     */
+    private prepareRootContainer(...extraClasses: string[]): HTMLFormElement {
         if (!this.rootContainer) {
-            this.rootContainer = document.createElement('div');
-            this.appendChild(this.rootContainer);
+            const form = document.createElement('form');
+            // Formspec owns validation and submission: no native constraint bubbles, and a submission never
+            // navigates — `submit()` and submit-intent Actions carry the response. An agent that filled the
+            // declarative tool is answered with the ValidationReport for what it entered (§8.2 SHOULD).
+            form.noValidate = true;
+            form.addEventListener('submit', (event: AgentSubmitEvent) => {
+                event.preventDefault();
+                if (event.agentInvoked === true && typeof event.respondWith === 'function' && this.engine) {
+                    event.respondWith(Promise.resolve(this.engine.getValidationReport()));
+                }
+            });
+            this.rootContainer = form;
+            this.appendChild(form);
         }
         const adapterClasses = this.resolvedAdapter?.rootClasses ?? [];
         this.rootContainer.className = ['formspec-container', ...adapterClasses, ...extraClasses].join(' ');
+        this.rootContainer.removeAttribute('toolname');
+        this.rootContainer.removeAttribute('tooldescription');
         return this.rootContainer;
     }
 
@@ -995,6 +1028,11 @@ export class FormspecRender extends HTMLElement {
             return;
         }
 
+        // Assist spec §8.2: the live form is a declarative WebMCP tool. Never `toolautosubmit` — the agent
+        // fills, the respondent submits. The controls describe themselves in bindSharedFieldEffects.
+        container.setAttribute('toolname', this.getAttribute('tool-name') || DEFAULT_TOOL_NAME);
+        container.setAttribute('tooldescription', this._definition.description || this._definition.title);
+
         const plan = this.buildPlan();
         if (plan) emitNodeFn(this._renderHost, plan, container, '', this._headingLevel);
     }
@@ -1143,7 +1181,7 @@ export class FormspecRender extends HTMLElement {
         this.scheduleRender();
     }
 
-    private renderIssuerChrome(container: HTMLDivElement): void {
+    private renderIssuerChrome(container: HTMLElement): void {
         const slot = document.createElement('div');
         slot.className = 'fs-issuer-chrome-slot';
         container.appendChild(slot);
