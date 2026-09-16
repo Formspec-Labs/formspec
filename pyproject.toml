@@ -25,7 +25,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://formspec.org"
-Repository = "https://github.com/Formspec-org/formspec"
+Repository = "https://github.com/Formspec-Labs/formspec"
 
 [project.optional-dependencies]
 test = [
@@ -45,6 +45,12 @@ manifest-path = "crates/formspec-py/Cargo.toml"
 python-source = "src"
 features = ["extension-module"]
 module-name = "formspec._native"
+# The crate lives under crates/, so maturin packs only its files into the sdist; the licenses it
+# declares in the metadata sit here next to pyproject.toml and must be carried along by hand.
+include = [
+    { path = "LICENSE", format = "sdist" },
+    { path = "LICENSE-BSL", format = "sdist" },
+]
 
 [tool.pytest.ini_options]
 pythonpath = "src"

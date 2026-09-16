@@ -96,6 +96,8 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      # A re-run after a partial upload pushes only the files PyPI does not have yet.
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
+          skip-existing: true
