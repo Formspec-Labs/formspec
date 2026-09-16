@@ -1039,8 +1039,16 @@
                 "kind": "structured-panel-row-action"
               },
               {
+                "pointerPattern": "/blocks/*/rowAction/confirmation",
+                "kind": "structured-panel-action-confirmation"
+              },
+              {
                 "pointerPattern": "/actions/*",
                 "kind": "structured-panel-action"
+              },
+              {
+                "pointerPattern": "/actions/*/confirmation",
+                "kind": "structured-panel-action-confirmation"
               },
               {
                 "pointerPattern": "/stateViews/*",
