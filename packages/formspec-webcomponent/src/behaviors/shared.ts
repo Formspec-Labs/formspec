@@ -153,6 +153,43 @@ export function warnIfIncompatible(
     }
 }
 
+/** Mark `fieldPath` touched once: its validation shows from now on (see the touched-tracking note in {@link bindSharedFieldEffects}). */
+export function markFieldTouched(ctx: BehaviorContext, fieldPath: string): void {
+    if (!ctx.touchedFields.has(fieldPath)) {
+        ctx.touchedFields.add(fieldPath);
+        ctx.touchedVersion.value += 1;
+    }
+}
+
+/**
+ * One per document: whether a primary-button press is in flight, and the touches deferred until it ends. A press
+ * begins at `mousedown`, which precedes the blur it causes — for a mouse, and for a tap, whose pointer events have
+ * already ended by then — and ends at `mouseup`, `pointercancel`, or the window losing focus. The flush runs after
+ * the mouseup hit-test, so an error that arrives then and moves the layout cannot move the target out from under
+ * the click that follows (fs-us1l).
+ */
+interface PressTracker { pressed: boolean; pending: Set<() => void> }
+const pressTrackers = new WeakMap<Document, PressTracker>();
+function pressTracker(doc: Document): PressTracker {
+    let tracker = pressTrackers.get(doc);
+    if (!tracker) {
+        const t: PressTracker = { pressed: false, pending: new Set() };
+        const release = () => {
+            t.pressed = false;
+            const flush = [...t.pending];
+            t.pending.clear();
+            for (const fn of flush) fn();
+        };
+        doc.addEventListener('mousedown', (event) => { if (event.button === 0) t.pressed = true; }, true);
+        doc.addEventListener('mouseup', release, true);
+        doc.addEventListener('pointercancel', release, true);
+        doc.defaultView?.addEventListener('blur', release);
+        pressTrackers.set(doc, t);
+        tracker = t;
+    }
+    return tracker;
+}
+
 /**
  * Wire the shared reactive effects that all field behaviors need:
  * required indicator, validation display, readonly, relevance, touched tracking.
@@ -365,17 +402,23 @@ export function bindSharedFieldEffects(
         }
     }));
 
-    // Touched tracking
-    const markTouched = () => {
-        if (!ctx.touchedFields.has(fieldPath)) {
-            ctx.touchedFields.add(fieldPath);
-            ctx.touchedVersion.value += 1;
-        }
+    // Touched tracking: a field is touched when its value changes or focus leaves it. Focus moving between the
+    // field's own controls (checkbox to checkbox, date input to its calendar button) has not left it. Focus
+    // leaving because of a press — on a label, a button, anywhere — is a departure, but its error waits for the
+    // release: shown between press and release it moves the layout, and the click then misses what was pressed
+    // (fs-us1l). That holds whichever field the press is in, so the press is tracked once per document.
+    const markTouched = () => markFieldTouched(ctx, fieldPath);
+    const press = pressTracker(refs.root.ownerDocument);
+    const onFocusOut = (event: FocusEvent) => {
+        if (event.relatedTarget instanceof Node && refs.root.contains(event.relatedTarget)) return;
+        if (press.pressed) press.pending.add(markTouched);
+        else markTouched();
     };
-    refs.root.addEventListener('focusout', markTouched);
+    refs.root.addEventListener('focusout', onFocusOut);
     refs.root.addEventListener('change', markTouched);
     disposers.push(() => {
-        refs.root.removeEventListener('focusout', markTouched);
+        press.pending.delete(markTouched);
+        refs.root.removeEventListener('focusout', onFocusOut);
         refs.root.removeEventListener('change', markTouched);
     });
 

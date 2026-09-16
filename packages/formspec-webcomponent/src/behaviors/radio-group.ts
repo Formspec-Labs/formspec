@@ -1,7 +1,7 @@
 /** @filedesc RadioGroup behavior hook — extracts reactive state for radio button groups. */
 import { effect } from '@preact/signals-core';
 import type { RadioGroupBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, fieldOptions, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, fieldOptions, warnIfIncompatible, markFieldTouched } from './shared';
 
 export function useRadioGroup(ctx: BehaviorContext, comp: any): RadioGroupBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
@@ -40,12 +40,7 @@ export function useRadioGroup(ctx: BehaviorContext, comp: any): RadioGroupBehavi
             ctx.engine.setValue(fieldPath, val);
         },
 
-        touch(): void {
-            if (!ctx.touchedFields.has(fieldPath)) {
-                ctx.touchedFields.add(fieldPath);
-                ctx.touchedVersion.value += 1;
-            }
-        },
+        touch: () => markFieldTouched(ctx, fieldPath),
 
         bind(refs: FieldRefs): () => void {
             const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);

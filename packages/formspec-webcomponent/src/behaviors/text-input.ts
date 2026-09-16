@@ -3,7 +3,7 @@ import { effect } from '@preact/signals-core';
 import type { WidthStop } from '@formspec-org/types';
 import type { ComponentDescriptor } from '../hub-types.js';
 import type { TextInputBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata, readRegistryConstraints } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata, readRegistryConstraints, markFieldTouched } from './shared';
 
 /** Field bind and TextInput props are spread onto {@link ComponentDescriptor} at render time. */
 type TextInputComp = ComponentDescriptor & {
@@ -89,12 +89,7 @@ export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInp
             ctx.engine.setValue(fieldPath, val);
         },
 
-        touch(): void {
-            if (!ctx.touchedFields.has(fieldPath)) {
-                ctx.touchedFields.add(fieldPath);
-                ctx.touchedVersion.value += 1;
-            }
-        },
+        touch: () => markFieldTouched(ctx, fieldPath),
 
         bind(refs: FieldRefs): () => void {
             const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);

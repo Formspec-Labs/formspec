@@ -1,7 +1,7 @@
 /** @filedesc DatePicker behavior hook — extracts reactive state for date/time/datetime fields. */
 import { effect } from '@preact/signals-core';
 import type { DatePickerBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata, markFieldTouched } from './shared';
 
 export function useDatePicker(ctx: BehaviorContext, comp: any): DatePickerBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
@@ -57,12 +57,7 @@ export function useDatePicker(ctx: BehaviorContext, comp: any): DatePickerBehavi
             ctx.engine.setValue(fieldPath, val);
         },
 
-        touch(): void {
-            if (!ctx.touchedFields.has(fieldPath)) {
-                ctx.touchedFields.add(fieldPath);
-                ctx.touchedVersion.value += 1;
-            }
-        },
+        touch: () => markFieldTouched(ctx, fieldPath),
 
         bind(refs: FieldRefs): () => void {
             const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);

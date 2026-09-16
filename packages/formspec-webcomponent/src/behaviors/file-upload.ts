@@ -1,6 +1,6 @@
 /** @filedesc FileUpload behavior hook — extracts reactive state for file input fields. */
 import type { FileUploadBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, markFieldTouched } from './shared';
 import { formatBytes } from '../format';
 
 type FileMeta = { name: string; size: number; type: string };
@@ -72,12 +72,7 @@ export function useFileUpload(ctx: BehaviorContext, comp: any): FileUploadBehavi
             ctx.engine.setValue(fieldPath, val);
         },
 
-        touch(): void {
-            if (!ctx.touchedFields.has(fieldPath)) {
-                ctx.touchedFields.add(fieldPath);
-                ctx.touchedVersion.value += 1;
-            }
-        },
+        touch: () => markFieldTouched(ctx, fieldPath),
 
         removeFile(index: number) {
             accumulated = accumulated.filter((_, i) => i !== index);

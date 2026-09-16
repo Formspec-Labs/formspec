@@ -1,7 +1,7 @@
 /** @filedesc Rating behavior hook — extracts reactive state for icon-rating fields. */
 import { effect } from '@preact/signals-core';
 import type { RatingBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, markFieldTouched } from './shared';
 
 const RATING_ICON_MAP: Record<string, [string, string]> = {
     star: ['\u2605', '\u2606'],    // ★ filled, ☆ outline
@@ -57,12 +57,7 @@ export function useRating(ctx: BehaviorContext, comp: any): RatingBehavior {
             ctx.engine.setValue(fieldPath, finalValue);
         },
 
-        touch(): void {
-            if (!ctx.touchedFields.has(fieldPath)) {
-                ctx.touchedFields.add(fieldPath);
-                ctx.touchedVersion.value += 1;
-            }
-        },
+        touch: () => markFieldTouched(ctx, fieldPath),
 
         bind(refs: FieldRefs): () => void {
             const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
