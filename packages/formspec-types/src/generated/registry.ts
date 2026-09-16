@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { Party, LangMap, ContactPoint, ModuleRef } from './common.js';
+import type { Party, LangMap, ContactPoint, ModuleRef, ConceptEquivalent } from './common.js';
 /**
  * Organization publishing this registry document. Provides provenance and contact information for all entries unless overridden at the entry level.
  */
@@ -409,30 +409,6 @@ export interface TokenCategoryTokenEntry {
    * Example token values for documentation and tooling hints.
    */
   examples?: (string | number)[];
-}
-/**
- * Declares that the bound concept is equivalent to a concept in another system. Relationship types follow SKOS (Simple Knowledge Organization System) semantics.
- *
- * This interface was referenced by `RegistryDocument`'s JSON-Schema
- * via the `definition` "ConceptEquivalent".
- */
-export interface ConceptEquivalent {
-  /**
-   * The target system URI.
-   */
-  system: string;
-  /**
-   * The concept code within the target system.
-   */
-  code: string;
-  /**
-   * Human-readable name in the target system.
-   */
-  display?: string;
-  /**
-   * Relationship type (SKOS-inspired). When absent, processors MUST treat as 'exact'. Standard values: 'exact' (identical concept), 'close' (very similar), 'broader' (source is more specific), 'narrower' (source is more general), 'related' (associatively related). Custom types MUST be x-prefixed.
-   */
-  type?: string;
 }
 /**
  * Subset constraints limiting which portion of the vocabulary is in scope. Only meaningful when category is 'vocabulary'.

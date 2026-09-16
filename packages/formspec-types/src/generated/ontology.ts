@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { TargetDefinition, Party, LangMap, ContactPoint } from './common.js';
+import type { TargetDefinition, Party, LangMap, ContactPoint, ConceptEquivalent } from './common.js';
 /**
  * Organization publishing this ontology document.
  */
@@ -125,30 +125,6 @@ export interface ConceptBinding {
    * Cross-system equivalences for this concept.
    */
   equivalents?: ConceptEquivalent[];
-}
-/**
- * Declares that the bound concept is equivalent to a concept in another system.
- *
- * This interface was referenced by `OntologyDocument`'s JSON-Schema
- * via the `definition` "ConceptEquivalent".
- */
-export interface ConceptEquivalent {
-  /**
-   * The target system URI.
-   */
-  system: string;
-  /**
-   * The concept code within the target system.
-   */
-  code: string;
-  /**
-   * Human-readable name in the target system.
-   */
-  display?: string;
-  /**
-   * Relationship type (SKOS-inspired). When absent, processors MUST treat as 'exact'. Values: 'exact', 'close', 'broader', 'narrower', 'related'. Custom types MUST be x-prefixed.
-   */
-  type?: string;
 }
 /**
  * Associates a named option set with an external terminology system.

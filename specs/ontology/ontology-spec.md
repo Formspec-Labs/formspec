@@ -263,6 +263,7 @@ equivalent to a concept in another system:
 
 | Property | Type | Req | Description |
 |---|---|---|---|
+| `concept` | string (URI) | OPTIONAL | The equivalent concept's own URI, fully resolved in its system (`https://schema.org/streetAddress`). Consumers that match by concept identity — profile matching, the Assist spec's concept-to-autocomplete table — match on it. When absent, processors MUST derive `<system>#<code>`. |
 | `system` | string | REQUIRED | The target system identifier. |
 | `code` | string | REQUIRED | The concept code within the target system. |
 | `display` | string | OPTIONAL | Human-readable name in the target system. |
@@ -311,6 +312,7 @@ Custom relationship types MUST be prefixed with `x-`.
       "display": "Social Security Number",
       "equivalents": [
         {
+          "concept": "https://schema.org/taxID",
           "system": "https://schema.org",
           "code": "taxID",
           "type": "broader"

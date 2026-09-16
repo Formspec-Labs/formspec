@@ -42,6 +42,29 @@ describe('Profile matching', () => {
     expect(matches.find((match) => match.path === 'contactEmail')).toBeUndefined();
   });
 
+  it("matches a profile keyed by an equivalent's own resolved URI, at the equivalence's confidence", () => {
+    // The Ontology names the equivalent by its URI (Ontology spec §3.1 `concept`); a profile that speaks
+    // schema.org — not the IRS system the field is bound to — still fills the field, marked as a close match.
+    const ontology = makeOntology();
+    ontology.concepts!['organization.ein'].equivalents = [
+      { concept: 'https://schema.org/taxID', system: 'https://schema.org', code: 'taxID', type: 'close' },
+    ];
+    const now = new Date().toISOString();
+    const provider = createAssistProvider({
+      engine: createEngine(),
+      ontology,
+      profile: {
+        id: 'schema-org', label: 'schema.org profile', created: now, updated: now, fields: {},
+        concepts: { 'https://schema.org/taxID': { value: '12-3456789', confidence: 1, verified: true, lastUsed: now, source: { type: 'manual', timestamp: now } } },
+      },
+      storage: new MemoryStorage(),
+      registerWebMCP: false,
+    });
+
+    const match = provider.matchProfile().find((entry) => entry.path === 'organization.ein');
+    expect(match).toMatchObject({ concept: 'https://schema.org/taxID', value: '12-3456789', relationship: 'close', confidence: 0.8 });
+  });
+
   it('allows explicit low-confidence field-key fallback when configured', () => {
     const provider = createAssistProvider({
       engine: createEngine(),

@@ -7,6 +7,9 @@ import type {
 } from '@formspec-org/engine';
 import type {
   ComponentDocument,
+  ConceptBinding,
+  ConceptEquivalent,
+  OntologyDocument,
   Reference,
   ReferencesDocument,
   RegistryDocument,
@@ -31,29 +34,8 @@ export type ReferenceEntry = Reference;
 /** A reference still carrying the item path it is bound to. */
 export type BoundReference = Reference & { target: string };
 
-export interface ConceptEquivalent {
-  system: string;
-  code: string;
-  display?: string;
-  type?: string;
-  concept?: string;
-}
-
-export interface ConceptBinding {
-  concept: string;
-  system?: string;
-  display?: string;
-  code?: string;
-  equivalents?: ConceptEquivalent[];
-}
-
-export interface OntologyDocument {
-  $formspecOntology: '1.0';
-  version: string;
-  targetDefinition: { url: string; compatibleVersions?: string };
-  defaultSystem?: string;
-  concepts?: Record<string, ConceptBinding>;
-}
+/** The schema-generated Ontology types (Ontology spec): one shape here and in the document a page publishes. */
+export type { ConceptBinding, ConceptEquivalent, OntologyDocument };
 
 export interface ProfileEntry {
   value: unknown;

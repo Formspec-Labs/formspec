@@ -272,44 +272,13 @@
         "equivalents": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ConceptEquivalent"
+            "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ConceptEquivalent"
           },
           "description": "Cross-system equivalences for this concept."
         }
       }
     },
 
-    "ConceptEquivalent": {
-      "type": "object",
-      "required": ["system", "code"],
-      "additionalProperties": false,
-      "description": "Declares that the bound concept is equivalent to a concept in another system.",
-      "properties": {
-        "system": {
-          "type": "string",
-          "format": "uri",
-          "description": "The target system URI.",
-          "examples": ["https://schema.org", "urn:fhir:r4"]
-        },
-        "code": {
-          "type": "string",
-          "description": "The concept code within the target system.",
-          "examples": ["taxID", "Patient.identifier"]
-        },
-        "display": {
-          "type": "string",
-          "description": "Human-readable name in the target system."
-        },
-        "type": {
-          "type": "string",
-          "description": "Relationship type (SKOS-inspired). When absent, processors MUST treat as 'exact'. Values: 'exact', 'close', 'broader', 'narrower', 'related'. Custom types MUST be x-prefixed.",
-          "examples": ["exact", "broader", "narrower", "related", "close"]
-        }
-      },
-      "examples": [
-        { "system": "https://schema.org", "code": "taxID", "type": "broader" }
-      ]
-    },
 
     "VocabularyBinding": {
       "type": "object",

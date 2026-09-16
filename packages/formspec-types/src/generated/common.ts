@@ -167,6 +167,34 @@ export interface Party {
   contactPoint?: ContactPoint | ContactPoint[];
 }
 /**
+ * A concept in another system the bound concept is equivalent to. Shared by Ontology concept bindings and Registry concept entries; relationship types follow SKOS (Simple Knowledge Organization System) semantics.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "ConceptEquivalent".
+ */
+export interface ConceptEquivalent {
+  /**
+   * The equivalent concept's own URI, fully resolved in its system: what a consumer matches on, and what the Assist spec's concept-to-autocomplete table is keyed by. When absent, processors derive `<system>#<code>`.
+   */
+  concept?: string;
+  /**
+   * The target system URI.
+   */
+  system: string;
+  /**
+   * The concept code within the target system.
+   */
+  code: string;
+  /**
+   * Human-readable name in the target system.
+   */
+  display?: string;
+  /**
+   * Relationship type (SKOS-inspired). When absent, processors MUST treat as 'exact'. Standard values: 'exact' (identical concept), 'close' (very similar), 'broader' (source is more specific), 'narrower' (source is more general), 'related' (associatively related). Custom types MUST be x-prefixed.
+   */
+  type?: string;
+}
+/**
  * Flat style map. Values may contain $token.path references.
  *
  * This interface was referenced by `CommonSchema`'s JSON-Schema

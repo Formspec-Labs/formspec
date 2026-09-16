@@ -119,6 +119,43 @@
         }
       }
     },
+    "ConceptEquivalent": {
+      "type": "object",
+      "required": ["system", "code"],
+      "additionalProperties": false,
+      "description": "A concept in another system the bound concept is equivalent to. Shared by Ontology concept bindings and Registry concept entries; relationship types follow SKOS (Simple Knowledge Organization System) semantics.",
+      "properties": {
+        "concept": {
+          "type": "string",
+          "format": "uri",
+          "description": "The equivalent concept's own URI, fully resolved in its system: what a consumer matches on, and what the Assist spec's concept-to-autocomplete table is keyed by. When absent, processors derive `<system>#<code>`.",
+          "examples": ["https://schema.org/streetAddress", "http://terminology.hl7.org/CodeSystem/v2-0203#MR"]
+        },
+        "system": {
+          "type": "string",
+          "format": "uri",
+          "description": "The target system URI.",
+          "examples": ["https://schema.org", "urn:fhir:r4"]
+        },
+        "code": {
+          "type": "string",
+          "description": "The concept code within the target system.",
+          "examples": ["taxID", "Patient.identifier"]
+        },
+        "display": {
+          "type": "string",
+          "description": "Human-readable name in the target system."
+        },
+        "type": {
+          "type": "string",
+          "description": "Relationship type (SKOS-inspired). When absent, processors MUST treat as 'exact'. Standard values: 'exact' (identical concept), 'close' (very similar), 'broader' (source is more specific), 'narrower' (source is more general), 'related' (associatively related). Custom types MUST be x-prefixed.",
+          "examples": ["exact", "broader", "narrower", "related", "close"]
+        }
+      },
+      "examples": [
+        { "concept": "https://schema.org/taxID", "system": "https://schema.org", "code": "taxID", "type": "broader" }
+      ]
+    },
     "StyleMap": {
       "type": "object",
       "description": "Flat style map. Values may contain $token.path references.",

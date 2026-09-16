@@ -1476,7 +1476,7 @@
         "jumpLinks": {
           "type": "boolean",
           "default": false,
-          "description": "Whether to render clickable links/buttons that call focusField(path) for jumpable targets."
+          "description": "Whether each field finding renders as a link (<a>) to its field — its fragment names the field's control, activation moves focus there through focusField(path)."
         },
         "dedupe": {
           "type": "boolean",
