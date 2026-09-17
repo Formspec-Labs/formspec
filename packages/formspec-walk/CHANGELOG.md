@@ -1,5 +1,15 @@
 # @formspec-org/walk
 
+## 2.1.0
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @formspec-org/engine@2.1.0
+  - @formspec-org/types@0.2.1
+  - @formspec-org/layout@2.1.0
+
 ## 2.0.2
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @formspec-org/engine
 
+## 2.1.0
+
+### Minor Changes
+
+- <!-- tier: foundation -->
+
+  A repeatable group can declare `seedFrom` so a new Response opens with one row per JSON array element from a secondary instance; relative `prePopulate` fills those fields. Host data, including a present empty array, wins. `<formspec-render>` passes constructor `responseData` (hydrate-then-seed); a later saved tree uses `loadResponseData`.
+
+### Patch Changes
+
+- Updated dependencies
+  - @formspec-org/types@0.2.1
+
 ## 2.0.2
 
 ## 2.0.1

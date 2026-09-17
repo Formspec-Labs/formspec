@@ -1,5 +1,12 @@
 # @formspec-org/layout
 
+## 2.1.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @formspec-org/types@0.2.1
+
 ## 2.0.2
 
 ## 2.0.1

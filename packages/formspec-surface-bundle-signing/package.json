@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/surface-bundle-signing",
   "description": "Signed Surface-bundle preimage, verification, publisher trust, and release admission policy",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {

@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/surface-react",
   "description": "React binding for the Surface shell — renders route plans, slots, and the starter module-widget set",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {

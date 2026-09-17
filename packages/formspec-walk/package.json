@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/walk",
   "description": "The Definition walk: Playwright + Guidepup checks derived from a Definition, Locale and Theme — run generically, or emitted as a readable spec",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -34,9 +34,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@formspec-org/engine": "^2.0.2",
-    "@formspec-org/layout": "^2.0.2",
-    "@formspec-org/types": "^0.2.0",
+    "@formspec-org/engine": "^2.1.0",
+    "@formspec-org/layout": "^2.1.0",
+    "@formspec-org/types": "^0.2.1",
     "@guidepup/virtual-screen-reader": "^0.32.1"
   },
   "peerDependencies": {

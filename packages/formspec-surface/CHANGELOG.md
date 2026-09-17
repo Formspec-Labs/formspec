@@ -1,5 +1,14 @@
 # @formspec-org/surface
 
+## 2.1.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @formspec-org/types@0.2.1
+  - @formspec-org/app-graph@2.1.0
+  - @formspec-org/layout@2.1.0
+
 ## 2.0.2
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "name": "@formspec-org/react",
   "description": "React hooks and auto-renderer for Formspec — use any component library with FormEngine",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {

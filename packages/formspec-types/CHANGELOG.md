@@ -1,5 +1,13 @@
 # @formspec-org/types
 
+## 0.2.1
+
+### Patch Changes
+
+- <!-- tier: kernel -->
+
+  A repeatable group can declare `seedFrom`. Generated `SeedFrom` types match the definition schema so authoring and the engine share one shape.
+
 ## 0.2.0
 
 ### Minor Changes
