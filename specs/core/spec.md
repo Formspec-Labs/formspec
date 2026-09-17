@@ -2851,6 +2851,7 @@ Group with no repeatable ancestor; a nested `seedFrom` MUST be ignored.
 {
   "key": "employersOnRecord",
   "type": "group",
+  "label": "Your employers on record",
   "repeatable": true,
   "minRepeat": 0,
   "maxRepeat": 10,
@@ -2860,6 +2861,7 @@ Group with no repeatable ancestor; a nested `seedFrom` MUST be ignored.
       "key": "payerName",
       "type": "field",
       "dataType": "string",
+      "label": "Employer",
       "prePopulate": { "instance": "claimant", "path": "name", "editable": false }
     }
   ]
