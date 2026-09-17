@@ -59,6 +59,7 @@ const GROUP_ONLY_PROPERTIES = new Set([
   'repeatable',
   'minRepeat',
   'maxRepeat',
+  'seedFrom',
 ]);
 
 /** Reject attempts to write structurally invalid properties onto an item. */

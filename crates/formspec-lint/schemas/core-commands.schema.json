@@ -132,6 +132,7 @@
         { "name": "repeatable", "type": "boolean", "description": "Group only: whether the group is repeatable." },
         { "name": "minRepeat", "type": "number", "description": "Group only: minimum repeat instances." },
         { "name": "maxRepeat", "type": "number", "description": "Group only: maximum repeat instances." },
+        { "name": "seedFrom", "type": "object", "description": "Group only, when repeatable: { instance, path }." },
         { "name": "optionSet", "type": "string", "description": "Name of a shared option set." },
         { "name": "currency", "type": "string", "description": "ISO 4217 currency code for money fields." },
         { "name": "presentation", "type": "object" },

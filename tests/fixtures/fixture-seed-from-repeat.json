@@ -1,0 +1,44 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.org/forms/seed-from-repeat",
+  "version": "1.0.0",
+  "title": "Repeat seedFrom fixture",
+  "status": "active",
+  "items": [
+    {
+      "key": "employersOnRecord",
+      "type": "group",
+      "label": "Employers on record",
+      "repeatable": true,
+      "minRepeat": 0,
+      "maxRepeat": 10,
+      "seedFrom": {
+        "instance": "claimant",
+        "path": "employersOnRecord"
+      },
+      "children": [
+        {
+          "key": "payerName",
+          "type": "field",
+          "dataType": "string",
+          "label": "Employer",
+          "prePopulate": {
+            "instance": "claimant",
+            "path": "name",
+            "editable": false
+          }
+        }
+      ]
+    }
+  ],
+  "instances": {
+    "claimant": {
+      "data": {
+        "employersOnRecord": [
+          { "name": "ACME CORP" },
+          { "name": "WIDGETS INC" }
+        ]
+      }
+    }
+  }
+}

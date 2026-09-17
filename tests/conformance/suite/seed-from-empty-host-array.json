@@ -1,0 +1,29 @@
+{
+  "id": "seed-from.empty-host-array",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/fixtures/fixture-seed-from-repeat.json",
+  "inputData": {
+    "employersOnRecord": []
+  },
+  "mode": "continuous",
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {}
+  },
+  "legacyCoverage": [
+    {
+      "path": "tests/unit/test_definition_evaluator.py",
+      "check": "TestCreationTimeInitializers::test_seed_from_does_not_reopen_present_empty_array"
+    },
+    {
+      "path": "packages/formspec-engine/tests/instances-and-prepopulation.test.mjs",
+      "check": "constructor responseData empty array wins over seedFrom"
+    }
+  ]
+}

@@ -59,6 +59,7 @@ pub(crate) fn evaluate_definition_inner(
                 context: bundle.context,
                 extensions,
                 item_text: bundle.item_text,
+                apply_creation_seeds: bundle.apply_creation_seeds,
             }
         }
         None => EvalOptions {

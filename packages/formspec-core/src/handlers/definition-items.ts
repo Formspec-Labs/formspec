@@ -127,6 +127,7 @@ function buildItem(payload: Record<string, unknown>): FormItem {
     'repeatable',
     'minRepeat',
     'maxRepeat',
+    'seedFrom',
     'optionSet',
     'currency',
     'presentation',

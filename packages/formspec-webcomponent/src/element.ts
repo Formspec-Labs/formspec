@@ -18,7 +18,7 @@ import type {
     ScreenerDocument,
     ValidationResult,
 } from '@formspec-org/types';
-import type { EngineReplayEvent, Issuer, IssuerSource } from '@formspec-org/engine';
+import type { EngineReplayEvent, FormEngineOptions, Issuer, IssuerSource } from '@formspec-org/engine';
 import type {
     ActionHost,
     ResponseActionInvoker,
@@ -127,7 +127,6 @@ import {
     evaluateScreenerDocumentForRoute,
     type ScreenerHost,
 } from './rendering/screener';
-import { applyResponseDataToEngine } from './hydrate-response-data';
 import { setupBreakpoints as setupBreakpointsFn, cleanupBreakpoints, createBreakpointState, type BreakpointState } from './rendering/breakpoints';
 import { emitNode as emitNodeFn, type RenderHost as EmitRenderHost } from './rendering/emit-node';
 import { renderSkeleton as renderSkeletonFn } from './rendering/skeleton';
@@ -482,9 +481,21 @@ export class FormspecRender extends HTMLElement {
             if (this._definition !== val) {
                 return;
             }
+
+            let responseData: FormDataRecord | undefined;
+            if (this._initialData) {
+                const seed = extractScreenerSeedFromData(this._screenerDocument, this._initialData);
+                if (seed) {
+                    this._screenerSeedAnswers = seed;
+                }
+                responseData = omitScreenerKeysFromData(this._screenerDocument, this._initialData);
+                this._initialData = null;
+            }
+
             this.engine = createFormEngine(val, {
                 registryEntries: Array.from(this._registryEntries.values()),
                 issuerOverride: this.effectiveIssuerOverride(),
+                responseData: responseData as FormEngineOptions['responseData'],
             });
 
             // Replay buffered locale documents and active locale
@@ -494,16 +505,6 @@ export class FormspecRender extends HTMLElement {
             if (this._locale) {
                 this.engine.setLocale(this._locale);
                 this.setAttribute('dir', this.engine.getLocaleDirection());
-            }
-
-            if (this._initialData) {
-                const seed = extractScreenerSeedFromData(this._screenerDocument, this._initialData);
-                if (seed) {
-                    this._screenerSeedAnswers = seed;
-                }
-                const rest = omitScreenerKeysFromData(this._screenerDocument, this._initialData);
-                applyResponseDataToEngine(this.engine, rest);
-                this._initialData = null;
             }
 
             this.emitScreenerStateChange('definition-set');

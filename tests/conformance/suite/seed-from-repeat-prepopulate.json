@@ -1,0 +1,32 @@
+{
+  "id": "seed-from.repeat-prepopulate",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/fixtures/fixture-seed-from-repeat.json",
+  "inputData": {},
+  "mode": "continuous",
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "employersOnRecord": [
+        { "payerName": "ACME CORP" },
+        { "payerName": "WIDGETS INC" }
+      ]
+    }
+  },
+  "legacyCoverage": [
+    {
+      "path": "tests/unit/test_definition_evaluator.py",
+      "check": "TestCreationTimeInitializers::test_seed_from_expands_repeat_with_relative_prepopulate"
+    },
+    {
+      "path": "packages/formspec-engine/tests/instances-and-prepopulation.test.mjs",
+      "check": "seedFrom repeatable rows from instance array"
+    }
+  ]
+}

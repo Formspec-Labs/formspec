@@ -182,7 +182,7 @@ A conformant **Extended** processor MUST support Formspec Core plus:
 2. Screener routing (see [Screener Specification](../screener/screener-spec.md)).
 3. Modular composition and assembly (§6.6).
 4. Version migration maps (§6.7).
-5. Pre-population declarations (§4.2.3, `prePopulate`).
+5. Pre-population declarations (§4.2.3, `prePopulate` and repeatable-group `seedFrom`).
 
 A processor claiming Extended conformance implicitly claims Core conformance.
 
@@ -1152,7 +1152,7 @@ mechanisms:
 | Mechanism | Property | Description |
 |-----------|----------|-------------|
 | **Inline** | `data` (JSON object or array) | The data is embedded directly in the Definition document. Suitable for small, static lookup tables (e.g., country codes, status enums). |
-| **URL** | `source` (string, URI) | The data is fetched from an external endpoint at form-load time. The response MUST be a JSON document. The processor MUST fetch the data before the first Rebuild phase. If the fetch fails, the processor MUST signal a load error. |
+| **URL** | `source` (string, URI) | The data is fetched from an external endpoint at form-load time. The response MUST be a JSON document. The processor MAY complete the first Rebuild before the fetch returns. On success it MUST install the payload and apply any still-pending creation-time `seedFrom` / `prePopulate` (§4.2.2.1). On failure, `@instance()` is null, `seedFrom` uses `N = 0`, and the processor SHOULD emit a diagnostic — not a blocking load error. Later refresh MUST NOT restomp person edits (FH-064). |
 | **Host function** | `source` (string, `formspec-fn:` URI) | The data is supplied by the host environment via a named callback. The URI scheme `formspec-fn:` identifies a host-registered function (e.g., `"formspec-fn:lookupPatient"`). The host maps the function name to a callback. This allows integration with application-specific data layers without embedding external URLs in the Definition. |
 
 A Data Source MAY include a `schema` property describing the expected shape of
@@ -1164,6 +1164,8 @@ Secondary instances populated by Data Sources are **read-only** during form
 completion. A `calculate` Bind MUST NOT target a path within a secondary
 instance. A conformant processor MUST signal a definition error if such a Bind
 is encountered.
+
+Repeatable Groups MAY declare `seedFrom` to open `$primary` rows from a secondary-instance array at creation time, after host primary data (§4.2.2.1).
 
 > **Example.** Data source declarations:
 >
@@ -2831,9 +2833,63 @@ Group-specific properties:
 | `repeatable` | boolean | **0..1** (OPTIONAL) | When `true`, this Group represents a one-to-many collection. Each repetition creates an independent copy of the Group's `children` in the Response data. Default: `false`. |
 | `minRepeat` | integer | **0..1** (OPTIONAL) | Minimum number of repetitions. Applicable only when `repeatable` is `true`. MUST be a non-negative integer. Default: `0`. If `minRepeat` is greater than zero, the implementation MUST pre-populate that many empty repetitions when a new Response is created. |
 | `maxRepeat` | integer | **0..1** (OPTIONAL) | Maximum number of repetitions. Applicable only when `repeatable` is `true`. MUST be a positive integer, or absent for unbounded. If present, MUST be greater than or equal to `minRepeat`. Implementations MUST prevent the user from adding repetitions beyond this limit. |
+| `seedFrom` | object | **0..1** (OPTIONAL) | Applicable only when `repeatable` is `true`. One new-Response repetition per JSON array element on a named secondary instance (`instance`, `path`). Normative rules in §4.2.2.1. |
 
 A non-repeatable Group (the default) is rendered as a single structural
 section. Its `children` appear exactly once in the Response data.
+
+#### 4.2.2.1 Repeat seeding from secondary instances (`seedFrom`)
+
+A repeatable Group MAY declare `seedFrom` (`instance` + `path`) to open one
+`$primary` repetition per element of a JSON array on a named secondary instance
+at **new Response creation** (one-shot; not continuous like `calculate`).
+Extended conformance (§1.4.2). This is an array path on a Definition-local
+instance, not FHIR SDC query-driven `itemPopulationContext`. Defined only for a
+Group with no repeatable ancestor; a nested `seedFrom` MUST be ignored.
+
+```json
+{
+  "key": "employersOnRecord",
+  "type": "group",
+  "repeatable": true,
+  "minRepeat": 0,
+  "maxRepeat": 10,
+  "seedFrom": { "instance": "claimant", "path": "employersOnRecord" },
+  "children": [
+    {
+      "key": "payerName",
+      "type": "field",
+      "dataType": "string",
+      "prePopulate": { "instance": "claimant", "path": "name", "editable": false }
+    }
+  ]
+}
+```
+
+Let `N` be the length of the JSON array at `seedFrom.path` when that value is an
+array; otherwise `N = 0`. The processor MUST create `max(minRepeat, min(N,
+maxRepeat))` repetitions when `maxRepeat` is present, or `max(minRepeat, N)`
+when it is absent. Rows beyond `N` (minRepeat padding) MUST stay empty.
+`seedFrom` does not lock add/remove; `minRepeat`, `maxRepeat`, and Bind
+`readonly` remain authoritative.
+
+**Relative `prePopulate`.** When a Field descends from that Group and
+`prePopulate.instance` equals `seedFrom.instance`, `prePopulate.path` is
+relative to the seed element for that row (e.g. `name` → element `i`'s `name`)
+and MUST NOT be rewritten as `initialValue: "=@instance('…').path"` — the
+expression has no row context. Absolute instance-root lookups remain available
+via `initialValue`. A relative miss (index ≥ `N`) stays empty; the processor
+MUST NOT fall back to the instance root.
+
+**Host data wins; hydrate then seed; one-shot.** If the primary instance already
+has Response data for the Group (constructor `responseData`, `loadResponseData`,
+or a saved Response), the processor MUST NOT apply `seedFrom`. A present `[]` is
+host data (zero rows); an absent key is not. Host primary data MUST be installed
+before `seedFrom`. A live engine MUST NOT re-apply `seedFrom` on later Rebuild,
+including after every seeded row is removed. URL `source` MAY arrive after the
+first Rebuild (§2.1.7): apply `seedFrom` and deferred `prePopulate` when the
+instance first materializes; fetch failure is `N = 0` plus a diagnostic. Later
+refresh MUST NOT restomp person edits (FH-064).
 
 #### 4.2.3 Field Items
 
@@ -2867,7 +2923,7 @@ Field-specific properties:
 | `optionSet` | string | **0..1** (OPTIONAL) | Name of a top-level option set declared in `optionSets` (§4.6). Applicable when `dataType` is `"choice"` or `"multiChoice"`. When both `options` and `optionSet` are present, `optionSet` takes precedence. |
 | `initialValue` | any \| string | **0..1** (OPTIONAL) | Initial value assigned when a new Response is created or a new repeat instance is added. May be a **literal value** (any JSON value conforming to the field's `dataType`) or an **expression string** prefixed with `=` (e.g., `"=today()"`, `"=@instance('entity').name"`). An expression-based `initialValue` is evaluated **once** at creation time and is NOT re-evaluated when dependencies change (use `calculate` on a Bind for continuous recalculation). Distinct from the Bind `default` property (see §4.3). |
 | `semanticType` | string | **0..1** (OPTIONAL) | Domain meaning annotation. Purely metadata — MUST NOT affect validation, calculation, or any behavioral semantics. The value MAY be a freeform namespaced identifier (e.g., `"us-gov:ein"`), a URI (e.g., `"https://schema.org/birthDate"`), or the name of a loaded registry entry with `category: "concept"` (e.g., `"x-onto-ein"`). When the value matches a loaded concept registry entry, processors SHOULD resolve it to the entry's concept metadata (URI, equivalents, display name). Unresolved values are not errors — `semanticType` remains a freeform string for processors that do not support concept resolution. Supports intelligent widget selection, data classification, cross-form alignment, and interoperability mapping. |
-| `prePopulate` | object | **0..1** (OPTIONAL) | Pre-population declaration. Contains `instance` (string, name of a secondary instance), `path` (string, dot-notation path within the instance), and `editable` (boolean, default `true`; when `false`, the field is locked after pre-population). Syntactic sugar: a processor MUST treat `prePopulate` as equivalent to an `initialValue` expression plus a `readonly` bind. When both `prePopulate` and `initialValue` are present, `prePopulate` takes precedence. |
+| `prePopulate` | object | **0..1** (OPTIONAL) | Pre-population declaration (`instance`, `path`, `editable` default `true`; `editable: false` locks the field). Takes precedence over `initialValue`. Absolute `path` is instance-root (MAY be `initialValue: "=@instance('name').path"`). Relative `path` under matching `seedFrom` is element-relative and MUST NOT be rewritten as `initialValue` (§4.2.2.1). |
 | `children` | array of Item | **0..1** (OPTIONAL) | Child items. Fields MAY contain children to model dependent sub-questions. When present, the children are contextually tied to the Field's value. |
 
 **Core Data Types:**
@@ -5401,10 +5457,11 @@ architecture, and expression extensions.
 - **Answer value sets via FHIR terminology services.** Formspec's
   `choices` are inline JSON arrays. Integration with external
   terminology services is an extension concern, not a core feature.
-- **The three population mechanisms.** FHIR SDC defines
-  `$populate` (observation-based), `$populatehtml` (narrative-based),
-  and `$populatelink` (link-based). Formspec uses secondary instances
-  and `initialValue` expressions, which are more general.
+- **The three population mechanisms.** FHIR SDC `$populate` /
+  `$populatehtml` / `$populatelink` and query-driven
+  `itemPopulationContext` become Definition-local instances,
+  `initialValue`, `prePopulate`, and repeatable `seedFrom` (an array
+  path on a named instance, not a FHIR query).
 
 ***
 
@@ -5507,7 +5564,7 @@ that address them. This appendix is informative.
 | FT-02 | Financial fields with currency formatting | §4.2.3 `money` dataType; §3.5.7 Money Functions; §3.4.1 decimal precision semantics |
 | FT-03 | File attachment fields | §4.2.3 `attachment` dataType |
 | FT-04 | Auto-calculated fields | §4.3 Bind `calculate` property; §3 FEL expression language |
-| FT-05 | Pre-populated fields (editable vs locked) | §4.2.3 `prePopulate` + `initialValue` (expression-based with `=` prefix); §4.3 Bind `readonly`; §4.4 Instances |
+| FT-05 | Pre-populated fields (editable vs locked) | §4.2.3 `prePopulate` + `initialValue` (expression-based with `=` prefix); §4.2.2.1 `seedFrom` (array path on a Definition instance); §4.3 Bind `readonly`; §4.4 Instances |
 | FM-01 | Field metadata (label, description, alt labels) | §4.2.1 `label`, `description`; `labels` object for context-specific labels |
 | FM-02 | Default value when excluded by conditional logic | §4.3 Bind `default` property |
 

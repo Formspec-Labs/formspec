@@ -114,6 +114,12 @@ import {
     toValidationResult,
 } from './helpers.js';
 import {
+    collectSeedFromGroups,
+    repeatHasHostData,
+    resolvePrePopulateFromInstance,
+    type SeedFromGroup,
+} from './instance-seeding.js';
+import {
     DefaultValidationProfileResolver,
     type EnabledValidationProfile,
     type ValidationReportOptions,
@@ -154,6 +160,8 @@ export class FormEngine implements IFormEngine {
     private readonly _instanceCalculateBinds: EngineBindConfig[] = [];
     private readonly _displaySignalPaths = new Set<string>();
     private readonly _prePopulateReadonly = new Set<string>();
+    private readonly _seedFromGroups: SeedFromGroup[];
+    private readonly _seedFromResolvedPaths = new Set<string>();
     private readonly _calculatedFields = new Set<string>();
     private readonly _registryEntries = new Map<string, RegistryEntry>();
     /** Host FEL extension functions (Core §3.12), passed to every Rust evaluation. */
@@ -243,6 +251,7 @@ export class FormEngine implements IFormEngine {
         }
 
         this.definition = resolveOptionSetsOnDefinition(this.definition);
+        this._seedFromGroups = collectSeedFromGroups(this.definition.items);
         this.initializeOptionSignals();
         this.initializeInstances();
         this.initializeBindConfigs(this.definition.items);
@@ -251,6 +260,10 @@ export class FormEngine implements IFormEngine {
         validateVariableDefinitionCycles(this._variableDefs);
         validateCalculateBindCycles(this._bindConfigs);
         this.registerItems(this.definition.items);
+        if (options.responseData) {
+            this.loadItemsData(this.definition.items, options.responseData, '');
+        }
+        this.runInstanceDependentSeeding();
         this.initializeRemoteOptions();
         this._evaluate();
 
@@ -432,6 +445,7 @@ export class FormEngine implements IFormEngine {
             if (item.type === 'field') {
                 this.writeFieldData(path, value as FormFieldValue);
             } else if (item.type === 'group' && item.repeatable && this.repeats[path]) {
+                this._seedFromResolvedPaths.add(path);
                 const rows = Array.isArray(value) ? value : [];
                 if (this.repeats[path].value > rows.length) {
                     this.rebuildRepeatRows(path, item, (snapshots) => snapshots.slice(0, rows.length));
@@ -1160,6 +1174,7 @@ export class FormEngine implements IFormEngine {
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'issuerFetcher')
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'issuerOverride')
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'extensionFunctions')
+            || Object.prototype.hasOwnProperty.call(maybeOptions, 'responseData')
         );
         if (hasOptionsShape) {
             return {
@@ -1272,6 +1287,7 @@ export class FormEngine implements IFormEngine {
                 }
                 this.instanceData[name] = nextValue;
                 this.instanceVersion.value += 1;
+                this.runInstanceDependentSeeding();
                 this._evaluate();
             })
             .catch((error) => {
@@ -1448,12 +1464,18 @@ export class FormEngine implements IFormEngine {
     private resolveInitialFieldValue(path: string, item: FormItem): FormFieldValue {
         const prePopulate = item.prePopulate;
         if (prePopulate) {
-            const value = this.getInstanceData(prePopulate.instance, prePopulate.path);
-            if (value !== undefined) {
+            const resolved = resolvePrePopulateFromInstance(
+                item,
+                path,
+                this._seedFromGroups,
+                (instanceName, instancePath) => this.getInstanceData(instanceName, instancePath),
+                (instanceName) => this.instanceData[instanceName],
+            );
+            if (resolved !== undefined) {
                 if (prePopulate.editable === false) {
                     this._prePopulateReadonly.add(path);
                 }
-                return cloneValue(value);
+                return cloneValue(resolved);
             }
             if (prePopulate.editable === false) {
                 this._prePopulateReadonly.add(path);
@@ -1469,6 +1491,57 @@ export class FormEngine implements IFormEngine {
         }
 
         return emptyValueForItem(item);
+    }
+
+    private runInstanceDependentSeeding(): void {
+        for (const { path: groupPath, item, seedFrom } of this._seedFromGroups) {
+            if (this._seedFromResolvedPaths.has(groupPath)) {
+                continue;
+            }
+            const minRepeat = item.minRepeat ?? 0;
+            if (repeatHasHostData(groupPath, this._data, this.signals, minRepeat)) {
+                this._seedFromResolvedPaths.add(groupPath);
+                continue;
+            }
+            if (this.instanceData[seedFrom.instance] === undefined) {
+                continue;
+            }
+            const array = getNestedValue(this.instanceData[seedFrom.instance], seedFrom.path);
+            const arrayLength = Array.isArray(array) ? array.length : 0;
+            const maxRepeat = item.maxRepeat;
+            const target = Math.max(
+                minRepeat,
+                maxRepeat === undefined ? arrayLength : Math.min(arrayLength, maxRepeat),
+            );
+            const repeatSignal = this.repeats[groupPath];
+            if (!repeatSignal) {
+                continue;
+            }
+            this._rx.batch(() => {
+                while (repeatSignal.value < target) {
+                    this.appendRepeatRow(groupPath, item);
+                }
+            });
+            this._seedFromResolvedPaths.add(groupPath);
+        }
+
+        for (const [basePath, fieldItem] of this._fieldItems.entries()) {
+            if (!fieldItem.prePopulate) {
+                continue;
+            }
+            const paths = Object.keys(this.signals).filter((candidate) => toBasePath(candidate) === basePath);
+            for (const path of paths) {
+                if (!isEmptyValue(this.signals[path]?.value)) {
+                    continue;
+                }
+                const next = this.resolveInitialFieldValue(path, fieldItem);
+                if (isEmptyValue(next)) {
+                    continue;
+                }
+                this.signals[path].value = cloneValue(next);
+                this._data[path] = cloneValue(next) as JsonValue;
+            }
+        }
     }
 
     private initializeRemoteOptions(): void {

@@ -6,7 +6,10 @@ use crate::nrb::apply_nrb;
 use crate::rebuild;
 use crate::recalculate::recalculate_phase;
 use crate::revalidate::revalidate;
-use crate::runtime_seed::{apply_previous_non_relevant, seed_prepopulate_tree};
+use crate::runtime_seed::{
+    apply_previous_non_relevant, hydrate_inline_instances, seed_prepopulate_tree,
+    seed_repeat_from_instances,
+};
 use crate::types::{self, EvaluationResult, ValidationResult};
 use crate::{expand_repeat_instances, rebuild_item_tree};
 use serde_json::Value;
@@ -18,12 +21,18 @@ pub fn evaluate(
     data: &HashMap<String, Value>,
     options: &EvalOptions,
 ) -> EvaluationResult {
+    let mut options = options.clone();
+    hydrate_inline_instances(definition, &mut options.instances);
+    let options = &options;
     let context = &options.context;
     let flat_data = rebuild::augment_nested_data(data);
 
     let mut items = rebuild_item_tree(definition);
 
     let mut seeded_data = flat_data;
+    if options.apply_creation_seeds {
+        seed_repeat_from_instances(definition, &mut seeded_data, &options.instances);
+    }
     seed_prepopulate_tree(&items, &mut seeded_data, &options.instances);
 
     rebuild::seed_initial_values(

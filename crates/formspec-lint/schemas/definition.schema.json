@@ -967,6 +967,9 @@
                   50
                 ]
               },
+              "seedFrom": {
+                "$ref": "#/$defs/SeedFrom"
+              },
               "$ref": {
                 "type": "string",
                 "format": "uri",
@@ -1001,7 +1004,22 @@
                   "$ref"
                 ]
               }
-            ]
+            ],
+            "if": {
+              "required": [
+                "seedFrom"
+              ]
+            },
+            "then": {
+              "properties": {
+                "repeatable": {
+                  "const": true
+                }
+              },
+              "required": [
+                "repeatable"
+              ]
+            }
           }
         },
         {
@@ -1135,7 +1153,7 @@
               },
               "prePopulate": {
                 "type": "object",
-                "description": "Pre-population declaration. Loads a value from a secondary instance at Response creation. Syntactic sugar: equivalent to an initialValue expression plus a readonly bind. When both prePopulate and initialValue are present, prePopulate takes precedence.",
+                "description": "Pre-population declaration. Loads a value from a secondary instance at Response creation. Absolute path is instance-root; relative path under matching seedFrom is element-relative. When both prePopulate and initialValue are present, prePopulate takes precedence.",
                 "properties": {
                   "instance": {
                     "type": "string",
@@ -1572,6 +1590,16 @@
           ]
         }
       ]
+    },
+    "SeedFrom": {
+      "type": "object",
+      "description": "One new-Response row per JSON array element on a named secondary instance. See Core §4.2.2.1.",
+      "required": ["instance", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "instance": { "type": "string" },
+        "path": { "type": "string" }
+      }
     },
     "Instance": {
       "type": "object",

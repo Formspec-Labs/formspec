@@ -1285,6 +1285,43 @@ class TestCreationTimeInitializers:
         result2 = evaluate_definition(defn, {'email': 'bob@example.com'}, instances=instances)
         assert result2.data.get('email') == 'bob@example.com'
 
+    @staticmethod
+    def _seed_from_rows(*, inline=False):
+        items = [{
+            'key': 'rows',
+            'type': 'group',
+            'repeatable': True,
+            'minRepeat': 0,
+            'seedFrom': {'instance': 'record', 'path': 'items'},
+            'children': [{
+                'key': 'name',
+                'type': 'field',
+                'dataType': 'string',
+                'prePopulate': {'instance': 'record', 'path': 'name'},
+            }],
+        }]
+        payload = {'items': [{'name': 'ACME CORP'}, {'name': 'WIDGETS INC'}]}
+        if inline:
+            return {'items': items, 'instances': {'record': {'data': payload}}}
+        return {'items': items}, {'record': payload}
+
+    def test_seed_from_expands_repeat_with_relative_prepopulate(self):
+        defn, instances = self._seed_from_rows()
+        result = evaluate_definition(defn, {}, instances=instances)
+        assert result.data.get('rows[0].name') == 'ACME CORP'
+        assert result.data.get('rows[1].name') == 'WIDGETS INC'
+
+    def test_seed_from_reads_inline_definition_instances_without_side_channel(self):
+        result = evaluate_definition(self._seed_from_rows(inline=True), {})
+        assert result.data.get('rows[0].name') == 'ACME CORP'
+        assert result.data.get('rows[1].name') == 'WIDGETS INC'
+
+    def test_seed_from_does_not_reopen_present_empty_array(self):
+        defn, instances = self._seed_from_rows()
+        result = evaluate_definition(defn, {'rows': []}, instances=instances)
+        assert result.data.get('rows[0].name') is None
+        assert result.data.get('rows[1].name') is None
+
 
 class TestDefaultRelevanceTransition:
     def test_default_applies_only_on_nonrelevant_to_relevant_transition_when_empty(self):

@@ -250,6 +250,8 @@ export interface FormEngineOptions {
     reactiveRuntime?: import('./reactivity/types.js').EngineReactiveRuntime;
     issuerFetcher?: IssuerFetcher;
     issuerOverride?: IssuerSource;
+    /** Host primary Response data installed before seedFrom. */
+    responseData?: JsonRecord;
 }
 
 export interface RegistryEntry {

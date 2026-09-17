@@ -110,6 +110,7 @@ export type FormItem = Item & {
   initialValue?: unknown;
   semanticType?: string;
   prePopulate?: { instance: string; path: string; editable?: boolean };
+  seedFrom?: { instance: string; path: string };
 
   // Shared conditional
   presentation?: Presentation;
