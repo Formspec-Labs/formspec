@@ -1941,12 +1941,11 @@ Action: Support a `screenerDocument` property. Render flow: if standalone
 screener is set and not completed, render screener UI. DeterminationRecord
 replaces the simple `{ target, label }` result.
 
-**C.9.3 `packages/formspec-webcomponent/src/hydrate-response-data.ts`**
+**C.9.3 FormEngine constructor `responseData` / `loadResponseData`**
 
-Screener-aware skip logic: silently skips paths with no writable signal (i.e.,
-screener field keys in response data). Comment at line 6 documents this
-behavior. May become unnecessary if screener data no longer mixes with
-definition response data.
+Undeclared keys (top-level screener fields in mixed `initialData`) have no
+writable signal and are ignored. The webcomponent splits screener keys from
+`initialData` before passing the rest as constructor `responseData`.
 
 **C.9.4 `packages/formspec-webcomponent/src/index.ts`**
 

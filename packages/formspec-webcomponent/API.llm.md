@@ -1062,11 +1062,6 @@ Values accepted by theme/component token resolution.
 type TokenResolvable = unknown;
 ```
 
-## `applyResponseDataToEngine(engine: IFormEngine, data: Record<string, any>, prefix?: string): void`
-
-Apply a response `data` object to the engine after `definition` is loaded. Skips paths with no
-writable signal (e.g. top-level screener keys) and recurses into repeat groups and object groups.
-
 ## `IssuerChrome({ resolved, locale, hostOrigin, mode, headerWidth, document: ownerDocument, }: IssuerChromeProps): HTMLElement | null`
 
 #### interface `IssuerChromeProps`

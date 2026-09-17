@@ -18,7 +18,6 @@ export { ComponentRegistry, globalRegistry } from './registry';
 // Utilities
 export { emitThemeTokens } from './styling';
 export { formatMoney, formatBytes } from './format';
-export { applyResponseDataToEngine } from './hydrate-response-data';
 export {
     extractScreenerSeedFromData,
     omitScreenerKeysFromData,

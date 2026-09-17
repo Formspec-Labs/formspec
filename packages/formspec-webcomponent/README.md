@@ -301,9 +301,9 @@ Each input component receives a fully wired field wrapper with label, hint, erro
 
 Screener fields live in a **standalone Screener document** (`$formspecScreener`), not on the definition. Set **`element.screenerDocument = …`** before **`element.definition = …`** when you use the gate.
 
-Use **`element.initialData = response.data`** (same shape as a Formspec response payload) **before** **`element.definition = …`**. On engine creation the element uses the screener document’s `items` to split out screener keys, applies the rest with `applyResponseDataToEngine`, and pre-fills or auto-skips the screener.
+Use **`element.initialData = response.data`** (same shape as a Formspec response payload) **before** **`element.definition = …`**. On engine creation the element splits out screener keys, passes the rest as constructor `responseData` (hydrate-then-seed), and pre-fills or auto-skips the screener.
 
-For hydration **after** the element already has a definition, call **`applyResponseDataToEngine(engine, data)`** from this package.
+For hydration **after** the element already has a definition, call **`engine.loadResponseData(data)`**.
 
 Fine-grained helpers (both take the **screener document** as the first argument, not the definition):
 
@@ -323,7 +323,6 @@ export { ComponentRegistry, globalRegistry } from './registry';
 
 // Utilities
 export { formatMoney } from './format';
-export { applyResponseDataToEngine } from './hydrate-response-data';
 export {
   extractScreenerSeedFromData,
   omitScreenerKeysFromData,

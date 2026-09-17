@@ -152,7 +152,7 @@ removeRepeatInstance(itemName: string, index: number): void
 
 **Populating a form**
 
-Two sources of values, one loader. Definition `initialValue` and `prePopulate` (Core §4.2.3) are defaults: applied once when the engine creates a field or repeat row, `prePopulate` over `initialValue`. `loadResponseData` is the loader for an existing record; every host entry point funnels into it — the `<formspec-render>` `initialData` property, the React `FormspecProvider` `initialData` prop, and the Surface `definition-form` `initialData` binding, which fetches through Data Sources and then calls this method. Loaded data wins over defaults for every key it carries, `prePopulate` with `editable: false` included (the lock guards respondent edits, not the record); keys it omits keep their default.
+Two sources of values, then a loader. Definition `initialValue`, `prePopulate`, and repeatable `seedFrom` (Core §4.2.2.1, §4.2.3) apply at new Response creation. Host primary data is constructor `responseData` (hydrate-then-seed) or `loadResponseData` for a later saved tree — `<formspec-render>` `initialData` and React `FormspecProvider` `initialData` use the constructor. Loaded data wins over defaults for every key it carries, including a present empty array and `prePopulate` with `editable: false` (the lock guards respondent edits, not the record); keys it omits keep their default.
 
 ```typescript
 loadResponseData(data: JsonRecord): void

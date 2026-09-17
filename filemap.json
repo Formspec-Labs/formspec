@@ -2074,7 +2074,6 @@
     "packages/formspec-webcomponent/src/formspec-default.css": "Default adapter stylesheet — the skin the element links; structural layout is linked alongside it.",
     "packages/formspec-webcomponent/src/formspec-layout.css": "Compatibility wrapper for canonical structural Formspec CSS from formspec-layout.",
     "packages/formspec-webcomponent/src/hub-types.ts": "Shared hub types for FormspecRender, RenderHost, and behavior contracts.",
-    "packages/formspec-webcomponent/src/hydrate-response-data.ts": "Load a Formspec response `data` tree into a FormEngine through `loadResponseData`.",
     "packages/formspec-webcomponent/src/index.ts": "Package entry point: registers components and re-exports public API.",
     "packages/formspec-webcomponent/src/issuer/IssuerChrome.ts": "Issuer chrome render: name, logo, breadcrumb, contact, query-override indicator.",
     "packages/formspec-webcomponent/src/issuer/logoVariant.ts": "Logo variant selection per Issuer render context.",
