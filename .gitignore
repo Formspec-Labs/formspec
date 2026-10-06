@@ -26,6 +26,9 @@ opencode.json
 dist-playground/
 .playwright-mcp/
 .playwright-cli/
+# Local run dumps (committed files under these trees stay tracked)
+output/
+spikes/**/evidence/
 # Generated API docs (make api-docs)
 docs/api/
 form-builder/dist-types/
