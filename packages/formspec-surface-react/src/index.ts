@@ -71,6 +71,7 @@ export type {
   SurfaceWidgetActionEmission,
   SurfaceWidgetActionFeedbackStatus,
   SurfaceWidgetActionExecutorInput,
+  SurfaceWidgetResponseContext,
   SurfaceWidgetActionOutcomeKey,
   SurfaceWidgetActionOutcomeStore,
   SurfaceWidgetActionInput,

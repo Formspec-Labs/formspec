@@ -4,6 +4,7 @@ import type { ExperienceDocument, FormDefinition } from '@formspec-org/types';
 import type { DataSourcesDocument, RegistryDocument } from '@formspec-org/types';
 import { composeSurfaceApp } from '../src/composition.js';
 import { planRoute } from '../src/slot-plan.js';
+import { slotSuppliedTriggers } from '../src/transitions.js';
 import { createWidgetRegistry, flattenRegistryEntries } from '../src/registry.js';
 import { registryDocument, respondentSurface, route, slot, surface } from './fixtures.js';
 
@@ -435,6 +436,28 @@ describe('planRoute — dispatch over the closed taxonomy', () => {
       },
     ]);
     expect(plan.diagnostics).toEqual([]);
+    const binding = widgetSurface.routes[0]!.slots[0]!.binding as unknown as {
+      actionBindings: { accepted: { actionRef: string; responseInput?: unknown } };
+    };
+    binding.actionBindings.accepted.responseInput = 'receipt';
+    data.sources[0]!.schema = { $ref: 'https://formspec.org/schemas/response/1.0' };
+    const responseDocument = { scope: 'response', targetDefinition: { url: definition.url, compatibleVersions: '1.0.0' },
+      actions: [{ id: 'acceptReceipt', intent: 'review', label: { literal: 'Accept receipt' } }] };
+    const qualified = () => planRoute({ ...context, registryEntries: entries,
+      widgets: createWidgetRegistry({ modules: [{ moduleId: 'x-runtime', widgets: { RuntimeWidget: Banner } }], registryEntries: entries }),
+      definitions: new Map([[definition.url, { ...definition, version: '1.0.0' }]]),
+      surfaceRef, dataSources: [{ catalogRef, document: data }], responseActions: [responseDocument] });
+    const qualifiedPlan = qualified();
+    const resolved = qualifiedPlan.slots[0];
+    expect(resolved?.slotType === 'module-widget' && resolved.actionOutputs[0]?.responseContext).toMatchObject({
+      inputName: 'receipt', definition: { url: definition.url, version: '1.0.0' }, descriptor: { catalogRef },
+    });
+    expect([...slotSuppliedTriggers(qualifiedPlan.slots, [responseDocument])]).toEqual(['acceptReceipt', 'review']);
+    binding.actionBindings.accepted.responseInput = 'missing';
+    expect([...slotSuppliedTriggers(qualified().slots, [responseDocument])]).toEqual([]);
+    binding.actionBindings.accepted.responseInput = 'receipt';
+    responseDocument.targetDefinition.compatibleVersions = '2.0.0';
+    expect([...slotSuppliedTriggers(qualified().slots, [responseDocument])]).toEqual([]);
   });
 
   it('reports a required declared input that the Surface does not bind', () => {

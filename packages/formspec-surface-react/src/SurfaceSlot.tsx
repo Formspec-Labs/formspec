@@ -84,6 +84,7 @@ import type {
   SurfaceWidgetActionOutcomeStore,
   SurfaceWidgetActionInput,
   SurfaceWidgetActionReport,
+  SurfaceWidgetResponseContext,
   SurfaceWidgetRouteContext,
 } from './widget-api.js';
 import {
@@ -91,6 +92,7 @@ import {
   admitSurfaceWidgetActionInput,
   createWidgetActionCoordinator,
   responseActionsDocumentForAction,
+  snapshotWidgetResponseContext,
   type WidgetActionCoordinator,
 } from './widget-action-runtime.js';
 import { WidgetEmptyState } from './widgets/empty-state.js';
@@ -1160,6 +1162,7 @@ function SurfaceWidgetSlot({
     plan.dataInputs.length === 0 ? READY_WITH_NO_DATA : { status: 'loading' },
   );
   const [dataLoadAttempt, setDataLoadAttempt] = useState(0);
+  const responseContexts = useRef<{ generation: string; values: ReadonlyMap<string, SurfaceWidgetResponseContext> } | undefined>(undefined);
   const activeGeneration = useRef(runtimeGeneration);
   activeGeneration.current = runtimeGeneration;
   const localActionCoordinator = useRef(createWidgetActionCoordinator());
@@ -1169,6 +1172,7 @@ function SurfaceWidgetSlot({
 
   useEffect(() => {
     let current = true;
+    responseContexts.current = undefined;
     if (plan.dataInputs.length > 0) setDelivery({ status: 'loading' });
     onRuntimeDiagnosticsChange?.(dataDiagnosticScope, []);
 
@@ -1192,8 +1196,42 @@ function SurfaceWidgetSlot({
         routeId: route.routeId,
         slotId: plan.slotId,
       },
-    }).then((result) => {
+    }).then(async (result) => {
       if (!current) return;
+      if (result.status === 'ready') {
+        const contexts = new Map<string, SurfaceWidgetResponseContext>();
+        try {
+          for (const output of plan.actionOutputs) {
+            const subject = output.responseContext;
+            if (!subject) continue;
+            const captured = snapshotWidgetResponseContext({
+              inputName: subject.inputName,
+              source: { catalogRef: subject.descriptor.catalogRef, sourceRef: subject.descriptor.sourceRef },
+              definition: subject.definition,
+              response: result.data[subject.inputName] as SurfaceWidgetResponseContext['response'],
+            });
+            if (!validateDataSourcePayload || !(await validateDataSourcePayload({
+              descriptor: subject.descriptor,
+              context: { surfaceId: route.surfaceId, surfaceRef: route.surfaceRef,
+                routeId: route.routeId, slotId: plan.slotId, moduleId: plan.key.moduleId,
+                widgetName: plan.key.widgetName, params: route.params, sessionGeneration: runtimeGeneration },
+              schema: subject.descriptor.source.schema!, value: captured.response,
+            })).valid) throw new TypeError('The immutable Response subject failed canonical validation');
+            contexts.set(output.name, captured);
+          }
+          if (!current) return;
+          responseContexts.current = { generation: runtimeGeneration, values: contexts };
+        } catch {
+          if (!current) return;
+          const diagnostic = surfaceDiagnostic('WIDGET-DATA-REQUIRED-UNAVAILABLE',
+            'The qualified Response action subject could not be admitted.',
+            { surfaceId: route.surfaceId, routeId: route.routeId, slotId: plan.slotId });
+          setDelivery({ status: 'unavailable', failures: [{ inputName: 'responseInput', required: true,
+            reason: 'payload-invalid', message: diagnostic.message }], diagnostics: [diagnostic] });
+          onRuntimeDiagnosticsChange?.(dataDiagnosticScope, [diagnostic]);
+          return;
+        }
+      }
       setDelivery(result);
       onRuntimeDiagnosticsChange?.(dataDiagnosticScope, result.diagnostics);
     });
@@ -1208,6 +1246,7 @@ function SurfaceWidgetSlot({
     dataSourceLoader,
     onRuntimeDiagnosticsChange,
     plan.dataInputs,
+    plan.actionOutputs,
     plan.key.moduleId,
     plan.key.widgetName,
     plan.slotId,
@@ -1325,10 +1364,13 @@ function SurfaceWidgetSlot({
         );
         return refused();
       }
-      const document = responseActionsDocumentForAction(
+      const responseContext = responseContexts.current?.generation === runtimeGeneration
+        ? responseContexts.current.values.get(outputName) : undefined;
+      const document = declared[0]?.action ? responseActionsDocumentForAction(
         responseActionsDocuments,
         actionRef,
-      );
+        responseContext,
+      ) : undefined;
       if (!document) {
         const invocationId = allocateWidgetActionInvocationId();
         reportRefusal(
@@ -1369,6 +1411,7 @@ function SurfaceWidgetSlot({
           document,
           actionRef,
           source,
+          ...(responseContext ? { responseContext } : {}),
           ...(inputAdmission.input === undefined
             ? {}
             : { input: inputAdmission.input }),

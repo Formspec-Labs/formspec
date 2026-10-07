@@ -134,6 +134,14 @@ def _widget_channel_name_errors(widget_shape: dict) -> list[str]:
     return errors
 
 
+def test_widget_response_input_binding_schema() -> None:
+    validator = _validator({"$ref": SURFACE_SCHEMA["$id"] + "#/$defs/WidgetActionBinding"})
+    assert validator.is_valid({"actionRef": "save", "responseInput": "saved-response"})
+    assert validator.is_valid({"actionRef": "review"})
+    for value in ("", "has space", 7, {"ref": "saved"}):
+        assert not validator.is_valid({"actionRef": "save", "responseInput": value})
+
+
 def test_registry_v1_1_widget_channel_fixture_corpus() -> None:
     corpus = json.loads(
         (FIXTURES / "registry" / "widget-channels-v1-1.cases.json").read_text(

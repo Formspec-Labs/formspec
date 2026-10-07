@@ -8,6 +8,7 @@ import type {
   ResolvedArtifactHandle,
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
+import { widgetActionOwnershipMatches } from './surface-widget-actions.js';
 import {
   collectRenderedNeedTraceNodes,
   type RenderedNeedTraceNode,
@@ -487,9 +488,14 @@ function uniqueAction(
 function uniqueWidgetAction(
   context: AppGraphContext,
   actionId: string,
+  widget: SurfaceWidgetSlot,
+  outputName: string,
 ): { action: ResponseActionReference; value: JsonRecord } | undefined {
   const resolved = uniqueAction(context, actionId);
-  return resolved?.action.scope === 'app' ? resolved : undefined;
+  const contribution = resolvedWidgetContributionFromEntries(widget, registryWidgetEntries(context));
+  const binding = record(ownProp(record(ownProp(widget.binding, 'actionBindings')), outputName));
+  return resolved && contribution && widgetActionOwnershipMatches(context, widget, contribution, binding, resolved.action)
+    ? resolved : undefined;
 }
 
 function componentNodeBlocker(
@@ -601,7 +607,7 @@ function widgetControl(
     'actionRef',
   );
   if (!actionRef) return { candidate: true, reason: 'widget-action-binding-missing' };
-  const resolved = uniqueWidgetAction(context, actionRef);
+  const resolved = uniqueWidgetAction(context, actionRef, widget, outputName);
   if (!resolved) return { candidate: true, reason: 'widget-action-ref-unresolved' };
   const literalLabel = stringProp(record(ownProp(resolved.value, 'label')), 'literal');
   if (!literalLabel || literalLabel.trim().length === 0) {
@@ -911,7 +917,7 @@ function routeHasResolvedWidgetActionSource(
       return Boolean(
         actionRef
         && actionIds.includes(actionRef)
-        && uniqueWidgetAction(context, actionRef)
+        && uniqueWidgetAction(context, actionRef, widget, outputName)
         && declaredOutputCount(context, widget, outputName) === 1,
       );
     });

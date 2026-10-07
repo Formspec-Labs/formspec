@@ -420,6 +420,31 @@ Response Actions intent, or generic host command. App-graph validation MUST
 reject an undeclared output, unresolved action, duplicate mapping, or ambiguous
 transition target.
 
+An app-scoped action binding MUST omit `responseInput`. A response-scoped action
+binding MUST declare `responseInput`, naming exactly one required Registry data
+input with an admitted qualified `dataBindings` source. That source MUST declare
+`schema: {"$ref":"https://formspec.org/schemas/response/1.0"}` directly; aliases,
+fragments, inline lookalikes and schema composition do not establish this subject.
+The action's `targetDefinition` MUST resolve to exactly one loaded Definition
+whose actual version satisfies the target's compatibility range.
+
+After qualified authorization and loading, the shell MUST capture the entire
+Response as detached immutable JSON before exposing data to the widget, validate
+that captured Response and its exact Definition URL/version pins, and pass it
+with the resolved Definition and qualified source identity separately to the
+action executor. Widget-selected action input MUST NOT replace this subject.
+The resolved action selects validation and persistence policy; a generic Response
+input MAY carry a draft Response. The host MUST check current actor authority and
+persisted revision before durable dispatch. Schema validity and source admission
+alone do not prove those facts.
+
+Coalescing and durable replay MUST include the qualified source, resolved
+Definition/action context and the entire immutable Response snapshot in the
+logical delivery identity. A changed Response MUST NOT reuse an earlier outcome
+even when widget-selected input is unchanged. Retry preserves the admitted
+snapshot and operation identity. Response-scoped completion retains the
+Response Actions validation gate; completion alone is not signature verification.
+
 A widget MAY require a second, explicit activation before emitting an action.
 The confirmation UI MUST come from `binding.config`, validate against
 `widgetShape.props`, appear in `renderedConfigNodes`, and carry its own Need

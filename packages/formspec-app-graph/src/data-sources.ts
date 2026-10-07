@@ -166,7 +166,7 @@ function duplicateSourceDiagnostics(context: AppGraphContext): AppGraphDiagnosti
   return diagnostics;
 }
 
-function exactDefinitionResolution(
+export function exactDefinitionResolution(
   context: AppGraphContext,
   definitionRef: string,
 ): DefinitionResolution {
@@ -570,7 +570,7 @@ function bindingDiagnostic(
   };
 }
 
-function bindingFailure(
+export function bindingFailure(
   context: AppGraphContext,
   widget: SurfaceWidgetSlot,
   binding: JsonRecord,

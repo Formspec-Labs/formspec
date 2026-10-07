@@ -44,7 +44,7 @@ import type {
   ResponseActionInvokerResult,
   SubmitResult,
 } from '@formspec-org/react';
-import type { ResponseActionsDocument } from '@formspec-org/types';
+import type { FormDefinition, FormResponse, ResponseActionsDocument } from '@formspec-org/types';
 
 export interface SurfaceWidgetRouteContext {
   surfaceId: string;
@@ -160,6 +160,15 @@ export interface SurfaceWidgetActionExecutorInput {
   source: SurfaceWidgetActionSource;
   /** Frozen structured data selected by the widget configuration, when any. */
   input?: SurfaceWidgetActionInput | undefined;
+  /** Shell-admitted immutable subject, separate from widget-selected input. */
+  responseContext?: SurfaceWidgetResponseContext | undefined;
+}
+
+export interface SurfaceWidgetResponseContext {
+  inputName: string;
+  source: Readonly<{ catalogRef: string; sourceRef: string }>;
+  definition: FormDefinition;
+  response: FormResponse;
 }
 
 /**
@@ -177,6 +186,8 @@ export interface SurfaceWidgetActionOutcomeKey {
   generation: string;
   source: SurfaceWidgetActionSource;
   input?: SurfaceWidgetActionInput | undefined;
+  /** Deterministic private identity of the entire admitted subject and action context. */
+  responseIdentity?: string | undefined;
 }
 
 export interface SurfaceWidgetStoredActionOutcome {

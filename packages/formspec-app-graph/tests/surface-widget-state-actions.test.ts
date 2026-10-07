@@ -108,7 +108,7 @@ describe('module-widget state actions', () => {
     }]);
   });
 
-  it('requires one application-scoped action owner for a widget binding', () => {
+  it('refuses a response-scoped action owner without a qualified Response input', () => {
     const registry = handle('registry', 'registry', {
       entries: [{
         name: 'x-module',
@@ -159,7 +159,6 @@ describe('module-widget state actions', () => {
           details: expect.objectContaining({
             reason: 'widget-action-scope-mismatch',
             actualScope: 'response',
-            requiredScope: 'app',
           }),
         }),
       ]),

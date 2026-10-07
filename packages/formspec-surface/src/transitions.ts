@@ -316,7 +316,9 @@ export function slotSuppliedTriggers(
           );
           if (matches.length !== 1) continue;
           const match = matches[0];
-          if (!match || !isApplicationScoped(match.document)) continue;
+          if (!match || !output.action) continue;
+          if (!isApplicationScoped(match.document) && (!output.responseContext
+            || output.responseContext.definition.url !== targetDefinitionUrl(match.document))) continue;
           const { action } = match;
           if (typeof action.id !== 'string') continue;
           supplied.add(action.id);

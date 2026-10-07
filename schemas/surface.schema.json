@@ -540,6 +540,11 @@
           "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
           "description": "Exact actions[].id from one loaded Response Actions document. This value is not a route id, intent, or widget output name."
         },
+        "responseInput": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "description": "Required for response-scoped actions and forbidden for app-scoped actions. Names one required Registry data input whose qualified Data Source declares the exact canonical Response root schema reference. The shell admits its immutable Response separately from widget-selected action input and resolves the Definition from the action targetDefinition."
+        },
         "x-generation": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
           "description": "Direct generation provenance for this named widget action binding. Strict data-only authoring profiles require this binding's own current adopted Need anchor; a slot, widget config, or Response Action anchor does not cover it."

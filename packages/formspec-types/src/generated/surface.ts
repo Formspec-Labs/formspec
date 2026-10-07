@@ -354,5 +354,9 @@ export interface WidgetActionBinding {
    * Exact actions[].id from one loaded Response Actions document. This value is not a route id, intent, or widget output name.
    */
   actionRef: string;
+  /**
+   * Required for response-scoped actions and forbidden for app-scoped actions. Names one required Registry data input whose qualified Data Source declares the exact canonical Response root schema reference. The shell admits its immutable Response separately from widget-selected action input and resolves the Definition from the action targetDefinition.
+   */
+  responseInput?: string;
   'x-generation'?: Generation;
 }

@@ -264,7 +264,76 @@ function runtimeModule(widget: SurfaceWidget) {
   return [{ moduleId: 'x-runtime', widgets: { RuntimeWidget: widget } }];
 }
 
+function responseBundle(): ResolvedBundle {
+  const b = bundle(true);
+  b.definitions.set('urn:def', { $formspec: '1.0', url: 'urn:def', version: '1.0.0', items: [] } as never);
+  b.responseActions = [{ ...responseActions, scope: 'response', targetDefinition: { url: 'urn:def', compatibleVersions: '1.0.0' } } as ResponseActionsDocument];
+  const binding = b.surfaces[0]!.routes[0]!.slots[0]!.binding as unknown as { actionBindings: { accepted: { responseInput?: string } } };
+  binding.actionBindings.accepted.responseInput = 'receipt';
+  b.dataSources[0]!.document.sources[0]!.schema = { $ref: 'https://formspec.org/schemas/response/1.0' };
+  return b;
+}
+
 describe('qualified widget data', () => {
+  it('captures the qualified Response before widget mutation and preserves response-scoped completion', async () => {
+    const b = responseBundle();
+    const saved = { $formspecResponse: '1.0', definitionUrl: 'urn:def', definitionVersion: '1.0.0',
+      id: 'response-1', status: 'completed', authored: '2026-10-06T12:00:00Z', data: { answer: 'original' },
+      extensions: { 'x-proof': { literal: 'preserved' } }, authoredSignatures: [{
+        signatureId: 'sig-1', documentId: 'declaration', signingIntent: 'urn:intent:test', signatureValue: 'AA==',
+        signerId: 'owner-1', signerName: 'Test Person', consentAccepted: true, consentTextRef: 'urn:consent:test',
+        consentVersion: '1.0', affirmationText: 'Test affirmation', documentHash: 'b'.repeat(64),
+        documentHashAlgorithm: 'sha-256', signatureProvider: 'urn:provider:test', ceremonyId: 'ceremony-1',
+        signedPayload: { canonicalization: 'formspec-response-signing-v1', digest: 'c'.repeat(64), digestAlgorithm: 'sha-256',
+          responseId: 'response-1', definitionUrl: 'urn:def', definitionVersion: '1.0.0', signedAt: '2026-10-06T12:00:00Z', signingIntent: 'urn:intent:test' },
+      }] };
+    const Widget: SurfaceWidget = (props) => {
+      const value = props.data?.receipt as typeof saved;
+      value.data.answer = 'widget-changed';
+      return <button data-probe="emit-response" onClick={() => props.emitAction('accepted', { frozenResponse: { data: { answer: 'forged' } } })}>Run</button>;
+    };
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => completed());
+    const navigate = vi.fn();
+    const validator = vi.fn(() => ({ valid: true as const }));
+    const container = render(<SurfaceApp bundle={b} location="/receipt" onNavigate={navigate}
+      widgetModules={runtimeModule(Widget)} widgetActionExecutor={executor}
+      authorizeDataSource={() => ({ status: 'authorized' })}
+      dataSourceLoader={() => ({ status: 'loaded', freshness: 'fresh', value: saved })}
+      validateDataSourcePayload={validator} setDocumentTitle={false} />);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-probe="emit-response"]')?.click(); await Promise.resolve(); });
+    expect(executor).toHaveBeenCalledTimes(1);
+    const subject = executor.mock.calls[0]![0].responseContext!;
+    expect(subject.response.data.answer).toBe('original');
+    expect(subject.response.extensions).toEqual(saved.extensions);
+    expect(subject.response.authoredSignatures).toEqual(saved.authoredSignatures);
+    expect(Object.isFrozen(subject.response.data)).toBe(true);
+    expect(executor.mock.calls[0]![0].input).toEqual({ frozenResponse: { data: { answer: 'forged' } } });
+    expect(validator).toHaveBeenCalledTimes(2);
+    expect(navigate).toHaveBeenCalledWith('/done');
+  });
+  it.each(['wrong-url', 'wrong-version', 'accessor', 'unauthorized', 'invalid-frozen-copy', 'stale'])('withholds widget access for %s', async (failure) => {
+    const saved = { $formspecResponse: '1.0', definitionUrl: 'urn:def', definitionVersion: '1.0.0', status: 'in-progress',
+      authored: '2026-10-06T12:00:00Z', data: { answer: 'original' } };
+    if (failure === 'wrong-url') saved.definitionUrl = 'urn:other';
+    if (failure === 'wrong-version') saved.definitionVersion = '2.0.0';
+    const getter = vi.fn();
+    if (failure === 'accessor') Object.defineProperty(saved.data, 'secret', { enumerable: true, get: getter });
+    const Widget = vi.fn<SurfaceWidget>(() => <button data-probe="subject-widget">Run</button>);
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => completed());
+    const validator = vi.fn().mockReturnValue({ valid: true });
+    if (failure === 'invalid-frozen-copy') validator.mockReturnValueOnce({ valid: true }).mockReturnValue({ valid: false });
+    const container = render(<SurfaceApp bundle={responseBundle()} location="/receipt" onNavigate={() => {}}
+      widgetModules={runtimeModule(Widget)} widgetActionExecutor={executor}
+      authorizeDataSource={() => failure === 'unauthorized' ? { status: 'refused' } : { status: 'authorized' }}
+      dataSourceLoader={() => ({ status: 'loaded', freshness: failure === 'stale' ? 'stale' : 'fresh', value: saved })}
+      validateDataSourcePayload={validator} setDocumentTitle={false} />);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(container.querySelector('[data-probe="subject-widget"]')).toBeNull();
+    expect(Widget).not.toHaveBeenCalled();
+    expect(executor).not.toHaveBeenCalled();
+    expect(getter).not.toHaveBeenCalled();
+  });
   it('delivers only the frozen named object after every admission stage', async () => {
     const seen: SurfaceWidgetProps[] = [];
     const Widget: SurfaceWidget = (props) => {

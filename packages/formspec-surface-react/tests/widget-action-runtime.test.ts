@@ -9,11 +9,14 @@ import {
   admitSurfaceWidgetActionInput,
   createWidgetActionCoordinator,
   responseActionsDocumentForAction,
+  createWidgetActionDelivery,
+  snapshotWidgetResponseContext,
 } from '../src/widget-action-runtime.js';
 import type {
   SurfaceWidgetActionExecutor,
   SurfaceWidgetActionOutcomeStore,
   SurfaceWidgetStoredActionOutcome,
+  SurfaceWidgetResponseContext,
 } from '../src/widget-api.js';
 
 const action = { id: 'acceptReceipt', intent: 'review' };
@@ -77,6 +80,81 @@ describe('responseActionsDocumentForAction', () => {
     expect(
       responseActionsDocumentForAction([responseScoped], 'acceptReceipt'),
     ).toBeUndefined();
+  });
+
+  it('requires the explicit Response subject and target compatibility', () => {
+    const responseScoped = { ...document, scope: 'response', targetDefinition: { url: 'urn:def', compatibleVersions: '1.0.0' } } as ResponseActionsDocument;
+    const subject = responseSubject();
+    expect(responseActionsDocumentForAction([responseScoped], 'acceptReceipt', subject)).toBe(responseScoped);
+    expect(responseActionsDocumentForAction([document], 'acceptReceipt', subject)).toBeUndefined();
+    expect(responseActionsDocumentForAction([responseScoped], 'acceptReceipt', { ...subject, definition: { ...subject.definition, version: '2.0.0' } })).toBeUndefined();
+  });
+});
+
+function responseSubject(): SurfaceWidgetResponseContext {
+  return { inputName: 'saved', source: { catalogRef: 'urn:catalog', sourceRef: 'saved' },
+    definition: { $formspec: '1.0', url: 'urn:def', version: '1.0.0', items: [] },
+    response: { $formspecResponse: '1.0', definitionUrl: 'urn:def', definitionVersion: '1.0.0', status: 'in-progress',
+      authored: '2026-10-06T12:00:00Z', data: { answer: 'original' }, extensions: { 'x-proof': { literal: 'kept' } } },
+  } as unknown as SurfaceWidgetResponseContext;
+}
+const responseDocument = { ...document, scope: 'response', targetDefinition: { url: 'urn:def', compatibleVersions: '1.0.0' } } as ResponseActionsDocument;
+
+describe('immutable widget Response subject', () => {
+  it('preserves all fields, supports drafts, and refuses wrong pins and accessors', () => {
+    const subject = responseSubject();
+    const snapshot = snapshotWidgetResponseContext(subject);
+    subject.response.data.answer = 'changed';
+    expect(snapshot.response.data.answer).toBe('original');
+    expect(snapshot.response.extensions).toEqual({ 'x-proof': { literal: 'kept' } });
+    expect(Object.isFrozen(snapshot.response.data)).toBe(true);
+    expect(() => snapshotWidgetResponseContext({ ...subject, response: { ...subject.response, definitionVersion: '2.0.0' } })).toThrow(/pins/);
+    const getter = vi.fn();
+    Object.defineProperty(subject.response.data, 'secret', { enumerable: true, get: getter });
+    expect(() => snapshotWidgetResponseContext(subject)).toThrow(/accessor/);
+    expect(getter).not.toHaveBeenCalled();
+  });
+  it('includes the entire subject in coalescing and durable replay keys', async () => {
+    const keys: unknown[] = [];
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => completed());
+    const outcomeStore: SurfaceWidgetActionOutcomeStore = { read(key) { keys.push(key); return undefined; }, write() {} };
+    const coordinator = createWidgetActionCoordinator();
+    const first = coordinator.emit({ ...baseRequest, document: responseDocument, responseContext: responseSubject(), executor, outcomeStore });
+    const changed = responseSubject(); changed.response.data.answer = 'second';
+    const second = coordinator.emit({ ...baseRequest, document: responseDocument, responseContext: changed, executor, outcomeStore });
+    const [a, b] = await Promise.all([first.completion, second.completion]);
+    expect(first.started && second.started).toBe(true);
+    expect(a.invocationId).not.toBe(b.invocationId);
+    expect(executor).toHaveBeenCalledTimes(2);
+    expect(keys[0]).not.toEqual(keys[1]);
+  });
+  it('refuses replacing a subject under the same delivery identity', async () => {
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => completed());
+    const delivery = createWidgetActionDelivery();
+    const request = { ...baseRequest, document: responseDocument, responseContext: responseSubject(), invocationId: 'same', executor };
+    await delivery.deliver(request);
+    request.responseContext.response.data.answer = 'changed';
+    await expect(delivery.deliver(request)).rejects.toThrow(/replace/);
+    expect(executor).toHaveBeenCalledTimes(1);
+  });
+  it('never replays another selected action from the same document and subject', async () => {
+    const actions = { ...responseDocument, actions: [...responseDocument.actions, { ...action, id: 'otherAction' }] };
+    const outcomes = new Map<string, SurfaceWidgetStoredActionOutcome>();
+    const outcomeStore: SurfaceWidgetActionOutcomeStore = {
+      read(key) { return outcomes.get(JSON.stringify(key)); },
+      write(key, outcome) { outcomes.set(JSON.stringify(key), outcome); },
+    };
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => completed());
+    const request = { ...baseRequest, document: actions, responseContext: responseSubject(), executor, outcomeStore };
+    await createWidgetActionCoordinator().emit(request).completion;
+    const second = await createWidgetActionCoordinator().emit({ ...request, actionRef: 'otherAction' }).completion;
+    expect(second.replayed).toBe(false);
+    expect(executor).toHaveBeenCalledTimes(2);
+    expect(outcomes.size).toBe(2);
+    const delivery = createWidgetActionDelivery();
+    await delivery.deliver({ ...request, invocationId: 'single' });
+    await expect(delivery.deliver({ ...request, actionRef: 'otherAction', invocationId: 'single' })).rejects.toThrow(/replace/);
+    expect(executor).toHaveBeenCalledTimes(3);
   });
 });
 

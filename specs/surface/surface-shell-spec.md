@@ -721,6 +721,16 @@ only runtime extension point inside a route.
   used as trigger sources, unresolved actions, and a widget output that would
   select more than one transition.
 
+  A response-scoped binding also declares `responseInput`, selecting a required
+  qualified canonical Response input under [Surface](surface-spec.md)'s widget
+  action rules. The shell MUST capture, validate and freeze the entire subject
+  before widget access, resolve the action's compatible loaded Definition, and
+  deliver that context separately from emitted `input`. App-scoped bindings
+  MUST omit it. Coalescing and persisted outcome identity MUST include the
+  entire subject and qualified source/action/Definition context. These private
+  identities MUST NOT become route parameters or diagnostic payloads. Current
+  actor ownership and persisted revision remain host admission checks.
+
   The widget receives one capability: `emitAction(outputName, input?)`. `input`
   is optional selected structured data, not an action id, route, intent, or
   source-discovery channel. The shell MUST accept only an object made of finite

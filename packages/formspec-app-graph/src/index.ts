@@ -1,6 +1,7 @@
 /** @filedesc Public exports for the AppGraphValidator report kernel. */
 
 export * from './types.js';
+export { widgetActionScopeMatches, CANONICAL_RESPONSE_SCHEMA_REF, type WidgetActionScopeInput } from './widget-action-scope.js';
 export {
   artifactIdentityKey,
   compareDiagnostics,

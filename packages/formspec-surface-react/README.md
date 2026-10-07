@@ -1,5 +1,22 @@
 # @formspec-org/surface-react
 
+Response-scoped module-widget actions declare `responseInput` on their Surface
+action binding. It names a required Registry data input whose qualified Data
+Source uses `schema: {"$ref":"https://formspec.org/schemas/response/1.0"}`.
+The shell resolves the action's loaded target Definition, captures and validates
+an immutable full Response before widget access, then supplies
+`SurfaceWidgetActionExecutorInput.responseContext` separately from widget-selected
+`input`. App actions omit this context. Draft actions retain their own validation
+and persistence policy.
+
+The host validates the exact snapshot through the existing Response Actions
+`submit` preparation port, checks current ownership/revision, and dispatches
+registered durable effects. It preserves signatures and extensions rather than
+regenerating a Response. `SurfaceWidgetActionOutcomeKey.responseIdentity` is a
+private deterministic replay key containing the complete subject; never log it
+or put it in a route. Shell delivery IDs and host durable operation IDs remain
+distinct; retain one host operation ID across retry and replay.
+
 React binding for [`@formspec-org/surface`](../formspec-surface), plus the
 starter module-widget set.
 

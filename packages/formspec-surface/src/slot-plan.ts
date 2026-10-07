@@ -32,6 +32,8 @@
  *   set is a termination requirement, not an optimisation.
  */
 import type { FormDefinition, RegistryEntry } from '@formspec-org/types';
+import { targetDefinitionMatches } from '@formspec-org/types';
+import { widgetActionScopeMatches } from '@formspec-org/app-graph';
 import type { ExperienceDocument } from '@formspec-org/types';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 import type { SurfaceRoute } from './route-path.js';
@@ -54,6 +56,7 @@ import {
   resolveDataSourceDescriptor,
   type DataSourceCatalogHandle,
   type WidgetDataInputPlan,
+  type DataSourceDescriptor,
 } from './data-source-loader.js';
 import { generationNeedAnchors } from './need-trace.js';
 import {
@@ -169,6 +172,14 @@ export interface WidgetActionOutputPlan {
   actionRef?: string | undefined;
   /** Present only when `actionRef` resolves to exactly one loaded Action. */
   action?: WidgetActionMetadataPlan | undefined;
+  /** Explicit qualified subject; never derived from emitted widget input. */
+  responseContext?: WidgetActionResponsePlan | undefined;
+}
+
+export interface WidgetActionResponsePlan {
+  inputName: string;
+  definition: FormDefinition;
+  descriptor: DataSourceDescriptor;
 }
 
 export interface RoutePlan<TComponent> {
@@ -414,13 +425,16 @@ function planSlot<TComponent>(
       const actionOutputs: WidgetActionOutputPlan[] = declaredOutputs.map((declared) => {
         const authored = ownRecord(actionBindings, declared.name);
         const actionRef = authored ? ownString(authored, 'actionRef') : undefined;
-        const action = actionRef === undefined
+        const responseInput = authored && Object.prototype.hasOwnProperty.call(authored, 'responseInput')
+          ? authored.responseInput : undefined;
+        const resolved = actionRef === undefined
           ? undefined
-          : resolveWidgetAction(context.responseActions ?? [], actionRef);
+          : resolveWidgetAction(context.responseActions ?? [], actionRef, responseInput, dataInputs, context.definitions);
         return {
           name: declared.name,
           ...(actionRef !== undefined ? { actionRef } : {}),
-          ...(action !== undefined ? { action } : {}),
+          ...(resolved !== undefined ? { action: resolved.action } : {}),
+          ...(resolved?.responseContext ? { responseContext: resolved.responseContext } : {}),
         };
       });
       const plan: SlotPlan<TComponent> = {
@@ -530,7 +544,10 @@ function exhaustive(value: never): never {
 function resolveWidgetAction(
   documents: readonly ResponseActionsDocumentLike[],
   actionRef: string,
-): WidgetActionMetadataPlan | undefined {
+  responseInput: unknown,
+  inputs: readonly WidgetDataInputPlan[],
+  definitions: ReadonlyMap<string, FormDefinition>,
+): { action: WidgetActionMetadataPlan; responseContext?: WidgetActionResponsePlan } | undefined {
   const matches = documents.flatMap((document) =>
     (document.actions ?? [])
       .filter((action) => action.id === actionRef)
@@ -538,13 +555,22 @@ function resolveWidgetAction(
   );
   if (matches.length !== 1) return undefined;
   const match = matches[0];
-  if (
-    !match
-    || match.document.scope !== 'app'
-    || match.document.targetDefinition !== undefined
-  ) {
-    return undefined;
-  }
+  if (!match) return undefined;
+  const selectedInputs = inputs.filter((input) => input.name === responseInput);
+  const selected = selectedInputs.length === 1 ? selectedInputs[0] : undefined;
+  const descriptor = selected?.status === 'ready' ? selected.descriptor : undefined;
+  const target = match.document.targetDefinition;
+  const targetPin = target && typeof target.url === 'string'
+    ? { url: target.url, ...(ownString(target, 'compatibleVersions') ? { compatibleVersions: ownString(target, 'compatibleVersions')! } : {}) }
+    : undefined;
+  const candidates = [...definitions.values()].filter((definition) =>
+    targetDefinitionMatches(targetPin, definition));
+  const definition = candidates.length === 1 ? candidates[0] : undefined;
+  if (!widgetActionScopeMatches({ document: match.document, responseInput, inputs,
+    sourceSchema: descriptor?.source.schema, definition })) return undefined;
+  const responseContext = match.document.scope === 'app' ? undefined
+    : descriptor && definition && typeof responseInput === 'string' ? { inputName: responseInput, descriptor, definition } : undefined;
+  if (match.document.scope !== 'app' && !responseContext) return undefined;
   const { action } = match;
   if (!action || typeof action.intent !== 'string') return undefined;
 
@@ -562,12 +588,13 @@ function resolveWidgetAction(
         : undefined;
   const needAnchors = generationNeedAnchors(action);
 
-  return {
+  const metadata: WidgetActionMetadataPlan = {
     actionRef,
     intent: action.intent,
     ...(label !== undefined ? { label } : {}),
     ...(needAnchors.length > 0 ? { needAnchors } : {}),
   };
+  return { action: metadata, ...(responseContext ? { responseContext } : {}) };
 }
 
 function ownRecord(

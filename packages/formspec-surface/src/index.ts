@@ -138,6 +138,7 @@ export {
   type WidgetActionLabelPlan,
   type WidgetActionMetadataPlan,
   type WidgetActionOutputPlan,
+  type WidgetActionResponsePlan,
 } from './slot-plan.js';
 
 export {
@@ -254,3 +255,5 @@ export {
   type SurfaceScenarioValidationResult,
   type ValidateSurfacePreviewScenarioInput,
 } from './preview-scenario.js';
+
+export { snapshotFiniteJson, canonicalFiniteJson, type FiniteJsonValue } from "./finite-json.js";

@@ -11,6 +11,8 @@ import type {
   ResponseActionInvokerResult,
 } from '@formspec-org/react';
 import type { ResponseActionsDocument } from '@formspec-org/types';
+import { snapshotFiniteJson, canonicalFiniteJson } from '@formspec-org/surface';
+import { widgetActionScopeMatches, CANONICAL_RESPONSE_SCHEMA_REF } from '@formspec-org/app-graph';
 import type {
   SurfaceWidgetActionExecutor,
   SurfaceWidgetActionDetail,
@@ -20,6 +22,7 @@ import type {
   SurfaceWidgetActionInput,
   SurfaceWidgetActionValue,
   SurfaceWidgetStoredActionOutcome,
+  SurfaceWidgetResponseContext,
 } from './widget-api.js';
 
 let invocationSequence = 0;
@@ -200,6 +203,7 @@ export function normalizeWidgetActionResult(
 export function responseActionsDocumentForAction(
   documents: readonly ResponseActionsDocument[],
   actionRef: string,
+  responseContext?: SurfaceWidgetResponseContext,
 ): ResponseActionsDocument | undefined {
   const matches = documents.flatMap((document) =>
     (document.actions ?? [])
@@ -207,9 +211,32 @@ export function responseActionsDocumentForAction(
       .map(() => document),
   );
   const match = matches.length === 1 ? matches[0] : undefined;
-  return match?.scope === 'app' && match.targetDefinition === undefined
+  return match && widgetActionScopeMatches({ document: match,
+    responseInput: responseContext?.inputName,
+    inputs: responseContext ? [{ name: responseContext.inputName, required: true }] : [],
+    sourceSchema: responseContext ? { $ref: CANONICAL_RESPONSE_SCHEMA_REF } : undefined,
+    definition: responseContext?.definition,
+  })
     ? match
     : undefined;
+}
+
+/** Detach before any widget access; payload schema validation remains the host validator's job. */
+export function snapshotWidgetResponseContext(
+  context: SurfaceWidgetResponseContext,
+): SurfaceWidgetResponseContext {
+  const snapshot = snapshotFiniteJson(context) as unknown as SurfaceWidgetResponseContext;
+  if (snapshot.response.definitionUrl !== snapshot.definition.url
+    || !snapshot.definition.version || snapshot.response.definitionVersion !== snapshot.definition.version) {
+    throw new TypeError('Response pins do not match the admitted Definition');
+  }
+  return snapshot;
+}
+
+function responseIdentity(request: Pick<SurfaceWidgetActionExecutorInput, 'document' | 'actionRef' | 'responseContext'>): string | undefined {
+  return request.responseContext ? canonicalFiniteJson(snapshotFiniteJson({
+    document: request.document, actionRef: request.actionRef, responseContext: request.responseContext,
+  })) : undefined;
 }
 
 export interface DeliverWidgetActionRequest extends SurfaceWidgetActionExecutorInput {
@@ -250,10 +277,22 @@ export function createWidgetActionDelivery(): WidgetActionDelivery {
     string,
     ResponseActionInvocationResult<SurfaceWidgetActionDetail>
   >();
+  const payloads = new Map<string, string | undefined>();
 
   return {
     deliver(request) {
+      if (request.responseContext) request = { ...request,
+        document: snapshotFiniteJson(request.document) as unknown as ResponseActionsDocument,
+        responseContext: snapshotWidgetResponseContext(request.responseContext) };
+      if (!responseActionsDocumentForAction([request.document], request.actionRef, request.responseContext)) {
+        return Promise.reject(new TypeError('Widget action has no admitted execution subject'));
+      }
       const key = keyFor(request);
+      const identity = responseIdentity(request);
+      if (payloads.has(key) && payloads.get(key) !== identity) {
+        return Promise.reject(new TypeError('A widget invocation cannot replace its Response subject'));
+      }
+      payloads.set(key, identity);
       const terminal = terminals.get(key);
       if (terminal) return Promise.resolve(terminal);
       const pending = inFlight.get(key);
@@ -267,6 +306,7 @@ export function createWidgetActionDelivery(): WidgetActionDelivery {
             invocationId: request.invocationId,
             source: request.source,
             ...(request.input === undefined ? {} : { input: request.input }),
+            ...(request.responseContext ? { responseContext: request.responseContext } : {}),
           }),
         );
         terminals.set(key, result);
@@ -288,6 +328,7 @@ export interface EmitWidgetActionRequest {
   actionRef: string;
   source: SurfaceWidgetActionExecutorInput['source'];
   input?: SurfaceWidgetActionInput | undefined;
+  responseContext?: SurfaceWidgetResponseContext | undefined;
   executor: SurfaceWidgetActionExecutor;
   outcomeStore?: SurfaceWidgetActionOutcomeStore | undefined;
 }
@@ -307,7 +348,7 @@ export interface WidgetActionCoordinator {
   emit(request: EmitWidgetActionRequest): CoordinatedWidgetActionEmission;
 }
 
-function logicalKey(request: EmitWidgetActionRequest): string {
+function logicalKey(request: EmitWidgetActionRequest, subjectIdentity: string | undefined): string {
   const parts = [
     request.generation,
     request.source.route.surfaceId,
@@ -316,17 +357,20 @@ function logicalKey(request: EmitWidgetActionRequest): string {
     request.source.outputName,
     request.actionRef,
     canonicalInput(request.input),
+    subjectIdentity ?? '',
   ];
   return parts.map((part) => `${part.length}:${part}`).join('|');
 }
 
 function logicalOutcomeKey(
   request: EmitWidgetActionRequest,
+  subjectIdentity: string | undefined,
 ): SurfaceWidgetActionOutcomeKey {
   return {
     generation: request.generation,
     source: request.source,
     ...(request.input === undefined ? {} : { input: request.input }),
+    ...(subjectIdentity === undefined ? {} : { responseIdentity: subjectIdentity }),
   };
 }
 
@@ -355,8 +399,14 @@ export function createWidgetActionCoordinator(): WidgetActionCoordinator {
       const admittedRequest: EmitWidgetActionRequest = {
         ...request,
         ...(admission.input === undefined ? {} : { input: admission.input }),
+        ...(request.responseContext ? { responseContext: snapshotWidgetResponseContext(request.responseContext) } : {}),
+        ...(request.responseContext ? { document: snapshotFiniteJson(request.document) as unknown as ResponseActionsDocument } : {}),
       };
-      const key = logicalKey(admittedRequest);
+      if (!responseActionsDocumentForAction([admittedRequest.document], admittedRequest.actionRef, admittedRequest.responseContext)) {
+        throw new TypeError('Widget action has no admitted execution subject');
+      }
+      const subjectIdentity = responseIdentity(admittedRequest);
+      const key = logicalKey(admittedRequest, subjectIdentity);
       const pending = inFlight.get(key);
       if (pending) return { started: false, completion: pending };
 
@@ -364,7 +414,7 @@ export function createWidgetActionCoordinator(): WidgetActionCoordinator {
         const observed = observedDurableIds.get(key) ?? new Set<string>();
         observedDurableIds.set(key, observed);
         const persisted = await admittedRequest.outcomeStore?.read(
-          logicalOutcomeKey(admittedRequest),
+          logicalOutcomeKey(admittedRequest, subjectIdentity),
         );
         if (persisted && !observed.has(persisted.invocationId)) {
           observed.add(persisted.invocationId);
@@ -381,10 +431,11 @@ export function createWidgetActionCoordinator(): WidgetActionCoordinator {
           ...(admittedRequest.input === undefined
             ? {}
             : { input: admittedRequest.input }),
+          ...(admittedRequest.responseContext ? { responseContext: admittedRequest.responseContext } : {}),
           executor: admittedRequest.executor,
         });
         observed.add(invocationId);
-        await admittedRequest.outcomeStore?.write(logicalOutcomeKey(admittedRequest), {
+        await admittedRequest.outcomeStore?.write(logicalOutcomeKey(admittedRequest, subjectIdentity), {
           invocationId,
           result,
         });
