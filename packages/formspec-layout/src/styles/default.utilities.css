@@ -40,13 +40,14 @@
   transition: var(--formspec-default-transition-fast);
 }
 
-.formspec-button-primary:hover:not(:disabled) {
+.formspec-button-primary:hover:not(:disabled):not([aria-disabled="true"]) {
   color: var(--formspec-default-text-inverse);
   background: var(--formspec-default-primary-fill-strong);
   box-shadow: 0 12px 22px color-mix(in srgb, var(--formspec-default-primary) 18%, transparent);
 }
 
-.formspec-button-primary:disabled {
+.formspec-button-primary:disabled,
+.formspec-button-primary[aria-disabled="true"] {
   opacity: 0.4;
   cursor: default;
 }
@@ -72,12 +73,13 @@
   transition: var(--formspec-default-transition-fast);
 }
 
-.formspec-button-secondary:hover:not(:disabled) {
+.formspec-button-secondary:hover:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--formspec-default-border-strong);
   background: var(--formspec-default-surface-soft);
 }
 
-.formspec-button-secondary:disabled {
+.formspec-button-secondary:disabled,
+.formspec-button-secondary[aria-disabled="true"] {
   opacity: 0.45;
   cursor: default;
 }
@@ -103,13 +105,14 @@
   transition: var(--formspec-default-transition-fast);
 }
 
-.formspec-button-danger:hover:not(:disabled) {
+.formspec-button-danger:hover:not(:disabled):not([aria-disabled="true"]) {
   color: var(--formspec-default-text-inverse);
   background: color-mix(in srgb, var(--formspec-default-danger-fill) 88%, black);
   border-color: color-mix(in srgb, var(--formspec-default-danger-fill) 88%, black);
 }
 
-.formspec-button-danger:disabled {
+.formspec-button-danger:disabled,
+.formspec-button-danger[aria-disabled="true"] {
   opacity: 0.4;
   cursor: default;
 }

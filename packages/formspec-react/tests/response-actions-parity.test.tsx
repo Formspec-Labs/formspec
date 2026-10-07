@@ -208,7 +208,8 @@ describe('React Response Actions parity', () => {
         const status = container.querySelector<HTMLElement>('[role="status"]')!;
         expect(responseActionInvoker).toHaveBeenCalledTimes(1);
         expect(button.textContent).toBe('Send application');
-        expect(button.disabled).toBe(true);
+        expect(button.disabled).toBe(false);
+        expect(button.getAttribute('aria-disabled')).toBe('true');
         expect(button.getAttribute('aria-busy')).toBe('true');
         expect(button.getAttribute('aria-describedby')).toBe(status.id);
         expect(status.getAttribute('aria-live')).toBe('polite');
@@ -231,6 +232,7 @@ describe('React Response Actions parity', () => {
         expect(button.textContent).toBe('Send application');
         expect(button.disabled).toBe(false);
         expect(button.getAttribute('aria-busy')).toBe('false');
+        expect(button.getAttribute('aria-disabled')).toBe('false');
         expect(status.textContent).toBe('Completed.');
 
         root.unmount();
@@ -288,7 +290,8 @@ describe('React Response Actions parity', () => {
         });
         expect(responseActionInvoker).toHaveBeenCalledTimes(2);
         expect(status.textContent).toBe('In progress.');
-        expect(button.disabled).toBe(true);
+        expect(button.disabled).toBe(false);
+        expect(button.getAttribute('aria-disabled')).toBe('true');
 
         await act(async () => {
             gates[1]!.resolve(undefined);

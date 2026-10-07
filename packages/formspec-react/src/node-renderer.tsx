@@ -393,7 +393,9 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
                 // foot-gun and keeps cross-renderer parity.
                 type="button"
                 className={node.cssClasses?.join(' ') || 'formspec-action formspec-submit'}
-                disabled={!resolution.resolved || pending}
+                // The in-flight guard keeps pending activation inert without losing keyboard focus.
+                disabled={!resolution.resolved}
+                aria-disabled={!resolution.resolved || pending}
                 aria-busy={pending}
                 aria-describedby={statusId}
                 onClick={handleClick}
