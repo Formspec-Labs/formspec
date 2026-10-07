@@ -26,7 +26,7 @@
   gap: var(--formspec-spacing-md, 1rem) var(--formspec-spacing-field, 0.75rem);
 }
 
-.formspec-container :where(input:not([type="radio"]):not([type="checkbox"]):not([type="range"]):not([hidden]):not(.formspec-combobox-input)),
+.formspec-container :where(input:not([type="radio"]):not([type="checkbox"]):not([type="range"]):not([hidden]):not(.formspec-combobox-input):not(.formspec-file-input-hidden)),
 .formspec-container :where(textarea),
 .formspec-container :where(select) {
   display: block;
@@ -47,7 +47,7 @@
 
 .formspec-container
   :where(
-    input:not([type='radio']):not([type='checkbox']):not([type='range']):not([hidden]):not(.formspec-combobox-input)
+    input:not([type='radio']):not([type='checkbox']):not([type='range']):not([hidden]):not(.formspec-combobox-input):not(.formspec-file-input-hidden)
   ):focus,
 .formspec-container :where(textarea):focus,
 .formspec-container :where(select:not(.formspec-select-native)):focus {
