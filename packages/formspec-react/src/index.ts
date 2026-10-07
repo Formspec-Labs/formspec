@@ -108,3 +108,6 @@ export type { ValidationSummaryProps } from './validation-summary';
 // ── Default theme ──
 import { buildPlatformTheme } from '@formspec-org/layout';
 export const defaultTheme = buildPlatformTheme();
+
+export { useChromeText } from './use-chrome-text';
+export type { ChromeText } from './use-chrome-text';

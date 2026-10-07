@@ -43,3 +43,6 @@ export type {
     SemanticResponseBinding,
 } from './semantic-controls';
 export type { FieldComponentProps, LayoutComponentProps, DisplayComponentProps, ComponentMap } from './component-map';
+
+export { useChromeText } from './use-chrome-text';
+export type { ChromeText } from './use-chrome-text';

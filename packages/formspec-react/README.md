@@ -79,3 +79,19 @@ finding. A resolved action calls `onSubmit` only when it declares a
 `onHostEvent`, durable effects use `dispatchActionEffect` plus
 `resolveActionIdempotencyKey`, and final action terminals flow through
 `onActionResult`.
+
+### Renderer chrome for custom controls
+
+Import `useChromeText` and `ChromeText` from `@formspec-org/react` or
+`@formspec-org/react/hooks`. The hook returns
+`(key: ChromeStringKey, params?: Record<string, string | number>) => string`.
+Use the closed suffix without `$ui.`, for example
+`chrome('fileUpload.remove', { filename })`. Authored Definition-targeted Locale
+strings override shared English defaults; locale loads and switches update the
+rendered text. Parameters substitute literally, without expression evaluation.
+
+For upload chrome, `percent` is a display percentage from 0–100 (the template
+adds `%`); `limit` is an already formatted size such as `25 MB`. Store keys and
+parameters for pending/error state and resolve them while rendering so language
+switches update existing feedback. The hook also supplies shared defaults outside
+a Formspec provider. See Locale §3.1.10 for the complete closed key inventory.

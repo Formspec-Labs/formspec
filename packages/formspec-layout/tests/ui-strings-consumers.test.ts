@@ -1,4 +1,4 @@
-/** @filedesc Every declared `$ui` key has a renderer that asks for it — a key nothing reads is a dead promise. */
+/** @filedesc Chrome keys have framework consumers or exercised public-hook host scenarios. */
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,11 +22,14 @@ function rendererSources(): string[] {
         .filter((file) => !file.endsWith('ui-strings.ts'));
 }
 
-describe('the chrome inventory has no key without a consumer', () => {
-    it('finds every $ui key asked for by name in a renderer', () => {
+describe('chrome keys have framework consumers or exercised public-hook host scenarios', () => {
+    it('finds every $ui key in a framework renderer or a concrete public-hook call', () => {
         const sources = rendererSources().map((file) => readFileSync(file, 'utf8')).join('\n');
+        // Only concrete calls in the public-host scenario count; assertions and key lists do not.
+        const hostScenario = readFileSync(join(PACKAGES, 'formspec-react/tests/ui-chrome-strings.test.tsx'), 'utf8');
+        const exercised = new Set([...hostScenario.matchAll(/chrome\('([^']+)'(?:,|\))/g)].map(match => match[1]));
         const declared = Object.keys(UI_STRINGS);
-        const orphans = declared.filter((key) => !sources.includes(`'${key}'`));
+        const orphans = declared.filter((key) => !sources.includes(`'${key}'`) && !exercised.has(key));
         expect(orphans, 'declared but read by no renderer').toEqual([]);
     });
 });

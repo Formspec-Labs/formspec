@@ -814,7 +814,6 @@ with the schema by test):
 | Key suffix | English default | Parameters |
 |---|---|---|
 | `select.placeholder` | `Select…` | none |
-| `select.clear` | `Clear` | none |
 | `select.clearSelection` | `Clear selection` | none |
 | `select.selectedValues` | `Selected values` | none |
 | `select.selectAll` | `Select All` | none |
@@ -822,7 +821,7 @@ with the schema by test):
 | `repeat.remove` | `Remove {{$label}}` | `$label` |
 | `repeat.row` | `{{$label}} {{$index}}` | `$label`, `$index` |
 | `repeat.rowOf` | `{{$label}} {{$index}} of {{$total}}` | `$label`, `$index`, `$total` |
-| `repeat.rowNamed` | `{{$label}} of {{$total}}` | `$label` (the authored row heading), `$total` |
+| `repeat.rowNamed` | `{{$label}} of {{$total}}` | `$label`, `$total` |
 | `wizard.next` | `Next` | none |
 | `wizard.nextStep` | `Next step` | none |
 | `wizard.previous` | `Previous` | none |
@@ -835,7 +834,7 @@ with the schema by test):
 | `wizard.progress` | `Form progress` | none |
 | `wizard.step` | `Step` | none |
 | `wizard.collapseNavigation` | `Collapse navigation` | none |
-| `wizard.otherItems` | `Additional items` | none — titles the step a wizard makes for top-level items outside any group |
+| `wizard.otherItems` | `Additional items` | none |
 | `modal.close` | `Close` | none |
 | `alert.dismiss` | `Dismiss` | none |
 | `validationSummary.heading` | `Please correct the following` | none |
@@ -854,10 +853,88 @@ with the schema by test):
 | `screener.continue` | `Continue` | none |
 | `screener.required` | `Required` | none |
 | `screener.back` | `Back to screening` | none |
-| `assist.filled` | `{{$label}} filled by your assistant` | `$label` — announced when an Assist tool writes the field (Assist spec §8.4) |
+| `dataTable.addRow` | `Add Row` | none |
+| `dataTable.remove` | `Remove` | none |
+| `dataTable.removeRow` | `Remove row {{$index}}` | `$index` |
+| `dataTable.actions` | `Actions` | none |
+| `wizard.stepTitle` | `Step {{$index}}` | `$index` |
+| `wizard.stepStatus` | `Step {{$index}} of {{$total}}: {{$title}}` | `$index`, `$total`, `$title` |
+| `wizard.finalStepStatus` | `Step {{$index}} of {{$total}}: {{$title}} — final step` | `$index`, `$total`, `$title` |
+| `wizard.stepAnnouncement` | `{{$title}}. Step {{$index}} of {{$total}}.` | `$title`, `$index`, `$total` |
+| `wizard.finalStepAnnouncement` | `{{$title}}. Next will submit the form.` | `$title` |
+| `wizard.expandNavigation` | `Expand navigation` | none |
+| `select.loadingOptions` | `Loading options...` | none |
+| `select.remoteFallback` | `Remote options unavailable; using fallback options.` | none |
+| `select.remoteFailed` | `Failed to load options.` | none |
+| `modal.open` | `Open` | none |
+| `fileUpload.dropzone` | `Drop files here or click to browse` | none |
+| `fileUpload.dropzoneKeyboard` | `Drop files here or press Enter to browse` | none |
+| `fileUpload.browse` | `Upload a file` | none |
+| `fileUpload.attachedList` | `Files you have attached` | none |
+| `fileUpload.pendingList` | `Pending file activity` | none |
+| `fileUpload.remove` | `Remove {{$filename}}` | `$filename` |
+| `fileUpload.dismissError` | `Dismiss error for {{$filename}}` | `$filename` |
+| `fileUpload.uploading` | `Uploading...` | none |
+| `fileUpload.uploadProgress` | `Uploading {{$percent}}%` | `$percent` |
+| `fileUpload.deferredLibrary` | `Saving to your document library is not yet available here.` | none |
+| `fileUpload.cameraCapture` | `Camera capture` | none |
+| `fileUpload.cameraPreview` | `Camera preview` | none |
+| `fileUpload.captureImage` | `Capture image` | none |
+| `fileUpload.closeCamera` | `Close camera` | none |
+| `fileUpload.useCamera` | `Use camera` | none |
+| `fileUpload.cameraUnavailable` | `Camera capture is not available in this browser.` | none |
+| `fileUpload.cameraOpenFailed` | `We could not open the camera. Choose a file instead.` | none |
+| `fileUpload.cameraCaptureFailed` | `We could not capture an image. Choose a file instead.` | none |
+| `fileUpload.imagesWaitingOne` | `{{$count}} image waiting for review.` | `$count` |
+| `fileUpload.imagesWaitingMany` | `{{$count}} images waiting for review.` | `$count` |
+| `fileUpload.imageReview` | `Image review before upload` | none |
+| `fileUpload.legibilityWarning` | `This image may be hard to read. Check focus, lighting, and glare before uploading.` | none |
+| `fileUpload.redactionSurface` | `Draw boxes over information you want to redact` | none |
+| `fileUpload.previewImage` | `Preview before upload` | none |
+| `fileUpload.addRedaction` | `Add redaction box` | none |
+| `fileUpload.detectPageEdges` | `Detect page edges` | none |
+| `fileUpload.clearRedactions` | `Clear redactions` | none |
+| `fileUpload.uploadImage` | `Upload image` | none |
+| `fileUpload.cancel` | `Cancel` | none |
+| `fileUpload.browseMultiple` | `Upload files` | none |
+| `fileUpload.dropzoneMultiple` | `Drop files here or click to browse` | none |
+| `fileUpload.attachedOne` | `{{$count}} file attached` | `$count` |
+| `fileUpload.attachedMany` | `{{$count}} files attached` | `$count` |
+| `fileUpload.fileTooLarge` | `"{{$filename}}" is larger than the upload limit of {{$limit}}.` | `$filename`, `$limit` |
+| `fileUpload.errorTooLarge` | `That file is larger than the upload limit. Try a smaller file.` | none |
+| `fileUpload.errorMimeRejected` | `That file type is not accepted here.` | none |
+| `fileUpload.errorNetwork` | `We could not reach the upload service. Check your connection and try again.` | none |
+| `fileUpload.errorUnavailable` | `File upload is not available on this site.` | none |
+| `fileUpload.errorUnknown` | `We could not upload your file. Try again.` | none |
+| `fileUpload.imagePrepareFailed` | `We could not prepare that image. Choose the file again.` | none |
+| `fileUpload.edgeCleanupFailed` | `We could not clean up the image edges. You can still upload it.` | none |
+| `fileUpload.singleFileOnly` | `Only one file can be uploaded here.` | none |
+| `validationSummary.fixOne` | `Please fix this error before continuing:` | none |
+| `validationSummary.fixMany` | `Please fix these {{$count}} errors before continuing:` | `$count` |
+| `validationSummary.reviewOne` | `Please review this warning before continuing:` | none |
+| `validationSummary.reviewMany` | `Please review these {{$count}} warnings before continuing:` | `$count` |
+| `validationSummary.review` | `Please review the following before continuing:` | none |
+| `validationSummary.errorCountOne` | `There is 1 error on this form.` | none |
+| `validationSummary.errorCount` | `There are {{$count}} errors on this form.` | `$count` |
+| `validationSummary.issueCountOne` | `There is 1 issue to review on this form.` | none |
+| `validationSummary.issueCount` | `There are {{$count}} issues to review on this form.` | `$count` |
+| `validationSummary.row` | `{{$label}}: {{$message}}` | `$label`, `$message` |
+| `action.submit` | `Submit` | none |
+| `action.inProgress` | `In progress.` | none |
+| `action.completed` | `Completed` | none |
+| `action.blocked` | `Blocked` | none |
+| `action.failed` | `Failed` | none |
+| `action.deferred` | `Deferred` | none |
+| `action.unresolved` | `Unresolved` | none |
+| `action.status` | `{{$status}}.` | `$status` |
+| `action.statusReason` | `{{$status}}: {{$reason}}` | `$status`, `$reason` |
+| `screener.submit` | `Check Eligibility` | none |
+| `screener.answerOne` | `Please answer at least one question` | none |
+| `assist.filled` | `{{$label}} filled by your assistant` | `$label` |
 
 Parameters are renderer-supplied, read-only values (a repeat's group label,
-row index, row total, character count, character max) written `{{$name}}` and
+row index, row total, character count, character max, file name, upload limit,
+upload progress) written `{{$name}}` and
 substituted **literally** into the template. A chrome string carries no other
 FEL: it never evaluates against the form scope, and it is the one respect in
 which this family differs from §3.1.9 — Surface shell references are FEL,

@@ -14,6 +14,16 @@ describe('UI_STRINGS parity with the Locale schema ChromeStringKey enum', () => 
         expect(new Set(Object.keys(UI_STRINGS))).toEqual(new Set(suffixes));
     });
 
+    it('keeps the normative chrome table and generated lint mirror in parity', () => {
+        const spec = readFileSync(new URL('../../../specs/locale/locale-spec.md', import.meta.url), 'utf8');
+        const table = spec.split('| Key suffix | English default | Parameters |')[1].split('\n\nParameters are renderer-supplied')[0];
+        const rows = [...table.matchAll(/^\| `([^`]+)` \| `([^`]+)` \|/gm)].map(match => [match[1], match[2]]);
+        expect(Object.fromEntries(rows)).toEqual(UI_STRINGS);
+        expect(rows.length).toBe(Object.keys(UI_STRINGS).length);
+        const mirror = JSON.parse(readFileSync(new URL('../../../crates/formspec-lint/schemas/locale.schema.json', import.meta.url), 'utf8'));
+        expect(mirror).toEqual(schema);
+    });
+
     it('every enum entry carries the $ui. prefix', () => {
         const enumKeys: string[] = schema.$defs.ChromeStringKey.enum;
         for (const key of enumKeys) {

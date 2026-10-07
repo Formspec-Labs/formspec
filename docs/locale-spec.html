@@ -1436,11 +1436,6 @@ with the schema by test):</p>
 <td>none</td>
 </tr>
 <tr>
-<td><code>select.clear</code></td>
-<td><code>Clear</code></td>
-<td>none</td>
-</tr>
-<tr>
 <td><code>select.clearSelection</code></td>
 <td><code>Clear selection</code></td>
 <td>none</td>
@@ -1478,8 +1473,7 @@ with the schema by test):</p>
 <tr>
 <td><code>repeat.rowNamed</code></td>
 <td><code>{{$label}} of {{$total}}</code></td>
-<td><code>$label</code> (the authored row heading),
-<code>$total</code></td>
+<td><code>$label</code>, <code>$total</code></td>
 </tr>
 <tr>
 <td><code>wizard.next</code></td>
@@ -1544,8 +1538,7 @@ with the schema by test):</p>
 <tr>
 <td><code>wizard.otherItems</code></td>
 <td><code>Additional items</code></td>
-<td>none — titles the step a wizard makes for top-level items outside
-any group</td>
+<td>none</td>
 </tr>
 <tr>
 <td><code>modal.close</code></td>
@@ -1638,21 +1631,406 @@ any group</td>
 <td>none</td>
 </tr>
 <tr>
+<td><code>dataTable.addRow</code></td>
+<td><code>Add Row</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>dataTable.remove</code></td>
+<td><code>Remove</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>dataTable.removeRow</code></td>
+<td><code>Remove row {{$index}}</code></td>
+<td><code>$index</code></td>
+</tr>
+<tr>
+<td><code>dataTable.actions</code></td>
+<td><code>Actions</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>wizard.stepTitle</code></td>
+<td><code>Step {{$index}}</code></td>
+<td><code>$index</code></td>
+</tr>
+<tr>
+<td><code>wizard.stepStatus</code></td>
+<td><code>Step {{$index}} of {{$total}}: {{$title}}</code></td>
+<td><code>$index</code>, <code>$total</code>, <code>$title</code></td>
+</tr>
+<tr>
+<td><code>wizard.finalStepStatus</code></td>
+<td><code>Step {{$index}} of {{$total}}: {{$title}} — final step</code></td>
+<td><code>$index</code>, <code>$total</code>, <code>$title</code></td>
+</tr>
+<tr>
+<td><code>wizard.stepAnnouncement</code></td>
+<td><code>{{$title}}. Step {{$index}} of {{$total}}.</code></td>
+<td><code>$title</code>, <code>$index</code>, <code>$total</code></td>
+</tr>
+<tr>
+<td><code>wizard.finalStepAnnouncement</code></td>
+<td><code>{{$title}}. Next will submit the form.</code></td>
+<td><code>$title</code></td>
+</tr>
+<tr>
+<td><code>wizard.expandNavigation</code></td>
+<td><code>Expand navigation</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>select.loadingOptions</code></td>
+<td><code>Loading options...</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>select.remoteFallback</code></td>
+<td><code>Remote options unavailable; using fallback options.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>select.remoteFailed</code></td>
+<td><code>Failed to load options.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>modal.open</code></td>
+<td><code>Open</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.dropzone</code></td>
+<td><code>Drop files here or click to browse</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.dropzoneKeyboard</code></td>
+<td><code>Drop files here or press Enter to browse</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.browse</code></td>
+<td><code>Upload a file</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.attachedList</code></td>
+<td><code>Files you have attached</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.pendingList</code></td>
+<td><code>Pending file activity</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.remove</code></td>
+<td><code>Remove {{$filename}}</code></td>
+<td><code>$filename</code></td>
+</tr>
+<tr>
+<td><code>fileUpload.dismissError</code></td>
+<td><code>Dismiss error for {{$filename}}</code></td>
+<td><code>$filename</code></td>
+</tr>
+<tr>
+<td><code>fileUpload.uploading</code></td>
+<td><code>Uploading...</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.uploadProgress</code></td>
+<td><code>Uploading {{$percent}}%</code></td>
+<td><code>$percent</code></td>
+</tr>
+<tr>
+<td><code>fileUpload.deferredLibrary</code></td>
+<td><code>Saving to your document library is not yet available here.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.cameraCapture</code></td>
+<td><code>Camera capture</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.cameraPreview</code></td>
+<td><code>Camera preview</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.captureImage</code></td>
+<td><code>Capture image</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.closeCamera</code></td>
+<td><code>Close camera</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.useCamera</code></td>
+<td><code>Use camera</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.cameraUnavailable</code></td>
+<td><code>Camera capture is not available in this browser.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.cameraOpenFailed</code></td>
+<td><code>We could not open the camera. Choose a file instead.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.cameraCaptureFailed</code></td>
+<td><code>We could not capture an image. Choose a file instead.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.imagesWaitingOne</code></td>
+<td><code>{{$count}} image waiting for review.</code></td>
+<td><code>$count</code></td>
+</tr>
+<tr>
+<td><code>fileUpload.imagesWaitingMany</code></td>
+<td><code>{{$count}} images waiting for review.</code></td>
+<td><code>$count</code></td>
+</tr>
+<tr>
+<td><code>fileUpload.imageReview</code></td>
+<td><code>Image review before upload</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.legibilityWarning</code></td>
+<td><code>This image may be hard to read. Check focus, lighting, and glare before uploading.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.redactionSurface</code></td>
+<td><code>Draw boxes over information you want to redact</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.previewImage</code></td>
+<td><code>Preview before upload</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.addRedaction</code></td>
+<td><code>Add redaction box</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.detectPageEdges</code></td>
+<td><code>Detect page edges</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.clearRedactions</code></td>
+<td><code>Clear redactions</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.uploadImage</code></td>
+<td><code>Upload image</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.cancel</code></td>
+<td><code>Cancel</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.browseMultiple</code></td>
+<td><code>Upload files</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.dropzoneMultiple</code></td>
+<td><code>Drop files here or click to browse</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.attachedOne</code></td>
+<td><code>{{$count}} file attached</code></td>
+<td><code>$count</code></td>
+</tr>
+<tr>
+<td><code>fileUpload.attachedMany</code></td>
+<td><code>{{$count}} files attached</code></td>
+<td><code>$count</code></td>
+</tr>
+<tr>
+<td><code>fileUpload.fileTooLarge</code></td>
+<td><code>"{{$filename}}" is larger than the upload limit of {{$limit}}.</code></td>
+<td><code>$filename</code>, <code>$limit</code></td>
+</tr>
+<tr>
+<td><code>fileUpload.errorTooLarge</code></td>
+<td><code>That file is larger than the upload limit. Try a smaller file.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.errorMimeRejected</code></td>
+<td><code>That file type is not accepted here.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.errorNetwork</code></td>
+<td><code>We could not reach the upload service. Check your connection and try again.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.errorUnavailable</code></td>
+<td><code>File upload is not available on this site.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.errorUnknown</code></td>
+<td><code>We could not upload your file. Try again.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.imagePrepareFailed</code></td>
+<td><code>We could not prepare that image. Choose the file again.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.edgeCleanupFailed</code></td>
+<td><code>We could not clean up the image edges. You can still upload it.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>fileUpload.singleFileOnly</code></td>
+<td><code>Only one file can be uploaded here.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>validationSummary.fixOne</code></td>
+<td><code>Please fix this error before continuing:</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>validationSummary.fixMany</code></td>
+<td><code>Please fix these {{$count}} errors before continuing:</code></td>
+<td><code>$count</code></td>
+</tr>
+<tr>
+<td><code>validationSummary.reviewOne</code></td>
+<td><code>Please review this warning before continuing:</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>validationSummary.reviewMany</code></td>
+<td><code>Please review these {{$count}} warnings before continuing:</code></td>
+<td><code>$count</code></td>
+</tr>
+<tr>
+<td><code>validationSummary.review</code></td>
+<td><code>Please review the following before continuing:</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>validationSummary.errorCountOne</code></td>
+<td><code>There is 1 error on this form.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>validationSummary.errorCount</code></td>
+<td><code>There are {{$count}} errors on this form.</code></td>
+<td><code>$count</code></td>
+</tr>
+<tr>
+<td><code>validationSummary.issueCountOne</code></td>
+<td><code>There is 1 issue to review on this form.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>validationSummary.issueCount</code></td>
+<td><code>There are {{$count}} issues to review on this form.</code></td>
+<td><code>$count</code></td>
+</tr>
+<tr>
+<td><code>validationSummary.row</code></td>
+<td><code>{{$label}}: {{$message}}</code></td>
+<td><code>$label</code>, <code>$message</code></td>
+</tr>
+<tr>
+<td><code>action.submit</code></td>
+<td><code>Submit</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>action.inProgress</code></td>
+<td><code>In progress.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>action.completed</code></td>
+<td><code>Completed</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>action.blocked</code></td>
+<td><code>Blocked</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>action.failed</code></td>
+<td><code>Failed</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>action.deferred</code></td>
+<td><code>Deferred</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>action.unresolved</code></td>
+<td><code>Unresolved</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>action.status</code></td>
+<td><code>{{$status}}.</code></td>
+<td><code>$status</code></td>
+</tr>
+<tr>
+<td><code>action.statusReason</code></td>
+<td><code>{{$status}}: {{$reason}}</code></td>
+<td><code>$status</code>, <code>$reason</code></td>
+</tr>
+<tr>
+<td><code>screener.submit</code></td>
+<td><code>Check Eligibility</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>screener.answerOne</code></td>
+<td><code>Please answer at least one question</code></td>
+<td>none</td>
+</tr>
+<tr>
 <td><code>assist.filled</code></td>
 <td><code>{{$label}} filled by your assistant</code></td>
-<td><code>$label</code> — announced when an Assist tool writes the field
-(Assist spec §8.4)</td>
+<td><code>$label</code></td>
 </tr>
 </tbody>
 </table>
 <p>Parameters are renderer-supplied, read-only values (a repeat’s group
-label, row index, row total, character count, character max) written
-<code>{{$name}}</code> and substituted <strong>literally</strong> into
-the template. A chrome string carries no other FEL: it never evaluates
-against the form scope, and it is the one respect in which this family
-differs from §3.1.9 — Surface shell references are FEL, <code>$ui</code>
-parameters are not. A processor MUST NOT parse <code>{{$name}}</code>
-here as an expression.</p>
+label, row index, row total, character count, character max, file name,
+upload limit, upload progress) written <code>{{$name}}</code> and
+substituted <strong>literally</strong> into the template. A chrome
+string carries no other FEL: it never evaluates against the form scope,
+and it is the one respect in which this family differs from §3.1.9 —
+Surface shell references are FEL, <code>$ui</code> parameters are not. A
+processor MUST NOT parse <code>{{$name}}</code> here as an
+expression.</p>
 <p>An unknown <code>$ui</code> suffix is rejected by the closed schema
 and by lint code E1401, exactly as an unknown Surface shell suffix
 (§3.1.9) is — the family admits no per-site or per-Definition keys.</p>
