@@ -101,9 +101,17 @@ export interface ModulePayloadValidatorResult {
 
 export type ModulePayloadValidator = (input: ModulePayloadValidatorInput) => ModulePayloadValidatorResult;
 
+/** A caller-qualified, locally loaded JSON Schema document and its exact resource URI. */
+export interface ModulePayloadSchemaResource {
+  uri: string;
+  schema: unknown;
+}
+
 export interface ModuleResolverSupportInput extends ModuleResolutionSupportProfile {
   defaultModules?: ModuleResolverModuleInput[];
   payloadValidators?: Record<string, ModulePayloadValidator | undefined>;
+  /** Local reference documents; URI identifies a resource but does not authenticate its contents. */
+  payloadSchemaResources?: readonly ModulePayloadSchemaResource[];
 }
 
 export interface ModuleResolverInput {
@@ -153,13 +161,40 @@ const MODULE_ORIGIN = 'module-resolver';
 const CUSTOM_TOKEN_CATEGORY_PREFIX_PATTERN = /^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$/;
 const EXTENSION_NAME_PATTERN = /^x-/;
 const WIDGET_SHAPE_PROPS_VALIDATOR = 'widgetShape.props';
-const modulePayloadAjv = new Ajv2020({
-  allErrors: true,
-  strict: false,
-  strictSchema: true,
-  validateSchema: true,
-});
-addFormats(modulePayloadAjv);
+function createModulePayloadAjv(): Ajv2020 {
+  const ajv = new Ajv2020({
+    allErrors: true,
+    strict: false,
+    strictSchema: true,
+    validateSchema: true,
+  });
+  addFormats(ajv);
+  return ajv;
+}
+
+const modulePayloadAjv = createModulePayloadAjv();
+const RESOURCE_SNAPSHOT = Symbol('module-payload-schema-resources');
+type ResourceSnapshot =
+  | { resources: readonly ModulePayloadSchemaResource[] }
+  | { error: string };
+type PreparedModuleSupport = ModuleResolverSupportInput & {
+  [RESOURCE_SNAPSHOT]?: ResourceSnapshot;
+};
+
+/** Capture resources before asynchronous artifact loading can yield to a caller. @internal */
+export function snapshotModulePayloadSchemaResources(
+  support: ModuleResolverSupportInput | undefined,
+): ModuleResolverSupportInput | undefined {
+  if (!support || support.payloadSchemaResources === undefined
+    || (support as PreparedModuleSupport)[RESOURCE_SNAPSHOT]) return support;
+  let snapshot: ResourceSnapshot;
+  try {
+    snapshot = { resources: structuredClone(support.payloadSchemaResources) };
+  } catch (error) {
+    snapshot = { error: error instanceof Error ? error.message : String(error) };
+  }
+  return { ...support, [RESOURCE_SNAPSHOT]: snapshot } as PreparedModuleSupport;
+}
 
 function sourceForKind(kind: string): string {
   return `memory://${kind}`;
@@ -270,53 +305,89 @@ function invalidPayloadResult(error: ErrorObject): ModulePayloadValidatorResult 
  * Invalid or unevaluable schemas fail closed instead of allowing authored
  * configuration to pass without a result.
  */
-const validateWidgetShapeProps: ModulePayloadValidator = ({ payload, schema }) => {
-  const schemaObject = asRecord(schema);
-  if (!schemaObject) {
-    return {
-      ok: false,
-      reason: 'payload-schema-invalid',
-      message: 'widgetShape.props must be a JSON Schema object',
-    };
-  }
-
-  try {
-    if (!modulePayloadAjv.validateSchema(schemaObject)) {
-      const error = [...(modulePayloadAjv.errors ?? [])].sort(comparePayloadErrors)[0];
+function widgetShapePropsValidator(ajv: Ajv2020, usesResources = false): ModulePayloadValidator {
+  return ({ payload, schema }) => {
+    const schemaObject = asRecord(schema);
+    if (!schemaObject) {
       return {
         ok: false,
         reason: 'payload-schema-invalid',
-        ...(error?.keyword ? { keyword: error.keyword } : {}),
-        ...(error?.message ? { message: error.message } : {}),
-        ...(error?.instancePath ? { schemaFragmentPath: error.instancePath } : {}),
-        ...(error?.schemaPath ? { schemaPath: error.schemaPath } : {}),
+        message: 'widgetShape.props must be a JSON Schema object',
       };
     }
 
-    const validate = modulePayloadAjv.compile(schemaObject);
-    if (validate(payload)) return { ok: true };
-    const error = [...(validate.errors ?? [])].sort(comparePayloadErrors)[0];
-    return error
-      ? invalidPayloadResult(error)
-      : {
+    try {
+      if (!ajv.validateSchema(schemaObject)) {
+        const error = [...(ajv.errors ?? [])].sort(comparePayloadErrors)[0];
+        return {
           ok: false,
-          reason: 'payload-schema-mismatch',
-          message: 'JSON Schema validation failed without an error location',
+          reason: 'payload-schema-invalid',
+          ...(error?.keyword ? { keyword: error.keyword } : {}),
+          ...(error?.message ? { message: error.message } : {}),
+          ...(error?.instancePath ? { schemaFragmentPath: error.instancePath } : {}),
+          ...(error?.schemaPath ? { schemaPath: error.schemaPath } : {}),
         };
+      }
+
+      const validate = ajv.compile(schemaObject);
+      if (validate(payload)) return { ok: true };
+      const error = [...(validate.errors ?? [])].sort(comparePayloadErrors)[0];
+      return error
+        ? {
+            ...invalidPayloadResult(error),
+            // AJV may report a referenced keyword relative to the external schema.
+            // Such a path cannot establish a keyword location inside Registry props.
+            ...(usesResources ? { schemaFragmentPath: '' } : {}),
+          }
+        : {
+            ok: false,
+            reason: 'payload-schema-mismatch',
+            message: 'JSON Schema validation failed without an error location',
+          };
+    } catch (error) {
+      return {
+        ok: false,
+        reason: 'payload-schema-evaluation-failed',
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
+  };
+}
+
+const validateWidgetShapeProps = widgetShapePropsValidator(modulePayloadAjv);
+
+function validatorWithResources(snapshot: ResourceSnapshot | undefined): ModulePayloadValidator {
+  if (!snapshot) return validateWidgetShapeProps;
+  try {
+    if ('error' in snapshot) throw new Error(snapshot.error);
+    if (!Array.isArray(snapshot.resources)) throw new Error('payloadSchemaResources must be an array');
+    const ajv = createModulePayloadAjv();
+    const uris = new Set<string>();
+    for (const resource of snapshot.resources) {
+      if (!resource || typeof resource.uri !== 'string' || !resource.uri.trim()) {
+        throw new Error('A payload schema resource must have a nonempty URI');
+      }
+      if (uris.has(resource.uri)) throw new Error(`Duplicate payload schema resource URI '${resource.uri}'`);
+      uris.add(resource.uri);
+      const schema = asRecord(resource.schema);
+      if (schema?.$id !== undefined && schema.$id !== resource.uri) {
+        throw new Error(`Payload schema resource $id must match URI '${resource.uri}'`);
+      }
+      ajv.addSchema(resource.schema as Parameters<Ajv2020['addSchema']>[0], resource.uri);
+    }
+    return widgetShapePropsValidator(ajv, true);
   } catch (error) {
-    return {
-      ok: false,
-      reason: 'payload-schema-evaluation-failed',
-      message: error instanceof Error ? error.message : String(error),
-    };
+    const message = error instanceof Error ? error.message : String(error);
+    return () => ({ ok: false, reason: 'payload-schema-evaluation-failed', message });
   }
-};
+}
 
 function appGraphModuleSupport(
   support: ModuleResolverSupportInput | undefined,
 ): ModuleResolverSupportInput {
+  const prepared = snapshotModulePayloadSchemaResources(support) as PreparedModuleSupport | undefined;
   return {
-    ...(support ?? {}),
+    ...(prepared ?? {}),
     payloadSchemaValidators: [
       WIDGET_SHAPE_PROPS_VALIDATOR,
       ...(support?.payloadSchemaValidators ?? []).filter(
@@ -325,7 +396,7 @@ function appGraphModuleSupport(
     ],
     payloadValidators: {
       ...(support?.payloadValidators ?? {}),
-      [WIDGET_SHAPE_PROPS_VALIDATOR]: validateWidgetShapeProps,
+      [WIDGET_SHAPE_PROPS_VALIDATOR]: validatorWithResources(prepared?.[RESOURCE_SNAPSHOT]),
     },
   };
 }

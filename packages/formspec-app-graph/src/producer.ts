@@ -13,6 +13,7 @@ import {
 import {
   moduleResolverInputFromAppGraph,
   resolveModules,
+  snapshotModulePayloadSchemaResources,
   type ModuleResolverAdmissionInput,
   type ModuleResolverSupportInput,
 } from './module-resolver.js';
@@ -100,7 +101,8 @@ function finishAppGraphValidationReport(
 export async function produceAppGraphValidationReport(
   request: AppGraphReportProducerRequest,
 ): Promise<AppGraphReportProducerResult> {
-  return finishAppGraphValidationReport(request, await resolveArtifacts(request));
+  const prepared = { ...request, moduleSupport: snapshotModulePayloadSchemaResources(request.moduleSupport) };
+  return finishAppGraphValidationReport(prepared, await resolveArtifacts(prepared));
 }
 
 /**
@@ -110,7 +112,10 @@ export async function produceAppGraphValidationReport(
 export async function produceBundleExportAppGraphValidationReport(
   request: BundleExportAppGraphReportProducerRequest,
 ): Promise<AppGraphReportProducerResult> {
-  const { documents, ...pipelineRequest } = request;
+  const { documents, ...pipelineRequest } = {
+    ...request,
+    moduleSupport: snapshotModulePayloadSchemaResources(request.moduleSupport),
+  };
   const artifactResolutionReport = await resolveBundleExportArtifacts({
     manifest: request.manifest,
     documents,

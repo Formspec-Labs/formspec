@@ -219,6 +219,21 @@ invalid or unevaluable props schema fails closed. Payload diagnostics point to
 the most specific failing config location and to the Registry schema keyword
 that rejected it.
 
+Hosts may supply exact locally loaded JSON Schema documents through
+`ModuleResolverSupportInput.payloadSchemaResources`, a list of `{ uri, schema }`
+entries. A URI identifies the registered document; it does not establish its
+source authenticity. Hosts qualify the document bytes and source pins before
+supplying them. AppGraph snapshots these resources before asynchronous artifact
+loading and creates a separate compiler for each call using resources. Duplicate
+URIs, conflicting `$id` values, failed capture or registration, and unresolved
+references fail closed. Resources neither replace the mandatory props evaluator
+nor appear in the serialized support report. No remote retrieval is performed.
+For calls using resources, diagnostics preserve the compiler's reported keyword
+path in `details.schemaPath` and cite the declaring Registry props. The compiler
+may report a path relative to a referenced schema without identifying its URI;
+that path does not establish a keyword location inside the Registry. Existing
+calls without resources retain their precise local Registry keyword pointers.
+
 If a Surface binding omits `config`, there is no payload to validate. If the
 resolved widget omits `widgetShape.props`, there is no payload schema to run.
 The resolver reports `payloadStatus: "not-run"` in either case; it does not

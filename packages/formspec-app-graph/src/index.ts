@@ -48,6 +48,7 @@ export {
   type ModulePayloadValidator,
   type ModulePayloadValidatorInput,
   type ModulePayloadValidatorResult,
+  type ModulePayloadSchemaResource,
   type ModuleResolverGraphInput,
   type ModuleResolverAdmissionInput,
   type ModuleResolverContributionUse,
