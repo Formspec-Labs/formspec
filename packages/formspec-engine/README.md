@@ -463,3 +463,23 @@ npm run test:wasm-runtime-isolation # runtime-only init (no global setup)
 ```
 
 20 test files in `tests/` covering: bind behaviors, bind defaults and expression context, definition assembly (sync/async), FEL path rewriting, shape composition and timing, repeat lifecycle, response pruning, remote options, runtime diagnostics, replay, and runtime mapping.
+
+### Attach evidence after whole-Response signing
+
+Call `getResponse({ id: stableResponseId, profile: 'submit' })` once, then confirm
+`snapshot.status === 'completed'`. Retain that JSON snapshot while the signing provider
+completes its ceremony. Then call
+`attachAuthoredSignature(snapshot, evidence)` from `@formspec-org/engine` (also
+available from `/render`). The public `AuthoredSignatureInput` type describes the
+provider input; its `signedAt` must equal `signedPayload.signedAt`.
+
+The helper returns independent nested objects, appends the normalized signature,
+and preserves every other Response field, including `authored`, IDs, locale,
+issuer, data and Definition pins. Existing signatures remain unchanged. It rejects
+incomplete required evidence, refused consent, duplicate signature IDs, mismatched
+pins/intent/time and section-signature input. Pass a valid completed JSON Response;
+validate the resulting document against the Response schema when required.
+
+This helper does not verify signature bytes, claimed digests, identity assurance
+or receipts. The provider and receiving verifier own those checks. It does not
+call `getResponse()` again or read a clock. Do not regenerate the signed snapshot.

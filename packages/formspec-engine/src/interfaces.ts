@@ -341,6 +341,7 @@ export interface AuthoredSignatureInput {
     documentId: string;
     signingIntent: string;
     signatureValue: string;
+    signerEvidence?: NonNullable<FormResponse['authoredSignatures']>[number]['signerEvidence'];
     verificationReceipt?: string | VerificationReceiptInput;
     signerId?: string;
     signerName?: string;

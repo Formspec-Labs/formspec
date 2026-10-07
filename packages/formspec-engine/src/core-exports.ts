@@ -13,6 +13,8 @@ import type {
 } from '@formspec-org/types';
 
 export type {
+    AuthoredSignatureInput,
+    AuthoredSignatureSignedPayload,
     AssemblyProvenance,
     AssemblyResult,
     ComponentDocument,
@@ -161,7 +163,7 @@ export {
     isFormspecEngineToolsInitialized,
 } from './init-formspec-engine.js';
 
-export { buildValidationReportEnvelope } from './engine/response-assembly.js';
+export { attachAuthoredSignature, buildValidationReportEnvelope } from './engine/response-assembly.js';
 export { deepEqual, toValidationResults } from './engine/helpers.js';
 
 export type { LocaleDocument } from './locale.js';
