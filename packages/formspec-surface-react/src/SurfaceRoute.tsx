@@ -31,6 +31,7 @@
  *    v0.1 explicitly gives "no normative position vocabulary", so honouring it
  *    would mean inventing one. Authored order is the only thing defined.
  */
+import type { DataSourceRevisionSelector } from './data-source-revision.js';
 import { useLayoutEffect, useRef } from 'react';
 import { emitMergedThemeCssVars } from '@formspec-org/layout';
 import {
@@ -80,6 +81,8 @@ export interface SurfaceRouteViewProps {
   /** The shell's own person-facing strings. Defaults to the shipped English. */
   strings?: SurfaceStrings | undefined;
   dataSourceLoader?: DataSourceLoader | undefined;
+  /** Pure per-source scheduling hints; evaluated on host renders, never authority. */
+  dataSourceRevision?: DataSourceRevisionSelector | undefined;
   authorizeDataSource?: DataSourceAuthorizer | undefined;
   validateDataSourcePayload?: DataSourcePayloadValidator | undefined;
   widgetActionExecutor?: SurfaceWidgetActionExecutor | undefined;
@@ -133,6 +136,7 @@ export function SurfaceRouteView({
   plan,
   strings,
   dataSourceLoader,
+  dataSourceRevision,
   authorizeDataSource,
   validateDataSourcePayload,
   widgetActionExecutor,
@@ -229,6 +233,7 @@ export function SurfaceRouteView({
             route={route}
             strings={text}
             dataSourceLoader={dataSourceLoader}
+            dataSourceRevision={dataSourceRevision}
             authorizeDataSource={authorizeDataSource}
             validateDataSourcePayload={validateDataSourcePayload}
             showExperienceNeeds={showExperienceNeeds}

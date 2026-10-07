@@ -41,6 +41,7 @@
  * of the way of hosts that already have a router — which every host of any size
  * does. A shell that owned history would be a shell that could not be embedded.
  */
+import type { DataSourceRevisionSelector } from './data-source-revision.js';
 import { deriveSurfaceRuntimeGeneration } from "./runtime-generation.js";
 import {
   useCallback,
@@ -259,6 +260,8 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
   routeParams?: Readonly<Record<string, string>> | undefined;
   /** Canonical Data Sources payload port; receives exact resolved descriptors. */
   dataSourceLoader?: DataSourceLoader | undefined;
+  /** Pure per-source scheduling hints; evaluated on host renders, never authority. */
+  dataSourceRevision?: DataSourceRevisionSelector | undefined;
   /** Host admission verdict applied before every data load. */
   authorizeDataSource?: DataSourceAuthorizer | undefined;
   /** Required when a bound source declares a payload schema. */
@@ -616,6 +619,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
               plan={routePlan}
               strings={strings}
               dataSourceLoader={props.dataSourceLoader}
+              dataSourceRevision={props.dataSourceRevision}
               authorizeDataSource={props.authorizeDataSource}
               validateDataSourcePayload={props.validateDataSourcePayload}
               widgetActionExecutor={props.widgetActionExecutor}

@@ -521,3 +521,56 @@ describe('definition-form initial data rendering', () => {
     expect(container.textContent).not.toContain('private schema detail');
   });
 });
+
+it('keeps an edited engine when a source-revision refresh completes or its selector fails', async () => {
+  const refresh = deferred<DataSourceLoadResult>();
+  const loader = vi.fn().mockResolvedValueOnce(loaded('Server Ada')).mockReturnValueOnce(refresh.promise);
+  const authorize = () => ({ status: 'authorized' as const });
+  const validate = () => ({ valid: true });
+  const candidate = bundle();
+  const navigate = () => {};
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const app = (revision: number, fails = false) => <SurfaceApp bundle={candidate} location="/edit"
+    onNavigate={navigate} dataSourceLoader={loader} authorizeDataSource={authorize}
+    validateDataSourcePayload={validate} dataSourceRevision={() => {
+      if (fails) throw new Error('unavailable revision');
+      return revision;
+    }} setDocumentTitle={false} />;
+  await act(async () => { root.render(app(1)); await flush(); });
+  const input = profileInput(container);
+  act(() => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, 'Local edit');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await act(async () => { root.render(app(2)); await flush(); });
+  expect(profileInput(container)).toBe(input);
+  await act(async () => { refresh.resolve(loaded('Late server value')); await flush(); });
+  expect(profileInput(container)).toBe(input);
+  expect(input.value).toBe('Local edit');
+  expect(loader).toHaveBeenCalledTimes(2);
+  await act(async () => { root.render(app(3, true)); await flush(); });
+  expect(profileInput(container)).toBe(input);
+  expect(input.value).toBe('Local edit');
+  expect(loader).toHaveBeenCalledTimes(2);
+  act(() => root.unmount());
+});
+
+it('makes initial form data unavailable when its revision selector fails before admission', async () => {
+  const loader = vi.fn();
+  const authorize = vi.fn();
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  await act(async () => {
+    root.render(<SurfaceApp bundle={bundle()} location="/edit" onNavigate={() => {}}
+      dataSourceLoader={loader} authorizeDataSource={authorize} dataSourceRevision={() => Infinity}
+      setDocumentTitle={false} />);
+    await flush();
+  });
+  expect(container.querySelector('input')).toBeNull();
+  expect(loader).not.toHaveBeenCalled();
+  expect(authorize).not.toHaveBeenCalled();
+  act(() => root.unmount());
+});

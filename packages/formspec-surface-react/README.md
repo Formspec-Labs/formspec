@@ -377,3 +377,24 @@ keep the private authority epoch and delivery revision separate. Include a visit
 epoch in the host marker when returning to the same route must be a new visit.
 A disposed widget refuses late terminal navigation. Legacy live transitions and
 existing obsolete-generation guards remain in force.
+
+Hosts can refresh selected data consumers with the optional `dataSourceRevision`
+prop. Its pure callback receives the same qualified `DataSourceLoadRequest`
+(descriptor and use-site context) as the admission/loading ports and returns
+`undefined`, a string, or a finite number. Surface compares typed revision hints
+for each slot's declared inputs on host renders. A changed hint reloads that
+slot's complete input set through availability, authorization, loading, and
+payload validation. Unchanged consumer slots remain mounted. Definition-form
+initial data uses the same hint and retains its existing protection for edited
+engines. Superseded asynchronous deliveries cannot replace newer deliveries.
+
+The host must publish a React render and keep the loader, authorizer, validator,
+widget executor, widget modules, and review callbacks/producers stable when only
+a selected source changes. Advance hints only for sources whose selected data
+changed. This callback creates no subscription and establishes no identity,
+freshness, ownership, record revision, or authorization. Keep session/route and
+private candidate invalidation independent. Without the prop, existing callback
+identity refresh behavior continues. Selector exceptions or invalid values make
+that source unavailable before admission; optional `degraded-widget` sources
+retain their existing omission policy. Failed refreshes preserve person edits in
+an already dirty form and report diagnostics rather than admitting new data.

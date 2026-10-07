@@ -1,5 +1,5 @@
 /** @filedesc React handoff for qualified widget data and emitted actions. */
-import { act, useState } from 'react';
+import { act, useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type {
   DataSourcesDocument,
@@ -1280,4 +1280,103 @@ it("refuses a terminal navigation after the mounted shell is disposed", async ()
   });
   expect(navigate).not.toHaveBeenCalled();
   expect(reports.at(-1)?.navigation).toBe("obsolete-generation");
+});
+
+
+it('refreshes only consumers of a changed qualified source without unmounting unchanged widgets', async () => {
+  const candidate = bundle(true, []);
+  const route = candidate.surfaces[0]!.routes[0]!;
+  const extra = structuredClone(route.slots![0]!) as any;
+  extra.id = 'ceremony';
+  extra.binding.dataBindings.receipt.sourceRef = 'resource:readiness';
+  route.slots!.push(extra);
+  const source = structuredClone(candidate.dataSources[0]!.document.sources[0]!);
+  source.id = 'resource:readiness';
+  (source.availability as any).slotId = 'ceremony';
+  candidate.dataSources[0]!.document.sources.push(source);
+  const mounts: string[] = [];
+  const unmounts: string[] = [];
+  const Widget: SurfaceWidget = props => {
+    const slot = props.slot.id;
+    useEffect(() => { mounts.push(slot); return () => { unmounts.push(slot); }; }, []);
+    return <output data-source-slot={slot}>{JSON.stringify(props.data)}</output>;
+  };
+  const modules = runtimeModule(Widget);
+  let version = 0;
+  let refresh!: () => void;
+  const loader = vi.fn((request: any) => ({ status: 'loaded' as const, freshness: 'fresh' as const,
+    value: { value: request.descriptor.sourceRef === 'resource:readiness' ? version : 'saved-photo' } }));
+  const authorize = vi.fn(() => ({ status: 'authorized' as const }));
+  const validate = vi.fn(() => ({ valid: true }));
+  const navigate = () => {};
+  function Host() {
+    const [, setTick] = useState(0);
+    refresh = () => { version++; setTick(tick => tick + 1); };
+    return <SurfaceApp bundle={candidate} location="/receipt" onNavigate={navigate} widgetModules={modules}
+      authorizeDataSource={authorize} dataSourceLoader={loader} validateDataSourcePayload={validate}
+      dataSourceRevision={(request: any) => request.descriptor.sourceRef === 'resource:readiness' ? version : 0}
+      setDocumentTitle={false} />;
+  }
+  const container = render(<Host />);
+  await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+  const saved = container.querySelector('[data-source-slot="panel"]');
+  expect(saved?.textContent).toContain('saved-photo');
+  expect(loader).toHaveBeenCalledTimes(2);
+  await act(async () => { refresh(); await Promise.resolve(); await Promise.resolve(); });
+  expect(loader).toHaveBeenCalledTimes(3);
+  expect(container.querySelector('[data-source-slot="panel"]')).toBe(saved);
+  expect(container.querySelector('[data-source-slot="ceremony"]')?.textContent).toContain('1');
+  expect(mounts.filter(slot => slot === 'panel')).toHaveLength(1);
+  expect(unmounts).toEqual(['ceremony']);
+  expect(authorize).toHaveBeenCalledTimes(3);
+  expect(validate).toHaveBeenCalledTimes(3);
+});
+
+it.each([false, true])('refuses invalid hints through required/optional source policy (optional=%s)', async optional => {
+  const candidate = bundle(true, []);
+  if (optional) {
+    (candidate.registries[0]!.entries[1]!.widgetShape!.dataInputs![0] as any).required = false;
+    candidate.dataSources[0]!.document.sources[0]!.runtime.failureMode = 'degraded-widget';
+  }
+  const loader = vi.fn();
+  const authorize = vi.fn();
+  const diagnostics: SurfaceDiagnostic[] = [];
+  const container = render(<SurfaceApp bundle={candidate} location="/receipt" onNavigate={() => {}}
+    widgetModules={runtimeModule(props => <output data-probe="invalid-hint-data">{JSON.stringify(props.data)}</output>)}
+    dataSourceLoader={loader} authorizeDataSource={authorize}
+    dataSourceRevision={() => { throw new Error('private-host-detail'); }}
+    onDiagnostics={next => { diagnostics.splice(0, diagnostics.length, ...next); }} setDocumentTitle={false} />);
+  await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+  expect(loader).not.toHaveBeenCalled();
+  expect(authorize).not.toHaveBeenCalled();
+  if (optional) expect(container.querySelector('[data-probe="invalid-hint-data"]')?.textContent).toBe('{}');
+  else expect(container.querySelector('[data-widget-data="unavailable"]')).not.toBeNull();
+  expect(JSON.stringify(diagnostics)).not.toContain('private-host-detail');
+});
+
+it('discards a pending delivery superseded by a qualified source revision', async () => {
+  const candidate = bundle(true, []);
+  let version = 0;
+  let refresh!: () => void;
+  const pending: ((value: any) => void)[] = [];
+  const loader = vi.fn(() => new Promise<any>(resolve => { pending.push(resolve); }));
+  const authorize = () => ({ status: 'authorized' as const });
+  const validate = () => ({ valid: true });
+  const modules = runtimeModule(props => <output data-probe="latest-delivery">{JSON.stringify(props.data)}</output>);
+  const navigate = () => {};
+  function Host() {
+    const [, setTick] = useState(0);
+    refresh = () => { version++; setTick(value => value + 1); };
+    return <SurfaceApp bundle={candidate} location="/receipt" onNavigate={navigate} widgetModules={modules}
+      dataSourceLoader={loader} authorizeDataSource={authorize} validateDataSourcePayload={validate}
+      dataSourceRevision={() => version} setDocumentTitle={false} />;
+  }
+  const container = render(<Host />);
+  await act(async () => { await Promise.resolve(); });
+  await act(async () => { refresh(); await Promise.resolve(); });
+  expect(pending).toHaveLength(2);
+  await act(async () => { pending[0]!({ status: 'loaded', freshness: 'fresh', value: { value: 'obsolete' } }); await Promise.resolve(); });
+  expect(container.querySelector('[data-probe="latest-delivery"]')).toBeNull();
+  await act(async () => { pending[1]!({ status: 'loaded', freshness: 'fresh', value: { value: 'current' } }); await Promise.resolve(); });
+  expect(container.querySelector('[data-probe="latest-delivery"]')?.textContent).toContain('current');
 });

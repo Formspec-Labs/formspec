@@ -22,6 +22,7 @@
  * embedded title sat at the same rank as its host while its content sat one
  * deeper. {@link SurfaceSlotFrame} is both paths now.
  */
+import { selectDataSourceRevisions, type DataSourceRevisionSelector } from './data-source-revision.js';
 import {
   useCallback,
   useEffect,
@@ -237,6 +238,8 @@ export interface SurfaceSlotProps {
   /** The shell's own person-facing strings, host-overridable (§3.0). */
   strings: SurfaceStrings;
   dataSourceLoader?: DataSourceLoader | undefined;
+  /** Pure per-source scheduling hints; evaluated on host renders, never authority. */
+  dataSourceRevision?: DataSourceRevisionSelector | undefined;
   authorizeDataSource?: DataSourceAuthorizer | undefined;
   validateDataSourcePayload?: DataSourcePayloadValidator | undefined;
   /** Shows the design rationale on `experience-unit` slots. Off for respondents. */
@@ -438,6 +441,7 @@ export function SurfaceSlot({
   route,
   strings,
   dataSourceLoader,
+  dataSourceRevision,
   authorizeDataSource,
   validateDataSourcePayload,
   showExperienceNeeds = false,
@@ -524,6 +528,7 @@ export function SurfaceSlot({
             initialDataPlan={plan.initialData}
             strings={strings}
             dataSourceLoader={dataSourceLoader}
+            dataSourceRevision={dataSourceRevision}
             authorizeDataSource={authorizeDataSource}
             validateDataSourcePayload={validateDataSourcePayload}
             runtimeGeneration={
@@ -604,6 +609,7 @@ export function SurfaceSlot({
           route={route}
           strings={strings}
           dataSourceLoader={dataSourceLoader}
+          dataSourceRevision={dataSourceRevision}
           authorizeDataSource={authorizeDataSource}
           validateDataSourcePayload={validateDataSourcePayload}
           responseActionsDocuments={responseActionsDocuments ?? []}
@@ -662,6 +668,7 @@ export function SurfaceSlot({
               route={route}
               strings={strings}
               dataSourceLoader={dataSourceLoader}
+              dataSourceRevision={dataSourceRevision}
               authorizeDataSource={authorizeDataSource}
               validateDataSourcePayload={validateDataSourcePayload}
               showExperienceNeeds={showExperienceNeeds}
@@ -841,6 +848,7 @@ function DefinitionFormDataSlot({
   initialDataPlan,
   strings,
   dataSourceLoader,
+  dataSourceRevision,
   authorizeDataSource,
   validateDataSourcePayload,
   runtimeGeneration,
@@ -852,6 +860,8 @@ function DefinitionFormDataSlot({
   initialDataPlan: ReadyDefinitionFormInitialDataPlan;
   strings: SurfaceStrings;
   dataSourceLoader?: DataSourceLoader | undefined;
+  /** Pure per-source scheduling hints; evaluated on host renders, never authority. */
+  dataSourceRevision?: DataSourceRevisionSelector | undefined;
   authorizeDataSource?: DataSourceAuthorizer | undefined;
   validateDataSourcePayload?: DataSourcePayloadValidator | undefined;
   runtimeGeneration: string;
@@ -868,6 +878,13 @@ function DefinitionFormDataSlot({
   const activeGeneration = useRef(runtimeGeneration);
   activeGeneration.current = runtimeGeneration;
   const diagnosticScope = `definition-form-data:${runtimeGeneration}:${input.plan.slotId}`;
+  const sourceRevisions = selectDataSourceRevisions([{
+    descriptor: initialDataPlan.descriptor,
+    context: { surfaceId: input.route.surfaceId, surfaceRef: input.route.surfaceRef,
+      routeId: input.route.routeId, slotId: input.plan.slotId,
+      definitionRef: input.plan.definitionRef, params: input.route.params,
+      sessionGeneration: runtimeGeneration },
+  }], dataSourceRevision);
 
   useEffect(() => {
     let current = true;
@@ -876,6 +893,18 @@ function DefinitionFormDataSlot({
       previous.status === 'ready' ? previous : { status: 'loading' },
     );
     onRuntimeDiagnosticsChange?.(diagnosticScope, []);
+
+    if (sourceRevisions.failures[0]) {
+      const diagnostic = surfaceDiagnostic('DEFINITION-FORM-DATA-UNAVAILABLE',
+        'The host could not select an initial-data revision.',
+        { surfaceId: input.route.surfaceId, routeId: input.route.routeId, slotId: input.plan.slotId },
+        { catalogRef: sourceRevisions.failures[0].descriptor.catalogRef,
+          sourceRef: sourceRevisions.failures[0].descriptor.sourceRef });
+      onRuntimeDiagnosticsChange?.(diagnosticScope, [diagnostic]);
+      setDelivery(previous => previous.status === 'ready' && dirty.current ? previous
+        : { status: 'unavailable', reason: 'unavailable', diagnostics: [diagnostic] });
+      return () => { current = false; onRuntimeDiagnosticsChange?.(diagnosticScope, []); };
+    }
 
     void loadDefinitionFormInitialData({
       plan: initialDataPlan,
@@ -922,6 +951,7 @@ function DefinitionFormDataSlot({
   }, [
     authorizeDataSource,
     dataSourceLoader,
+    sourceRevisions.key,
     diagnosticScope,
     initialDataPlan,
     input.plan.definition,
@@ -1112,6 +1142,8 @@ interface SurfaceWidgetSlotProps {
   route: SurfaceWidgetRouteContext;
   strings: SurfaceStrings;
   dataSourceLoader?: DataSourceLoader | undefined;
+  /** Pure per-source scheduling hints; evaluated on host renders, never authority. */
+  dataSourceRevision?: DataSourceRevisionSelector | undefined;
   authorizeDataSource?: DataSourceAuthorizer | undefined;
   validateDataSourcePayload?: DataSourcePayloadValidator | undefined;
   responseActionsDocuments: readonly GeneratedResponseActionsDocument[];
@@ -1152,6 +1184,7 @@ function SurfaceWidgetSlot({
   route,
   strings,
   dataSourceLoader,
+  dataSourceRevision,
   authorizeDataSource,
   validateDataSourcePayload,
   responseActionsDocuments,
@@ -1183,6 +1216,12 @@ function SurfaceWidgetSlot({
   const actionCoordinator = widgetActionCoordinator ?? localActionCoordinator.current;
   const navigatedInvocations = useRef(new Set<string>());
   const dataDiagnosticScope = `widget-data:${runtimeGeneration}:${plan.slotId}`;
+  const sourceRevisions = selectDataSourceRevisions(plan.dataInputs.flatMap(input =>
+    input.status === 'ready' ? [{ descriptor: input.descriptor,
+      context: { surfaceId: route.surfaceId, surfaceRef: route.surfaceRef,
+        routeId: route.routeId, slotId: plan.slotId, moduleId: plan.key.moduleId,
+        widgetName: plan.key.widgetName, params: route.params,
+        sessionGeneration: runtimeGeneration } }] : []), dataSourceRevision);
 
   useEffect(() => {
     let current = true;
@@ -1191,7 +1230,13 @@ function SurfaceWidgetSlot({
     onRuntimeDiagnosticsChange?.(dataDiagnosticScope, []);
 
     void loadWidgetDataInputs({
-      inputs: plan.dataInputs,
+      inputs: plan.dataInputs.map(input => input.status === 'ready'
+        && sourceRevisions.failures.some(failure =>
+          failure.descriptor.catalogRef === input.descriptor.catalogRef
+          && failure.descriptor.sourceRef === input.descriptor.sourceRef)
+        ? { ...input, status: 'unavailable' as const,
+          reason: `The host could not select a revision for ${input.descriptor.catalogRef} ${input.descriptor.sourceRef}.` }
+        : input),
       context: {
         surfaceId: route.surfaceId,
         surfaceRef: route.surfaceRef,
@@ -1258,6 +1303,7 @@ function SurfaceWidgetSlot({
     authorizeDataSource,
     dataDiagnosticScope,
     dataSourceLoader,
+    sourceRevisions.key,
     onRuntimeDiagnosticsChange,
     plan.dataInputs,
     plan.actionOutputs,

@@ -174,3 +174,5 @@ export {
 export * from './widgets/response-review.js';
 
 export { deriveSurfaceRuntimeGeneration, type SurfaceRuntimeGenerationInput } from "./runtime-generation.js";
+
+export type { DataSourceRevisionSelector } from './data-source-revision.js';
