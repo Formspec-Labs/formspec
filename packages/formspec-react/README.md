@@ -149,3 +149,5 @@ Use `FormspecForm` when the renderer should create the provider. The content
 component does not run the outer renderer's screener gating or parse query issuer
 overrides; the host and existing provider retain those responsibilities. It adds
 no submit handler or automatic action controls beyond the provider's configuration.
+
+When a completed action removes its originally focused button during the completion transition, the originating persistent status receives focus once, without scrolling. This fallback uses the current action ownership and answer freshness. It cancels on intervening focus or navigation, window withdrawal, content changes, or provider/outlet retirement; surviving controls and non-success results keep ordinary focus behavior. The status uses `tabIndex=-1` and adds no sequential tab stop. Later unrelated branch removal and standalone nodes without a persistent outlet do not trigger recovery.

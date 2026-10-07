@@ -23,7 +23,7 @@ const component = (when?: string) => ({ $formspecComponent: '1.0', version: '1.0
         { component: 'ActionButton', actionRef: 'other' },
     ] } });
 const roots = new Set<ReturnType<typeof createRoot>>();
-afterEach(() => { act(() => { roots.forEach(root => root.unmount()); roots.clear(); }); document.body.replaceChildren(); });
+afterEach(() => { act(() => { roots.forEach(root => root.unmount()); roots.clear(); }); document.body.replaceChildren(); vi.restoreAllMocks(); });
 function mount(element: React.ReactElement) {
     const container = document.createElement('div'); document.body.append(container);
     const root = createRoot(container); roots.add(root); act(() => root.render(element)); return { container, root };
@@ -66,12 +66,100 @@ describe('persistent action feedback', () => {
         const engine = createFormEngine(definition); const onResult = vi.fn(); const onEvent = vi.fn(() => engine.setInstanceValue('draftReadiness', 'owned', true));
         const { container } = mount(<StrictMode>{form({ engine, onActionResult: onResult, onHostEvent: onEvent,
             componentDocument: component("@instance('draftReadiness').ready and not(@instance('draftReadiness').owned)") })}</StrictMode>);
+        button(container).focus();
         await click(container);
         expect(button(container)).toBeUndefined(); expect(message(container)).toBe('Completed.');
+        expect(document.activeElement).toBe(container.querySelector('[role="status"]'));
         expect(onEvent).toHaveBeenCalledTimes(1); expect(onResult).toHaveBeenCalledTimes(1);
         const status = container.querySelector('[role="status"]')!;
         expect(status.getAttribute('data-need-anchors')).toBe('need:save-control@1 need:save-result@1');
         engine.dispose();
+    });
+    it('recovers after the conditional branch disappears before terminal settlement', async () => {
+        const engine = createFormEngine(definition); const pending = operation();
+        const { container } = mount(form({ engine, responseActionInvoker: pending.invoker,
+            componentDocument: component("not(@instance('draftReadiness').owned)") }));
+        button(container).focus(); await click(container);
+        act(() => engine.setInstanceValue('draftReadiness', 'owned', true));
+        expect(button(container)).toBeUndefined(); expect(message(container)).toBe('In progress.');
+        await act(async () => { pending.finish(); await pending.gate; });
+        expect(document.activeElement).toBe(container.querySelector('[role="status"]')); engine.dispose();
+    });
+    it('content edit and revert retire pending focus recovery even with identical final answers', async () => {
+        const engine = createFormEngine(definition); const pending = operation();
+        const { container } = mount(form({ engine, responseActionInvoker: pending.invoker,
+            componentDocument: component("not(@instance('draftReadiness').owned)"),
+            onHostEvent: () => engine.setInstanceValue('draftReadiness', 'owned', true) }));
+        button(container).focus(); await click(container);
+        act(() => engine.setValue('answer', 'Changed')); act(() => engine.setValue('answer', null));
+        await act(async () => { pending.finish(); await pending.gate; });
+        expect(message(container)).toBe(''); expect(document.activeElement).not.toBe(container.querySelector('[role="status"]')); engine.dispose();
+    });
+    it.each(['capture', 'settlement'])('refuses inactive-document focus recovery at %s', async phase => {
+        const engine = createFormEngine(definition); const pending = operation();
+        const { container } = mount(form({ engine, responseActionInvoker: pending.invoker,
+            componentDocument: component("not(@instance('draftReadiness').owned)"),
+            onHostEvent: () => engine.setInstanceValue('draftReadiness', 'owned', true) }));
+        button(container).focus(); const focused = vi.spyOn(document, 'hasFocus').mockReturnValue(phase !== 'capture');
+        await click(container); focused.mockReturnValue(phase === 'capture');
+        await act(async () => { pending.finish(); await pending.gate; });
+        expect(message(container)).toBe('Completed.'); expect(document.activeElement).not.toBe(container.querySelector('[role="status"]')); engine.dispose();
+    });
+    it('keeps focus on a successful surviving control and never refocuses on Locale updates', async () => {
+        const engine = createFormEngine(definition); const { container } = mount(form({ engine }));
+        const control = button(container); control.focus(); await click(container);
+        expect(document.activeElement).toBe(control);
+        const input = container.querySelector<HTMLInputElement>('input')!; input.focus();
+        act(() => engine.setLocale('es')); expect(document.activeElement).toBe(input); engine.dispose();
+    });
+    it.each(['focus-away-return', 'blur', 'tab', 'pointer', 'window-blur'])('refuses removal recovery after pending %s', async reason => {
+        const engine = createFormEngine(definition); const pending = operation();
+        const { container } = mount(form({ engine, responseActionInvoker: pending.invoker,
+            componentDocument: component("not(@instance('draftReadiness').owned)"),
+            onHostEvent: () => engine.setInstanceValue('draftReadiness', 'owned', true) }));
+        const control = button(container); control.focus(); await click(container);
+        if (reason === 'focus-away-return') { container.querySelector<HTMLInputElement>('input')!.focus(); control.focus(); }
+        if (reason === 'blur') control.blur();
+        if (reason === 'tab') control.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+        if (reason === 'pointer') document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        if (reason === 'window-blur') window.dispatchEvent(new Event('blur'));
+        await act(async () => { pending.finish(); await pending.gate; });
+        expect(button(container)).toBeUndefined(); expect(message(container)).toBe('Completed.');
+        expect(document.activeElement).not.toBe(container.querySelector('[role="status"]')); engine.dispose();
+    });
+    it('does not move focus for an unfocused programmatic action that removes its branch', async () => {
+        const engine = createFormEngine(definition);
+        const { container } = mount(form({ engine, componentDocument: component("not(@instance('draftReadiness').owned)"),
+            onHostEvent: () => engine.setInstanceValue('draftReadiness', 'owned', true) }));
+        const input = container.querySelector<HTMLInputElement>('input')!; input.focus(); await click(container);
+        expect(button(container)).toBeUndefined(); expect(document.activeElement).toBe(input); engine.dispose();
+    });
+    it.each(['failed', 'blocked', 'unresolved', 'deferred'] as const)('does not recover removal focus for %s', async status => {
+        const engine = createFormEngine(definition);
+        const { container } = mount(form({ engine, componentDocument: component("not(@instance('draftReadiness').owned)"),
+            responseActionInvoker: input => { engine.setInstanceValue('draftReadiness', 'owned', true);
+                return { ...invokeResponseAction(input.document, input.actionRef, input.ports, input.nodeId), status }; } }));
+        button(container).focus(); await click(container);
+        expect(button(container)).toBeUndefined(); expect(document.activeElement).not.toBe(container.querySelector('[role="status"]')); engine.dispose();
+    });
+    it.each(['hidden', 'inert'])('does not target a %s originating outlet', async attribute => {
+        const engine = createFormEngine(definition);
+        const { container } = mount(form({ engine, componentDocument: component("not(@instance('draftReadiness').owned)"),
+            onHostEvent: () => { container.setAttribute(attribute, ''); engine.setInstanceValue('draftReadiness', 'owned', true); } }));
+        button(container).focus(); await click(container);
+        expect(document.activeElement).not.toBe(container.querySelector('[role="status"]')); engine.dispose();
+    });
+    it('recovers only the originating outlet and only once', async () => {
+        const engine = createFormEngine(definition);
+        const { container } = mount(<FormspecProvider definition={definition} engine={engine} responseActionsDocument={actions}
+            componentDocument={component("not(@instance('draftReadiness').owned)")}
+            onHostEvent={() => engine.setInstanceValue('draftReadiness', 'owned', true)}>
+            <section data-origin="first"><FormspecFormContent /></section><section data-origin="second"><FormspecFormContent /></section>
+        </FormspecProvider>);
+        const first = container.querySelector<HTMLElement>('[data-origin="first"]')!; button(first).focus(); await click(first);
+        expect(document.activeElement).toBe(first.querySelector('[role="status"]'));
+        const input = container.querySelector<HTMLInputElement>('input')!; input.focus();
+        act(() => engine.setLocale('es')); expect(document.activeElement).toBe(input); engine.dispose();
     });
     it('clears after UI edits and keeps pending focus/in-flight refusal independent of freshness', async () => {
         const engine = createFormEngine(definition); const pending = operation();
@@ -93,6 +181,19 @@ describe('persistent action feedback', () => {
         await click(container); await click(container, 'other');
         await act(async () => { first.finish(); await first.gate; }); expect(message(container)).toBe('In progress.');
         await act(async () => { second.finish(); await second.gate; }); expect(message(container)).toBe('Completed.'); expect(onResult).toHaveBeenCalledTimes(2);
+    });
+    it('late older completion cannot recover focus owned by the latest action', async () => {
+        const engine = createFormEngine(definition); const first = operation(); const second = operation();
+        const twoBranches = component("not(@instance('draftReadiness').owned)");
+        Object.assign(twoBranches.tree.children[2], { when: "not(@instance('draftReadiness').owned)" });
+        const { container } = mount(form({ engine, componentDocument: twoBranches,
+            responseActionInvoker: input => input.actionRef === 'save' ? first.invoker(input) : second.invoker(input),
+            onHostEvent: () => engine.setInstanceValue('draftReadiness', 'owned', true) }));
+        button(container).focus(); await click(container); button(container, 'other').focus(); await click(container, 'other');
+        await act(async () => { first.finish(); await first.gate; });
+        expect(message(container)).toBe('In progress.'); expect(document.activeElement).not.toBe(container.querySelector('[role="status"]'));
+        await act(async () => { second.finish(); await second.gate; });
+        expect(message(container)).toBe('Completed.'); expect(document.activeElement).toBe(container.querySelector('[role="status"]')); engine.dispose();
     });
     it('announces only in the originating content root', async () => {
         const { container } = mount(<FormspecProvider definition={definition} responseActionsDocument={actions} componentDocument={component()}>
