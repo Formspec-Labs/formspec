@@ -277,7 +277,7 @@ export function responseActionsDocumentForDefinition<
  *    working page as dead.
  * 2. **The check follows the controls this binding actually places.**
  *    `FormspecForm` auto-places each uniquely identified Action with a literal
- *    structured label from the one response-scoped document targeting the
+ *    or Locale-reference label from the one response-scoped document targeting the
  *    rendered Definition. Action ids are always exact; a closed-core intent is
  *    credited only when exactly one loaded Action publishes it.
  *
@@ -345,7 +345,7 @@ export function slotSuppliedTriggers(
         if (
           typeof action.id !== 'string'
           || action.id.length === 0
-          || !hasLiteralActionLabel(action)
+          || !hasStructuredActionLabel(action)
         ) {
           continue;
         }
@@ -372,13 +372,17 @@ export function slotSuppliedTriggers(
   return supplied;
 }
 
-function hasLiteralActionLabel(
+function hasStructuredActionLabel(
   action: NonNullable<ResponseActionsDocumentLike['actions']>[number],
 ): boolean {
   const label = action.label;
   if (!label || typeof label !== 'object' || Array.isArray(label)) return false;
-  const literal = (label as { literal?: unknown }).literal;
-  return typeof literal === 'string' && literal.trim().length > 0;
+  const structured = label as { literal?: unknown; ref?: unknown };
+  const hasLiteral = Object.hasOwn(structured, 'literal');
+  const hasReference = Object.hasOwn(structured, 'ref');
+  if (hasLiteral === hasReference) return false;
+  const text = hasLiteral ? structured.literal : structured.ref;
+  return typeof text === 'string' && text.trim().length > 0;
 }
 
 export function planTransitions(input: TransitionPlanInput): TransitionPlanResult {

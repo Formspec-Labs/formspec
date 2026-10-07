@@ -7,7 +7,7 @@
  * so a form inside an `embed-route` was not counted and no intent other than
  * `submit` was ever supplied-by-slot. Both are the same defect: substituting a
  * shortcut for the resolution rule surface-spec §4 already states. The
- * Definition renderer now places every literal-labeled response Action, so
+ * Definition renderer now places every structurally labeled response Action, so
  * this walk must credit the same exact controls without adding shell copies.
  */
 import { describe, expect, it } from 'vitest';
@@ -83,7 +83,7 @@ describe('slotSuppliedTriggers', () => {
     expect([...supplied].sort()).toEqual(['review', 'sendForReview']);
   });
 
-  it('does not claim an action id when no literal-labeled control will be rendered', () => {
+  it('does not claim an action id when no labeled control will be rendered', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
       { targetDefinition: { url: DEF }, actions: [{ id: 'countersign' }] },
     ]);
@@ -267,3 +267,29 @@ describe('the walk, wired into planTransitions', () => {
     expect(diagnostics).toEqual([]);
   });
 });
+
+it('credits a Locale-reference-labelled action through the maintained embedded form walk', () => {
+  const candidate = structuredClone(embedding);
+  candidate.routes[0]!.transitions![0]!.trigger = 'prepare';
+  const app = composeSurfaceApp([candidate]);
+  const handle = app.routes.find(candidate => candidate.routeId === 'host')!;
+  const responseActions = [{ targetDefinition: { url: DEF },
+    actions: [{ id: 'prepare', intent: 'submit', label: { ref: 'action.prepare' } }] }];
+  const supplied = slotSuppliedTriggers(slotsFor(candidate, 'host'), responseActions);
+  expect([...supplied].sort()).toEqual(['prepare', 'submit']);
+  const result = planTransitions({ handle, app, responseActions, hasExecutor: false,
+    slotSuppliedTriggers: supplied });
+  expect(result.transitions[0]?.status).toBe('supplied-by-slot');
+  expect(result.diagnostics).toEqual([]);
+});
+
+it.each([undefined, {}, [], { ref: '' }, { ref: ' ' }, { ref: 5 },
+  { literal: '', ref: 'action.prepare' }, { literal: 'Prepare', ref: '' },
+  { literal: 'Prepare', ref: 'action.prepare' }, { literal: false, ref: 'action.prepare' }])(
+  'does not credit an invalid or ambiguous structured action label %s', label => {
+    const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [{
+      targetDefinition: { url: DEF }, actions: [{ id: 'prepare', intent: 'submit', label }],
+    }]);
+    expect([...supplied]).toEqual([]);
+  },
+);
