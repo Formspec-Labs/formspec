@@ -964,3 +964,21 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* The entire authored text remains in the DOM; native scrolling also supports keyboard reading. */
+.fs-surface-ceremony__full-text {
+  max-height: 24rem;
+  overflow-y: auto;
+  padding: var(--formspec-spacing-md, 0.75rem);
+  border: 1px solid var(--fs-surface-ink-quiet);
+  color: var(--fs-surface-ink);
+  line-height: var(--formspec-font-lineHeight-loose, 1.7);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.fs-surface-ceremony__full-text:focus-visible {
+  outline: 2px solid var(--fs-surface-ink);
+  outline-offset: 3px;
+}
+.fs-surface-ceremony__paper { white-space: pre-wrap; }
+.fs-surface-ceremony__actions { display: flex; flex-wrap: wrap; gap: var(--formspec-spacing-sm, 0.5rem); }

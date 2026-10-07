@@ -29,9 +29,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && node scripts/copy-css.mjs",
+    "schema:generate": "node scripts/generate-signing-source-schema.mjs",
+    "schema:check": "node scripts/generate-signing-source-schema.mjs --check",
+    "build": "npm run schema:check && tsc && node scripts/copy-css.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "dependencies": {
+    "canonicalize": "^3.0.0"
   },
   "peerDependencies": {
     "@formspec-org/app-graph": "^2.0.2",

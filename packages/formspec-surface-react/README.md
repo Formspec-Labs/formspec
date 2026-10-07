@@ -175,3 +175,58 @@ over.
 Layer 3 (`scripts/check-dep-fences.mjs`): peer-depends on `@formspec-org/surface`
 (2), `@formspec-org/react` (2), `@formspec-org/layout` (1),
 `@formspec-org/types` (0) and React.
+
+## SigningCeremony
+
+`SigningCeremony` adds an explicit signing act beside the display-only
+`CeremonyFrame`. Publish `SIGNING_CEREMONY_WIDGET_SHAPE` as the admitted Registry
+entry's `widgetShape`, version `0.1.0`, and supply `starterWidgetModule(moduleId)`.
+Its delivery identity is `@formspec-org/surface-react/SigningCeremony@0.1`.
+The root configuration and each `copy` locale object need current adopted Need
+anchors when strict data-only validation applies. Configuration is qualified by
+AppGraph's native ModuleResolver. The source-reference props fragment is generated
+from Common's canonical schema so Registry validation needs no external schema
+fetch. Run `npm run schema:generate` after changing that Common definition.
+
+Configuration selects exact `contentRefs` by locale and supplies locale-specific
+ordinary UI `copy`: heading, read instruction, read confirmation, signer-name
+label, pending, signed, failed, and unavailable text. Legal wording belongs in
+`Definition.extensions['x-formspec-signing-content']`, not widget configuration.
+Resolve it with `resolveAuthoredSigningContent` and the maintained Common schema
+validator. No implicit locale fallback is permitted for legal wording.
+
+Declare all six required inputs through qualified Data Sources:
+
+- `content`: the schema-valid resolved `SigningContent` shown to the signer.
+- `response`: the exact current persisted completed canonical Response.
+- `draft`: `{id, version, responseHash}`; the hash identifies the frozen preparation.
+- `actor`: `{id}` from verified identity.
+- `signingResult`: `{state:'unsigned'}` before signing, or the verified signed result
+  `{state:'signed', response, draft:{id,version}, verification:{mode:'delegated-service-key',provider,keyId}}`.
+- `actionLabels`: exact mapped Action label refs resolved with the admitted Locale.
+  Literal labels use the mapped Action directly. Missing labels refuse the control.
+
+The widget requires an unbranded `ceremony` route. It preserves full plaintext,
+provides native keyboard scrolling, separates reading from electronic consent,
+and captures a detached displayed snapshot. Changes reset assent; nested mutation
+without a render also refuses action emission. A signed refresh displays the
+committed name. The paper alternative stays visible, with an optional `paper`
+output that performs neither Sign nor Submit.
+
+Map `sign` and `submit` to separate admitted Response Actions. Sign emits
+`{draftId,draftVersion,responseId,responseHash,source,locale,signerName,consentAccepted:true}`
+only after the explicit act. The host creates one signed-at time, saves the covered
+commitment at unsigned revision `n`, checks the exact saved candidate, and calls
+its signing producer. Retries retain that candidate and operation identity.
+The producer returns the full signed Response at `n+1`; the commitment stays at
+`n`. Submit emits `{draftId,draftVersion,canonical_response}` with the exact signed
+Response. It must pass fresh server revision, snapshot, identity, content and
+cryptographic admission. Do not regenerate it with `getResponse()` or discard its
+metadata through `loadResponseData()`.
+
+The widget checks consistency with the qualified verification result; it does no
+cryptographic verification itself. Completed action feedback alone leaves Submit
+disabled. The displayed delegated-service-key notice must describe the actual
+producer; it must not imply possession of a personal signing key. Application
+signing requirements remain explicit server policy and do not change core form
+validation merely because a content catalog exists.
