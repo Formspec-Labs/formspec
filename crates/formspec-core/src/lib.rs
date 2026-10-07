@@ -25,6 +25,7 @@ pub mod registry_client;
 pub mod response_migration;
 pub mod runtime_mapping;
 pub mod schema_validator;
+pub mod validation_report;
 pub mod value_coerce;
 pub mod wire_keys;
 
@@ -85,3 +86,6 @@ pub use schema_validator::{
 };
 pub use value_coerce::coerce_field_value;
 pub use wire_keys::JsonWireStyle;
+
+#[doc(inline)]
+pub use validation_report::{ValidationReportAssemblyError, build_validation_report};

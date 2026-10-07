@@ -1,0 +1,217 @@
+[
+  {
+    "name": "empty",
+    "results": [],
+    "definitionUrl": "urn:fixture",
+    "definitionVersion": "1.0.0",
+    "timestamp": "2026-10-07T00:00:00Z",
+    "expected": {
+      "$formspecValidationReport": "1.0",
+      "valid": true,
+      "results": [],
+      "counts": {
+        "error": 0,
+        "warning": 0,
+        "info": 0
+      },
+      "timestamp": "2026-10-07T00:00:00Z",
+      "definitionUrl": "urn:fixture",
+      "definitionVersion": "1.0.0"
+    }
+  },
+  {
+    "name": "mixed-ordered-cardinality-shape",
+    "results": [
+      {
+        "$formspecValidationResult": "1.0",
+        "path": "field",
+        "severity": "info",
+        "constraintKind": "external",
+        "message": "info finding",
+        "source": "external",
+        "sourceId": "x-check",
+        "context": {
+          "measure": 2
+        }
+      },
+      {
+        "$formspecValidationResult": "1.0",
+        "path": "groups",
+        "severity": "error",
+        "constraintKind": "cardinality",
+        "message": "error finding",
+        "source": "bind",
+        "code": "MIN_REPEAT_NOT_MET"
+      },
+      {
+        "$formspecValidationResult": "1.0",
+        "path": "field",
+        "severity": "warning",
+        "constraintKind": "shape",
+        "message": "warning finding",
+        "source": "shape",
+        "shapeId": "budget",
+        "context": {
+          "actual": 3
+        }
+      }
+    ],
+    "definitionUrl": "urn:fixture",
+    "definitionVersion": "2.0.0",
+    "timestamp": "2026-10-07T00:00:00Z",
+    "expected": {
+      "$formspecValidationReport": "1.0",
+      "valid": false,
+      "results": [
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "field",
+          "severity": "info",
+          "constraintKind": "external",
+          "message": "info finding",
+          "source": "external",
+          "sourceId": "x-check",
+          "context": {
+            "measure": 2
+          }
+        },
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "groups",
+          "severity": "error",
+          "constraintKind": "cardinality",
+          "message": "error finding",
+          "code": "MIN_REPEAT_NOT_MET"
+        },
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "field",
+          "severity": "warning",
+          "constraintKind": "shape",
+          "message": "warning finding",
+          "source": "shape",
+          "shapeId": "budget",
+          "context": {
+            "actual": 3
+          }
+        }
+      ],
+      "counts": {
+        "error": 1,
+        "warning": 1,
+        "info": 1
+      },
+      "timestamp": "2026-10-07T00:00:00Z",
+      "definitionUrl": "urn:fixture",
+      "definitionVersion": "2.0.0"
+    }
+  },
+  {
+    "name": "warning-info-valid",
+    "results": [
+      {
+        "$formspecValidationResult": "1.0",
+        "path": "field",
+        "severity": "warning",
+        "constraintKind": "constraint",
+        "message": "warning finding",
+        "source": "bind",
+        "constraint": "$ > 2"
+      },
+      {
+        "$formspecValidationResult": "1.0",
+        "path": "field",
+        "severity": "info",
+        "constraintKind": "external",
+        "message": "info finding",
+        "source": "external"
+      }
+    ],
+    "timestamp": "2026-10-07T00:00:00Z",
+    "expected": {
+      "$formspecValidationReport": "1.0",
+      "valid": true,
+      "results": [
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "field",
+          "severity": "warning",
+          "constraintKind": "constraint",
+          "message": "warning finding",
+          "source": "bind",
+          "constraint": "$ > 2"
+        },
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "field",
+          "severity": "info",
+          "constraintKind": "external",
+          "message": "info finding",
+          "source": "external"
+        }
+      ],
+      "counts": {
+        "error": 0,
+        "warning": 1,
+        "info": 1
+      },
+      "timestamp": "2026-10-07T00:00:00Z"
+    }
+  },
+  {
+    "name": "empty-pins-omitted",
+    "results": [],
+    "definitionUrl": "",
+    "definitionVersion": "",
+    "timestamp": "2026-10-07T00:00:00Z",
+    "expected": {
+      "$formspecValidationReport": "1.0",
+      "valid": true,
+      "results": [],
+      "counts": {
+        "error": 0,
+        "warning": 0,
+        "info": 0
+      },
+      "timestamp": "2026-10-07T00:00:00Z"
+    }
+  },
+  {
+    "name": "ordinary-source-preserved",
+    "results": [
+      {
+        "$formspecValidationResult": "1.0",
+        "path": "field",
+        "severity": "error",
+        "constraintKind": "required",
+        "message": "error finding",
+        "source": "bind",
+        "code": "REQUIRED"
+      }
+    ],
+    "definitionVersion": "3.1.0",
+    "timestamp": "2026-10-07T00:00:00Z",
+    "expected": {
+      "$formspecValidationReport": "1.0",
+      "valid": false,
+      "results": [
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "field",
+          "severity": "error",
+          "constraintKind": "required",
+          "message": "error finding",
+          "source": "bind",
+          "code": "REQUIRED"
+        }
+      ],
+      "counts": {
+        "error": 1,
+        "warning": 0,
+        "info": 0
+      },
+      "timestamp": "2026-10-07T00:00:00Z",
+      "definitionVersion": "3.1.0"
+    }
+  }
+]
