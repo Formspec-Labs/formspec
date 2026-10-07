@@ -415,3 +415,21 @@ maintained generated SigningContentSource schema. It loads no React, Surface
 renderer, engine, CSS, hashing, or attachment code. Shapes, schema requirements,
 copy keys, delivery IDs and rendered-config inventories remain unchanged.
 Import rendering capabilities through the existing runtime entries when needed.
+
+Hosts can supply presentation titles with `appTitle` and `resolveRouteTitle`.
+`appTitle` replaces the default banner and the existing optional browser-title
+write; custom `header` content still takes precedence and unmount restores the
+previous browser title. `resolveRouteTitle` is a pure lookup receiving the exact
+`SurfaceRouteHandle`. Its value supplies the route heading, accessible region
+name, and navigation fallback. An explicit authored `navigation.label` wins.
+Returning `undefined` retains `route.title`, then the route ID; omitted `appTitle`
+retains the bundle title. Title changes do not replan routes or reload data.
+
+These are host-owned presentation inputs. For a form flow, the host may choose
+an exact admitted Definition and active Locale, read its maintained
+`engine.getFormVM().title.value`, and use that form title for explicitly qualified
+intake, proof or ceremony routes. Qualify the loaded Surface and route ownership;
+a route ID alone or the first loaded Definition is insufficient. This choice
+presents a form title; it does not translate or modify Manifest/Surface titles,
+create a Locale key family, or establish identity, authorization or signing
+readiness. Canonical authored artifacts and default behavior remain unchanged.

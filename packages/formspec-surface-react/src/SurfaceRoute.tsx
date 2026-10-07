@@ -31,6 +31,7 @@
  *    v0.1 explicitly gives "no normative position vocabulary", so honouring it
  *    would mean inventing one. Authored order is the only thing defined.
  */
+import { presentedRouteTitle, type SurfaceRouteTitleResolver } from './title-presentation.js';
 import type { DataSourceRevisionSelector } from './data-source-revision.js';
 import { useLayoutEffect, useRef } from 'react';
 import { emitMergedThemeCssVars } from '@formspec-org/layout';
@@ -78,6 +79,7 @@ import { needTraceAttributes } from './need-trace.js';
 export interface SurfaceRouteViewProps {
   /** Everything the core decided for this route. Nothing here re-decides it. */
   plan: SurfaceRoutePlan<SurfaceWidget>;
+  resolveRouteTitle?: SurfaceRouteTitleResolver | undefined;
   /** The shell's own person-facing strings. Defaults to the shipped English. */
   strings?: SurfaceStrings | undefined;
   dataSourceLoader?: DataSourceLoader | undefined;
@@ -134,6 +136,7 @@ export interface SurfaceRouteViewProps {
 
 export function SurfaceRouteView({
   plan,
+  resolveRouteTitle,
   strings,
   dataSourceLoader,
   dataSourceRevision,
@@ -189,7 +192,7 @@ export function SurfaceRouteView({
   });
 
   const titleLevel = resolveRouteTitleLevel(plan.headingBaseLevel);
-  const titleText = handle.route.title ?? handle.routeId;
+  const titleText = presentedRouteTitle(handle, resolveRouteTitle);
   const titleId = `fs-surface-title-${handle.routeId}`;
 
   return (

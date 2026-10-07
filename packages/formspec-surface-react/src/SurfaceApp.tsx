@@ -41,6 +41,7 @@
  * of the way of hosts that already have a router — which every host of any size
  * does. A shell that owned history would be a shell that could not be embedded.
  */
+import { presentedRouteTitle, type SurfaceRouteTitleResolver } from './title-presentation.js';
 import type { DataSourceRevisionSelector } from './data-source-revision.js';
 import { deriveSurfaceRuntimeGeneration } from "./runtime-generation.js";
 import {
@@ -337,6 +338,10 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
   setDocumentTitle?: boolean | undefined;
   /** Above the navigation — verification chrome, tenant header, whatever the host has. */
   header?: ReactNode;
+  /** Host-owned presentation title for the default banner and browser title. */
+  appTitle?: string | undefined;
+  /** Host-owned route presentation; explicit navigation labels still take precedence. */
+  resolveRouteTitle?: SurfaceRouteTitleResolver | undefined;
   footer?: ReactNode;
   navigationLabel?: string | undefined;
   renderNotFound?: ((location: string) => ReactNode) | undefined;
@@ -574,22 +579,24 @@ export function SurfaceApp(props: SurfaceAppProps) {
     return () => deliver(undefined);
   }, [props.onCurrentRouteStateChange, routePlan, runtimeGeneration]);
 
+  const appTitle = props.appTitle ?? bundle.title;
+
   useEffect(() => {
     if (!setDocumentTitle || typeof document === "undefined") return;
-    if (!bundle.title) return;
+    if (!appTitle) return;
     const previous = document.title;
-    document.title = bundle.title;
+    document.title = appTitle;
     return () => {
       document.title = previous;
     };
-  }, [bundle.title, setDocumentTitle]);
+  }, [appTitle, setDocumentTitle]);
 
   return (
     <div
       className="fs-surface-app"
       {...needTraceAttributes(generationNeedAnchors(bundle.manifest))}
     >
-      {(props.header !== undefined || bundle.title) && (
+      {(props.header !== undefined || appTitle) && (
         <header className="fs-surface-header">
           <div className="fs-surface-header__inner">
             {props.header ?? (
@@ -597,7 +604,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
                 className="fs-surface-brand"
                 {...needTraceAttributes(generationNeedAnchors(bundle.manifest))}
               >
-                {bundle.title}
+                {appTitle}
               </span>
             )}
           </div>
@@ -611,12 +618,14 @@ export function SurfaceApp(props: SurfaceAppProps) {
           onNavigate={onNavigate}
           label={props.navigationLabel ?? strings("navigationLabel")}
           menuLabel={props.navigationLabel ?? strings("navigationLabel")}
+          resolveRouteTitle={props.resolveRouteTitle}
         />
         <main className="fs-surface-main">
           {routePlan ? (
             <SurfaceRouteView
               key={`${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
               plan={routePlan}
+              resolveRouteTitle={props.resolveRouteTitle}
               strings={strings}
               dataSourceLoader={props.dataSourceLoader}
               dataSourceRevision={props.dataSourceRevision}
@@ -674,6 +683,7 @@ export interface SurfaceNavProps {
   onNavigate: (href: string) => void;
   label?: string | undefined;
   menuLabel?: string | undefined;
+  resolveRouteTitle?: SurfaceRouteTitleResolver | undefined;
 }
 
 export function SurfaceNav({
@@ -683,6 +693,7 @@ export function SurfaceNav({
   onNavigate,
   label,
   menuLabel,
+  resolveRouteTitle,
 }: SurfaceNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const activeRoute = matchRoute(app, location).match?.handle;
@@ -768,8 +779,7 @@ export function SurfaceNav({
                 const { href, refusal } = routeHref(handle, routeParams ?? {});
                 const navigationLabel =
                   handle.route.navigation?.label ??
-                  handle.route.title ??
-                  handle.routeId;
+                  presentedRouteTitle(handle, resolveRouteTitle);
                 const navigationAnchors = generationNeedAnchors(
                   handle.route.navigation
                 );
