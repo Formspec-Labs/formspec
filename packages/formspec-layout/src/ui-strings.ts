@@ -126,6 +126,19 @@ export const UI_STRINGS = {
     'screener.submit': 'Check Eligibility',
     'screener.answerOne': 'Please answer at least one question',
     'assist.filled': '{{$label}} filled by your assistant',
+    'localPreview.preview': "Local preview",
+    'localPreview.draftRestored': "Draft restored",
+    'form.settings': "Form settings",
+    'form.language': "Language",
+    'form.languageSaveFailed': "The language change could not be saved. Try again.",
+    'receipt.answersReceived': "Answers received",
+    'receipt.submissionId': "Submission ID",
+    'receipt.pendingFilingAndSigning': "Case filing and signing are not yet confirmed.",
+    'receipt.keepRecord': "Keep this record",
+    'receipt.printInstruction': "Print this confirmation, then clear this computer before leaving.",
+    'receipt.print': "Print confirmation",
+    'receipt.clear': "Clear this computer",
+    'receipt.clearing': "Clearing...",
 } as const;
 
 /** Closed suffix set for `$ui.<ChromeStringKey>` (Locale spec §3.1.10), one-for-one with the schema enum. */

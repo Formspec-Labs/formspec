@@ -931,6 +931,19 @@ with the schema by test):
 | `screener.submit` | `Check Eligibility` | none |
 | `screener.answerOne` | `Please answer at least one question` | none |
 | `assist.filled` | `{{$label}} filled by your assistant` | `$label` |
+| `localPreview.preview` | `Local preview` | none |
+| `localPreview.draftRestored` | `Draft restored` | none |
+| `form.settings` | `Form settings` | none |
+| `form.language` | `Language` | none |
+| `form.languageSaveFailed` | `The language change could not be saved. Try again.` | none |
+| `receipt.answersReceived` | `Answers received` | none |
+| `receipt.submissionId` | `Submission ID` | none |
+| `receipt.pendingFilingAndSigning` | `Case filing and signing are not yet confirmed.` | none |
+| `receipt.keepRecord` | `Keep this record` | none |
+| `receipt.printInstruction` | `Print this confirmation, then clear this computer before leaving.` | none |
+| `receipt.print` | `Print confirmation` | none |
+| `receipt.clear` | `Clear this computer` | none |
+| `receipt.clearing` | `Clearing...` | none |
 
 Parameters are renderer-supplied, read-only values (a repeat's group label,
 row index, row total, character count, character max, file name, upload limit,

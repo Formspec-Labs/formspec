@@ -95,3 +95,9 @@ adds `%`); `limit` is an already formatted size such as `25 MB`. Store keys and
 parameters for pending/error state and resolve them while rendering so language
 switches update existing feedback. The hook also supplies shared defaults outside
 a Formspec provider. See Locale §3.1.10 for the complete closed key inventory.
+
+Receipt, preview and form-settings chrome uses the same hook. The host selects
+received, restored, clearing and language-save-failed states; translating a label
+does not establish backend acknowledgment. `receipt.pendingFilingAndSigning`
+reports unconfirmed filing/signing. Render a submission ID as unchanged host data
+beside `receipt.submissionId`, rather than embedding it in translated copy.

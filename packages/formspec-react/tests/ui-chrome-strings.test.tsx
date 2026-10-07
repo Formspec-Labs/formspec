@@ -227,3 +227,72 @@ describe('public-hook upload/editor host scenarios', () => {
         expect(container.querySelector('[data-chrome="fileUpload.singleFileOnly"]')?.textContent).toBe("Only one file can be uploaded here.");
     });
 });
+
+describe('public-hook receipt and local-preview host scenarios', () => {
+    it('translates host-selected feedback while retaining the opaque submission ID', async () => {
+        const { useChromeText, FormspecProvider } = await import('../src/hooks');
+        const engine = createFormEngine({ $formspec: '1.0', url: URL, version: '1.0.0', title: 'Receipt', items: [] });
+        const submissionId = 'resp-opaque-{{$secret}}-123456789';
+        function ReceiptPreviewChrome() {
+            const chrome = useChromeText();
+            return <>
+                <aside aria-label={chrome('form.settings')}>
+                    <label>{chrome('form.language')}</label>
+                    <p role="alert">{chrome('form.languageSaveFailed')}</p>
+                </aside>
+                <p data-chrome="preview">{chrome('localPreview.preview')}</p>
+                <p data-chrome="restored">{chrome('localPreview.draftRestored')}</p>
+                <section>
+                    <h2>{chrome('receipt.answersReceived')}</h2>
+                    <p>{chrome('receipt.submissionId')}</p>
+                    <code>{submissionId}</code>
+                    <p role="note">{chrome('receipt.pendingFilingAndSigning')}</p>
+                    <h3>{chrome('receipt.keepRecord')}</h3>
+                    <p>{chrome('receipt.printInstruction')}</p>
+                    <button>{chrome('receipt.print')}</button>
+                    <button>{chrome('receipt.clear')}</button>
+                    <p role="status">{chrome('receipt.clearing')}</p>
+                </section>
+            </>;
+        }
+        const container = actRender(<FormspecProvider engine={engine}><ReceiptPreviewChrome /></FormspecProvider>);
+        const originalText = container.textContent;
+        expect(container.querySelector('aside')?.getAttribute('aria-label')).toBe('Form settings');
+        for (const copy of ['Language', 'The language change could not be saved. Try again.',
+            'Local preview', 'Draft restored', 'Answers received', 'Submission ID',
+            'Case filing and signing are not yet confirmed.', 'Keep this record',
+            'Print this confirmation, then clear this computer before leaving.',
+            'Print confirmation', 'Clear this computer', 'Clearing...']) {
+            expect(container.textContent).toContain(copy);
+        }
+        act(() => {
+            engine.loadLocale({ $formspecLocale: '2.0', locale: 'es', version: '1.0.0',
+                target: { kind: 'definition', url: URL }, strings: {
+                    '$ui.receipt.answersReceived': 'Respuestas recibidas',
+                    '$ui.receipt.submissionId': 'ID de envío',
+                    '$ui.receipt.clearing': 'Borrando...',
+                    '$ui.localPreview.preview': 'Vista previa local',
+                    '$ui.localPreview.draftRestored': 'Borrador restaurado',
+                    '$ui.form.settings': 'Ajustes del formulario',
+                    '$ui.form.language': 'Idioma',
+                    '$ui.form.languageSaveFailed': 'No se pudo guardar el idioma. Inténtalo de nuevo.',
+                },
+            });
+            engine.loadLocale({ $formspecLocale: '2.0', locale: 'es-US', version: '1.0.0', fallback: 'es',
+                target: { kind: 'definition', url: URL }, strings: {},
+            });
+            engine.setLocale('es-US');
+        });
+        expect(container.querySelector('h2')?.textContent).toBe('Respuestas recibidas');
+        expect(container.querySelector('aside')?.getAttribute('aria-label')).toBe('Ajustes del formulario');
+        expect(container.querySelector('[data-chrome="preview"]')?.textContent).toBe('Vista previa local');
+        expect(container.querySelector('[data-chrome="restored"]')?.textContent).toBe('Borrador restaurado');
+        expect(container.querySelector('[role="alert"]')?.textContent).toBe('No se pudo guardar el idioma. Inténtalo de nuevo.');
+        expect(container.querySelector('[role="status"]')?.textContent).toBe('Borrando...');
+        expect(container.querySelector('[role="note"]')?.textContent).toBe('Case filing and signing are not yet confirmed.');
+        expect(container.querySelector('code')?.textContent).toBe(submissionId);
+        act(() => engine.setLocale(''));
+        expect(container.textContent).toBe(originalText);
+        expect(container.querySelector('code')?.textContent).toBe(submissionId);
+    });
+});

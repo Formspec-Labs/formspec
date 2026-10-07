@@ -503,7 +503,20 @@
         "$ui.action.statusReason",
         "$ui.screener.submit",
         "$ui.screener.answerOne",
-        "$ui.assist.filled"
+        "$ui.assist.filled",
+        "$ui.localPreview.preview",
+        "$ui.localPreview.draftRestored",
+        "$ui.form.settings",
+        "$ui.form.language",
+        "$ui.form.languageSaveFailed",
+        "$ui.receipt.answersReceived",
+        "$ui.receipt.submissionId",
+        "$ui.receipt.pendingFilingAndSigning",
+        "$ui.receipt.keepRecord",
+        "$ui.receipt.printInstruction",
+        "$ui.receipt.print",
+        "$ui.receipt.clear",
+        "$ui.receipt.clearing"
       ],
       "description": "Closed one-to-one mapping to the renderer chrome string inventory (Locale spec §3.1.10, packages/formspec-layout/src/ui-strings.ts). A new chrome string requires a Locale schema revision."
     }

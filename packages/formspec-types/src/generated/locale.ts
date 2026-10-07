@@ -233,7 +233,20 @@ export type ChromeStringKey =
   | '$ui.action.statusReason'
   | '$ui.screener.submit'
   | '$ui.screener.answerOne'
-  | '$ui.assist.filled';
+  | '$ui.assist.filled'
+  | '$ui.localPreview.preview'
+  | '$ui.localPreview.draftRestored'
+  | '$ui.form.settings'
+  | '$ui.form.language'
+  | '$ui.form.languageSaveFailed'
+  | '$ui.receipt.answersReceived'
+  | '$ui.receipt.submissionId'
+  | '$ui.receipt.pendingFilingAndSigning'
+  | '$ui.receipt.keepRecord'
+  | '$ui.receipt.printInstruction'
+  | '$ui.receipt.print'
+  | '$ui.receipt.clear'
+  | '$ui.receipt.clearing';
 /**
  * Extension object whose keys must be prefixed with x-.
  */
