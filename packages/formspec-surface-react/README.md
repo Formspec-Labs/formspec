@@ -257,7 +257,9 @@ calculations, defaults, answer writes or Response export. Signature count descri
 recorded metadata; the renderer verifies neither signatures nor legal validity.
 
 The generic starter widget declares required inputs `definition`, `response`, and
-`presentation`, and no action outputs. Publish `RESPONSE_REVIEW_WIDGET_SHAPE` in an
+`presentation`, and omits optional `actionOutputs` because it emits none.
+The Registry requires a nonempty array whenever that field is present. Publish
+`RESPONSE_REVIEW_WIDGET_SHAPE` in an
 actual Registry contribution; configuration follows `RESPONSE_REVIEW_CONFIG_SCHEMA`.
 `RESPONSE_REVIEW_PRESENTATION_SCHEMA` describes the separate qualified metadata input.
 The Definition source supplies the complete canonical root Definition using

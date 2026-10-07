@@ -805,7 +805,6 @@ export const RESPONSE_REVIEW_WIDGET_SHAPE = {
     name,
     required: true,
   })),
-  actionOutputs: [],
   childrenPolicy: "none",
   deliveryContractId: RESPONSE_REVIEW_DELIVERY_CONTRACT_ID,
   renderedConfigNodes: RESPONSE_REVIEW_RENDERED_CONFIG_NODES,

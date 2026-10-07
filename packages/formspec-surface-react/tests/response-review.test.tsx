@@ -588,7 +588,7 @@ it("publishes exact module/local source schemas with closed authored copy and re
     "response",
     "presentation",
   ]);
-  expect(shape.actionOutputs).toEqual([]);
+  expect(shape).not.toHaveProperty("actionOutputs");
   expect(
     starterWidgetModule("x-starter", { responseReview: {} }).contracts
       ?.ResponseReview?.deliveryContractId
@@ -614,4 +614,120 @@ it("publishes exact module/local source schemas with closed authored copy and re
       state: { ...ready, contextIdentity: "a".repeat(64) },
     })
   ).toBe(true);
+});
+
+it("admits the published no-action widget shape through canonical Registry and the module profile", async () => {
+  const { RESPONSE_REVIEW_WIDGET_SHAPE: shape } = await import(
+    "../src/widgets/index.js"
+  );
+  const { resolveModules, moduleResolverInputFromAppGraph } = await import(
+    "@formspec-org/app-graph"
+  );
+  const { default: Ajv } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const { default: registrySchema } = await import(
+    "../../../schemas/registry.schema.json"
+  );
+  const { default: common } = await import(
+    "../../../schemas/common.schema.json"
+  );
+  const ajv = new Ajv({ strict: false });
+  addFormats(ajv);
+  ajv.addSchema(common);
+  ajv.addSchema(registrySchema);
+  const validate = ajv.compile({
+    $ref: registrySchema.$id + "#/$defs/RegistryEntry/properties/widgetShape",
+  });
+  expect(validate(shape), JSON.stringify(validate.errors)).toBe(true);
+  expect(validate({ ...shape, actionOutputs: [] })).toBe(false);
+  const widgetEntry = {
+    name: "x-response-review",
+    category: "widget",
+    version: "0.1.0",
+    status: "stable",
+    description: "Display the retained frozen Response.",
+    compatibility: { formspecVersion: ">=1.0.0 <2.0.0" },
+    widgetShape: shape,
+  };
+  const document = {
+    $formspecRegistry: "1.1",
+    publisher: { name: "Shared widget test" },
+    published: "2026-10-06T12:00:00Z",
+    entries: [
+      {
+        name: "x-starter",
+        category: "module",
+        version: "0.1.0",
+        status: "stable",
+        description: "Shared starter module.",
+        compatibility: { formspecVersion: ">=1.0.0 <2.0.0" },
+        contributes: ["x-response-review"],
+      },
+      widgetEntry,
+    ],
+  };
+  const validateRegistry = ajv.getSchema(registrySchema.$id)!;
+  expect(
+    validateRegistry(document),
+    JSON.stringify(validateRegistry.errors)
+  ).toBe(true);
+  expect(
+    validateRegistry({
+      ...document,
+      entries: [
+        { ...widgetEntry, widgetShape: { ...shape, actionOutputs: [] } },
+      ],
+    })
+  ).toBe(false);
+  const p = await props();
+  const manifest = {
+    slot: "app",
+    artifactKind: "appManifest" as const,
+    status: "loaded" as const,
+    source: "memory://app",
+    document: {
+      $formspecApp: "1.0",
+      version: "1.0.0",
+      modules: [{ id: "x-starter", version: "0.1.0" }],
+    },
+  };
+  const surface = {
+    slot: "surfaces[0]",
+    artifactKind: "surface" as const,
+    status: "loaded" as const,
+    source: "memory://surface",
+    document: {
+      $formspecSurface: "0.2",
+      id: "review",
+      entry: "review",
+      routes: [
+        {
+          id: "review",
+          path: "/",
+          slots: [
+            {
+              id: "review",
+              slotType: "module-widget",
+              binding: {
+                moduleId: "x-starter",
+                widgetName: "ResponseReview",
+                config: p.config,
+              },
+            },
+          ],
+        },
+      ],
+    },
+  };
+  const registry = {
+    slot: "registries[0]",
+    artifactKind: "registry" as const,
+    status: "loaded" as const,
+    source: "memory://registry",
+    document,
+  };
+  const result = resolveModules(
+    moduleResolverInputFromAppGraph({ manifest, handles: [surface, registry] })
+  );
+  expect(result.ok, JSON.stringify(result)).toBe(true);
 });
