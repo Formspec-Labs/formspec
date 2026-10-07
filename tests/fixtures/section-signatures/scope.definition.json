@@ -1,0 +1,132 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:formspec:section-scope-example",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Section scope example",
+  "items": [
+    {
+      "key": "student",
+      "type": "group",
+      "children": [
+        {
+          "key": "name",
+          "type": "field",
+          "dataType": "string",
+          "label": "Name",
+          "partyPolicy": {
+            "visibleTo": [
+              "student"
+            ],
+            "editableBy": [
+              "student"
+            ],
+            "signedBy": [
+              "student"
+            ]
+          }
+        }
+      ],
+      "label": "Student",
+      "partyPolicy": {
+        "visibleTo": [
+          "student"
+        ],
+        "editableBy": [
+          "student"
+        ],
+        "signedBy": [
+          "student"
+        ]
+      }
+    },
+    {
+      "key": "parents",
+      "type": "group",
+      "repeatable": true,
+      "children": [
+        {
+          "key": "income",
+          "type": "field",
+          "dataType": "string",
+          "label": "Income",
+          "partyPolicy": {
+            "visibleTo": [
+              "parent"
+            ],
+            "editableBy": [
+              "parent"
+            ],
+            "signedBy": [
+              "parent"
+            ]
+          }
+        },
+        {
+          "key": "familySize",
+          "type": "field",
+          "dataType": "integer",
+          "label": "Household size",
+          "partyPolicy": {
+            "visibleTo": [
+              "parent"
+            ],
+            "editableBy": [
+              "parent"
+            ],
+            "signedBy": [
+              "parent"
+            ]
+          }
+        }
+      ],
+      "label": "Parents",
+      "partyPolicy": {
+        "visibleTo": [
+          "parent"
+        ],
+        "editableBy": [
+          "parent"
+        ],
+        "signedBy": [
+          "parent"
+        ]
+      }
+    },
+    {
+      "key": "photo",
+      "type": "field",
+      "dataType": "attachment",
+      "label": "Photo",
+      "partyPolicy": {
+        "visibleTo": [
+          "student"
+        ],
+        "editableBy": [
+          "student"
+        ],
+        "signedBy": [
+          "student"
+        ]
+      }
+    }
+  ],
+  "parties": [
+    {
+      "roleId": "student",
+      "role": "asymmetricPrimary",
+      "cardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "roleId": "parent",
+      "role": "asymmetricSecondary",
+      "cardinality": {
+        "min": 1,
+        "max": 1
+      }
+    }
+  ]
+}

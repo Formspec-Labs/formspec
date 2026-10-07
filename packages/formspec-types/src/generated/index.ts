@@ -7,7 +7,7 @@
 
 /* eslint-disable */
 
-export type { ValueClass, BuiltInWidgetName, CustomWidgetName, WidgetName, ThemeWidgetName, KernelDocUrn, CommonSchema, TargetDefinition, Tokens, Breakpoints, ContactPoint, LangMap, Party, ConceptEquivalent, StyleMap, Extensions, AccessibilityBlock, VisualSurfaceProps, ModuleRef, AuthorActor, SessionRef, Generation, ComponentNodeIdentityRef, CrossComponentRef } from './common.js';
+export type { AttachmentValue, ValueClass, BuiltInWidgetName, CustomWidgetName, WidgetName, ThemeWidgetName, KernelDocUrn, CommonSchema, TargetDefinition, Tokens, Breakpoints, ContactPoint, LangMap, Party, ConceptEquivalent, StyleMap, Extensions, AccessibilityBlock, VisualSurfaceProps, ModuleRef, AuthorActor, SessionRef, Generation, ComponentNodeIdentityRef, CrossComponentRef } from './common.js';
 export type { IssuerDocument, LogoVariant } from './issuer.js';
 export type { Item, PartyRoleRef, Shape, FELExpression, Instance, OptionSet, AssuranceLevel, PartyRoleClass, PartyVisibilityScope, MultiPartyTier, FormDefinition, DefinitionMetadata, PreparationMetadata, PreparationDocument, AcquisitionWindow, AssuranceRequirement, ConsequencesMetadata, ConsequenceDeadline, ExternalAction, PurposeMetadata, ItemPartyPolicy, Bind, Variable, OptionEntry, Migrations, MigrationDescriptor, Fees, FeeLineItem, PartyRole, PartyCardinality, PartyAssuranceFloor, MultiPartyPolicy, SeedFrom, Presentation, FormspecIssuerDocument } from './definition.js';
 export type { ComponentDocument, AnyComponent, Section, Stack, Grid, GridTrack, Card, Panel, ChildrenArray, SurfaceRouteTarget, SurfaceRef, CustomComponentDef, TextInput, NumberInput, DatePicker, Select, CheckboxGroup, Toggle, FileUpload, Heading, Text, Divider, Collapsible, ConditionalGroup, Tabs, ActionButton, Accordion, RadioGroup, MoneyInput, Slider, Rating, Signature, Alert, Badge, ProgressBar, Summary, ValidationSummary, DataTable, Modal, Popover, CustomComponentName, CustomComponentRef, LegacyFormBoundComponentDocumentIdentity, Component12DefinitionIdentity, Component12SurfaceRouteIdentity, Component12MixedIdentity, ResponsiveOverrides, ComponentBase, ComponentLayout } from './component.js';
@@ -23,7 +23,7 @@ export type { Need, Grounding, GroundingRole, NeedsDocument, Journey, Statement,
 export type { ChangelogDocument, Change } from './changelog.js';
 export type { ValidationResult } from './validation-result.js';
 export type { VerificationReceipt } from './verification-receipt.js';
-export type { ResponseMetadataPathKey, ResponseStatus, FormResponse, ResponseMetadata, ResponseProvenanceEntry, ResponseDerivationEntry, ResponseDisclosureShownEntry, AuthoredSignature, AuthoredSignatureSignedPayload, AuthoredSignatureIdentityBinding } from './response.js';
+export type { ResponseMetadataPathKey, AuthoredSignature, ResolvedItemPath, ResponseStatus, FormResponse, ResponseMetadata, ResponseProvenanceEntry, ResponseDerivationEntry, ResponseDisclosureShownEntry, AuthoredSignatureSignedPayload, AuthoredSignatureIdentityBinding } from './response.js';
 export type { IntakeHandoff, Ref, HashString, DefinitionRef } from './intake-handoff.js';
 export type { ValidationReport, FormspecValidationResult } from './validation-report.js';
 export type { LocaleDocument, SurfaceShellStringKey, ChromeStringKey, LocaleTarget } from './locale.js';

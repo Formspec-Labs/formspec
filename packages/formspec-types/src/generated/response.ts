@@ -15,6 +15,126 @@ export type ResponseMetadataPathKey = {
 };
 export type ResponseMetadataPathKey1 = string;
 /**
+ * Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act under signedPayload.canonicalization through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.
+ *
+ * This interface was referenced by `FormResponse`'s JSON-Schema
+ * via the `definition` "AuthoredSignature".
+ */
+type AuthoredSignatureEvidence = {
+  /**
+   * Definition parties[].roleId bound by this section signature. Required only for formspec-response-section-signing-v1. Role existence, signer authority and current party policy are semantic checks.
+   */
+  partyRole?: string;
+  /**
+   * Explicit set of concrete Field paths attested by this signature, stored on this signature and bound into its section payload. Array order carries no scope meaning. Required only for formspec-response-section-signing-v1. Coverage must match the signer role and the pinned Response revision; an attachment value is covered as one whole field.
+   *
+   * @minItems 1
+   */
+  coveredPaths?: [ResolvedItemPath, ...ResolvedItemPath[]];
+  /**
+   * Stable identifier for this authored signature record within the Response.
+   */
+  signatureId: string;
+  /**
+   * Identifier of the document or signing surface this authored signature affirms.
+   */
+  documentId: string;
+  /**
+   * URI identifying the signing intent or certification profile the signer accepted. MUST equal signedPayload.signingIntent. Both are required — the top-level field enables quick lookup without payload inspection; the signed-payload copy is part of what the signer assented to.
+   */
+  signingIntent: string;
+  /**
+   * Base64-encoded COSE_Sign1 byte string (RFC 9052). Detached payload; canonical signed bytes live in signedPayload.digest. The signing method is read from the COSE protected-header `method_uri` label (COSE label -65540, per ADR 0109): the URI selects the cryptographic adapter and algorithm from the Formspec signature-method registry. The former JSON method selector is deleted — only the signed COSE-internal selector counts.
+   */
+  signatureValue: string;
+  /**
+   * Stable signer identifier when the signing ceremony supplies one.
+   */
+  signerId?: string;
+  /**
+   * Human-readable signer name shown during the signing ceremony.
+   */
+  signerName: string;
+  /**
+   * UX evidence record — drawn artifacts, typed tokens, provider-managed ceremony references. NOT cryptographic verification input.
+   */
+  signerEvidence?: {
+    /**
+     * The kind of UX evidence this is.
+     */
+    kind: 'drawn' | 'typed' | 'provider-receipt';
+    /**
+     * Opaque evidence value — data URL for drawn, token for typed, reference for provider-receipt.
+     */
+    value: string;
+  };
+  /**
+   * Optional verification receipt evidence. Legacy responses may carry base64 COSE bytes with an embedded payload. Production detached receipt signing carries a structured VerificationReceipt object with base64 COSE receiptBytes.
+   */
+  verificationReceipt?: string | FormspecVerificationReceipt;
+  /**
+   * Whether the signer explicitly accepted the declared consent text as part of the signing act.
+   */
+  consentAccepted: boolean;
+  /**
+   * URI reference to the consent text the signer accepted. This keeps signing intent bound to declared text rather than to the signature image alone.
+   */
+  consentTextRef: string;
+  /**
+   * Version of the consent text accepted by the signer.
+   */
+  consentVersion: string;
+  /**
+   * Affirmation text shown to and accepted by the signer at authoring time.
+   */
+  affirmationText: string;
+  signedPayload: AuthoredSignatureSignedPayload;
+  /**
+   * Digest of the document bytes, rendered view, certification page, or signing surface shown to the signer. This is not the normative response-byte assent binding; signedPayload.digest carries that commitment.
+   */
+  documentHash: string;
+  /**
+   * Digest algorithm used to compute documentHash.
+   */
+  documentHashAlgorithm: string;
+  /**
+   * URI reference to the identity-proofing artifact or proof bundle associated with this signing act, when one exists.
+   */
+  identityProofRef?: string;
+  identityBinding?: AuthoredSignatureIdentityBinding;
+  /**
+   * Provider or adapter that supplied the signing ceremony evidence.
+   */
+  signatureProvider: string;
+  /**
+   * Identifier for the signing ceremony or provider session that produced this authored signature evidence.
+   */
+  ceremonyId: string;
+};
+
+export type AuthoredSignature =
+  | (Omit<AuthoredSignatureEvidence, 'partyRole' | 'coveredPaths' | 'signedPayload'> & {
+      partyRole: string;
+      coveredPaths: [ResolvedItemPath, ...ResolvedItemPath[]];
+      signedPayload: AuthoredSignatureSignedPayload & {
+        canonicalization: 'formspec-response-section-signing-v1';
+      };
+    })
+  | (Omit<AuthoredSignatureEvidence, 'partyRole' | 'coveredPaths' | 'signedPayload'> & {
+      partyRole?: never;
+      coveredPaths?: never;
+      signedPayload: AuthoredSignatureSignedPayload & {
+        canonicalization: 'formspec-response-signing-v1';
+      };
+    });
+/**
+ * Canonical resolved Field item path relative to Response.data, using dot notation and concrete zero-based repeat indexes (Core §4.3.3). No wildcards, JSON Pointer aliases, group shorthand or metadata paths. Resolution to a Field in the pinned Definition and signed Response revision is a semantic check.
+ *
+ * This interface was referenced by `FormResponse`'s JSON-Schema
+ * via the `definition` "ResolvedItemPath".
+ */
+export type ResolvedItemPath = string;
+/**
  * The current lifecycle status of a Response. A completed Response has no error-severity validation results; saving data remains allowed in every status.
  *
  * This interface was referenced by `FormResponse`'s JSON-Schema
@@ -54,14 +174,14 @@ export interface FormResponse {
    */
   authored: string;
   /**
-   * Submit-time pin of the resolved Issuer (post-cascade). Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer pinning is a v1 non-goal.
+   * Submit-time pin of the resolved Issuer (post-cascade). Inside the whole-response formspec-response-signing-v1 preimage by the authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer pinning is a v1 non-goal.
    */
   displayedIssuer?: {
     url: string;
     version: string;
   };
   /**
-   * Submit-time pin of the Locale document whose strings the respondent saw: its normalized locale tag and version — the document's identity within the pinned Definition (Locale §identity is target + locale) — and its url when it declares one. Omitted only when no Locale document was loaded: the Definition's inline wording was shown instead. Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload).
+   * Submit-time pin of the Locale document whose strings the respondent saw: its normalized locale tag and version — the document's identity within the pinned Definition (Locale §identity is target + locale) — and its url when it declares one. Omitted only when no Locale document was loaded: the Definition's inline wording was shown instead. Inside the whole-response formspec-response-signing-v1 preimage by the authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload).
    */
   displayedLocale?: {
     url?: string;
@@ -103,7 +223,7 @@ export interface FormResponse {
    */
   validationResults?: FormspecValidationResult[];
   /**
-   * Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act to the Formspec Signed Response Payload through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations.
+   * Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act under its named whole-response or section signing profile through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations.
    *
    * @minItems 1
    */
@@ -216,94 +336,7 @@ export interface ResponseDisclosureShownEntry {
   channel?: string;
 }
 /**
- * Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act to the Formspec Signed Response Payload through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.
- *
- * This interface was referenced by `FormResponse`'s JSON-Schema
- * via the `definition` "AuthoredSignature".
- */
-export interface AuthoredSignature {
-  /**
-   * Stable identifier for this authored signature record within the Response.
-   */
-  signatureId: string;
-  /**
-   * Identifier of the document or signing surface this authored signature affirms.
-   */
-  documentId: string;
-  /**
-   * URI identifying the signing intent or certification profile the signer accepted. MUST equal signedPayload.signingIntent. Both are required — the top-level field enables quick lookup without payload inspection; the signed-payload copy is part of what the signer assented to.
-   */
-  signingIntent: string;
-  /**
-   * Base64-encoded COSE_Sign1 byte string (RFC 9052). Detached payload; canonical signed bytes live in signedPayload.digest. The signing method is read from the COSE protected-header `method_uri` label (COSE label -65540, per ADR 0109): the URI selects the cryptographic adapter and algorithm from the Formspec signature-method registry. The former JSON method selector is deleted — only the signed COSE-internal selector counts.
-   */
-  signatureValue: string;
-  /**
-   * Stable signer identifier when the signing ceremony supplies one.
-   */
-  signerId?: string;
-  /**
-   * Human-readable signer name shown during the signing ceremony.
-   */
-  signerName: string;
-  /**
-   * UX evidence record — drawn artifacts, typed tokens, provider-managed ceremony references. NOT cryptographic verification input.
-   */
-  signerEvidence?: {
-    /**
-     * The kind of UX evidence this is.
-     */
-    kind: 'drawn' | 'typed' | 'provider-receipt';
-    /**
-     * Opaque evidence value — data URL for drawn, token for typed, reference for provider-receipt.
-     */
-    value: string;
-  };
-  /**
-   * Optional verification receipt evidence. Legacy responses may carry base64 COSE bytes with an embedded payload. Production detached receipt signing carries a structured VerificationReceipt object with base64 COSE receiptBytes.
-   */
-  verificationReceipt?: string | FormspecVerificationReceipt;
-  /**
-   * Whether the signer explicitly accepted the declared consent text as part of the signing act.
-   */
-  consentAccepted: boolean;
-  /**
-   * URI reference to the consent text the signer accepted. This keeps signing intent bound to declared text rather than to the signature image alone.
-   */
-  consentTextRef: string;
-  /**
-   * Version of the consent text accepted by the signer.
-   */
-  consentVersion: string;
-  /**
-   * Affirmation text shown to and accepted by the signer at authoring time.
-   */
-  affirmationText: string;
-  signedPayload: AuthoredSignatureSignedPayload;
-  /**
-   * Digest of the document bytes, rendered view, certification page, or signing surface shown to the signer. This is not the normative response-byte assent binding; signedPayload.digest carries that commitment.
-   */
-  documentHash: string;
-  /**
-   * Digest algorithm used to compute documentHash.
-   */
-  documentHashAlgorithm: string;
-  /**
-   * URI reference to the identity-proofing artifact or proof bundle associated with this signing act, when one exists.
-   */
-  identityProofRef?: string;
-  identityBinding?: AuthoredSignatureIdentityBinding;
-  /**
-   * Provider or adapter that supplied the signing ceremony evidence.
-   */
-  signatureProvider: string;
-  /**
-   * Identifier for the signing ceremony or provider session that produced this authored signature evidence.
-   */
-  ceremonyId: string;
-}
-/**
- * Digest commitment for the Formspec Signed Response Payload. This Formspec profile shape omits authoredSignatures, applies the formspec.response.signed-payload.v1 domain tag, and consumes the shared integrity-canonical-json-v1 canonical-byte primitive. The digest remains stable when later co-signatures are appended.
+ * Digest commitment under the named Formspec signing profile. formspec-response-signing-v1 hashes the whole Response with authoredSignatures omitted; formspec-response-section-signing-v1 binds the party role, explicit covered paths and attested section values with Response/Definition pins, signing time and intent. Section bytes and vectors are owned by integrity-stack; accepting this schema is not cryptographic verification.
  *
  * This interface was referenced by `FormResponse`'s JSON-Schema
  * via the `definition` "AuthoredSignatureSignedPayload".
@@ -312,13 +345,13 @@ export interface AuthoredSignatureSignedPayload {
   /**
    * Formspec response-signing profile used to produce the signed-payload bytes. Keep this wire-visible profile name distinct from the shared integrity-canonical-json-v1 substrate primitive it consumes.
    */
-  canonicalization: 'formspec-response-signing-v1';
+  canonicalization: 'formspec-response-signing-v1' | 'formspec-response-section-signing-v1';
   /**
    * Digest algorithm used to hash the canonical signed payload. Initial signed-payload commitments use sha-256 only.
    */
   digestAlgorithm: 'sha-256';
   /**
-   * Digest of the Formspec Signed Response Payload: the canonical Response envelope with authoredSignatures omitted.
+   * Digest of the payload selected by canonicalization: the whole Response with authoredSignatures omitted for the whole-response profile, or the bound role, coverage and attested section for the section profile. This is not IntakeHandoff.responseHash.
    */
   digest: string;
   /**

@@ -7,6 +7,51 @@
 
 /* eslint-disable */
 /**
+ * Attachment field value from Core §4.2.3. Binary content is out of band when url is used; the Response stores this complete value at the attachment field path. A URL alone does not prove remote file byte integrity. Existing Response.data remains open and Definition-aware validation checks field types.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "AttachmentValue".
+ */
+export type AttachmentValue =
+  | {
+      /**
+       * MIME type of the attachment.
+       */
+      contentType: string;
+      /**
+       * Reference to the retained file bytes, resolved by the host.
+       */
+      url: string;
+      /**
+       * Base64-encoded content for the existing inline attachment representation.
+       */
+      data?: string;
+      /**
+       * Optional file size in bytes.
+       */
+      size?: number;
+      [k: string]: unknown;
+    }
+  | {
+      /**
+       * MIME type of the attachment.
+       */
+      contentType: string;
+      /**
+       * Reference to the retained file bytes, resolved by the host.
+       */
+      url?: string;
+      /**
+       * Base64-encoded content for the existing inline attachment representation.
+       */
+      data: string;
+      /**
+       * Optional file size in bytes.
+       */
+      size?: number;
+      [k: string]: unknown;
+    };
+/**
  * Shared origin class for response values and respondent-ledger changes. Closed-core values mirror respondent-ledger-event.schema.json ChangeSetEntry.valueClass; module-contributed extensions use the x-* registry lane.
  *
  * This interface was referenced by `CommonSchema`'s JSON-Schema

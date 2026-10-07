@@ -1,0 +1,15 @@
+{
+  "$formspecIntakeHandoff": "1.0",
+  "handoffId": "handoff-section-001",
+  "initiationMode": "publicIntake",
+  "definitionRef": {
+    "url": "urn:formspec:section-scope-example",
+    "version": "1.0.0"
+  },
+  "responseRef": "urn:formspec:response:resp-section-001",
+  "responseHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "validationReportRef": "urn:formspec:validation-report:001",
+  "intakeSessionId": "intake-001",
+  "ledgerHeadRef": "urn:formspec:proof-record:001",
+  "occurredAt": "2026-10-06T20:00:00Z"
+}

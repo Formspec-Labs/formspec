@@ -34,7 +34,7 @@ export type IntakeHandoff = {
    */
   responseRef: string;
   /**
-   * Digest of the canonical Response envelope referenced by responseRef, including the current authoredSignatures array when signatures are present. This handoff digest is distinct from authoredSignatures[*].signedPayload.digest, which hashes the signer-assented payload with authoredSignatures omitted.
+   * Digest of the canonical Response envelope referenced by responseRef, including the current authoredSignatures array when signatures are present. This handoff digest is distinct from authoredSignatures[*].signedPayload.digest, which hashes the signer-assented payload selected by signedPayload.canonicalization: the whole Response with authoredSignatures omitted, or that signature's bound section. responseHash always covers the complete transferred Response, never just a section.
    */
   responseHash: string;
   /**

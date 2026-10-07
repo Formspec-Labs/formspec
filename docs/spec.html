@@ -1024,10 +1024,11 @@ chronologically.</td>
 <td>no</td>
 <td>—</td>
 <td>Canonical authored-signature evidence records attached to this
-Response. Each entry binds one signer/document act to the Formspec
-Signed Response Payload through signedPayload.digest. These records are
-distinct from respondent-ledger attestations: they are authored evidence
-produced at signing time, not later audit-history observations.</td>
+Response. Each entry binds one signer/document act under its named
+whole-response or section signing profile through signedPayload.digest.
+These records are distinct from respondent-ledger attestations: they are
+authored evidence produced at signing time, not later audit-history
+observations.</td>
 </tr>
 <tr>
 <td><code>#/properties/data</code></td>
@@ -1076,9 +1077,9 @@ change for the lifetime of the Response.</td>
 <td>no</td>
 <td>critical</td>
 <td>Submit-time pin of the resolved Issuer (post-cascade). Inside the
-signed-payload preimage by the existing authoredSignatures-only omission
-rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer
-pinning is a v1 non-goal.</td>
+whole-response formspec-response-signing-v1 preimage by the
+authoredSignatures-only omission rule (specs/core/spec.md §Signed
+Response Payload). Per-event Issuer pinning is a v1 non-goal.</td>
 </tr>
 <tr>
 <td><code>#/properties/displayedLocale</code></td>
@@ -1091,8 +1092,9 @@ saw: its normalized locale tag and version — the document’s identity
 within the pinned Definition (Locale §identity is target + locale) — and
 its url when it declares one. Omitted only when no Locale document was
 loaded: the Definition’s inline wording was shown instead. Inside the
-signed-payload preimage by the existing authoredSignatures-only omission
-rule (specs/core/spec.md §Signed Response Payload).</td>
+whole-response formspec-response-signing-v1 preimage by the
+authoredSignatures-only omission rule (specs/core/spec.md §Signed
+Response Payload).</td>
 </tr>
 <tr>
 <td><code>#/properties/extensions</code></td>
@@ -1240,9 +1242,9 @@ also represented by an actual Definition item path in the item tree.</p>
 respondent attestation. Processors MUST NOT compute or expose an
 aggregate “AI score” from per-field provenance.</p>
 <p>A Response MAY carry one or more <code>authoredSignatures</code>
-records. Each record binds one signer/document act to the Formspec
-Signed Response Payload, not merely to a widget control in
-<code>data</code>.</p>
+records. Each record binds one signer/document act to the payload
+selected by <code>signedPayload.canonicalization</code>, not merely to a
+widget control in <code>data</code>.</p>
 <p>An <code>authoredSignatures</code> record is for authored evidence
 produced at signing time. It is distinct from respondent-ledger
 <code>attestation.captured</code> events, which are audit-history
@@ -1259,7 +1261,7 @@ MUST equal that top-level <code>id</code>,</li>
 and <code>signedPayload.definitionVersion</code> MUST equal the
 top-level Response pins,</li>
 <li>each <code>authoredSignatures[*].signedPayload.digest</code> MUST
-verify against the Formspec Signed Response Payload using
+verify against the payload selected by
 <code>signedPayload.canonicalization</code> and the v1-required
 <code>signedPayload.digestAlgorithm</code> value
 <code>sha-256</code>,</li>
@@ -1271,12 +1273,13 @@ the signer, and</li>
 (<code>consentAccepted</code>, <code>consentTextRef</code>,
 <code>consentVersion</code>, <code>affirmationText</code>).</li>
 </ul>
-<p>The Formspec Signed Response Payload is the Response object after
-normal response emission, with <code>authoredSignatures</code> omitted.
-All other emitted Response fields remain in scope unless this section
-explicitly marks a field as unsigned. This omission rule avoids
-self-reference and allows later co-signatures to be appended without
-invalidating earlier signatures.</p>
+<p>For <code>formspec-response-signing-v1</code>, the Formspec Signed
+Response Payload is the Response object after normal response emission,
+with <code>authoredSignatures</code> omitted. All other emitted Response
+fields remain in scope unless this section explicitly marks a field as
+unsigned. This omission rule avoids self-reference and allows later
+co-signatures to be appended without invalidating earlier
+signatures.</p>
 <p>The <code>formspec-response-signing-v1</code> canonicalization
 profile uses UTF-8 encoded canonical JSON, deterministic object member
 ordering, no insignificant whitespace, stable representation of numbers,
@@ -1289,9 +1292,10 @@ canonical-byte primitive but does not rename the wire-visible Formspec
 profile. Formspec owns the projection rule that omits
 <code>authoredSignatures</code> and the domain separation string
 <code>formspec.response.signed-payload.v1</code>.</p>
-<p>Formspec authored-signature byte production is the normative
-composition of two substrate primitives:
-<code>integrity-canonical-json-v1</code> (RFC 8785 JCS bytes framed as
+<p>Whole-response authored-signature byte production under
+<code>formspec-response-signing-v1</code> is the normative composition
+of two substrate primitives: <code>integrity-canonical-json-v1</code>
+(RFC 8785 JCS bytes framed as
 <code>domain || NUL || canonical-json</code>, source of truth
 <code>integrity-stack/crates/integrity-canonical/</code>) and
 <code>integrity-cose</code> (the RFC 9052 COSE_Sign1 envelope and
@@ -1330,7 +1334,7 @@ algorithm registry in <code>formspec-response-signing-v1</code>.</p>
 <h5
 id="authored-signature-domain-separation-and-preimage">Authored-Signature
 Domain Separation and Preimage</h5>
-<p>The byte preimage for
+<p>For <code>formspec-response-signing-v1</code>, the byte preimage for
 <code>authoredSignatures[*].signedPayload.digest</code> is exactly:</p>
 <pre class="text"><code>payload_preimage =
   UTF8(&quot;formspec.response.signed-payload.v1&quot;) ||
@@ -1442,15 +1446,16 @@ these result codes when reporting verification failure or success:</p>
 <li><code>unsupported-signature-method</code></li>
 <li><code>clock-policy-failed</code></li>
 </ul>
-<p>Verification proceeds by validating the Response schema, checking the
-Response pins in <code>signedPayload</code>, constructing the Formspec
-Signed Response Payload by omitting <code>authoredSignatures</code>,
-canonicalizing with <code>formspec-response-signing-v1</code>, hashing
-with the v1-required SHA-256 <code>signedPayload.digestAlgorithm</code>,
-comparing the computed digest to <code>signedPayload.digest</code>,
-checking consent and signing-intent evidence, and applying
-method/provider-specific verification where the signature method
-requires an external verifier.</p>
+<p>For <code>formspec-response-signing-v1</code>, verification proceeds
+by validating the Response schema, checking the Response pins in
+<code>signedPayload</code>, constructing the Formspec Signed Response
+Payload by omitting <code>authoredSignatures</code>, canonicalizing with
+<code>formspec-response-signing-v1</code>, hashing with the v1-required
+SHA-256 <code>signedPayload.digestAlgorithm</code>, comparing the
+computed digest to <code>signedPayload.digest</code>, checking consent
+and signing-intent evidence, and applying method/provider-specific
+verification where the signature method requires an external
+verifier.</p>
 <blockquote>
 <p><strong>Example.</strong> A completed Response (this object includes
 every required top-level property in
@@ -1523,9 +1528,10 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href=
 <span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 </blockquote>
 <h6 id="stability-contract">Stability Contract</h6>
-<p>The Formspec Signed Response Payload preimage and its enclosing
-<code>Sig_structure</code> together constitute a stability contract. The
-byte-authority source of truth for the preimage construction is
+<p>The whole-response <code>formspec-response-signing-v1</code> preimage
+and its enclosing <code>Sig_structure</code> together constitute a
+stability contract. The byte-authority source of truth for the preimage
+construction is
 <code>integrity-stack/crates/integrity-canonical/src/lib.rs</code> —
 <code>CANONICALIZATION_PROFILE</code> (line 20),
 <code>DOMAIN_SEPARATION</code> (line 23), and
@@ -1576,10 +1582,85 @@ with a behavior fork.</p>
 <p>Conformant verifiers MUST reject any authored signature whose
 protected-header <code>method_uri</code> resolves to a profile not
 present in the verifier’s registered profile set; method dispatch is
-closed-enum at the verifier (see ADR 0109). Profile additions are
-coordinated spec changes, not additive registry entries: a new profile
-lands together with its preimage definition, its fixture vector, and its
-registered <code>method_uri</code>.</p>
+closed-enum at the verifier (see ADR 0109). Profile additions require
+coordinated preimage definitions, fixture vectors and compatible method
+dispatch before cryptographic production or verification is enabled. The
+section profile below defines schema and scope first; it MUST NOT be
+treated as byte-level conformance until shared integrity-stack vectors
+and implementation are available. The canonicalization profile and
+protected-header method URI remain distinct selectors.</p>
+<h4 id="section-signature-scope">Section-Signature Scope</h4>
+<p><code>formspec-response-section-signing-v1</code> is a separate
+authored-signature profile. It preserves the whole-response profile
+unchanged. A section signature MUST carry <code>partyRole</code> and
+<code>coveredPaths</code> on that <code>AuthoredSignature</code> record;
+these fields MUST NOT be interpreted as a partial scope for
+<code>formspec-response-signing-v1</code>. The whole-response profile
+does not admit these section-scope fields.</p>
+<p><code>partyRole</code> MUST resolve to a
+<code>parties[*].roleId</code> in the pinned Definition.
+<code>coveredPaths</code> MUST be a nonempty set of unique, canonical
+resolved Field paths relative to <code>Response.data</code>, using Core
+§4.3.3 dot notation and concrete zero-based repeat indexes, for example
+<code>parents[0].income</code>. Wildcards, JSON Pointer aliases,
+leading-zero indexes, FEL selectors, group shorthand and metadata paths
+are not covered-path representations. Array order carries no scope
+meaning. Each path MUST resolve to a Field in the pinned Definition and
+the signed Response revision. An attachment is covered as its complete
+field value, not as individual file-reference properties. Schema
+validation checks syntax; role existence, resolution, signer authority
+and effective <code>signedBy</code> coverage require Definition-aware
+semantic validation.</p>
+<p>The section payload MUST bind the signature’s <code>partyRole</code>,
+complete <code>coveredPaths</code> set and the owner’s attested values
+at those paths, together with <code>signedPayload.responseId</code>,
+<code>definitionUrl</code>, <code>definitionVersion</code>,
+<code>signedAt</code> and <code>signingIntent</code>. The role and
+coverage are signed inputs even though they are stored beside
+<code>signedPayload</code>, not inside it. Party-scoped consent,
+identity and ceremony evidence MUST describe what that party saw and
+affirmed. An independently entered shared answer MUST retain its party
+attribution; one party’s edit MUST NOT silently replace another party’s
+attested value.</p>
+<p>A change to a covered value, role or covered-path set makes that
+signature insufficient for the revised section and requires its owner to
+sign again. Changes outside that section MUST NOT invalidate an
+unchanged section signature. Hosts MUST retain earlier signed revisions
+and explicit references to their replacements;
+<code>authoredSignatures</code> remains the signature authority, not a
+separate signing-state array. Concrete repeat indexes identify positions
+within the signed revision: insertion, deletion or reorder MUST NOT
+silently retarget an earlier signature. A report certifier’s section MAY
+cover the entire report the certifier attests to, not only the
+certifier’s identity fields. A separate certification Response remains a
+separate signed Response.</p>
+<p>The assembled current Response is complete only when all required
+parties have current signatures satisfying the effective policy.
+Acceptance MUST check the current Response and signatures atomically,
+including role, coverage and section digests. Retry MUST NOT create
+another intake or case. These are semantic requirements; this schema
+addition does not implement engine enforcement or change Intake Handoff
+party activation.</p>
+<p>Formspec owns these schema names, path representation and scope
+semantics. The canonical signed-section byte encoding, domain separation
+and shared positive/negative vectors are owned by integrity-stack. This
+section does not reuse the whole-response preimage for a section or
+prescribe a speculative encoding. A processor lacking registered
+section-byte support MUST reject section cryptographic
+production/verification as unsupported, even when the Response is
+schema-valid. Shape fixtures use illustrative digests and are not
+signed-byte vectors. Section byte support and independent re-signing
+require those shared vectors before runtime conformance can be
+claimed.</p>
+<p><code>IntakeHandoff.responseHash</code> commits the complete
+transferred Response, including every current
+<code>authoredSignatures</code> entry, under the handoff’s existing hash
+rules. It is distinct from each section’s
+<code>signedPayload.digest</code>. Initial intake MUST preserve the
+whole Response, including identity/version pins, captured data, emitted
+metadata, displayed language and issuer, and authored signatures. It
+MUST NOT flatten the Response to answers or replace the whole handoff
+hash with a section digest.</p>
 <h4 id="issuer-binding">Issuer Binding</h4>
 <p>A Definition MAY declare <code>issuer</code>. The property binds the
 Definition to the respondent-facing Issuer identity described in <a
@@ -1618,8 +1699,8 @@ Issuer identity data, including name, parent chain, logo URL, contact
 point, jurisdiction, and document identity, lives in the Issuer
 document.</p>
 <p>Response <code>displayedIssuer</code> records the resolved primary
-Issuer at submit time. As specified in the Signed Response Payload rules
-above, the only top-level field omitted from the JCS preimage is
+Issuer at submit time. Under <code>formspec-response-signing-v1</code>,
+the only top-level field omitted from the JCS preimage is
 <code>authoredSignatures</code>; <code>displayedIssuer</code> therefore
 remains inside <code>response_without_authoredSignatures</code> and
 inside the signed-payload digest. No canonicalization-profile change is
@@ -1636,8 +1717,9 @@ were shown, not the Definition’s inline text a later reader might
 assume: pinning only
 <code>definitionUrl</code>/<code>definitionVersion</code> leaves the
 actual on-screen language unrecorded whenever a Locale document
-translated it. By the same <code>authoredSignatures</code>-only omission
-rule, <code>displayedLocale</code> remains inside
+translated it. Under the whole-response profile, by the same
+<code>authoredSignatures</code>-only omission rule,
+<code>displayedLocale</code> remains inside
 <code>response_without_authoredSignatures</code> and inside the
 signed-payload digest. No canonicalization-profile change is required
 for Locale pinning.</p>
@@ -1782,7 +1864,10 @@ handoff time.</td>
 including the current authoredSignatures array when signatures are
 present. This handoff digest is distinct from
 authoredSignatures[*].signedPayload.digest, which hashes the
-signer-assented payload with authoredSignatures omitted.</td>
+signer-assented payload selected by signedPayload.canonicalization: the
+whole Response with authoredSignatures omitted, or that signature’s
+bound section. responseHash always covers the complete transferred
+Response, never just a section.</td>
 </tr>
 <tr>
 <td><code>#/properties/responseRef</code></td>
@@ -5977,6 +6062,19 @@ decimal number) and <code>currency</code> (string, ISO 4217 code). See
 </tr>
 </tbody>
 </table>
+<p>Attachment field values use the existing
+<code>{contentType, url or data}</code> shape, exposed as
+<code>common.schema.json#/$defs/AttachmentValue</code>. <code>url</code>
+references file bytes retained out of band; <code>data</code> carries
+Base64 content. Both MAY be present; no exclusive-choice rule is
+imposed. <code>size</code> is optional file size in bytes. Additional
+file metadata remains host-defined. <code>Response.data</code> remains
+an open object; a Definition-aware validator checks attachment values at
+attachment Field paths. This reusable shape does not add a parallel
+Intake Handoff file list or duplicate the captured value. Signing a URL
+reference alone does not prove the remote binary bytes: the host MUST
+preserve the retained file and its integrity evidence for later byte
+verification.</p>
 <p>Implementations MAY support additional data types via the
 <code>extensions</code> mechanism. Unrecognized data types MUST be
 treated as <code>"string"</code> for storage and SHOULD produce a
@@ -7155,9 +7253,11 @@ apply).</p>
 <h4 id="interaction-with-ext-3-response-authored-signatures">4.8.5
 Interaction with EXT-3 (Response Authored Signatures)</h4>
 <p>Per ADR-0155 §5, each party’s signing act produces an
-<code>AuthoredSignature</code> record on the Response. The
-<code>partyRole</code> field on <code>AuthoredSignature</code> (landed
-by EXT-3) MUST equal the <code>roleId</code> of a
+<code>AuthoredSignature</code> record on the Response using
+<code>formspec-response-section-signing-v1</code>. The
+<code>partyRole</code> field and explicit <code>coveredPaths</code> set
+on each signature MUST bind that party’s section as specified in §2.1.6.
+<code>partyRole</code> MUST equal the <code>roleId</code> of a
 <code>parties[*]</code> entry declared in the Definition referenced by
 the Response. Implementations verifying a multi-party Response MUST:</p>
 <ol type="1">
@@ -7167,8 +7267,13 @@ declared <code>parties[*].roleId</code>.</li>
 <code>parties[*].cardinality.min</code>) are satisfied.</li>
 <li>Confirm <code>signedBy</code> policies (per §4.8.3) are satisfied —
 every item whose <code>partyPolicy.signedBy</code> enumerates a
-<code>roleId</code> has at least one <code>AuthoredSignature</code> from
-a party bound to that slot covering it.</li>
+<code>roleId</code> has at least one current section
+<code>AuthoredSignature</code> from a party bound to that slot whose
+explicit <code>coveredPaths</code> covers the concrete Field
+values.</li>
+<li>Verify each section digest and independent re-signing under §2.1.6;
+a common whole-response digest does not satisfy multi-party section
+signing.</li>
 </ol>
 <p>A <code>partySignatures[]</code> projection at the Response wire
 level is OPTIONAL per ADR-0155 §5; when present it MUST be derivable

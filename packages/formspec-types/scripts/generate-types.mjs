@@ -407,6 +407,29 @@ function postProcess(ts, moduleName) {
   }
 
   if (moduleName === 'response') {
+    // json-schema-to-typescript drops if/then requirements and adds an open
+    // intersection. Preserve the schema's profile-dependent scope in TS.
+    const signatureShape = /^export type AuthoredSignature = \{\s*\[k: string\]: unknown;\s*\} & (\{[\s\S]*?^\});/m;
+    if (!signatureShape.test(result)) {
+      throw new Error('AuthoredSignature conditional shape changed; review section scope codegen');
+    }
+    result = result.replace(signatureShape, (_match, evidence) => `type AuthoredSignatureEvidence = ${evidence};
+
+export type AuthoredSignature =
+  | (Omit<AuthoredSignatureEvidence, 'partyRole' | 'coveredPaths' | 'signedPayload'> & {
+      partyRole: string;
+      coveredPaths: [ResolvedItemPath, ...ResolvedItemPath[]];
+      signedPayload: AuthoredSignatureSignedPayload & {
+        canonicalization: 'formspec-response-section-signing-v1';
+      };
+    })
+  | (Omit<AuthoredSignatureEvidence, 'partyRole' | 'coveredPaths' | 'signedPayload'> & {
+      partyRole?: never;
+      coveredPaths?: never;
+      signedPayload: AuthoredSignatureSignedPayload & {
+        canonicalization: 'formspec-response-signing-v1';
+      };
+    });`);
     result = addCommonImport(result, ['ValueClass']);
     result = result.replace(
       /(export interface ResponseProvenanceEntry \{[\s\S]*?  \*\/\n  )class:[\s\S]*?;\n  \/\*\*/m,
@@ -697,6 +720,19 @@ async function main() {
     const schema = file === 'response-actions.schema.json'
       ? inlineResponseActionsCompileRefs(rawSchema)
       : rawSchema;
+    if (file === 'common.schema.json') {
+      // Expand required-only alternatives for the compiler, which otherwise
+      // drops AttachmentValue's shared properties. Canonical schema stays DRY.
+      const attachment = schema.$defs.AttachmentValue;
+      const { anyOf, ...value } = attachment;
+      schema.$defs.AttachmentValue = {
+        description: value.description,
+        anyOf: anyOf.map((branch) => ({
+          ...value,
+          required: [...value.required, ...branch.required],
+        })),
+      };
+    }
     if (file === 'response-actions.schema.json') {
       delete schema.$id;
     }
