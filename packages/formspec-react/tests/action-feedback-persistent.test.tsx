@@ -8,6 +8,7 @@ import { FormspecForm, FormspecFormContent } from '../src/renderer.js';
 import { FormspecProvider, useFormspecContext, type ResponseActionInvokerInput } from '../src/context.js';
 import { FormspecNode } from '../src/node-renderer.js';
 import { createSemanticControlRegistry } from '../src/semantic-controls.js';
+import { createActionFeedbackStore } from '../src/action-feedback.js';
 
 beforeAll(() => initFormspecEngine());
 const definition = { $formspec: '1.0', url: 'urn:persistent-feedback', version: '1.0.0',
@@ -74,6 +75,62 @@ describe('persistent action feedback', () => {
         const status = container.querySelector('[role="status"]')!;
         expect(status.getAttribute('data-need-anchors')).toBe('need:save-control@1 need:save-result@1');
         engine.dispose();
+    });
+    it.each(['completion-commit', 'before-settlement'])('recovers through connected focusout during renderer removal: %s', async timing => {
+        const engine = createFormEngine(definition); const pending = operation();
+        const { container } = mount(<StrictMode>{form({ engine, responseActionInvoker: pending.invoker,
+            componentDocument: component("not(@instance('draftReadiness').owned)"),
+            onHostEvent: () => engine.setInstanceValue('draftReadiness', 'owned', true) })}</StrictMode>);
+        const control = button(container); control.focus(); await click(container);
+        const status = container.querySelector<HTMLElement>('[role="status"]')!;
+        const focus = vi.spyOn(status, 'focus'); // Delegate the real method; native reveal uses no preventScroll option.
+        const events: { connected: boolean; active: boolean }[] = [];
+        const nativeRemove = Node.prototype.removeChild;
+        // Model live028's native event inside actual React deletion, delegating real DOM removal.
+        // This establishes policy for that order; it is not native browser evidence.
+        vi.spyOn(Node.prototype, 'removeChild').mockImplementation(function <T extends Node>(this: Node, child: T): T {
+            if (child.contains(control) && control.isConnected && document.activeElement === control) {
+                events.push({ connected: control.isConnected, active: document.activeElement === control });
+                control.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+            }
+            return nativeRemove.call(this, child) as T;
+        });
+        if (timing === 'before-settlement') act(() => engine.setInstanceValue('draftReadiness', 'owned', true));
+        await act(async () => { pending.finish(); await pending.gate; });
+        expect(events).toEqual([{ connected: true, active: true }]); expect(control.isConnected).toBe(false);
+        expect(message(container)).toBe('Completed.'); expect(document.activeElement).toBe(status);
+        expect(focus).toHaveBeenCalledExactlyOnceWith();
+        engine.dispose();
+    });
+    it.each(['reattach', 'replacement', 'unrelated-attachment'] as const)('bounds an already marked pending claim across %s', async change => {
+        const engine = createFormEngine(definition); const store = createActionFeedbackStore(engine);
+        const unregister = store.register('origin'); const stop = store.connect();
+        const source = document.createElement('button'); const other = document.createElement('button');
+        const target = document.createElement('div'); target.tabIndex = -1; target.textContent = 'Completed.';
+        document.body.append(source, other, target); source.focus();
+        const ticket = store.start('origin', 'save-draft', [], source)!;
+        try {
+            store.focusSourceWillDetach(source);
+            if (change === 'reattach') store.focusSourceDidAttach(source, source);
+            if (change === 'replacement') store.focusSourceDidAttach(other, source);
+            if (change === 'unrelated-attachment') store.focusSourceDidAttach(other);
+            source.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+            source.remove(); store.settle(ticket, 'completed'); store.recoverFocus(ticket, target);
+            if (change === 'unrelated-attachment') expect(document.activeElement).toBe(target);
+            else expect(document.activeElement).not.toBe(target);
+        } finally { unregister(); stop(); engine.dispose(); }
+    });
+    it('connected focusout before renderer detach permanently cancels recovery', async () => {
+        const engine = createFormEngine(definition); const pending = operation();
+        const { container } = mount(form({ engine, responseActionInvoker: pending.invoker,
+            componentDocument: component("not(@instance('draftReadiness').owned)"),
+            onHostEvent: () => engine.setInstanceValue('draftReadiness', 'owned', true) }));
+        const control = button(container); control.focus(); await click(container);
+        expect(control.isConnected).toBe(true);
+        control.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+        await act(async () => { pending.finish(); await pending.gate; });
+        expect(control.isConnected).toBe(false); expect(message(container)).toBe('Completed.');
+        expect(document.activeElement).not.toBe(container.querySelector('[role="status"]')); engine.dispose();
     });
     it('recovers after the conditional branch disappears before terminal settlement', async () => {
         const engine = createFormEngine(definition); const pending = operation();

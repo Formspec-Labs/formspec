@@ -38,10 +38,11 @@ function captureFocusedOrigin(source: HTMLElement | null | undefined, onCancel: 
     const document = source.ownerDocument;
     const window = document.defaultView;
     let eligible = true;
+    let removing = false;
     const cancel = () => { eligible = false; dispose(); onCancel(); };
     const focusIn = (event: FocusEvent) => { if (event.target !== source) cancel(); };
-    // Removal can leave BODY focused without an explicit blur. A connected-source blur is intentional.
-    const focusOut = () => { if (source.isConnected) cancel(); };
+    // Native removal can emit focusout while still connected. Only our exact ref detachment admits it.
+    const focusOut = () => { if (source.isConnected && !removing) cancel(); };
     const keyDown = (event: KeyboardEvent) => { if (event.key === 'Tab') cancel(); };
     const pointerDown = (event: Event) => { if (event.target !== source && !source.contains(event.target as Node)) cancel(); };
     const visibility = () => { if (document.visibilityState === 'hidden') cancel(); };
@@ -61,6 +62,13 @@ function captureFocusedOrigin(source: HTMLElement | null | undefined, onCancel: 
     window?.addEventListener('blur', cancel);
     return {
         dispose,
+        willDetach(candidate: HTMLElement) {
+            if (candidate === source && document.activeElement === source) removing = true;
+        },
+        didAttach(candidate: HTMLElement, previous?: HTMLElement | null) {
+            if (candidate === source) removing = false;
+            else if (previous === source) cancel();
+        },
         recover(target: HTMLElement) {
             dispose(); // Retire before our own focusin; never repeat on Locale or later branch changes.
             if (!eligible || source.isConnected || !target.isConnected || target.ownerDocument !== document
@@ -73,7 +81,7 @@ function captureFocusedOrigin(source: HTMLElement | null | undefined, onCancel: 
                 if (ancestor.hidden || ancestor.hasAttribute('inert') || ancestor.getAttribute('aria-hidden') === 'true'
                     || style?.display === 'none' || style?.visibility === 'hidden' || style?.visibility === 'collapse') return;
             }
-            target.focus({ preventScroll: true });
+            target.focus(); // Native focus reveals the qualified result when it is outside the viewport.
         },
     };
 }
@@ -128,6 +136,8 @@ export function createActionFeedbackStore(engine: IFormEngine) {
             state.value = { ticket, anchors, feedback: { phase: 'pending', intent } };
             return ticket;
         },
+        focusSourceWillDetach(source: HTMLElement) { focusOrigin?.willDetach(source); },
+        focusSourceDidAttach(source: HTMLElement, previous?: HTMLElement | null) { focusOrigin?.didAttach(source, previous); },
         recoverFocus(ticket: Ticket, target: HTMLElement) {
             if (!active || !refresh()) return;
             const owned = state.peek();

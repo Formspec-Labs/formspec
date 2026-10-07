@@ -168,6 +168,17 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     const outlet = useActionFeedbackOutlet();
     const statusId = outlet?.id ?? localStatusId;
     const controlRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const lastButtonRef = useRef<HTMLButtonElement>(null);
+    const setButtonRef = useCallback((source: HTMLButtonElement | null) => {
+        const previous = buttonRef.current;
+        if (previous && previous !== source) outlet?.store.focusSourceWillDetach(previous);
+        buttonRef.current = source;
+        if (source) {
+            outlet?.store.focusSourceDidAttach(source, lastButtonRef.current);
+            lastButtonRef.current = source;
+        }
+    }, [outlet?.store]);
     const inFlightRef = useRef<Promise<ResponseActionInvocationResult<SubmitResult>> | null>(null);
     const [feedback, setFeedback] = useState<ActionFeedback>({ phase: 'idle' });
 
@@ -284,7 +295,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
 
         const intent = resolution.action?.intent;
         const ticket = outlet?.store.start(outlet.id, intent, [...(node.needAnchors ?? []), ...actionNeedAnchors],
-            controlRef.current?.querySelector<HTMLButtonElement>('button'));
+            buttonRef.current);
         setFeedback({ phase: 'pending' });
         const invocation = invoke(invocationContext);
         const tracked = invocation.then(
@@ -367,6 +378,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     return (
         <div ref={controlRef} className="formspec-action-control" {...needAttrs}>
             <button
+                ref={setButtonRef}
                 // type="button" mirrors the webcomponent's ActionButton renderer
                 // (packages/formspec-webcomponent/src/components/interactive.ts):
                 // §10 is silent on the HTML type, but if an ActionButton lives
