@@ -280,6 +280,11 @@ impl ExtensionItem for JsonDefinitionItem {
     fn declared_extensions(&self) -> Vec<String> {
         let mut found = Vec::new();
         for (name, value) in &self.extra {
+            // Item.x-generation is canonical Generation provenance, not a registry extension.
+            // The separate `extensions` declaration channel still requires registry resolution.
+            if name == "x-generation" {
+                continue;
+            }
             if !name.starts_with("x-") {
                 continue;
             }
@@ -379,6 +384,71 @@ mod tests {
             deprecation_notice: None,
         });
         reg
+    }
+
+    #[test]
+    fn canonical_item_generation_is_preserved_without_registry_diagnostics() {
+        let generation = serde_json::json!({
+            "generatedBy": "test-author",
+            "anchors": ["need:review-provenance@1"]
+        });
+        let input = serde_json::json!([
+            {"key": "group", "type": "group", "x-generation": generation,
+             "children": [
+                {"key": "field", "type": "field", "dataType": "string",
+                 "x-generation": generation},
+                {"key": "display", "type": "display", "x-generation": generation}
+             ]}
+        ]);
+        let original = input.clone();
+        let items = json_definition_items_tree_from_value(&input).expect("valid Item tree");
+
+        assert!(validate_extension_usage(&items, &MapRegistry::new()).is_empty());
+        assert_eq!(items[0].extra["x-generation"], generation);
+        for child in &items[0].children {
+            assert_eq!(child.extra["x-generation"], generation);
+        }
+        assert_eq!(input, original);
+    }
+
+    #[test]
+    fn provenance_exception_keeps_nested_and_unknown_extension_refusals() {
+        let input = serde_json::json!([
+            {"key": "group", "type": "group", "x-generation": {},
+             "x-generation-extra": true, "x-disabled": false,
+             "extensions": {"x-generation": true, "x-disabled": false},
+             "children": [{"key": "child", "type": "field", "dataType": "string",
+                           "x-generation": {}, "x-custom": true}]}
+        ]);
+        let items = json_definition_items_tree_from_value(&input).expect("valid Item tree");
+        let issues = validate_extension_usage(&items, &MapRegistry::new());
+
+        assert_eq!(issues.len(), 3);
+        assert_eq!(issues[0].path, "group");
+        assert_eq!(issues[0].extension, "x-generation");
+        assert_eq!(issues[1].extension, "x-generation-extra");
+        assert_eq!(issues[2].path, "group.child");
+        assert_eq!(issues[2].extension, "x-custom");
+        assert!(
+            issues
+                .iter()
+                .all(|issue| issue.code == ExtensionErrorCode::UnresolvedExtension)
+        );
+    }
+
+    #[test]
+    fn canonical_provenance_keeps_registered_extension_lifecycle_checks() {
+        let input = serde_json::json!([
+            {"key": "field", "type": "field", "dataType": "string", "x-generation": {},
+             "extensions": {"x-formspec-url": true, "x-formspec-old": true,
+                            "x-formspec-retired": true}}
+        ]);
+        let items = json_definition_items_tree_from_value(&input).expect("valid Item tree");
+        let issues = validate_extension_usage(&items, &make_registry());
+
+        assert_eq!(issues.len(), 2);
+        assert_eq!(issues[0].code, ExtensionErrorCode::ExtensionDeprecated);
+        assert_eq!(issues[1].code, ExtensionErrorCode::ExtensionRetired);
     }
 
     #[test]
