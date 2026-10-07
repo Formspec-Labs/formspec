@@ -895,3 +895,155 @@ it("discards a late handoff digest after producer replacement", async () => {
   el.remove();
   delayed.mockRestore();
 });
+
+
+async function acceptedProps() {
+  const p = await props();
+  const d = p.data as any;
+  const { actorRef: _actor, draft: _draft, ...common } = d.presentation;
+  d.presentation = { ...common, phase: "accepted-record", handoffId: "handoff-actual-1" };
+  (p.config.copy as any).en = { ...copy, acceptedRecord: "Review the accepted record." };
+  return p;
+}
+
+describe("accepted-record ResponseReview", () => {
+  it("reuses lossless frozen values and reports only accepted availability without draft/signing authority", async () => {
+    const p = await acceptedProps(), original = JSON.stringify(p.data);
+    const accepted = vi.fn(), signing = vi.fn();
+    const view = await mount(p, { onAcceptedReviewState: accepted, onReviewState: signing });
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe("ready"));
+    expect(view.el.textContent).toContain("Review the accepted record.");
+    expect(view.el.textContent).toContain("Retained Name");
+    expect(view.el.textContent).toContain("Saved label");
+    expect(view.el.textContent).toContain("retained extra");
+    expect(view.el.textContent).not.toContain("Draft version");
+    expect(view.el.querySelector("input,select,textarea,button")).toBeNull();
+    expect(accepted.mock.calls.at(-1)?.[0]).toMatchObject({ phase: "accepted-record", handoffId: "handoff-actual-1", contextIdentity: await responseReviewHash(p.data) });
+    expect(accepted.mock.calls.at(-1)?.[0]).not.toHaveProperty("actorRef");
+    expect(accepted.mock.calls.at(-1)?.[0]).not.toHaveProperty("draft");
+    expect(JSON.stringify(p.data)).toBe(original);
+    view.unmount();
+    expect(accepted.mock.calls.at(-1)?.[0].status).toBe("unavailable");
+    expect(signing).not.toHaveBeenCalled();
+  });
+
+  it.each(["draft", "actor", "unknown", "handoff", "copy", "inline"])("refuses %s accepted-input drift without synthetic defaults", async kind => {
+    const p = await acceptedProps(), d = p.data as any;
+    if (kind === "draft") d.presentation.draft = { id: "invented", version: 0 };
+    if (kind === "actor") d.presentation.actorRef = "invented";
+    if (kind === "unknown") d.presentation.recordRevision = 1;
+    if (kind === "handoff") delete d.presentation.handoffId;
+    if (kind === "copy") delete (p.config.copy as any).en.acceptedRecord;
+    if (kind === "inline") delete d.response.displayedLocale;
+    const accepted = vi.fn(), signing = vi.fn();
+    const view = await mount(p, { onAcceptedReviewState: accepted, onReviewState: signing });
+    expect(view.el.querySelector(".fs-response-review")).toBeNull();
+    expect(view.el.textContent).toContain(copy.unavailable);
+    expect(accepted.mock.calls.some(([v]) => v.status === "ready")).toBe(false);
+    expect(signing).not.toHaveBeenCalled();view.unmount();
+  });
+
+  it("never falls back to an applicant attachment reader when the accepted port is missing", async () => {
+    const p = await acceptedProps();await withPhoto(p);
+    const applicant = vi.fn(), accepted = vi.fn();
+    const view = await mount(p, { readAttachment: applicant, onAcceptedReviewState: accepted });
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe("unavailable"));
+    expect(applicant).not.toHaveBeenCalled();
+    expect(view.el.querySelector("img")).toBeNull();view.unmount();
+  });
+
+  it("uses only the accepted reader and admits its bytes before publishing ready", async () => {
+    const p = await acceptedProps(), { blob } = await withPhoto(p);
+    const accepted = vi.fn(), signing = vi.fn(), applicant = vi.fn();
+    const read = vi.fn(async () => blob);
+    const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:accepted");
+    const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const view = await mount(p, { readAcceptedAttachment: read, readAttachment: applicant, onAcceptedReviewState: accepted, onReviewState: signing });
+    await vi.waitFor(() => expect(view.el.querySelector("img")).not.toBeNull());
+    expect(read.mock.calls[0]![0]).toMatchObject({ path: "photo", presentation: { handoffId: "handoff-actual-1", phase: "accepted-record" } });
+    expect(accepted.mock.calls.at(-1)?.[0].status).toBe("pending");
+    act(() => view.el.querySelector("img")!.dispatchEvent(new Event("load")));
+    expect(accepted.mock.calls.at(-1)?.[0].status).toBe("ready");
+    expect(applicant).not.toHaveBeenCalled();expect(signing).not.toHaveBeenCalled();
+    view.unmount();expect(revoke).toHaveBeenCalledWith("blob:accepted");create.mockRestore();revoke.mockRestore();
+  });
+
+  it("aborts accepted work and ignores late bytes when replacement switches to signing", async () => {
+    const p = await acceptedProps(), { blob } = await withPhoto(p);
+    let finish!: (blob: Blob) => void;
+    const read = vi.fn(() => new Promise<Blob>(r => { finish = r; }));
+    const accepted = vi.fn(), signing = vi.fn();
+    const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:late-accepted");
+    const view = await mount(p, { readAcceptedAttachment: read, onAcceptedReviewState: accepted, onReviewState: signing });
+    await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    const signal = read.mock.calls[0]![1].signal;
+    await view.rerender(await props());
+    expect(signal.aborted).toBe(true);
+    await act(async () => { finish(blob);await new Promise(r => setTimeout(r, 5)); });
+    expect(create).not.toHaveBeenCalled();
+    expect(accepted.mock.calls.some(([v]) => v.status === "ready")).toBe(false);
+    expect(accepted.mock.calls.at(-1)?.[0].status).toBe("unavailable");
+    expect(signing.mock.calls.at(-1)?.[0]).toMatchObject({ status: "ready", phase: "before-sign", draft: { id: "draft-1" } });
+    view.unmount();create.mockRestore();
+  });
+
+  it("publishes closed accepted schemas while legacy signing schemas and copy stay narrow", async () => {
+    const metadata = await import("../src/widget-metadata.js");
+    const { default: Ajv } = await import("ajv/dist/2020.js");const ajv = new Ajv({ strict: false });
+    const p = await acceptedProps(), d = p.data as any;
+    expect(ajv.compile(metadata.RESPONSE_REVIEW_CONFIG_SCHEMA)((await props()).config)).toBe(true);
+    const validate = ajv.compile(metadata.ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA);
+    expect(validate(d.presentation)).toBe(true);
+    expect(validate({ ...d.presentation, actorRef: "invented" })).toBe(false);
+    expect(validate({ ...d.presentation, draft: { id: "invented", version: 0 } })).toBe(false);
+    expect(ajv.compile(metadata.RESPONSE_REVIEW_PRESENTATION_SCHEMA)(d.presentation)).toBe(false);
+    const state = { status: "ready", responseHash: d.presentation.responseHash, locale: "en", phase: "accepted-record", handoffId: d.presentation.handoffId };
+    const qualified = { ...state, contextIdentity: "a".repeat(64) };
+    expect(ajv.compile(metadata.ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA)(state)).toBe(false);
+    expect(ajv.compile(metadata.ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA)(qualified)).toBe(true);
+    expect(ajv.compile(metadata.RESPONSE_REVIEW_STATE_SCHEMA)(qualified)).toBe(false);
+    expect(ajv.compile(metadata.SIGNING_CEREMONY_REVIEW_SCHEMA)({ contextIdentity: "a".repeat(64), state: qualified })).toBe(false);
+    expect(metadata.RESPONSE_REVIEW_WIDGET_SHAPE).not.toHaveProperty("actionOutputs");
+  });
+});
+
+
+it("keeps accepted recorded Spanish labels/options separate from host chrome", async () => {
+  const p = await acceptedProps(), d = p.data as any;
+  d.response.displayedLocale.locale = "es";d.presentation.locale = "es";
+  d.presentation.fields.name.label = "Nombre original";
+  d.presentation.fields.choice.options[0].label = "Opción original";
+  d.presentation.responseHash = await handoffHash(d.response);
+  p.config.copy = { es: { ...copy, heading: "Registro aceptado", acceptedRecord: "Revise el registro aceptado." } };
+  const accepted = vi.fn();const view = await mount(p, { onAcceptedReviewState: accepted });
+  await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe("ready"));
+  expect(view.el.querySelector(".fs-response-review")?.getAttribute("lang")).toBe("es");
+  expect(view.el.textContent).toContain("Nombre original");expect(view.el.textContent).toContain("Opción original");
+  expect(view.el.textContent).toContain("Revise el registro aceptado.");view.unmount();
+});
+
+it("withdraws accepted readiness and aborts late media when the authorized host unmounts", async () => {
+  const p = await acceptedProps(), { blob } = await withPhoto(p);
+  let finish!: (blob: Blob) => void;
+  const read = vi.fn(() => new Promise<Blob>(resolve => { finish = resolve; }));
+  const accepted = vi.fn(), applicant = vi.fn();
+  const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:withdrawn");
+  const view = await mount(p, { readAcceptedAttachment: read, onAcceptedReviewState: accepted, onReviewState: applicant });
+  await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+  const signal = read.mock.calls[0]![1].signal;view.unmount();
+  expect(signal.aborted).toBe(true);expect(accepted.mock.calls.at(-1)?.[0].status).toBe("unavailable");
+  await act(async () => { finish(blob);await new Promise(resolve => setTimeout(resolve, 5)); });
+  expect(create).not.toHaveBeenCalled();expect(applicant).not.toHaveBeenCalled();
+  expect(accepted.mock.calls.some(([state]) => state.status === "ready")).toBe(false);create.mockRestore();
+});
+
+it("refuses accepted bytes with a descriptor hash mismatch", async () => {
+  const p = await acceptedProps(), { blob } = await withPhoto(p), d = p.data as any;
+  d.response.data.photo.hash = `sha256:${"f".repeat(64)}`;
+  d.presentation.responseHash = await handoffHash(d.response);
+  const accepted = vi.fn();const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:invalid");
+  const view = await mount(p, { readAcceptedAttachment: async () => blob, onAcceptedReviewState: accepted });
+  await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe("unavailable"));
+  expect(view.el.textContent).toContain(copy.attachmentFailed);expect(create).not.toHaveBeenCalled();
+  view.unmount();create.mockRestore();
+});

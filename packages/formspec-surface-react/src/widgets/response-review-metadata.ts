@@ -28,7 +28,7 @@ export const RESPONSE_REVIEW_COPY_KEYS = [
   "unavailable",
 ] as const;
 export type ResponseReviewCopy = Readonly<
-  Record<(typeof RESPONSE_REVIEW_COPY_KEYS)[number], string>
+  Record<(typeof RESPONSE_REVIEW_COPY_KEYS)[number], string> & { acceptedRecord?: string }
 >;
 export interface ResponseReviewPresentation {
   responseHash: string;
@@ -61,6 +61,28 @@ export interface ResponseReviewState {
   locale: string;
   phase: ResponseReviewPresentation["phase"];
 }
+/** Frozen accepted-record presentation; no signing actor or draft authority. */
+export interface AcceptedResponseReviewPresentation
+  extends Omit<ResponseReviewPresentation, "actorRef" | "draft" | "phase"> {
+  phase: "accepted-record";
+  /** Actual qualified IntakeHandoff.handoffId, never a synthesized record revision. */
+  handoffId: string;
+}
+export interface AcceptedResponseReviewData extends Omit<ResponseReviewData, "presentation"> {
+  presentation: AcceptedResponseReviewPresentation;
+}
+/** Display availability only; cannot authorize signing, submission, or case access. */
+export interface AcceptedResponseReviewState
+  extends Omit<ResponseReviewState, "actorRef" | "draft" | "phase"> {
+  phase: "accepted-record";
+  handoffId: string;
+}
+export type ResponseReviewInput = ResponseReviewData | AcceptedResponseReviewData;
+export type ResponseReviewPresentationInput = ResponseReviewPresentation | AcceptedResponseReviewPresentation;
+export interface AcceptedResponseReviewAttachmentRequest extends AcceptedResponseReviewData {
+  path: string;
+  descriptor: FiniteJsonValue;
+}
 export interface ResponseReviewAttachmentRequest extends ResponseReviewData {
   path: string;
   descriptor: FiniteJsonValue;
@@ -75,6 +97,14 @@ export interface ResponseReviewOptions {
     request: ResponseReviewAttachmentRequest,
     options: { signal: AbortSignal }
   ) => Promise<Blob>;
+  /** Host authorizes this accepted case and qualifies its opaque attachment association.
+   * No fallback to the applicant reader. Host lifecycle replacement must revoke access. */
+  readAcceptedAttachment?: (
+    request: AcceptedResponseReviewAttachmentRequest,
+    options: { signal: AbortSignal }
+  ) => Promise<Blob>;
+  /** Accepted-record display availability only; never delivered to signing callbacks. */
+  onAcceptedReviewState?: (state: AcceptedResponseReviewState) => void;
   /** Presentation availability only; does not establish human review or signing authority. */
   onReviewState?: (state: ResponseReviewState) => void;
 }
@@ -108,6 +138,7 @@ export const RESPONSE_REVIEW_CONFIG_SCHEMA = {
               { type: "string", minLength: 1 },
             ])
           ),
+          acceptedRecord: { type: "string", minLength: 1 },
           "x-generation": { type: "object" },
         },
       },
@@ -207,4 +238,50 @@ export const RESPONSE_REVIEW_STATE_SCHEMA = {
       then: { required: ["contextIdentity"] },
     },
   ],
+} as const;
+
+/** Closed accepted presentation; existing named presentation schema stays signing-only. */
+export const ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: [...RESPONSE_REVIEW_PRESENTATION_SCHEMA.required.filter(
+    key => key !== "actorRef" && key !== "draft"), "handoffId"],
+  properties: {
+    ...Object.fromEntries(Object.entries(RESPONSE_REVIEW_PRESENTATION_SCHEMA.properties)
+      .filter(([key]) => key !== "actorRef" && key !== "draft")),
+    phase: { const: "accepted-record" },
+    handoffId: { type: "string", minLength: 1 },
+  },
+} as const;
+/** Closed input wrapper; hosts register the maintained native schemas for admission.
+ * Shape admission does not establish custody, authorization, or integrity. */
+export const ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["definition", "response", "presentation"],
+  properties: {
+    definition: { $ref: "https://formspec.org/schemas/definition/1.0" },
+    response: { $ref: "https://formspec.org/schemas/response/1.0" },
+    presentation: ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA,
+  },
+} as const;
+/** Closed accepted display state; this schema is not a SigningCeremony source. */
+export const ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: [...RESPONSE_REVIEW_STATE_SCHEMA.required.filter(
+    key => key !== "actorRef" && key !== "draft"), "handoffId"],
+  properties: {
+    ...Object.fromEntries(Object.entries(RESPONSE_REVIEW_STATE_SCHEMA.properties)
+      .filter(([key]) => key !== "actorRef" && key !== "draft")),
+    phase: { const: "accepted-record" },
+    handoffId: { type: "string", minLength: 1 },
+  },
+  allOf: RESPONSE_REVIEW_STATE_SCHEMA.allOf,
+} as const;
+export const RESPONSE_REVIEW_PRESENTATION_UNION_SCHEMA = {
+  oneOf: [RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA],
+} as const;
+export const RESPONSE_REVIEW_STATE_UNION_SCHEMA = {
+  oneOf: [RESPONSE_REVIEW_STATE_SCHEMA, ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA],
 } as const;

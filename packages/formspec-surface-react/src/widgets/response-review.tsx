@@ -18,9 +18,12 @@ import { WidgetEmptyState } from "./empty-state.js";
 
 import {
   RESPONSE_REVIEW_COPY_KEYS,
+  ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA,
   type ResponseReviewCopy,
-  type ResponseReviewPresentation,
-  type ResponseReviewData,
+  type ResponseReviewPresentationInput as ResponseReviewPresentation,
+  type ResponseReviewInput as ResponseReviewData,
+  type ResponseReviewAttachmentRequest,
+  type AcceptedResponseReviewAttachmentRequest,
   type ResponseReviewState,
   type ResponseReviewOptions,
   type ResponseReviewProps,
@@ -127,13 +130,8 @@ function capture(props: SurfaceWidgetProps): Capture | undefined {
       p.definitionVersion !== d.version ||
       !hash(p.responseHash) ||
       !text(p.locale) ||
-      !text(p.actorRef) ||
-      !object(p.draft) ||
-      !text(p.draft.id) ||
-      !Number.isSafeInteger(p.draft.version) ||
-      p.draft.version < 0 ||
       !object(p.fields) ||
-      !["before-sign", "before-submit"].includes(p.phase) ||
+      !["before-sign", "before-submit", "accepted-record"].includes(p.phase) ||
       !object(r.displayedLocale) ||
       r.displayedLocale.locale !== p.locale ||
       (p.phase === "before-submit" &&
@@ -141,6 +139,14 @@ function capture(props: SurfaceWidgetProps): Capture | undefined {
           r.authoredSignatures.length === 0))
     )
       return undefined;
+    if (p.phase === "accepted-record") {
+      if (!text(p.handoffId) || Object.keys(p).some(
+        key => !own(ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA.properties, key)
+      )) return undefined;
+    } else if (
+      !text(p.actorRef) || !object(p.draft) || !text(p.draft.id) ||
+      !Number.isSafeInteger(p.draft.version) || p.draft.version < 0 || own(p, "handoffId")
+    ) return undefined;
     for (const m of Object.values(p.fields)) {
       if (
         !object(m) ||
@@ -161,6 +167,7 @@ function capture(props: SurfaceWidgetProps): Capture | undefined {
     const c = config.copy[locales[0]!];
     if (!object(c) || !RESPONSE_REVIEW_COPY_KEYS.every((k) => text(c[k])))
       return undefined;
+    if (p.phase === "accepted-record" && !text(c.acceptedRecord)) return undefined;
     const copy = c as unknown as ResponseReviewCopy;
     const attachments: string[] = [];
     const nodes = walk(
@@ -403,6 +410,12 @@ async function verifiedPreview(blob: Blob, descriptor: unknown): Promise<void> {
   if (`sha256:${hex}` !== descriptor.hash) throw Error("Digest mismatch");
 }
 
+type ReviewAttachmentRequest = ResponseReviewAttachmentRequest | AcceptedResponseReviewAttachmentRequest;
+type ReviewAttachmentReader = (request: ReviewAttachmentRequest, options: { signal: AbortSignal }) => Promise<Blob>;
+function acceptedAttachment(request: ReviewAttachmentRequest): request is AcceptedResponseReviewAttachmentRequest {
+  return request.presentation.phase === "accepted-record";
+}
+
 function Attachment({
   capture: c,
   node,
@@ -411,7 +424,7 @@ function Attachment({
 }: {
   capture: Capture;
   node: Extract<ReviewNode, { kind: "value" }>;
-  read: ResponseReviewOptions["readAttachment"];
+  read: ReviewAttachmentReader | undefined;
   onStatus: (path: string, status: PreviewStatus) => void;
 }) {
   const descriptors = Array.isArray(node.value) ? node.value : [node.value];
@@ -453,7 +466,7 @@ function AttachmentPreview({
   descriptor: FiniteJsonValue;
   path: string;
   label: string;
-  read: ResponseReviewOptions["readAttachment"];
+  read: ReviewAttachmentReader | undefined;
   onStatus: (path: string, status: PreviewStatus) => void;
 }) {
   const [view, setView] = useState<{
@@ -544,18 +557,27 @@ function ReviewBody({
   const [previews, setPreviews] = useState<Record<string, PreviewStatus>>({});
   const { presentation: p, response: r } = c.data;
   const report = useCallback(
-    (status: ResponseReviewState["status"], contextIdentity?: string) =>
-      options.onReviewState?.({
-        status,
-        responseHash: p.responseHash,
-        actorRef: p.actorRef,
-        draft: p.draft,
-        locale: p.locale,
-        phase: p.phase,
-        ...(contextIdentity ? { contextIdentity } : {}),
-      }),
-    [options.onReviewState, p]
+    (status: ResponseReviewState["status"], contextIdentity?: string) => {
+      const common = { status, responseHash: p.responseHash, locale: p.locale,
+        ...(contextIdentity ? { contextIdentity } : {}) };
+      if (p.phase === "accepted-record") {
+        options.onAcceptedReviewState?.({ ...common, phase: p.phase, handoffId: p.handoffId });
+      } else {
+        options.onReviewState?.({ ...common, phase: p.phase, actorRef: p.actorRef, draft: p.draft });
+      }
+    },
+    [options.onReviewState, options.onAcceptedReviewState, p]
   );
+  const readAttachment = useMemo<ReviewAttachmentReader | undefined>(() => {
+    if (p.phase === "accepted-record") {
+      const read = options.readAcceptedAttachment;
+      return read ? (request, context) => acceptedAttachment(request)
+        ? read(request, context) : Promise.reject(Error("Review branch mismatch")) : undefined;
+    }
+    const read = options.readAttachment;
+    return read ? (request, context) => !acceptedAttachment(request)
+      ? read(request, context) : Promise.reject(Error("Review branch mismatch")) : undefined;
+  }, [p.phase, options.readAttachment, options.readAcceptedAttachment]);
   const onStatus = useCallback(
     (path: string, status: PreviewStatus) =>
       setPreviews((previous) => ({ ...previous, [path]: status })),
@@ -629,7 +651,7 @@ function ReviewBody({
               <Attachment
                 capture={c}
                 node={node}
-                read={options.readAttachment}
+                read={readAttachment}
                 onStatus={onStatus}
               />
             ) : (
@@ -647,17 +669,18 @@ function ReviewBody({
     >
       <Heading level={c.headingLevel}>{c.copy.heading}</Heading>
       <p className="fs-response-review-intro">
-        {p.phase === "before-sign" ? c.copy.beforeSign : c.copy.beforeSubmit}
+        {p.phase === "accepted-record" ? c.copy.acceptedRecord
+          : p.phase === "before-sign" ? c.copy.beforeSign : c.copy.beforeSubmit}
       </p>
       <dl className="fs-response-review-context">
         <div>
           <dt>{c.copy.responseId}</dt>
           <dd>{r.id}</dd>
         </div>
-        <div>
+        {p.phase !== "accepted-record" ? <div>
           <dt>{c.copy.draftVersion}</dt>
           <dd>{p.draft.version}</dd>
-        </div>
+        </div> : null}
         <div>
           <dt>{c.copy.locale}</dt>
           <dd>{p.locale}</dd>
@@ -702,6 +725,8 @@ export function ResponseReview(props: ResponseReviewProps) {
     [
       c?.identity,
       props.readAttachment,
+      props.readAcceptedAttachment,
+      props.onAcceptedReviewState,
       props.onReviewState,
       props.canonicalResponseHandoffBytes,
     ]
@@ -723,6 +748,8 @@ export function ResponseReview(props: ResponseReviewProps) {
           ? { readAttachment: props.readAttachment }
           : {}),
         ...(props.onReviewState ? { onReviewState: props.onReviewState } : {}),
+        ...(props.readAcceptedAttachment ? { readAcceptedAttachment: props.readAcceptedAttachment } : {}),
+        ...(props.onAcceptedReviewState ? { onAcceptedReviewState: props.onAcceptedReviewState } : {}),
       }}
     />
   );

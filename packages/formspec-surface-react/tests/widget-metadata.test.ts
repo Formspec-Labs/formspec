@@ -34,8 +34,16 @@ function runtimeImports(source: string): string[] {
 }
 
 describe('public widget metadata', () => {
+  it('references maintained native schemas in the closed accepted input wrapper', () => {
+    const schema = metadata.ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA;
+    expect(schema.additionalProperties).toBe(false);
+    expect(schema.required).toEqual(['definition', 'response', 'presentation']);
+    expect(schema.properties.definition.$ref).toBe('https://formspec.org/schemas/definition/1.0');
+    expect(schema.properties.response.$ref).toBe('https://formspec.org/schemas/response/1.0');
+    expect(schema.properties.presentation).toBe(metadata.ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA);
+  });
   it('preserves the exact objects exported by both existing public APIs', () => {
-    const oldNames = Object.keys(widgets).filter(name => /^(RESPONSE_REVIEW_|SIGNING_CEREMONY_)/.test(name));
+    const oldNames = Object.keys(widgets).filter(name => /^(ACCEPTED_RESPONSE_REVIEW_|RESPONSE_REVIEW_|SIGNING_CEREMONY_)/.test(name));
     expect(Object.keys(metadata).sort()).toEqual(oldNames.sort());
     for (const [name, value] of Object.entries(metadata)) {
       expect((root as Record<string, unknown>)[name]).toBe(value);
