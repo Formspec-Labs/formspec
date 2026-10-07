@@ -11,9 +11,9 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use formspec_core::{DocumentType, json_pointer_to_jsonpath, visit_component_subtree};
+use formspec_core::{json_pointer_to_jsonpath, visit_component_subtree, DocumentType};
 use jsonschema::{Resource, Validator};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use crate::types::LintDiagnostic;
 
@@ -157,7 +157,19 @@ fn schema_set() -> &'static SchemaSet {
 
 fn build_validator(schema_text: &str) -> Validator {
     let schema: Value = serde_json::from_str(schema_text).expect("embedded schema is valid JSON");
+    compile_schema(&schema).expect("embedded schema compiles")
+}
 
+/// Compile a schema with the maintained local reference documents.
+///
+/// # Errors
+/// Returns an error for invalid schemas or references outside the local registry.
+///
+/// # Panics
+/// Panics if a trusted embedded reference document contains invalid JSON.
+pub(crate) fn compile_schema(
+    schema: &Value,
+) -> Result<Validator, jsonschema::ValidationError<'static>> {
     let mut opts = jsonschema::options();
     // Register all cross-referenced schemas so $ref resolution works.
     for &(ref_text, ref_id) in CROSS_REF_SCHEMAS {
@@ -166,7 +178,7 @@ fn build_validator(schema_text: &str) -> Validator {
         let resource = Resource::from_contents(ref_val);
         opts = opts.with_resource(ref_id, resource);
     }
-    opts.build(&schema).expect("embedded schema compiles")
+    opts.build(schema)
 }
 
 // ── Per-node component validators ───────────────────────────────
@@ -228,16 +240,7 @@ fn component_node_validators() -> &'static ComponentNodeValidators {
                 "$ref": format!("#/$defs/{}", name)
             });
 
-            let mut opts = jsonschema::options();
-            for &(ref_text, ref_id) in CROSS_REF_SCHEMAS {
-                let ref_val: Value =
-                    serde_json::from_str(ref_text).expect("cross-ref schema is valid JSON");
-                let resource = Resource::from_contents(ref_val);
-                opts = opts.with_resource(ref_id, resource);
-            }
-
-            let validator = opts
-                .build(&wrapper)
+            let validator = compile_schema(&wrapper)
                 .unwrap_or_else(|e| panic!("embedded component schema '{name}' must compile: {e}"));
             per_type.insert(const_val, validator);
         }
@@ -248,15 +251,7 @@ fn component_node_validators() -> &'static ComponentNodeValidators {
             "$defs": defs,
             "$ref": "#/$defs/CustomComponentRef"
         });
-        let mut opts = jsonschema::options();
-        for &(ref_text, ref_id) in CROSS_REF_SCHEMAS {
-            let ref_val: Value =
-                serde_json::from_str(ref_text).expect("cross-ref schema is valid JSON");
-            let resource = Resource::from_contents(ref_val);
-            opts = opts.with_resource(ref_id, resource);
-        }
-        let custom_ref = opts
-            .build(&custom_ref_wrapper)
+        let custom_ref = compile_schema(&custom_ref_wrapper)
             .expect("embedded CustomComponentRef schema must compile");
 
         ComponentNodeValidators {

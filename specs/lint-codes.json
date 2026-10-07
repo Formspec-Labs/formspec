@@ -175,7 +175,7 @@
       "code": "E604",
       "pass": 3,
       "severity": "error",
-      "title": "Module contribution payload mismatches the contributing module's declared payload schema (MODULE-PAYLOAD-SCHEMA-MISMATCH)",
+      "title": "Module contribution payload mismatches or cannot be evaluated against the contributing module's declared payload schema (MODULE-PAYLOAD-SCHEMA-MISMATCH)",
       "specRef": "specs/registry/extension-registry.md#32-category-specific-properties",
       "suggestedFix": "align the consuming-document value to the contributing module's payload schema (widget.widgetShape.props, slot-type.slotShape, unit-kind.semantics, validation-mapping-row.row, or token-category.categoryShape); future module-contributed `Component.component: x-...` widget admittance gates through this pass per ADR 0150 §4.5 (deferred from Task 5)",
       "fixtures": [

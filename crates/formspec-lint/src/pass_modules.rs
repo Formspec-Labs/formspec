@@ -563,14 +563,8 @@ fn check_widget_config_site(
         return;
     };
 
-    // Compile the props schema. If compilation fails, we silently skip; that's
-    // a module-author error (E604 isn't meant to flag broken module schemas).
-    let Ok(validator) = jsonschema::options().build(props_schema) else {
-        return;
-    };
-
-    emit_validation_errors(
-        &validator,
+    check_config_against_schema(
+        props_schema,
         widget_config,
         &format!("{path}.widgetConfig"),
         widget,
@@ -619,17 +613,52 @@ fn check_surface_module_widget_configs(
             let Some(props_schema) = entry.pointer("/widgetShape/props") else {
                 continue;
             };
-            let Ok(validator) = jsonschema::options().build(props_schema) else {
-                continue;
-            };
-
-            emit_validation_errors(
-                &validator,
+            check_config_against_schema(
+                props_schema,
                 config,
                 &format!("$.routes[{route_idx}].slots[{slot_idx}].binding.config"),
                 contribution_name,
                 contributions,
                 diagnostics,
+            );
+        }
+    }
+}
+
+/// Validate a config or report why its declared schema cannot compile.
+fn check_config_against_schema(
+    schema: &Value,
+    value: &Value,
+    path: &str,
+    contribution: &str,
+    contributions: &ModuleContributions,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) {
+    match crate::schema_validation::compile_schema(schema) {
+        Ok(validator) => emit_validation_errors(
+            &validator,
+            value,
+            path,
+            contribution,
+            contributions,
+            diagnostics,
+        ),
+        Err(error) => {
+            let owning = contributions
+                .module_owning(contribution)
+                .unwrap_or("<unknown>");
+            diagnostics.push(
+                metadata::with_metadata(LintDiagnostic::error(
+                    crate::LintCode::E604,
+                    PASS,
+                    path,
+                    format!(
+                        "Cannot validate module contribution '{contribution}' (from module '{owning}'): declared props schema cannot compile: {error}"
+                    ),
+                ))
+                .with_suggested_fix(
+                    "repair the contributing module's declared props schema and its local references before changing payload data",
+                ),
             );
         }
     }
@@ -1028,11 +1057,9 @@ mod tests {
             1,
             "expected unresolved surface widgetName E603, got {diags:?}"
         );
-        assert!(
-            e603[0]
-                .path
-                .contains("routes[0].slots[0].binding.widgetName")
-        );
+        assert!(e603[0]
+            .path
+            .contains("routes[0].slots[0].binding.widgetName"));
         assert!(e603[0].message.contains("TypoWidget"));
     }
 
@@ -1154,6 +1181,142 @@ mod tests {
         );
         assert!(e604[0].path.contains("routes[0].slots[0].binding.config"));
         assert!(e604[0].message.contains("x-test-slider"));
+    }
+
+    /// Check each maintained consuming site against the same supplied props and config.
+    fn lint_config_sites(props: &Value, config: &Value) -> Vec<(String, Vec<LintDiagnostic>)> {
+        let mut registry = widget_registry_with_module();
+        registry["entries"][1]["widgetShape"]["props"] = props.clone();
+        let themes = [
+            json!({"defaults": {"widget": "x-test-slider", "widgetConfig": config}}),
+            json!({"selectors": [{"match": {"dataType": "string"}, "apply": {
+                "widget": "x-test-slider", "widgetConfig": config
+            }}]}),
+        ];
+        let surface = json!({
+            "routes": [{"slots": [{"slotType": "module-widget", "binding": {
+                "moduleId": "x-test-mod", "widgetName": "Slider", "config": config
+            }}]}]
+        });
+        themes
+            .into_iter()
+            .map(|document| ("theme", document))
+            .chain(std::iter::once(("surface", surface)))
+            .zip([
+                "$.defaults.widgetConfig",
+                "$.selectors[0].apply.widgetConfig",
+                "$.routes[0].slots[0].binding.config",
+            ])
+            .map(|((kind, mut document), path)| {
+                document["modules"] = json!([{"id": "x-test-mod", "version": "1.0.0"}]);
+                (
+                    path.to_string(),
+                    check_module_contributions(&document, kind, &[registry.clone()]),
+                )
+            })
+            .collect()
+    }
+
+    /// Use the exact public JSON branch instead of redefining Common.Generation.
+    fn json_config_fixture() -> (Value, Value) {
+        let props = serde_json::from_str(include_str!("../tests/fixtures/widget-json-props.json"))
+            .expect("committed JSON props fixture must parse");
+        let config = json!({"type": "json", "id": "report", "path": "evidence.validationReport",
+            "emptyMessage": "Empty", "unavailableMessage": "Unavailable",
+            "x-generation": {"anchors": ["need:inspect-retained-evidence@1"]}});
+        (props, config)
+    }
+
+    #[test]
+    fn e604_common_generation_reference_validates_all_config_sites() {
+        let (props, config) = json_config_fixture();
+        for (path, diagnostics) in lint_config_sites(&props, &config) {
+            assert!(
+                diagnostics
+                    .iter()
+                    .all(|diagnostic| diagnostic.code != "E604"),
+                "valid config at {path}: {diagnostics:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn e604_json_path_and_generation_mismatches_have_specific_payload_paths() {
+        let (props, mut config) = json_config_fixture();
+        for (key, invalid, suffix) in [
+            ("path", json!("bad..path"), "/path"),
+            (
+                "x-generation",
+                json!({"anchors": 7}),
+                "/x-generation/anchors",
+            ),
+        ] {
+            let original = config[key].take();
+            config[key] = invalid;
+            for (path, diagnostics) in lint_config_sites(&props, &config) {
+                assert!(
+                    diagnostics
+                        .iter()
+                        .any(|diagnostic| diagnostic.code == "E604"
+                            && diagnostic.path == format!("{path}{suffix}")),
+                    "expected payload mismatch at {path}{suffix}: {diagnostics:?}"
+                );
+            }
+            config[key] = original;
+        }
+    }
+
+    #[test]
+    fn e604_unevaluable_props_fail_closed_with_schema_repair_attribution() {
+        let (_, config) = json_config_fixture();
+        for props in [
+            json!({"$ref": "https://formspec.org/schemas/common/1.0#/$defs/DoesNotExist"}),
+            json!({"$ref": "https://invalid.example/schema"}),
+            json!({"type": "not-a-json-schema-type"}),
+        ] {
+            for (path, diagnostics) in lint_config_sites(&props, &config) {
+                let failures: Vec<_> = diagnostics
+                    .iter()
+                    .filter(|diagnostic| diagnostic.code == "E604")
+                    .collect();
+                assert_eq!(
+                    failures.len(),
+                    1,
+                    "schema failure at {path}: {diagnostics:?}"
+                );
+                assert_eq!(failures[0].path, path);
+                assert!(failures[0]
+                    .message
+                    .contains("declared props schema cannot compile"));
+                assert!(failures[0].message.contains("x-test-mod"));
+                assert!(failures[0].message.contains("x-test-slider"));
+                assert_eq!(failures[0].suggested_fix.as_deref(), Some(
+                    "repair the contributing module's declared props schema and its local references before changing payload data"
+                ));
+            }
+        }
+    }
+
+    #[test]
+    fn e604_local_defs_and_boolean_schemas_keep_standards_behavior() {
+        for props in [
+            json!(true),
+            json!({"$defs": {"Number": {"type": "number"}}, "$ref": "#/$defs/Number"}),
+        ] {
+            for (_, diagnostics) in lint_config_sites(&props, &json!(3)) {
+                assert!(diagnostics
+                    .iter()
+                    .all(|diagnostic| diagnostic.code != "E604"));
+            }
+        }
+        for (_, diagnostics) in lint_config_sites(&json!(false), &json!(3)) {
+            assert!(diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "E604"));
+            assert!(diagnostics
+                .iter()
+                .all(|diagnostic| !diagnostic.message.contains("cannot compile")));
+        }
     }
 
     // ── E605: COMP-BUNDLE-ID-COLLISION (bundle-graph id-uniqueness) ──

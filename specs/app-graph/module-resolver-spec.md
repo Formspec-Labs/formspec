@@ -234,6 +234,14 @@ may report a path relative to a referenced schema without identifying its URI;
 that path does not establish a keyword location inside the Registry. Existing
 calls without resources retain their precise local Registry keyword pointers.
 
+Native lint uses the maintained embedded canonical reference documents for
+Theme and Surface props compilation. E604 also reports when a consuming config
+cannot be validated because its admitted module's declared props schema cannot
+compile. That diagnostic identifies the module/schema defect at the consuming
+site; repair the declared schema or local references before editing valid config.
+Compilation failures receive schema-specific repair guidance. Ordinary payload
+mismatches retain their specific payload locations and existing repair hints.
+
 If a Surface binding omits `config`, there is no payload to validate. If the
 resolved widget omits `widgetShape.props`, there is no payload schema to run.
 The resolver reports `payloadStatus: "not-run"` in either case; it does not
