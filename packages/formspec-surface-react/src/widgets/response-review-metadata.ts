@@ -274,7 +274,9 @@ export const ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA = {
     key => key !== "actorRef" && key !== "draft"), "handoffId"],
   properties: {
     ...Object.fromEntries(Object.entries(RESPONSE_REVIEW_PRESENTATION_SCHEMA.properties)
-      .filter(([key]) => key !== "actorRef" && key !== "draft")),
+      .filter(([key]) => key !== "actorRef" && key !== "draft")) as Omit<
+        typeof RESPONSE_REVIEW_PRESENTATION_SCHEMA.properties, "actorRef" | "draft"
+      >,
     phase: { const: "accepted-record" },
     handoffId: { type: "string", minLength: 1 },
   },
@@ -299,7 +301,9 @@ export const ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA = {
     key => key !== "actorRef" && key !== "draft"), "handoffId"],
   properties: {
     ...Object.fromEntries(Object.entries(RESPONSE_REVIEW_STATE_SCHEMA.properties)
-      .filter(([key]) => key !== "actorRef" && key !== "draft")),
+      .filter(([key]) => key !== "actorRef" && key !== "draft")) as Omit<
+        typeof RESPONSE_REVIEW_STATE_SCHEMA.properties, "actorRef" | "draft"
+      >,
     phase: { const: "accepted-record" },
     handoffId: { type: "string", minLength: 1 },
   },

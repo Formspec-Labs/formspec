@@ -35,6 +35,17 @@ function runtimeImports(source: string): string[] {
 }
 
 describe('public widget metadata', () => {
+  it('retains inherited accepted schema properties in emitted public consumer types', () => {
+    const consumer = fileURLToPath(testFile('./fixtures/accepted-metadata-consumer.ts'));
+    const program = ts.createProgram([consumer], {
+      noEmit: true, strict: true, skipLibCheck: true, types: [],
+      target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.Bundler, jsx: ts.JsxEmit.ReactJSX,
+    });
+    const diagnostics = ts.getPreEmitDiagnostics(program).map(diagnostic =>
+      ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+    expect(diagnostics).toEqual([]);
+  });
   it('preserves immutable applicant Registry shapes while publishing a separate accepted delivery', () => {
     expect(metadata.RESPONSE_REVIEW_WIDGET_SHAPE).toEqual(legacy.shapes.ResponseReview);
     expect(metadata.SIGNING_CEREMONY_WIDGET_SHAPE).toEqual(legacy.shapes.SigningCeremony);
