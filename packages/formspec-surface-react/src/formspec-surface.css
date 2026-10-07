@@ -994,6 +994,7 @@
 .fs-response-review-row dt { font-weight: 600; }
 .fs-response-review-row dd { margin: 0; min-width: 0; white-space: pre-wrap; }
 .fs-response-review-json { margin: 0; font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fs-structured-panel__json { margin: 0; max-width: 100%; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .fs-response-review-code { color: var(--fs-surface-ink-quiet); }
 .fs-response-review-attachment { margin: 0 0 1rem; }
 .fs-response-review-attachment img { display: block; width: auto; height: auto; max-width: 100%; max-height: 24rem; object-fit: contain; }

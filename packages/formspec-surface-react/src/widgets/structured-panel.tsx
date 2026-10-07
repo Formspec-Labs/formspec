@@ -23,6 +23,7 @@ import type {
   SurfaceSemanticOutputDeclaration,
   SurfaceSemanticValue,
 } from '@formspec-org/surface';
+import { snapshotFiniteJson } from '@formspec-org/surface';
 import { Heading, nextLevel } from '../heading.js';
 import type {
   SurfaceWidgetAction,
@@ -104,12 +105,37 @@ export interface StructuredProgressBlockConfig extends StructuredBlockBase {
   suffix?: string;
 }
 
+/** Literal retained JSON visibility; the host qualifies its schema and provenance. */
+export interface StructuredJsonBlockConfig extends StructuredBlockBase {
+  type: 'json';
+  path: string;
+  emptyMessage: string;
+  unavailableMessage: string;
+}
+
+/** Reusable branch for authored Registry widgetShape.props; not native admission. */
+export const STRUCTURED_JSON_BLOCK_CONFIG_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['type', 'id', 'path', 'emptyMessage', 'unavailableMessage', 'x-generation'],
+  properties: {
+    type: { const: 'json' },
+    id: { type: 'string', pattern: '^[a-zA-Z][a-zA-Z0-9_-]*$' },
+    path: { type: 'string', pattern: '^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$' },
+    title: { type: 'string', minLength: 1 },
+    emptyMessage: { type: 'string', minLength: 1 },
+    unavailableMessage: { type: 'string', minLength: 1 },
+    'x-generation': { $ref: 'https://formspec.org/schemas/common/1.0#/$defs/Generation' },
+  },
+} as const;
+
 export type StructuredPanelBlockConfig =
   | StructuredMetricBlockConfig
   | StructuredKeyValueBlockConfig
   | StructuredListBlockConfig
   | StructuredTableBlockConfig
-  | StructuredProgressBlockConfig;
+  | StructuredProgressBlockConfig
+  | StructuredJsonBlockConfig;
 
 export interface StructuredPanelActionConfig extends GeneratedFromNeeds {
   outputName: string;
@@ -264,6 +290,54 @@ function scalarValue(value: unknown): StructuredScalarValue | undefined {
 function scalarText(value: unknown): string | undefined {
   const scalar = scalarValue(value);
   return scalar === undefined ? undefined : String(scalar);
+}
+
+type JsonSelection = { status: 'found'; value: unknown } | { status: 'missing' | 'refused' };
+
+/** Own data properties only; refused access is different from absent evidence. */
+function selectJsonValue(root: unknown, path: unknown): JsonSelection {
+  if (typeof path !== 'string' || !path.length) return { status: 'refused' };
+  const parts = path.split('.');
+  if (parts.some(part => !SAFE_PATH_PART.test(part) || UNSAFE_PATH_PARTS.has(part))) {
+    return { status: 'refused' };
+  }
+  try {
+    let current = root;
+    for (const part of parts) {
+      if (typeof current !== 'object' || current === null) return { status: 'refused' };
+      const descriptor = Object.getOwnPropertyDescriptor(current, part);
+      if (!descriptor) return { status: 'missing' };
+      if (!Object.prototype.hasOwnProperty.call(descriptor, 'value')) return { status: 'refused' };
+      current = descriptor.value;
+    }
+    return { status: 'found', value: current };
+  } catch {
+    return { status: 'refused' };
+  }
+}
+
+function renderJson(
+  block: UnknownRecord,
+  data: Readonly<Record<string, unknown>>,
+  headingLevel: SurfaceWidgetProps['headingLevel'],
+): ReactNode {
+  // Both states require authored copy; no untraced generic error or partial JSON.
+  if (!nonEmptyString(block.emptyMessage) || !nonEmptyString(block.unavailableMessage)) return null;
+  return blockFrame(block, headingLevel, anchors => {
+    const selected = selectJsonValue(data, block.path);
+    if (selected.status === 'missing') return blockEmpty(block, anchors);
+    let serialized: string | undefined;
+    if (selected.status === 'found') {
+      try {
+        serialized = JSON.stringify(snapshotFiniteJson(selected.value), null, 2);
+      } catch {
+        // Snapshot errors remain diagnostics, never authored product copy.
+      }
+    }
+    return serialized === undefined
+      ? <span {...traceAttributes(anchors)}>{String(block.unavailableMessage)}</span>
+      : <pre className="fs-structured-panel__json" {...traceAttributes(anchors)}>{serialized}</pre>;
+  });
 }
 
 function selectedActionPayload(
@@ -819,6 +893,8 @@ function renderBlock(
   const block = record(candidate);
   if (!block) return null;
   switch (block.type) {
+    case 'json':
+      return renderJson(block, data, headingLevel);
     case 'metric':
       return renderMetric(block, data, headingLevel);
     case 'key-value':

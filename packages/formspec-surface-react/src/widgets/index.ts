@@ -53,6 +53,7 @@ export type {
   QueueTableRowActionConfig,
 } from './queue-table.js';
 export type {
+  StructuredJsonBlockConfig,
   StructuredKeyValueBlockConfig,
   StructuredKeyValueItemConfig,
   StructuredListBlockConfig,
@@ -68,6 +69,7 @@ export type {
   StructuredTableColumnConfig,
   StructuredTableRowActionConfig,
 } from './structured-panel.js';
+export { STRUCTURED_JSON_BLOCK_CONFIG_SCHEMA } from './structured-panel.js';
 
 /**
  * `widgetShape.widgetName` → component, for the starter set.
