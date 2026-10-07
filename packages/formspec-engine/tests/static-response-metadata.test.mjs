@@ -63,6 +63,8 @@ for(const [name,mutate,reason] of [
   ['missing recorded Locale',i=>i.locale=null,'locale-unavailable'],
   ['Locale version',i=>i.locale.version='2','locale-mismatch'],
   ['Locale URL',i=>i.locale.url='urn:other','locale-mismatch'],
+  ['recorded URL absent but document URL present',i=>delete i.response.displayedLocale.url,'locale-mismatch'],
+  ['document URL absent but recorded URL present',i=>delete i.locale.url,'locale-mismatch'],
   ['Locale target',i=>i.locale.target.url='urn:other','locale-mismatch'],
   ['Locale target kind',i=>i.locale.target.kind='app','locale-mismatch'],
   ['Locale compatibility',i=>i.locale.target.compatibleVersions='>=2.0.0','locale-mismatch'],
@@ -108,4 +110,9 @@ test('pins genuine authored D1 docs; English positive, regional Spanish refusal;
   assert.equal(capture({definition,response,locale}).fullName.label,'Full legal name');
   const regional=read('passport-renewal.es-US.locale.json','6f31643c7add167656ef93e80de5dc5fbda989fc5e8dbd32ef94592481ff3ef5');
   assert.throws(()=>capture({definition,locale:regional,response:{...response,displayedLocale:{locale:regional.locale,version:regional.version,url:regional.url}}}),/fallback-unproven/);
+});
+
+test('matches recorded and document optional URL when both are absent',()=>{
+  const input=inputs();delete input.locale.url;delete input.response.displayedLocale.url;
+  assert.equal(createStaticResponseMetadataReader(input).label('people[0].name'),'Nombre');
 });

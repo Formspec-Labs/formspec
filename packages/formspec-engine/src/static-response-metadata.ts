@@ -45,7 +45,7 @@ export function createStaticResponseMetadataReader(input: StaticResponseMetadata
         if (locale.target.kind !== 'definition' || !targetDefinitionMatches(locale.target, definition)
             || LocaleStore.normalizeCode(locale.locale) !== code
             || locale.version !== recorded.version
-            || (recorded.url !== undefined && locale.url !== recorded.url)) {
+            || recorded.url !== (locale.url ? locale.url : undefined)) {
             refuse('locale-mismatch');
         }
         store.loadLocale(locale);
