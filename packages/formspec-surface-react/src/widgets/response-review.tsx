@@ -80,6 +80,10 @@ export interface ResponseReviewAttachmentRequest extends ResponseReviewData {
   descriptor: FiniteJsonValue;
 }
 export interface ResponseReviewOptions {
+  /** Inject the maintained integrity-canonical handoff producer; no raw-JCS fallback. */
+  canonicalResponseHandoffBytes?: (
+    response: unknown
+  ) => Uint8Array<ArrayBuffer>;
   /** Host checks private ownership/authorization and returns the exact descriptor's bytes. */
   readAttachment?: (
     request: ResponseReviewAttachmentRequest,
@@ -106,10 +110,28 @@ export async function responseReviewHash(value: unknown): Promise<string> {
   const snapshot = snapshotFiniteJson(value);
   assertUnicode(snapshot);
   const bytes = new TextEncoder().encode(canonicalize(snapshot)!);
+  return sha256(bytes);
+}
+
+async function sha256(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
   const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest), (b) =>
     b.toString(16).padStart(2, "0")
   ).join("");
+}
+
+/** Bare SHA-256 hex of the complete Response under the maintained handoff profile. */
+export async function responseReviewHandoffHash(
+  response: unknown,
+  produce: ResponseReviewOptions["canonicalResponseHandoffBytes"]
+): Promise<string> {
+  if (!produce) throw Error("Response handoff byte producer unavailable");
+  const snapshot = snapshotFiniteJson(response);
+  assertUnicode(snapshot);
+  const bytes = produce(snapshot);
+  if (!(bytes instanceof Uint8Array) || bytes.length === 0)
+    throw Error("Invalid Response handoff bytes");
+  return sha256(new Uint8Array(bytes));
 }
 
 // Reuse SigningContent's scalar admission rule: check Unicode, never normalize it.
@@ -611,7 +633,10 @@ function ReviewBody({
   useEffect(() => {
     let active = true;
     report("pending");
-    void Promise.all([responseReviewHash(r), responseReviewHash(c.data)])
+    void Promise.all([
+      responseReviewHandoffHash(r, options.canonicalResponseHandoffBytes),
+      responseReviewHash(c.data),
+    ])
       .then(([actual, id]) => {
         if (!active) return;
         if (actual !== p.responseHash) {
@@ -743,7 +768,12 @@ export function ResponseReview(props: ResponseReviewProps) {
   const stable = useMemo(() => c, [c?.identity]);
   const generation = useMemo(
     () => ++nextReviewGeneration,
-    [c?.identity, props.readAttachment, props.onReviewState]
+    [
+      c?.identity,
+      props.readAttachment,
+      props.onReviewState,
+      props.canonicalResponseHandoffBytes,
+    ]
   );
   if (!stable)
     return <WidgetEmptyState>{unavailableCopy(props)}</WidgetEmptyState>;
@@ -752,6 +782,12 @@ export function ResponseReview(props: ResponseReviewProps) {
       key={generation}
       capture={stable}
       options={{
+        ...(props.canonicalResponseHandoffBytes
+          ? {
+              canonicalResponseHandoffBytes:
+                props.canonicalResponseHandoffBytes,
+            }
+          : {}),
         ...(props.readAttachment
           ? { readAttachment: props.readAttachment }
           : {}),

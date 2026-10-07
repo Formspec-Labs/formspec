@@ -1,13 +1,23 @@
 /** @filedesc Frozen Response review values, locale identity, and authorized preview lifecycle. */
 import React, { act } from "react";
+import canonicalize from "canonicalize";
 import { createRoot } from "react-dom/client";
 import { describe, it, expect, vi } from "vitest";
 import {
   ResponseReview,
   createResponseReviewWidget,
   responseReviewHash,
+  responseReviewHandoffHash,
 } from "../src/widgets/response-review.js";
 import type { SurfaceWidgetProps } from "../src/widget-api.js";
+
+// Test double only; actual maintained integrity-canonical producer is qualified by replay.
+const handoffBytes = (response: unknown) =>
+  new TextEncoder().encode(
+    `formspec.response.handoff.v1\0${canonicalize(response)}`
+  );
+const handoffHash = (response: unknown) =>
+  responseReviewHandoffHash(response, handoffBytes);
 
 const copy = {
   heading: "Review your answers",
@@ -84,7 +94,7 @@ async function props(): Promise<SurfaceWidgetProps> {
       definition,
       response,
       presentation: {
-        responseHash: await responseReviewHash(response),
+        responseHash: await handoffHash(response),
         definitionUrl: definition.url,
         definitionVersion: definition.version,
         locale: "en",
@@ -112,6 +122,7 @@ async function mount(
 ) {
   const states: Array<{ status: string }> = [];
   const Widget = createResponseReviewWidget({
+    canonicalResponseHandoffBytes: handoffBytes,
     ...options,
     onReviewState(state) {
       states.push(state);
@@ -206,7 +217,7 @@ async function withPhoto(p: SurfaceWidgetProps) {
   });
   d.response.data.photo = descriptor;
   d.presentation.fields.photo = { label: "Saved photo" };
-  d.presentation.responseHash = await responseReviewHash(d.response);
+  d.presentation.responseHash = await handoffHash(d.response);
   const { Blob: NodeBlob } = await import("node:buffer");
   return {
     descriptor,
@@ -260,7 +271,7 @@ describe("ResponseReview admission and preview lifecycle", () => {
       enumerable: true,
       value: { unchanged: true },
     });
-    d.presentation.responseHash = await responseReviewHash(d.response);
+    d.presentation.responseHash = await handoffHash(d.response);
     const view = await mount(p);
     expect(view.el.textContent).toContain("Nombre retenido");
     expect(view.el.textContent).toContain("<script>retained text</script>");
@@ -275,7 +286,7 @@ describe("ResponseReview admission and preview lifecycle", () => {
     d.presentation.phase = "before-submit";
     d.response.authoredSignatures = [{ signatureId: "sig-1", opaque: "kept" }];
     d.response.data.name = "Signed saved answer";
-    d.presentation.responseHash = await responseReviewHash(d.response);
+    d.presentation.responseHash = await handoffHash(d.response);
     const before = JSON.stringify(d.response);
     const view = await mount(p);
     expect(view.el.textContent).toContain(copy.beforeSubmit);
@@ -336,7 +347,7 @@ describe("ResponseReview admission and preview lifecycle", () => {
       if (kind === "media")
         d.response.data.photo.contentType = d.response.data.photo.mimeType =
           "image/jpeg";
-      d.presentation.responseHash = await responseReviewHash(d.response);
+      d.presentation.responseHash = await handoffHash(d.response);
       const report = vi.fn();
       const create = vi
         .spyOn(URL, "createObjectURL")
@@ -463,6 +474,7 @@ describe("review replacement and canonical identities", () => {
       .mockImplementation(() => {});
     const oldReport = vi.fn();
     const options: any = {
+      canonicalResponseHandoffBytes: handoffBytes,
       readAttachment: async () => blob,
       onReviewState: oldReport,
     };
@@ -730,4 +742,156 @@ it("admits the published no-action widget shape through canonical Registry and t
     moduleResolverInputFromAppGraph({ manifest, handles: [surface, registry] })
   );
   expect(result.ok, JSON.stringify(result)).toBe(true);
+});
+
+it("requires the fixed handoff producer and refuses a raw JCS response hash", async () => {
+  const p = await props();
+  const report = vi.fn();
+  expect(await handoffHash(p.data.response)).not.toBe(
+    await responseReviewHash(p.data.response)
+  );
+  const raw = structuredClone({ ...p, emitAction: undefined });
+  raw.emitAction = p.emitAction;
+  (raw.data.presentation as any).responseHash = await responseReviewHash(
+    raw.data.response
+  );
+  const wrong = await mount(raw, { onReviewState: report });
+  expect(report.mock.calls.at(-1)?.[0].status).toBe("unavailable");
+  wrong.unmount();
+  report.mockClear();
+  const missing = await mount(p, {
+    canonicalResponseHandoffBytes: undefined,
+    onReviewState: report,
+  });
+  expect(report.mock.calls.at(-1)?.[0].status).toBe("unavailable");
+  missing.unmount();
+  const ok = await mount(p, { onReviewState: report });
+  expect(report.mock.calls.at(-1)?.[0].status).toBe("ready");
+  expect(report.mock.calls.at(-1)?.[0].responseHash).toBe(
+    (p.data.presentation as any).responseHash
+  );
+  expect(report.mock.calls.at(-1)?.[0].contextIdentity).toBe(
+    await responseReviewHash(p.data)
+  );
+  ok.unmount();
+});
+
+it("refuses unavailable or invalid handoff bytes without substituting another profile", async () => {
+  for (const produce of [
+    () => {
+      throw Error("missing producer");
+    },
+    () => new Uint8Array(),
+    () => "wrong" as any,
+  ]) {
+    const p = await props();
+    const report = vi.fn();
+    const v = await mount(p, {
+      canonicalResponseHandoffBytes: produce,
+      onReviewState: report,
+    });
+    expect(report.mock.calls.at(-1)?.[0].status).toBe("unavailable");
+    v.unmount();
+  }
+  const p = await props();
+  const supplied = vi.fn(handoffBytes);
+  const digest = await responseReviewHandoffHash(p.data.response, supplied);
+  expect(digest).toBe((p.data.presentation as any).responseHash);
+  expect(supplied.mock.calls[0]![0]).toEqual(p.data.response);
+  expect(supplied.mock.calls[0]![0]).not.toBe(p.data.response);
+  expect(Object.isFrozen(supplied.mock.calls[0]![0])).toBe(true);
+});
+
+it("invalidates ready review when the handoff producer is replaced", async () => {
+  const p = await props();
+  const report = vi.fn();
+  const el = document.createElement("div");
+  document.body.append(el);
+  const root = createRoot(el);
+  await act(async () => {
+    root.render(
+      <ResponseReview
+        {...p}
+        canonicalResponseHandoffBytes={handoffBytes}
+        onReviewState={report}
+      />
+    );
+    await new Promise((r) => setTimeout(r, 10));
+  });
+  await vi.waitFor(async () => {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 1));
+    });
+    expect(report.mock.calls.at(-1)?.[0].status).toBe("ready");
+  });
+  await act(async () => {
+    root.render(
+      <ResponseReview
+        {...p}
+        canonicalResponseHandoffBytes={() => {
+          throw Error("replacement unavailable");
+        }}
+        onReviewState={report}
+      />
+    );
+    await new Promise((r) => setTimeout(r, 10));
+  });
+  expect(report.mock.calls.at(-1)?.[0].status).toBe("unavailable");
+  expect(el.querySelector(".fs-response-review")).toBeNull();
+  act(() => root.unmount());
+  el.remove();
+});
+
+it("discards a late handoff digest after producer replacement", async () => {
+  const p = await props();
+  const report = vi.fn();
+  let finish!: (value: ArrayBuffer) => void;
+  const delayed = vi.spyOn(crypto.subtle, "digest").mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  const el = document.createElement("div");
+  document.body.append(el);
+  const root = createRoot(el);
+  await act(async () => {
+    root.render(
+      <ResponseReview
+        {...p}
+        canonicalResponseHandoffBytes={handoffBytes}
+        onReviewState={report}
+      />
+    );
+    await new Promise((r) => setTimeout(r, 1));
+  });
+  expect(report.mock.calls.at(-1)?.[0].status).toBe("pending");
+  await act(async () => {
+    root.render(
+      <ResponseReview
+        {...p}
+        canonicalResponseHandoffBytes={() => {
+          throw Error("replaced");
+        }}
+        onReviewState={report}
+      />
+    );
+    await new Promise((r) => setTimeout(r, 1));
+  });
+  expect(report.mock.calls.at(-1)?.[0].status).toBe("unavailable");
+  await act(async () => {
+    finish(
+      Uint8Array.from(
+        (p.data.presentation as any).responseHash.match(/../g)!,
+        (x: string) => parseInt(x, 16)
+      ).buffer
+    );
+    await new Promise((r) => setTimeout(r, 1));
+  });
+  expect(report.mock.calls.some(([state]) => state.status === "ready")).toBe(
+    false
+  );
+  act(() => root.unmount());
+  el.remove();
+  delayed.mockRestore();
 });

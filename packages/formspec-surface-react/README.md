@@ -269,7 +269,7 @@ root Response schema reference. Qualified Data Source/host admission performs
 complete canonical schema validation; the renderer checks markers, structure
 and matching pins defensively.
 
-Presentation supplies exact Definition pins, full-Response JCS/SHA-256 hash,
+Presentation supplies exact Definition pins, full-Response handoff SHA-256 hash,
 `locale`, `actorRef`, `draft:{id,version}`, `phase:'before-sign'|'before-submit'`, and
 `fields:{[instancePath]:{label,options?:[{value,label}]}}`. Capture labels and option
 text through maintained public field metadata at the exact candidate. Include
@@ -331,3 +331,20 @@ setting that optional review source's `failureMode: degraded-widget`. The defaul
 Data Sources policy can block a widget even for an optional failed source. This
 is a source-policy choice; the loader is unchanged. Legacy ceremony configurations
 retain their existing behavior. D1 full-review authoring opts in explicitly.
+
+
+ResponseReview requires a host-injected `canonicalResponseHandoffBytes` option
+from the maintained `@formspec-org/integrity-canonical` public export. The widget
+hashes those detached full-Response bytes with SHA-256 and compares bare lowercase
+64-character hex to `presentation.responseHash`, matching the verified signing
+cohort's `draft.responseHash`. That cohort format is distinct from the ordinary
+respondent-flow `sha256:<hex>` spelling; no implicit conversion occurs here.
+`responseReviewHandoffHash(response, canonicalResponseHandoffBytes)` exposes the
+same comparison digest for qualified hosts. Missing/throwing/invalid byte producers
+make review unavailable; changing the producer invalidates its mounted generation.
+No serializer, profile selector or raw-JCS response-hash fallback is supplied.
+
+`responseReviewHash({definition,response,presentation})` remains the bare raw-JCS
+whole-context identity. It cannot substitute for the maintained handoff digest.
+Handoff bytes preserve signatures and extensions; the signing-payload profile
+that omits top-level signatures is a separate purpose.
