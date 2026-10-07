@@ -228,8 +228,9 @@ navigation intents; the host performs them.
    requires the shell to say what it did (§7).
 2. **Invent no content.** A shell renders what the bundle carries. It MUST NOT
    supply copy, labels, alternative text, data, or affordances the artifacts do
-   not declare. Where a bundle supplies nothing, the honest render is an empty
-   state that says so — not a plausible-looking substitute.
+   not declare, except through an explicit host-owned title presentation input
+   (§2.8). Where neither the bundle nor such an input supplies content, the
+   honest render is an empty state that says so.
 3. **A permission is not derivable from silence.** Where an artifact declines to
    state something a trust rule keys on, the shell takes the refusing branch and
    reports. This is the principle §4.3 applies to an absent route class and §5
@@ -459,9 +460,26 @@ absent `navigation.scope` as the semantic value `default`. It then keeps only
 routes in that same scope and omits a route when `navigation.visible` is
 `false`. The shell preserves Surface groups, orders the remaining routes within
 each Surface by `navigation.order` with declaration order as the stable
-tie-break, and renders `navigation.label`, then `route.title`, then `route.id`.
+tie-break, and renders an explicit `navigation.label`, then the host's route
+presentation title if supplied, then `route.title`, then `route.id`.
 An omitted `navigation` object retains the visible v0.2 default in the
 `default` scope.
+
+A binding MAY expose host-owned presentation inputs for the application title
+and a pure route-title lookup. The lookup MUST receive the exact admitted
+route handle; its result supplies the route heading, accessible region name,
+and navigation fallback without overriding an authored `navigation.label`.
+An absent result retains `route.title`, then `route.id`. An application-title
+input replaces the default bundle title in the banner and any enabled browser
+title write; a custom host header still takes precedence, and the binding MUST
+restore the previous browser title on unmount (§8.3).
+
+The host MUST qualify the admitted Surface and route ownership before deriving
+a presentation title from an admitted Definition and its active Locale. A route
+ID alone or the first loaded Definition is insufficient. These inputs MUST NOT
+modify canonical Manifest, Surface, or Definition artifacts, replan routes,
+reload data, or establish identity, authorization, or signing authority. They
+present host-selected wording; they do not introduce a new Locale key family.
 
 If the active scope has no visible entries, the binding MUST render no
 route-navigation landmark. When route resolution yields no active route, the
@@ -1230,11 +1248,17 @@ executor or private widget behaviour may still affect the runtime posture.
 
 A shell MUST NOT advance a transition on its own initiative. It advances only
 after the host reports a Response Action terminal result with
-`status: "completed"`, a resolved action identity, and a validation report whose
-`valid` field is `true`. Failed, deferred, blocked, unresolved, or invalid
-results do not advance, including a nonblocking invalid result. The shell MUST
-NOT infer success from a click, a rendered control, a validation summary alone,
-or the absence of an error.
+`status: "completed"` and a resolved action identity. An app-scoped action
+requires neither a Response nor a validation report. A Response-scoped action
+also requires executor detail and a validation tuple that matches that action's
+declared policy ([Validation Mapping](../core/validation-mapping.md) §6).
+A profile other than `off` requires a validation report with a Boolean
+`valid` field. `block-on-error` or `complete-response` requires `valid: true`;
+an `off` profile produces no validation report, and a nonblocking action that
+does not persist a complete Response may complete with `valid: false`.
+Failed, deferred, blocked, unresolved, or policy-inconsistent results do not
+advance. The shell MUST NOT infer success from a click, a rendered control, a
+validation summary alone, or the absence of an error.
 
 For each widget emission, the host:
 
