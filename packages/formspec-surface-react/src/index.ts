@@ -148,6 +148,7 @@ export {
   type StructuredMetricBlockConfig,
   type StructuredJsonBlockConfig,
   STRUCTURED_JSON_BLOCK_CONFIG_SCHEMA,
+  STRUCTURED_PANEL_CONFIG_SCHEMA,
   type StructuredActionConfirmationConfig,
   type StructuredActionPayloadConfig,
   type StructuredActionPayloadSelector,

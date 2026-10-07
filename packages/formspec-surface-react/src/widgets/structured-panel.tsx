@@ -113,21 +113,7 @@ export interface StructuredJsonBlockConfig extends StructuredBlockBase {
   unavailableMessage: string;
 }
 
-/** Reusable branch for authored Registry widgetShape.props; not native admission. */
-export const STRUCTURED_JSON_BLOCK_CONFIG_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['type', 'id', 'path', 'emptyMessage', 'unavailableMessage', 'x-generation'],
-  properties: {
-    type: { const: 'json' },
-    id: { type: 'string', pattern: '^[a-zA-Z][a-zA-Z0-9_-]*$' },
-    path: { type: 'string', pattern: '^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$' },
-    title: { type: 'string', minLength: 1 },
-    emptyMessage: { type: 'string', minLength: 1 },
-    unavailableMessage: { type: 'string', minLength: 1 },
-    'x-generation': { $ref: 'https://formspec.org/schemas/common/1.0#/$defs/Generation' },
-  },
-} as const;
+export { STRUCTURED_JSON_BLOCK_CONFIG_SCHEMA } from './structured-panel-metadata.js';
 
 export type StructuredPanelBlockConfig =
   | StructuredMetricBlockConfig

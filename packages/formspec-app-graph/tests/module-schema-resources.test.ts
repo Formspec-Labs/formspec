@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { describe, expect, it, vi } from 'vitest';
-import { STRUCTURED_JSON_BLOCK_CONFIG_SCHEMA } from '@formspec-org/surface-react/widgets';
+import { STRUCTURED_JSON_BLOCK_CONFIG_SCHEMA, STRUCTURED_PANEL_CONFIG_SCHEMA } from '@formspec-org/surface-react/widgets';
 import {
   produceAppGraphValidationReport,
   produceBundleExportAppGraphValidationReport,
@@ -81,6 +81,23 @@ const mismatches = (result: Awaited<ReturnType<typeof produceBundleExportAppGrap
   result.moduleResolutionReport.diagnostics.filter(d => d.code === 'MODULE-PAYLOAD-SCHEMA-MISMATCH');
 
 describe('caller-qualified local props schema resources', () => {
+  it('admits maintained whole-panel props through complete Registry and public producer', async () => {
+    const input = bundle();
+    input.documents[registryUri].entries[1].widgetShape!.props = structuredClone(STRUCTURED_PANEL_CONFIG_SCHEMA) as never;
+    const result = await produceBundleExportAppGraphValidationReport({ ...input, ...options() });
+    expect(result.report.ok).toBe(true);
+    expect(result.moduleResolutionReport.contributions).toContainEqual(expect.objectContaining({ payloadStatus: 'passed' }));
+  });
+  it('rejects an invalid nested whole-panel field through the public producer', async () => {
+    const input = bundle();
+    input.documents[registryUri].entries[1].widgetShape!.props = structuredClone(STRUCTURED_PANEL_CONFIG_SCHEMA) as never;
+    input.documents[surfaceUri].routes[0].slots[0].binding.config.blocks = [{
+      type: 'table', id: 'tasks', path: 'caseFile.tasks', columns: [{ id: 'name', path: 'name' }],
+    }] as never;
+    const result = await produceBundleExportAppGraphValidationReport({ ...input, ...options() });
+    expect(result.report.ok).toBe(false);
+    expect(mismatches(result)).toContainEqual(expect.objectContaining({ details: expect.objectContaining({ reason: 'payload-schema-mismatch' }) }));
+  });
   it('keeps the cross-language native fixture equal to the public JSON block schema', () => {
     const fixture = JSON.parse(readFileSync(new URL('../../../crates/formspec-lint/tests/fixtures/widget-json-props.json', import.meta.url), 'utf8'));
     expect(fixture).toEqual(STRUCTURED_JSON_BLOCK_CONFIG_SCHEMA);

@@ -111,7 +111,28 @@ custom properties emitted from the route's theme grant.
 | `CeremonyFrame` | Framing what is being attested to | `binding.config` |
 | `ReceiptPanel` | What a person keeps after submitting | declared named inputs |
 | `QueueTable` | An operator's work list | declared named inputs |
-| `StructuredPanel` | Generic metrics, facts, lists, responsive tables, progress, and mapped actions | traced `binding.config` plus declared named inputs |
+| `StructuredPanel` | Generic metrics, facts, lists, responsive tables, progress, JSON, and mapped actions | traced `binding.config` plus declared named inputs |
+
+`STRUCTURED_PANEL_CONFIG_SCHEMA` is the maintained whole static configuration
+schema for a newly authored Registry `widgetShape.props`. Import it from
+`@formspec-org/surface-react/widget-metadata`, `/widgets`, or the package root.
+The metadata entry imports no React or renderer code. It composes the unchanged
+`STRUCTURED_JSON_BLOCK_CONFIG_SCHEMA` with the other five block types, actions,
+confirmations, selectors and state views. Place the whole schema directly in
+`props`; declare the widget's named data inputs and action outputs separately.
+Supply the pinned Common schema at `https://formspec.org/schemas/common/1.0`
+through `moduleSupport.payloadSchemaResources` when using the public AppGraph
+producer. This export adds no case-specific input declaration or action authority.
+
+The schema rejects unknown properties and unsupported block types. Key-value
+items require exactly one of `path` or `routeParam`; payload and `emptyWhen`
+selectors permit an empty path to select the current object. Root trace remains
+optional, and non-JSON nodes retain their existing optional trace fields. The
+JSON branch requires its existing copy and trace fields. Schema validity alone
+does not qualify adopted Needs, source data, resolved channels or rendered
+delivery. Existing Need and runtime checks still apply. Existing Registry entries
+and delivery versions remain unchanged; authors explicitly choose this schema
+for a new contribution.
 
 **None of them invents product content.** The focused widgets use their
 existing generic empty-state defaults. `StructuredPanel` renders only independently

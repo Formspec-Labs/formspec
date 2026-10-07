@@ -60,7 +60,7 @@ describe('public widget metadata', () => {
     expect(schema.properties.presentation).toBe(metadata.ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA);
   });
   it('preserves the exact objects exported by both existing public APIs', () => {
-    const oldNames = Object.keys(widgets).filter(name => /^(ACCEPTED_RESPONSE_REVIEW_|RESPONSE_REVIEW_|SIGNING_CEREMONY_)/.test(name));
+    const oldNames = Object.keys(widgets).filter(name => /^(ACCEPTED_RESPONSE_REVIEW_|RESPONSE_REVIEW_|SIGNING_CEREMONY_|STRUCTURED_.*_CONFIG_SCHEMA$)/.test(name));
     expect(Object.keys(metadata).sort()).toEqual(oldNames.sort());
     for (const [name, value] of Object.entries(metadata)) {
       expect((root as Record<string, unknown>)[name]).toBe(value);
@@ -96,7 +96,7 @@ describe('public widget metadata', () => {
       }
     }
     walk(testFile('../src/widget-metadata.ts'));
-    expect(visited.size).toBe(4);
+    expect(visited.size).toBe(5);
   });
 
   it('keeps both metadata shapes accepted by the canonical complete Registry', () => {
