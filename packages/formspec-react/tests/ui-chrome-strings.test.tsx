@@ -344,3 +344,27 @@ describe('public recovery and cleared-access chrome', () => {
         expect(cleared).toEqual({ title: 'Acceso guardado borrado', detail: 'Este navegador ya no tiene acceso guardado a este borrador.' });
     });
 });
+
+it('keeps the public statusReason template for explicitly localized host guidance', async () => {
+    const { FormspecProvider } = await import('../src/context');
+    const { useChromeText } = await import('../src/hooks');
+    const engine = createFormEngine({ $formspec: '1.0', url: URL, version: '1.0.0', items: [] });
+    function Guidance() {
+        const chrome = useChromeText();
+        return <p role="status">{chrome('action.statusReason', {
+            status: chrome('action.blocked'), reason: chrome('validationSummary.fixOne'),
+        })}</p>;
+    }
+    const container = actRender(<FormspecProvider engine={engine}><Guidance /></FormspecProvider>);
+    expect(container.textContent).toBe('Blocked: Please fix this error before continuing:');
+    act(() => {
+        engine.loadLocale({ $formspecLocale: '2.0', locale: 'es', version: '1.0.0',
+            target: { kind: 'definition', url: URL }, strings: {
+                '$ui.action.blocked': 'Bloqueado',
+                '$ui.action.statusReason': '{{$reason}} ({{$status}})',
+                '$ui.validationSummary.fixOne': 'Corrija este error antes de continuar.',
+            } });
+        engine.setLocale('es');
+    });
+    expect(container.textContent).toBe('Corrija este error antes de continuar. (Bloqueado)');
+});

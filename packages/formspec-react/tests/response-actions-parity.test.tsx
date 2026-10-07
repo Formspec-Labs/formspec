@@ -278,7 +278,7 @@ describe('React Response Actions parity', () => {
             await gates[0]!.promise;
         });
         expect(status.textContent).toBe(
-            'Failed: The Formspec server returned HTTP 503. Service unavailable',
+            'Failed.',
         );
         expect(button.disabled).toBe(false);
         expect(button.getAttribute('aria-busy')).toBe('false');
@@ -301,12 +301,12 @@ describe('React Response Actions parity', () => {
         container.remove();
     });
 
-    it('renders every structured invocation terminal with an optional failure reason', async () => {
+    it('renders structured invocation terminals without diagnostic reasons', async () => {
         const cases = [
             { status: 'completed', expected: 'Completed.' },
-            { status: 'blocked', expected: 'Blocked: Complete the required fields.', failureReason: 'Complete the required fields.' },
+            { status: 'blocked', expected: 'Blocked.', failureReason: 'Complete the required fields.' },
             { status: 'failed', expected: 'Failed.' },
-            { status: 'deferred', expected: 'Deferred: Waiting for review.', failureReason: 'Waiting for review.' },
+            { status: 'deferred', expected: 'Deferred.', failureReason: 'Waiting for review.' },
             { status: 'unresolved', expected: 'Unresolved.' },
         ] as const;
 

@@ -45,12 +45,12 @@ describe('the React renderer draws its own words from the shared inventory', () 
         expect([...consumed].sort()).toEqual([
             'action.inProgress',
             'action.status',
-            'action.statusReason',
             'action.submit',
             'alert.dismiss',
             'dataTable.addRow',
             'dataTable.remove',
             'dataTable.removeRow',
+            'draft.saveUnconfirmed',
             'fieldHelp.label',
             'fileUpload.dropzone',
             'modal.close',

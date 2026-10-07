@@ -129,9 +129,9 @@ function errorMessage(error: unknown): string {
 }
 
 type ActionFeedback =
-    | { phase: 'idle'; message: '' }
-    | { phase: 'pending'; message: string }
-    | { phase: 'settled'; message: string };
+    | { phase: 'idle' }
+    | { phase: 'pending' }
+    | { phase: 'settled'; status: ResponseActionInvocationResult<unknown>['status']; intent: string | undefined };
 
 /** One chrome key per invocation status — the word the renderer says, authorable like every other. */
 const ACTION_STATUS_KEYS = {
@@ -142,16 +142,15 @@ const ACTION_STATUS_KEYS = {
     unresolved: 'action.unresolved',
 } as const satisfies Record<ResponseActionInvocationResult<unknown>['status'], ChromeStringKey>;
 
-function actionResultMessage(
-    chrome: ChromeText,
-    result: Pick<ResponseActionInvocationResult<unknown>, 'status' | 'failureReason'>,
-): string {
-    const status = chrome(ACTION_STATUS_KEYS[result.status]);
-    const reason = result.failureReason?.trim();
-    // The sentence is a template too: a locale decides its own punctuation and word order.
-    return reason
-        ? chrome('action.statusReason', { status, reason })
-        : chrome('action.status', { status });
+function actionResultMessage(chrome: ChromeText, feedback: ActionFeedback): string {
+    if (feedback.phase === 'idle') return '';
+    if (feedback.phase === 'pending') return chrome('action.inProgress');
+    if (feedback.intent === 'save-draft'
+        && (feedback.status === 'failed' || feedback.status === 'unresolved')) {
+        return chrome('draft.saveUnconfirmed');
+    }
+    // Diagnostic reasons remain in the original invocation result, never respondent copy.
+    return chrome('action.status', { status: chrome(ACTION_STATUS_KEYS[feedback.status]) });
 }
 
 function ActionButtonNode({ node }: { node: LayoutNode }) {
@@ -192,7 +191,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     const statusId = useId();
     const controlRef = useRef<HTMLDivElement>(null);
     const inFlightRef = useRef<Promise<ResponseActionInvocationResult<SubmitResult>> | null>(null);
-    const [feedback, setFeedback] = useState<ActionFeedback>({ phase: 'idle', message: '' });
+    const [feedback, setFeedback] = useState<ActionFeedback>({ phase: 'idle' });
 
     useEffect(() => {
         if (finding) {
@@ -305,20 +304,19 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             return inFlightRef.current;
         }
 
-        setFeedback({ phase: 'pending', message: chrome('action.inProgress') });
+        const intent = resolution.action?.intent;
+        setFeedback({ phase: 'pending' });
         const invocation = invoke(invocationContext);
         const tracked = invocation.then(
             (result) => {
-                setFeedback({ phase: 'settled', message: actionResultMessage(chrome, result) });
+                setFeedback({ phase: 'settled', status: result.status, intent });
                 return result;
             },
             (error: unknown) => {
                 setFeedback({
                     phase: 'settled',
-                    message: actionResultMessage(chrome, {
-                        status: 'failed',
-                        failureReason: errorMessage(error),
-                    }),
+                    status: 'failed',
+                    intent,
                 });
                 throw error;
             },
@@ -337,7 +335,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             },
         );
         return tracked;
-    }, [chrome, invoke]);
+    }, [invoke, resolution.action?.intent]);
 
     useEffect(() => {
         if (
@@ -412,7 +410,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
                 aria-atomic="true"
                 {...needAttrs}
             >
-                {feedback.message}
+                {actionResultMessage(chrome, feedback)}
             </div>
         </div>
     );

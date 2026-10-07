@@ -928,6 +928,7 @@ with the schema by test):
 | `action.unresolved` | `Unresolved` | none |
 | `action.status` | `{{$status}}.` | `$status` |
 | `action.statusReason` | `{{$status}}: {{$reason}}` | `$status`, `$reason` |
+| `draft.saveUnconfirmed` | `Saving could not be confirmed. Keep this page open.` | none |
 | `screener.submit` | `Check Eligibility` | none |
 | `screener.answerOne` | `Please answer at least one question` | none |
 | `assist.filled` | `{{$label}} filled by your assistant` | `$label` |

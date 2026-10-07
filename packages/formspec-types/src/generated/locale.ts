@@ -231,6 +231,7 @@ export type ChromeStringKey =
   | '$ui.action.unresolved'
   | '$ui.action.status'
   | '$ui.action.statusReason'
+  | '$ui.draft.saveUnconfirmed'
   | '$ui.screener.submit'
   | '$ui.screener.answerOne'
   | '$ui.assist.filled'

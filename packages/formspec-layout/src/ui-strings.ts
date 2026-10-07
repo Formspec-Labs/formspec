@@ -123,6 +123,7 @@ export const UI_STRINGS = {
     'action.unresolved': 'Unresolved',
     'action.status': '{{$status}}.',
     'action.statusReason': '{{$status}}: {{$reason}}',
+    'draft.saveUnconfirmed': "Saving could not be confirmed. Keep this page open.",
     'screener.submit': 'Check Eligibility',
     'screener.answerOne': 'Please answer at least one question',
     'assist.filled': '{{$label}} filled by your assistant',
