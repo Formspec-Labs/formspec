@@ -9,6 +9,7 @@ import { FormspecProvider } from './context';
 import type { FormspecProviderProps } from './context';
 import { useFormspecContext } from './context';
 import { FormspecNode } from './node-renderer';
+import { ActionFeedbackContent } from './action-feedback.js';
 import { IssuerChromeSlot, parseQueryIssuerOverride } from './issuer';
 import { FormspecScreener } from './screener/FormspecScreener';
 import type { ScreenerRoute, ScreenerRouteType } from './screener/types';
@@ -250,7 +251,7 @@ export function FormspecFormContent({ className }: FormspecFormContentProps) {
                 hostOrigin={browserHostOrigin()}
                 mode={issuerChromeModeFromClassName(className)}
             />
-            <FormspecNode node={layoutPlan} />
+            <ActionFeedbackContent><FormspecNode node={layoutPlan} /></ActionFeedbackContent>
         </div>
     );
 }

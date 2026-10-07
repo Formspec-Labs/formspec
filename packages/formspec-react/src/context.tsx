@@ -3,6 +3,7 @@
 /** @filedesc FormspecProvider — React context wrapping a FormEngine + optional layout plan. */
 import React, { createContext, useContext, useMemo, useEffect, useRef, useCallback, useState } from 'react';
 import { signal } from '@preact/signals-core';
+import { ActionFeedbackProvider } from './action-feedback.js';
 import type {
     ActionRefFinding,
     ActionResolution,
@@ -733,9 +734,12 @@ export function FormspecProvider(props: FormspecProviderProps) {
 
     return (
         <FormspecContext.Provider value={value}>
+            <ActionFeedbackProvider engine={engine} responseId={semanticControlScope?.responseId}
+                renderInstanceId={semanticControlScope?.renderInstanceId}>
             <div ref={themeScopeRef} className="formspec-theme-scope" style={THEME_SCOPE_STYLE}>
                 {children}
             </div>
+            </ActionFeedbackProvider>
         </FormspecContext.Provider>
     );
 }

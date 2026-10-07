@@ -16,10 +16,11 @@ import {
     type ResponseActionInvocationPorts,
     type ResponseActionInvocationResult,
 } from '@formspec-org/engine';
-import type { ChromeStringKey, LayoutNode } from '@formspec-org/layout';
+import type { LayoutNode } from '@formspec-org/layout';
 import type { ResponseActionInvokerResult, SubmitResult } from './context';
 import { useFormspecContext } from './context';
-import { useChromeText, type ChromeText } from './use-chrome-text';
+import { useChromeText } from './use-chrome-text';
+import { actionResultMessage, useActionFeedbackOutlet, type ActionFeedback } from './action-feedback.js';
 import { useSignal } from './use-signal';
 import { useField } from './use-field';
 import { useForm } from './use-form';
@@ -128,31 +129,6 @@ function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }
 
-type ActionFeedback =
-    | { phase: 'idle' }
-    | { phase: 'pending' }
-    | { phase: 'settled'; status: ResponseActionInvocationResult<unknown>['status']; intent: string | undefined };
-
-/** One chrome key per invocation status — the word the renderer says, authorable like every other. */
-const ACTION_STATUS_KEYS = {
-    completed: 'action.completed',
-    blocked: 'action.blocked',
-    failed: 'action.failed',
-    deferred: 'action.deferred',
-    unresolved: 'action.unresolved',
-} as const satisfies Record<ResponseActionInvocationResult<unknown>['status'], ChromeStringKey>;
-
-function actionResultMessage(chrome: ChromeText, feedback: ActionFeedback): string {
-    if (feedback.phase === 'idle') return '';
-    if (feedback.phase === 'pending') return chrome('action.inProgress');
-    if (feedback.intent === 'save-draft'
-        && (feedback.status === 'failed' || feedback.status === 'unresolved')) {
-        return chrome('draft.saveUnconfirmed');
-    }
-    // Diagnostic reasons remain in the original invocation result, never respondent copy.
-    return chrome('action.status', { status: chrome(ACTION_STATUS_KEYS[feedback.status]) });
-}
-
 function ActionButtonNode({ node }: { node: LayoutNode }) {
     const chrome = useChromeText();
     const {
@@ -186,9 +162,11 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         chrome('action.submit'),
         (key, fallback) => engine.resolveLocaleString(key, fallback),
     );
-    const actionNeedAnchors = generationNeedAnchors(resolution.action);
+    const actionNeedAnchors = useMemo(() => generationNeedAnchors(resolution.action), [resolution.action]);
     const needAttrs = needTraceAttrs([...(node.needAnchors ?? []), ...actionNeedAnchors]);
-    const statusId = useId();
+    const localStatusId = useId();
+    const outlet = useActionFeedbackOutlet();
+    const statusId = outlet?.id ?? localStatusId;
     const controlRef = useRef<HTMLDivElement>(null);
     const inFlightRef = useRef<Promise<ResponseActionInvocationResult<SubmitResult>> | null>(null);
     const [feedback, setFeedback] = useState<ActionFeedback>({ phase: 'idle' });
@@ -305,14 +283,17 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         }
 
         const intent = resolution.action?.intent;
+        const ticket = outlet?.store.start(outlet.id, intent, [...(node.needAnchors ?? []), ...actionNeedAnchors]);
         setFeedback({ phase: 'pending' });
         const invocation = invoke(invocationContext);
         const tracked = invocation.then(
             (result) => {
+                outlet?.store.settle(ticket, result.status);
                 setFeedback({ phase: 'settled', status: result.status, intent });
                 return result;
             },
             (error: unknown) => {
+                outlet?.store.settle(ticket, 'failed');
                 setFeedback({
                     phase: 'settled',
                     status: 'failed',
@@ -335,7 +316,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             },
         );
         return tracked;
-    }, [invoke, resolution.action?.intent]);
+    }, [invoke, resolution.action?.intent, outlet, node.needAnchors, actionNeedAnchors]);
 
     useEffect(() => {
         if (
@@ -404,7 +385,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             >
                 {label}
             </button>
-            <div
+            {!outlet && <div
                 id={statusId}
                 className="formspec-action-status"
                 role="status"
@@ -413,7 +394,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
                 {...needAttrs}
             >
                 {actionResultMessage(chrome, feedback)}
-            </div>
+            </div>}
         </div>
     );
 }

@@ -80,6 +80,34 @@ finding. A resolved action calls `onSubmit` only when it declares a
 `resolveActionIdempotencyKey`, and final action terminals flow through
 `onActionResult`.
 
+`FormspecFormContent` owns a stable action-status region outside conditional
+nodes. A completed action can therefore announce its existing localized result
+after a readiness change removes its button. The latest started action owns the
+provider's feedback, and only its originating content root announces it. A
+standalone `FormspecNode` retains local feedback. Pending controls keep their
+existing promise guard and focus behavior independently of feedback clearing.
+
+The private feedback record clears when observable answer values, repeat counts,
+or effective relevance change, or when its provider, semantic subject, engine,
+or content outlet is replaced. Equal values, readiness scratch, Locale changes,
+and manual semantic revisions preserve feedback. Hosts implementing Clear must
+retire the provider or content outlet even for equal empty answers. Original
+action results and findings still reach their existing callbacks; displayed
+completion does not establish durable save, signature or submission authority.
+
+Freshness requires signals from the same stock Preact peer. Custom or mixed
+signal instances, unsupported JSON values and excessive content refuse persistent
+feedback while allowing the action to execute. The bounded check uses maintained
+`canonicalize` and synchronous `@noble/hashes/sha2.js` SHA-256; it retains a fixed
+digest and finite status/provenance metadata. It admits at most 128 levels,
+100,000 visited nodes and 1 MiB of text per complete transient cohort. Public
+path enumeration precedes admission. Observable A→B→A invalidates old feedback;
+changes hidden inside one atomic Preact batch are observed as its final state.
+In-place changes that do not notify public signals are outside observation;
+activation and terminal checks still compare current content. These are private
+freshness checks, separate from canonical Response and signature profiles.
+The hash dependency requires Node 20.19 or later for Node consumers.
+
 ### Renderer chrome for custom controls
 
 Import `useChromeText` and `ChromeText` from `@formspec-org/react` or
