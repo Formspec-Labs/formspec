@@ -249,9 +249,9 @@ function completed() {
     status: 'completed',
     resolution: {
       resolved: true,
-      action: { id: 'acceptReceipt', intent: 'review' },
+      action: { id: 'acceptReceipt', intent: 'review', validation: { profile: 'off', blocking: 'non-blocking', persistence: 'none' } },
     },
-    validationTuple: null,
+    validationTuple: { profile: 'off', blocking: 'non-blocking', persistence: 'none' },
     detail: {
       response: {},
       validationReport: { valid: true },

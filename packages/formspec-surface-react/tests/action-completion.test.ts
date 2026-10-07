@@ -2,7 +2,7 @@
  * @filedesc Route advancement consumes the Response Actions terminal result.
  *
  * A click and an `onSubmit` callback happen before durable effects finish. The
- * shell advances only after a completed terminal with a valid report.
+ * shell advances only after a completed terminal under the declared validation policy.
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -16,7 +16,7 @@ function result(overrides: Record<string, unknown> = {}) {
   return {
     status: 'completed',
     resolution: { resolved: true, action },
-    validationTuple: null,
+    validationTuple: { profile: 'on-submit', blocking: 'block-on-error', persistence: 'complete-response' },
     detail: { response: {}, validationReport: { valid: true } },
     effectTrace: [],
     ...overrides,
@@ -84,5 +84,34 @@ describe('completedWidgetAction', () => {
     expect(completedWidgetAction(result({
       detail: { response: {}, validationReport: { valid: false } },
     }), responseDocument)).toBeUndefined();
+  });
+});
+
+const draftAction = { id: 'saveDraft', intent: 'save-draft' };
+const draftTuple = { profile: 'off', blocking: 'non-blocking', persistence: 'draft-checkpoint' };
+const draftDocument = { $formspecResponseActions: '1.0', version: '1.0.0', targetDefinition: { url: 'urn:def' }, actions: [draftAction] } as never;
+
+describe('response action completion follows the resolved validation tuple', () => {
+  const gates = [
+    (r: never) => completedFormAction(r),
+    (r: never) => completedWidgetAction(r, draftDocument),
+  ];
+  it.each(gates)('accepts an off draft checkpoint without a manufactured report', (gate) => {
+    expect(gate(result({ resolution: { resolved: true, action: draftAction }, validationTuple: draftTuple,
+      detail: { response: { status: 'in-progress', data: {} } } }))).toEqual(draftAction);
+  });
+  it.each(gates)('accepts nonblocking invalidity but requires evidence when validation runs', (gate) => {
+    const validation = { profile: 'live', blocking: 'non-blocking', persistence: 'draft-checkpoint' };
+    const a = { ...draftAction, validation };
+    const facts = { resolution: { resolved: true, action: a }, validationTuple: validation };
+    expect(gate(result({ ...facts, detail: { validationReport: { valid: false } } }))).toEqual(a);
+    expect(gate(result({ ...facts, detail: {} }))).toBeUndefined();
+  });
+  it.each(gates)('refuses missing or mismatched tuples, malformed actions, and absent detail', (gate) => {
+    const facts = { resolution: { resolved: true, action: draftAction }, validationTuple: draftTuple, detail: {} };
+    expect(gate(result({ ...facts, validationTuple: null }))).toBeUndefined();
+    expect(gate(result({ ...facts, validationTuple: { ...draftTuple, persistence: 'none' } }))).toBeUndefined();
+    expect(gate(result({ ...facts, detail: null }))).toBeUndefined();
+    expect(gate(result({ ...facts, resolution: { resolved: true, action: { id: 'bad', intent: 'x-bad' } } }))).toBeUndefined();
   });
 });

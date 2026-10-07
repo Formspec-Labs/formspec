@@ -33,6 +33,7 @@ import {
 import {
   createFormEngine,
   createMappingEngine,
+  resolveResponseActionValidationTuple,
   type IFormEngine,
 } from '@formspec-org/engine';
 import { FormspecForm } from '@formspec-org/react';
@@ -271,7 +272,7 @@ export interface SurfaceSlotProps {
   onDefinitionActionResult?:
     | ((result: ResponseActionInvocationResult<SubmitResult>) => void)
     | undefined;
-  /** A published Action reached a successful terminal with a valid report. */
+  /** A published Action completed under its resolved validation policy. */
   onActionCompleted?:
     | ((
         action: ResponseAction,
@@ -289,21 +290,38 @@ export interface SurfaceSlotProps {
     | undefined;
 }
 
-/** The action that is safe to use for route advancement, or no action. */
-export function completedFormAction(
-  result: ResponseActionInvocationResult<SubmitResult>,
+/** Successful Response actions follow their resolved Validation Modes policy. */
+function completedResponseAction<T>(
+  result: ResponseActionInvocationResult<T>,
 ): ResponseAction | undefined {
   if (result.status !== 'completed') return undefined;
   if (!result.resolution.resolved || !result.resolution.action) return undefined;
-  if (result.detail?.validationReport?.valid !== true) return undefined;
-  return result.resolution.action;
+  if (result.detail === null || result.detail === undefined) return undefined;
+  const action = result.resolution.action;
+  let tuple;
+  try {
+    tuple = resolveResponseActionValidationTuple(action);
+  } catch {
+    return undefined;
+  }
+  const actual = result.validationTuple;
+  if (!actual || actual.profile !== tuple.profile || actual.blocking !== tuple.blocking
+    || actual.persistence !== tuple.persistence) return undefined;
+  const report = (result.detail as { validationReport?: { valid?: unknown } }).validationReport;
+  if (tuple.profile !== 'off' && typeof report?.valid !== 'boolean') return undefined;
+  if ((tuple.persistence === 'complete-response' || tuple.blocking === 'block-on-error')
+    && report?.valid !== true) return undefined;
+  return action;
 }
 
-/**
- * Widget app actions have no Response to validate. Response-scoped widget
- * actions retain the form completion gate; app scope needs only the successful
- * resolved action terminal because the engine already enforced app validation.
- */
+/** The completed action whose declared policy permits route advancement. */
+export function completedFormAction(
+  result: ResponseActionInvocationResult<SubmitResult>,
+): ResponseAction | undefined {
+  return completedResponseAction(result);
+}
+
+/** App actions need no Response; Response actions follow their resolved policy. */
 export function completedWidgetAction(
   result: ResponseActionInvocationResult<SurfaceWidgetActionDetail>,
   document: GeneratedResponseActionsDocument,
@@ -314,18 +332,7 @@ export function completedWidgetAction(
       ? result.resolution.action ?? undefined
       : undefined;
   }
-  if (result.status !== 'completed') return undefined;
-  if (!result.resolution.resolved || !result.resolution.action) return undefined;
-  const detail = result.detail;
-  if (
-    detail === null ||
-    !Object.prototype.hasOwnProperty.call(detail, 'validationReport')
-  ) {
-    return undefined;
-  }
-  const validationReport = (detail as SubmitResult).validationReport;
-  if (validationReport?.valid !== true) return undefined;
-  return result.resolution.action;
+  return completedResponseAction(result);
 }
 
 type WidgetTransitionBindingMerge =
