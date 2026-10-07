@@ -98,7 +98,7 @@ type ReviewNode =
 type Capture = {
   headingLevel: SurfaceWidgetProps["headingLevel"];
   data: ResponseReviewData;
-  copy: ResponseReviewCopy;
+  copy: ResponseReviewCopy & { acceptedRecord?: string };
   nodes: ReviewNode[];
   attachments: string[];
   identity: string;
@@ -112,6 +112,8 @@ function capture(props: SurfaceWidgetProps): Capture | undefined {
     ) as unknown as ResponseReviewData;
     const config = snapshotFiniteJson(props.config) as unknown as Obj;
     const { definition: d, response: r, presentation: p } = data;
+    const acceptedAlias = props.widgetName === "AcceptedResponseReview" || props.widgetName === "x-accepted-response-review";
+    if (!object(p) || acceptedAlias !== (p.phase === "accepted-record")) return undefined;
     if (
       !object(d) ||
       d.$formspec !== "1.0" ||
@@ -168,7 +170,7 @@ function capture(props: SurfaceWidgetProps): Capture | undefined {
     if (!object(c) || !RESPONSE_REVIEW_COPY_KEYS.every((k) => text(c[k])))
       return undefined;
     if (p.phase === "accepted-record" && !text(c.acceptedRecord)) return undefined;
-    const copy = c as unknown as ResponseReviewCopy;
+    const copy = c as unknown as ResponseReviewCopy & { acceptedRecord?: string };
     const attachments: string[] = [];
     const nodes = walk(
       d.items as unknown as Obj[],

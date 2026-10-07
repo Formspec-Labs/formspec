@@ -28,8 +28,9 @@ export const RESPONSE_REVIEW_COPY_KEYS = [
   "unavailable",
 ] as const;
 export type ResponseReviewCopy = Readonly<
-  Record<(typeof RESPONSE_REVIEW_COPY_KEYS)[number], string> & { acceptedRecord?: string }
+  Record<(typeof RESPONSE_REVIEW_COPY_KEYS)[number], string>
 >;
+export type AcceptedResponseReviewCopy = ResponseReviewCopy & Readonly<{ acceptedRecord: string }>;
 export interface ResponseReviewPresentation {
   responseHash: string;
   definitionUrl: string;
@@ -138,7 +139,6 @@ export const RESPONSE_REVIEW_CONFIG_SCHEMA = {
               { type: "string", minLength: 1 },
             ])
           ),
-          acceptedRecord: { type: "string", minLength: 1 },
           "x-generation": { type: "object" },
         },
       },
@@ -146,6 +146,26 @@ export const RESPONSE_REVIEW_CONFIG_SCHEMA = {
     "x-generation": { type: "object" },
   },
 } as const;
+/** Separate authored delivery shape preserves immutable applicant Registry identity. */
+export const ACCEPTED_RESPONSE_REVIEW_CONFIG_SCHEMA = {
+  ...RESPONSE_REVIEW_CONFIG_SCHEMA,
+  properties: {
+    ...RESPONSE_REVIEW_CONFIG_SCHEMA.properties,
+    copy: {
+      ...RESPONSE_REVIEW_CONFIG_SCHEMA.properties.copy,
+      additionalProperties: {
+        ...RESPONSE_REVIEW_CONFIG_SCHEMA.properties.copy.additionalProperties,
+        required: [...RESPONSE_REVIEW_COPY_KEYS, "acceptedRecord"],
+        properties: {
+          ...RESPONSE_REVIEW_CONFIG_SCHEMA.properties.copy.additionalProperties.properties,
+          acceptedRecord: { type: "string", minLength: 1 },
+        },
+      },
+    },
+  },
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_DELIVERY_CONTRACT_ID =
+  "@formspec-org/surface-react/AcceptedResponseReview@0.1";
 export const RESPONSE_REVIEW_WIDGET_SHAPE = {
   widgetName: "ResponseReview",
   props: RESPONSE_REVIEW_CONFIG_SCHEMA,
@@ -156,6 +176,12 @@ export const RESPONSE_REVIEW_WIDGET_SHAPE = {
   childrenPolicy: "none",
   deliveryContractId: RESPONSE_REVIEW_DELIVERY_CONTRACT_ID,
   renderedConfigNodes: RESPONSE_REVIEW_RENDERED_CONFIG_NODES,
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_WIDGET_SHAPE = {
+  ...RESPONSE_REVIEW_WIDGET_SHAPE,
+  widgetName: "AcceptedResponseReview",
+  props: ACCEPTED_RESPONSE_REVIEW_CONFIG_SCHEMA,
+  deliveryContractId: ACCEPTED_RESPONSE_REVIEW_DELIVERY_CONTRACT_ID,
 } as const;
 
 /** Schema for the separately qualified presentation input; not renderer-selected authority. */

@@ -11,6 +11,7 @@ import * as root from '../src/index.js';
 import * as widgets from '../src/widgets/index.js';
 import registry from '../../../schemas/registry.schema.json';
 import common from '../../../schemas/common.schema.json';
+import legacy from './fixtures/legacy-signing-widget-shapes.json';
 
 // A dynamic relative argument avoids Vite's browser-asset URL rewrite in happy-dom.
 const testFile = (relative: string) => new URL(relative, import.meta.url);
@@ -34,6 +35,22 @@ function runtimeImports(source: string): string[] {
 }
 
 describe('public widget metadata', () => {
+  it('preserves immutable applicant Registry shapes while publishing a separate accepted delivery', () => {
+    expect(metadata.RESPONSE_REVIEW_WIDGET_SHAPE).toEqual(legacy.shapes.ResponseReview);
+    expect(metadata.SIGNING_CEREMONY_WIDGET_SHAPE).toEqual(legacy.shapes.SigningCeremony);
+    expect(metadata.RESPONSE_REVIEW_CONFIG_SCHEMA).toEqual(legacy.shapes.ResponseReview.props);
+    expect(metadata.ACCEPTED_RESPONSE_REVIEW_WIDGET_SHAPE.widgetName).toBe('AcceptedResponseReview');
+    const accepted = metadata.ACCEPTED_RESPONSE_REVIEW_CONFIG_SCHEMA.properties.copy.additionalProperties;
+    expect(accepted.required).toContain('acceptedRecord');
+    expect(metadata.RESPONSE_REVIEW_CONFIG_SCHEMA.properties.copy.additionalProperties.properties).not.toHaveProperty('acceptedRecord');
+    const module = root.starterWidgetModule('x-qualified-test');
+    for (const name of ['AcceptedResponseReview', 'x-accepted-response-review']) {
+      expect(module.widgets[name]).toBe(root.ResponseReview);
+      expect(module.contracts?.[name]?.deliveryContractId).toBe(metadata.ACCEPTED_RESPONSE_REVIEW_DELIVERY_CONTRACT_ID);
+      expect(module.contracts?.[name]?.registryEntryVersion).toBe('0.1.0');
+    }
+    expect(module.contracts?.ResponseReview?.deliveryContractId).toBe(metadata.RESPONSE_REVIEW_DELIVERY_CONTRACT_ID);
+  });
   it('references maintained native schemas in the closed accepted input wrapper', () => {
     const schema = metadata.ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA;
     expect(schema.additionalProperties).toBe(false);
@@ -88,9 +105,9 @@ describe('public widget metadata', () => {
       published: '2026-10-07T12:00:00Z', entries: [
         { name: 'x-metadata', category: 'module', version: '0.1.0', status: 'stable',
           description: 'Maintained metadata module.', compatibility: { formspecVersion: '>=1.0.0 <2.0.0' },
-          contributes: ['x-response-review', 'x-signing-ceremony'] },
-        ...[metadata.RESPONSE_REVIEW_WIDGET_SHAPE, metadata.SIGNING_CEREMONY_WIDGET_SHAPE].map(shape => ({
-          name: shape.widgetName === 'ResponseReview' ? 'x-response-review' : 'x-signing-ceremony',
+          contributes: ['x-response-review', 'x-signing-ceremony', 'x-accepted-response-review'] },
+        ...[metadata.RESPONSE_REVIEW_WIDGET_SHAPE, metadata.SIGNING_CEREMONY_WIDGET_SHAPE, metadata.ACCEPTED_RESPONSE_REVIEW_WIDGET_SHAPE].map(shape => ({
+          name: shape.widgetName === 'ResponseReview' ? 'x-response-review' : shape.widgetName === 'AcceptedResponseReview' ? 'x-accepted-response-review' : 'x-signing-ceremony',
           category: 'widget', version: '0.1.0', status: 'stable', description: 'Maintained widget metadata.',
           compatibility: { formspecVersion: '>=1.0.0 <2.0.0' }, widgetShape: shape,
         })),

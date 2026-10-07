@@ -899,6 +899,7 @@ it("discards a late handoff digest after producer replacement", async () => {
 
 async function acceptedProps() {
   const p = await props();
+  p.widgetName = "AcceptedResponseReview";
   const d = p.data as any;
   const { actorRef: _actor, draft: _draft, ...common } = d.presentation;
   d.presentation = { ...common, phase: "accepted-record", handoffId: "handoff-actual-1" };
@@ -907,6 +908,26 @@ async function acceptedProps() {
 }
 
 describe("accepted-record ResponseReview", () => {
+  it("preserves existing custom signing reuse without accepted callbacks", async () => {
+    const p = await props(); p.widgetName = 'custom-review';
+    const accepted = vi.fn(), signing = vi.fn();
+    const view = await mount(p, { onAcceptedReviewState: accepted, onReviewState: signing });
+    await vi.waitFor(() => expect(signing.mock.calls.at(-1)?.[0].status).toBe('ready'));
+    expect(accepted).not.toHaveBeenCalled(); view.unmount();
+  });
+  it.each(['ResponseReview', 'x-response-review', 'custom-review'])("refuses accepted data under %s before hashing or ports", async widgetName => {
+    const p = await acceptedProps(); p.widgetName = widgetName;
+    const hash = vi.fn(handoffBytes), read = vi.fn(), accepted = vi.fn(), signing = vi.fn();
+    const view = await mount(p, { canonicalResponseHandoffBytes: hash, readAcceptedAttachment: read, onAcceptedReviewState: accepted, onReviewState: signing });
+    expect(hash).not.toHaveBeenCalled(); expect(read).not.toHaveBeenCalled();
+    expect(accepted).not.toHaveBeenCalled(); expect(signing).not.toHaveBeenCalled(); view.unmount();
+  });
+  it.each(['AcceptedResponseReview', 'x-accepted-response-review'])("refuses signing data under %s before hashing or ports", async widgetName => {
+    const p = await props(); p.widgetName = widgetName;
+    const hash = vi.fn(handoffBytes), accepted = vi.fn(), signing = vi.fn();
+    const view = await mount(p, { canonicalResponseHandoffBytes: hash, onAcceptedReviewState: accepted, onReviewState: signing });
+    expect(hash).not.toHaveBeenCalled(); expect(accepted).not.toHaveBeenCalled(); expect(signing).not.toHaveBeenCalled(); view.unmount();
+  });
   it("reuses lossless frozen values and reports only accepted availability without draft/signing authority", async () => {
     const p = await acceptedProps(), original = JSON.stringify(p.data);
     const accepted = vi.fn(), signing = vi.fn();
