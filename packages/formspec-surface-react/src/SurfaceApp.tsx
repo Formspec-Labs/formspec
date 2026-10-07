@@ -41,6 +41,7 @@
  * of the way of hosts that already have a router — which every host of any size
  * does. A shell that owned history would be a shell that could not be embedded.
  */
+import { deriveSurfaceRuntimeGeneration } from "./runtime-generation.js";
 import {
   useCallback,
   useEffect,
@@ -404,20 +405,12 @@ export function SurfaceApp(props: SurfaceAppProps) {
     ? routeNavigationScope(resolution.match.handle)
     : DEFAULT_NAVIGATION_SCOPE;
 
-  const runtimeGeneration = useMemo(() => {
-    const params = Object.entries(props.routeParams ?? {})
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, value]) => `${key.length}:${key}${value.length}:${value}`)
-      .join("|");
-    const parts = [
-      String(props.sessionGeneration ?? "default"),
-      location,
-      resolution.match?.handle.surfaceId ?? "",
-      resolution.match?.handle.routeId ?? "",
-      params,
-    ];
-    return parts.map((part) => `${part.length}:${part}`).join("|");
-  }, [location, props.routeParams, props.sessionGeneration, resolution.match]);
+  const runtimeGeneration = useMemo(() => deriveSurfaceRuntimeGeneration({
+    sessionGeneration: props.sessionGeneration,
+    location,
+    app: model.app,
+    routeParams: props.routeParams,
+  }), [model.app, location, props.routeParams, props.sessionGeneration]);
 
   const routeInstance = useRef<
     | {

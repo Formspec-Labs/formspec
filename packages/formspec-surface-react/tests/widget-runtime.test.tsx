@@ -1100,3 +1100,184 @@ describe('widget action runtime', () => {
     );
   });
 });
+
+describe("public generation registration before mounted loading", () => {
+  it("pairs initial loads and Prepare navigation with the independently registered destination", async () => {
+    const { deriveSurfaceRuntimeGeneration } = await import("../src/index.js");
+    const { composeSurfaceApp } = await import("@formspec-org/surface");
+    const candidate = bundle(true);
+    const surface = candidate.surfaces[0] as any;
+    surface.routes[0].id = "intake";
+    surface.routes[0].path = "/intake";
+    surface.routes[0].transitions = [
+      { trigger: "acceptReceipt", to: "ceremony" },
+    ];
+    surface.routes[1].id = "ceremony";
+    surface.routes[1].path = "/ceremony";
+    surface.routes[1].slots = structuredClone(surface.routes[0].slots);
+    surface.routes[1].slots[0].binding.dataBindings.receipt.sourceRef =
+      "resource:prepared";
+    const catalog = candidate.dataSources[0]!.document as any;
+    catalog.sources[0].availability.routeRef = "intake";
+    catalog.sources.push({
+      ...structuredClone(catalog.sources[0]),
+      id: "resource:prepared",
+      availability: {
+        ...catalog.sources[0].availability,
+        routeRef: "ceremony",
+      },
+    });
+    const app = composeSurfaceApp(candidate.surfaces, {
+      entrySurface: candidate.entrySurface,
+    });
+    let prepared = false;
+    const loads: Array<{ route: string; generation: string }> = [];
+    let finish!: (value: ReturnType<typeof completed>) => void;
+    const executor: SurfaceWidgetActionExecutor = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    const Widget: SurfaceWidget = ({ data, route, emitAction }) => (
+      <div>
+        <span data-probe="phase">{String((data.receipt as any)?.message)}</span>
+        {route.routeId === "intake" && (
+          <button data-probe="prepare" onClick={() => emitAction("accepted")}>
+            Prepare
+          </button>
+        )}
+      </div>
+    );
+    function Host() {
+      const [location, setLocation] = useState("/intake");
+      const epoch = 1;
+      // Register independently before SurfaceApp mounts any loading children.
+      const expected = deriveSurfaceRuntimeGeneration({
+        app,
+        sessionGeneration: epoch,
+        location,
+      });
+      return (
+        <SurfaceApp
+          bundle={candidate}
+          location={location}
+          sessionGeneration={epoch}
+          onNavigate={setLocation}
+          widgetModules={runtimeModule(Widget)}
+          widgetActionExecutor={executor}
+          authorizeDataSource={() => ({ status: "authorized" })}
+          validateDataSourcePayload={() => ({ valid: true })}
+          dataSourceLoader={async (request) => {
+            expect(request.context.sessionGeneration).toBe(expected);
+            expect(request.context.sessionGeneration).not.toBe(String(epoch));
+            const route = request.context.routeId!;
+            loads.push({ route, generation: expected });
+            if (route === "ceremony" && !prepared)
+              return { status: "unavailable" };
+            return {
+              status: "loaded",
+              freshness: "current",
+              value: {
+                message:
+                  route === "ceremony"
+                    ? "Recorded prepared candidate"
+                    : "Intake candidate",
+              },
+            };
+          }}
+          setDocumentTitle={false}
+        />
+      );
+    }
+    const container = render(<Host />);
+    await vi.waitFor(async () => {
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(container.querySelector('[data-probe="phase"]')?.textContent).toBe(
+        "Intake candidate"
+      );
+    });
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[data-probe="prepare"]')!
+        .click();
+      await Promise.resolve();
+    });
+    expect(container.querySelector('[data-probe="phase"]')?.textContent).toBe(
+      "Intake candidate"
+    );
+    await act(async () => {
+      prepared = true;
+      finish(completed());
+      await Promise.resolve();
+    });
+    await vi.waitFor(async () => {
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(container.querySelector('[data-probe="phase"]')?.textContent).toBe(
+        "Recorded prepared candidate"
+      );
+    });
+    expect(loads.some((load) => load.route === "intake")).toBe(true);
+    expect(loads.some((load) => load.route === "ceremony")).toBe(true);
+    expect(loads.find((load) => load.route === "intake")?.generation).not.toBe(
+      loads.find((load) => load.route === "ceremony")?.generation
+    );
+  });
+});
+
+it("refuses a terminal navigation after the mounted shell is disposed", async () => {
+  let finish!: (value: ReturnType<typeof completed>) => void;
+  const navigate = vi.fn();
+  const reports: SurfaceWidgetActionReport[] = [];
+  const Widget: SurfaceWidget = ({ emitAction }) => (
+    <button data-probe="pending" onClick={() => emitAction("accepted")}>
+      Prepare
+    </button>
+  );
+  function Host() {
+    const [active, setActive] = useState(true);
+    return (
+      <>
+        <button data-probe="dispose" onClick={() => setActive(false)}>
+          Dispose
+        </button>
+        {active && (
+          <SurfaceApp
+            bundle={bundle()}
+            location="/receipt"
+            sessionGeneration={1}
+            onNavigate={navigate}
+            widgetModules={runtimeModule(Widget)}
+            widgetActionExecutor={() =>
+              new Promise((resolve) => {
+                finish = resolve;
+              })
+            }
+            onWidgetActionReport={(report) => reports.push(report)}
+            setDocumentTitle={false}
+          />
+        )}
+      </>
+    );
+  }
+  const container = render(<Host />);
+  await act(async () => {
+    container
+      .querySelector<HTMLButtonElement>('[data-probe="pending"]')!
+      .click();
+    await Promise.resolve();
+  });
+  act(() =>
+    container
+      .querySelector<HTMLButtonElement>('[data-probe="dispose"]')!
+      .click()
+  );
+  await act(async () => {
+    finish(completed());
+    await Promise.resolve();
+  });
+  expect(navigate).not.toHaveBeenCalled();
+  expect(reports.at(-1)?.navigation).toBe("obsolete-generation");
+});

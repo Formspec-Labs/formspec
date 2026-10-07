@@ -1170,8 +1170,15 @@ function SurfaceWidgetSlot({
   );
   const [dataLoadAttempt, setDataLoadAttempt] = useState(0);
   const responseContexts = useRef<{ generation: string; values: ReadonlyMap<string, SurfaceWidgetResponseContext> } | undefined>(undefined);
-  const activeGeneration = useRef(runtimeGeneration);
+  const activeGeneration = useRef<string | undefined>(runtimeGeneration);
   activeGeneration.current = runtimeGeneration;
+  useEffect(() => {
+    activeGeneration.current = runtimeGeneration;
+    return () => {
+      // A disposed widget cannot advance the host after its pending terminal arrives.
+      if (activeGeneration.current === runtimeGeneration) activeGeneration.current = undefined;
+    };
+  }, [runtimeGeneration]);
   const localActionCoordinator = useRef(createWidgetActionCoordinator());
   const actionCoordinator = widgetActionCoordinator ?? localActionCoordinator.current;
   const navigatedInvocations = useRef(new Set<string>());

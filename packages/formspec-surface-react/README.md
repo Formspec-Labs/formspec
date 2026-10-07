@@ -348,3 +348,32 @@ No serializer, profile selector or raw-JCS response-hash fallback is supplied.
 whole-context identity. It cannot substitute for the maintained handoff digest.
 Handoff bytes preserve signatures and extensions; the signing-payload profile
 that omits top-level signatures is a separate purpose.
+
+
+## Runtime generation pairing
+
+`deriveSurfaceRuntimeGeneration({app, location, sessionGeneration, routeParams})`
+returns the exact derived identity sent as Data Source
+`context.sessionGeneration` and used for late-action guards. Get `app` from
+`useSurfaceApp` with the same admitted bundle, modules and composition options
+as `SurfaceApp`. The helper uses the maintained route matcher internally.
+Pass the same exact location and explicit routeParams props; do not merge URL
+path parameters into them. The formatter and its defaults remain unchanged.
+
+`SurfaceAppProps.sessionGeneration` is the opaque host marker; it is distinct
+from this derived string. Register the expected derived identity against the
+exact private candidate before mounting/loading. Refuse unresolved or ambiguous
+routes through maintained routing diagnostics. Equality establishes neither
+actor authority nor ownership, revision freshness, signing or read permission.
+Keep those host checks independent. Do not authorize the first request merely
+because it supplies a generation, and do not use the post-render
+`onCurrentRouteStateChange` callback for pre-load registration.
+
+Preparing or signing may publish a new delivery snapshot while retaining the
+originating render marker until that action's terminal navigation is accepted.
+Register the destination context before its loading widgets render. Concurrent
+edit, Locale change, Clear, logout or authority revocation invalidates immediately;
+keep the private authority epoch and delivery revision separate. Include a visit
+epoch in the host marker when returning to the same route must be a new visit.
+A disposed widget refuses late terminal navigation. Legacy live transitions and
+existing obsolete-generation guards remain in force.
