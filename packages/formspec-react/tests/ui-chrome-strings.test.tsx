@@ -261,8 +261,8 @@ describe('public-hook receipt and local-preview host scenarios', () => {
         for (const copy of ['Language', 'The language change could not be saved. Try again.',
             'Local preview', 'Draft restored', 'Answers received', 'Submission ID',
             'Case filing and signing are not yet confirmed.', 'Keep this record',
-            'Print this confirmation, then clear this computer before leaving.',
-            'Print confirmation', 'Clear this computer', 'Clearing...']) {
+            'Print this confirmation, then clear saved access before leaving.',
+            'Print confirmation', 'Clear saved access', 'Clearing...']) {
             expect(container.textContent).toContain(copy);
         }
         act(() => {
@@ -294,5 +294,53 @@ describe('public-hook receipt and local-preview host scenarios', () => {
         act(() => engine.setLocale(''));
         expect(container.textContent).toBe(originalText);
         expect(container.querySelector('code')?.textContent).toBe(submissionId);
+    });
+});
+
+describe('public recovery and cleared-access chrome', () => {
+    it('resolves exact host states and literal version values, then retains only cleared strings', async () => {
+        const { useChromeText, chromeText, FormspecProvider } = await import('../src/hooks');
+        const root = await import('../src/index');
+        expect(root.chromeText).toBe(chromeText);
+        const engine = createFormEngine({ $formspec: '1.0', url: URL, version: '2.0.0', title: 'Recovery', items: [] });
+        const version = '1.0-{{$secret}}-<script>';
+        function RecoveryChrome() {
+            const chrome = useChromeText();
+            return <section>
+                <h2>{chrome('form.fields')}</h2>
+                <h3>{chrome('draft.versionChangedTitle')}</h3>
+                <p data-version>{chrome('draft.versionChanged', { version })}</p>
+                <button>{chrome('draft.startCurrent')}</button>
+                <p>{chrome('draft.startingCurrent')}</p>
+                <p role="alert">{chrome('draft.startCurrentFailed')}</p>
+                <p>{chrome('draft.browserAccessNotice')}</p>
+                <h3 data-cleared>{chrome('receipt.clearedTitle')}</h3>
+                <p data-detail>{chrome('receipt.clearedDetail')}</p>
+            </section>;
+        }
+        const container = actRender(<FormspecProvider engine={engine}><RecoveryChrome /></FormspecProvider>);
+        const initial = container.textContent;
+        expect(container.querySelector('[data-version]')?.textContent).toBe(`This draft was saved with form version ${version}. Start again with the current form to continue.`);
+        expect(container.querySelector('script')).toBeNull();
+        expect(container.textContent).toContain('Other saved drafts stay available.');
+        expect(chromeText(undefined, 'receipt.clear')).toBe('Clear saved access');
+        expect(chromeText(undefined, 'receipt.printInstruction')).toBe('Print this confirmation, then clear saved access before leaving.');
+        act(() => {
+            engine.loadLocale({ $formspecLocale: '2.0', locale: 'es', version: '1.0.0', target: { kind: 'definition', url: URL }, strings: {
+                '$ui.form.fields': 'Campos del formulario',
+                '$ui.draft.versionChanged': 'Versión guardada: {{$version}}',
+                '$ui.receipt.clearedTitle': 'Acceso guardado borrado',
+                '$ui.receipt.clearedDetail': 'Este navegador ya no tiene acceso guardado a este borrador.',
+            } });
+            engine.setLocale('es');
+        });
+        expect(container.querySelector('h2')?.textContent).toBe('Campos del formulario');
+        expect(container.querySelector('[data-version]')?.textContent).toBe(`Versión guardada: ${version}`);
+        expect(container.querySelector('[role="alert"]')?.textContent).toBe('Saved access could not be cleared. Try again.');
+        // The cleared view can keep two resolved strings and release all answer-bearing engine state.
+        const cleared = { title: chromeText(engine, 'receipt.clearedTitle'), detail: chromeText(engine, 'receipt.clearedDetail') };
+        act(() => engine.setLocale(''));
+        expect(container.textContent).toBe(initial);
+        expect(cleared).toEqual({ title: 'Acceso guardado borrado', detail: 'Este navegador ya no tiene acceso guardado a este borrador.' });
     });
 });

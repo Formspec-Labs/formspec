@@ -135,10 +135,19 @@ export const UI_STRINGS = {
     'receipt.submissionId': "Submission ID",
     'receipt.pendingFilingAndSigning': "Case filing and signing are not yet confirmed.",
     'receipt.keepRecord': "Keep this record",
-    'receipt.printInstruction': "Print this confirmation, then clear this computer before leaving.",
+    'receipt.printInstruction': "Print this confirmation, then clear saved access before leaving.",
     'receipt.print': "Print confirmation",
-    'receipt.clear': "Clear this computer",
+    'receipt.clear': "Clear saved access",
     'receipt.clearing': "Clearing...",
+    'form.fields': "Form fields",
+    'draft.versionChangedTitle': "This saved draft uses a different form version",
+    'draft.versionChanged': "This draft was saved with form version {{$version}}. Start again with the current form to continue.",
+    'draft.startCurrent': "Clear saved access and start again",
+    'draft.startingCurrent': "Starting again...",
+    'draft.startCurrentFailed': "Saved access could not be cleared. Try again.",
+    'draft.browserAccessNotice': "Starting again removes saved access to this draft from this browser. Other saved drafts stay available.",
+    'receipt.clearedTitle': "Saved access cleared",
+    'receipt.clearedDetail': "This browser no longer has saved access to this draft.",
 } as const;
 
 /** Closed suffix set for `$ui.<ChromeStringKey>` (Locale spec §3.1.10), one-for-one with the schema enum. */

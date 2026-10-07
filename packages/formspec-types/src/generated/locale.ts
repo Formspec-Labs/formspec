@@ -246,7 +246,16 @@ export type ChromeStringKey =
   | '$ui.receipt.printInstruction'
   | '$ui.receipt.print'
   | '$ui.receipt.clear'
-  | '$ui.receipt.clearing';
+  | '$ui.receipt.clearing'
+  | '$ui.form.fields'
+  | '$ui.draft.versionChangedTitle'
+  | '$ui.draft.versionChanged'
+  | '$ui.draft.startCurrent'
+  | '$ui.draft.startingCurrent'
+  | '$ui.draft.startCurrentFailed'
+  | '$ui.draft.browserAccessNotice'
+  | '$ui.receipt.clearedTitle'
+  | '$ui.receipt.clearedDetail';
 /**
  * Extension object whose keys must be prefixed with x-.
  */

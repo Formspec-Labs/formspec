@@ -516,7 +516,16 @@
         "$ui.receipt.printInstruction",
         "$ui.receipt.print",
         "$ui.receipt.clear",
-        "$ui.receipt.clearing"
+        "$ui.receipt.clearing",
+        "$ui.form.fields",
+        "$ui.draft.versionChangedTitle",
+        "$ui.draft.versionChanged",
+        "$ui.draft.startCurrent",
+        "$ui.draft.startingCurrent",
+        "$ui.draft.startCurrentFailed",
+        "$ui.draft.browserAccessNotice",
+        "$ui.receipt.clearedTitle",
+        "$ui.receipt.clearedDetail"
       ],
       "description": "Closed one-to-one mapping to the renderer chrome string inventory (Locale spec §3.1.10, packages/formspec-layout/src/ui-strings.ts). A new chrome string requires a Locale schema revision."
     }

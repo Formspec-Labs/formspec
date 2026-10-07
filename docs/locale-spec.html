@@ -2067,7 +2067,7 @@ with the schema by test):</p>
 </tr>
 <tr>
 <td><code>receipt.printInstruction</code></td>
-<td><code>Print this confirmation, then clear this computer before leaving.</code></td>
+<td><code>Print this confirmation, then clear saved access before leaving.</code></td>
 <td>none</td>
 </tr>
 <tr>
@@ -2077,7 +2077,7 @@ with the schema by test):</p>
 </tr>
 <tr>
 <td><code>receipt.clear</code></td>
-<td><code>Clear this computer</code></td>
+<td><code>Clear saved access</code></td>
 <td>none</td>
 </tr>
 <tr>
@@ -2085,17 +2085,62 @@ with the schema by test):</p>
 <td><code>Clearing...</code></td>
 <td>none</td>
 </tr>
+<tr>
+<td><code>form.fields</code></td>
+<td><code>Form fields</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>draft.versionChangedTitle</code></td>
+<td><code>This saved draft uses a different form version</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>draft.versionChanged</code></td>
+<td><code>This draft was saved with form version {{$version}}. Start again with the current form to continue.</code></td>
+<td><code>$version</code></td>
+</tr>
+<tr>
+<td><code>draft.startCurrent</code></td>
+<td><code>Clear saved access and start again</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>draft.startingCurrent</code></td>
+<td><code>Starting again...</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>draft.startCurrentFailed</code></td>
+<td><code>Saved access could not be cleared. Try again.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>draft.browserAccessNotice</code></td>
+<td><code>Starting again removes saved access to this draft from this browser. Other saved drafts stay available.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>receipt.clearedTitle</code></td>
+<td><code>Saved access cleared</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>receipt.clearedDetail</code></td>
+<td><code>This browser no longer has saved access to this draft.</code></td>
+<td>none</td>
+</tr>
 </tbody>
 </table>
 <p>Parameters are renderer-supplied, read-only values (a repeat’s group
 label, row index, row total, character count, character max, file name,
-upload limit, upload progress) written <code>{{$name}}</code> and
-substituted <strong>literally</strong> into the template. A chrome
-string carries no other FEL: it never evaluates against the form scope,
-and it is the one respect in which this family differs from §3.1.9 —
-Surface shell references are FEL, <code>$ui</code> parameters are not. A
-processor MUST NOT parse <code>{{$name}}</code> here as an
-expression.</p>
+upload limit, upload progress, saved form version) written
+<code>{{$name}}</code> and substituted <strong>literally</strong> into
+the template. A chrome string carries no other FEL: it never evaluates
+against the form scope, and it is the one respect in which this family
+differs from §3.1.9 — Surface shell references are FEL, <code>$ui</code>
+parameters are not. A processor MUST NOT parse <code>{{$name}}</code>
+here as an expression.</p>
 <p>An unknown <code>$ui</code> suffix is rejected by the closed schema
 and by lint code E1401, exactly as an unknown Surface shell suffix
 (§3.1.9) is — the family admits no per-site or per-Definition keys.</p>

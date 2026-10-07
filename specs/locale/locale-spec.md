@@ -940,14 +940,23 @@ with the schema by test):
 | `receipt.submissionId` | `Submission ID` | none |
 | `receipt.pendingFilingAndSigning` | `Case filing and signing are not yet confirmed.` | none |
 | `receipt.keepRecord` | `Keep this record` | none |
-| `receipt.printInstruction` | `Print this confirmation, then clear this computer before leaving.` | none |
+| `receipt.printInstruction` | `Print this confirmation, then clear saved access before leaving.` | none |
 | `receipt.print` | `Print confirmation` | none |
-| `receipt.clear` | `Clear this computer` | none |
+| `receipt.clear` | `Clear saved access` | none |
 | `receipt.clearing` | `Clearing...` | none |
+| `form.fields` | `Form fields` | none |
+| `draft.versionChangedTitle` | `This saved draft uses a different form version` | none |
+| `draft.versionChanged` | `This draft was saved with form version {{$version}}. Start again with the current form to continue.` | `$version` |
+| `draft.startCurrent` | `Clear saved access and start again` | none |
+| `draft.startingCurrent` | `Starting again...` | none |
+| `draft.startCurrentFailed` | `Saved access could not be cleared. Try again.` | none |
+| `draft.browserAccessNotice` | `Starting again removes saved access to this draft from this browser. Other saved drafts stay available.` | none |
+| `receipt.clearedTitle` | `Saved access cleared` | none |
+| `receipt.clearedDetail` | `This browser no longer has saved access to this draft.` | none |
 
 Parameters are renderer-supplied, read-only values (a repeat's group label,
 row index, row total, character count, character max, file name, upload limit,
-upload progress) written `{{$name}}` and
+upload progress, saved form version) written `{{$name}}` and
 substituted **literally** into the template. A chrome string carries no other
 FEL: it never evaluates against the form scope, and it is the one respect in
 which this family differs from §3.1.9 — Surface shell references are FEL,

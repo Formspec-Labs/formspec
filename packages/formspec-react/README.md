@@ -101,3 +101,10 @@ received, restored, clearing and language-save-failed states; translating a labe
 does not establish backend acknowledgment. `receipt.pendingFilingAndSigning`
 reports unconfirmed filing/signing. Render a submission ID as unchanged host data
 beside `receipt.submissionId`, rather than embedding it in translated copy.
+
+The root and `/hooks` entry points also export `chromeText(engine | undefined,
+key, params)`, the same pure resolver used by `useChromeText`. Hosts can resolve
+cleared-access confirmation text with the current qualified engine before
+releasing answer state, then retain only the resulting strings. Outside an
+engine it uses shared English defaults. Recovery feedback is selected by the
+host; the `draft.versionChanged` version parameter is opaque literal text.

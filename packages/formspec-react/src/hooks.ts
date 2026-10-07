@@ -44,5 +44,5 @@ export type {
 } from './semantic-controls';
 export type { FieldComponentProps, LayoutComponentProps, DisplayComponentProps, ComponentMap } from './component-map';
 
-export { useChromeText } from './use-chrome-text';
+export { useChromeText, chromeText } from './use-chrome-text';
 export type { ChromeText } from './use-chrome-text';
