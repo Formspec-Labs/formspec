@@ -106,3 +106,9 @@ that chain.** Every call above that the platform does not state produces a
 
 Layer 2 (`scripts/check-dep-fences.mjs`): depends on `@formspec-org/types` (0),
 `@formspec-org/app-graph` (1) and `@formspec-org/layout` (1). No React, no DOM.
+
+### Captured Response wording
+
+`captureResponseFieldMetadata(definition, response, reader)` captures field and group labels and field options for paths present in retained Response data. It preserves indexed repeat paths and copies option values and labels. The result uses the public `CapturedResponseFields` type shared with ResponseReview.
+
+The injected `ResponseFieldMetadataReader` supplies already qualified labels and options. An empty options array admits a field without options; `undefined` refuses a missing field. Missing or empty labels, malformed repeat rows, and reader refusals fail capture. This pure helper neither evaluates answers nor resolves Locale documents, remote options, custody, or access. A signing host may read its isolated signing snapshot; an accepted-record host must supply original captured metadata or independently proven static wording from the original artifacts and recorded Locale.

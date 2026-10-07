@@ -257,3 +257,9 @@ export {
 } from './preview-scenario.js';
 
 export { snapshotFiniteJson, canonicalFiniteJson, type FiniteJsonValue } from "./finite-json.js";
+
+export {
+  captureResponseFieldMetadata,
+  type CapturedResponseFields,
+  type ResponseFieldMetadataReader,
+} from './response-field-metadata.js';

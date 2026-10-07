@@ -1,5 +1,5 @@
 /** @filedesc Canonical ResponseReview metadata without renderer runtime imports. */
-import type { FiniteJsonValue } from '@formspec-org/surface';
+import type { CapturedResponseFields, FiniteJsonValue } from '@formspec-org/surface';
 import type { FormDefinition, FormResponse } from '@formspec-org/types';
 import type { SurfaceWidgetProps } from '../widget-api.js';
 
@@ -40,12 +40,7 @@ export interface ResponseReviewPresentation {
   draft: { id: string; version: number };
   phase: "before-sign" | "before-submit";
   /** Captured public field/group metadata for this exact snapshot, never live engine values. */
-  fields: Readonly<
-    Record<
-      string,
-      { label: string; options?: readonly { value: string; label: string }[] }
-    >
-  >;
+  fields: CapturedResponseFields;
 }
 export interface ResponseReviewData {
   definition: FormDefinition;
