@@ -247,3 +247,85 @@ disabled. The displayed delegated-service-key notice must describe the actual
 producer; it must not imply possession of a personal signing key. Application
 signing requirements remain explicit server policy and do not change core form
 validation merely because a content catalog exists.
+
+## Frozen Response review
+
+`ResponseReview` displays every present answer from a detached full Response, in
+Definition order with groups and repeats. Extra answers remain visible with their
+stored keys and lossless JSON values. It uses no engine values, relevance filters,
+calculations, defaults, answer writes or Response export. Signature count describes
+recorded metadata; the renderer verifies neither signatures nor legal validity.
+
+The generic starter widget declares required inputs `definition`, `response`, and
+`presentation`, and no action outputs. Publish `RESPONSE_REVIEW_WIDGET_SHAPE` in an
+actual Registry contribution; configuration follows `RESPONSE_REVIEW_CONFIG_SCHEMA`.
+`RESPONSE_REVIEW_PRESENTATION_SCHEMA` describes the separate qualified metadata input.
+The Definition source supplies the complete canonical root Definition using
+`{"$ref":"https://formspec.org/schemas/definition/1.0"}`; a SigningContent
+fragment cannot supply its items. The Response source retains the canonical
+root Response schema reference. Qualified Data Source/host admission performs
+complete canonical schema validation; the renderer checks markers, structure
+and matching pins defensively.
+
+Presentation supplies exact Definition pins, full-Response JCS/SHA-256 hash,
+`locale`, `actorRef`, `draft:{id,version}`, `phase:'before-sign'|'before-submit'`, and
+`fields:{[instancePath]:{label,options?:[{value,label}]}}`. Capture labels and option
+text through maintained public field metadata at the exact candidate. Include
+labels for present groups and repeated fields. Do not refresh dynamic options or
+interpolate labels against changed live answers. The host checks the Definition
+bytes against the loaded artifact and qualifies metadata provenance. This widget
+requires a matching explicit `displayedLocale`; missing language evidence refuses
+review. Before-submit also requires recorded signatures, a shape check only.
+
+Configuration has authored `copy:{[locale]:...}` with the exact closed keys in
+`RESPONSE_REVIEW_COPY_KEYS`, including all pending/failure/empty-value labels.
+There is no English fallback or new `$ui` key. An unavailable input without valid
+language/copy cannot manufacture localized text.
+
+Use `starterWidgetModule(moduleId,{responseReview:{readAttachment,onReviewState}})`
+or `createResponseReviewWidget(...)` to inject the narrow host capabilities.
+They remain outside authored JSON. `readAttachment(request,{signal})` receives the
+exact detached descriptor, actual field/array path, and complete captured inputs.
+The host checks private actor/session/form/ownership/revision and returns verified
+bytes through its admitted reader. The renderer independently checks retained
+`hash:'sha256:<hex>'`, size, MIME aliases and raster byte signature, then waits for
+successful image decoding. PNG/JPEG/GIF/WebP previews use owned Blob URLs, never a
+stored URL or URN as image source. Unsupported, missing or failed previews keep
+availability false. Details preserve the entire stored descriptor. Reads abort on
+replacement; preview URLs revoke on replacement/unmount.
+
+`onReviewState` reports `pending|ready|unavailable` with the exact response hash,
+actor, draft revision, phase and locale. Ready adds `contextIdentity`, the full
+captured input hash (`responseReviewHash({definition,response,presentation})`).
+The host must reset its gate for every new route/generation/candidate and compare
+that identity before accepting availability. This reports presentation availability,
+not proof that a person read it. Explicit assent stays in SigningCeremony; host and
+server ownership, signing and submission checks remain separate. Keep injected
+callbacks stable within a generation. Use the completed unsigned candidate before
+assent and the exact full returned signed Response before Submit. Preserve both
+originals; do not regenerate either from the review display.
+
+For a ceremony that requires full answer/photo review, set authored
+`requireResponseReview:true` on SigningCeremony and provide the declared optional
+`review` input. It carries `{contextIdentity,state}` as described by
+`SIGNING_CEREMONY_REVIEW_SCHEMA`; state uses `RESPONSE_REVIEW_STATE_SCHEMA`.
+The host computes the expected identity independently from its current captured
+review inputs, then publishes callback state only for that same candidate. It
+must compare the Response, loaded Definition/content, actor, draft revision,
+locale, phase and route/session generation; copying the callback identity alone
+is insufficient. Pending/unavailable states can omit their reported identity.
+
+The opted-in ceremony disables both Sign and Submit and rechecks their emission
+unless review is ready with the exact expected identity and current context.
+Changes to the expected identity reset reading, consent and name. The requirement
+is captured with the mounted ceremony; mutating configuration cannot bypass it.
+Add authored `reviewPending` and `reviewUnavailable` strings to every selected
+ceremony Locale copy; the config schema requires them only when opted in. Preview
+failures offer a native retry of the same immutable descriptor. Neither retries
+nor ready feedback establish human reading or consent.
+
+Keep paper access available by delivering a loaded `unavailable` review state or
+setting that optional review source's `failureMode: degraded-widget`. The default
+Data Sources policy can block a widget even for an optional failed source. This
+is a source-policy choice; the loader is unchanged. Legacy ceremony configurations
+retain their existing behavior. D1 full-review authoring opts in explicitly.

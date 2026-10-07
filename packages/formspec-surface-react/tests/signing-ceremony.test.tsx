@@ -36,8 +36,8 @@ function signed(p:SurfaceWidgetProps):SurfaceWidgetProps {
 describe('SigningCeremony',()=>{
  it('publishes exact delivery, required inputs, config schema and separate action outputs',()=>{
   const shape=SIGNING_CEREMONY_WIDGET_SHAPE;
-  expect(shape.dataInputs.map(i=>i.name)).toEqual(['content','response','draft','actor','signingResult','actionLabels']);
-  expect(shape.dataInputs.every(i=>i.required)).toBe(true);
+  expect(shape.dataInputs.map(i=>i.name)).toEqual(['content','response','draft','actor','signingResult','actionLabels','review']);
+  expect(shape.dataInputs.filter(i=>i.required)).toHaveLength(6);
   expect(shape.actionOutputs.map(o=>o.name)).toEqual(['sign','submit','paper']);
   expect(starterWidgetModule('x-starter').contracts?.SigningCeremony?.deliveryContractId).toBe(shape.deliveryContractId);
   const ajv=new Ajv2020({strict:false});addFormats(ajv);ajv.addSchema(common);
@@ -117,4 +117,35 @@ describe('SigningCeremony',()=>{
   act(()=>button(el,'Sign').click());expect(button(el,'Sign').disabled).toBe(true);expect(el.textContent).toContain(copy.pending);
   await act(async()=>complete({status:'failed'}));expect(el.textContent).toContain(copy.failed);expect(button(el,'Submit').disabled).toBe(true);
  });
+});
+
+function requireReview(p:SurfaceWidgetProps,status='ready') {
+ p.config={...p.config,requireResponseReview:true,copy:{en:{...copy,reviewPending:'Full response review is loading.',reviewUnavailable:'Full response review is unavailable. Retry the attachment preview.'}}};
+ const d=p.data as any;d.review={contextIdentity:'d'.repeat(64),state:{status,contextIdentity:'d'.repeat(64),responseHash:d.draft.responseHash,actorRef:d.actor.id,draft:{id:d.draft.id,version:d.draft.version},locale:d.content.locale,phase:d.signingResult.state==='signed'?'before-submit':'before-sign'}};return p;
+}
+describe('SigningCeremony full Response review gate',()=>{
+ it('disables Sign and refuses forced clicks when opted-in review is missing or pending',async()=>{
+  for(const missing of [true,false]) {const p=requireReview(props(),'pending');if(missing)delete (p.data as any).review;const view=mount(p);assent(view.el);const sign=button(view.el,'Sign');expect(sign.disabled).toBe(true);expect(view.el.textContent).toContain(missing?'Full response review is unavailable.':'Full response review is loading.');sign.disabled=false;await act(async()=>sign.click());expect(p.emitAction).not.toHaveBeenCalled();}
+ });
+ it.each(['contextIdentity','responseHash','actorRef','draft','locale','phase','status'])('refuses mismatched %s on otherwise ready review',field=>{
+  const p=requireReview(props());const r=(p.data as any).review.state;r[field]=field==='draft'?{id:'other',version:7}:field==='status'?'unavailable':'wrong';const view=mount(p);assent(view.el);expect(button(view.el,'Sign').disabled).toBe(true);
+ });
+ it('enables Sign only after explicit assent and matching review, resets assent on expected identity change',()=>{
+  const p=requireReview(props());const view=mount(p);expect(button(view.el,'Sign').disabled).toBe(true);assent(view.el);expect(button(view.el,'Sign').disabled).toBe(false);
+  const next=requireReview(props());(next.data as any).review.contextIdentity='e'.repeat(64);(next.data as any).review.state.contextIdentity='e'.repeat(64);view.rerender(next);expect(button(view.el,'Sign').disabled).toBe(true);expect(view.el.querySelector<HTMLInputElement>('input[type=checkbox]')?.checked).toBe(false);
+ });
+ it('gates Submit on review of the exact returned signed phase',async()=>{
+  const p=requireReview(signed(props()),'pending');const view=mount(p);expect(button(view.el,'Submit').disabled).toBe(true);const ready=requireReview(signed(props()));view.rerender(ready);expect(button(view.el,'Submit').disabled).toBe(false);
+  (ready.data as any).review.state.phase='before-sign';button(view.el,'Submit').disabled=false;await act(async()=>button(view.el,'Submit').click());expect(ready.emitAction).not.toHaveBeenCalled();
+ });
+});
+
+it('refuses mutable opt-in flag bypass without a rerender',async()=>{
+ const p=requireReview(props(),'ready');const view=mount(p);assent(view.el);expect(button(view.el,'Sign').disabled).toBe(false);
+ (p.config as any).requireResponseReview=false;button(view.el,'Sign').disabled=false;await act(async()=>button(view.el,'Sign').click());expect(p.emitAction).not.toHaveBeenCalled();
+});
+
+it('requires localized review reason strings only for opted-in config',()=>{
+ const ajv=new Ajv2020({strict:false});addFormats(ajv);ajv.addSchema(common);const validate=ajv.compile(SIGNING_CEREMONY_CONFIG_SCHEMA);
+ expect(validate(props().config)).toBe(true);expect(validate({...props().config,requireResponseReview:true})).toBe(false);expect(validate(requireReview(props()).config)).toBe(true);
 });

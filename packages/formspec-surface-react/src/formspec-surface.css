@@ -982,3 +982,21 @@
 }
 .fs-surface-ceremony__paper { white-space: pre-wrap; }
 .fs-surface-ceremony__actions { display: flex; flex-wrap: wrap; gap: var(--formspec-spacing-sm, 0.5rem); }
+
+/* Frozen answer review uses the shared typography and a quiet row hierarchy. */
+.fs-response-review { max-width: 60rem; color: var(--fs-surface-ink); overflow-wrap: anywhere; }
+.fs-response-review-intro { max-width: 48rem; color: var(--fs-surface-ink-quiet); }
+.fs-response-review-context { display: flex; flex-wrap: wrap; gap: 1rem 2rem; padding-block: 1rem; border-block: 1px solid var(--fs-surface-line); }
+.fs-response-review-context dt { font-size: .875rem; color: var(--fs-surface-ink-quiet); }
+.fs-response-review-context dd { margin: .25rem 0 0; }
+.fs-response-review-group { margin-block: 2rem; }
+.fs-response-review-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 1rem; padding-block: 1rem; margin: 0; border-bottom: 1px solid var(--fs-surface-line); }
+.fs-response-review-row dt { font-weight: 600; }
+.fs-response-review-row dd { margin: 0; min-width: 0; white-space: pre-wrap; }
+.fs-response-review-json { margin: 0; font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fs-response-review-code { color: var(--fs-surface-ink-quiet); }
+.fs-response-review-attachment { margin: 0 0 1rem; }
+.fs-response-review-attachment img { display: block; width: auto; height: auto; max-width: 100%; max-height: 24rem; object-fit: contain; }
+.fs-response-review-row summary { cursor: pointer; padding-block: .5rem; }
+.fs-response-review-row summary:focus-visible { outline: 2px solid var(--fs-surface-accent); outline-offset: 3px; }
+@media (max-width: 40rem) { .fs-response-review-row { grid-template-columns: minmax(0, 1fr); gap: .5rem; } .fs-response-review-context { gap: 1rem; } }

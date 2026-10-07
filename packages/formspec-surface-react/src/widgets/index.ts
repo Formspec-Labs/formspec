@@ -23,6 +23,7 @@
  */
 import type { SurfaceWidget, SurfaceWidgetModule } from '../widget-api.js';
 import { MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES } from '../widget-state.js';
+import { ResponseReview, createResponseReviewWidget, RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, RESPONSE_REVIEW_RENDERED_CONFIG_NODES, type ResponseReviewOptions } from './response-review.js';
 import { IntakeBanner } from './intake-banner.js';
 import { SigningCeremony, SIGNING_CEREMONY_DELIVERY_CONTRACT_ID, SIGNING_CEREMONY_RENDERED_CONFIG_NODES } from './signing-ceremony.js';
 import { CeremonyFrame } from './ceremony-frame.js';
@@ -30,9 +31,10 @@ import { ReceiptPanel } from './receipt-panel.js';
 import { QueueTable } from './queue-table.js';
 import { StructuredPanel } from './structured-panel.js';
 
+export * from './response-review.js';
 export { IntakeBanner } from './intake-banner.js';
-export { SigningCeremony, SIGNING_CEREMONY_CONFIG_SCHEMA, SIGNING_CEREMONY_WIDGET_SHAPE, SIGNING_CEREMONY_DELIVERY_CONTRACT_ID, SIGNING_CEREMONY_RENDERED_CONFIG_NODES } from './signing-ceremony.js';
-export type { SigningCeremonyConfig, SigningCeremonyCopy, SigningCeremonyData, SigningCeremonyDraft, SigningCeremonyResult } from './signing-ceremony.js';
+export { SigningCeremony, SIGNING_CEREMONY_CONFIG_SCHEMA, SIGNING_CEREMONY_REVIEW_SCHEMA, SIGNING_CEREMONY_WIDGET_SHAPE, SIGNING_CEREMONY_DELIVERY_CONTRACT_ID, SIGNING_CEREMONY_RENDERED_CONFIG_NODES } from './signing-ceremony.js';
+export type { SigningCeremonyConfig, SigningCeremonyCopy, SigningCeremonyData, SigningCeremonyDraft, SigningCeremonyResult, SigningCeremonyReview } from './signing-ceremony.js';
 export { CeremonyFrame } from './ceremony-frame.js';
 export { ReceiptPanel } from './receipt-panel.js';
 export { QueueTable } from './queue-table.js';
@@ -76,6 +78,8 @@ export type {
  * the schema permits both, since this field carries no pattern.
  */
 export const STARTER_WIDGETS: Readonly<Record<string, SurfaceWidget>> = {
+  'x-response-review': ResponseReview,
+  ResponseReview,
   'x-intake-banner': IntakeBanner,
   'x-ceremony-frame': CeremonyFrame,
   'x-signing-ceremony': SigningCeremony,
@@ -131,7 +135,7 @@ export const CEREMONY_FRAME_RENDERED_CONFIG_NODES = [
   { pointerPattern: '', kind: 'ceremony-frame' },
 ] as const;
 
-export function starterWidgetModule(moduleId: string): SurfaceWidgetModule {
+export function starterWidgetModule(moduleId: string, options: { responseReview?: ResponseReviewOptions } = {}): SurfaceWidgetModule {
   const contract = (
     deliveryContractId: string,
     renderedConfigNodes: readonly { pointerPattern: string; kind: string }[],
@@ -159,8 +163,14 @@ export function starterWidgetModule(moduleId: string): SurfaceWidgetModule {
   );
   return {
     moduleId,
-    widgets: STARTER_WIDGETS,
+    widgets: options.responseReview ? {
+      ...STARTER_WIDGETS,
+      ResponseReview: createResponseReviewWidget(options.responseReview),
+      'x-response-review': createResponseReviewWidget(options.responseReview),
+    } : STARTER_WIDGETS,
     contracts: {
+      ResponseReview: contract(RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, RESPONSE_REVIEW_RENDERED_CONFIG_NODES),
+      'x-response-review': contract(RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, RESPONSE_REVIEW_RENDERED_CONFIG_NODES),
       StructuredPanel: structuredPanelContract,
       'x-structured-panel': structuredPanelContract,
       QueueTable: queueTableContract,
