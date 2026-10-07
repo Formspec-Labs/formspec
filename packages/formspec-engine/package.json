@@ -38,6 +38,10 @@
     "./demo-fixtures": {
       "types": "./dist/demo-submit-response-actions.d.ts",
       "default": "./dist/demo-submit-response-actions.js"
+    },
+    "./static-presentation": {
+      "types": "./dist/static-presentation-entry.d.ts",
+      "default": "./dist/static-presentation-entry.js"
     }
   },
   "sideEffects": [

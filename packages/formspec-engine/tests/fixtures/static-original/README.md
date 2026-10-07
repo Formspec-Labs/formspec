@@ -1,0 +1,1 @@
+Retained authored D1 v0.1.6 documents copied byte-for-byte from Studio demo-authoring/outputs/d1/v0.1.6/passport-renewal. The test pins their raw SHA-256 hashes. English is a supported static behavior fixture. Original Spanish es-US has regional fallback and must refuse. Constructed test Responses are engineering fixtures, never genuine accepted-record or custody evidence.

@@ -483,3 +483,11 @@ validate the resulting document against the Response schema when required.
 This helper does not verify signature bytes, claimed digests, identity assurance
 or receipts. The provider and receiving verifier own those checks. It does not
 call `getResponse()` again or read a clock. Do not regenerate the signed snapshot.
+
+### Static retained Response wording
+
+`@formspec-org/engine/static-presentation` exports `createStaticResponseMetadataReader({ definition, response, locale })`. Supply host-qualified original parsed artifacts. The reader fits Surface's `ResponseFieldMetadataReader`; call the public Surface `captureResponseFieldMetadata` to capture present group/field paths and options. The entry imports no Engine, evaluator, WASM bridge or network loader.
+
+The supported subset requires an exact recorded base-language Locale with matching target, version and optional URL, no fallback declaration, and context-independent Item wording. It reuses the same maintained label and option-label cascades as the live FieldViewModel. It refuses context alternatives, regional/fallback Locales, interpolation-looking selected strings, unresolved fragments, remote/dynamic options and missing named option sets. Named static option sets take precedence over Item options. Generic inline-only mode requires explicit `locale: null` and no `response.displayedLocale`; a consumer may require recorded Locale and refuse that mode.
+
+Original byte/hash qualification, historical artifact association, case access and provenance remain host responsibilities. The reader snapshots supplied artifacts and creates no evidence receipt or authority. Previously captured original metadata is necessary for unsupported wording. A retained regional Locale cannot be replaced by another language to make this reader succeed.

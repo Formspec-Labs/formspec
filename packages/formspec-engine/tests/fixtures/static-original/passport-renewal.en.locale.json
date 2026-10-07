@@ -1,0 +1,891 @@
+{
+  "$formspecLocale": "2.0",
+  "url": "urn:formspec:demo:d1:passport-renewal:locale:en",
+  "version": "0.1.6",
+  "locale": "en",
+  "target": {
+    "kind": "definition",
+    "url": "urn:formspec:demo:d1:passport-renewal",
+    "compatibleVersions": "0.1.6"
+  },
+  "strings": {
+    "$form.title": "Passport renewal",
+    "$action.submit.label": "Submit demo response",
+    "demoNotice.label": "Demo application with fictional details. This sample is not an official DS-82 form.",
+    "renewalEligible.label": "Renewal eligibility confirmed",
+    "renewalEligible.hint": "Continue after the renewal eligibility check. This sample does not determine official eligibility.",
+    "renewalEligible.requiredMessage": "Complete this field.",
+    "renewalEligible.errors.TYPE_MISMATCH": "Choose yes or no.",
+    "renewalEligible.constraintMessage": "Complete the renewal eligibility check before continuing. This sample supports eligible applicants only.",
+    "detailsHeading.label": "Confirm your renewal details",
+    "fullName.label": "Full legal name",
+    "fullName.requiredMessage": "Complete this field.",
+    "fullName.errors.TYPE_MISMATCH": "Enter a valid answer.",
+    "dateOfBirth.label": "Date of birth",
+    "dateOfBirth.requiredMessage": "Complete this field.",
+    "dateOfBirth.errors.TYPE_MISMATCH": "Enter a valid date.",
+    "placeOfBirth.label": "Place of birth",
+    "placeOfBirth.requiredMessage": "Complete this field.",
+    "placeOfBirth.errors.TYPE_MISMATCH": "Enter a valid answer.",
+    "email.label": "Email address",
+    "email.requiredMessage": "Complete this field.",
+    "email.errors.TYPE_MISMATCH": "Enter a valid answer.",
+    "mailingAddress.label": "Mailing address",
+    "mailingAddress.requiredMessage": "Complete this field.",
+    "mailingAddress.errors.TYPE_MISMATCH": "Enter a valid answer.",
+    "priorPassportNumber.label": "Prior passport number",
+    "priorPassportNumber.requiredMessage": "Complete this field.",
+    "priorPassportNumber.errors.TYPE_MISMATCH": "Enter a valid answer.",
+    "priorPassportIssueDate.label": "Prior passport issue date",
+    "priorPassportIssueDate.requiredMessage": "Complete this field.",
+    "priorPassportIssueDate.errors.TYPE_MISMATCH": "Enter a valid date.",
+    "ssnIssued.label": "Have you ever been issued a Social Security number?",
+    "ssnIssued.requiredMessage": "Complete this field.",
+    "ssnIssued.errors.TYPE_MISMATCH": "Choose yes or no.",
+    "socialSecurityNumber.label": "Social Security number",
+    "socialSecurityNumber.hint": "If issued, your number is required by law; omission can mean denial, according to the source snapshot. The zeros are fictional.",
+    "socialSecurityNumber.requiredMessage": "Complete this field.",
+    "socialSecurityNumber.errors.TYPE_MISMATCH": "Enter a valid answer.",
+    "socialSecurityNumber.constraintMessage": "Enter nine digits without spaces or dashes.",
+    "neverIssuedStatement.label": "Sworn statement that you have never been issued a Social Security number",
+    "neverIssuedStatement.hint": "Enter your sworn never-issued statement. Official wording remains to be qualified.",
+    "neverIssuedStatement.requiredMessage": "Complete this field.",
+    "neverIssuedStatement.errors.TYPE_MISMATCH": "Enter a valid answer.",
+    "neverIssuedStatement.constraintMessage": "Enter your sworn never-issued statement.",
+    "photo.label": "Passport photo",
+    "photo.hint": "Upload a JPEG or PNG photo. Passport-specific photo checks are not yet verified.",
+    "photo.requiredMessage": "Upload a photo.",
+    "photo.errors.TYPE_MISMATCH": "Choose a valid image file.",
+    "privacyNotice.label": "Sample privacy notice: submitted answers and photo are visible to authorized demo reviewers. Official legal authority and permitted-sharing wording remain unqualified. Do not enter real personal data.",
+    "paperAlternative.label": "Also available by mail (DS-82) or in person (DS-11).",
+    "declaration.label": "I declare that my answers are true and complete to the best of my knowledge. Acknowledging this declaration does not sign the application.",
+    "declarationAcknowledged.label": "I have read and acknowledge the declaration.",
+    "declarationAcknowledged.requiredMessage": "Complete this field.",
+    "declarationAcknowledged.errors.TYPE_MISMATCH": "Choose yes or no.",
+    "declarationAcknowledged.constraintMessage": "Read and acknowledge the declaration before signing and submitting.",
+    "$ui.fileUpload.dropzone": "Drop files here or click to browse",
+    "$ui.fileUpload.dropzoneKeyboard": "Drop files here or press Enter to browse",
+    "$ui.fileUpload.browse": "Upload a file",
+    "$ui.validationSummary.heading": "Please correct the following",
+    "$ui.validationSummary.fixOne": "Please fix this error before continuing:",
+    "$ui.validationSummary.fixMany": "Please fix these {{$count}} errors before continuing:",
+    "$ui.validationSummary.reviewOne": "Please review this warning before continuing:",
+    "$ui.validationSummary.reviewMany": "Please review these {{$count}} warnings before continuing:",
+    "$ui.validationSummary.review": "Please review the following before continuing:",
+    "$ui.validationSummary.errorCountOne": "There is 1 error on this form.",
+    "$ui.validationSummary.errorCount": "There are {{$count}} errors on this form.",
+    "$ui.validationSummary.issueCountOne": "There is 1 issue to review on this form.",
+    "$ui.validationSummary.issueCount": "There are {{$count}} issues to review on this form.",
+    "$ui.validationSummary.row": "{{$label}}: {{$message}}",
+    "$ui.action.submit": "Submit",
+    "$ui.action.inProgress": "In progress.",
+    "$ui.action.completed": "Completed",
+    "$ui.action.blocked": "Blocked",
+    "$ui.action.failed": "Failed",
+    "$ui.action.deferred": "Deferred",
+    "$ui.action.unresolved": "Unresolved",
+    "$ui.action.status": "{{$status}}.",
+    "$ui.action.statusReason": "{{$status}}: {{$reason}}",
+    "$ui.fieldHelp.label": "Help me answer this question",
+    "$ui.fileUpload.attachedList": "Files you have attached",
+    "$ui.fileUpload.pendingList": "Pending file activity",
+    "$ui.fileUpload.remove": "Remove {{$filename}}",
+    "$ui.fileUpload.dismissError": "Dismiss error for {{$filename}}",
+    "$ui.fileUpload.uploading": "Uploading...",
+    "$ui.fileUpload.uploadProgress": "Uploading {{$percent}}%",
+    "$ui.fileUpload.deferredLibrary": "Saving to your document library is not yet available here.",
+    "$ui.fileUpload.cameraCapture": "Camera capture",
+    "$ui.fileUpload.cameraPreview": "Camera preview",
+    "$ui.fileUpload.captureImage": "Capture image",
+    "$ui.fileUpload.closeCamera": "Close camera",
+    "$ui.fileUpload.useCamera": "Use camera",
+    "$ui.fileUpload.cameraUnavailable": "Camera capture is not available in this browser.",
+    "$ui.fileUpload.cameraOpenFailed": "We could not open the camera. Choose a file instead.",
+    "$ui.fileUpload.cameraCaptureFailed": "We could not capture an image. Choose a file instead.",
+    "$ui.fileUpload.imagesWaitingOne": "{{$count}} image waiting for review.",
+    "$ui.fileUpload.imagesWaitingMany": "{{$count}} images waiting for review.",
+    "$ui.fileUpload.imageReview": "Image review before upload",
+    "$ui.fileUpload.legibilityWarning": "This image may be hard to read. Check focus, lighting, and glare before uploading.",
+    "$ui.fileUpload.redactionSurface": "Draw boxes over information you want to redact",
+    "$ui.fileUpload.previewImage": "Preview before upload",
+    "$ui.fileUpload.addRedaction": "Add redaction box",
+    "$ui.fileUpload.detectPageEdges": "Detect page edges",
+    "$ui.fileUpload.clearRedactions": "Clear redactions",
+    "$ui.fileUpload.uploadImage": "Upload image",
+    "$ui.fileUpload.cancel": "Cancel",
+    "$ui.fileUpload.browseMultiple": "Upload files",
+    "$ui.fileUpload.dropzoneMultiple": "Drop files here or click to browse",
+    "$ui.fileUpload.attachedOne": "{{$count}} file attached",
+    "$ui.fileUpload.attachedMany": "{{$count}} files attached",
+    "$ui.fileUpload.fileTooLarge": "\"{{$filename}}\" is larger than the upload limit of {{$limit}}.",
+    "$ui.fileUpload.errorTooLarge": "That file is larger than the upload limit. Try a smaller file.",
+    "$ui.fileUpload.errorMimeRejected": "That file type is not accepted here.",
+    "$ui.fileUpload.errorNetwork": "We could not reach the upload service. Check your connection and try again.",
+    "$ui.fileUpload.errorUnavailable": "File upload is not available on this site.",
+    "$ui.fileUpload.errorUnknown": "We could not upload your file. Try again.",
+    "$ui.fileUpload.imagePrepareFailed": "We could not prepare that image. Choose the file again.",
+    "$ui.fileUpload.edgeCleanupFailed": "We could not clean up the image edges. You can still upload it.",
+    "$ui.fileUpload.singleFileOnly": "Only one file can be uploaded here.",
+    "$ui.localPreview.preview": "Local preview",
+    "$ui.localPreview.draftRestored": "Draft restored",
+    "$ui.form.settings": "Form settings",
+    "$ui.form.language": "Language",
+    "$ui.form.languageSaveFailed": "The language change could not be saved. Try again.",
+    "$ui.receipt.answersReceived": "Answers received",
+    "$ui.receipt.submissionId": "Submission ID",
+    "$ui.receipt.pendingFilingAndSigning": "Case filing and signing are not yet confirmed.",
+    "$ui.receipt.keepRecord": "Keep this record",
+    "$ui.receipt.printInstruction": "Print this confirmation, then clear saved access before leaving.",
+    "$ui.receipt.print": "Print confirmation",
+    "$ui.receipt.clear": "Clear saved access",
+    "$ui.receipt.clearing": "Clearing...",
+    "$ui.form.fields": "Form fields",
+    "$ui.draft.versionChangedTitle": "This saved draft uses a different form version",
+    "$ui.draft.versionChanged": "This draft was saved with form version {{$version}}. Start again with the current form to continue.",
+    "$ui.draft.startCurrent": "Clear saved access and start again",
+    "$ui.draft.startingCurrent": "Starting again...",
+    "$ui.draft.startCurrentFailed": "Saved access could not be cleared. Try again.",
+    "$ui.draft.browserAccessNotice": "Starting again removes saved access to this draft from this browser. Other saved drafts stay available.",
+    "$ui.receipt.clearedTitle": "Saved access cleared",
+    "$ui.receipt.clearedDetail": "This browser no longer has saved access to this draft.",
+    "$component.d1-details-heading.text": "Confirm your renewal details",
+    "$action.save-draft-initial.label": "Save draft",
+    "$action.save-draft-owned.label": "Save draft",
+    "$action.prepare.label": "Prepare saved response",
+    "$action.sign.label": "Sign demo response",
+    "$action.paper.label": "Review paper alternative",
+    "$ui.draft.saveUnconfirmed": "Saving could not be confirmed. Keep this page open."
+  },
+  "stringGeneration": {
+    "$form.title": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$action.submit.label": {
+      "anchors": [
+        "need:review-and-sign-demo-response@2"
+      ]
+    },
+    "demoNotice.label": {
+      "anchors": [
+        "need:recognize-demo-sample-limits@2"
+      ]
+    },
+    "renewalEligible.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "renewalEligible.hint": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "renewalEligible.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "renewalEligible.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "renewalEligible.constraintMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "detailsHeading.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "fullName.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "fullName.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "fullName.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "dateOfBirth.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "dateOfBirth.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "dateOfBirth.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "placeOfBirth.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "placeOfBirth.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "placeOfBirth.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "email.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "email.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "email.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "mailingAddress.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "mailingAddress.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "mailingAddress.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "priorPassportNumber.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "priorPassportNumber.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "priorPassportNumber.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "priorPassportIssueDate.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "priorPassportIssueDate.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "priorPassportIssueDate.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "ssnIssued.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "ssnIssued.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "ssnIssued.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "socialSecurityNumber.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "socialSecurityNumber.hint": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "socialSecurityNumber.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "socialSecurityNumber.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "socialSecurityNumber.constraintMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "neverIssuedStatement.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "neverIssuedStatement.hint": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "neverIssuedStatement.requiredMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "neverIssuedStatement.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "neverIssuedStatement.constraintMessage": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "photo.label": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "photo.hint": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "photo.requiredMessage": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "photo.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "privacyNotice.label": {
+      "anchors": [
+        "need:understand-demo-privacy@2"
+      ]
+    },
+    "paperAlternative.label": {
+      "anchors": [
+        "need:review-demo-paper-option@1"
+      ]
+    },
+    "declaration.label": {
+      "anchors": [
+        "need:review-and-sign-demo-response@2"
+      ]
+    },
+    "declarationAcknowledged.label": {
+      "anchors": [
+        "need:review-and-sign-demo-response@2"
+      ]
+    },
+    "declarationAcknowledged.requiredMessage": {
+      "anchors": [
+        "need:review-and-sign-demo-response@2"
+      ]
+    },
+    "declarationAcknowledged.errors.TYPE_MISMATCH": {
+      "anchors": [
+        "need:review-and-sign-demo-response@2"
+      ]
+    },
+    "declarationAcknowledged.constraintMessage": {
+      "anchors": [
+        "need:review-and-sign-demo-response@2"
+      ]
+    },
+    "$ui.fileUpload.dropzone": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.dropzoneKeyboard": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.browse": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.validationSummary.heading": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.validationSummary.fixOne": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.validationSummary.fixMany": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.validationSummary.reviewOne": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.validationSummary.reviewMany": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.validationSummary.review": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.validationSummary.errorCountOne": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.validationSummary.errorCount": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.validationSummary.issueCountOne": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.validationSummary.issueCount": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.validationSummary.row": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.action.submit": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.action.inProgress": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.action.completed": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.action.blocked": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.action.failed": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.action.deferred": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.action.unresolved": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.action.status": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.action.statusReason": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.fieldHelp.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.fileUpload.attachedList": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.pendingList": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.remove": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.dismissError": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.uploading": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.uploadProgress": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.deferredLibrary": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.cameraCapture": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.cameraPreview": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.captureImage": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.closeCamera": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.useCamera": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.cameraUnavailable": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.cameraOpenFailed": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.cameraCaptureFailed": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.imagesWaitingOne": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.imagesWaitingMany": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.imageReview": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.legibilityWarning": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.redactionSurface": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.previewImage": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.addRedaction": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.detectPageEdges": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.clearRedactions": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.uploadImage": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.cancel": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.browseMultiple": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.dropzoneMultiple": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.attachedOne": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.attachedMany": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.fileTooLarge": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.errorTooLarge": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.errorMimeRejected": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.errorNetwork": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.errorUnavailable": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.errorUnknown": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.imagePrepareFailed": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.edgeCleanupFailed": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.fileUpload.singleFileOnly": {
+      "anchors": [
+        "need:attach-demo-renewal-photo@1"
+      ]
+    },
+    "$ui.localPreview.preview": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.localPreview.draftRestored": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.form.settings": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.form.language": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.form.languageSaveFailed": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.receipt.answersReceived": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.receipt.submissionId": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.receipt.pendingFilingAndSigning": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.receipt.keepRecord": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.receipt.printInstruction": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.receipt.print": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.receipt.clear": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.receipt.clearing": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.form.fields": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.draft.versionChangedTitle": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.draft.versionChanged": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.draft.startCurrent": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.draft.startingCurrent": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.draft.startCurrentFailed": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.draft.browserAccessNotice": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.receipt.clearedTitle": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$ui.receipt.clearedDetail": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$component.d1-details-heading.text": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$action.save-draft-initial.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$action.save-draft-owned.label": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    },
+    "$action.prepare.label": {
+      "anchors": [
+        "need:review-and-sign-demo-response@2"
+      ]
+    },
+    "$action.sign.label": {
+      "anchors": [
+        "need:review-and-sign-demo-response@2"
+      ]
+    },
+    "$action.paper.label": {
+      "anchors": [
+        "need:review-and-sign-demo-response@2"
+      ]
+    },
+    "$ui.draft.saveUnconfirmed": {
+      "anchors": [
+        "need:complete-demo-renewal-response@2"
+      ]
+    }
+  }
+}
