@@ -97,10 +97,14 @@ export function FormspecNode({ node: plannedNode }: { node: LayoutNode }) {
     return <LayoutNodeRenderer node={node} />;
 }
 
-function resolveActionButtonLabel(value: unknown, fallback: string): string {
+function resolveActionButtonLabel(
+    value: unknown, fallback: string, resolveLocaleString: (key: string, fallback: string) => string,
+): string {
     if (value && typeof value === 'object') {
         const label = value as { literal?: unknown; ref?: unknown };
         if (typeof label.literal === 'string') return label.literal;
+        // Locale §4.1: a reference without an authored default resolves to empty.
+        if (typeof label.ref === 'string') return resolveLocaleString(label.ref, '');
     }
     return typeof value === 'string' ? value : fallback;
 }
@@ -153,6 +157,7 @@ function actionResultMessage(
 function ActionButtonNode({ node }: { node: LayoutNode }) {
     const chrome = useChromeText();
     const {
+        engine,
         onSubmit,
         recordSubmit,
         onHostEvent,
@@ -180,6 +185,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     const label = resolveActionButtonLabel(
         node.props?.label ?? resolution.action?.label,
         chrome('action.submit'),
+        (key, fallback) => engine.resolveLocaleString(key, fallback),
     );
     const actionNeedAnchors = generationNeedAnchors(resolution.action);
     const needAttrs = needTraceAttrs([...(node.needAnchors ?? []), ...actionNeedAnchors]);

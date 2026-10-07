@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
-import { initFormspecEngine, invokeResponseAction } from '@formspec-org/engine';
+import { initFormspecEngine, invokeResponseAction, createFormEngine } from '@formspec-org/engine';
 import { FormspecForm } from '../src/renderer';
 import type { ResponseActionInvokerInput } from '../src/context';
 
@@ -88,6 +88,65 @@ function deferred<T>() {
 }
 
 describe('React Response Actions parity', () => {
+
+    it('auto-places reference-only labels and follows locale switching and explicit fallback', () => {
+        const engine = createFormEngine(definition);
+        for (const [locale, strings, fallback] of [
+            ['en', { '$action.send-application.label': 'Send application' }, undefined],
+            ['es', { '$action.send-application.label': 'Enviar solicitud' }, undefined],
+            ['es-US', {}, 'es'],
+            ['fr', {}, undefined],
+        ] as const) {
+            engine.loadLocale({ $formspecLocale: '2.0', version: '1.0.0', locale,
+                target: { kind: 'definition', url: definition.url }, strings,
+                ...(fallback ? { fallback } : {}),
+            });
+        }
+        engine.setLocale('en');
+        const document = { ...responseActionsDocument, actions: [{
+            ...responseActionsDocument.actions[0], label: { ref: '$action.send-application.label' },
+        }] };
+        const submitted = vi.fn();
+        const { container, root } = renderInto(<FormspecForm engine={engine}
+            responseActionsDocument={document} onSubmit={submitted} />);
+        const button = container.querySelector<HTMLButtonElement>('button.formspec-submit')!;
+        expect(button).toBeTruthy();
+        expect(button.textContent).toBe('Send application');
+        act(() => engine.setLocale('es-US'));
+        expect(button.textContent).toBe('Enviar solicitud');
+        act(() => engine.setLocale('fr'));
+        expect(button.textContent).toBe('');
+        expect(button.disabled).toBe(false);
+        act(() => engine.setLocale('en'));
+        expect(button.textContent).toBe('Send application');
+        flushSync(() => button.click());
+        expect(submitted).toHaveBeenCalledTimes(1);
+        root.unmount(); container.remove();
+    });
+
+    it('keeps explicit Component labels ahead of referenced Action labels', () => {
+        const engine = createFormEngine(definition);
+        engine.loadLocale({ $formspecLocale: '2.0', version: '1.0.0', locale: 'es',
+            target: { kind: 'definition', url: definition.url },
+            strings: { '$action.send-application.label': 'Enviar solicitud', '$component.send.label': 'Enviar ahora' },
+        });
+        const document = { ...responseActionsDocument, actions: [{
+            ...responseActionsDocument.actions[0], label: { ref: '$action.send-application.label' },
+        }] };
+        const { container, root } = renderInto(<FormspecForm engine={engine}
+            responseActionsDocument={document} onSubmit={() => {}}
+            componentDocument={{ $formspecComponent: '1.0', version: '1.0.0',
+                targetDefinition: { url: definition.url },
+                tree: { component: 'ActionButton', id: 'send', actionRef: 'send-application', label: { literal: 'Send now' } },
+            }} />);
+        const button = container.querySelector<HTMLButtonElement>('button.formspec-submit')!;
+        expect(container.querySelectorAll('button.formspec-submit')).toHaveLength(1);
+        expect(button.textContent).toBe('Send now');
+        act(() => engine.setLocale('es'));
+        expect(button.textContent).toBe('Enviar ahora');
+        root.unmount(); container.remove();
+    });
+
     it('uses the loaded submit intent action id for the auto-injected ActionButton', async () => {
         const submitted = vi.fn();
         const onActionFinding = vi.fn();
@@ -508,7 +567,7 @@ describe('React Response Actions parity', () => {
                 ...multiActionDocument,
                 actions: [{
                     ...multiActionDocument.actions[0],
-                    label: { ref: '$action.save-draft' },
+                    label: { ref: '$action.save-draft.label', literal: 'Ambiguous' },
                 }],
             },
         ];

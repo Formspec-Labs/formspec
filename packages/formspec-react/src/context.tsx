@@ -286,9 +286,9 @@ function hasValidResponseActionShape(value: unknown): value is ResponseAction {
     return true;
 }
 
-function hasLiteralActionLabel(action: ResponseAction): boolean {
+function hasActionLabel(action: ResponseAction): boolean {
     const label = record(action.label);
-    return label ? hasNonEmptyString(label.literal) : false;
+    return label ? hasNonEmptyString(label.literal) || hasNonEmptyString(label.ref) : false;
 }
 
 /**
@@ -328,7 +328,7 @@ function autoPlacedDefinitionActions(
         ids.add(action.id);
     }
 
-    return candidate.actions.filter(hasLiteralActionLabel);
+    return candidate.actions.filter(hasActionLabel);
 }
 
 export interface FormspecProviderProps {
@@ -618,7 +618,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         // The host opts into Definition action controls by wiring onSubmit.
         // Place each usable response-scoped Action in document order. Exact
         // actionRef deduplication preserves explicitly authored controls, and
-        // literal labels keep all visible copy in the structured document.
+        // authored labels keep visible copy in the Action or its Locale reference.
         if (onSubmit) {
             for (const action of autoPlacedDefinitionActions(responseActionsDocument, def)) {
                 ensureActionButton(root, planCtx.nextId, { pageMode, actionRef: action.id });
