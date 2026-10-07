@@ -55,8 +55,8 @@ export { useSemanticFieldControl } from './use-semantic-field-control';
 export type { FieldComponentProps, LayoutComponentProps, DisplayComponentProps, ComponentMap } from './component-map';
 
 // ── Auto-renderer ──
-export { FormspecForm } from './renderer';
-export type { FormspecFormProps } from './renderer';
+export { FormspecForm, FormspecFormContent } from './renderer';
+export type { FormspecFormProps, FormspecFormContentProps } from './renderer';
 export { FormspecNode } from './node-renderer';
 export { IssuerChromeSlot, parseQueryIssuerOverride } from './issuer';
 export type { IssuerChromeSlotProps } from './issuer';

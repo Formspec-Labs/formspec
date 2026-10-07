@@ -21,7 +21,7 @@ React hooks and auto-renderer for Formspec. Composes a [`FormEngine`](../formspe
 ## Quick Usage
 
 ```tsx
-import { FormspecProvider, FormspecForm } from '@formspec-org/react';
+import { FormspecProvider, FormspecFormContent } from '@formspec-org/react';
 import { FormEngine, initFormspecEngine } from '@formspec-org/engine';
 
 await initFormspecEngine();
@@ -31,7 +31,7 @@ const engine = new FormEngine({ /* definition */ });
 export function MyForm() {
   return (
     <FormspecProvider engine={engine}>
-      <FormspecForm />
+      <FormspecFormContent />
     </FormspecProvider>
   );
 }
@@ -108,3 +108,16 @@ cleared-access confirmation text with the current qualified engine before
 releasing answer state, then retain only the resulting strings. Outside an
 engine it uses shared English defaults. Recovery feedback is selected by the
 host; the `draft.versionChanged` version parameter is opaque literal text.
+
+
+`FormspecFormContent` renders beneath an existing `FormspecProvider`. Its only
+prop is `className`; it uses that provider's engine, layout, Component/Theme,
+action ports, semantic controls, and token-emission policy. It includes the
+standard `.formspec-container`, scoped theme tokens with cleanup, issuer chrome,
+and the maintained layout walk. Render issuer chrome exactly once; a host with
+an external issuer header must choose which component owns it.
+
+Use `FormspecForm` when the renderer should create the provider. The content
+component does not run the outer renderer's screener gating or parse query issuer
+overrides; the host and existing provider retain those responsibilities. It adds
+no submit handler or automatic action controls beyond the provider's configuration.

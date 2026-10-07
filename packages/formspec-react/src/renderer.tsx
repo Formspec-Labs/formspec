@@ -156,7 +156,7 @@ export function FormspecForm(props: FormspecFormProps) {
 
     return (
         <FormspecProvider definition={definition} {...providerProps} {...issuerProviderProps}>
-            <FormspecFormInner className={className} />
+            <FormspecFormContent className={className} />
         </FormspecProvider>
     );
 }
@@ -214,7 +214,12 @@ function ScreenerGate({
     );
 }
 
-function FormspecFormInner({ className }: { className?: string }) {
+export interface FormspecFormContentProps {
+    className?: string;
+}
+
+/** Render the current provider's form, including its scoped tokens and issuer chrome. */
+export function FormspecFormContent({ className }: FormspecFormContentProps) {
     const { engine, layoutPlan } = useFormspecContext();
     const containerRef = useEmitThemeTokensOnFormspecContainerRef();
 
