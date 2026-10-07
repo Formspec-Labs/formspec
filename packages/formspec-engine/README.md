@@ -466,7 +466,7 @@ npm run test:wasm-runtime-isolation # runtime-only init (no global setup)
 
 ### Attach evidence after whole-Response signing
 
-Call `getResponse({ id: stableResponseId, profile: 'submit' })` once, then confirm
+Call `getResponse({ id: stableResponseId, profile: 'on-submit' })` once, then confirm
 `snapshot.status === 'completed'`. Retain that JSON snapshot while the signing provider
 completes its ceremony. Then call
 `attachAuthoredSignature(snapshot, evidence)` from `@formspec-org/engine` (also
