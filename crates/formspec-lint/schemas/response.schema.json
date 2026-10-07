@@ -17,6 +17,64 @@
     "authoredSignatures": ["id"]
   },
   "$defs": {
+    "SigningContentCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "draftId",
+        "draftVersion",
+        "actorRef",
+        "signerName",
+        "signedAt",
+        "consentAccepted",
+        "content",
+        "documentHash",
+        "documentHashAlgorithm"
+      ],
+      "properties": {
+        "version": {
+          "const": "1.0"
+        },
+        "draftId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "actorRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signerName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signedAt": {
+          "type": "string",
+          "minLength": 1,
+          "format": "date-time"
+        },
+        "consentAccepted": {
+          "const": true
+        },
+        "content": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/SigningContent"
+        },
+        "documentHash": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "documentHashAlgorithm": {
+          "const": "sha-256"
+        }
+      },
+      "description": "Evidence of an explicit delegated signing act, retained inside the whole-Response signed bytes. draftVersion is the unsigned saved revision supplied to the producer; it is not rewritten after the signed save. Server admission independently resolves content, identity, hash, mirrored outer fields, current revision and cryptographic evidence."
+    },
     "ResponseStatus": {
       "type": "string",
       "enum": ["in-progress", "completed", "amended", "stopped"],
@@ -729,6 +787,11 @@
       "type": "object",
       "description": "Implementor-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions and MUST preserve them during round-tripping. Extensions MUST NOT alter core semantics (validation, calculation, relevance, required state).",
       "propertyNames": { "pattern": "^x-" },
+      "patternProperties": { "^x-": {} },
+      "additionalProperties": false,
+      "properties": {
+        "x-formspec-signing-content": { "$ref": "#/$defs/SigningContentCommitment" }
+      },
       "examples": [
         {
           "x-audit": { "submittedBy": "user-42", "ipAddress": "10.0.0.1" },

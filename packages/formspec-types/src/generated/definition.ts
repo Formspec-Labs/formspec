@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { ModuleRef, Generation, Extensions, WidgetName } from './common.js';
+import type { ModuleRef, Generation, SigningContentCatalog, WidgetName, Extensions } from './common.js';
 import type { IssuerDocument as FormspecIssuerDocument } from './issuer.js';
 export type { FormspecIssuerDocument };
 /**
@@ -374,7 +374,17 @@ export interface FormDefinition {
     | {
         url: string;
       };
-  extensions?: Extensions;
+  /**
+   * Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip.
+   */
+  extensions?: {
+    'x-formspec-signing-content'?: SigningContentCatalog;
+    /**
+     * This interface was referenced by `undefined`'s JSON-Schema definition
+     * via the `patternProperty` "^x-".
+     */
+    [k: `x-${string}`]: unknown;
+  };
   /**
    * Form-wide presentation defaults. All properties OPTIONAL and advisory — a conforming processor MAY ignore any or all. These are Tier 1 baseline hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. MUST NOT affect data capture, validation, or submission semantics.
    */
@@ -433,6 +443,9 @@ export interface FormDefinition {
    */
   [k: `x-${string}`]: unknown;
 }
+/**
+ * Extension object whose keys must be prefixed with x-.
+ */
 /**
  * Authoring identity per ADR 0150 §5.4. Distinct from `respondent-ledger-event.Actor` (respondent-identity) and `experience.Actor` (workflow-role) — three Actor $defs by design. `kind` and `actChannel` are terminal-closed enums; product nuance (e.g. discriminating Wireframes-MCP from Forms-MCP, both `actChannel: 'mcp'`) rides URN-encoded into `id`, not via new enum values.
  */
@@ -1040,6 +1053,33 @@ export interface LogoVariant {
   altText?: string | LangMap;
   aspectRatio?: string;
   preferredBackground?: 'light' | 'dark' | 'any';
+}
+/**
+ * Complete resolved plain text shown for one delegated whole-Response signing act. Preserve exact code points; do not trim, normalize, interpret HTML, or replace wording. SHA-256 of UTF-8 RFC 8785 JCS of this entire object is the content documentHash.
+ */
+export interface SigningContent {
+  source: SigningContentSource;
+  locale: string;
+  documentId: string;
+  signingIntent: string;
+  declaration: string;
+  electronicConsent: SigningElectronicConsent;
+  paperAlternative: string;
+  affirmationText: string;
+  delegatedSigningNotice: string;
+}
+/**
+ * Exact authored content entry URI and content version. The URI is the pinned Definition URL followed by #/extensions/x-formspec-signing-content/entries/<simple identifier>.
+ */
+export interface SigningContentSource {
+  ref: string;
+  version: string;
+}
+export interface SigningElectronicConsent {
+  textRef: string;
+  version: string;
+  text: string;
+  controlLabel: string;
 }
 /**
  * One multi-party intake role slot. EXT-28 / ADR-0155 §4. The `role` taxonomy is closed; domain-specific party metadata uses `extensions` (x-*). See core spec §4.8.1 MP-01..MP-05.

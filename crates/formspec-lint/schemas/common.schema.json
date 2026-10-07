@@ -4,6 +4,134 @@
   "title": "Formspec Common Schema Primitives",
   "description": "Shared schema definitions used by Formspec Definition, Theme, and Component documents.",
   "$defs": {
+    "SigningContentSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "version"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "description": "Exact authored content entry URI and content version. The URI is the pinned Definition URL followed by #/extensions/x-formspec-signing-content/entries/<simple identifier>."
+    },
+    "SigningElectronicConsent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "textRef",
+        "version",
+        "text",
+        "controlLabel"
+      ],
+      "properties": {
+        "textRef": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controlLabel": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "SigningContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "locale",
+        "documentId",
+        "signingIntent",
+        "declaration",
+        "electronicConsent",
+        "paperAlternative",
+        "affirmationText",
+        "delegatedSigningNotice"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/SigningContentSource"
+        },
+        "locale": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+        },
+        "documentId": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+        },
+        "signingIntent": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri"
+        },
+        "declaration": {
+          "type": "string",
+          "minLength": 1
+        },
+        "electronicConsent": {
+          "$ref": "#/$defs/SigningElectronicConsent"
+        },
+        "paperAlternative": {
+          "type": "string",
+          "minLength": 1
+        },
+        "affirmationText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delegatedSigningNotice": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "description": "Complete resolved plain text shown for one delegated whole-Response signing act. Preserve exact code points; do not trim, normalize, interpret HTML, or replace wording. SHA-256 of UTF-8 RFC 8785 JCS of this entire object is the content documentHash."
+    },
+    "SigningContentCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "entries"
+      ],
+      "properties": {
+        "version": {
+          "const": "1.0"
+        },
+        "entries": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/SigningContent"
+          }
+        }
+      },
+      "description": "Recognized optional authored signing-content extension. Each entry self-identifies its exact location in this immutable Definition and has its own source.version. Recognition does not change core form validation or calculation."
+    },
     "TargetDefinition": {
       "type": "object",
       "required": ["url"],

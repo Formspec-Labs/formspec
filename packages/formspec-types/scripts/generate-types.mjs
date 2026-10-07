@@ -359,6 +359,8 @@ function postProcess(ts, moduleName) {
   }
 
   if (moduleName === 'definition') {
+    // The root has a recognized extension; nested common Extensions still share the maintained type.
+    result = result.replace('export interface Extensions {}', '');
     result = addCommonImport(result, ['WidgetName', 'Extensions']);
     result = result.replace(/widgetHint\?:[\s\S]*?;\n  \/\*\*/m, 'widgetHint?: WidgetName;\n  /**');
     result = result.replace(/extensions\?: \{\};/g, 'extensions?: Extensions;');

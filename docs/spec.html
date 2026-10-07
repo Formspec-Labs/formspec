@@ -186,6 +186,9 @@ id="toc-concept-and-vocabulary-registry-entries">8.1.1 Concept and
 Vocabulary Registry Entries</a></li>
 <li><a href="#extension-properties" id="toc-extension-properties">8.4
 Extension Properties</a></li>
+<li><a href="#recognized-signing-content-extension"
+id="toc-recognized-signing-content-extension">8.4.1 Recognized Signing
+Content Extension</a></li>
 <li><a href="#extension-namespaces" id="toc-extension-namespaces">8.5
 Extension Namespaces</a></li>
 </ul></li>
@@ -2276,8 +2279,8 @@ path</td>
 </tr>
 <tr>
 <td>Document binding</td>
-<td><code>Response.authoredSignatures[*].signedPayload.documentHash</code>
-and <code>signedPayload.responseId</code></td>
+<td><code>Response.authoredSignatures[*].documentHash</code> and
+<code>signedPayload.responseId</code></td>
 <td>top-level Response <code>id</code> (MUST equal
 <code>signedPayload.responseId</code>)</td>
 </tr>
@@ -2299,11 +2302,15 @@ when present, else receipt fields</td>
 </tr>
 </tbody>
 </table>
-<p><code>signedAt</code> MOVES into <code>signedPayload</code> so the
-timestamp is part of what the signer assented to. Without this move,
-<code>signedAt</code> would be a derived/ corroborating field with no
-source-of-truth — an attacker could change it without invalidating the
-signature.</p>
+<p>The whole-Response canonicalization profile omits
+<code>authoredSignatures</code>. Consequently, nesting
+<code>signedAt</code>, <code>signingIntent</code>, or a document hash in
+that evidence record does not itself place those facts in the signed
+bytes. A producer that claims to bind these act facts MUST retain them
+in covered Response content and admission MUST compare the evidence
+fields with that covered record. The recognized signing-content
+extension (§8.4.1) supplies this record for a delegated whole-Response
+act.</p>
 <h3 id="relationships">2.2 Relationships</h3>
 <p>The six core abstractions relate to each other as follows. A
 conformant processor MUST maintain these relationships.</p>
@@ -4972,10 +4979,9 @@ an object with url+version pins to a specific version.</td>
 <tr>
 <td><code>#/properties/extensions</code></td>
 <td><code>extensions</code></td>
-<td><code>$ref</code></td>
+<td><code>object</code></td>
 <td>no</td>
-<td><code>$ref</code>:
-<code>https://formspec.org/schemas/common/1.0#/$defs/Extensions</code></td>
+<td>—</td>
 <td>Domain-specific extension data. All keys MUST be prefixed with ‘x-’.
 Processors MUST ignore unrecognized extensions without error. Extensions
 MUST NOT alter core semantics (required, relevant, readonly, calculate,
@@ -9522,6 +9528,68 @@ extension properties they do not understand. A round-trip through a
 conforming processor MUST NOT strip unrecognized extensions.</p></li>
 </ol>
 <hr />
+<h3 id="recognized-signing-content-extension">8.4.1 Recognized Signing
+Content Extension</h3>
+<p><code>Definition.extensions["x-formspec-signing-content"]</code> MAY
+contain the closed <code>SigningContentCatalog</code> defined in the
+Common schema. Its format version is <code>"1.0"</code>;
+<code>entries</code> maps stable simple identifiers to complete
+<code>SigningContent</code> objects. Each content object includes its
+source reference and content version, locale, document identifier,
+intent, full declaration, electronic-consent text and control label,
+paper alternative, affirmation, and delegated-signing notice. These are
+exact plain strings: processors MUST NOT trim, normalize code points,
+interpret HTML, or substitute wording. Locale documents do not rewrite
+these extension entries; each language needs its own authored content
+entry.</p>
+<p>A content source reference MUST be the pinned Definition’s exact
+<code>url</code> followed by
+<code>#/extensions/x-formspec-signing-content/entries/&lt;identifier&gt;</code>.
+The identifier MUST match <code>[A-Za-z][A-Za-z0-9_-]*</code>. A
+resolver MUST use the already admitted immutable Definition matching the
+Response’s <code>definitionUrl</code> and
+<code>definitionVersion</code>, traverse own properties, validate the
+shared content schema, and match the requested source reference, content
+version, and locale. Locale equality is case-insensitive. A present
+<code>displayedLocale.locale</code> MUST also match. Missing content or
+disagreement MUST refuse signing; a resolver MUST NOT fetch a newer
+Definition, select a fallback language, or use host copy. Surface
+configuration MAY select locale-specific source references. Qualified
+Data Source delivery supplies the same resolved content to a signing
+widget.</p>
+<p><code>documentHash</code> is lowercase hexadecimal SHA-256 of UTF-8
+RFC 8785 JCS of the entire resolved <code>SigningContent</code> object,
+including source pins and every string. This content hash uses no
+additional domain prefix and defines no new Response canonicalization
+profile.</p>
+<p>After an explicit Sign act,
+<code>Response.extensions["x-formspec-signing-content"]</code> MAY
+retain the closed <code>SigningContentCommitment</code> defined in the
+Response schema. It contains format version, unsigned saved draft ID and
+revision, verified actor reference, signer name, signed-at time,
+accepted consent, resolved content, and content hash.
+<code>draftVersion</code> records the exact unsigned revision given to
+the producer and MUST NOT be rewritten when the signed Response is
+saved. Consent acceptance, signer name, and signed-at time MUST NOT be
+asserted during a pre-display preparation. A retry MUST retain the same
+logical act facts and unchanged candidate; an intervening answer,
+identity, content, language, or revision change requires a new explicit
+act.</p>
+<p>The existing whole-Response profile covers this extension. Admission
+MUST independently resolve the authoritative content and verify its
+hash, the actor, current owned revision, and cryptographic signature.
+The outer signature’s signer ID/name, signed-at time, intent, consent
+reference/version/acceptance and affirmation, document ID, document
+hash, and hash algorithm MUST equal the covered commitment. A
+service-key signature MUST be described as delegated service-key
+signing; it does not prove possession of a personal signing key.</p>
+<p>Recognition of this extension does not change core
+required/relevant/readonly, calculation, or validation behavior.
+Application signing and Submit admission policy remains explicit. Sign
+and Submit are separate actions: Sign returns a persisted signed
+Response; Submit uses that exact current Response and performs its own
+admission checks. Widget completion feedback alone is not evidence of
+persisted, verified signing.</p>
 <h3 id="extension-namespaces">8.5 Extension Namespaces</h3>
 <p>Organizations publishing multiple related extensions SHOULD use a
 namespace convention to group them under a single

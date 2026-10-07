@@ -356,7 +356,13 @@
       }
     },
     "extensions": {
-      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions",
+      "type": "object",
+      "propertyNames": { "pattern": "^x-" },
+      "patternProperties": { "^x-": {} },
+      "additionalProperties": false,
+      "properties": {
+        "x-formspec-signing-content": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/SigningContentCatalog" }
+      },
       "description": "Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip.",
       "examples": [
         {

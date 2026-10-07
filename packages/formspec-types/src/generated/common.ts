@@ -134,6 +134,55 @@ export interface CommonSchema {
   [k: string]: unknown;
 }
 /**
+ * Exact authored content entry URI and content version. The URI is the pinned Definition URL followed by #/extensions/x-formspec-signing-content/entries/<simple identifier>.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "SigningContentSource".
+ */
+export interface SigningContentSource {
+  ref: string;
+  version: string;
+}
+/**
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "SigningElectronicConsent".
+ */
+export interface SigningElectronicConsent {
+  textRef: string;
+  version: string;
+  text: string;
+  controlLabel: string;
+}
+/**
+ * Complete resolved plain text shown for one delegated whole-Response signing act. Preserve exact code points; do not trim, normalize, interpret HTML, or replace wording. SHA-256 of UTF-8 RFC 8785 JCS of this entire object is the content documentHash.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "SigningContent".
+ */
+export interface SigningContent {
+  source: SigningContentSource;
+  locale: string;
+  documentId: string;
+  signingIntent: string;
+  declaration: string;
+  electronicConsent: SigningElectronicConsent;
+  paperAlternative: string;
+  affirmationText: string;
+  delegatedSigningNotice: string;
+}
+/**
+ * Recognized optional authored signing-content extension. Each entry self-identifies its exact location in this immutable Definition and has its own source.version. Recognition does not change core form validation or calculation.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "SigningContentCatalog".
+ */
+export interface SigningContentCatalog {
+  version: '1.0';
+  entries: {
+    [k: string]: SigningContent;
+  };
+}
+/**
  * This interface was referenced by `CommonSchema`'s JSON-Schema
  * via the `definition` "TargetDefinition".
  */

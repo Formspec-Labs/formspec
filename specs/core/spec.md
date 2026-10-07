@@ -1279,15 +1279,18 @@ at admission.
 | Canonical signed bytes | `Response.authoredSignatures[*].signedPayload` (the bytes the signer assented to) | `signedPayload.digest`; Trellis `065-certificates`; UCA |
 | Signed-at timestamp | `Response.authoredSignatures[*].signedPayload.signedAt` (the field within the signed payload) | ledger-event timestamp; WOS affirmation timestamp; response consent path |
 | Signing intent | `Response.authoredSignatures[*].signedPayload.signingIntent` | WOS `SignatureAffirmation.signingIntent` |
-| Document binding | `Response.authoredSignatures[*].signedPayload.documentHash` and `signedPayload.responseId` | top-level Response `id` (MUST equal `signedPayload.responseId`) |
+| Document binding | `Response.authoredSignatures[*].documentHash` and `signedPayload.responseId` | top-level Response `id` (MUST equal `signedPayload.responseId`) |
 | Ceremony state | WOS workflow state machine | nothing |
 | Custody / integrity at rest | Trellis ledger envelope | nothing |
 | Verification result | `VerificationReceipt.receiptBytes` (the signed receipt) when present, else receipt fields | WOS `primitiveVerification`; admission record |
 
-`signedAt` MOVES into `signedPayload` so the timestamp is part of what the
-signer assented to. Without this move, `signedAt` would be a derived/
-corroborating field with no source-of-truth — an attacker could change it
-without invalidating the signature.
+The whole-Response canonicalization profile omits `authoredSignatures`.
+Consequently, nesting `signedAt`, `signingIntent`, or a document hash in that
+evidence record does not itself place those facts in the signed bytes. A
+producer that claims to bind these act facts MUST retain them in covered
+Response content and admission MUST compare the evidence fields with that
+covered record. The recognized signing-content extension (§8.4.1) supplies
+this record for a delegated whole-Response act.
 
 ### 2.2 Relationships
 
@@ -2623,7 +2626,7 @@ generated from `schemas/definition.schema.json`:
 | `#/properties/date` | `date` | <code>string</code> | no | — | Publication or last-modified date of this Definition version, in ISO 8601 date format (YYYY-MM-DD). |
 | `#/properties/derivedFrom` | `derivedFrom` | <code>composite</code> | no | — | Parent definition this form is derived from. Informational only — does NOT imply behavioral inheritance or runtime linkage. Enables change analysis, pre-population from parent Responses, and lineage tracking. A plain URI string indicates derivation from the logical form in general; an object with url+version pins to a specific version. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of the form's purpose and scope. |
-| `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip. |
+| `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip. |
 | `#/properties/fees` | `fees` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Fees</code> | FEL-calculated fee line items for respondent-facing cost disclosure. |
 | `#/properties/formPresentation` | `formPresentation` | <code>object</code> | no | — | Form-wide presentation defaults. All properties OPTIONAL and advisory — a conforming processor MAY ignore any or all. These are Tier 1 baseline hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. MUST NOT affect data capture, validation, or submission semantics. |
 | `#/properties/instances` | `instances` | <code>object</code> | no | — | Named secondary data sources available to FEL expressions at runtime via @instance('name'). Instances provide lookup tables, prior-year data, and external reference data. The property name is the instance identifier used in @instance() references. Secondary instances are read-only by default during form completion. |
@@ -5365,6 +5368,61 @@ The following requirements apply to extension properties:
    a conforming processor MUST NOT strip unrecognized extensions.
 
 ***
+
+### 8.4.1 Recognized Signing Content Extension
+
+`Definition.extensions["x-formspec-signing-content"]` MAY contain the closed
+`SigningContentCatalog` defined in the Common schema. Its format version is
+`"1.0"`; `entries` maps stable simple identifiers to complete `SigningContent`
+objects. Each content object includes its source reference and content version,
+locale, document identifier, intent, full declaration, electronic-consent text
+and control label, paper alternative, affirmation, and delegated-signing notice.
+These are exact plain strings: processors MUST NOT trim, normalize code points,
+interpret HTML, or substitute wording. Locale documents do not rewrite these
+extension entries; each language needs its own authored content entry.
+
+A content source reference MUST be the pinned Definition's exact `url` followed
+by `#/extensions/x-formspec-signing-content/entries/<identifier>`. The identifier
+MUST match `[A-Za-z][A-Za-z0-9_-]*`. A resolver MUST use the already admitted
+immutable Definition matching the Response's `definitionUrl` and
+`definitionVersion`, traverse own properties, validate the shared content
+schema, and match the requested source reference, content version, and locale.
+Locale equality is case-insensitive. A present `displayedLocale.locale` MUST
+also match. Missing content or disagreement MUST refuse signing; a resolver
+MUST NOT fetch a newer Definition, select a fallback language, or use host copy.
+Surface configuration MAY select locale-specific source references. Qualified
+Data Source delivery supplies the same resolved content to a signing widget.
+
+`documentHash` is lowercase hexadecimal SHA-256 of UTF-8 RFC 8785 JCS of the
+entire resolved `SigningContent` object, including source pins and every string.
+This content hash uses no additional domain prefix and defines no new Response
+canonicalization profile.
+
+After an explicit Sign act, `Response.extensions["x-formspec-signing-content"]`
+MAY retain the closed `SigningContentCommitment` defined in the Response schema.
+It contains format version, unsigned saved draft ID and revision, verified actor
+reference, signer name, signed-at time, accepted consent, resolved content, and
+content hash. `draftVersion` records the exact unsigned revision given to the
+producer and MUST NOT be rewritten when the signed Response is saved. Consent
+acceptance, signer name, and signed-at time MUST NOT be asserted during a
+pre-display preparation. A retry MUST retain the same logical act facts and
+unchanged candidate; an intervening answer, identity, content, language, or
+revision change requires a new explicit act.
+
+The existing whole-Response profile covers this extension. Admission MUST
+independently resolve the authoritative content and verify its hash, the actor,
+current owned revision, and cryptographic signature. The outer signature's
+signer ID/name, signed-at time, intent, consent reference/version/acceptance and
+affirmation, document ID, document hash, and hash algorithm MUST equal the
+covered commitment. A service-key signature MUST be described as delegated
+service-key signing; it does not prove possession of a personal signing key.
+
+Recognition of this extension does not change core required/relevant/readonly,
+calculation, or validation behavior. Application signing and Submit admission
+policy remains explicit. Sign and Submit are separate actions: Sign returns a
+persisted signed Response; Submit uses that exact current Response and performs
+its own admission checks. Widget completion feedback alone is not evidence of
+persisted, verified signing.
 
 ### 8.5 Extension Namespaces
 

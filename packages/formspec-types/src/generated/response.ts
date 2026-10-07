@@ -6,9 +6,9 @@
  */
 
 /* eslint-disable */
+import type { SigningContent, ValueClass } from './common.js';
 import type { VerificationReceipt as FormspecVerificationReceipt } from './verification-receipt.js';
 import type { ValidationResult as FormspecValidationResult } from './validation-result.js';
-import type { ValueClass } from './common.js';
 export type { FormspecVerificationReceipt, FormspecValidationResult };
 export type ResponseMetadataPathKey = {
   [k: string]: unknown;
@@ -231,7 +231,14 @@ export interface FormResponse {
   /**
    * Implementor-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions and MUST preserve them during round-tripping. Extensions MUST NOT alter core semantics (validation, calculation, relevance, required state).
    */
-  extensions?: {};
+  extensions?: {
+    'x-formspec-signing-content'?: SigningContentCommitment;
+    /**
+     * This interface was referenced by `undefined`'s JSON-Schema definition
+     * via the `patternProperty` "^x-".
+     */
+    [k: `x-${string}`]: unknown;
+  };
 }
 /**
  * Optional response metadata envelope for per-field provenance, derivation traces, and disclosures shown.
@@ -398,4 +405,35 @@ export interface AuthoredSignatureIdentityBinding {
    * URI reference to an external identity attestation that supports this signature evidence, when one exists.
    */
   externalAttestationRef?: string;
+}
+/**
+ * Evidence of an explicit delegated signing act, retained inside the whole-Response signed bytes. draftVersion is the unsigned saved revision supplied to the producer; it is not rewritten after the signed save. Server admission independently resolves content, identity, hash, mirrored outer fields, current revision and cryptographic evidence.
+ *
+ * This interface was referenced by `FormResponse`'s JSON-Schema
+ * via the `definition` "SigningContentCommitment".
+ */
+export interface SigningContentCommitment {
+  version: '1.0';
+  draftId: string;
+  draftVersion: number;
+  actorRef: string;
+  signerName: string;
+  signedAt: string;
+  consentAccepted: true;
+  content: SigningContent;
+  documentHash: string;
+  documentHashAlgorithm: 'sha-256';
+}
+/**
+ * Exact authored content entry URI and content version. The URI is the pinned Definition URL followed by #/extensions/x-formspec-signing-content/entries/<simple identifier>.
+ */
+export interface SigningContentSource {
+  ref: string;
+  version: string;
+}
+export interface SigningElectronicConsent {
+  textRef: string;
+  version: string;
+  text: string;
+  controlLabel: string;
 }

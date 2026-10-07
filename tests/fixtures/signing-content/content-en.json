@@ -1,0 +1,11 @@
+{
+  "source": {"ref":"urn:test:signing-content#/extensions/x-formspec-signing-content/entries/certification-en","version":"1.0.0"},
+  "locale":"en",
+  "documentId":"certification",
+  "signingIntent":"urn:test:intent:certify",
+  "declaration":"First line.\nSecond line with é and é.  ",
+  "electronicConsent":{"textRef":"urn:test:consent","version":"1.0.0","text":"You may use an electronic signature.\nKeep a copy.","controlLabel":"I agree to use an electronic signature."},
+  "paperAlternative":"You can use a paper application instead.",
+  "affirmationText":"I affirm that my answers are accurate.",
+  "delegatedSigningNotice":"The service records this act using its signing key."
+}
