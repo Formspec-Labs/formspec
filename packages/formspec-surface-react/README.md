@@ -398,3 +398,20 @@ identity refresh behavior continues. Selector exceptions or invalid values make
 that source unavailable before admission; optional `degraded-widget` sources
 retain their existing omission policy. Failed refreshes preserve person edits in
 an already dirty form and report diagnostics rather than admitting new data.
+
+Import canonical widget shapes and schemas without loading the renderer graph:
+
+```ts
+import {
+  RESPONSE_REVIEW_WIDGET_SHAPE,
+  SIGNING_CEREMONY_WIDGET_SHAPE,
+} from '@formspec-org/surface-react/widget-metadata';
+```
+
+The public `/widget-metadata` entry exports the maintained ResponseReview and
+SigningCeremony metadata and types. Existing root and `/widgets` exports retain
+these same objects. Its runtime imports contain only pure metadata and the
+maintained generated SigningContentSource schema. It loads no React, Surface
+renderer, engine, CSS, hashing, or attachment code. Shapes, schema requirements,
+copy keys, delivery IDs and rendered-config inventories remain unchanged.
+Import rendering capabilities through the existing runtime entries when needed.

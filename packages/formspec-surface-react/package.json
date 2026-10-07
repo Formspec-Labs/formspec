@@ -23,6 +23,10 @@
       "types": "./dist/widgets/index.d.ts",
       "default": "./dist/widgets/index.js"
     },
+    "./widget-metadata": {
+      "types": "./dist/widget-metadata.d.ts",
+      "default": "./dist/widget-metadata.js"
+    },
     "./formspec-surface.css": "./dist/formspec-surface.css"
   },
   "files": [
