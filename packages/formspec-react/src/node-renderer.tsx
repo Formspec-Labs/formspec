@@ -379,6 +379,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         });
     }, [activate]);
 
+    // The in-flight guard keeps pending activation inert without losing keyboard focus.
     const pending = feedback.phase === 'pending';
 
     return (
@@ -393,7 +394,6 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
                 // foot-gun and keeps cross-renderer parity.
                 type="button"
                 className={node.cssClasses?.join(' ') || 'formspec-action formspec-submit'}
-                // The in-flight guard keeps pending activation inert without losing keyboard focus.
                 disabled={!resolution.resolved}
                 aria-disabled={!resolution.resolved || pending}
                 aria-busy={pending}
