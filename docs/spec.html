@@ -2176,8 +2176,9 @@ enums).</td>
 response MUST be a JSON document. The processor MAY complete the first
 Rebuild before the fetch returns. On success it MUST install the payload
 and apply any still-pending creation-time <code>seedFrom</code> /
-<code>prePopulate</code> (§4.2.2.1). On failure,
-<code>@instance()</code> is null, <code>seedFrom</code> uses
+<code>prePopulate</code> (§4.2.2.1). On failure, authored
+<code>data</code> remains the fallback (§4.4); without a fallback,
+<code>@instance()</code> is null and <code>seedFrom</code> uses
 <code>N = 0</code>, and the processor SHOULD emit a diagnostic — not a
 blocking load error. Later refresh MUST NOT restomp person edits
 (FH-064).</td>
@@ -5826,8 +5827,13 @@ engine MUST NOT re-apply <code>seedFrom</code> on later Rebuild,
 including after every seeded row is removed. URL <code>source</code> MAY
 arrive after the first Rebuild (§2.1.7): apply <code>seedFrom</code> and
 deferred <code>prePopulate</code> when the instance first materializes;
-fetch failure is <code>N = 0</code> plus a diagnostic. Later refresh
-MUST NOT restomp person edits (FH-064).</p>
+without a fallback, fetch failure uses <code>N = 0</code> plus a
+diagnostic. Later refresh MUST NOT restomp person edits (FH-064). A
+processor MAY defer source-dependent creation-time seeding while a
+source is loading, even when inline fallback data is visible to FEL. If
+loading fails, apply pending seeding using that fallback; without a
+fallback use <code>N = 0</code>. Host Response data and person edits
+still win.</p>
 <h4 id="field-items">4.2.3 Field Items</h4>
 <p>A <strong>Field</strong> Item represents a single data-entry point.
 Each Field produces exactly one value in the Response data (or one value

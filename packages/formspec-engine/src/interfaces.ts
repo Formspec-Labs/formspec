@@ -3,6 +3,7 @@
 import type { EngineSignal, ReadonlyEngineSignal } from './reactivity/types.js';
 import type {
     FormDefinition,
+    FormInstance,
     FormItem,
     FormResponse,
     MappingDocument,
@@ -241,9 +242,41 @@ export interface FormEngineRuntimeContext {
     meta?: Record<string, string | number | boolean>;
 }
 
+/** Detached metadata for one authored Definition-local instance source. */
+export interface InstanceSourceRequest {
+    readonly instanceName: string;
+    readonly source: string;
+    readonly definition: Readonly<{ url?: string; version: string }>;
+    readonly schema?: Readonly<FormInstance['schema']>;
+    readonly static: boolean;
+    readonly readonly: boolean;
+}
+
+export type InstanceSourceResult =
+    | { status: 'loaded'; value: JsonValue }
+    | { status: 'unavailable'; reason?: string };
+
+/**
+ * Engine admission only; a loaded outcome does not establish provider authority.
+ * `failed` means applying a source unexpectedly failed: the engine has disposed
+ * itself and must be replaced. Its primary state may be partially seeded.
+ */
+export type InstanceSourceLoadOutcome = Readonly<{
+    status: 'loaded' | 'unavailable' | 'aborted' | 'failed';
+    reason?: string;
+}>;
+
+/** Host owns source qualification and a bounded deadline; disposal aborts the signal. */
+export type InstanceSourceResolver = (
+    request: Readonly<InstanceSourceRequest>,
+    options: Readonly<{ signal: AbortSignal }>,
+) => InstanceSourceResult | Promise<InstanceSourceResult>;
+
 /** Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createFormEngine`](./engine/init.ts). */
 export interface FormEngineOptions {
     runtimeContext?: FormEngineRuntimeContext;
+    /** Exclusive source loader when supplied; injected values never use the shared URL cache. */
+    instanceSourceResolver?: InstanceSourceResolver;
     registryEntries?: RegistryEntry[];
     /** FEL extension functions by name (Core §3.12), registered before the first evaluation. */
     extensionFunctions?: Record<string, import('./extension-functions.js').FelExtensionFunctionRegistration>;
@@ -437,7 +470,7 @@ export interface IFormEngine {
     getOptionsState(path: string): RemoteOptionsState;
     getOptionsStateSignal(path: string): EngineSignal<RemoteOptionsState> | undefined;
     waitForRemoteOptions(): Promise<void>;
-    waitForInstanceSources(): Promise<void>;
+    waitForInstanceSources(): Promise<Readonly<Record<string, InstanceSourceLoadOutcome>>>;
 
     setInstanceValue(name: string, path: string | undefined, value: FormFieldValue): void;
     getInstanceData(name: string, path?: string): FormFieldValue;

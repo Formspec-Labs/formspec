@@ -11,6 +11,7 @@ import type {
     ValidationResult,
     ValidationProfile,
 } from '@formspec-org/types';
+import { freezeSourceMetadata, readSourceResult, sourceErrorMessage } from './instance-source.js';
 import { diffEvalResults, type EvalDiagnostic, type EvalResult, type EvalValidation } from '../diff.js';
 import { FelExtensionFunctions, type FelExtensionFunctionRegistration } from '../extension-functions.js';
 import type {
@@ -25,6 +26,8 @@ import type {
     FormEngineRuntimeContext,
     FormFieldValue,
     IFormEngine,
+    InstanceSourceResolver,
+    InstanceSourceLoadOutcome,
     JsonRecord,
     JsonValue,
     PinnedResponseReference,
@@ -142,7 +145,8 @@ export class FormEngine implements IFormEngine {
     public readonly optionSignals: Record<string, EngineSignal<OptionEntry[]>> = {};
     public readonly optionStateSignals: Record<string, EngineSignal<RemoteOptionsState>> = {};
     public readonly variableSignals: Record<string, EngineSignal<FormFieldValue>> = {};
-    public readonly instanceData: JsonRecord = {};
+    /** Own-key JSON data map; valid source names never inherit Object prototype values. */
+    public readonly instanceData: JsonRecord = Object.create(null);
     public readonly instanceVersion: EngineSignal<number>;
     public readonly structureVersion: EngineSignal<number>;
     public readonly localeSignal: ReadonlyEngineSignal<number>;
@@ -168,6 +172,12 @@ export class FormEngine implements IFormEngine {
     private readonly _extensionFunctions = new FelExtensionFunctions();
     private _registryDocuments: unknown[] = [];
     private readonly _remoteOptionsTasks: Array<Promise<void>> = [];
+    private readonly _instanceSourceResolver?: InstanceSourceResolver;
+    private readonly _instanceSourceAbort = new AbortController();
+    private readonly _pendingInstanceSources = new Set<string>();
+    private readonly _sourceSeedPreservedFields = new Set<string>();
+    private readonly _instanceSourceOutcomes: Record<string, InstanceSourceLoadOutcome> = Object.create(null);
+    private _disposed = false;
     private readonly _instanceSourceTasks: Array<Promise<void>> = [];
     private readonly _variableDefs: FormVariable[];
     private readonly _variableSignalKeys = new Map<string, string[]>();
@@ -216,6 +226,7 @@ export class FormEngine implements IFormEngine {
             issuerOverride,
             extensionFunctions,
         } = options;
+        this._instanceSourceResolver = options.instanceSourceResolver;
         this._rx = reactiveRuntime;
         this._issuerStore = new IssuerStore(issuerFetcher ?? new FetchIssuerFetcher());
         this._validationProfileResolver = new DefaultValidationProfileResolver();
@@ -368,8 +379,9 @@ export class FormEngine implements IFormEngine {
         await Promise.allSettled(this._remoteOptionsTasks);
     }
 
-    public async waitForInstanceSources(): Promise<void> {
+    public async waitForInstanceSources(): Promise<Readonly<Record<string, InstanceSourceLoadOutcome>>> {
         await Promise.allSettled(this._instanceSourceTasks);
+        return freezeSourceMetadata(cloneValue(this._instanceSourceOutcomes));
     }
 
     public setInstanceValue(name: string, path: string | undefined, value: FormFieldValue): void {
@@ -409,6 +421,9 @@ export class FormEngine implements IFormEngine {
             return undefined;
         }
         this.appendRepeatRow(path, item);
+        if (item.seedFrom && this._pendingInstanceSources.has(item.seedFrom.instance)) {
+            this._seedFromResolvedPaths.add(path);
+        }
         this._evaluate();
         return index;
     }
@@ -421,6 +436,9 @@ export class FormEngine implements IFormEngine {
             return;
         }
         this.rebuildRepeatRows(path, item, (rows) => rows.filter((_row, current) => current !== index));
+        if (item.seedFrom && this._pendingInstanceSources.has(item.seedFrom.instance)) {
+            this._seedFromResolvedPaths.add(path);
+        }
         this._evaluate();
     }
 
@@ -443,6 +461,7 @@ export class FormEngine implements IFormEngine {
             const path = prefix ? `${prefix}.${item.key}` : item.key;
             const value = data[item.key];
             if (item.type === 'field') {
+                if (this._pendingInstanceSources.size > 0) this._sourceSeedPreservedFields.add(path);
                 this.writeFieldData(path, value as FormFieldValue);
             } else if (item.type === 'group' && item.repeatable && this.repeats[path]) {
                 this._seedFromResolvedPaths.add(path);
@@ -1131,6 +1150,8 @@ export class FormEngine implements IFormEngine {
     }
 
     public dispose(): void {
+        this._disposed = true;
+        this._instanceSourceAbort.abort();
         // The only owned WASM allocation is the resident FEL context; signals need no teardown.
         this._felContext?.handle.free();
         this._felContext = null;
@@ -1175,6 +1196,7 @@ export class FormEngine implements IFormEngine {
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'issuerOverride')
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'extensionFunctions')
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'responseData')
+            || Object.prototype.hasOwnProperty.call(maybeOptions, 'instanceSourceResolver')
         );
         if (hasOptionsShape) {
             return {
@@ -1259,41 +1281,102 @@ export class FormEngine implements IFormEngine {
     }
 
     private initializeInstanceSource(name: string, instance: FormInstance): void {
-        const source = instance.source ? FormEngine.resolveInstanceSource(instance.source) : null;
+        if (!instance.source) return;
+        const resolver = this._instanceSourceResolver;
+        const source = resolver ? instance.source : FormEngine.resolveInstanceSource(instance.source);
         if (!source) {
+            this._instanceSourceOutcomes[name] = { status: 'unavailable', reason: 'Unsupported source' };
             return;
         }
-
-        if (instance.static && FormEngine.instanceSourceCache.has(source)) {
-            const cached = FormEngine.instanceSourceCache.get(source);
-            if (cached !== undefined) {
+        if (!resolver && instance.static && FormEngine.instanceSourceCache.has(source)) {
+            try {
+                const cached = FormEngine.instanceSourceCache.get(source)!;
+                this.validateInstanceSchema(name, cached);
                 this.instanceData[name] = cloneValue(cached) as JsonValue;
+                this._instanceSourceOutcomes[name] = { status: 'loaded' };
+            } catch (error) {
+                this._instanceSourceOutcomes[name] = { status: 'unavailable', reason: sourceErrorMessage(error) };
             }
             return;
         }
 
-        const task = fetch(source)
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error(`Instance source fetch failed (${response.status})`);
+        // Only host-loaded sources defer fallback-dependent creation-time seeding.
+        if (resolver) this._pendingInstanceSources.add(name);
+        const signal = this._instanceSourceAbort.signal;
+        const request = freezeSourceMetadata(cloneValue({
+            instanceName: name, source: instance.source,
+            definition: { url: this.definition.url, version: this.definition.version },
+            ...(instance.schema ? { schema: instance.schema } : {}),
+            static: instance.static === true, readonly: instance.readonly !== false,
+        }));
+        const task = new Promise<void>((settle) => {
+            const abort = () => {
+                this._instanceSourceOutcomes[name] = { status: 'aborted' };
+                this._pendingInstanceSources.delete(name);
+                settle();
+            };
+            signal.addEventListener('abort', abort, { once: true });
+            let installed = false;
+            let previous: JsonValue | undefined;
+            let hadPrevious = false;
+            Promise.resolve().then(async () => {
+                if (signal.aborted) return;
+                let payload: JsonValue;
+                if (resolver) {
+                    const result = readSourceResult(await resolver(request, Object.freeze({ signal })));
+                    if (this._disposed) return;
+                    if (result.status === 'unavailable') {
+                        this._instanceSourceOutcomes[name] = result;
+                        return;
+                    }
+                    payload = result.value;
+                    if (instance.schema && !isJsonRecord(payload)) {
+                        throw new Error(`Instance '${name}' schema requires an object`);
+                    }
+                } else {
+                    const response = await fetch(source, { signal });
+                    if (!response.ok) throw new Error(`Instance source fetch failed (${response.status})`);
+                    payload = await response.json();
                 }
-                return response.json();
-            })
-            .then((payload) => {
+                if (this._disposed) return;
                 this.validateInstanceSchema(name, payload);
                 const nextValue = cloneValue(payload);
-                if (instance.static) {
-                    FormEngine.instanceSourceCache.set(source, cloneValue(nextValue));
-                }
-                this.instanceData[name] = nextValue;
+                hadPrevious = Object.prototype.hasOwnProperty.call(this.instanceData, name);
+                previous = this.instanceData[name];
+                Object.defineProperty(this.instanceData, name, { value: nextValue, enumerable: true, writable: true, configurable: true });
+                installed = true;
                 this.instanceVersion.value += 1;
-                this.runInstanceDependentSeeding();
-                this._evaluate();
-            })
-            .catch((error) => {
-                console.error(`Failed to load instance source '${name}':`, error);
+            }).catch((error) => {
+                if (this._disposed) return;
+                this._instanceSourceOutcomes[name] = { status: 'unavailable', reason: sourceErrorMessage(error) };
+                try { console.error(`Failed to load instance source '${name}':`, error); } catch { /* Diagnostics must not prevent settlement. */ }
+            }).then(() => {
+                // Always release waits, even when reactive seeding or evaluation unexpectedly fails.
+                signal.removeEventListener('abort', abort);
+                try {
+                    if (this._disposed) return;
+                    this._pendingInstanceSources.delete(name);
+                    this.runInstanceDependentSeeding();
+                    this._evaluate();
+                    if (installed) {
+                        if (!resolver && instance.static) FormEngine.instanceSourceCache.set(source, cloneValue(this.instanceData[name]));
+                        this._instanceSourceOutcomes[name] = { status: 'loaded' };
+                    }
+                } catch (error) {
+                    if (installed) {
+                        if (hadPrevious) Object.defineProperty(this.instanceData, name, { value: previous, enumerable: true, writable: true, configurable: true });
+                        else delete this.instanceData[name];
+                        this.instanceVersion.value += 1;
+                    }
+                    this._instanceSourceOutcomes[name] = { status: 'failed', reason: sourceErrorMessage(error) };
+                    // Primary seeding may have partially applied; this engine must be replaced.
+                    this.dispose();
+                } finally {
+                    this._pendingInstanceSources.delete(name);
+                    settle();
+                }
             });
-
+        });
         this._instanceSourceTasks.push(task);
     }
 
@@ -1463,7 +1546,8 @@ export class FormEngine implements IFormEngine {
 
     private resolveInitialFieldValue(path: string, item: FormItem): FormFieldValue {
         const prePopulate = item.prePopulate;
-        if (prePopulate) {
+        if (prePopulate?.editable === false) this._prePopulateReadonly.add(path);
+        if (prePopulate && !this._pendingInstanceSources.has(prePopulate.instance)) {
             const resolved = resolvePrePopulateFromInstance(
                 item,
                 path,
@@ -1503,6 +1587,7 @@ export class FormEngine implements IFormEngine {
                 this._seedFromResolvedPaths.add(groupPath);
                 continue;
             }
+            if (this._pendingInstanceSources.has(seedFrom.instance)) continue;
             if (this.instanceData[seedFrom.instance] === undefined) {
                 continue;
             }
@@ -1526,11 +1611,14 @@ export class FormEngine implements IFormEngine {
         }
 
         for (const [basePath, fieldItem] of this._fieldItems.entries()) {
-            if (!fieldItem.prePopulate) {
+            if (!fieldItem.prePopulate || this._pendingInstanceSources.has(fieldItem.prePopulate.instance)) {
                 continue;
             }
             const paths = Object.keys(this.signals).filter((candidate) => toBasePath(candidate) === basePath);
             for (const path of paths) {
+                if (this._instanceSourceResolver && (
+                    this._sourceSeedPreservedFields.has(path) || this.writeSources[path]?.value != null
+                )) continue;
                 if (!isEmptyValue(this.signals[path]?.value)) {
                     continue;
                 }

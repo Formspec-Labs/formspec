@@ -1221,7 +1221,7 @@ mechanisms:
 | Mechanism | Property | Description |
 |-----------|----------|-------------|
 | **Inline** | `data` (JSON object or array) | The data is embedded directly in the Definition document. Suitable for small, static lookup tables (e.g., country codes, status enums). |
-| **URL** | `source` (string, URI) | The data is fetched from an external endpoint at form-load time. The response MUST be a JSON document. The processor MAY complete the first Rebuild before the fetch returns. On success it MUST install the payload and apply any still-pending creation-time `seedFrom` / `prePopulate` (§4.2.2.1). On failure, `@instance()` is null, `seedFrom` uses `N = 0`, and the processor SHOULD emit a diagnostic — not a blocking load error. Later refresh MUST NOT restomp person edits (FH-064). |
+| **URL** | `source` (string, URI) | The data is fetched from an external endpoint at form-load time. The response MUST be a JSON document. The processor MAY complete the first Rebuild before the fetch returns. On success it MUST install the payload and apply any still-pending creation-time `seedFrom` / `prePopulate` (§4.2.2.1). On failure, authored `data` remains the fallback (§4.4); without a fallback, `@instance()` is null and `seedFrom` uses `N = 0`, and the processor SHOULD emit a diagnostic — not a blocking load error. Later refresh MUST NOT restomp person edits (FH-064). |
 | **Host function** | `source` (string, `formspec-fn:` URI) | The data is supplied by the host environment via a named callback. The URI scheme `formspec-fn:` identifies a host-registered function (e.g., `"formspec-fn:lookupPatient"`). The host maps the function name to a callback. This allows integration with application-specific data layers without embedding external URLs in the Definition. |
 
 A Data Source MAY include a `schema` property describing the expected shape of
@@ -2962,8 +2962,12 @@ host data (zero rows); an absent key is not. Host primary data MUST be installed
 before `seedFrom`. A live engine MUST NOT re-apply `seedFrom` on later Rebuild,
 including after every seeded row is removed. URL `source` MAY arrive after the
 first Rebuild (§2.1.7): apply `seedFrom` and deferred `prePopulate` when the
-instance first materializes; fetch failure is `N = 0` plus a diagnostic. Later
-refresh MUST NOT restomp person edits (FH-064).
+instance first materializes; without a fallback, fetch failure uses `N = 0`
+plus a diagnostic. Later
+refresh MUST NOT restomp person edits (FH-064). A processor MAY defer source-dependent
+creation-time seeding while a source is loading, even when inline fallback data
+is visible to FEL. If loading fails, apply pending seeding using that fallback;
+without a fallback use `N = 0`. Host Response data and person edits still win.
 
 #### 4.2.3 Field Items
 
