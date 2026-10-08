@@ -36,6 +36,8 @@ export const localeHandlers = {
     const locale = normalizeBcp47(rawLocale);
 
     const localeState: LocaleState = {
+      // Locale state is the complete document, as in project.import and export.
+      ...doc,
       $formspecLocale: '2.0',
       locale,
       version: (doc.version as string) ?? '0.1.0',
@@ -45,13 +47,6 @@ export const localeHandlers = {
       },
       strings: (doc.strings as Record<string, string>) ?? {},
     };
-
-    // Copy optional metadata fields
-    if (doc.fallback !== undefined) localeState.fallback = doc.fallback as string;
-    if (doc.name !== undefined) localeState.name = doc.name as string;
-    if (doc.title !== undefined) localeState.title = doc.title as string;
-    if (doc.description !== undefined) localeState.description = doc.description as string;
-    if (doc.url !== undefined) localeState.url = doc.url as string;
 
     state.locales[locale] = localeState;
     return { rebuildComponentTree: false };

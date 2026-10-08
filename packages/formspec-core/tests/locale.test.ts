@@ -13,6 +13,22 @@ function localeDoc(locale: string, strings: Record<string, string> = {}) {
 }
 
 describe('locale.load', () => {
+  it('preserves the complete locale document through load and export', () => {
+    const project = createRawProject();
+    const document = {
+      ...localeDoc('zh-hant-tw', { greeting: '您好' }),
+      stringGeneration: { greeting: { anchors: ['need:greet-respondent@1'] } },
+      formats: { date: { short: 'yyyy-MM-dd' } },
+      modules: [{ id: 'x-formspec-conversation', version: '^0.1.0' }],
+      extensions: { 'x-authoring-source': { revision: 7 } },
+    };
+    project.dispatch({ type: 'locale.load', payload: { document } });
+    const expected = { ...document, locale: 'zh-Hant-TW' };
+    expect(project.localeAt('zh-Hant-TW')).toEqual(expected);
+    expect(project.export().locales?.['zh-Hant-TW']).toEqual(expected);
+    expect(document.locale).toBe('zh-hant-tw');
+  });
+
   it('stores a locale document in state.locales keyed by BCP 47 code', () => {
     const project = createRawProject();
     project.dispatch({
