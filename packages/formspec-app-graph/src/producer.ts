@@ -27,6 +27,7 @@ import type {
   AppGraphValidationReport,
 } from './types.js';
 import { validateAppGraph } from './validator.js';
+import { prepareComponentRouteResolver, type ComponentRouteResolver } from './component-route-resolution.js';
 
 export interface AppGraphReportProducerRequest extends ArtifactResolverRequest {
   hostEvidence?: AppGraphHostEvidence;
@@ -48,6 +49,12 @@ export interface AppGraphReportProducerResult {
   report: AppGraphValidationReport;
 }
 
+/** In-process result. The resolver is not part of JSON report transport. */
+export interface PreparedAppGraphReportProducerResult extends AppGraphReportProducerResult {
+  /** Pure selection over an immutable snapshot of this exact validated graph. */
+  componentRouteResolver: ComponentRouteResolver;
+}
+
 export type BundleExportAppGraphReportProducerRequest = Omit<
   AppGraphReportProducerRequest,
   'loader'
@@ -64,7 +71,7 @@ export type BundleExportAppGraphReportProducerRequest = Omit<
 function finishAppGraphValidationReport(
   request: Omit<AppGraphReportProducerRequest, 'manifest' | 'loader'>,
   artifactResolutionReport: ArtifactResolutionReport,
-): AppGraphReportProducerResult {
+): PreparedAppGraphReportProducerResult {
   const graphInput = artifactResolutionGraphInput(artifactResolutionReport);
   const moduleResolutionReport = resolveModules(moduleResolverInputFromAppGraph({
     manifest: graphInput.manifest,
@@ -74,7 +81,7 @@ function finishAppGraphValidationReport(
     ...(request.moduleSupport ? { support: request.moduleSupport } : {}),
     ...(request.moduleSource ? { source: request.moduleSource } : {}),
   }));
-  const report = validateAppGraph({
+  const validationRequest = {
     manifest: graphInput.manifest,
     artifacts: graphInput.artifacts,
     artifactResolution: graphInput.artifactResolution,
@@ -89,18 +96,20 @@ function finishAppGraphValidationReport(
     ...(request.evidenceSchemaValidators ? { evidenceSchemaValidators: request.evidenceSchemaValidators } : {}),
     ...(request.crossArtifactValidators ? { crossArtifactValidators: request.crossArtifactValidators } : {}),
     ...(request.validationOptions ? { options: request.validationOptions } : {}),
-  });
+  };
+  const report = validateAppGraph(validationRequest);
 
   return {
     artifactResolutionReport,
     moduleResolutionReport,
     report,
+    componentRouteResolver: prepareComponentRouteResolver(validationRequest, report),
   };
 }
 
 export async function produceAppGraphValidationReport(
   request: AppGraphReportProducerRequest,
-): Promise<AppGraphReportProducerResult> {
+): Promise<PreparedAppGraphReportProducerResult> {
   const prepared = { ...request, moduleSupport: snapshotModulePayloadSchemaResources(request.moduleSupport) };
   return finishAppGraphValidationReport(prepared, await resolveArtifacts(prepared));
 }
@@ -111,7 +120,7 @@ export async function produceAppGraphValidationReport(
  */
 export async function produceBundleExportAppGraphValidationReport(
   request: BundleExportAppGraphReportProducerRequest,
-): Promise<AppGraphReportProducerResult> {
+): Promise<PreparedAppGraphReportProducerResult> {
   const { documents, ...pipelineRequest } = {
     ...request,
     moduleSupport: snapshotModulePayloadSchemaResources(request.moduleSupport),

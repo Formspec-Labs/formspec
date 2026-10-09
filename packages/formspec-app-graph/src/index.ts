@@ -20,6 +20,7 @@ export {
   produceAppGraphValidationReport,
   type AppGraphReportProducerRequest,
   type AppGraphReportProducerResult,
+  type PreparedAppGraphReportProducerResult,
   type BundleExportAppGraphReportProducerRequest,
 } from './producer.js';
 export {
@@ -68,6 +69,15 @@ export {
 export {
   validateComponentRouteTargets,
 } from './component-routes.js';
+export {
+  resolveComponentRouteTarget,
+  type ComponentRouteSelection,
+  type ComponentRouteResolution,
+  type ComponentRouteRefusal,
+  type ComponentRouteResolver,
+  type ComponentRouteArtifact,
+  type ComponentRouteDiagnostics,
+} from './component-route-resolution.js';
 export {
   validateExperienceActionRefs,
 } from './experience-action-refs.js';

@@ -37,6 +37,9 @@ interface ComponentClaim {
   key: string;
   owner: string;
   source: AppGraphSourcePointer;
+  component: ResolvedArtifactHandle;
+  membership: ComponentMembership;
+  target: RouteTarget;
 }
 
 interface ComponentNodeLabel {
@@ -404,7 +407,7 @@ function routeDefinitionFormSources(
   };
 }
 
-function isExactVersion(value: string | undefined): value is string {
+export function isExactVersion(value: string | undefined): value is string {
   return typeof value === 'string' && EXACT_SEMVER.test(value);
 }
 
@@ -471,7 +474,8 @@ function ownerLabel(membership: ComponentMembership, handle: ResolvedArtifactHan
   return `${membership.handle} (${stringProp(record(handle.ref), 'url') ?? membership.url})`;
 }
 
-export function validateComponentRouteTargets(context: AppGraphContext): AppGraphDiagnostic[] {
+/** Shared claim collection; callers must establish schema admission first. */
+export function collectComponentRouteClaims(context: AppGraphContext) {
   const manifestDocument = context.manifest.document;
   const manifestSurfaces = refsFromManifest(manifestDocument, 'surfaces');
   const manifestSurfaceUrls = new Set(manifestSurfaces.map((ref) => ref.url));
@@ -719,10 +723,14 @@ export function validateComponentRouteTargets(context: AppGraphContext): AppGrap
           },
         ));
       } else {
-        claims.set(key, { key, owner, source });
+        claims.set(key, { key, owner, source, component: handle, membership, target });
       }
     });
   }
 
-  return diagnostics;
+  return { diagnostics, claims: [...claims.values()] };
+}
+
+export function validateComponentRouteTargets(context: AppGraphContext): AppGraphDiagnostic[] {
+  return collectComponentRouteClaims(context).diagnostics;
 }
