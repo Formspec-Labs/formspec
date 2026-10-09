@@ -22,12 +22,16 @@ export function patchValueSignalsFromWasm(options: {
     bindConfigs: Record<string, EngineBindConfig>;
     calculatedFields: Set<string>;
 }): void {
-    for (const [path, value] of Object.entries(options.values)) {
-        const sig = options.signals[path];
-        if (!sig) {
+    for (const [path, sig] of Object.entries(options.signals)) {
+        const basePath = toBasePath(path);
+        // Native output can omit non-relevant fields. Their editing values still belong to the primary instance.
+        if (!Object.prototype.hasOwnProperty.call(options.values, path)) {
+            if (!options.calculatedFields.has(basePath)) {
+                sig.value = normalizeWasmValue(options.data[path]);
+            }
             continue;
         }
-        const basePath = toBasePath(path);
+        const value = options.values[path];
         const item = options.fieldItems.get(basePath);
         const normalizedValue = normalizeWasmValue(value);
         const hasExpressionInitial = typeof item?.initialValue === 'string' && item.initialValue.startsWith('=');
@@ -43,7 +47,8 @@ export function patchValueSignalsFromWasm(options: {
             options.data[path] = cloneValue(normalizedValue);
         }
         let rawValue: any;
-        if (!options.calculatedFields.has(basePath) && path in options.data) {
+        if (!options.calculatedFields.has(basePath)
+            && (path in options.data || options.bindConfigs[basePath]?.default === undefined)) {
             rawValue = options.data[path];
         } else {
             rawValue = normalizedValue;

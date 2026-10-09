@@ -83,12 +83,13 @@ export function snapshotRepeatGroupTree(
     return snapshot;
 }
 
-/** Restore nested field values after repeat rows were reindexed. */
+/** Restore nested field values and, when requested, repeat structure after rows were reindexed. */
 export function applyRepeatGroupTreeSnapshot(
     items: FormItem[],
     prefix: string,
     snapshot: Record<string, unknown> | undefined,
     writeField: (path: string, value: unknown) => void,
+    prepareRepeat?: (path: string, item: FormItem, count: number) => void,
 ): void {
     for (const item of items) {
         const path = `${prefix}.${item.key}`;
@@ -99,16 +100,18 @@ export function applyRepeatGroupTreeSnapshot(
         if (item.type === 'group') {
             if (item.repeatable) {
                 const rows = Array.isArray(snapshot?.[item.key]) ? (snapshot[item.key] as Record<string, unknown>[]) : [];
+                prepareRepeat?.(path, item, rows.length);
                 for (let index = 0; index < rows.length; index += 1) {
                     applyRepeatGroupTreeSnapshot(
                         item.children ?? [],
                         `${path}[${index}]`,
                         rows[index] ?? {},
                         writeField,
+                        prepareRepeat,
                     );
                 }
             } else {
-                applyRepeatGroupTreeSnapshot(item.children ?? [], path, snapshot?.[item.key] as Record<string, unknown>, writeField);
+                applyRepeatGroupTreeSnapshot(item.children ?? [], path, snapshot?.[item.key] as Record<string, unknown>, writeField, prepareRepeat);
             }
         }
     }

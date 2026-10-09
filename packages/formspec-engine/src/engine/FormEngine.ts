@@ -492,7 +492,7 @@ export class FormEngine implements IFormEngine {
         });
     }
 
-    /** Re-keys repeat `path` to the rows `select` keeps from a snapshot of every current row. O(rows). */
+    /** Re-keys repeat `path` to the rows `select` keeps, preserving nested shape, values, and write sources. */
     private rebuildRepeatRows(
         path: string,
         item: FormItem,
@@ -536,6 +536,13 @@ export class FormEngine implements IFormEngine {
                         this._data[fieldPath] = v as JsonValue;
                         if (this.signals[fieldPath]) {
                             this.signals[fieldPath].value = v;
+                        }
+                    },
+                    (repeatPath, repeatItem, count) => {
+                        this.clearRepeatSubtree(repeatPath);
+                        this.repeats[repeatPath].value = count;
+                        for (let index = 0; index < count; index += 1) {
+                            this.registerItemChildren(repeatItem.children ?? [], `${repeatPath}[${index}]`);
                         }
                     },
                 );
