@@ -47,6 +47,7 @@ import { deriveSurfaceRuntimeGeneration } from "./runtime-generation.js";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -436,6 +437,15 @@ export function SurfaceApp(props: SurfaceAppProps) {
     };
   }
 
+  // A native Screener completion belongs to this mounted composition and visit.
+  const screenerVisit = useMemo(() => ({ id: allocateRouteInstanceId(), active: false }), [model.app, runtimeGeneration]);
+  const liveScreenerVisit = useRef(screenerVisit);
+  liveScreenerVisit.current = screenerVisit;
+  useLayoutEffect(() => {
+    screenerVisit.active = true;
+    return () => { screenerVisit.active = false; };
+  }, [screenerVisit]);
+
   const routePlan: SurfaceRoutePlan<SurfaceWidget> | undefined = useMemo(() => {
     if (!resolution.match) return undefined;
     return planMatchedRoute<SurfaceWidget>({
@@ -443,6 +453,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
       app: model.app,
       params: { ...(props.routeParams ?? {}), ...resolution.match.params },
       experiences: bundle.experiences,
+      screenerHandles: bundle.screenerHandles,
       experienceHandles: bundle.experienceHandles,
       definitions: bundle.definitions,
       registryEntries: model.registryEntries,
@@ -625,6 +636,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
             <SurfaceRouteView
               key={`${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
               plan={routePlan}
+              screenerInstanceId={screenerVisit.id}
               resolveRouteTitle={props.resolveRouteTitle}
               strings={strings}
               dataSourceLoader={props.dataSourceLoader}
@@ -648,6 +660,15 @@ export function SurfaceApp(props: SurfaceAppProps) {
               referencesDocuments={bundle.references ?? []}
               ontologyDocuments={bundle.ontologies ?? []}
               onFireTransition={props.onFireTransition}
+              onScreenerTarget={(target) => {
+                if (!screenerVisit.active || liveScreenerVisit.current !== screenerVisit) return { status: 'refused', reason: 'screener-generation-stale' };
+                const matches = model.app.routes.filter(handle => `surface:${handle.routeId}` === target);
+                if (matches.length !== 1 || matches[0]!.pathCollides) return { status: 'refused', reason: 'screener-target-not-unique' };
+                const destination = routeHref(matches[0]!, routePlan.params);
+                if (destination.refusal) return { status: 'refused', reason: destination.refusal };
+                onNavigate(destination.href);
+                return { status: 'accepted' };
+              }}
               onAdvance={(transition, outcome) => {
                 // Reached only after the action reported success. The shell
                 // navigates; it never decides that the action succeeded.

@@ -31,6 +31,7 @@
  *   acyclic graph, so `a` embedding `b` embedding `a` is authorable. The visited
  *   set is a termination requirement, not an optimisation.
  */
+import { admitScreenerPresentation, type ScreenerDocumentHandle } from './screener-slot.js';
 import type { FormDefinition, RegistryEntry } from '@formspec-org/types';
 import { targetDefinitionMatches } from '@formspec-org/types';
 import { widgetActionScopeMatches } from '@formspec-org/app-graph';
@@ -90,6 +91,7 @@ export type SlotPlan<TComponent> = SlotPlanBase &
         registryEntries: readonly RegistryEntry[];
         status: 'ready' | 'unresolved';
       }
+    | { slotType: 'screener'; screener?: ScreenerDocumentHandle; allowedTargets: readonly string[]; status: 'ready' | 'unresolved'; reason?: string }
     | { slotType: 'experience-unit'; unit: ExperienceUnitPlan }
     | {
         slotType: 'module-widget';
@@ -123,6 +125,7 @@ export type SlotPlan<TComponent> = SlotPlanBase &
   );
 
 const KNOWN_SLOT_TYPES = {
+  'screener': true,
   'definition-form': true,
   'experience-unit': true,
   'module-widget': true,
@@ -132,6 +135,7 @@ const KNOWN_SLOT_TYPES = {
 
 export interface SlotPlanContext<TComponent> {
   handle: SurfaceRouteHandle;
+  screenerHandles?: readonly ScreenerDocumentHandle[] | undefined;
   experiences: readonly ExperienceDocument[];
   /** Exact manifested source identity for qualified Experience bindings. */
   experienceHandles?: readonly ExperienceDocumentHandle[] | undefined;
@@ -235,6 +239,19 @@ function planSlot<TComponent>(
   }
 
   switch (slot.slotType) {
+    case 'screener': {
+      const matches = (context.screenerHandles ?? []).filter(h => h.ref.url === binding.screenerRef);
+      const handle = matches.length === 1 ? matches[0] : undefined;
+      const allowedTargets = Array.isArray(binding.allowedTargets) && binding.allowedTargets.every(t => typeof t === 'string') ? binding.allowedTargets as string[] : [];
+      const authored = new Set(handle?.document.evaluation?.flatMap(p => p.routes.map(r => r.target)) ?? []);
+      const admission = handle ? admitScreenerPresentation(handle.document) : undefined;
+      const reason = context.handle.surface.$formspecSurface !== '0.3' ? 'surface-version-unsupported'
+        : !handle || !handle.ref.version || handle.document.url !== handle.ref.url || handle.document.version !== handle.ref.version ? 'screener-pin-unresolved'
+        : admission?.status !== 'ready' ? admission?.reason ?? 'presentation-unsupported'
+        : !allowedTargets.length || new Set(allowedTargets).size !== allowedTargets.length || allowedTargets.some(t => !t.startsWith('surface:') || !authored.has(t)) ? 'allowed-target-invalid' : undefined;
+      if (reason) diagnostics.push(surfaceDiagnostic('SLOT-BINDING-INCOMPLETE', 'The native Screener slot is unavailable.', site, { reason }));
+      return { ...shared, slotType: 'screener', ...(handle ? { screener: handle } : {}), allowedTargets, status: reason ? 'unresolved' : 'ready', ...(reason ? { reason } : {}) };
+    }
     case 'definition-form': {
       const definitionRef = typeof binding.definitionRef === 'string' ? binding.definitionRef : '';
       if (definitionRef === '') {

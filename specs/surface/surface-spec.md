@@ -1,7 +1,7 @@
 ---
 title: Formspec Surface Specification
-version: 0.2.0-draft.1
-date: 2026-07-30
+version: 0.3.0-draft.1
+date: 2026-10-09
 depends_on:
   - specs/core/spec.md
   - specs/experience/experience-spec.md
@@ -11,10 +11,10 @@ depends_on:
   - specs/registry/extension-registry.md
 ---
 
-# Formspec Surface Specification v0.2
+# Formspec Surface Specification v0.3
 
-**Version:** 0.2.0-draft.1
-**Date:** 2026-07-30
+**Version:** 0.3.0-draft.1
+**Date:** 2026-10-09
 **Editors:** Formspec Working Group
 **Companion to:** Formspec v1.0 -- A JSON-Native Declarative Form Standard
 
@@ -30,7 +30,7 @@ primitive. It defines the semantic rules that are not expressible in
 
 A Surface document names routes inside an app and binds slots on those routes.
 Slots compose Definition forms, Experience units, module widgets, static
-content, and nested route references. Surface is inward composition: it
+content, native Screeners, and nested route references. Surface is inward composition: it
 describes what can be rendered within an app after the app has been selected.
 The companion [Surface Shell Specification](surface-shell-spec.md) defines how
 a runtime composes, resolves, renders, and diagnoses published Surface
@@ -537,8 +537,8 @@ contract requires a Surface spec/schema revision.
 
 Each binding shape is enforced by `schemas/surface.schema.json` via an
 `allOf [if/then]` gate discriminating on `slotType`. The taxonomy is closed at
-v0.2; future revisions admit new slot types via the Registry `slot-type`
-contribution category per ADR §4.2.
+v0.2. Native slot additions require a deliberate Surface schema revision;
+module contributions remain subject to Registry admission per ADR §4.2.
 
 ### 5.1 Runtime Route State Ownership
 
@@ -571,6 +571,45 @@ session actor state, Response instance, and action invocation state explicit.
 Until a host can make those bindings explicit, ambiguous submit/navigation
 behavior is invalid rather than resolved by Definition-url convention.
 
+### 5.2 Native Screener slots (v0.3)
+
+Surface 0.3 adds `slotType: "screener"` with the closed binding
+`{ screenerRef: string, allowedTargets: string[] }`. The distinct schema URI is
+`https://formspec.org/schemas/surface/0.3`. The unchanged 0.2 schema remains
+available as `schemas/surface-v0.2.schema.json` at its historical URI. A 0.2
+Surface MUST NOT contain a Screener slot.
+
+The reference MUST resolve to exactly one App Manifest `screeners[]` membership
+with an exact version and a loaded Screener carrying the same URL/version.
+Every unique allowed target MUST be authored by that Screener and resolve to
+one loaded Surface route through the `surface:<route-id>` scheme. The binding
+MUST NOT contain eligibility predicates, answer mappings, or fixed completed
+Response Action destinations. Screener owns evaluation; Surface owns navigation.
+
+A renderer MUST refuse unsupported item or bind presentation rather than
+approximate it. The maintained bounded presenter supports flat scalar fields
+and static single-choice options; requiredness supports canonical literal FEL
+strings `true` and `false`. Every presented item requires an explicit answered
+input before native completion. A boolean false MUST be a deliberate answer,
+with an unanswered control state distinct from Yes and No.
+
+Native completion MUST check the full Determination before leaving answering
+state: exact Screener and evaluation version, completed status, the current
+invocation time, unexpired authored validity, exact typed answered inputs, no
+warnings or unsupported strategy, and every matched target. Unknown or
+unauthorized matches refuse; different destinations refuse; repeated matches
+of one destination may deduplicate. Refusal MUST preserve answers and visible
+controls with a named finding. It MUST NOT run legacy route or skip completion.
+Before navigation the shell MUST check the live mounted composition and route
+visit, unique destination, path collisions, and required route parameters.
+
+This bounded slot is stateless and claims no retained-session or availability
+continuity. It inherits the route Theme grant. Definition Components and Locale
+2.0 Definition/App targets MUST NOT be redirected to a Screener. This first
+presentation is language-limited; bilingual qualification requires a deliberate
+native Screener Locale extension. No task, draft, provider, signing or agency
+verification authority follows from a successful Screener destination.
+
 ## 6. The `surface:<route-id>` URI scheme
 
 [ADR 0150 §7](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#7-surface-and-screener-are-orthogonal)
@@ -592,8 +631,9 @@ explicitly associated by `screeners[]`. AppGraphValidator resolves the bare
 `surface:<route-id>` across the loaded Surface documents in that app graph.
 The target MUST resolve to exactly one loaded Surface `routes[].id`; missing or
 ambiguous matches are cross-artifact validation errors. This exact-one rule is
-the v0.2/v2.3 conformance boundary for Screener terminal hops; production
-runtime routing remains outside Surface-local conformance.
+the v0.2/v2.3 graph conformance boundary for freestanding Screener terminal
+hops. Surface 0.3 adds the native mounted completion requirements in §5.2;
+production host activation remains a separate qualification.
 
 The Screener spec retains its freestanding posture per
 [`screener-spec.md`](../screener/screener-spec.md) §2.3: no target binding

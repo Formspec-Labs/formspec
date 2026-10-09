@@ -6,6 +6,7 @@ import {
   type AppGraphSourcePointer,
   type ResolvedArtifactHandle,
 } from './types.js';
+import { isExactVersion } from './component-routes.js';
 import { diagnosticSourceForHandle } from './report.js';
 
 interface ScreenerRouteTarget {
@@ -158,5 +159,31 @@ export function validateScreenerSurfaceTargets(context: AppGraphContext): AppGra
     }
   }
 
+  const refs = screenerRefsFromManifest(context.manifest.document);
+  const loaded = handlesByKind(context.handles, 'screener');
+  for (const surface of surfaces) {
+    const document = record(surface.document);
+    const authoredRoutes = document?.routes;
+    if (!Array.isArray(authoredRoutes)) continue;
+    authoredRoutes.forEach((route, routeIndex) => {
+      const slots = record(route)?.slots;
+      if (!Array.isArray(slots)) return;
+      slots.forEach((slot, slotIndex) => {
+        if (stringProp(record(slot), 'slotType') !== 'screener') return;
+        const binding = record(record(slot)?.binding);
+        const url = stringProp(binding, 'screenerRef');
+        const memberships = refs.filter(ref => ref.url === url);
+        const matches = loaded.filter(handle => stringProp(record(handle.ref), 'url') === url);
+        const ref = memberships.length === 1 ? memberships[0] : undefined;
+        const screener = matches.length === 1 ? matches[0] : undefined;
+        const allowed = binding?.allowedTargets;
+        const authored = new Set(screener ? screenerSurfaceTargets(screener).map(target => target.target) : []);
+        const reason = document?.$formspecSurface !== '0.3' ? 'surface-version-unsupported'
+          : !ref || !isExactVersion(ref.version) || !screener || stringProp(record(screener.ref), 'version') !== ref.version || stringProp(record(screener.document), 'url') !== url || stringProp(record(screener.document), 'version') !== ref.version ? 'screener-pin-unresolved'
+          : !Array.isArray(allowed) || !allowed.length || new Set(allowed).size !== allowed.length || allowed.some(target => typeof target !== 'string' || !authored.has(target) || routes.filter(route => `surface:${route.routeId}` === target).length !== 1) ? 'allowed-target-invalid' : undefined;
+        if (reason) diagnostics.push(diagnostic('Native Screener slot cannot resolve its exact Screener and allowed destinations.', diagnosticSourceForHandle(surface, `/routes/${routeIndex}/slots/${slotIndex}/binding`), undefined, { reason }));
+      });
+    });
+  }
   return diagnostics;
 }

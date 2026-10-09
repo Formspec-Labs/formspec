@@ -92,6 +92,7 @@ export type {
     FormspecScreenerProps,
     UseScreenerResult,
     UseScreenerOptions,
+    ScreenerCompletionDisposition,
     ScreenerRoute,
     ScreenerRouteType,
     ScreenerStateSnapshot,

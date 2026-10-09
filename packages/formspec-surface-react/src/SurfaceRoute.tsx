@@ -77,6 +77,8 @@ import type { WidgetActionCoordinator } from './widget-action-runtime.js';
 import { needTraceAttributes } from './need-trace.js';
 
 export interface SurfaceRouteViewProps {
+  screenerInstanceId?: string | undefined;
+  onScreenerTarget?: ((target: string) => { status: 'accepted' } | { status: 'refused'; reason: string }) | undefined;
   /** Everything the core decided for this route. Nothing here re-decides it. */
   plan: SurfaceRoutePlan<SurfaceWidget>;
   resolveRouteTitle?: SurfaceRouteTitleResolver | undefined;
@@ -160,6 +162,8 @@ export function SurfaceRouteView({
   ontologyDocuments,
   onFireTransition,
   onAdvance,
+  onScreenerTarget,
+  screenerInstanceId,
 }: SurfaceRouteViewProps) {
   const container = useRef<HTMLElement>(null);
   const { handle, grant, params } = plan;
@@ -232,6 +236,8 @@ export function SurfaceRouteView({
           <SurfaceSlotFrame
             key={slotPlan.slotId}
             plan={slotPlan}
+            onScreenerTarget={onScreenerTarget}
+            screenerInstanceId={screenerInstanceId}
             grant={grant}
             route={route}
             strings={text}

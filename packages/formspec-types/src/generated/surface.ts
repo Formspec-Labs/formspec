@@ -8,45 +8,15 @@
 /* eslint-disable */
 import type { ModuleRef, Generation, Extensions } from './common.js';
 /**
- * This interface was referenced by `SurfaceDocument`'s JSON-Schema
- * via the `definition` "Slot".
+ * A published Formspec Surface document per ADR 0150 §6 (Surface as composition primitive). Surface names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Surface is orthogonal to Screener (§7) — Surface is steady-state inward composition; Screener is one-shot outward routing. The cross-seam is the `surface:<route-id>` URI scheme: a Screener terminal-hop target with that scheme lands inside Surface composition. Authoring drafts are not separate source artifacts; tools that expose drafts must export a schema-valid Surface document before publication.
  */
-export type Slot = {
+export type SurfaceDocument = {
   [k: string]: unknown;
 } & {
   /**
-   * Slot ID. Unique within the enclosing route.
+   * Surface specification version. Screener slots require 0.3.
    */
-  id: string;
-  /**
-   * Closed v0.2 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
-   */
-  slotType: 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route';
-  /**
-   * OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.2 carries no normative position vocabulary.
-   */
-  position?: string;
-  title?: string;
-  'x-generation'?: Generation;
-  /**
-   * Typed binding payload. Shape determined by slotType per the allOf gates.
-   */
-  binding: {};
-  /**
-   * This interface was referenced by `undefined`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: `x-${string}`]: unknown;
-};
-
-/**
- * A published Formspec Surface document per ADR 0150 §6 (Surface as composition primitive). Surface names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Surface is orthogonal to Screener (§7) — Surface is steady-state inward composition; Screener is one-shot outward routing. The cross-seam is the `surface:<route-id>` URI scheme: a Screener terminal-hop target with that scheme lands inside Surface composition. Authoring drafts are not separate source artifacts; tools that expose drafts must export a schema-valid Surface document before publication.
- */
-export interface SurfaceDocument {
-  /**
-   * Surface specification version. MUST be '0.2'.
-   */
-  $formspecSurface: '0.2';
+  $formspecSurface: '0.2' | '0.3';
   /**
    * Stable identifier for this Surface document. Unique within the bundle.
    */
@@ -73,13 +43,44 @@ export interface SurfaceDocument {
   description?: string;
   extensions?: Extensions;
   /**
-   * This interface was referenced by `SurfaceDocument`'s JSON-Schema definition
+   * This interface was referenced by `undefined`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
    */
   [k: `x-${string}`]: unknown;
-}
+};
 /**
- * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "Slot".
+ */
+export type Slot = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Slot ID. Unique within the enclosing route.
+   */
+  id: string;
+  /**
+   * Closed v0.2 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
+   */
+  slotType: 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route' | 'screener';
+  /**
+   * OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.2 carries no normative position vocabulary.
+   */
+  position?: string;
+  title?: string;
+  'x-generation'?: Generation;
+  /**
+   * Typed binding payload. Shape determined by slotType per the allOf gates.
+   */
+  binding: {};
+  /**
+   * This interface was referenced by `undefined`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: `x-${string}`]: unknown;
+};
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "Route".
  */
 export interface Route {
@@ -122,7 +123,7 @@ export interface Route {
   [k: `x-${string}`]: unknown;
 }
 /**
- * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "RouteParam".
  */
 export interface RouteParam {
@@ -247,7 +248,7 @@ export interface RouteNavigation {
   [k: `x-${string}`]: unknown;
 }
 /**
- * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "Transition".
  */
 export interface Transition {
@@ -287,7 +288,7 @@ export interface RouteParamMap {
   [k: string]: string;
 }
 /**
- * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "WidgetDataBindings".
  */
 export interface WidgetDataBindings {
@@ -297,7 +298,7 @@ export interface WidgetDataBindings {
  * This interface was referenced by `WidgetDataBindings`'s JSON-Schema definition
  * via the `patternProperty` "^[A-Za-z][A-Za-z0-9_-]*$".
  *
- * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "WidgetDataBinding".
  */
 export interface WidgetDataBinding {
@@ -312,7 +313,7 @@ export interface WidgetDataBinding {
   'x-generation'?: Generation;
 }
 /**
- * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "DefinitionFormInitialDataBinding".
  */
 export interface DefinitionFormInitialDataBinding {
@@ -336,7 +337,7 @@ export interface DefinitionFormInitialDataBinding {
   [k: `x-${string}`]: unknown;
 }
 /**
- * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "WidgetActionBindings".
  */
 export interface WidgetActionBindings {
@@ -346,7 +347,7 @@ export interface WidgetActionBindings {
  * This interface was referenced by `WidgetActionBindings`'s JSON-Schema definition
  * via the `patternProperty` "^[A-Za-z][A-Za-z0-9_-]*$".
  *
- * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "WidgetActionBinding".
  */
 export interface WidgetActionBinding {

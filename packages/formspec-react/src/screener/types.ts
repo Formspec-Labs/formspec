@@ -51,7 +51,10 @@ export interface ScreenerStateSnapshot {
   answers: ScreenerAnswers;
 }
 
+export type ScreenerCompletionDisposition = { status: 'accepted' } | { status: 'refused'; reason: string };
 export interface UseScreenerOptions {
+  /** Opt-in native completion. Acceptance precedes leaving answering state. */
+  onDetermination?: (record: DeterminationRecord, answers: ScreenerAnswers, evaluationTime: string) => ScreenerCompletionDisposition;
   /** Pre-fill answers. */
   seedAnswers?: ScreenerAnswers;
   /** Standalone Screener Document. */

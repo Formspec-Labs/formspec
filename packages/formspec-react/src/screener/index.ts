@@ -5,6 +5,7 @@ export { useScreener } from './use-screener';
 export type {
     UseScreenerResult,
     UseScreenerOptions,
+    ScreenerCompletionDisposition,
     ScreenerRoute,
     ScreenerRouteType,
     ScreenerStateSnapshot,

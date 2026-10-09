@@ -51,6 +51,8 @@ import type {
   SurfaceDocument,
   ThemeDocument,
 } from '@formspec-org/types';
+import type { ScreenerDocumentHandle } from './screener-slot.js';
+import type { ScreenerDocument } from '@formspec-org/types';
 import type { DataSourceCatalogHandle } from './data-source-loader.js';
 import type { MappingDocumentHandle } from './definition-form-initial-data.js';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
@@ -72,6 +74,7 @@ export interface BundleManifest {
   id?: string;
   title?: string;
   'x-generation'?: { anchors?: readonly string[] };
+  screeners?: readonly BundleArtifactRef[];
   definitions?: readonly BundleArtifactRef[];
   experience?: BundleArtifactRef;
   experiences?: readonly BundleArtifactRef[];
@@ -105,6 +108,7 @@ export interface BundleExport {
 export interface ResolvedBundle {
   manifest: BundleManifest;
   title: string | undefined;
+  screenerHandles?: readonly ScreenerDocumentHandle[];
   surfaces: readonly SurfaceDocument[];
   /**
    * The exact loaded Surface selected by App Manifest 2.4.
@@ -320,6 +324,11 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
       : [{ mappingRef: ref.handle, artifactRef: ref.url, document }];
   });
 
+  const screenerHandles = (bundle.manifest.screeners ?? []).flatMap(ref => {
+    const document = lookup<ScreenerDocument>(ref, 'Screener');
+    return document ? [{ ref, document }] : [];
+  });
+
   const definitions = new Map<string, FormDefinition>();
   for (const ref of bundle.manifest.definitions ?? []) {
     const found = lookup<FormDefinition>(ref, 'Definition');
@@ -330,6 +339,7 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
     manifest: bundle.manifest,
     title: typeof bundle.manifest.title === 'string' ? bundle.manifest.title : undefined,
     surfaces,
+    screenerHandles,
     ...(entrySurface === undefined ? {} : { entrySurface }),
     surfaceRefs,
     experiences,

@@ -38,7 +38,7 @@ import {
   resolveResponseActionValidationTuple,
   type IFormEngine,
 } from '@formspec-org/engine';
-import { FormspecForm } from '@formspec-org/react';
+import { FormspecScreener, FormspecForm } from '@formspec-org/react';
 import type {
   ResponseAction,
   ResponseActionInvocationResult,
@@ -61,6 +61,7 @@ import {
   type ResponseActionsDocument as GeneratedResponseActionsDocument,
 } from '@formspec-org/types';
 import {
+  resolveScreenerDetermination,
   loadWidgetDataInputs,
   loadDefinitionFormInitialData,
   responseActionsDocumentForDefinition,
@@ -240,6 +241,8 @@ export function createSurfaceSemanticControlScopeResolver(
 }
 
 export interface SurfaceSlotProps {
+  screenerInstanceId?: string | undefined;
+  onScreenerTarget?: ((target: string) => { status: 'accepted' } | { status: 'refused'; reason: string }) | undefined;
   plan: SlotPlan<SurfaceWidget>;
   grant: ThemeGrant;
   route: SurfaceWidgetRouteContext;
@@ -470,6 +473,8 @@ export function SurfaceSlot({
   onDefinitionActionResult,
   onActionCompleted,
   onAdvance,
+  onScreenerTarget,
+  screenerInstanceId,
 }: SurfaceSlotProps): ReactNode {
   const subjectPrefix = surfaceSemanticOutputSubjectRef(
     route.routeId,
@@ -483,6 +488,16 @@ export function SurfaceSlot({
       : undefined;
 
   switch (plan.slotType) {
+    case 'screener': {
+      if (plan.status !== 'ready' || !plan.screener) return <UnavailableSlot>{plan.reason ?? 'screener-unavailable'}</UnavailableSlot>;
+      return <FormspecScreener key={`${screenerInstanceId ?? runtimeGeneration ?? ''}/${plan.screener.ref.url}/${plan.screener.ref.version}`}
+        screenerDocument={plan.screener.document}
+        onDetermination={(determination, answers, evaluationTime) => {
+          const result = resolveScreenerDetermination({ document: plan.screener!.document, allowedTargets: plan.allowedTargets, determination, answers, evaluationTime, nowIso: new Date().toISOString() });
+          if (result.status === 'refused') return result;
+          return onScreenerTarget?.(result.target) ?? { status: 'refused', reason: 'screener-navigation-unavailable' };
+        }} />;
+    }
     case 'definition-form': {
       if (plan.status === 'unresolved' || plan.definition === undefined) {
         return <UnavailableSlot>{strings('slotUnavailableDefinitionForm')}</UnavailableSlot>;
@@ -695,6 +710,8 @@ export function SurfaceSlot({
               semanticOutputScope={semanticOutputScope}
               onDefinitionActionResult={onDefinitionActionResult}
               onActionCompleted={onActionCompleted}
+              onScreenerTarget={onScreenerTarget}
+              screenerInstanceId={screenerInstanceId}
               onAdvance={onAdvance}
             />
           ))}

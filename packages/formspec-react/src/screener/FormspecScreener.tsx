@@ -1,7 +1,7 @@
 'use client';
 
 /** @filedesc FormspecScreener — standalone eligibility gate component. */
-import React from 'react';
+import React, { useId } from 'react';
 import { useChromeText } from '../use-chrome-text';
 import type { FormItem } from '@formspec-org/types';
 import { useScreener, itemDataType, itemOptions, isItemRequired } from './use-screener';
@@ -32,6 +32,7 @@ export function FormspecScreener({
   const chrome = useChromeText();
   const screener = useScreener({ ...options, screenerDocument });
   const items = screener.items;
+  const fieldIdPrefix = useId();
 
   if (!screenerDocument) return null;
 
@@ -73,7 +74,7 @@ export function FormspecScreener({
     );
   }
 
-  if (screener.routeResult?.routeType === 'internal' || screener.skipped) {
+  if ((options.onDetermination && screener.state === 'routed') || screener.routeResult?.routeType === 'internal' || screener.skipped) {
     return null;
   }
 
@@ -87,6 +88,8 @@ export function FormspecScreener({
         {items.map((item) => (
           <ScreenerField
             key={item.key}
+            fieldIdPrefix={fieldIdPrefix}
+            explicitBoolean={!!options.onDetermination}
             item={item}
             screener={screenerDocument}
             answers={screener.answers}
@@ -96,6 +99,7 @@ export function FormspecScreener({
           />
         ))}
       </div>
+      {screener.errors.$completion && <p role="alert">{screener.errors.$completion}</p>}
       <button
         type="button"
         className="formspec-screener-continue"
@@ -108,6 +112,8 @@ export function FormspecScreener({
 }
 
 function ScreenerField({
+  fieldIdPrefix,
+  explicitBoolean,
   item,
   screener,
   answers,
@@ -115,6 +121,8 @@ function ScreenerField({
   error,
   onChange,
 }: {
+  fieldIdPrefix: string;
+  explicitBoolean: boolean;
   item: FormItem;
   screener: ScreenerDocumentInput;
   answers: ScreenerAnswers;
@@ -123,7 +131,7 @@ function ScreenerField({
   onChange: (val: ScreenerFieldValue | undefined) => void;
 }) {
   const chrome = useChromeText();
-  const id = `screener-${item.key}`;
+  const id = `${fieldIdPrefix}-${item.key}`;
   const showError = !!error;
   const dt = itemDataType(item);
   const required = isItemRequired(item, screener, answers);
@@ -131,6 +139,13 @@ function ScreenerField({
   const renderInput = () => {
     switch (dt) {
       case 'boolean':
+        if (explicitBoolean) return <>
+          <label htmlFor={id}>{item.label}{required && <span className="formspec-required" aria-hidden="true">*</span>}</label>
+          <select id={id} value={value === true ? 'yes' : value === false ? 'no' : ''} aria-invalid={showError}
+            onChange={e => onChange(e.target.value === '' ? undefined : e.target.value === 'yes')}>
+            <option value="">{chrome('select.placeholder')}</option><option value="yes">Yes</option><option value="no">No</option>
+          </select>
+        </>;
         return (
           <div className="formspec-field--inline">
             <input

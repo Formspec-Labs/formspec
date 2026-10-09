@@ -1,0 +1,555 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/surface/0.2",
+  "title": "Formspec Surface (v0.2)",
+  "description": "A published Formspec Surface document per ADR 0150 §6 (Surface as composition primitive). Surface names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Surface is orthogonal to Screener (§7) — Surface is steady-state inward composition; Screener is one-shot outward routing. The cross-seam is the `surface:<route-id>` URI scheme: a Screener terminal-hop target with that scheme lands inside Surface composition. Authoring drafts are not separate source artifacts; tools that expose drafts must export a schema-valid Surface document before publication.",
+  "type": "object",
+  "required": ["$formspecSurface", "id", "entry", "routes"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "$formspecSurface": {
+      "type": "string",
+      "const": "0.2",
+      "description": "Surface specification version. MUST be '0.2'.",
+      "examples": ["0.2"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Version pin for surface document compatibility"
+      }
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+      "description": "Stable identifier for this Surface document. Unique within the bundle."
+    },
+    "modules": {
+      "type": "array",
+      "description": "OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash). Per ADR 0150 §4.3. Default-module-set behavior preserves form-only documents (omitting modules[] is identical to declaring the core module set).",
+      "items": {
+        "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef"
+      },
+      "examples": [
+        [
+          { "id": "x-formspec-surface", "version": "^0.2.0" },
+          { "id": "x-formspec-core-task", "version": "^1.0.0" }
+        ]
+      ]
+    },
+    "entry": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+      "description": "ID of the entry route. MUST resolve to a routes[].id in this document. The route-graph connectedness lint (E606) walks the graph from this entry to verify reachability."
+    },
+    "routes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Route" },
+      "description": "Routes defined by this Surface. Each route names a path, binds slots, and optionally declares transitions."
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title for this Surface."
+    },
+    "x-generation": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+      "description": "Generation provenance for rendered Surface-level chrome such as a navigation group label. Strict data-only authoring profiles require a current adopted Need anchor."
+    },
+    "description": {
+      "type": "string"
+    },
+    "extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "Route": {
+      "type": "object",
+      "required": ["id", "path", "slots"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Route ID. Unique within this Surface's routes[]. Targeted by surface:<route-id> URI scheme from Screener terminal-hops (ADR §7) and by embed-route slot bindings (§6.2)."
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!:[A-Za-z_])(?!.*\\/:[A-Za-z_])(?:[^/{}*();?\\[\\]]*|\\{[A-Za-z][A-Za-z0-9_]*\\})(?:/(?:[^/{}*();?\\[\\]]*|\\{[A-Za-z][A-Za-z0-9_]*\\}))*$",
+          "description": "URL-style path for this route. SHOULD start with '/'. v0.2 route parameters use simple URI Template markers like '/matter/{matterId}'. Colon-prefixed framework parameters, wildcards, regex captures, matrix/query parameters, optional segments, URI Template operators, and malformed markers are invalid. Paths with no `{name}` markers and no params[] remain opaque non-empty strings.",
+          "examples": ["/", "/home", "/matter/{matterId}", "/admin/users"]
+        },
+        "params": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RouteParam" },
+          "description": "OPTIONAL required route parameters for entering this route. Each declared name MUST appear as a simple `{name}` marker in path; every Surface-local edge into this route MUST supply all declared params."
+        },
+        "routeClass": {
+          "type": "string",
+          "enum": [
+            "intake",
+            "proof",
+            "ceremony",
+            "verification",
+            "attestation",
+            "authentication",
+            "operation"
+          ],
+          "examples": ["proof", "intake", "operation"],
+          "description": "OPTIONAL closed, NON-EXTENSIBLE vocabulary naming WHAT THIS ROUTE PRESENTS. `intake` = a Definition-backed capture from a respondent. `proof` = an artifact the platform issued that a third party relies on as evidence (receipt, certificate, disclosure). `ceremony` = the act of signing or attesting, where the signer's preimage IS the thing signed. `verification` = independent checking of an issued artifact. `attestation` = a claim the platform publishes about itself that a third party relies on (trust center, capability matrix, subprocessor list, data-flow disclosure, status) — the accountable party is the publisher, not a port, which is why `proof` cannot absorb it. `authentication` = a credential exchange binding an actor to an external identity, where the chrome IS the anti-phishing control. `operation` = operator-facing product UI (dashboards, admin, developer, authoring) — a negative declaration, \"someone looked and found nothing to declare\", NOT an assertion that the route carries no trust claim. Names the route's kind, NOT a permission — rules derive from it (theme authority admits tenant Theme assignments on `intake` routes and refuses them on every other value; see ui-graph-policy-spec.md §5.7, `THEME-ROUTE-CLASS`). Deliberately orthogonal to access posture and route lifecycle; MUST NOT absorb either. NO DEFAULT: an absent routeClass means *unclassified* (nobody has stated what this route is), which is a distinct state from `operation` and refuses nothing. Processors MUST NOT treat absence as `operation`. See surface-spec.md §3 Route Class.",
+          "x-lm": {
+            "critical": true,
+            "intent": "Closed route-class vocabulary; theme authority and other trust rules derive from it. Exactly one value (`intake`) admits tenant chrome theming. Absence means unclassified, never `operation`."
+          }
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable route title (for navigation chrome, breadcrumbs, etc.)."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered route. Strict data-only authoring profiles require a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
+        },
+        "navigation": {
+          "$ref": "#/$defs/RouteNavigation",
+          "description": "OPTIONAL person-facing navigation membership and presentation. Omission preserves the v0.2 default: the route appears in navigation using its route title. This field changes only navigation chrome; it does not change route reachability, matching, transitions, or authorization."
+        },
+        "slots": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Slot" },
+          "description": "Slots bound on this route. Each slot has a typed binding per §6.2 closed taxonomy. v0.2 does NOT pin slot positions in the schema — `position` is an optional renderer hint. Each slot has exactly one slotType discriminator."
+        },
+        "transitions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Transition" },
+          "description": "OPTIONAL outgoing transitions from this route. Each transition names a trigger, target route, and optional when-condition. Used by the lint route-graph walker to compute reachability."
+        }
+      }
+    },
+    "RouteNavigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered navigation entry. Strict data-only authoring profiles require a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "Whether this route appears in the shell's route navigation. Default true. Hidden routes remain addressable and may remain transition targets."
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "default": "default",
+          "description": "Navigation context this route belongs to. The shell renders only visible entries whose scope matches the active route's scope. Omission is semantically the \"default\" scope."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Person-facing navigation label. When omitted, the renderer uses the route title, then the route id."
+        },
+        "order": {
+          "type": "integer",
+          "description": "Relative order within this Surface's navigation group. Lower values appear first; equal or absent values preserve route declaration order."
+        }
+      }
+    },
+    "Slot": {
+      "type": "object",
+      "required": ["id", "slotType", "binding"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Slot ID. Unique within the enclosing route."
+        },
+        "slotType": {
+          "type": "string",
+          "enum": [
+            "definition-form",
+            "experience-unit",
+            "module-widget",
+            "static-content",
+            "embed-route"
+          ],
+          "examples": ["definition-form", "module-widget", "embed-route"],
+          "description": "Closed v0.2 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.",
+          "x-lm": {
+            "critical": true,
+            "intent": "Closed slot-type discriminator pinning binding shape per ADR 0150 §6.2"
+          }
+        },
+        "position": {
+          "type": "string",
+          "description": "OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.2 carries no normative position vocabulary."
+        },
+        "title": {
+          "type": "string"
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered slot. Strict data-only authoring profiles require a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
+        },
+        "binding": {
+          "type": "object",
+          "description": "Typed binding payload. Shape determined by slotType per the allOf gates."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "slotType": { "const": "definition-form" } },
+            "required": ["slotType"]
+          },
+          "then": {
+            "properties": {
+              "binding": {
+                "type": "object",
+                "required": ["definitionRef"],
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} },
+                "properties": {
+                  "definitionRef": {
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
+                    "description": "Reference to a Definition URL. In app-graph validation this resolves against App Manifest definitions[].url and the loaded Definition url; v0.2 does not define Definition id/name alias matching."
+                  },
+                  "presentation": {
+                    "type": "string",
+                    "description": "OPTIONAL presentation hint (e.g. 'inline', 'wizard', 'modal'). Renderer-defined vocabulary at v0.2."
+                  },
+                  "initialData": {
+                    "$ref": "#/$defs/DefinitionFormInitialDataBinding",
+                    "description": "OPTIONAL qualified Data Sources binding used to hydrate this form before it mounts. The source identity is the exact (catalogRef, sourceRef) pair. Omit mappingRef when the delivered value already has the Definition's Response.data shape; otherwise mappingRef names one App Manifest mappings[].handle and the Mapping DSL runs in reverse. Inline field maps and literal initial data are not admitted."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "slotType": { "const": "experience-unit" } },
+            "required": ["slotType"]
+          },
+          "then": {
+            "properties": {
+              "binding": {
+                "type": "object",
+                "required": ["unitRef"],
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} },
+                "properties": {
+                  "experienceRef": {
+                    "type": "string",
+                    "description": "OPTIONAL reference to a specific Experience document (by URL or in-bundle id). Disambiguates when the bundle has multiple Experiences."
+                  },
+                  "unitRef": {
+                    "type": "string",
+                    "description": "ID of the Experience unit this slot binds. MUST resolve to a units[].id in the resolved Experience document."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "slotType": { "const": "module-widget" } },
+            "required": ["slotType"]
+          },
+          "then": {
+            "properties": {
+              "binding": {
+                "type": "object",
+                "required": ["moduleId", "widgetName"],
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} },
+                "properties": {
+                  "moduleId": {
+                    "type": "string",
+                    "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+                    "description": "ID of the module supplying the widget. MUST appear in the document's modules[] declaration (lint E603 enforces resolution at lint time)."
+                  },
+                  "widgetName": {
+                    "type": "string",
+                    "description": "Widget name supplied by the module (matches widgetShape.widgetName per the widget contribution payload convention)."
+                  },
+                  "config": {
+                    "type": "object",
+                    "description": "OPTIONAL authored, static widget configuration. Validated against the widget contribution's widgetShape.props by lint E604. Runtime data MUST NOT travel through config."
+                  },
+                  "dataBindings": {
+                    "$ref": "#/$defs/WidgetDataBindings",
+                    "description": "OPTIONAL named runtime-data bindings. Each key exactly matches one Registry widgetShape.dataInputs[].name. Each value selects one source by the qualified (catalogRef, sourceRef) identity; Data Sources 1.0 owns payload shape, availability, runtime delivery, failure, cache, and provenance."
+                  },
+                  "actionBindings": {
+                    "$ref": "#/$defs/WidgetActionBindings",
+                    "description": "OPTIONAL named action-output bindings. Each key exactly matches one Registry widgetShape.actionOutputs[].name and maps that output to one loaded Response Actions action id."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "slotType": { "const": "static-content" } },
+            "required": ["slotType"]
+          },
+          "then": {
+            "properties": {
+              "binding": {
+                "type": "object",
+                "required": ["kind", "content"],
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": { "kind": { "const": "image" } },
+                      "required": ["kind"]
+                    },
+                    "then": {
+                      "required": ["alt"]
+                    },
+                    "else": {
+                      "not": { "required": ["alt"] }
+                    }
+                  }
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": ["heading", "text", "image", "divider"],
+                    "description": "Static content kind. Closed at v0.2 — these are the four shapes Surface guarantees renderers know how to display without consulting a module."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "Inline literal content. For 'heading'/'text': the text. For 'image': a URL or asset ref. For 'divider': may be empty."
+                  },
+                  "alt": {
+                    "type": "string",
+                    "description": "Authored alternative text. REQUIRED exactly when kind is 'image'. An empty string is an explicit declaration that the image is decorative; processors MUST preserve the authored value and MUST NOT synthesize a value from slot.title, content, a URL, or a filename."
+                  },
+                  "level": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6,
+                    "description": "OPTIONAL heading rank within the enclosing route or slot (1-6). Processors map this rank to the document outline from the host heading baseline and embedding depth. Only meaningful when kind='heading'."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "slotType": { "const": "embed-route" } },
+            "required": ["slotType"]
+          },
+          "then": {
+            "properties": {
+              "binding": {
+                "type": "object",
+                "required": ["routeRef"],
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} },
+                "properties": {
+                  "routeRef": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+                    "description": "ID of another route within this Surface. The route-graph lint (E606) treats embed-route bindings as edges in the reachability graph (same as transitions)."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "description": "OPTIONAL embed mode hint (e.g. 'modal', 'panel', 'dialog'). Renderer-defined vocabulary at v0.2."
+                  },
+                  "params": {
+                    "$ref": "#/$defs/RouteParamMap",
+                    "description": "OPTIONAL parameter map for embedded route edges. Keys name params declared by the target route; values name host/runtime bindings supplied by the embedding route context."
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Transition": {
+      "type": "object",
+      "required": ["trigger", "to"],
+      "additionalProperties": false,
+      "patternProperties": { "^x-": {} },
+      "properties": {
+        "trigger": {
+          "type": "string",
+          "description": "Transition trigger declaration. Typically references a Response Actions action ID (resolved against the bundle's response-actions document) or names a standard Response Actions intent value declared by exactly one loaded action. Surface declares the navigation trigger; Response Actions remains the executor for preconditions, validation, effects, idempotency, replay, retry, blocking, and terminal state.",
+          "examples": ["submit", "nextStep", "review"]
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Target route id within this Surface. Edge in the route-graph for E606 reachability."
+        },
+        "when": {
+          "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/FELExpression",
+          "description": "OPTIONAL FEL condition gating this transition. Processors evaluate against validated bundle-state bindings; authoring facades may reject this field until they can validate those bindings."
+        },
+        "params": {
+          "$ref": "#/$defs/RouteParamMap",
+          "description": "OPTIONAL transition parameter map. Keys name params declared by the target route; values name host/runtime bindings supplied after the transition trigger completes under Response Actions authority."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Generation provenance for this rendered transition control. Strict data-only authoring profiles require a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
+        }
+      }
+    },
+    "RouteParam": {
+      "type": "object",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "patternProperties": { "^x-": {} },
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Route parameter name. MUST appear exactly once as `{name}` in the route path when params[] is declared."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string"],
+          "description": "Route parameter value type. v0.2 admits strings only; richer coercion belongs to runtime or Data Sources consumers."
+        },
+        "description": {
+          "type": "string"
+        },
+        "example": {
+          "type": "string"
+        }
+      }
+    },
+    "RouteParamMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_-]*$": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of the runtime, host, prior route param, or response binding whose value supplies this target route parameter."
+        }
+      }
+    },
+    "WidgetDataBindings": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z][A-Za-z0-9_-]*$": {
+          "$ref": "#/$defs/WidgetDataBinding"
+        }
+      }
+    },
+    "DefinitionFormInitialDataBinding": {
+      "type": "object",
+      "required": ["catalogRef", "sourceRef"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "catalogRef": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
+          "description": "Canonical Data Sources URL. App-graph and runtime resolution require an exact match to one App Manifest dataSources[].url."
+        },
+        "sourceRef": {
+          "type": "string",
+          "pattern": "^(host|response|resource|query|conversation|route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$",
+          "description": "Data Sources 1.0 source id resolved only within catalogRef; unqualified source lookup is forbidden. A direct definition-response source delivers Response.data, not the enclosing Form Response."
+        },
+        "mappingRef": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
+          "description": "Optional App Manifest mappings[].handle. Use only when the delivered source value does not already match the Definition; the existing Mapping DSL executes in reverse. Mapping rules cannot be inlined here."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this initial-data binding."
+        }
+      }
+    },
+    "WidgetDataBinding": {
+      "type": "object",
+      "required": ["catalogRef", "sourceRef"],
+      "additionalProperties": false,
+      "properties": {
+        "catalogRef": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
+          "description": "Canonical Data Sources URL. App-graph validation requires an exact match to one App Manifest dataSources[].url."
+        },
+        "sourceRef": {
+          "type": "string",
+          "pattern": "^(host|response|resource|query|conversation|route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$",
+          "description": "Data Sources 1.0 source id. App-graph validation resolves it only within catalogRef; unqualified source lookup is forbidden."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this named widget data binding. Strict data-only authoring profiles require this binding's own current adopted Need anchor; a slot, widget config, or Data Source anchor does not cover it."
+        }
+      }
+    },
+    "WidgetActionBindings": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z][A-Za-z0-9_-]*$": {
+          "$ref": "#/$defs/WidgetActionBinding"
+        }
+      }
+    },
+    "WidgetActionBinding": {
+      "type": "object",
+      "required": ["actionRef"],
+      "additionalProperties": false,
+      "properties": {
+        "actionRef": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+          "description": "Exact actions[].id from one loaded Response Actions document. This value is not a route id, intent, or widget output name."
+        },
+        "responseInput": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "description": "Required for response-scoped actions and forbidden for app-scoped actions. Names one required Registry data input whose qualified Data Source declares the exact canonical Response root schema reference. The shell admits its immutable Response separately from widget-selected action input and resolves the Definition from the action targetDefinition."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this named widget action binding. Strict data-only authoring profiles require this binding's own current adopted Need anchor; a slot, widget config, or Response Action anchor does not cover it."
+        }
+      }
+    }
+  }
+}

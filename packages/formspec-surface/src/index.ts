@@ -263,3 +263,5 @@ export {
   type CapturedResponseFields,
   type ResponseFieldMetadataReader,
 } from './response-field-metadata.js';
+
+export * from "./screener-slot.js";

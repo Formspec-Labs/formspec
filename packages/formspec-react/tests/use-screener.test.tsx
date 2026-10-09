@@ -236,3 +236,15 @@ describe('useScreener routeType', () => {
         });
     });
 });
+
+describe('native Determination acceptance', () => {
+ it('preserves answers and answering state when native completion is refused', () => {
+  const onRoute = vi.fn(); const onDetermination = vi.fn(() => ({status:'refused',reason:'expired'}));
+  const screenerDocument = {$formspecScreener:'1.0',url:'urn:gate',version:'1.0.0',items:[{type:'field',key:'eligible',dataType:'boolean'}],binds:[{path:'eligible',required:'true'}],evaluation:[{id:'main',strategy:'first-match',routes:[{condition:'true',target:'surface:paper'}]}]};
+  const {result}=renderHook(()=>useScreener({screenerDocument,onDetermination,onRoute} as any));
+  flushSync(()=>result.current.setAnswer('eligible',false));flushSync(()=>result.current.submit());
+  expect(onDetermination).toHaveBeenCalledOnce();expect(onRoute).not.toHaveBeenCalled();
+  expect(result.current.answers.eligible).toBe(false);expect(result.current.state).toBe('answering');expect(result.current.routeResult).toBeNull();expect(result.current.errors.$completion).toBe('expired');
+  flushSync(()=>result.current.skip());expect(result.current.skipped).toBe(false);
+ });
+});
