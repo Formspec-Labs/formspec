@@ -1,6 +1,7 @@
 'use client';
 
 /** @filedesc FormspecScreener — standalone eligibility gate component. */
+import { NativeSelectControl } from '../defaults/fields/controls/native-select';
 import React, { useId } from 'react';
 import { screenerOptionLocaleKey } from '@formspec-org/engine/render';
 import type { FormItem } from '@formspec-org/types';
@@ -42,14 +43,14 @@ export function FormspecScreener({
       return <>{renderExternalRoute(screener.routeResult.route)}</>;
     }
     return (
-      <div className={cls('formspec-screener-routed', className)}>
-        <h2 className="formspec-screener-heading">{screener.routeResult.route.label || chrome('screener.externalDefault')}</h2>
+      <div className={cls('formspec-container formspec-screener-routed', className)}>
+        <h2 className="formspec-heading formspec-screener-heading">{screener.routeResult.route.label || chrome('screener.externalDefault')}</h2>
         {screener.routeResult.route.target && (
           <p className="formspec-screener-routed-target">{screener.routeResult.route.target}</p>
         )}
         <button
           type="button"
-          className="formspec-screener-continue"
+          className="formspec-button-primary formspec-screener-continue"
           onClick={screener.restart}
         >
           {chrome('screener.restart')}
@@ -61,12 +62,12 @@ export function FormspecScreener({
   if (screener.routeResult?.routeType === 'none') {
     if (renderNoMatch) return <>{renderNoMatch()}</>;
     return (
-      <div className={cls('formspec-screener-routed', className)}>
-        <h2 className="formspec-screener-heading">{chrome('screener.noMatchTitle')}</h2>
+      <div className={cls('formspec-container formspec-screener-routed', className)}>
+        <h2 className="formspec-heading formspec-screener-heading">{chrome('screener.noMatchTitle')}</h2>
         <p className="formspec-screener-routed-target">{chrome('screener.noMatchBody')}</p>
         <button
           type="button"
-          className="formspec-screener-continue"
+          className="formspec-button-primary formspec-screener-continue"
           onClick={screener.restart}
         >
           {chrome('screener.restart')}
@@ -80,8 +81,8 @@ export function FormspecScreener({
   }
 
   return (
-    <div className={cls('formspec-screener', className)} dir={options.onDetermination || options.activeLocale !== undefined || options.localeDocuments !== undefined ? direction : undefined}>
-      <h2 className="formspec-screener-heading">{text('$form.title', screenerDocument.title || chrome('screener.titleDefault'), screener.answers)}</h2>
+    <div className={cls('formspec-container formspec-screener', className)} dir={options.onDetermination || options.activeLocale !== undefined || options.localeDocuments !== undefined ? direction : undefined}>
+      <h2 className="formspec-heading formspec-screener-heading">{text('$form.title', screenerDocument.title || chrome('screener.titleDefault'), screener.answers)}</h2>
       {screenerDocument.description && (
         <p className="formspec-screener-intro">{text('$form.description', screenerDocument.description, screener.answers)}</p>
       )}
@@ -105,7 +106,7 @@ export function FormspecScreener({
       {screener.errors.$completion && <p role="alert" data-finding={screener.errors.$completion}>{chrome('screener.completionFailed')}</p>}
       <button
         type="button"
-        className="formspec-screener-continue"
+        className="formspec-button-primary formspec-screener-continue"
         onClick={screener.submit}
       >
         {chrome('screener.submit', undefined, screenerDocument.submitLabel)}
@@ -146,37 +147,38 @@ function ScreenerField({
     switch (dt) {
       case 'boolean':
         if (explicitBoolean) return <>
-          <label htmlFor={id}>{label}{required && <span className="formspec-required" aria-hidden="true">*</span>}</label>
-          <select id={id} value={value === true ? 'yes' : value === false ? 'no' : ''} aria-invalid={showError}
+          <label className="formspec-label" htmlFor={id}>{label}{required && <span className="formspec-required" aria-hidden="true">*</span>}</label>
+          <NativeSelectControl id={id} value={value === true ? 'yes' : value === false ? 'no' : ''} aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
             onChange={e => onChange(e.target.value === '' ? undefined : e.target.value === 'yes')}>
             <option value="">{chrome('select.placeholder')}</option><option value="yes">{chrome('screener.yes')}</option><option value="no">{chrome('screener.no')}</option>
-          </select>
+          </NativeSelectControl>
         </>;
         return (
           <div className="formspec-field--inline">
             <input
+              className="formspec-input"
               id={id}
               type="checkbox"
               checked={!!value}
               onChange={(e) => onChange(e.target.checked)}
-              aria-invalid={showError}
+              aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
             />
-            <label htmlFor={id}>{label}</label>
+            <label className="formspec-label" htmlFor={id}>{label}</label>
           </div>
         );
 
       case 'choice':
         return (
           <>
-            <label htmlFor={id}>
+            <label className="formspec-label" htmlFor={id}>
               {label}
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
-            <select
+            <NativeSelectControl
               id={id}
               value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
               onChange={(e) => onChange(e.target.value)}
-              aria-invalid={showError}
+              aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
             >
               <option value="" disabled hidden>{chrome('select.placeholder')}</option>
               {itemOptions(item).map((c) => (
@@ -184,7 +186,7 @@ function ScreenerField({
                   {text(screenerOptionLocaleKey(item.key, String(c.value ?? c)), c.label ?? String(c.value ?? c), answers, item.key)}
                 </option>
               ))}
-            </select>
+            </NativeSelectControl>
           </>
         );
 
@@ -192,17 +194,18 @@ function ScreenerField({
       case 'decimal':
         return (
           <>
-            <label htmlFor={id}>
+            <label className="formspec-label" htmlFor={id}>
               {label}
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
             <input
+              className="formspec-input"
               id={id}
               type="number"
               step={dt === 'decimal' ? 'any' : '1'}
               value={value === null || value === undefined ? '' : Number(value)}
               onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-              aria-invalid={showError}
+              aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
             />
           </>
         );
@@ -211,13 +214,14 @@ function ScreenerField({
         const moneyItem = item as FormItem & { currency?: string };
         return (
           <>
-            <label htmlFor={id}>
+            <label className="formspec-label" htmlFor={id}>
               {label}
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
             <div className="formspec-money-field">
               <span className="formspec-money-currency">{moneyItem.currency || 'USD'}</span>
               <input
+              className="formspec-input"
                 id={id}
                 type="text"
                 inputMode="decimal"
@@ -236,7 +240,7 @@ function ScreenerField({
                       : { amount: Number(raw), currency: moneyItem.currency || 'USD' },
                   );
                 }}
-                aria-invalid={showError}
+                aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
               />
             </div>
           </>
@@ -248,16 +252,17 @@ function ScreenerField({
       default:
         return (
           <>
-            <label htmlFor={id}>
+            <label className="formspec-label" htmlFor={id}>
               {label}
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
             <input
+              className="formspec-input"
               id={id}
               type="text"
               value={typeof value === 'string' ? value : ''}
               onChange={(e) => onChange(e.target.value)}
-              aria-invalid={showError}
+              aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
             />
           </>
         );
@@ -268,7 +273,7 @@ function ScreenerField({
     <div className="formspec-field formspec-screener-field" data-name={item.key}>
       {renderInput()}
       {showError && (
-        <p className="formspec-error" aria-live="polite">{error}</p>
+        <p id={`${id}-error`} className="formspec-error" aria-live="polite">{error}</p>
       )}
     </div>
   );

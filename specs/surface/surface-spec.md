@@ -154,7 +154,7 @@ structurally identical documents.
 
 | `routeClass` | The route presents | Distinguishing rule — why the value exists | Tenant chrome theming |
 |---|---|---|---|
-| `intake` | A Definition-backed capture from a respondent. | The only value that admits tenant chrome theming: admitted here and only here. That sentence is now true of the whole vocabulary — before `operation` flipped to refusing, this spec said it while the enforced rule contradicted it. | **admits** |
+| `intake` | Respondent answer capture through a Definition or a native Screener. | The only value that admits tenant chrome theming: admitted here and only here. That sentence is now true of the whole vocabulary — before `operation` flipped to refusing, this spec said it while the enforced rule contradicted it. | **admits** |
 | `proof` | An artifact the platform issued that a third party relies on as evidence — receipt, certificate, disclosure. | The artifact is issued by a substrate port and relied on off-platform; its rendered form is part of what is relied on. | refuses |
 | `ceremony` | The act of signing or attesting, as it happens. | The signer's preimage **is** the thing signed: the rendering is the evidence, not a view of it. | refuses |
 | `verification` | Independent checking of an artifact the platform issued. | Credibility depends on the surface being neither the issuer's nor the tenant's voice. | refuses |

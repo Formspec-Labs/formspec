@@ -471,3 +471,23 @@ h6.formspec-heading {
   background: var(--formspec-default-surface-muted);
   cursor: default;
 }
+
+/* Native Screener answering UI uses the same field rhythm and controls as a Definition. */
+.formspec-screener > .formspec-heading {
+  margin: 0;
+}
+
+.formspec-screener-intro {
+  margin: 0;
+}
+
+.formspec-screener-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  align-items: start;
+  gap: var(--formspec-spacing-lg, 1.25rem) var(--formspec-spacing-md, 1rem);
+}
+
+.formspec-screener-continue {
+  align-self: flex-start;
+}

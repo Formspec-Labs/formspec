@@ -4,6 +4,7 @@ import React from 'react';
 import { useChromeText } from '../../use-chrome-text';
 import type { FieldComponentProps } from '../../component-map';
 import type { ExtensionAttrs } from './field-control-types';
+import { NativeSelectControl } from './controls/native-select';
 import { ComboboxSelect } from './controls/combobox-select';
 import { MoneyInputControl } from './controls/money-input';
 import { SliderControl } from './controls/slider';
@@ -287,34 +288,24 @@ function NativeSelect({ field, common, value, isReadonly, clearable, placeholder
 }) {
     const chrome = useChromeText();
     return (
-        <div className="formspec-select-wrapper">
-            <select
-                {...common}
-                className="formspec-input formspec-select-native"
-                value={(value as string | number | undefined) ?? ''}
-                onChange={isReadonly ? undefined : (e) => field.setValue(e.target.value)}
-                disabled={isReadonly}
-            >
-                {/* Item 5: hidden prevents placeholder appearing in iOS picker dropdown */}
-                <option value="" disabled hidden>{placeholder || chrome('select.placeholder')}</option>
-                {field.options.map((opt) => (
-                    <option key={opt.value} value={opt.value} {...needTraceAttrs(opt.needAnchors)}>
-                        {opt.label}
-                    </option>
-                ))}
-            </select>
-            {clearable && value != null && value !== '' && !isReadonly && (
-                <button
-                    type="button"
-                    className="formspec-select-clear"
+        <NativeSelectControl
+            {...common}
+            value={(value as string | number | undefined) ?? ''}
+            onChange={isReadonly ? undefined : (e) => field.setValue(e.target.value)}
+            disabled={isReadonly}
+            afterControl={clearable && value != null && value !== '' && !isReadonly && (
+                <button type="button" className="formspec-select-clear"
                     aria-label={chrome('select.clearSelection')}
-                    onClick={() => { field.setValue(null); field.touch(); }}
-                >
-                    {/* Item 28: hide decorative × from screen readers */}
+                    onClick={() => { field.setValue(null); field.touch(); }}>
                     <span aria-hidden="true">×</span>
                 </button>
             )}
-        </div>
+        >
+            {/* Hidden keeps the unanswered placeholder out of the iOS choice list. */}
+            <option value="" disabled hidden>{placeholder || chrome('select.placeholder')}</option>
+            {field.options.map((opt) => (
+                <option key={opt.value} value={opt.value} {...needTraceAttrs(opt.needAnchors)}>{opt.label}</option>
+            ))}
+        </NativeSelectControl>
     );
 }
-

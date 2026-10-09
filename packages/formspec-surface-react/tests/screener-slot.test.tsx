@@ -8,8 +8,10 @@ import { dereferenceBundleExport } from '@formspec-org/surface';
 import { SurfaceApp } from '../src/SurfaceApp.js';
 beforeAll(() => initFormspecEngine());
 const screener = {$formspecScreener:'1.0',url:'urn:gate',version:'1.0.0',title:'Eligibility',items:[{type:'field',key:'eligible',dataType:'boolean',label:'Eligible?'}],binds:[{path:'eligible',required:'true'}],evaluation:[{id:'main',strategy:'first-match',routes:[{condition:'$eligible',target:'surface:apply'},{condition:'true',target:'surface:paper'}]}]};
-function mount(embedded = false, localized = false) {
+function mount(embedded = false, localized = false, routeClass: 'intake' | 'operation' = 'intake', themed = false) {
  const bundle=dereferenceBundleExport({manifest:{$formspecBundle:'2.4',surfaces:[{url:'urn:surface',version:'1.0.0'}],screeners:[{url:'urn:gate',version:'1.0.0'}]},documents:{'urn:gate':screener,'urn:surface':{$formspecSurface:'0.3',id:'app',entry:'screen',routes:[{id:'screen',path:'/screen',routeClass:'intake',slots:[{id:'gate',slotType:'screener',binding:{screenerRef:'urn:gate',allowedTargets:['surface:apply','surface:paper']}}]},{id:'apply',path:'/apply',routeClass:'intake',slots:[{id:'t',slotType:'static-content',binding:{kind:'text',text:'Apply'}}]},{id:'paper',path:'/paper',routeClass:'intake',slots:[{id:'t',slotType:'static-content',binding:{kind:'text',text:'Paper'}}]}]}}});
+ bundle.surfaces[0]!.routes[0]!.routeClass = routeClass;
+ if (themed) bundle.tenantTheme = { $formspecTheme: '1.0', version: '1.0.0', tokens: { 'color.primary': '#123456' } };
  if (localized) bundle.localeDocuments = [{ $formspecLocale: '2.1', locale: 'es-US', version: '1.0.0', target: { kind: 'screener', url: 'urn:gate' }, strings: { '$form.title': 'Elegibilidad', '$ui.screener.yes': 'Sí' } }];
  if (embedded) {const surface=bundle.surfaces[0]!;const native=surface.routes[0]!.slots;surface.routes[0]!.slots=[{id:'embedded',slotType:'embed-route',binding:{routeRef:'questions'}}] as any;surface.routes.push({id:'questions',path:'/questions',routeClass:'intake',slots:native} as any);}
  const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);const onNavigate=vi.fn();
@@ -45,6 +47,25 @@ describe('native Screener Surface slot',()=>{
   expect(m.container.querySelector('h2')?.textContent).toBe('Elegibilidad');
   expect(m.container.querySelector('select')?.value).toBe('no');
   m.submit(); expect(m.onNavigate).toHaveBeenCalledExactlyOnceWith('/paper');
+ });
+
+ it.each(['intake', 'operation'] as const)('consumes only the actual route Theme grant for native Screener %s', routeClass => {
+  const m = mount(false, false, routeClass, true);
+  const route = m.container.querySelector('.fs-surface-route') as HTMLElement;
+  expect(route.classList.contains('fs-surface-route--branded')).toBe(routeClass === 'intake');
+  expect(route.style.getPropertyValue('--formspec-color-primary') === '#123456').toBe(routeClass === 'intake');
+  expect(m.container.querySelector('.formspec-screener')?.closest('.fs-surface-route')).toBe(route);
+ });
+ it('uses shared native control styling and links required errors to controls', () => {
+  const m = mount(); m.submit();
+  const select = m.container.querySelector('select')!;
+  expect(select.classList.contains('formspec-input')).toBe(true);
+  expect(select.classList.contains('formspec-select-native')).toBe(true);
+  expect(select.closest('.formspec-select-wrapper')).not.toBeNull();
+  expect(select.closest('.formspec-container')).not.toBeNull();
+  expect(select.getAttribute('aria-required')).toBe('true');
+  expect(document.getElementById(select.getAttribute('aria-describedby')!)?.textContent).toContain('is required');
+  expect(m.container.querySelector('button.formspec-button-primary')).not.toBeNull();
  });
 
 });
