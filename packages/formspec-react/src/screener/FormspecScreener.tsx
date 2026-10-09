@@ -2,7 +2,7 @@
 
 /** @filedesc FormspecScreener — standalone eligibility gate component. */
 import React, { useId } from 'react';
-import { useChromeText } from '../use-chrome-text';
+import { screenerOptionLocaleKey } from '@formspec-org/engine/render';
 import type { FormItem } from '@formspec-org/types';
 import { useScreener, itemDataType, itemOptions, isItemRequired } from './use-screener';
 import type {
@@ -29,12 +29,13 @@ export function FormspecScreener({
   className,
   ...options
 }: FormspecScreenerProps) {
-  const chrome = useChromeText();
   const screener = useScreener({ ...options, screenerDocument });
+  const { chrome, text, direction, localeFinding, translationWarnings } = screener.presentation;
   const items = screener.items;
   const fieldIdPrefix = useId();
 
   if (!screenerDocument) return null;
+  if (localeFinding) return <p role="alert" data-locale-finding={localeFinding}>{chrome('screener.localeFailed')}</p>;
 
   if (screener.routeResult?.routeType === 'external') {
     if (renderExternalRoute) {
@@ -42,7 +43,7 @@ export function FormspecScreener({
     }
     return (
       <div className={cls('formspec-screener-routed', className)}>
-        <h2 className="formspec-screener-heading">{screener.routeResult.route.label || 'Not Eligible'}</h2>
+        <h2 className="formspec-screener-heading">{screener.routeResult.route.label || chrome('screener.externalDefault')}</h2>
         {screener.routeResult.route.target && (
           <p className="formspec-screener-routed-target">{screener.routeResult.route.target}</p>
         )}
@@ -51,7 +52,7 @@ export function FormspecScreener({
           className="formspec-screener-continue"
           onClick={screener.restart}
         >
-          Start Over
+          {chrome('screener.restart')}
         </button>
       </div>
     );
@@ -61,14 +62,14 @@ export function FormspecScreener({
     if (renderNoMatch) return <>{renderNoMatch()}</>;
     return (
       <div className={cls('formspec-screener-routed', className)}>
-        <h2 className="formspec-screener-heading">No matching route</h2>
-        <p className="formspec-screener-routed-target">No matching eligibility route was found.</p>
+        <h2 className="formspec-screener-heading">{chrome('screener.noMatchTitle')}</h2>
+        <p className="formspec-screener-routed-target">{chrome('screener.noMatchBody')}</p>
         <button
           type="button"
           className="formspec-screener-continue"
           onClick={screener.restart}
         >
-          Start Over
+          {chrome('screener.restart')}
         </button>
       </div>
     );
@@ -79,16 +80,18 @@ export function FormspecScreener({
   }
 
   return (
-    <div className={cls('formspec-screener', className)}>
-      <h2 className="formspec-screener-heading">{screenerDocument.title || 'Eligibility Check'}</h2>
+    <div className={cls('formspec-screener', className)} dir={options.onDetermination || options.activeLocale !== undefined || options.localeDocuments !== undefined ? direction : undefined}>
+      <h2 className="formspec-screener-heading">{text('$form.title', screenerDocument.title || chrome('screener.titleDefault'), screener.answers)}</h2>
       {screenerDocument.description && (
-        <p className="formspec-screener-intro">{screenerDocument.description}</p>
+        <p className="formspec-screener-intro">{text('$form.description', screenerDocument.description, screener.answers)}</p>
       )}
+      {translationWarnings.length > 0 && <p role="status" data-locale-warnings={JSON.stringify(translationWarnings)}>{chrome('screener.translationWarning')}</p>}
       <div className="formspec-screener-fields">
         {items.map((item) => (
           <ScreenerField
             key={item.key}
             fieldIdPrefix={fieldIdPrefix}
+            presentation={screener.presentation}
             explicitBoolean={!!options.onDetermination}
             item={item}
             screener={screenerDocument}
@@ -99,13 +102,13 @@ export function FormspecScreener({
           />
         ))}
       </div>
-      {screener.errors.$completion && <p role="alert">{screener.errors.$completion}</p>}
+      {screener.errors.$completion && <p role="alert" data-finding={screener.errors.$completion}>{chrome('screener.completionFailed')}</p>}
       <button
         type="button"
         className="formspec-screener-continue"
         onClick={screener.submit}
       >
-        {screenerDocument.submitLabel || chrome('screener.submit')}
+        {chrome('screener.submit', undefined, screenerDocument.submitLabel)}
       </button>
     </div>
   );
@@ -113,6 +116,7 @@ export function FormspecScreener({
 
 function ScreenerField({
   fieldIdPrefix,
+  presentation,
   explicitBoolean,
   item,
   screener,
@@ -122,6 +126,7 @@ function ScreenerField({
   onChange,
 }: {
   fieldIdPrefix: string;
+  presentation: import('./use-screener-text').ScreenerPresentationText;
   explicitBoolean: boolean;
   item: FormItem;
   screener: ScreenerDocumentInput;
@@ -130,7 +135,8 @@ function ScreenerField({
   error?: string;
   onChange: (val: ScreenerFieldValue | undefined) => void;
 }) {
-  const chrome = useChromeText();
+  const { chrome, text } = presentation;
+  const label = text(`${item.key}.label`, item.label ?? item.key, answers, item.key);
   const id = `${fieldIdPrefix}-${item.key}`;
   const showError = !!error;
   const dt = itemDataType(item);
@@ -140,10 +146,10 @@ function ScreenerField({
     switch (dt) {
       case 'boolean':
         if (explicitBoolean) return <>
-          <label htmlFor={id}>{item.label}{required && <span className="formspec-required" aria-hidden="true">*</span>}</label>
+          <label htmlFor={id}>{label}{required && <span className="formspec-required" aria-hidden="true">*</span>}</label>
           <select id={id} value={value === true ? 'yes' : value === false ? 'no' : ''} aria-invalid={showError}
             onChange={e => onChange(e.target.value === '' ? undefined : e.target.value === 'yes')}>
-            <option value="">{chrome('select.placeholder')}</option><option value="yes">Yes</option><option value="no">No</option>
+            <option value="">{chrome('select.placeholder')}</option><option value="yes">{chrome('screener.yes')}</option><option value="no">{chrome('screener.no')}</option>
           </select>
         </>;
         return (
@@ -155,7 +161,7 @@ function ScreenerField({
               onChange={(e) => onChange(e.target.checked)}
               aria-invalid={showError}
             />
-            <label htmlFor={id}>{item.label}</label>
+            <label htmlFor={id}>{label}</label>
           </div>
         );
 
@@ -163,7 +169,7 @@ function ScreenerField({
         return (
           <>
             <label htmlFor={id}>
-              {item.label}
+              {label}
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
             <select
@@ -175,7 +181,7 @@ function ScreenerField({
               <option value="" disabled hidden>{chrome('select.placeholder')}</option>
               {itemOptions(item).map((c) => (
                 <option key={String(c.value ?? c)} value={String(c.value ?? c)}>
-                  {c.label ?? String(c.value ?? c)}
+                  {text(screenerOptionLocaleKey(item.key, String(c.value ?? c)), c.label ?? String(c.value ?? c), answers, item.key)}
                 </option>
               ))}
             </select>
@@ -187,7 +193,7 @@ function ScreenerField({
         return (
           <>
             <label htmlFor={id}>
-              {item.label}
+              {label}
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
             <input
@@ -206,7 +212,7 @@ function ScreenerField({
         return (
           <>
             <label htmlFor={id}>
-              {item.label}
+              {label}
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
             <div className="formspec-money-field">
@@ -243,7 +249,7 @@ function ScreenerField({
         return (
           <>
             <label htmlFor={id}>
-              {item.label}
+              {label}
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
             <input

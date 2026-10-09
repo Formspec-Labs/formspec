@@ -42,6 +42,13 @@ Response Action or grants task, draft, provider or signing authority.
 
 This is a stateless mounted Screener; it does not claim retained-session or
 availability continuity. It inherits the route Theme grant. Definition
-Components and Locales do not target a Screener. Locale 2.0 has no Screener
-target, so this first seam is language-limited. Full bilingual demo acceptance
-requires a separate native Screener Locale extension and qualification.
+Components do not target a Screener. Locale 2.1 resources can target the exact
+Screener through `localeDocuments` and `activeLocale` on the React presenter or
+Surface host. Bundle resolution carries the declared Locale resources into
+local and embedded Screener slots. Locale 2.0 remains unchanged.
+
+The answering UI localizes its heading, intro, item and static option labels,
+required messages, and shared chrome. Language changes preserve answers,
+including explicit false. The native evaluation document and Determination
+remain canonical. Invalid Locale resources refuse with a named finding;
+interpolation failures retain literal text and expose translation warnings.

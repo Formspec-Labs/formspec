@@ -83,7 +83,7 @@ import {
   type TransitionConditionEvaluator,
   type WidgetRegistry,
 } from "@formspec-org/surface";
-import type { RegistryEntry } from "@formspec-org/types";
+import type { RegistryEntry, LocaleDocument } from "@formspec-org/types";
 import { SurfaceRouteView } from "./SurfaceRoute.js";
 import type {
   SurfaceWidget,
@@ -249,6 +249,10 @@ export function useSurfaceApp(input: UseSurfaceAppInput): SurfaceAppModel {
 }
 
 export interface SurfaceAppProps extends UseSurfaceAppInput {
+  /** Selected host language for native Screener presentation. */
+  activeLocale?: string | undefined;
+  /** Host-admitted resources; defaults to exact manifested Locale documents. */
+  localeDocuments?: readonly LocaleDocument[] | undefined;
   /** Current path, e.g. `window.location.pathname`. */
   location: string;
   onNavigate: (href: string) => void;
@@ -637,6 +641,8 @@ export function SurfaceApp(props: SurfaceAppProps) {
               key={`${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
               plan={routePlan}
               screenerInstanceId={screenerVisit.id}
+              localeDocuments={props.localeDocuments ?? props.bundle.localeDocuments}
+              activeLocale={props.activeLocale}
               resolveRouteTitle={props.resolveRouteTitle}
               strings={strings}
               dataSourceLoader={props.dataSourceLoader}

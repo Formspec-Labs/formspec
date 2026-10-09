@@ -8,15 +8,15 @@
 /* eslint-disable */
 import type { ModuleRef, Generation } from './common.js';
 /**
- * A Formspec Locale Document provides internationalized strings for one exact Definition or App Manifest target. Locale 2.0 replaces targetDefinition with target.kind plus target.url, admits the closed Surface shell key family, uses FEL {{expression}} interpolation as its only authored template syntax, and keeps every fallback step within the same target identity. A Locale Document MUST NOT affect data collection, validation logic, authorization, or behavioral semantics.
+ * Internationalized presentation strings for one exact Definition, App Manifest, or Screener target. Locale 2.1 adds freestanding Screener targets without changing evaluation, data, authorization, or routing. Locale 2.0 remains supported with its original target kinds and closed chrome inventory.
  */
 export type LocaleDocument = {
   [k: string]: unknown;
 } & {
   /**
-   * Locale specification version. MUST be '2.0'.
+   * Locale dialect: 2.0 or 2.1. Screener targets and newly introduced chrome keys require 2.1.
    */
-  $formspecLocale: '2.0';
+  $formspecLocale: '2.0' | '2.1';
   /**
    * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef. Module-contributed Locale string keys use $module.<modId>.<nodeId>.<prop>. The x-formspec-surface module reserves the closed $module.x-formspec-surface.shell.<SurfaceStringKey> family for app-targeted shell text.
    */
@@ -256,21 +256,33 @@ export type ChromeStringKey =
   | '$ui.draft.startCurrentFailed'
   | '$ui.draft.browserAccessNotice'
   | '$ui.receipt.clearedTitle'
-  | '$ui.receipt.clearedDetail';
+  | '$ui.receipt.clearedDetail'
+  | '$ui.screener.yes'
+  | '$ui.screener.no'
+  | '$ui.screener.titleDefault'
+  | '$ui.screener.externalDefault'
+  | '$ui.screener.restart'
+  | '$ui.screener.noMatchTitle'
+  | '$ui.screener.noMatchBody'
+  | '$ui.screener.requiredMessage'
+  | '$ui.screener.answerRequired'
+  | '$ui.screener.completionFailed'
+  | '$ui.screener.localeFailed'
+  | '$ui.screener.translationWarning';
 /**
  * Extension object whose keys must be prefixed with x-.
  */
 export interface Extensions {}
 /**
- * Exact Definition or App Manifest target. Loaded Locale identity is (target.kind, target.url, normalized locale). A processor MUST NOT apply this document to another target or cross target identity during fallback.
+ * Exact Definition, App Manifest, or Screener target. Loaded Locale identity is (target.kind, target.url, normalized locale). A processor MUST NOT apply this document to another target or cross target identity during fallback.
  */
 export interface LocaleTarget {
   /**
-   * Target artifact kind. No aliases or additional kinds are admitted in Locale 2.0.
+   * Exact target artifact kind; screener requires Locale2.1.
    */
-  kind: 'definition' | 'app';
+  kind: 'definition' | 'app' | 'screener';
   /**
-   * Canonical absolute URL of the target Definition or App Manifest.
+   * Canonical absolute URL of the target Definition, App Manifest, or Screener.
    */
   url: string;
   /**

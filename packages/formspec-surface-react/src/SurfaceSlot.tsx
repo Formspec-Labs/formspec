@@ -241,6 +241,8 @@ export function createSurfaceSemanticControlScopeResolver(
 }
 
 export interface SurfaceSlotProps {
+  localeDocuments?: readonly LocaleDocument[] | undefined;
+  activeLocale?: string | undefined;
   screenerInstanceId?: string | undefined;
   onScreenerTarget?: ((target: string) => { status: 'accepted' } | { status: 'refused'; reason: string }) | undefined;
   plan: SlotPlan<SurfaceWidget>;
@@ -475,6 +477,8 @@ export function SurfaceSlot({
   onAdvance,
   onScreenerTarget,
   screenerInstanceId,
+  localeDocuments,
+  activeLocale,
 }: SurfaceSlotProps): ReactNode {
   const subjectPrefix = surfaceSemanticOutputSubjectRef(
     route.routeId,
@@ -492,6 +496,8 @@ export function SurfaceSlot({
       if (plan.status !== 'ready' || !plan.screener) return <UnavailableSlot>{plan.reason ?? 'screener-unavailable'}</UnavailableSlot>;
       return <FormspecScreener key={`${screenerInstanceId ?? runtimeGeneration ?? ''}/${plan.screener.ref.url}/${plan.screener.ref.version}`}
         screenerDocument={plan.screener.document}
+        localeDocuments={localeDocuments}
+        activeLocale={activeLocale}
         onDetermination={(determination, answers, evaluationTime) => {
           const result = resolveScreenerDetermination({ document: plan.screener!.document, allowedTargets: plan.allowedTargets, determination, answers, evaluationTime, nowIso: new Date().toISOString() });
           if (result.status === 'refused') return result;
@@ -712,6 +718,8 @@ export function SurfaceSlot({
               onActionCompleted={onActionCompleted}
               onScreenerTarget={onScreenerTarget}
               screenerInstanceId={screenerInstanceId}
+              localeDocuments={localeDocuments}
+              activeLocale={activeLocale}
               onAdvance={onAdvance}
             />
           ))}

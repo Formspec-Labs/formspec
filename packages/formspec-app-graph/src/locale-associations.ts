@@ -7,6 +7,7 @@ import type {
   ResolvedArtifactHandle,
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
+import { isExactVersion } from './component-routes.js';
 import {
   handlesByKind,
   ownProp,
@@ -121,10 +122,15 @@ function targetArtifact(
       ? { version: stringProp(manifest, 'version'), matches: 1 }
       : { matches: 0 };
   }
-  if (kind !== 'definition') return { matches: 0 };
-  const definitions = handlesByKind(context.handles, 'definition').filter((definition) =>
+  if (kind !== 'definition' && kind !== 'screener') return { matches: 0 };
+  const declaredScreeners = recordArray(ownProp(manifestRecord(context), 'screeners'));
+  if (kind === 'screener' && declaredScreeners.filter(ref => stringProp(ref, 'url') === url).length !== 1) return { matches: 0 };
+  const definitions = handlesByKind(context.handles, kind).filter((definition) =>
     definition.ref?.url === url
     && stringProp(record(definition.document), 'url') === url
+    && (kind !== 'screener' || (isExactVersion(definition.ref?.version)
+      && stringProp(declaredScreeners.find(ref => stringProp(ref, 'url') === url), 'version') === definition.ref.version
+      && stringProp(record(definition.document), 'version') === definition.ref.version))
   );
   return {
     ...(definitions.length === 1

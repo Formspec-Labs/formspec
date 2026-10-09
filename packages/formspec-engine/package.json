@@ -70,12 +70,14 @@
     "test": "npm run build && npm run test:init-entry-runtime-only && npm run test:render-entry-runtime-only && npm run test:fel-runtime-entry-only && npm run test:unit && npm run test:wasm-runtime-isolation && npm run test:wasm-tools-import-count"
   },
   "dependencies": {
-    "@preact/signals-core": "^1.6.0",
     "@formspec-org/types": "^0.2.1",
-    "canonicalize": "^3.0.0"
+    "@preact/signals-core": "^1.6.0",
+    "canonicalize": "^3.0.0",
+    "semver": "^7.8.1"
   },
   "devDependencies": {
     "fast-check": "^4.6.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@types/semver": "^7.7.1"
   }
 }

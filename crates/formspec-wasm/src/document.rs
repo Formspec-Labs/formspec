@@ -57,6 +57,8 @@ struct LintDocumentWasmOptions {
     mode: Option<String>,
     #[serde(default, alias = "definitionDocument")]
     definition_document: Option<Value>,
+    #[serde(default, alias = "screenerDocument")]
+    screener_document: Option<Value>,
     #[serde(default, alias = "themeDocument")]
     theme_document: Option<Value>,
     #[serde(default, alias = "componentDocuments")]
@@ -94,6 +96,7 @@ fn lint_options_from_wasm_json(options_json: Option<&str>) -> Result<LintOptions
         mode: LintMode::from_host_option_str(parsed.mode.as_deref()),
         registry_documents: parsed.registry_documents,
         definition_document: parsed.definition_document,
+        screener_document: parsed.screener_document,
         theme_document: parsed.theme_document,
         component_documents: parsed.component_documents,
         locale_documents: parsed.locale_documents,
@@ -132,6 +135,7 @@ mod tests {
                 "mode": "strict",
                 "registryDocuments": [{"$formspecRegistry": "1.1"}],
                 "definitionDocument": {"$formspec": "1.0"},
+                "screenerDocument": {"$formspecScreener": "1.0"},
                 "themeDocument": {"$formspecTheme": "1.0"},
                 "componentDocuments": [{"$formspecComponent": "1.0"}],
                 "localeDocuments": [{"$formspecLocale": "2.0"}],
@@ -171,6 +175,10 @@ mod tests {
             options.theme_document,
             Some(json!({"$formspecTheme": "1.0"}))
         );
+        assert_eq!(
+            options.screener_document,
+            Some(json!({"$formspecScreener": "1.0"}))
+        );
         assert_eq!(options.component_documents.len(), 1);
         assert_eq!(options.locale_documents.len(), 1);
         assert!(options.app_graph_validation_report.is_some());
@@ -184,6 +192,7 @@ mod tests {
             r#"{
                 "registry_documents": [{"$formspecRegistry": "1.1"}],
                 "definition_document": {"$formspec": "1.0"},
+                "screener_document": {"$formspecScreener": "1.0"},
                 "theme_document": {"$formspecTheme": "1.0"},
                 "component_documents": [{"$formspecComponent": "1.0"}],
                 "locale_documents": [{"$formspecLocale": "2.0"}],
@@ -221,6 +230,10 @@ mod tests {
         assert_eq!(
             options.theme_document,
             Some(json!({"$formspecTheme": "1.0"}))
+        );
+        assert_eq!(
+            options.screener_document,
+            Some(json!({"$formspecScreener": "1.0"}))
         );
         assert_eq!(options.component_documents.len(), 1);
         assert_eq!(options.locale_documents.len(), 1);

@@ -40,6 +40,7 @@
  * authenticity and deployment admission remain separate host decisions.
  */
 import type {
+  LocaleDocument,
   DataSourcesDocument,
   ExperienceDocument,
   FormDefinition,
@@ -75,6 +76,7 @@ export interface BundleManifest {
   title?: string;
   'x-generation'?: { anchors?: readonly string[] };
   screeners?: readonly BundleArtifactRef[];
+  locales?: readonly (BundleArtifactRef & { locale: string })[];
   definitions?: readonly BundleArtifactRef[];
   experience?: BundleArtifactRef;
   experiences?: readonly BundleArtifactRef[];
@@ -109,6 +111,8 @@ export interface ResolvedBundle {
   manifest: BundleManifest;
   title: string | undefined;
   screenerHandles?: readonly ScreenerDocumentHandle[];
+  /** Manifested Locale resources; each renderer selects its own exact target. */
+  localeDocuments?: readonly LocaleDocument[];
   surfaces: readonly SurfaceDocument[];
   /**
    * The exact loaded Surface selected by App Manifest 2.4.
@@ -340,6 +344,7 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
     title: typeof bundle.manifest.title === 'string' ? bundle.manifest.title : undefined,
     surfaces,
     screenerHandles,
+    localeDocuments: lookupAll<LocaleDocument>(bundle.manifest.locales, 'Locale'),
     ...(entrySurface === undefined ? {} : { entrySurface }),
     surfaceRefs,
     experiences,

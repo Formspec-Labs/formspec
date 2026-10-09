@@ -78,23 +78,23 @@ fn chrome_string_keys() -> &'static HashSet<String> {
 }
 
 pub(crate) fn lint_locale(locale: &Value, options: &LintOptions) -> Vec<LintDiagnostic> {
+    let screener_target = locale["target"]["kind"].as_str() == Some("screener");
+    let item_document = if screener_target {
+        options.screener_document.as_ref()
+    } else {
+        options.definition_document.as_ref()
+    };
     let mut analyzer = Analyzer {
         locale,
         options,
-        definition_index: options
-            .definition_document
-            .as_ref()
-            .map(tree::build_item_index),
+        item_document,
+        item_index: item_document.map(tree::build_item_index),
         option_sets: options
             .definition_document
             .as_ref()
             .map(option_set_values)
             .unwrap_or_default(),
-        item_values: options
-            .definition_document
-            .as_ref()
-            .map(item_option_values)
-            .unwrap_or_default(),
+        item_values: item_document.map(item_option_values).unwrap_or_default(),
         shape_ids: options
             .definition_document
             .as_ref()
@@ -118,7 +118,8 @@ pub(crate) fn lint_locale(locale: &Value, options: &LintOptions) -> Vec<LintDiag
 struct Analyzer<'a> {
     locale: &'a Value,
     options: &'a LintOptions,
-    definition_index: Option<tree::ItemTreeIndex>,
+    item_document: Option<&'a Value>,
+    item_index: Option<tree::ItemTreeIndex>,
     option_sets: HashMap<String, HashSet<String>>,
     item_values: HashMap<String, HashSet<String>>,
     shape_ids: HashSet<String>,
@@ -133,12 +134,26 @@ impl<'a> Analyzer<'a> {
         let Some(target) = self.locale.get("target") else {
             return;
         };
-        if target.get("kind").and_then(Value::as_str) != Some("definition") {
-            return;
-        }
-        let Some(definition) = self.options.definition_document.as_ref() else {
+        let kind = target.get("kind").and_then(Value::as_str);
+        let (definition, paired_kind) = match kind {
+            Some("definition") => (self.options.definition_document.as_ref(), "Definition"),
+            Some("screener") => (self.options.screener_document.as_ref(), "Screener"),
+            _ => return,
+        };
+        let Some(definition) = definition else {
             return;
         };
+        if kind == Some("screener")
+            && definition.get("$formspecScreener").and_then(Value::as_str) != Some("1.0")
+        {
+            self.diagnostics.push(error(
+                crate::LintCode::E1400,
+                PASS,
+                "$.target",
+                "Paired Screener context must identify a native Screener 1.0 document",
+            ));
+            return;
+        }
         if let (Some(target_url), Some(def_url)) = (
             target.get("url").and_then(Value::as_str),
             definition_url(definition),
@@ -149,9 +164,24 @@ impl<'a> Analyzer<'a> {
                 PASS,
                 "$.target.url",
                 format!(
-                    "Locale target.url ({target_url:?}) does not match paired Definition url ({def_url:?})"
+                    "Locale target.url ({target_url:?}) does not match paired {paired_kind} url ({def_url:?})"
                 ),
             ));
+        }
+        if kind == Some("screener") {
+            if let Some(range) = target.get("compatibleVersions").and_then(Value::as_str)
+                && definition_version(definition)
+                    .and_then(|version| compatible_version_satisfied(range, version))
+                    != Some(true)
+            {
+                self.diagnostics.push(error(
+                    crate::LintCode::E1400,
+                    PASS,
+                    "$.target.compatibleVersions",
+                    "Locale compatibleVersions does not include the paired Screener version",
+                ));
+            }
+            return;
         }
         if let (Some(range), Some(version)) = (
             target.get("compatibleVersions").and_then(Value::as_str),
@@ -192,6 +222,25 @@ impl<'a> Analyzer<'a> {
     }
 
     fn check_string_key(&mut self, key: &str, json_path: &str) {
+        if self.locale["target"]["kind"].as_str() == Some("screener") {
+            let parts = split_locale_key(key);
+            let allowed = if key.starts_with('$') {
+                matches!(parts.as_slice(), [form, terminal] if form == "$form" && FORM_TERMINALS.contains(&terminal.as_str()))
+                    || key.starts_with("$ui.")
+            } else {
+                let property = parts.get(1..).unwrap_or_default();
+                matches!(property, [terminal] if terminal == "label" || terminal == "requiredMessage")
+                    || matches!(
+                        classify_item_property(property),
+                        ItemProperty::Option(_) | ItemProperty::Data(_)
+                    )
+            };
+            if !allowed {
+                self.diagnostics.push(error(crate::LintCode::E1401, PASS, json_path,
+                    "Screener Locale key must address rendered heading, intro, item label, option label, required message, or renderer chrome"));
+                return;
+            }
+        }
         if let Some(namespace) = key.strip_prefix('$') {
             self.check_reserved_key(namespace, json_path);
         } else {
@@ -467,8 +516,8 @@ impl<'a> Analyzer<'a> {
                     strip_indices(item_key)
                 ),
             ));
-        } else if self.options.definition_document.is_some()
-            && let Some(index) = self.definition_index.as_ref()
+        } else if self.item_document.is_some()
+            && let Some(index) = self.item_index.as_ref()
         {
             match index.by_key.get(item_key) {
                 // Core §4.2.1 E200: a duplicated key names no single Item.
@@ -571,7 +620,7 @@ impl<'a> Analyzer<'a> {
         if !is_bare_item_key(&bare) {
             return false;
         }
-        match self.definition_index.as_ref() {
+        match self.item_index.as_ref() {
             Some(index) => index.by_key.contains_key(&bare),
             None => !matches!(bare.as_str(), "options" | "errors"),
         }
@@ -859,6 +908,64 @@ mod tests {
 
     use super::*;
     use crate::types::LintOptions;
+
+    #[test]
+    fn screener_locale_uses_its_paired_items_and_version() {
+        let screener = json!({
+            "$formspecScreener": "1.0", "url": "urn:test:screener", "version": "1.0.0",
+            "items": [{ "key": "eligible", "type": "field", "dataType": "boolean", "label": "Eligible" }]
+        });
+        let mut locale = json!({
+            "$formspecLocale": "2.1", "version": "1.0.0", "locale": "es-US",
+            "target": { "kind": "screener", "url": "urn:test:screener", "compatibleVersions": "1.0.0" },
+            "strings": { "$form.title": "Elegibilidad", "eligible.label": "Elegible", "$ui.screener.yes": "Sí" }
+        });
+        let options = LintOptions {
+            screener_document: Some(screener),
+            ..Default::default()
+        };
+        assert!(lint_locale(&locale, &options).is_empty());
+        locale["target"]["compatibleVersions"] = json!("2.0.0");
+        assert!(
+            lint_locale(&locale, &options)
+                .iter()
+                .any(|diagnostic| diagnostic.code == crate::LintCode::E1400)
+        );
+        locale["target"]["compatibleVersions"] = json!("1.0.0");
+        locale["strings"]["unknown.label"] = json!("Unknown");
+        assert!(
+            lint_locale(&locale, &options)
+                .iter()
+                .any(|diagnostic| diagnostic.code == crate::LintCode::E1402)
+        );
+        locale["strings"]
+            .as_object_mut()
+            .unwrap()
+            .remove("unknown.label");
+        locale["strings"]["$action.submit.label"] = json!("Submit");
+        assert!(
+            lint_locale(&locale, &options)
+                .iter()
+                .any(|diagnostic| diagnostic.code == crate::LintCode::E1401)
+        );
+    }
+
+    #[test]
+    fn definition_context_cannot_supply_screener_locale_item_identity() {
+        let locale = json!({
+            "$formspecLocale": "2.1", "version": "1.0.0", "locale": "es",
+            "target": { "kind": "screener", "url": "urn:test:screener" },
+            "strings": { "eligible.label": "Elegible" }
+        });
+        let definition =
+            json!({"url": "urn:test:screener", "items": [{"key": "different", "type": "field"}]});
+        let options = LintOptions {
+            definition_document: Some(definition),
+            ..Default::default()
+        };
+        // Unpaired standalone lint checks syntax, and never treats a Definition as the paired Screener.
+        assert!(lint_locale(&locale, &options).is_empty());
+    }
 
     #[test]
     fn reserved_page_component_and_option_terminals_are_validated() {

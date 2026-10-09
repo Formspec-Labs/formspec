@@ -32,9 +32,9 @@
 <nav id="TOC">
 <h2>Table of Contents</h2>
 <ul>
-<li><a href="#formspec-locale-specification-v2.0"
-id="toc-formspec-locale-specification-v2.0">Formspec Locale
-Specification v2.0</a>
+<li><a href="#formspec-locale-specification-v2.1"
+id="toc-formspec-locale-specification-v2.1">Formspec Locale
+Specification v2.1</a>
 <ul>
 <li><a href="#status-of-this-document"
 id="toc-status-of-this-document">Status of This Document</a></li>
@@ -61,6 +61,9 @@ id="toc-locale-document-structure">2. Locale Document Structure</a>
 Top-Level Properties</a></li>
 <li><a href="#target-binding" id="toc-target-binding">2.2 Target
 Binding</a></li>
+<li><a href="#screener-targets-locale-2.1"
+id="toc-screener-targets-locale-2.1">2.2.1 Screener targets (Locale
+2.1)</a></li>
 <li><a href="#locale-code" id="toc-locale-code">2.3 Locale Code</a></li>
 <li><a href="#formats" id="toc-formats">2.4 Formats</a></li>
 </ul></li>
@@ -170,10 +173,10 @@ Complete Locale Document Example</a></li>
 </ul></li>
 </ul>
 </nav>
-<h1 id="formspec-locale-specification-v2.0">Formspec Locale
-Specification v2.0</h1>
-<p><strong>Version:</strong> 2.0.0-draft.1 <strong>Date:</strong>
-2026-07-28 <strong>Editors:</strong> Formspec Working Group
+<h1 id="formspec-locale-specification-v2.1">Formspec Locale
+Specification v2.1</h1>
+<p><strong>Version:</strong> 2.1.0-draft.1 <strong>Date:</strong>
+2026-10-09 <strong>Editors:</strong> Formspec Working Group
 <strong>Companion to:</strong> Formspec v1.0 — A JSON-Native Declarative
 Form Standard</p>
 <hr />
@@ -182,7 +185,7 @@ Form Standard</p>
 the <a href="../core/spec.md">Formspec v1.0 Core Specification</a>. It
 defines the Formspec Locale Document format — a sidecar JSON document
 that provides internationalized strings for one exact Formspec
-Definition or App Manifest.</p>
+Definition, App Manifest, or Screener.</p>
 <h2 id="conventions-and-terminology">Conventions and Terminology</h2>
 <p>The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”,
 “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “NOT RECOMMENDED”, “MAY”, and
@@ -201,14 +204,15 @@ redefined.</p>
 <h2 id="bottom-line-up-front">Bottom Line Up Front</h2>
 <!-- bluf:start file=locale-spec.bluf.md -->
 <ul>
-<li>This document defines Locale 2.0, a sidecar JSON artifact for
-internationalizing one exact Formspec Definition or App Manifest
-target.</li>
-<li>A valid Locale 2.0 document requires
-<code>$formspecLocale: "2.0"</code>, <code>version</code>,
-<code>locale</code>, <code>target</code>, and a <code>strings</code>
-object. <code>target</code> names a <code>definition</code> or
-<code>app</code> by canonical URL.</li>
+<li>This document defines Locale 2.1, a sidecar JSON artifact for
+internationalizing one exact Formspec Definition, App Manifest, or
+freestanding Screener target.</li>
+<li>A valid Locale document requires <code>$formspecLocale: "2.0"</code>
+or <code>"2.1"</code>, <code>version</code>, <code>locale</code>,
+<code>target</code>, and a <code>strings</code> object.
+<code>target</code> names a <code>definition</code> or <code>app</code>
+by canonical URL; Locale 2.1 also admits freestanding
+<code>screener</code> targets.</li>
 <li>Loaded Locale identity is
 <code>(target kind, target URL, normalized locale)</code>.
 Regional-to-base fallback stays within that exact target.</li>
@@ -456,8 +460,9 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="
 <td><code>$formspecLocale</code></td>
 <td><code>string</code></td>
 <td>yes</td>
-<td>const: <code>“2.0”</code>; critical</td>
-<td>Locale specification version. MUST be ‘2.0’.</td>
+<td>enum: <code>“2.0”</code>, <code>“2.1”</code>; critical</td>
+<td>Locale dialect: 2.0 or 2.1. Screener targets and newly introduced
+chrome keys require 2.1.</td>
 </tr>
 <tr>
 <td><code>#/properties/description</code></td>
@@ -568,10 +573,10 @@ Locale specification.</td>
 <td><code>$ref</code></td>
 <td>yes</td>
 <td><code>$ref</code>: <code>#/$defs/LocaleTarget</code>; critical</td>
-<td>Exact Definition or App Manifest target. Loaded Locale identity is
-(target.kind, target.url, normalized locale). A processor MUST NOT apply
-this document to another target or cross target identity during
-fallback.</td>
+<td>Exact Definition, App Manifest, or Screener target. Loaded Locale
+identity is (target.kind, target.url, normalized locale). A processor
+MUST NOT apply this document to another target or cross target identity
+during fallback.</td>
 </tr>
 <tr>
 <td><code>#/properties/title</code></td>
@@ -624,7 +629,8 @@ exact artifact.</p>
 <tbody>
 <tr>
 <td><code>kind</code></td>
-<td><code>"definition"</code> or <code>"app"</code></td>
+<td><code>"definition"</code>, <code>"app"</code>, or (Locale 2.1)
+<code>"screener"</code></td>
 <td><strong>1..1</strong> (REQUIRED)</td>
 <td>Target artifact kind. No additional value or alias is admitted.</td>
 </tr>
@@ -632,8 +638,8 @@ exact artifact.</p>
 <td><code>url</code></td>
 <td>absolute URL string</td>
 <td><strong>1..1</strong> (REQUIRED)</td>
-<td>Exact Definition URL or App Manifest <code>id</code>, according to
-<code>kind</code>.</td>
+<td>Exact Definition or Screener URL, or App Manifest <code>id</code>,
+according to <code>kind</code>.</td>
 </tr>
 <tr>
 <td><code>compatibleVersions</code></td>
@@ -648,6 +654,38 @@ verify that the loaded target’s <code>version</code> satisfies the range
 before applying the Locale Document. In App Manifest 2.4 association, an
 unsatisfied range is a resolution error. The processor MUST NOT retarget
 the Locale or fall through to another artifact.</p>
+<h3 id="screener-targets-locale-2.1">2.2.1 Screener targets (Locale
+2.1)</h3>
+<p>Locale 2.1 adds <code>target.kind: "screener"</code>. Its target
+identifies the canonical freestanding Screener by URL and, when
+supplied, <code>compatibleVersions</code>. Processors MUST refuse an
+incompatible paired Screener version. A Definition with the same URL
+MUST NOT substitute for the paired Screener.</p>
+<p>The rendered answering UI admits only <code>$form.title</code>,
+<code>$form.description</code>, <code>&lt;itemKey&gt;.label</code>,
+<code>&lt;itemKey&gt;.requiredMessage</code>, static
+<code>&lt;itemKey&gt;.options.&lt;value&gt;.label</code>, and the closed
+<code>$ui.&lt;ChromeStringKey&gt;</code> family. Option values escape
+dots and backslashes using the existing Locale key syntax.
+Definition-only namespaces, context variants, and behavior or data
+properties are not admitted for Screener targets. The new Screener
+chrome keys require Locale 2.1. Historical Locale 2.0 documents retain
+their original key inventory;
+<code>schemas/locale-v2.0.schema.json</code> preserves the
+<code>/locale/2.0</code> schema URI.</p>
+<p>Item text uses the native FEL interpolation rules with the current
+typed Screener answers. Required messages use the item’s bind scope,
+including bare <code>$</code>. Chrome placeholders remain literal
+renderer parameters, never FEL. Unresolved expressions retain their
+literal text and produce translation warnings. Locale switching MUST
+preserve answers and their types.</p>
+<p>Locale resources change presentation only. They MUST NOT rewrite the
+canonical Screener, evaluation phases, matched route targets, or
+Determination record. This dialect does not add localization addresses
+for freestanding result records. App Manifest association MUST find
+exactly one declared Screener with matching loaded reference and
+document URL/version pins. Duplicate normalized
+<code>(target kind, target URL, locale)</code> tuples remain errors.</p>
 <h3 id="locale-code">2.3 Locale Code</h3>
 <p>The <code>locale</code> property MUST be a syntactically valid BCP 47
 language tag. Processors SHOULD validate subtags against the IANA
@@ -2632,9 +2670,9 @@ any cascade level.</li>
 <li><code>strings</code> MUST be an object with string values.</li>
 <li><code>locale</code> MUST be a syntactically valid BCP 47 language
 tag.</li>
-<li><code>target</code> is closed, <code>target.kind</code> is
-<code>definition</code> or <code>app</code>, and <code>target.url</code>
-is an absolute URI.</li>
+<li><code>target</code> is closed; Locale 2.0 admits
+<code>definition</code> or <code>app</code>, Locale 2.1 also admits
+<code>screener</code>; <code>target.url</code> is an absolute URI.</li>
 <li>Surface shell keys are limited to the exact §3.1.9 set.</li>
 </ul>
 <h3 id="cross-reference-validation">7.2 Cross-Reference Validation</h3>

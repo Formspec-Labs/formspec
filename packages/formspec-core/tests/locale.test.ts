@@ -467,3 +467,33 @@ describe('initial state — locale defaults', () => {
     expect(project.state.selectedLocaleId).toBeUndefined();
   });
 });
+
+describe('Locale dialect preservation', () => {
+  it('preserves an explicit Screener Locale 2.1 through public load and export', () => {
+    const project = createRawProject();
+    const document = { ...localeDoc('es-US'), $formspecLocale: '2.1', target: { kind: 'screener', url: 'urn:test:screener', compatibleVersions: '1.0.0' } };
+    project.dispatch({ type: 'locale.load', payload: { document } });
+    expect(project.export().locales?.['es-US']).toEqual(document);
+    const reopened = createRawProject();
+    reopened.dispatch({ type: 'project.import', payload: project.export() });
+    expect(reopened.export().locales?.['es-US']).toEqual(document);
+  });
+  it('rejects unsupported import dialects before mutating project state', () => {
+    const project = createRawProject();
+    const before = structuredClone(project.export());
+    expect(() => project.dispatch({ type: 'project.import', payload: {
+      definitions: [{ ...before.definitions[0], title: 'Must not replace' }],
+      locales: { es: { ...localeDoc('es'), $formspecLocale: '9.9' } },
+    } })).toThrow('Unsupported Locale dialect');
+    expect(project.export()).toEqual(before);
+  });
+  it('preserves explicit 2.0 and defaults only an absent discriminator', () => {
+    const project = createRawProject();
+    const legacy = localeDoc('en');
+    project.dispatch({ type: 'locale.load', payload: { document: legacy } });
+    const { $formspecLocale: omitted, ...withoutDialect } = localeDoc('es');
+    project.dispatch({ type: 'locale.load', payload: { document: withoutDialect } });
+    expect(project.export().locales?.en.$formspecLocale).toBe('2.0');
+    expect(project.export().locales?.es.$formspecLocale).toBe('2.0');
+  });
+});

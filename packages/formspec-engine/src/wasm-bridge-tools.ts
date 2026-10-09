@@ -268,6 +268,8 @@ export interface WasmLintDocumentOptions {
     registryDocuments?: unknown[];
     mode?: string;
     definitionDocument?: unknown;
+    /** Exact paired freestanding Screener for Locale 2.1 item and target checks. */
+    screenerDocument?: unknown;
     themeDocument?: unknown;
     componentDocuments?: unknown[];
     localeDocuments?: unknown[];

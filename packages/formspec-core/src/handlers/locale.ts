@@ -1,7 +1,8 @@
+import { supportedLocaleDialect } from '../locale-dialect.js';
 /**
  * Locale command handlers.
  *
- * Locale documents provide translated strings for one exact app or Definition.
+ * Locale documents provide translated strings for one exact app, Definition, or Screener.
  * Each locale is keyed by its BCP 47 code in ProjectState.locales.
  *
  * All handlers return `{ rebuildComponentTree: false }` because locale
@@ -38,7 +39,7 @@ export const localeHandlers = {
     const localeState: LocaleState = {
       // Locale state is the complete document, as in project.import and export.
       ...doc,
-      $formspecLocale: '2.0',
+      $formspecLocale: supportedLocaleDialect(doc.$formspecLocale),
       locale,
       version: (doc.version as string) ?? '0.1.0',
       target: (doc.target as LocaleState['target']) ?? {

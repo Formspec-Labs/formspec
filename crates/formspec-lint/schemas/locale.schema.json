@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/schemas/locale/2.0",
-  "title": "Formspec Locale Document (v2.0)",
-  "description": "A Formspec Locale Document provides internationalized strings for one exact Definition or App Manifest target. Locale 2.0 replaces targetDefinition with target.kind plus target.url, admits the closed Surface shell key family, uses FEL {{expression}} interpolation as its only authored template syntax, and keeps every fallback step within the same target identity. A Locale Document MUST NOT affect data collection, validation logic, authorization, or behavioral semantics.",
+  "$id": "https://formspec.org/schemas/locale/2.1",
+  "title": "Formspec Locale Document (v2.1)",
+  "description": "Internationalized presentation strings for one exact Definition, App Manifest, or Screener target. Locale 2.1 adds freestanding Screener targets without changing evaluation, data, authorization, or routing. Locale 2.0 remains supported with its original target kinds and closed chrome inventory.",
   "type": "object",
   "required": [
     "$formspecLocale",
@@ -67,7 +67,10 @@
           "target": {
             "properties": {
               "kind": {
-                "const": "definition"
+                "enum": [
+                  "definition",
+                  "screener"
+                ]
               }
             },
             "required": [
@@ -76,20 +79,245 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "target": {
+            "properties": {
+              "kind": {
+                "const": "screener"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        },
+        "required": [
+          "target"
+        ]
+      },
+      "then": {
+        "properties": {
+          "$formspecLocale": {
+            "const": "2.1"
+          },
+          "strings": {
+            "propertyNames": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "$form.title",
+                    "$form.description"
+                  ]
+                },
+                {
+                  "$ref": "#/$defs/ChromeStringKey"
+                },
+                {
+                  "pattern": "^[a-zA-Z][a-zA-Z0-9_]*\\.(label|requiredMessage|options\\.[a-zA-Z0-9_.\\\\\\[\\]\\-]+\\.label)$"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "$formspecLocale": {
+            "const": "2.0"
+          }
+        },
+        "required": [
+          "$formspecLocale"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "definition",
+                  "app"
+                ]
+              }
+            }
+          },
+          "strings": {
+            "propertyNames": {
+              "if": {
+                "pattern": "^\\$ui\\."
+              },
+              "then": {
+                "enum": [
+                  "$ui.select.placeholder",
+                  "$ui.select.clearSelection",
+                  "$ui.select.selectedValues",
+                  "$ui.select.selectAll",
+                  "$ui.repeat.add",
+                  "$ui.repeat.remove",
+                  "$ui.repeat.row",
+                  "$ui.repeat.rowOf",
+                  "$ui.repeat.rowNamed",
+                  "$ui.wizard.next",
+                  "$ui.wizard.nextStep",
+                  "$ui.wizard.previous",
+                  "$ui.wizard.previousStep",
+                  "$ui.wizard.skip",
+                  "$ui.wizard.skipStep",
+                  "$ui.wizard.submit",
+                  "$ui.wizard.submitForm",
+                  "$ui.wizard.steps",
+                  "$ui.wizard.progress",
+                  "$ui.wizard.step",
+                  "$ui.wizard.collapseNavigation",
+                  "$ui.wizard.otherItems",
+                  "$ui.modal.close",
+                  "$ui.alert.dismiss",
+                  "$ui.validationSummary.heading",
+                  "$ui.date.format",
+                  "$ui.characterCount.limit",
+                  "$ui.characterCount.allowed",
+                  "$ui.characterCount.left",
+                  "$ui.characterCount.leftOne",
+                  "$ui.characterCount.over",
+                  "$ui.characterCount.overOne",
+                  "$ui.signature.clear",
+                  "$ui.signature.canvas",
+                  "$ui.money.amount",
+                  "$ui.money.currency",
+                  "$ui.fieldHelp.label",
+                  "$ui.screener.continue",
+                  "$ui.screener.required",
+                  "$ui.screener.back",
+                  "$ui.dataTable.addRow",
+                  "$ui.dataTable.remove",
+                  "$ui.dataTable.removeRow",
+                  "$ui.dataTable.actions",
+                  "$ui.wizard.stepTitle",
+                  "$ui.wizard.stepStatus",
+                  "$ui.wizard.finalStepStatus",
+                  "$ui.wizard.stepAnnouncement",
+                  "$ui.wizard.finalStepAnnouncement",
+                  "$ui.wizard.expandNavigation",
+                  "$ui.select.loadingOptions",
+                  "$ui.select.remoteFallback",
+                  "$ui.select.remoteFailed",
+                  "$ui.modal.open",
+                  "$ui.fileUpload.dropzone",
+                  "$ui.fileUpload.dropzoneKeyboard",
+                  "$ui.fileUpload.browse",
+                  "$ui.fileUpload.attachedList",
+                  "$ui.fileUpload.pendingList",
+                  "$ui.fileUpload.remove",
+                  "$ui.fileUpload.dismissError",
+                  "$ui.fileUpload.uploading",
+                  "$ui.fileUpload.uploadProgress",
+                  "$ui.fileUpload.deferredLibrary",
+                  "$ui.fileUpload.cameraCapture",
+                  "$ui.fileUpload.cameraPreview",
+                  "$ui.fileUpload.captureImage",
+                  "$ui.fileUpload.closeCamera",
+                  "$ui.fileUpload.useCamera",
+                  "$ui.fileUpload.cameraUnavailable",
+                  "$ui.fileUpload.cameraOpenFailed",
+                  "$ui.fileUpload.cameraCaptureFailed",
+                  "$ui.fileUpload.imagesWaitingOne",
+                  "$ui.fileUpload.imagesWaitingMany",
+                  "$ui.fileUpload.imageReview",
+                  "$ui.fileUpload.legibilityWarning",
+                  "$ui.fileUpload.redactionSurface",
+                  "$ui.fileUpload.previewImage",
+                  "$ui.fileUpload.addRedaction",
+                  "$ui.fileUpload.detectPageEdges",
+                  "$ui.fileUpload.clearRedactions",
+                  "$ui.fileUpload.uploadImage",
+                  "$ui.fileUpload.cancel",
+                  "$ui.fileUpload.browseMultiple",
+                  "$ui.fileUpload.dropzoneMultiple",
+                  "$ui.fileUpload.attachedOne",
+                  "$ui.fileUpload.attachedMany",
+                  "$ui.fileUpload.fileTooLarge",
+                  "$ui.fileUpload.errorTooLarge",
+                  "$ui.fileUpload.errorMimeRejected",
+                  "$ui.fileUpload.errorNetwork",
+                  "$ui.fileUpload.errorUnavailable",
+                  "$ui.fileUpload.errorUnknown",
+                  "$ui.fileUpload.imagePrepareFailed",
+                  "$ui.fileUpload.edgeCleanupFailed",
+                  "$ui.fileUpload.singleFileOnly",
+                  "$ui.validationSummary.fixOne",
+                  "$ui.validationSummary.fixMany",
+                  "$ui.validationSummary.reviewOne",
+                  "$ui.validationSummary.reviewMany",
+                  "$ui.validationSummary.review",
+                  "$ui.validationSummary.errorCountOne",
+                  "$ui.validationSummary.errorCount",
+                  "$ui.validationSummary.issueCountOne",
+                  "$ui.validationSummary.issueCount",
+                  "$ui.validationSummary.row",
+                  "$ui.action.submit",
+                  "$ui.action.inProgress",
+                  "$ui.action.completed",
+                  "$ui.action.blocked",
+                  "$ui.action.failed",
+                  "$ui.action.deferred",
+                  "$ui.action.unresolved",
+                  "$ui.action.status",
+                  "$ui.action.statusReason",
+                  "$ui.draft.saveUnconfirmed",
+                  "$ui.screener.submit",
+                  "$ui.screener.answerOne",
+                  "$ui.assist.filled",
+                  "$ui.localPreview.preview",
+                  "$ui.localPreview.draftRestored",
+                  "$ui.form.settings",
+                  "$ui.form.language",
+                  "$ui.form.languageSaveFailed",
+                  "$ui.receipt.answersReceived",
+                  "$ui.receipt.submissionId",
+                  "$ui.receipt.pendingFilingAndSigning",
+                  "$ui.receipt.keepRecord",
+                  "$ui.receipt.printInstruction",
+                  "$ui.receipt.print",
+                  "$ui.receipt.clear",
+                  "$ui.receipt.clearing",
+                  "$ui.form.fields",
+                  "$ui.draft.versionChangedTitle",
+                  "$ui.draft.versionChanged",
+                  "$ui.draft.startCurrent",
+                  "$ui.draft.startingCurrent",
+                  "$ui.draft.startCurrentFailed",
+                  "$ui.draft.browserAccessNotice",
+                  "$ui.receipt.clearedTitle",
+                  "$ui.receipt.clearedDetail"
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "properties": {
     "$formspecLocale": {
       "type": "string",
-      "const": "2.0",
-      "description": "Locale specification version. MUST be '2.0'.",
+      "description": "Locale dialect: 2.0 or 2.1. Screener targets and newly introduced chrome keys require 2.1.",
       "examples": [
         "2.0"
       ],
       "x-lm": {
         "critical": true,
         "intent": "Version pin for locale document compatibility. Processors MUST reject locale documents with an unrecognized version."
-      }
+      },
+      "enum": [
+        "2.0",
+        "2.1"
+      ]
     },
     "modules": {
       "type": "array",
@@ -109,7 +337,7 @@
     "url": {
       "type": "string",
       "format": "uri",
-      "description": "Canonical identifier for this Locale Document. Stable across versions — the tuple (url, version) SHOULD be globally unique.",
+      "description": "Canonical identifier for this Locale Document. Stable across versions \u2014 the tuple (url, version) SHOULD be globally unique.",
       "examples": [
         "https://agency.gov/forms/budget/locales/fr-CA",
         "https://example.org/forms/intake/locales/es"
@@ -140,8 +368,8 @@
       "type": "string",
       "description": "Human-readable display name for the Locale Document.",
       "examples": [
-        "Budget Form — Canadian French",
-        "Patient Intake — Spanish"
+        "Budget Form \u2014 Canadian French",
+        "Patient Intake \u2014 Spanish"
       ]
     },
     "description": {
@@ -174,7 +402,7 @@
       "type": "string",
       "minLength": 2,
       "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$",
-      "description": "BCP 47 language tag of the locale to consult when a key is not found in this document's strings. Enables explicit fallback chains (e.g., fr-CA → fr). If absent, the cascade proceeds to implicit language fallback (strip region subtag) or inline defaults. Processors MUST detect circular fallback chains and terminate the cascade with a warning.",
+      "description": "BCP 47 language tag of the locale to consult when a key is not found in this document's strings. Enables explicit fallback chains (e.g., fr-CA \u2192 fr). If absent, the cascade proceeds to implicit language fallback (strip region subtag) or inline defaults. Processors MUST detect circular fallback chains and terminate the cascade with a warning.",
       "examples": [
         "fr",
         "en",
@@ -220,7 +448,7 @@
     },
     "target": {
       "$ref": "#/$defs/LocaleTarget",
-      "description": "Exact Definition or App Manifest target. Loaded Locale identity is (target.kind, target.url, normalized locale). A processor MUST NOT apply this document to another target or cross target identity during fallback.",
+      "description": "Exact Definition, App Manifest, or Screener target. Loaded Locale identity is (target.kind, target.url, normalized locale). A processor MUST NOT apply this document to another target or cross target identity during fallback.",
       "examples": [
         {
           "kind": "definition",
@@ -234,7 +462,7 @@
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Declares the exact Definition or app this Locale can be applied to and bounds fallback to that target."
+        "intent": "Declares the exact Definition, app, or Screener this Locale can be applied to and bounds fallback to that target."
       }
     },
     "strings": {
@@ -262,7 +490,7 @@
             }
           }
         ],
-        "description": "String keys are dot-delimited. Item strings use <itemKey>.<property>, where <itemKey> is the bare Item key at any depth (amount.label for lineItems[*].amount); dotted template paths such as lineItems.amount.label are not valid item keys. The $module.x-formspec-surface.shell.<SurfaceStringKey> family is closed to the exact SurfaceShellStringKey enum. The $ui.<ChromeStringKey> family (target.kind: definition) is closed to the exact ChromeStringKey enum — renderer chrome strings, {{$param}} filled literally, never FEL. Other module keys retain $module.<modId>.<nodeId>.<prop> addressing."
+        "description": "String keys are dot-delimited. Item strings use <itemKey>.<property>, where <itemKey> is the bare Item key at any depth (amount.label for lineItems[*].amount); dotted template paths such as lineItems.amount.label are not valid item keys. The $module.x-formspec-surface.shell.<SurfaceStringKey> family is closed to the exact SurfaceShellStringKey enum. The $ui.<ChromeStringKey> family (target.kind: definition or screener) is closed to the exact ChromeStringKey enum \u2014 renderer chrome strings, {{$param}} filled literally, never FEL. Other module keys retain $module.<modId>.<nodeId>.<prop> addressing."
       },
       "description": "Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification.",
       "examples": [
@@ -270,7 +498,7 @@
           "$form.title": "Rapport annuel sur les subventions",
           "projectName.label": "Nom du projet",
           "projectName.hint": "Entrez le nom officiel du projet",
-          "budgetSection.label": "Section budgétaire",
+          "budgetSection.label": "Section budg\u00e9taire",
           "budgetSection.label@short": "Budget",
           "fundingStatus.options.yes.label": "Oui",
           "fundingStatus.options.no.label": "Non",
@@ -278,10 +506,10 @@
           "$optionSet.yesNoNA.no.label": "Non",
           "email.errors.REQUIRED": "L'adresse courriel est obligatoire",
           "email.errors.CONSTRAINT_FAILED": "Veuillez entrer une adresse courriel valide",
-          "ssn.constraintMessage": "Le NAS doit être au format 000-000-000",
+          "ssn.constraintMessage": "Le NAS doit \u00eatre au format 000-000-000",
           "$shape.budget-balance.message": "Le total doit correspondre au financement",
           "$page.info.title": "Informations du projet",
-          "$page.review.title": "Révision et soumission",
+          "$page.review.title": "R\u00e9vision et soumission",
           "$component.submitBtn.label": "Soumettre la demande",
           "$component.mainTabs.tabLabels[0]": "Personnel",
           "lineItems.label": "Poste {{@index}}",
@@ -336,15 +564,16 @@
           "type": "string",
           "enum": [
             "definition",
-            "app"
+            "app",
+            "screener"
           ],
-          "description": "Target artifact kind. No aliases or additional kinds are admitted in Locale 2.0."
+          "description": "Exact target artifact kind; screener requires Locale2.1."
         },
         "url": {
           "type": "string",
           "format": "uri",
           "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
-          "description": "Canonical absolute URL of the target Definition or App Manifest."
+          "description": "Canonical absolute URL of the target Definition, App Manifest, or Screener."
         },
         "compatibleVersions": {
           "type": "string",
@@ -526,9 +755,21 @@
         "$ui.draft.startCurrentFailed",
         "$ui.draft.browserAccessNotice",
         "$ui.receipt.clearedTitle",
-        "$ui.receipt.clearedDetail"
+        "$ui.receipt.clearedDetail",
+        "$ui.screener.yes",
+        "$ui.screener.no",
+        "$ui.screener.titleDefault",
+        "$ui.screener.externalDefault",
+        "$ui.screener.restart",
+        "$ui.screener.noMatchTitle",
+        "$ui.screener.noMatchBody",
+        "$ui.screener.requiredMessage",
+        "$ui.screener.answerRequired",
+        "$ui.screener.completionFailed",
+        "$ui.screener.localeFailed",
+        "$ui.screener.translationWarning"
       ],
-      "description": "Closed one-to-one mapping to the renderer chrome string inventory (Locale spec §3.1.10, packages/formspec-layout/src/ui-strings.ts). A new chrome string requires a Locale schema revision."
+      "description": "Closed one-to-one mapping to the renderer chrome string inventory (Locale spec \u00a73.1.10, packages/formspec-layout/src/ui-strings.ts). A new chrome string requires a Locale schema revision."
     }
   }
 }

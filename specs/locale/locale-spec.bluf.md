@@ -1,5 +1,5 @@
-- This document defines Locale 2.0, a sidecar JSON artifact for internationalizing one exact Formspec Definition or App Manifest target.
-- A valid Locale 2.0 document requires `$formspecLocale: "2.0"`, `version`, `locale`, `target`, and a `strings` object. `target` names a `definition` or `app` by canonical URL.
+- This document defines Locale 2.1, a sidecar JSON artifact for internationalizing one exact Formspec Definition, App Manifest, or freestanding Screener target.
+- A valid Locale document requires `$formspecLocale: "2.0"` or `"2.1"`, `version`, `locale`, `target`, and a `strings` object. `target` names a `definition` or `app` by canonical URL; Locale 2.1 also admits freestanding `screener` targets.
 - Loaded Locale identity is `(target kind, target URL, normalized locale)`. Regional-to-base fallback stays within that exact target.
 - Item strings use `<itemKey>.<property>` with the bare Item key at any depth (`amount.label` for `lineItems[*].amount`); dotted template paths such as `lineItems.amount.label` are not valid keys.
 - App-targeted Locale documents may use the closed `$module.x-formspec-surface.shell.*` key family. Every dynamic string uses FEL `{{expression}}` interpolation; processors do not apply a separate `{name}` parser.

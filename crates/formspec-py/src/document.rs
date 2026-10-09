@@ -149,6 +149,7 @@ pub fn lint_document(
         mode: lint_mode,
         registry_documents: registry_docs,
         definition_document: def_doc,
+        screener_document: None,
         theme_document: theme_doc,
         component_documents: component_docs,
         locale_documents: locale_docs,

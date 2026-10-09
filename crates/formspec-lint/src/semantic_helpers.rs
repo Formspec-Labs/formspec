@@ -298,103 +298,12 @@ pub(crate) fn definition_version(definition: &Value) -> Option<&str> {
     definition.get("version").and_then(Value::as_str)
 }
 
+/// Match Node-style SemVer ranges using the same prerelease posture as JS artifact admission.
 pub(crate) fn compatible_version_satisfied(range: &str, version: &str) -> Option<bool> {
-    range
-        .split("||")
-        .map(str::trim)
-        .filter(|part| !part.is_empty())
-        .try_fold(false, |matched, part| {
-            if matched {
-                Some(true)
-            } else {
-                simple_range_satisfies(part, version)
-            }
-        })
-}
-
-fn simple_range_satisfies(range: &str, version: &str) -> Option<bool> {
-    if range.contains(' ') {
-        return range.split_whitespace().try_fold(true, |ok, part| {
-            comparator_or_wildcard_satisfies(part, version).map(|v| ok && v)
-        });
-    }
-    if let Some(rest) = range.strip_prefix('^') {
-        let base = parse_version(rest)?;
-        let version = parse_version(version)?;
-        return Some(version >= base && version.0 == base.0);
-    }
-    if let Some(rest) = range.strip_prefix('~') {
-        let base = parse_version(rest)?;
-        let version = parse_version(version)?;
-        return Some(version >= base && version.0 == base.0 && version.1 == base.1);
-    }
-    comparator_or_wildcard_satisfies(range, version)
-}
-
-fn comparator_or_wildcard_satisfies(range: &str, version: &str) -> Option<bool> {
-    if range.contains('x') || range.contains('X') || range.contains('*') {
-        return wildcard_satisfies(range, version);
-    }
-
-    let (op, wanted) = if let Some(rest) = range.strip_prefix(">=") {
-        (">=", rest)
-    } else if let Some(rest) = range.strip_prefix("<=") {
-        ("<=", rest)
-    } else if let Some(rest) = range.strip_prefix('>') {
-        (">", rest)
-    } else if let Some(rest) = range.strip_prefix('<') {
-        ("<", rest)
-    } else if let Some(rest) = range.strip_prefix('=') {
-        ("=", rest)
-    } else {
-        ("=", range)
-    };
-
-    let version = parse_version(version)?;
-    let wanted = parse_version(wanted)?;
-    Some(match op {
-        ">=" => version >= wanted,
-        "<=" => version <= wanted,
-        ">" => version > wanted,
-        "<" => version < wanted,
-        _ => version == wanted,
-    })
-}
-
-fn wildcard_satisfies(range: &str, version: &str) -> Option<bool> {
-    let version_parts = version.split('.').collect::<Vec<_>>();
-    if version_parts.len() < 3 {
-        return None;
-    }
-    for (i, wanted) in range.split('.').enumerate() {
-        if i >= version_parts.len() {
-            return None;
-        }
-        let token = wanted.trim_start_matches('=');
-        if matches!(token, "x" | "X" | "*") {
-            return Some(true);
-        }
-        if token != version_parts[i] {
-            return Some(false);
-        }
-    }
-    Some(true)
-}
-
-fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
-    let core = version.split_once('-').map_or(version, |(core, _)| core);
-    let parts = core.split('.').collect::<Vec<_>>();
-    if parts.is_empty() || parts.len() > 3 {
-        return None;
-    }
-    let major = parts.first()?.parse::<u64>().ok()?;
-    let minor = parts
-        .get(1)
-        .map_or(Some(0), |part| part.parse::<u64>().ok())?;
-    let patch = parts
-        .get(2)
-        .map_or(Some(0), |part| part.parse::<u64>().ok())?;
-    Some((major, minor, patch))
+    let options = semver_rs::Options::builder()
+        .include_prerelease(true)
+        .build();
+    semver_rs::satisfies(version, range, Some(options)).ok()
 }
 
 pub(crate) fn option_set_values(definition: &Value) -> HashMap<String, HashSet<String>> {

@@ -1,15 +1,15 @@
 ---
 title: Formspec Locale Specification
-version: 2.0.0-draft.1
-date: 2026-07-28
+version: 2.1.0-draft.1
+date: 2026-10-09
 depends_on:
   - specs/bundle/app-manifest-spec.md
 ---
 
-# Formspec Locale Specification v2.0
+# Formspec Locale Specification v2.1
 
-**Version:** 2.0.0-draft.1
-**Date:** 2026-07-28
+**Version:** 2.1.0-draft.1
+**Date:** 2026-10-09
 **Editors:** Formspec Working Group
 **Companion to:** Formspec v1.0 — A JSON-Native Declarative Form Standard
 
@@ -20,7 +20,7 @@ depends_on:
 This document is a **Draft** companion specification to the
 [Formspec v1.0 Core Specification](../core/spec.md). It defines the Formspec
 Locale Document format — a sidecar JSON document that provides
-internationalized strings for one exact Formspec Definition or App Manifest.
+internationalized strings for one exact Formspec Definition, App Manifest, or Screener.
 
 ## Conventions and Terminology
 
@@ -45,8 +45,8 @@ document unless explicitly redefined.
 ## Bottom Line Up Front
 
 <!-- bluf:start file=locale-spec.bluf.md -->
-- This document defines Locale 2.0, a sidecar JSON artifact for internationalizing one exact Formspec Definition or App Manifest target.
-- A valid Locale 2.0 document requires `$formspecLocale: "2.0"`, `version`, `locale`, `target`, and a `strings` object. `target` names a `definition` or `app` by canonical URL.
+- This document defines Locale 2.1, a sidecar JSON artifact for internationalizing one exact Formspec Definition, App Manifest, or freestanding Screener target.
+- A valid Locale document requires `$formspecLocale: "2.0"` or `"2.1"`, `version`, `locale`, `target`, and a `strings` object. `target` names a `definition` or `app` by canonical URL; Locale 2.1 also admits freestanding `screener` targets.
 - Loaded Locale identity is `(target kind, target URL, normalized locale)`. Regional-to-base fallback stays within that exact target.
 - Item strings use `<itemKey>.<property>` with the bare Item key at any depth (`amount.label` for `lineItems[*].amount`); dotted template paths such as `lineItems.amount.label` are not valid keys.
 - App-targeted Locale documents may use the closed `$module.x-formspec-surface.shell.*` key family. Every dynamic string uses FEL `{{expression}}` interpolation; processors do not apply a separate `{name}` parser.
@@ -199,7 +199,7 @@ Locale Document that omits a REQUIRED property.
 <!-- generated:schema-ref id=locale-top-level -->
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
-| `#/properties/$formspecLocale` | `$formspecLocale` | <code>string</code> | yes | const: <code>"2.0"</code>; critical | Locale specification version. MUST be '2.0'. |
+| `#/properties/$formspecLocale` | `$formspecLocale` | <code>string</code> | yes | enum: <code>"2.0"</code>, <code>"2.1"</code>; critical | Locale dialect: 2.0 or 2.1. Screener targets and newly introduced chrome keys require 2.1. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of the locale's purpose and target audience. |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Extension namespace for vendor-specific or tooling-specific metadata. All keys MUST be x- prefixed. Processors MUST ignore unrecognized extensions. Extensions MUST NOT alter locale resolution semantics. |
 | `#/properties/fallback` | `fallback` | <code>string</code> | no | pattern: <code>^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*&#36;</code> | BCP 47 language tag of the locale to consult when a key is not found in this document's strings. Enables explicit fallback chains (e.g., fr-CA → fr). If absent, the cascade proceeds to implicit language fallback (strip region subtag) or inline defaults. Processors MUST detect circular fallback chains and terminate the cascade with a warning. |
@@ -209,7 +209,7 @@ Locale Document that omits a REQUIRED property.
 | `#/properties/name` | `name` | <code>string</code> | no | — | Machine-friendly short identifier for programmatic use. |
 | `#/properties/stringGeneration` | `stringGeneration` | <code>object</code> | no | — | Generation provenance keyed exactly like strings. Strict data-only authoring profiles require every authored localized string to have a same-key direct current adopted Need anchor. |
 | `#/properties/strings` | `strings` | <code>object</code> | yes | critical | Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification. |
-| `#/properties/target` | `target` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/LocaleTarget</code>; critical | Exact Definition or App Manifest target. Loaded Locale identity is (target.kind, target.url, normalized locale). A processor MUST NOT apply this document to another target or cross target identity during fallback. |
+| `#/properties/target` | `target` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/LocaleTarget</code>; critical | Exact Definition, App Manifest, or Screener target. Loaded Locale identity is (target.kind, target.url, normalized locale). A processor MUST NOT apply this document to another target or cross target identity during fallback. |
 | `#/properties/title` | `title` | <code>string</code> | no | — | Human-readable display name for the Locale Document. |
 | `#/properties/url` | `url` | <code>string</code> | no | — | Canonical identifier for this Locale Document. Stable across versions — the tuple (url, version) SHOULD be globally unique. |
 | `#/properties/version` | `version` | <code>string</code> | yes | critical | Version of this Locale Document. SemVer is RECOMMENDED. The tuple (url, version) SHOULD be unique across all published locale versions. |
@@ -221,8 +221,8 @@ The `target` object binds this Locale Document to one exact artifact.
 
 | Property | Type | Cardinality | Description |
 |---|---|---|---|
-| `kind` | `"definition"` or `"app"` | **1..1** (REQUIRED) | Target artifact kind. No additional value or alias is admitted. |
-| `url` | absolute URL string | **1..1** (REQUIRED) | Exact Definition URL or App Manifest `id`, according to `kind`. |
+| `kind` | `"definition"`, `"app"`, or (Locale 2.1) `"screener"` | **1..1** (REQUIRED) | Target artifact kind. No additional value or alias is admitted. |
+| `url` | absolute URL string | **1..1** (REQUIRED) | Exact Definition or Screener URL, or App Manifest `id`, according to `kind`. |
 | `compatibleVersions` | string | **0..1** (OPTIONAL) | SemVer range for the exact target version. |
 
 When `compatibleVersions` is present, a processor SHOULD verify that
@@ -230,6 +230,35 @@ the loaded target's `version` satisfies the range before applying the Locale
 Document. In App Manifest 2.4 association, an unsatisfied range is a resolution
 error. The processor MUST NOT retarget the Locale or fall through to another
 artifact.
+
+### 2.2.1 Screener targets (Locale 2.1)
+
+Locale 2.1 adds `target.kind: "screener"`. Its target identifies the canonical
+freestanding Screener by URL and, when supplied, `compatibleVersions`.
+Processors MUST refuse an incompatible paired Screener version. A Definition
+with the same URL MUST NOT substitute for the paired Screener.
+
+The rendered answering UI admits only `$form.title`, `$form.description`,
+`<itemKey>.label`, `<itemKey>.requiredMessage`, static
+`<itemKey>.options.<value>.label`, and the closed `$ui.<ChromeStringKey>` family.
+Option values escape dots and backslashes using the existing Locale key syntax.
+Definition-only namespaces, context variants, and behavior or data properties
+are not admitted for Screener targets. The new Screener chrome keys require
+Locale 2.1. Historical Locale 2.0 documents retain their original key inventory;
+`schemas/locale-v2.0.schema.json` preserves the `/locale/2.0` schema URI.
+
+Item text uses the native FEL interpolation rules with the current typed
+Screener answers. Required messages use the item's bind scope, including bare
+`$`. Chrome placeholders remain literal renderer parameters, never FEL.
+Unresolved expressions retain their literal text and produce translation
+warnings. Locale switching MUST preserve answers and their types.
+
+Locale resources change presentation only. They MUST NOT rewrite the canonical
+Screener, evaluation phases, matched route targets, or Determination record.
+This dialect does not add localization addresses for freestanding result
+records. App Manifest association MUST find exactly one declared Screener with
+matching loaded reference and document URL/version pins. Duplicate normalized
+`(target kind, target URL, locale)` tuples remain errors.
 
 ### 2.3 Locale Code
 
@@ -1397,7 +1426,7 @@ The schema enforces:
   `target`, `strings`.
 - `strings` MUST be an object with string values.
 - `locale` MUST be a syntactically valid BCP 47 language tag.
-- `target` is closed, `target.kind` is `definition` or `app`, and `target.url`
+- `target` is closed; Locale 2.0 admits `definition` or `app`, Locale 2.1 also admits `screener`; `target.url`
   is an absolute URI.
 - Surface shell keys are limited to the exact §3.1.9 set.
 

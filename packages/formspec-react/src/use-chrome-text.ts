@@ -8,7 +8,7 @@ import { FormspecContext } from './context';
 import { useSignal } from './use-signal';
 
 /** Resolves one chrome string: what the renderer says for itself, in the respondent's language. */
-export type ChromeText = (key: ChromeStringKey, params?: Record<string, string | number>) => string;
+export type ChromeText = (key: ChromeStringKey, params?: Record<string, string | number>, fallback?: string) => string;
 
 /**
  * Locale §3.1.10 `$ui.<ChromeStringKey>`: an authored override wins, else the shared English default
@@ -19,9 +19,9 @@ export function chromeText(
     engine: IFormEngine | undefined,
     key: ChromeStringKey,
     params?: Record<string, string | number>,
+    fallback?: string,
 ): string {
-    const authored = engine?.lookupLocaleString(`$ui.${key}`);
-    return fillUiParams(authored ?? UI_STRINGS[key], params);
+    return chromeTextFromLookup(key => engine?.lookupLocaleString(key), key, params, fallback);
 }
 
 /**
@@ -32,8 +32,16 @@ export function chromeText(
 export function useChromeText(): ChromeText {
     const engine = useContext(FormspecContext)?.engine;
     useSignal(engine?.localeSignal ?? NEVER_CHANGES);
-    return useCallback((key, params) => chromeText(engine, key, params), [engine]);
+    return useCallback((key, params, fallback) => chromeText(engine, key, params, fallback), [engine]);
 }
 
 /** Stand-in signal for a render outside a provider: nothing to subscribe to, so nothing ever changes. */
 const NEVER_CHANGES = { get value() { return 0; } } as { readonly value: number };
+
+/** The closed shared chrome inventory for a renderer-owned target. */
+export const chromeStringKeys: readonly string[] = Object.keys(UI_STRINGS);
+
+/** Resolve the same inventory against any exact-target Locale lookup. */
+export function chromeTextFromLookup(lookup: (key: string) => string | null | undefined, key: ChromeStringKey, params?: Record<string, string | number>, fallback?: string): string {
+    return fillUiParams(lookup(`$ui.${key}`) ?? fallback ?? UI_STRINGS[key], params);
+}

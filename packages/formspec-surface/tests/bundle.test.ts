@@ -304,3 +304,16 @@ describe('dereferenceBundleExport', () => {
     expect(Object.prototype.hasOwnProperty.call(resolved, 'entrySurface')).toBe(false);
   });
 });
+
+it('carries only manifest-declared Locale documents into the resolved bundle', () => {
+  const bundle = bundleExport();
+  const locale = { $formspecLocale: '2.1', locale: 'es-US', version: '1.0.0',
+    target: { kind: 'screener', url: 'urn:test:gate' }, strings: { '$form.title': 'Elegibilidad' } };
+  bundle.manifest.locales = [{ url: 'urn:test:locale:es', version: '1.0.0', locale: 'es-US' }];
+  bundle.documents['urn:test:locale:es'] = locale;
+  bundle.documents['urn:test:unlisted'] = { ...locale, locale: 'en' };
+  const resolved = dereferenceBundleExport(bundle);
+  expect(resolved.localeDocuments).toEqual([locale]);
+  delete bundle.documents['urn:test:locale:es'];
+  expect(dereferenceBundleExport(bundle).diagnostics.some(d => d.code === 'BUNDLE-DOCUMENT-MISSING')).toBe(true);
+});

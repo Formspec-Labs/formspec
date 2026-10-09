@@ -60,7 +60,7 @@ export type Slot = {
    */
   id: string;
   /**
-   * Closed v0.2 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
+   * Closed slot-type taxonomy; 0.3 adds native Screener presentation. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
    */
   slotType: 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route' | 'screener';
   /**

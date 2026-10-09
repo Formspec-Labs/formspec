@@ -1,6 +1,7 @@
 /** @filedesc Screener types for formspec-react. */
 import type {
   Bind,
+  LocaleDocument,
   DeterminationRecord,
   FormItem,
   Phase,
@@ -53,6 +54,9 @@ export interface ScreenerStateSnapshot {
 
 export type ScreenerCompletionDisposition = { status: 'accepted' } | { status: 'refused'; reason: string };
 export interface UseScreenerOptions {
+  /** Host-admitted Screener-target Locale resources; Definition/App targets stay separate. */
+  localeDocuments?: readonly LocaleDocument[] | undefined;
+  activeLocale?: string | undefined;
   /** Opt-in native completion. Acceptance precedes leaving answering state. */
   onDetermination?: (record: DeterminationRecord, answers: ScreenerAnswers, evaluationTime: string) => ScreenerCompletionDisposition;
   /** Pre-fill answers. */
@@ -88,6 +92,8 @@ export interface UseScreenerResult {
   skipped: boolean;
   /** Validation errors for screener fields (key -> error message). */
   errors: Record<string, string>;
+  /** Target-qualified display text; answer/evaluation state remains canonical. */
+  presentation: import('./use-screener-text').ScreenerPresentationText;
 }
 
 export type { Bind, DeterminationRecord, FormItem, Phase, Route, ScreenerDocument };

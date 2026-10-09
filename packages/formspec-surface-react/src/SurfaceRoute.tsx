@@ -49,6 +49,7 @@ import {
 } from '@formspec-org/surface';
 import type {
   OntologyDocument,
+  LocaleDocument,
   ReferencesDocument,
   ResponseActionsDocument,
 } from '@formspec-org/types';
@@ -77,6 +78,8 @@ import type { WidgetActionCoordinator } from './widget-action-runtime.js';
 import { needTraceAttributes } from './need-trace.js';
 
 export interface SurfaceRouteViewProps {
+  localeDocuments?: readonly LocaleDocument[] | undefined;
+  activeLocale?: string | undefined;
   screenerInstanceId?: string | undefined;
   onScreenerTarget?: ((target: string) => { status: 'accepted' } | { status: 'refused'; reason: string }) | undefined;
   /** Everything the core decided for this route. Nothing here re-decides it. */
@@ -164,6 +167,8 @@ export function SurfaceRouteView({
   onAdvance,
   onScreenerTarget,
   screenerInstanceId,
+  localeDocuments,
+  activeLocale,
 }: SurfaceRouteViewProps) {
   const container = useRef<HTMLElement>(null);
   const { handle, grant, params } = plan;
@@ -238,6 +243,8 @@ export function SurfaceRouteView({
             plan={slotPlan}
             onScreenerTarget={onScreenerTarget}
             screenerInstanceId={screenerInstanceId}
+            localeDocuments={localeDocuments}
+            activeLocale={activeLocale}
             grant={grant}
             route={route}
             strings={text}

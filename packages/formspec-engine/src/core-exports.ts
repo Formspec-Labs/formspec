@@ -171,7 +171,9 @@ export { attachAuthoredSignature, buildValidationReportEnvelope } from './engine
 export { deepEqual, toValidationResults } from './engine/helpers.js';
 
 export type { LocaleDocument } from './locale.js';
-export { normalizeBcp47 } from './locale.js';
+export { normalizeBcp47, LocaleStore } from './locale.js';
+export { createScreenerLocaleResolver, screenerOptionLocaleKey } from './screener-locale.js';
+export type { ScreenerLocaleInput, ScreenerLocaleText, ScreenerLocaleAdmission } from './screener-locale.js';
 export * from './issuer/index.js';
 
 export { FormEngine } from './engine/FormEngine.js';

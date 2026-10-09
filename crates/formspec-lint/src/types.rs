@@ -234,6 +234,8 @@ pub struct LintOptions {
     /// and pass 9 companion-document semantic lint.
     /// When `None`, cross-artifact checks are skipped (single-document mode).
     pub definition_document: Option<Value>,
+    /// Optional paired Screener for target-qualified Locale presentation checks.
+    pub screener_document: Option<Value>,
     /// Optional paired Theme document for Locale `$page.*` string-key checks.
     pub theme_document: Option<Value>,
     /// Optional paired Component documents for Locale `$component.*` string-key checks.

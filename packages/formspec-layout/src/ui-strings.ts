@@ -149,6 +149,18 @@ export const UI_STRINGS = {
     'draft.browserAccessNotice': "Starting again removes saved access to this draft from this browser. Other saved drafts stay available.",
     'receipt.clearedTitle': "Saved access cleared",
     'receipt.clearedDetail': "This browser no longer has saved access to this draft.",
+    'screener.yes': 'Yes',
+    'screener.no': 'No',
+    'screener.titleDefault': 'Eligibility Check',
+    'screener.externalDefault': 'Not Eligible',
+    'screener.restart': 'Start Over',
+    'screener.noMatchTitle': 'No matching route',
+    'screener.noMatchBody': 'No matching eligibility route was found.',
+    'screener.requiredMessage': '{{$label}} is required',
+    'screener.answerRequired': '{{$label}} needs an answer',
+    'screener.completionFailed': 'We could not continue. Review your answers and try again.',
+    'screener.localeFailed': 'The screening language could not be loaded.',
+    'screener.translationWarning': 'Some screening text could not be translated.',
 } as const;
 
 /** Closed suffix set for `$ui.<ChromeStringKey>` (Locale spec §3.1.10), one-for-one with the schema enum. */

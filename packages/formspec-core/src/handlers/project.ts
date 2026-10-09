@@ -1,3 +1,4 @@
+import { supportedLocaleDialect } from '../locale-dialect.js';
 /**
  * Project-level command handlers.
  *
@@ -23,6 +24,11 @@ export const projectHandlers = {
 
   'project.import': (state, payload) => {
     const { replace, ...p } = payload as ProjectImportPayload;
+    // Validate every supplied dialect before changing any imported artifact.
+    for (const locale of Object.values(p.locales ?? {})) {
+      if (!locale || typeof locale !== 'object' || Array.isArray(locale)) throw new Error('Invalid Locale document');
+      supportedLocaleDialect((locale as Record<string, unknown>).$formspecLocale);
+    }
 
     // ADR 0150 §5.2 App Manifest reframe: definitions[] is plural; the import
     // handler consumes only the first Definition at P0 (single-definition
@@ -90,7 +96,7 @@ export const projectHandlers = {
         const locale = normalizeBcp47(imported.locale ?? code);
         state.locales[locale] = {
           ...imported,
-          $formspecLocale: '2.0',
+          $formspecLocale: supportedLocaleDialect(imported.$formspecLocale),
           locale,
           target: imported.target ?? {
             kind: 'definition',
