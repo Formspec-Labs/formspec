@@ -28,7 +28,7 @@ Source schema: `schemas/surface.schema.json`
 
 - Surface documents are published source artifacts for app routes, slots, embed-route edges, and transition declarations; Surface drafts are authoring projections and are not bundled identity.
 - `readSurfaceDraft` may expose non-publishable state with diagnostics; `exportSurfaceDocument` is the fail-closed publication gate for schema shape and Surface-local rules.
-- Route reachability is local to the Surface document: every route must be reachable from `entry` via transitions or embed-route slots, and unresolved embed-route bindings fail E607.
+- Route reachability is local to the Surface document: every route must be reachable from `entry` via transitions or embed-route slots, plus local native Screener allowedTargets in Surface 0.3; unresolved embed-route bindings fail E607.
 - Surface declares transition triggers only. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.
 - Surface 0.2 image bindings require alt exactly for kind=image, preserve it exactly, treat the empty string as decorative, and forbid alt on every other static-content kind; title, URL, and filename are never fallback text.
 - Surface 0.2 module-widget bindings map Registry 1.1 data input names to exact {catalogRef,sourceRef} Data Sources 1.0 pairs and action output names to exact {actionRef} Response Actions IDs; config remains static authored configuration.

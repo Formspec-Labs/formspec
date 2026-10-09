@@ -92,14 +92,18 @@ Every route declared in `routes[]` MUST be reachable from the document's
 `entry` route. Processors determine reachability by walking:
 
 - each reachable route's `transitions[].to` target, when the target names a
-  route in the same Surface, and
+  route in the same Surface,
 - each reachable `embed-route` slot's `binding.routeRef`, when the target names
-  a route in the same Surface.
+  a route in the same Surface, and
+- in Surface 0.3, each reachable native `screener` slot's
+  `binding.allowedTargets` entry using `surface:<route-id>`, when it names a
+  route in the same Surface.
 
 A route that is not reached by this walk is invalid and MUST be reported as
 `E606` (`SURFACE-ROUTE-UNREACHABLE`). Producers SHOULD either add a transition
-from a reachable route, embed the route via an `embed-route` slot, or remove the
-unreachable route.
+from a reachable route, embed the route via an `embed-route` slot, declare an
+authored native Screener destination in Surface 0.3, or remove the unreachable
+route.
 
 ### Route Parameters
 
@@ -582,7 +586,13 @@ Surface MUST NOT contain a Screener slot.
 The reference MUST resolve to exactly one App Manifest `screeners[]` membership
 with an exact version and a loaded Screener carrying the same URL/version.
 Every unique allowed target MUST be authored by that Screener and resolve to
-one loaded Surface route through the `surface:<route-id>` scheme. The binding
+one loaded Surface route through the `surface:<route-id>` scheme. Surface-local
+reachability MUST count allowed targets within the same Surface as potential
+edges without evaluating eligibility rules; AppGraph checks cross-artifact
+membership. Direct Screener destinations, including routes also used by
+`embed-route`, MUST receive each required parameter from the source route. Embedded Screeners use the actual outer host
+parameters, so their own route declarations cannot prove parameter supply.
+The binding
 MUST NOT contain eligibility predicates, answer mappings, or fixed completed
 Response Action destinations. Screener owns evaluation; Surface owns navigation.
 

@@ -5,7 +5,8 @@
 //!
 //! - **E606 / `SURFACE-ROUTE-UNREACHABLE`**: every declared route is reachable
 //!   from the surface's `entry` route by walking transitions[].to and
-//!   embed-route slot bindings (binding.routeRef). Unreachable routes are
+//!   embed-route slot bindings (binding.routeRef), and native 0.3 Screener
+//!   allowedTargets within this Surface. Unreachable routes are
 //!   dead code in the surface — they can never be navigated to.
 //! - **E607 / `SURFACE-SLOT-BINDING-UNRESOLVED`**: every slot's binding
 //!   refers to an in-document target where applicable. For `embed-route`
@@ -50,8 +51,18 @@ pub(crate) fn lint_surface(doc: &Value) -> Vec<LintDiagnostic> {
 
     check_slot_binding_resolution(routes, &route_ids, &mut diagnostics);
     check_route_param_completeness(routes, &mut diagnostics);
+    let native_screeners = doc.get("$formspecSurface").and_then(Value::as_str) == Some("0.3");
+    if native_screeners {
+        check_screener_route_params(routes, entry, &mut diagnostics);
+    }
     if let Some(entry_id) = entry {
-        check_route_reachability(routes, entry_id, &route_ids, &mut diagnostics);
+        check_route_reachability(
+            routes,
+            entry_id,
+            &route_ids,
+            native_screeners,
+            &mut diagnostics,
+        );
     }
 
     diagnostics
@@ -246,6 +257,101 @@ fn check_embed_route_params(
     }
 }
 
+/// Read local Surface target IDs without resolving cross-document membership.
+fn screener_targets(slot: &Value) -> impl Iterator<Item = (usize, &str)> {
+    let targets = (slot.get("slotType").and_then(Value::as_str) == Some("screener"))
+        .then(|| slot.get("binding")?.get("allowedTargets")?.as_array())
+        .flatten();
+    targets
+        .into_iter()
+        .flatten()
+        .enumerate()
+        .filter_map(|(index, target)| {
+            target
+                .as_str()?
+                .strip_prefix("surface:")
+                .map(|id| (index, id))
+        })
+}
+
+/// Check direct Screener destinations against the route's declared parameters.
+fn check_screener_route_params(
+    routes: &[Value],
+    entry: Option<&str>,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) {
+    // Embedded Screeners use the outer host's parameters. Runtime checks that
+    // actual context; the embedded route's declarations cannot prove supply.
+    let embedded: HashSet<&str> = routes
+        .iter()
+        .flat_map(|route| {
+            route
+                .get("slots")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+        })
+        .filter(|slot| slot.get("slotType").and_then(Value::as_str) == Some("embed-route"))
+        .filter_map(|slot| slot.get("binding")?.get("routeRef")?.as_str())
+        .collect();
+    // A route can be embedded and directly navigated. Only embedded-only routes
+    // defer to the actual outer host; any authored direct entry stays checked.
+    let mut direct: HashSet<&str> = entry.into_iter().collect();
+    for route in routes {
+        direct.extend(
+            route
+                .get("transitions")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|transition| transition.get("to")?.as_str()),
+        );
+        for slot in route
+            .get("slots")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            direct.extend(screener_targets(slot).map(|(_, target)| target));
+        }
+    }
+    for (route_idx, route) in routes.iter().enumerate() {
+        if route
+            .get("id")
+            .and_then(Value::as_str)
+            .is_some_and(|id| embedded.contains(id) && !direct.contains(id))
+        {
+            continue;
+        }
+        let supplied = declared_route_params(route);
+        for (slot_idx, slot) in route
+            .get("slots")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .enumerate()
+        {
+            for (target_idx, target_id) in screener_targets(slot) {
+                let Some(target_route) = route_by_id(routes, target_id) else {
+                    continue;
+                };
+                let missing: Vec<&str> = declared_route_params(target_route)
+                    .into_iter()
+                    .filter(|name| !supplied.contains(name))
+                    .collect();
+                if missing.is_empty() {
+                    continue;
+                }
+                diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
+                    crate::LintCode::E610, PASS,
+                    &format!("$.routes[{route_idx}].slots[{slot_idx}].binding.allowedTargets[{target_idx}]"),
+                    &format!("Screener target {target_id:?} requires route params absent from its direct host: {} (SURFACE-ROUTE-PARAM-MISSING).", missing.join(", ")),
+                )));
+            }
+        }
+    }
+}
+
 fn route_by_id<'a>(routes: &'a [Value], route_id: &str) -> Option<&'a Value> {
     routes
         .iter()
@@ -312,11 +418,12 @@ fn is_route_param_name(name: &str) -> bool {
     chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-')
 }
 
-/// E606: every route MUST be reachable from `entry` via transitions[].to or embed-route bindings.
+/// Check reachability through declared local route edges.
 fn check_route_reachability(
     routes: &[Value],
     entry_id: &str,
     route_ids: &HashSet<String>,
+    native_screeners: bool,
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
     if !route_ids.contains(entry_id) {
@@ -332,7 +439,7 @@ fn check_route_reachability(
         return;
     }
 
-    // BFS reachability from entry, following transitions + embed-route bindings.
+    // BFS follows transitions, embeds, and native 0.3 Screener destinations.
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue: VecDeque<String> = VecDeque::new();
     queue.push_back(entry_id.to_string());
@@ -350,6 +457,22 @@ fn check_route_reachability(
         if let Some(transitions) = route.get("transitions").and_then(Value::as_array) {
             for t in transitions {
                 if let Some(target) = t.get("to").and_then(Value::as_str) {
+                    if route_ids.contains(target) && visited.insert(target.to_string()) {
+                        queue.push_back(target.to_string());
+                    }
+                }
+            }
+        }
+
+        // Native 0.3 bindings declare potential destinations, not eligibility rules.
+        if native_screeners {
+            for slot in route
+                .get("slots")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                for (_, target) in screener_targets(slot) {
                     if route_ids.contains(target) && visited.insert(target.to_string()) {
                         queue.push_back(target.to_string());
                     }
@@ -387,7 +510,7 @@ fn check_route_reachability(
                 PASS,
                 &format!("$.routes[{route_idx}]"),
                 &format!(
-                    "Route {route_id:?} is not reachable from the surface's entry route {entry_id:?} via any transitions[].to or embed-route slot bindings (SURFACE-ROUTE-UNREACHABLE)."
+                    "Route {route_id:?} is not reachable from the surface's entry route {entry_id:?} via transitions[].to, embed-route bindings, or native 0.3 Screener allowedTargets (SURFACE-ROUTE-UNREACHABLE)."
                 ),
             )));
         }
@@ -405,6 +528,100 @@ mod tests {
         include_str!("../../../tests/fixtures/lint/E607-surface-slot-binding-unresolved.json");
     const E610_FIXTURE: &str =
         include_str!("../../../tests/fixtures/lint/E610-surface-route-param-missing.json");
+
+    fn screener_surface() -> Value {
+        serde_json::json!({
+            "$formspecSurface": "0.3", "id": "app", "entry": "screen",
+            "routes": [
+                { "id": "screen", "path": "/screen", "slots": [
+                    { "id": "gate", "slotType": "screener", "binding": {
+                        "screenerRef": "urn:gate", "allowedTargets": ["surface:apply", "surface:paper"]
+                    }}
+                ]},
+                { "id": "apply", "path": "/apply", "slots": [{ "id": "text", "slotType": "static-content", "binding": { "kind": "text", "content": "Apply" }}]},
+                { "id": "paper", "path": "/paper", "slots": [{ "id": "text", "slotType": "static-content", "binding": { "kind": "text", "content": "Paper" }}]}
+            ]
+        })
+    }
+
+    #[test]
+    fn screener_destinations_are_local_reachability_edges_only_in_0_3() {
+        let mut doc = screener_surface();
+        assert!(lint_surface(&doc).is_empty());
+        assert!(
+            lint(&doc)
+                .diagnostics
+                .iter()
+                .all(|d| d.severity != crate::LintSeverity::Error)
+        );
+        doc["$formspecSurface"] = serde_json::json!("0.2");
+        assert!(
+            lint_surface(&doc)
+                .iter()
+                .any(|d| d.code == crate::LintCode::E606)
+        );
+    }
+
+    #[test]
+    fn direct_screener_destination_requires_inherited_parameters() {
+        let mut doc = screener_surface();
+        doc["routes"][1]["path"] = serde_json::json!("/apply/{matterId}");
+        doc["routes"][1]["params"] = serde_json::json!([{ "name": "matterId", "type": "string" }]);
+        assert!(
+            lint_surface(&doc)
+                .iter()
+                .any(|d| d.code == crate::LintCode::E610)
+        );
+        doc["routes"][0]["path"] = serde_json::json!("/screen/{matterId}");
+        doc["routes"][0]["params"] = serde_json::json!([{ "name": "matterId", "type": "string" }]);
+        assert!(lint_surface(&doc).is_empty());
+    }
+
+    #[test]
+    fn embedded_screener_does_not_use_its_own_params_as_host_evidence() {
+        let mut doc = screener_surface();
+        doc["routes"][1]["path"] = serde_json::json!("/apply/{matterId}");
+        doc["routes"][1]["params"] = serde_json::json!([{ "name": "matterId", "type": "string" }]);
+        doc["routes"].as_array_mut().unwrap().push(serde_json::json!({
+            "id": "host", "path": "/host", "slots": [{ "id": "nested", "slotType": "embed-route", "binding": { "routeRef": "screen" }}]
+        }));
+        doc["entry"] = serde_json::json!("host");
+        assert!(lint_surface(&doc).is_empty());
+    }
+
+    #[test]
+    fn mixed_embedded_and_direct_screener_keeps_parameter_check() {
+        for mode in ["entry", "transition", "screener"] {
+            let mut doc = screener_surface();
+            doc["routes"][1]["path"] = serde_json::json!("/apply/{matterId}");
+            doc["routes"][1]["params"] =
+                serde_json::json!([{ "name": "matterId", "type": "string" }]);
+            let mut host = serde_json::json!({
+                "id": "host", "path": "/host", "slots": [{ "id": "nested", "slotType": "embed-route", "binding": { "routeRef": "screen" }}]
+            });
+            match mode {
+                "entry" => {}
+                "transition" => {
+                    doc["entry"] = serde_json::json!("host");
+                    host["transitions"] = serde_json::json!([{ "on": "go", "to": "screen" }]);
+                }
+                "screener" => {
+                    doc["entry"] = serde_json::json!("host");
+                    host["slots"].as_array_mut().unwrap().push(serde_json::json!({
+                        "id": "gate", "slotType": "screener", "binding": { "screenerRef": "urn:gate", "allowedTargets": ["surface:screen"] }
+                    }));
+                }
+                _ => unreachable!(),
+            }
+            doc["routes"].as_array_mut().unwrap().push(host);
+            assert!(
+                lint_surface(&doc)
+                    .iter()
+                    .any(|d| d.code == crate::LintCode::E610),
+                "direct {mode} must remain checked"
+            );
+        }
+    }
 
     fn diag_codes(diags: &[LintDiagnostic]) -> Vec<&'static str> {
         diags.iter().map(|d| d.code.as_wire_str()).collect()
