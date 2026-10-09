@@ -14,6 +14,7 @@ formspec-core = { version = "0.2.0", path = "../formspec-core" }
 rust_decimal = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+semver_rs = "0.2.0"
 url = "2"
 
 # Integration tests call `fel_core` directly (round-trip checks); keep this explicit.

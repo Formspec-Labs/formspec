@@ -5,17 +5,18 @@ import { initFormspecEngine } from '@formspec-org/engine';
 import * as reactPackage from '@formspec-org/react';
 import * as engine from '@formspec-org/engine';
 import { dereferenceBundleExport } from '@formspec-org/surface';
+import type { SurfaceScreenerCompletionPolicy } from '../src/screener-completion.js';
 import { SurfaceApp } from '../src/SurfaceApp.js';
 beforeAll(() => initFormspecEngine());
 const screener = {$formspecScreener:'1.0',url:'urn:gate',version:'1.0.0',title:'Eligibility',items:[{type:'field',key:'eligible',dataType:'boolean',label:'Eligible?'}],binds:[{path:'eligible',required:'true'}],evaluation:[{id:'main',strategy:'first-match',routes:[{condition:'$eligible',target:'surface:apply'},{condition:'true',target:'surface:paper'}]}]};
-function mount(embedded = false, localized = false, routeClass: 'intake' | 'operation' = 'intake', themed = false) {
+function mount(embedded = false, localized = false, routeClass: 'intake' | 'operation' = 'intake', themed = false, policy?: SurfaceScreenerCompletionPolicy) {
  const bundle=dereferenceBundleExport({manifest:{$formspecBundle:'2.4',surfaces:[{url:'urn:surface',version:'1.0.0'}],screeners:[{url:'urn:gate',version:'1.0.0'}]},documents:{'urn:gate':screener,'urn:surface':{$formspecSurface:'0.3',id:'app',entry:'screen',routes:[{id:'screen',path:'/screen',routeClass:'intake',slots:[{id:'gate',slotType:'screener',binding:{screenerRef:'urn:gate',allowedTargets:['surface:apply','surface:paper']}}]},{id:'apply',path:'/apply',routeClass:'intake',slots:[{id:'t',slotType:'static-content',binding:{kind:'text',text:'Apply'}}]},{id:'paper',path:'/paper',routeClass:'intake',slots:[{id:'t',slotType:'static-content',binding:{kind:'text',text:'Paper'}}]}]}}});
  bundle.surfaces[0]!.routes[0]!.routeClass = routeClass;
  if (themed) bundle.tenantTheme = { $formspecTheme: '1.0', version: '1.0.0', tokens: { 'color.primary': '#123456' } };
  if (localized) bundle.localeDocuments = [{ $formspecLocale: '2.1', locale: 'es-US', version: '1.0.0', target: { kind: 'screener', url: 'urn:gate' }, strings: { '$form.title': 'Elegibilidad', '$ui.screener.yes': 'Sí' } }];
  if (embedded) {const surface=bundle.surfaces[0]!;const native=surface.routes[0]!.slots;surface.routes[0]!.slots=[{id:'embedded',slotType:'embed-route',binding:{routeRef:'questions'}}] as any;surface.routes.push({id:'questions',path:'/questions',routeClass:'intake',slots:native} as any);}
  const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);const onNavigate=vi.fn();
- const show=(nextBundle=bundle,nextLocation="/screen", activeLocale="en")=>act(()=>root.render(<SurfaceApp bundle={nextBundle} location={nextLocation} onNavigate={onNavigate} activeLocale={activeLocale} setDocumentTitle={false}/>));
+ const show=(nextBundle=bundle,nextLocation="/screen", activeLocale="en", nextPolicy=policy)=>act(()=>root.render(<SurfaceApp screenerCompletion={nextPolicy} bundle={nextBundle} location={nextLocation} onNavigate={onNavigate} activeLocale={activeLocale} setDocumentTitle={false}/>));
  show();
  const answer=(value:string)=>act(()=>{const select=container.querySelector('select')!;select.value=value;select.dispatchEvent(new Event('change',{bubbles:true}));});
  const submit=()=>act(()=>{(container.querySelector('.formspec-screener-continue') as HTMLButtonElement).click();});
@@ -28,8 +29,8 @@ describe('native Screener Surface slot',()=>{
   const spy=vi.spyOn(reactPackage,'FormspecScreener').mockImplementation(props=>{captured=props.onDetermination;return <Original {...props}/>;});
   try {
    const m=mount();m.answer('no');const first=captured;
-   const invoke=(callback:any)=>{const evaluationTime=new Date().toISOString();const answers={eligible:false};return callback(engine.wasmEvaluateScreenerDocument(screener as any,answers,{nowIso:evaluationTime}),answers,evaluationTime);};
-   m.show(structuredClone(m.bundle));expect(m.container.querySelector('select')!.value).toBe('');expect(invoke(first)).toEqual({status:'refused',reason:'screener-generation-stale'});
+   const invoke=(callback:any)=>{const evaluationTime=new Date().toISOString();const answers={eligible:false};return callback(engine.wasmEvaluateScreenerDocument(screener as any,answers,{nowIso:evaluationTime}),answers,evaluationTime,{signal:new AbortController().signal,completionId:crypto.randomUUID()});};
+   m.show(structuredClone(m.bundle));expect(m.container.querySelector('select')!.value).toBe('');expect(invoke(first)).toEqual({status:'refused',reason:'screener-completion-stale'});
    const second=captured;m.show(m.bundle,'/paper');m.show(m.bundle);expect(invoke(second).status).toBe('refused');
    const third=captured;m.unmount();expect(invoke(third).status).toBe('refused');expect(m.onNavigate).not.toHaveBeenCalled();
   } finally {spy.mockRestore();}
@@ -68,4 +69,66 @@ describe('native Screener Surface slot',()=>{
   expect(m.container.querySelector('button.formspec-button-primary')).not.toBeNull();
  });
 
+});
+
+describe('host-required native completion', () => {
+ const deferred = () => { let resolve!: (value: any) => void; let reject!: (reason: unknown) => void;
+   const promise = new Promise<any>((yes,no) => { resolve=yes; reject=no; }); return {promise,resolve,reject}; };
+ const flush = async (action: () => void) => { await act(async () => { action(); await Promise.resolve(); }); };
+ it.each([false,true])('awaits acceptance, locks controls and submits once; embedded=%s', async embedded => {
+   const d=deferred();const complete=vi.fn(()=>d.promise);const m=mount(embedded,false,'intake',false,{mode:'host-required',selectionKey:'selected',complete});
+   m.answer('no');m.submit();m.submit();expect(complete).toHaveBeenCalledTimes(1);expect(m.onNavigate).not.toHaveBeenCalled();
+   expect(m.container.querySelector('select')!.disabled).toBe(true);expect(m.container.querySelector('[aria-busy="true"]')).not.toBeNull();
+   const request=complete.mock.calls[0]![0] as any;
+   expect(request).toMatchObject({selectionKey:'selected',answers:{eligible:false},target:'surface:paper',screenerRef:{url:'urn:gate',version:'1.0.0'}});
+   expect(request.completionId).toBeTruthy();expect(request.determination.status).toBe('completed');
+   await flush(()=>d.resolve({status:'accepted'}));expect(m.onNavigate).toHaveBeenCalledExactlyOnceWith('/paper');m.unmount();
+ });
+ it('refuses an absent host, preserving answers',()=>{
+   const m=mount(false,false,'intake',false,{mode:'host-required',selectionKey:'selected'});m.answer('no');m.submit();
+   expect(m.onNavigate).not.toHaveBeenCalled();expect(m.container.querySelector('[data-finding]')?.getAttribute('data-finding')).toBe('screener-completion-host-unavailable');expect(m.container.querySelector('select')!.value).toBe('no');m.unmount();
+ });
+ it('retries unknown outcomes with the same native act and identity',async()=>{
+   const first=deferred();const complete=vi.fn().mockReturnValueOnce(first.promise).mockReturnValue({status:'accepted'});
+   const m=mount(false,false,'intake',false,{mode:'host-required',selectionKey:'selected',complete});m.answer('no');m.submit();
+   const initial=structuredClone({...complete.mock.calls[0]![0],signal:undefined});await flush(()=>first.reject(new Error('lost response')));
+   expect(m.container.querySelector('select')!.disabled).toBe(false);m.submit();
+   expect({...complete.mock.calls[1]![0],signal:undefined}).toEqual(initial);expect(m.onNavigate).toHaveBeenCalledExactlyOnceWith('/paper');m.unmount();
+ });
+ it('isolates qualification from host mutation',()=>{
+   const complete=vi.fn((request:any)=>{request.answers.eligible=true;request.determination.phases[0].matched[0].target='surface:apply';request.allowedTargets.length=0;return {status:'accepted'} as const;});
+   const m=mount(false,false,'intake',false,{mode:'host-required',selectionKey:'selected',complete});m.answer('no');m.submit();expect(m.onNavigate).toHaveBeenCalledExactlyOnceWith('/paper');m.unmount();
+ });
+ it.each(['port','selection','route','unmount'] as const)('retires pending work on %s replacement',async kind=>{
+   const d=deferred();const complete=vi.fn(()=>d.promise);const policy={mode:'host-required',selectionKey:'selected',complete} as const;
+   const m=mount(false,false,'intake',false,policy);m.answer('no');m.submit();const old=complete.mock.calls[0]![0] as any;
+   if(kind==='unmount')m.unmount();else if(kind==='route')m.show(m.bundle,'/paper');else m.show(m.bundle,'/screen','en',{...policy,...(kind==='port'?{complete:vi.fn(()=>({status:'refused',reason:'unavailable'} as const))}:{selectionKey:'new-selection'})});
+   expect(old.signal.aborted).toBe(true);await flush(()=>d.resolve({status:'accepted'}));expect(m.onNavigate).not.toHaveBeenCalled();
+   if(kind==='port'||kind==='selection'){expect(m.container.querySelector('select')!.value).toBe('no');expect(m.container.querySelector('select')!.disabled).toBe(false);}
+   if(kind!=='unmount')m.unmount();
+ });
+ it.each(['missing','collision','parameter'] as const)('checks %s destination before invoking the host',kind=>{
+   const complete=vi.fn(()=>({status:'accepted'} as const));const policy={mode:'host-required',selectionKey:'selected',complete} as const;
+   const m=mount(false,false,'intake',false,policy);const bundle=structuredClone(m.bundle);const surface=bundle.surfaces[0]!;
+   if(kind==='missing')surface.routes=surface.routes.filter(route=>route.id!=='paper');
+   else if(kind==='collision')surface.routes.find(route=>route.id==='paper')!.path='/apply';
+   else surface.routes.find(route=>route.id==='paper')!.path='/paper/{caseId}';
+   m.show(bundle);m.answer('no');m.submit();expect(complete).not.toHaveBeenCalled();expect(m.onNavigate).not.toHaveBeenCalled();m.unmount();
+ });
+ it('refuses evidence that expires while host acceptance is pending',async()=>{
+   vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-09T12:00:00Z'));
+   try {
+    const d=deferred();const complete=vi.fn(()=>d.promise);const m=mount(false,false,'intake',false,{mode:'host-required',selectionKey:'selected',complete});
+    const bundle=structuredClone(m.bundle);
+    // Dereferenced handles are the actual selected native resources.
+    bundle.screenerHandles[0]!.document.resultValidity='PT1S';
+    m.show(bundle);m.answer('no');m.submit();vi.setSystemTime(new Date('2026-10-09T12:00:02Z'));
+    await flush(()=>d.resolve({status:'accepted'}));expect(m.onNavigate).not.toHaveBeenCalled();expect(m.container.querySelector('[data-finding]')?.getAttribute('data-finding')).toBe('determination-expired');m.unmount();
+   } finally {vi.useRealTimers();}
+ });
+ it('preserves an in-flight act through Locale changes',async()=>{
+   const d=deferred();const complete=vi.fn(()=>d.promise);const m=mount(false,true,'intake',false,{mode:'host-required',selectionKey:'selected',complete});
+   m.answer('no');m.submit();m.show(m.bundle,'/screen','es-US');expect((complete.mock.calls[0]![0] as any).signal.aborted).toBe(false);
+   expect(m.container.querySelector('select')!.value).toBe('no');await flush(()=>d.resolve({status:'accepted'}));expect(m.onNavigate).toHaveBeenCalledExactlyOnceWith('/paper');m.unmount();
+ });
 });

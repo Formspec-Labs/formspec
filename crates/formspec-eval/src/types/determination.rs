@@ -1,7 +1,7 @@
 //! Determination Record types — structured output of screener evaluation.
 //!
 //! Maps directly to `schemas/determination.schema.json`. All types derive
-//! `Serialize` for JSON output via serde.
+//! `Serialize` for JSON output and strict `Deserialize` for retained-result replay.
 
 use std::borrow::Cow;
 
@@ -257,7 +257,8 @@ impl PartialEq<&str> for EliminationReason {
 }
 
 /// The complete evaluation output of a Screener Document.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub struct DeterminationRecord {
     /// Marker field. Always `"1.0"`.
@@ -286,7 +287,8 @@ pub struct DeterminationRecord {
 }
 
 /// Reference to the screener that produced a Determination Record.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ScreenerRef {
     /// Canonical URI of the screener.
     pub url: String,
@@ -295,7 +297,8 @@ pub struct ScreenerRef {
 }
 
 /// Override evaluation results.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct OverrideBlock {
     /// Override routes that fired.
     pub matched: Vec<RouteResult>,
@@ -304,7 +307,8 @@ pub struct OverrideBlock {
 }
 
 /// Result of evaluating a single phase.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PhaseResult {
     /// Phase identifier.
     pub id: String,
@@ -321,7 +325,8 @@ pub struct PhaseResult {
 }
 
 /// A single route's evaluation outcome.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RouteResult {
     /// Route target URI.
     pub target: String,
@@ -343,7 +348,8 @@ pub struct RouteResult {
 }
 
 /// A screener item's value and answer state at evaluation time.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InputEntry {
     /// The item's value (any JSON type, null when declined/not-presented).
     pub value: Value,
@@ -352,7 +358,8 @@ pub struct InputEntry {
 }
 
 /// Expiration metadata derived from `resultValidity`.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub struct ValidityBlock {
     /// When this record expires (timestamp + resultValidity).
@@ -362,7 +369,7 @@ pub struct ValidityBlock {
 }
 
 /// Answer state for a screener item input.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AnswerState {
     /// Respondent provided a value.
     #[serde(rename = "answered")]

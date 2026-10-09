@@ -1,3 +1,4 @@
+import type { SurfaceScreenerCompletionPolicy } from './screener-completion.js';
 /**
  * @filedesc `SurfaceApp` — a bundle's Surfaces, running.
  *
@@ -249,6 +250,8 @@ export function useSurfaceApp(input: UseSurfaceAppInput): SurfaceAppModel {
 }
 
 export interface SurfaceAppProps extends UseSurfaceAppInput {
+  /** Explicit awaited host completion; omitted means stateless navigation. */
+  screenerCompletion?: SurfaceScreenerCompletionPolicy | undefined;
   /** Selected host language for native Screener presentation. */
   activeLocale?: string | undefined;
   /** Host-admitted resources; defaults to exact manifested Locale documents. */
@@ -487,6 +490,15 @@ export function SurfaceApp(props: SurfaceAppProps) {
     strings,
   ]);
 
+  // One pure destination resolver is shared by preflight and navigation.
+  const screenerDestination = (target: string): { status: 'accepted'; href: string } | { status: 'refused'; reason: string } => {
+    if (!screenerVisit.active || liveScreenerVisit.current !== screenerVisit || !routePlan) return { status: 'refused', reason: 'screener-generation-stale' };
+    const matches = model.app.routes.filter(handle => `surface:${handle.routeId}` === target);
+    if (matches.length !== 1 || matches[0]!.pathCollides) return { status: 'refused', reason: 'screener-target-not-unique' };
+    const destination = routeHref(matches[0]!, routePlan.params);
+    return destination.refusal ? { status: 'refused', reason: destination.refusal } : { status: 'accepted', href: destination.href };
+  };
+
   const [runtimeDiagnosticsByScope, setRuntimeDiagnosticsByScope] = useState(
     () =>
       new Map<
@@ -640,6 +652,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
             <SurfaceRouteView
               key={`${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
               plan={routePlan}
+              screenerCompletion={props.screenerCompletion}
               screenerInstanceId={screenerVisit.id}
               localeDocuments={props.localeDocuments ?? props.bundle.localeDocuments}
               activeLocale={props.activeLocale}
@@ -666,12 +679,10 @@ export function SurfaceApp(props: SurfaceAppProps) {
               referencesDocuments={bundle.references ?? []}
               ontologyDocuments={bundle.ontologies ?? []}
               onFireTransition={props.onFireTransition}
+              checkScreenerTarget={screenerDestination}
               onScreenerTarget={(target) => {
-                if (!screenerVisit.active || liveScreenerVisit.current !== screenerVisit) return { status: 'refused', reason: 'screener-generation-stale' };
-                const matches = model.app.routes.filter(handle => `surface:${handle.routeId}` === target);
-                if (matches.length !== 1 || matches[0]!.pathCollides) return { status: 'refused', reason: 'screener-target-not-unique' };
-                const destination = routeHref(matches[0]!, routePlan.params);
-                if (destination.refusal) return { status: 'refused', reason: destination.refusal };
+                const destination = screenerDestination(target);
+                if (destination.status === 'refused') return destination;
                 onNavigate(destination.href);
                 return { status: 'accepted' };
               }}

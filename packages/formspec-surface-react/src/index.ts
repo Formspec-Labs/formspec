@@ -181,3 +181,5 @@ export { deriveSurfaceRuntimeGeneration, type SurfaceRuntimeGenerationInput } fr
 export type { DataSourceRevisionSelector } from './data-source-revision.js';
 
 export type { SurfaceRouteTitleResolver } from './title-presentation.js';
+
+export type { SurfaceScreenerCompletionPolicy, SurfaceScreenerCompletion, SurfaceScreenerCompletionRequest } from './screener-completion.js';

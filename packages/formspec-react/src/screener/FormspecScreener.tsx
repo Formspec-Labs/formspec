@@ -81,7 +81,7 @@ export function FormspecScreener({
   }
 
   return (
-    <div className={cls('formspec-container formspec-screener', className)} dir={options.onDetermination || options.activeLocale !== undefined || options.localeDocuments !== undefined ? direction : undefined}>
+    <div className={cls('formspec-container formspec-screener', className)} aria-busy={screener.state === 'completing'} dir={options.onDetermination || options.activeLocale !== undefined || options.localeDocuments !== undefined ? direction : undefined}>
       <h2 className="formspec-heading formspec-screener-heading">{text('$form.title', screenerDocument.title || chrome('screener.titleDefault'), screener.answers)}</h2>
       {screenerDocument.description && (
         <p className="formspec-screener-intro">{text('$form.description', screenerDocument.description, screener.answers)}</p>
@@ -93,6 +93,7 @@ export function FormspecScreener({
             key={item.key}
             fieldIdPrefix={fieldIdPrefix}
             presentation={screener.presentation}
+            disabled={screener.state === 'completing'}
             explicitBoolean={!!options.onDetermination}
             item={item}
             screener={screenerDocument}
@@ -107,6 +108,7 @@ export function FormspecScreener({
       <button
         type="button"
         className="formspec-button-primary formspec-screener-continue"
+        disabled={screener.state === 'completing'}
         onClick={screener.submit}
       >
         {chrome('screener.submit', undefined, screenerDocument.submitLabel)}
@@ -119,6 +121,7 @@ function ScreenerField({
   fieldIdPrefix,
   presentation,
   explicitBoolean,
+  disabled,
   item,
   screener,
   answers,
@@ -129,6 +132,7 @@ function ScreenerField({
   fieldIdPrefix: string;
   presentation: import('./use-screener-text').ScreenerPresentationText;
   explicitBoolean: boolean;
+  disabled: boolean;
   item: FormItem;
   screener: ScreenerDocumentInput;
   answers: ScreenerAnswers;
@@ -148,7 +152,7 @@ function ScreenerField({
       case 'boolean':
         if (explicitBoolean) return <>
           <label className="formspec-label" htmlFor={id}>{label}{required && <span className="formspec-required" aria-hidden="true">*</span>}</label>
-          <NativeSelectControl id={id} value={value === true ? 'yes' : value === false ? 'no' : ''} aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
+          <NativeSelectControl disabled={disabled} id={id} value={value === true ? 'yes' : value === false ? 'no' : ''} aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
             onChange={e => onChange(e.target.value === '' ? undefined : e.target.value === 'yes')}>
             <option value="">{chrome('select.placeholder')}</option><option value="yes">{chrome('screener.yes')}</option><option value="no">{chrome('screener.no')}</option>
           </NativeSelectControl>
@@ -156,6 +160,7 @@ function ScreenerField({
         return (
           <div className="formspec-field--inline">
             <input
+              disabled={disabled}
               className="formspec-input"
               id={id}
               type="checkbox"
@@ -175,6 +180,7 @@ function ScreenerField({
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
             <NativeSelectControl
+              disabled={disabled}
               id={id}
               value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
               onChange={(e) => onChange(e.target.value)}
@@ -199,6 +205,7 @@ function ScreenerField({
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
             <input
+              disabled={disabled}
               className="formspec-input"
               id={id}
               type="number"
@@ -221,6 +228,7 @@ function ScreenerField({
             <div className="formspec-money-field">
               <span className="formspec-money-currency">{moneyItem.currency || 'USD'}</span>
               <input
+              disabled={disabled}
               className="formspec-input"
                 id={id}
                 type="text"
@@ -257,6 +265,7 @@ function ScreenerField({
               {required && <span className="formspec-required" aria-hidden="true">*</span>}
             </label>
             <input
+              disabled={disabled}
               className="formspec-input"
               id={id}
               type="text"

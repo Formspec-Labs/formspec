@@ -366,6 +366,7 @@ dependencies = [
  "fel-core",
  "formspec-core",
  "rust_decimal",
+ "semver_rs",
  "serde",
  "serde_json",
  "url",

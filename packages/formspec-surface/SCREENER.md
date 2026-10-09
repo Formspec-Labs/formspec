@@ -27,8 +27,8 @@ Every presented field needs an explicit answer. Booleans offer an unanswered
 state, Yes and No. No is the genuine boolean false.
 
 `FormspecScreener` / `useScreener` offer optional
-`onDetermination(record, answers, evaluationTime)` returning
-`{status:"accepted"}` or `{status:"refused",reason:string}`. Native evaluation
+`onDetermination(record, answers, evaluationTime, {signal, completionId})` returning
+`{status:"accepted"}` or `{status:"refused",reason:string,retry?:"same-act"|"new-act"}`, synchronously or by Promise. Native evaluation
 receives `nowIso`. Refusal preserves answers and visible controls with a named
 finding. This mode does not call `onRoute` or allow skip completion. Existing
 standalone callers retain their default behavior.
@@ -52,3 +52,58 @@ required messages, and shared chrome. Language changes preserve answers,
 including explicit false. The native evaluation document and Determination
 remain canonical. Invalid Locale resources refuse with a named finding;
 interpolation failures retain literal text and expose translation warnings.
+
+## Awaited host completion
+
+`SurfaceApp`, `SurfaceRouteView`, and `SurfaceSlot` accept one optional
+`screenerCompletion` policy. Omitted or `{mode:"stateless"}` preserves qualified
+local navigation. `{mode:"host-required",selectionKey,complete}` requires a
+nonempty host-supplied selection key and completion callback. Missing either
+refuses with a named finding and preserves answers. Embedded slots inherit this
+policy. Direct `SurfaceRouteView`/`SurfaceSlot` hosts supply the pure
+`checkScreenerTarget` destination check as well as navigation; `SurfaceApp` supplies
+both from one maintained resolver. Destination checks run before host invocation
+and again when navigating. This is a runtime capability; authored documents need no migration.
+
+The exported `SurfaceScreenerCompletion` callback receives a
+`SurfaceScreenerCompletionRequest`: exact document/ref, closed primitive answers,
+full native Determination, invocation time, authored allowed targets, qualified
+target, outer route/parameters/slot, runtime generation, visit identity, opaque
+selection key, stable `completionId`, and `AbortSignal`. These browser values are
+diagnostic. The host owns authenticated actor, selected publication, trusted
+clock, storage and durable acceptance. The host should independently evaluate
+and qualify its selected Screener, retain the complete native result, and accept
+only when its durable Ready target equals the browser's attempted target. A
+changed target requires `{status:"refused",reason:"fresh-screening",retry:"new-act"}`.
+Acceptance cannot substitute a destination.
+
+While a Promise is pending, the hook reports `completing`, disables native
+controls and submit, and locks duplicate/reentrant submission. It awaits host
+acceptance, then rechecks result expiry and current route/visit before navigating.
+Answers remain visible after refusal. Callback replacement aborts pending work
+without clearing answers or the retained act. Selection replacement, answer
+edits, restart, document replacement or `retry:"new-act"` retire the act. Locale
+changes preserve both answers and pending work.
+
+Same-act retries reuse the exact private answers/result/invocation time and
+completion ID. A host should use that ID as its durable idempotency identity
+(for example an HTTP `Idempotency-Key`), reconcile an already committed result,
+and reject changed input under the same identity. Abort does not roll back host
+storage. A committed result followed by stale navigation is a navigation refusal;
+the host must reconcile its transaction. This in-memory act does not supply
+cross-reload recovery or retained-session continuity.
+
+`formspec_eval::admit_screener_qualification_profile(&document)` exposes the same
+pure supported-profile check for startup admission, without evaluation or invented
+answers. Hosts still enforce schema, size limits and selected publication authority.
+
+Rust consumers can call `formspec_eval::qualify_screener_determination` with the
+selected document, native result, typed `AnswerInput` map, trusted invocation and
+acceptance times, and allowed targets. It returns typed `Ready { target }` or
+`Refused { reason }` without evaluating or changing the full result. Incomplete
+native runs may be retained as Pending evidence, but never authorize navigation.
+Shared fixtures check parity with `resolveScreenerDetermination` for the bounded
+presenter. The Rust helper uses RFC3339 time at millisecond precision; exhaustive
+browser timestamp-parser equivalence is not claimed. `DeterminationRecord` and
+its nested result types now deserialize for retained-result replay without
+expanding the WASM or Python API.

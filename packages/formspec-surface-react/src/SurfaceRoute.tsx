@@ -1,3 +1,4 @@
+import type { SurfaceScreenerCompletionPolicy } from './screener-completion.js';
 /**
  * @filedesc `SurfaceRouteView` — one route plan, rendered, with its theme
  * boundary.
@@ -80,7 +81,10 @@ import { needTraceAttributes } from './need-trace.js';
 export interface SurfaceRouteViewProps {
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
+  screenerCompletion?: SurfaceScreenerCompletionPolicy | undefined;
   screenerInstanceId?: string | undefined;
+  /** Pure destination check; required before host-required completion. */
+  checkScreenerTarget?: ((target: string) => { status: 'accepted' } | { status: 'refused'; reason: string }) | undefined;
   onScreenerTarget?: ((target: string) => { status: 'accepted' } | { status: 'refused'; reason: string }) | undefined;
   /** Everything the core decided for this route. Nothing here re-decides it. */
   plan: SurfaceRoutePlan<SurfaceWidget>;
@@ -166,7 +170,9 @@ export function SurfaceRouteView({
   onFireTransition,
   onAdvance,
   onScreenerTarget,
+  checkScreenerTarget,
   screenerInstanceId,
+  screenerCompletion,
   localeDocuments,
   activeLocale,
 }: SurfaceRouteViewProps) {
@@ -241,7 +247,9 @@ export function SurfaceRouteView({
           <SurfaceSlotFrame
             key={slotPlan.slotId}
             plan={slotPlan}
-            onScreenerTarget={onScreenerTarget}
+            screenerCompletion={screenerCompletion}
+              checkScreenerTarget={checkScreenerTarget}
+              onScreenerTarget={onScreenerTarget}
             screenerInstanceId={screenerInstanceId}
             localeDocuments={localeDocuments}
             activeLocale={activeLocale}

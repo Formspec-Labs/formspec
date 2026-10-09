@@ -52,13 +52,16 @@ export interface ScreenerStateSnapshot {
   answers: ScreenerAnswers;
 }
 
-export type ScreenerCompletionDisposition = { status: 'accepted' } | { status: 'refused'; reason: string };
+export type ScreenerCompletionDisposition = { status: 'accepted' } | { status: 'refused'; reason: string; retry?: 'same-act' | 'new-act' };
 export interface UseScreenerOptions {
   /** Host-admitted Screener-target Locale resources; Definition/App targets stay separate. */
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
   /** Opt-in native completion. Acceptance precedes leaving answering state. */
-  onDetermination?: (record: DeterminationRecord, answers: ScreenerAnswers, evaluationTime: string) => ScreenerCompletionDisposition;
+  onDetermination?: (record: DeterminationRecord, answers: ScreenerAnswers, evaluationTime: string,
+    context: { signal: AbortSignal; completionId: string }) => ScreenerCompletionDisposition | Promise<ScreenerCompletionDisposition>;
+  /** Opaque completion scope; replacement retires the act while preserving answers. */
+  completionKey?: string | undefined;
   /** Pre-fill answers. */
   seedAnswers?: ScreenerAnswers;
   /** Standalone Screener Document. */
@@ -69,7 +72,7 @@ export interface UseScreenerOptions {
 
 export interface UseScreenerResult {
   /** Current screener state. */
-  state: 'idle' | 'answering' | 'routed';
+  state: 'idle' | 'answering' | 'completing' | 'routed';
   /** Current answers. */
   answers: ScreenerAnswers;
   /** Screener items from the loaded document. */

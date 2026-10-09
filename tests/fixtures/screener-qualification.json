@@ -1,0 +1,830 @@
+{
+  "base": {
+    "document": {
+      "$formspecScreener": "1.0",
+      "url": "urn:test:gate",
+      "version": "1.0.0",
+      "items": [
+        {
+          "type": "field",
+          "key": "eligible",
+          "dataType": "boolean",
+          "label": "Eligible?"
+        }
+      ],
+      "binds": [
+        {
+          "path": "eligible",
+          "required": "true"
+        }
+      ],
+      "evaluation": [
+        {
+          "id": "main",
+          "strategy": "first-match",
+          "routes": [
+            {
+              "condition": "$eligible",
+              "target": "surface:apply"
+            },
+            {
+              "condition": "true",
+              "target": "surface:paper"
+            }
+          ]
+        }
+      ]
+    },
+    "determination": {
+      "$formspecDetermination": "1.0",
+      "screener": {
+        "url": "urn:test:gate",
+        "version": "1.0.0"
+      },
+      "evaluationVersion": "1.0.0",
+      "timestamp": "2026-10-09T12:00:00Z",
+      "status": "completed",
+      "overrides": {
+        "matched": [],
+        "halted": false
+      },
+      "phases": [
+        {
+          "id": "main",
+          "status": "evaluated",
+          "strategy": "first-match",
+          "matched": [
+            {
+              "target": "surface:paper"
+            }
+          ],
+          "eliminated": [],
+          "warnings": []
+        }
+      ],
+      "inputs": {
+        "eligible": {
+          "state": "answered",
+          "value": false
+        }
+      }
+    },
+    "answers": {
+      "eligible": false
+    },
+    "answerStates": {},
+    "evaluationTime": "2026-10-09T12:00:00Z",
+    "nowIso": "2026-10-09T12:00:01Z",
+    "allowedTargets": [
+      "surface:apply",
+      "surface:paper"
+    ]
+  },
+  "cases": [
+    {
+      "id": "negative-false-is-ready",
+      "patches": [],
+      "expected": {
+        "status": "ready",
+        "target": "surface:paper"
+      }
+    },
+    {
+      "id": "positive-is-ready",
+      "patches": [
+        {
+          "path": "/answers/eligible",
+          "value": true
+        },
+        {
+          "path": "/determination/inputs/eligible/value",
+          "value": true
+        },
+        {
+          "path": "/determination/phases/0/matched",
+          "value": [
+            {
+              "target": "surface:apply"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "status": "ready",
+        "target": "surface:apply"
+      }
+    },
+    {
+      "id": "empty-answers-despite-completed",
+      "patches": [
+        {
+          "path": "/answers",
+          "value": {}
+        },
+        {
+          "path": "/determination/inputs",
+          "value": {}
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-input-coverage"
+      }
+    },
+    {
+      "id": "missing-answer",
+      "patches": [
+        {
+          "path": "/answers",
+          "value": {}
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-input-coverage"
+      }
+    },
+    {
+      "id": "extra-answer",
+      "patches": [
+        {
+          "path": "/answers",
+          "value": {
+            "eligible": false,
+            "extra": 1
+          }
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-input-coverage"
+      }
+    },
+    {
+      "id": "wrong-input-key",
+      "patches": [
+        {
+          "path": "/determination/inputs",
+          "value": {
+            "other": {
+              "state": "answered",
+              "value": false
+            }
+          }
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-input-mismatch"
+      }
+    },
+    {
+      "id": "declined",
+      "patches": [
+        {
+          "path": "/determination/inputs/eligible/state",
+          "value": "declined"
+        },
+        {
+          "path": "/answerStates/eligible",
+          "value": "declined"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-input-unanswered"
+      }
+    },
+    {
+      "id": "not-presented",
+      "patches": [
+        {
+          "path": "/determination/inputs/eligible/state",
+          "value": "not-presented"
+        },
+        {
+          "path": "/answerStates/eligible",
+          "value": "not-presented"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-input-unanswered"
+      }
+    },
+    {
+      "id": "string-false-contradicts-boolean",
+      "patches": [
+        {
+          "path": "/determination/inputs/eligible/value",
+          "value": "false"
+        },
+        {
+          "path": "/answers/eligible",
+          "value": "false"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-input-mismatch"
+      }
+    },
+    {
+      "id": "retained-value-substitution",
+      "patches": [
+        {
+          "path": "/determination/inputs/eligible/value",
+          "value": true
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-input-mismatch"
+      }
+    },
+    {
+      "id": "pin-url",
+      "patches": [
+        {
+          "path": "/determination/screener/url",
+          "value": "urn:other"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-pin-mismatch"
+      }
+    },
+    {
+      "id": "pin-version",
+      "patches": [
+        {
+          "path": "/determination/screener/version",
+          "value": "2.0.0"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-pin-mismatch"
+      }
+    },
+    {
+      "id": "pin-evaluationVersion",
+      "patches": [
+        {
+          "path": "/determination/evaluationVersion",
+          "value": "2.0.0"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-pin-mismatch"
+      }
+    },
+    {
+      "id": "pin-$formspecDetermination",
+      "patches": [
+        {
+          "path": "/determination/$formspecDetermination",
+          "value": "0.9"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-pin-mismatch"
+      }
+    },
+    {
+      "id": "native-status-partial",
+      "patches": [
+        {
+          "path": "/determination/status",
+          "value": "partial"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-not-completed"
+      }
+    },
+    {
+      "id": "native-status-expired",
+      "patches": [
+        {
+          "path": "/determination/status",
+          "value": "expired"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-not-completed"
+      }
+    },
+    {
+      "id": "native-status-unavailable",
+      "patches": [
+        {
+          "path": "/determination/status",
+          "value": "unavailable"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-not-completed"
+      }
+    },
+    {
+      "id": "wrong-invocation-time",
+      "patches": [
+        {
+          "path": "/evaluationTime",
+          "value": "2026-10-09T11:59:59Z"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-time-invalid"
+      }
+    },
+    {
+      "id": "future-result",
+      "patches": [
+        {
+          "path": "/nowIso",
+          "value": "2026-10-09T11:59:59Z"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-time-invalid"
+      }
+    },
+    {
+      "id": "invalid-time",
+      "patches": [
+        {
+          "path": "/nowIso",
+          "value": "garbage"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-time-invalid"
+      }
+    },
+    {
+      "id": "equivalent-instant-offset",
+      "patches": [
+        {
+          "path": "/determination/timestamp",
+          "value": "2026-10-09T14:00:00.000+02:00"
+        }
+      ],
+      "expected": {
+        "status": "ready",
+        "target": "surface:paper"
+      }
+    },
+    {
+      "id": "millisecond-fraction-spellings",
+      "patches": [
+        {
+          "path": "/determination/timestamp",
+          "value": "2026-10-09T12:00:00.230Z"
+        },
+        {
+          "path": "/evaluationTime",
+          "value": "2026-10-09T12:00:00.23Z"
+        }
+      ],
+      "expected": {
+        "status": "ready",
+        "target": "surface:paper"
+      }
+    },
+    {
+      "id": "authored-validity-missing",
+      "patches": [
+        {
+          "path": "/document/resultValidity",
+          "value": "PT1H"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-validity-missing"
+      }
+    },
+    {
+      "id": "unexpired-validity",
+      "patches": [
+        {
+          "path": "/document/resultValidity",
+          "value": "PT1H"
+        },
+        {
+          "path": "/determination/validity",
+          "value": {
+            "validUntil": "2026-10-09T13:00:00Z",
+            "resultValidity": "PT1H"
+          }
+        }
+      ],
+      "expected": {
+        "status": "ready",
+        "target": "surface:paper"
+      }
+    },
+    {
+      "id": "expiry-at-acceptance",
+      "patches": [
+        {
+          "path": "/determination/validity",
+          "value": {
+            "validUntil": "2026-10-09T12:00:01Z",
+            "resultValidity": "PT1S"
+          }
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-expired"
+      }
+    },
+    {
+      "id": "malformed-expiry",
+      "patches": [
+        {
+          "path": "/determination/validity",
+          "value": {
+            "validUntil": "invalid",
+            "resultValidity": "PT1S"
+          }
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-expired"
+      }
+    },
+    {
+      "id": "native-warnings",
+      "patches": [
+        {
+          "path": "/determination/phases/0/warnings",
+          "value": [
+            "fel-expression-error"
+          ]
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-diagnostics"
+      }
+    },
+    {
+      "id": "unsupported-phase",
+      "patches": [
+        {
+          "path": "/determination/phases/0/status",
+          "value": "unsupported-strategy"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-diagnostics"
+      }
+    },
+    {
+      "id": "unknown-strategy-even-if-marked-evaluated",
+      "patches": [
+        {
+          "path": "/determination/phases/0/strategy",
+          "value": "unknown"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-diagnostics"
+      }
+    },
+    {
+      "id": "repeated-equal-destination",
+      "patches": [
+        {
+          "path": "/determination/overrides/matched",
+          "value": [
+            {
+              "target": "surface:paper"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "status": "ready",
+        "target": "surface:paper"
+      }
+    },
+    {
+      "id": "ambiguous-destinations",
+      "patches": [
+        {
+          "path": "/determination/overrides/matched",
+          "value": [
+            {
+              "target": "surface:apply"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-target-not-unique"
+      }
+    },
+    {
+      "id": "unallowed-destination",
+      "patches": [
+        {
+          "path": "/determination/overrides/matched",
+          "value": [
+            {
+              "target": "surface:foreign"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-target-disallowed"
+      }
+    },
+    {
+      "id": "no-destination",
+      "patches": [
+        {
+          "path": "/determination/phases/0/matched",
+          "value": []
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-target-not-unique"
+      }
+    },
+    {
+      "id": "allowed-empty",
+      "patches": [
+        {
+          "path": "/allowedTargets",
+          "value": []
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "allowed-target-invalid"
+      }
+    },
+    {
+      "id": "allowed-duplicate",
+      "patches": [
+        {
+          "path": "/allowedTargets",
+          "value": [
+            "surface:paper",
+            "surface:paper"
+          ]
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "allowed-target-invalid"
+      }
+    },
+    {
+      "id": "allowed-unauthored",
+      "patches": [
+        {
+          "path": "/allowedTargets",
+          "value": [
+            "surface:foreign"
+          ]
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "allowed-target-invalid"
+      }
+    },
+    {
+      "id": "allowed-wrong-scheme",
+      "patches": [
+        {
+          "path": "/allowedTargets",
+          "value": [
+            "https://example.com"
+          ]
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "allowed-target-invalid"
+      }
+    },
+    {
+      "id": "invalid-document-version",
+      "patches": [
+        {
+          "path": "/document/version",
+          "value": "invalid"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "screener-pin-invalid"
+      }
+    },
+    {
+      "id": "unsupported-item",
+      "patches": [
+        {
+          "path": "/document/items/0/required",
+          "value": true
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "item-unsupported"
+      }
+    },
+    {
+      "id": "unsupported-required-expression",
+      "patches": [
+        {
+          "path": "/document/binds/0/required",
+          "value": "$other"
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "bind-unsupported"
+      }
+    },
+    {
+      "id": "supported-string",
+      "patches": [
+        {
+          "path": "/document/items/0/dataType",
+          "value": "string"
+        },
+        {
+          "path": "/determination/inputs/eligible/value",
+          "value": "hello"
+        },
+        {
+          "path": "/answers/eligible",
+          "value": "hello"
+        }
+      ],
+      "expected": {
+        "status": "ready",
+        "target": "surface:paper"
+      }
+    },
+    {
+      "id": "supported-integer",
+      "patches": [
+        {
+          "path": "/document/items/0/dataType",
+          "value": "integer"
+        },
+        {
+          "path": "/determination/inputs/eligible/value",
+          "value": 1
+        },
+        {
+          "path": "/answers/eligible",
+          "value": 1
+        }
+      ],
+      "expected": {
+        "status": "ready",
+        "target": "surface:paper"
+      }
+    },
+    {
+      "id": "supported-decimal",
+      "patches": [
+        {
+          "path": "/document/items/0/dataType",
+          "value": "decimal"
+        },
+        {
+          "path": "/determination/inputs/eligible/value",
+          "value": 1.25
+        },
+        {
+          "path": "/answers/eligible",
+          "value": 1.25
+        }
+      ],
+      "expected": {
+        "status": "ready",
+        "target": "surface:paper"
+      }
+    },
+    {
+      "id": "supported-choice",
+      "patches": [
+        {
+          "path": "/document/items/0/dataType",
+          "value": "choice"
+        },
+        {
+          "path": "/determination/inputs/eligible/value",
+          "value": "a.b"
+        },
+        {
+          "path": "/answers/eligible",
+          "value": "a.b"
+        },
+        {
+          "path": "/document/items/0/options",
+          "value": [
+            {
+              "value": "a.b",
+              "label": "A"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "status": "ready",
+        "target": "surface:paper"
+      }
+    },
+    {
+      "id": "empty-required-string",
+      "patches": [
+        {
+          "path": "/document/items/0/dataType",
+          "value": "string"
+        },
+        {
+          "path": "/determination/inputs/eligible/value",
+          "value": ""
+        },
+        {
+          "path": "/answers/eligible",
+          "value": ""
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-required-answer"
+      }
+    },
+    {
+      "id": "unsafe-integer",
+      "patches": [
+        {
+          "path": "/document/items/0/dataType",
+          "value": "integer"
+        },
+        {
+          "path": "/determination/inputs/eligible/value",
+          "value": 9007199254740992
+        },
+        {
+          "path": "/answers/eligible",
+          "value": 9007199254740992
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-input-mismatch"
+      }
+    },
+    {
+      "id": "nonintegral-integer",
+      "patches": [
+        {
+          "path": "/document/items/0/dataType",
+          "value": "integer"
+        },
+        {
+          "path": "/determination/inputs/eligible/value",
+          "value": 1.5
+        },
+        {
+          "path": "/answers/eligible",
+          "value": 1.5
+        }
+      ],
+      "expected": {
+        "status": "refused",
+        "reason": "determination-input-mismatch"
+      }
+    }
+  ]
+}

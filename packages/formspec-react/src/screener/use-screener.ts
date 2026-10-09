@@ -1,7 +1,7 @@
 'use client';
 
 /** @filedesc useScreener — React hook for the Formspec screener gate. */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { evalFEL, wasmEvaluateScreenerDocument } from '@formspec-org/engine';
 import { useScreenerText } from './use-screener-text';
 import type { Bind, DeterminationRecord, FormItem, RouteResult } from '@formspec-org/types';
@@ -120,7 +120,7 @@ export function useScreener(
     buildSeedAnswers(items, options.seedAnswers),
   );
 
-  const [state, setState] = useState<'idle' | 'answering' | 'routed'>('idle');
+  const [state, setState] = useState<'idle' | 'answering' | 'completing' | 'routed'>('idle');
   const [routeResult, setRouteResult] = useState<{
     route: ScreenerRoute;
     routeType: ScreenerRouteType;
@@ -138,7 +138,31 @@ export function useScreener(
     return [key, issue];
   }));
 
+  // The pending lock is synchronous: two submits in one turn share one act.
+  const accepted = useRef(false);
+  const pending = useRef<AbortController | null>(null);
+  const act = useRef<{ completionId: string; record: DeterminationRecord; answers: ScreenerAnswers; evaluationTime: string } | null>(null);
+  const live = useRef({ document: screenerDoc, key: options.completionKey });
+  live.current = { document: screenerDoc, key: options.completionKey };
+  const retire = useCallback(() => {
+    pending.current?.abort();
+    pending.current = null;
+    act.current = null;
+    accepted.current = false;
+  }, []);
+  useLayoutEffect(() => {
+    setState(s => s === 'completing' ? 'answering' : s);
+    return retire;
+  }, [screenerDoc, options.completionKey, retire]);
+
+  useLayoutEffect(() => {
+    setState(s => s === 'completing' ? 'answering' : s);
+    return () => { pending.current?.abort(); pending.current = null; };
+  }, [options.onDetermination]);
+
   const setAnswer = useCallback((key: string, value: ScreenerFieldValue | undefined) => {
+    retire();
+    setState('answering');
     setAnswers((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => {
       if (!prev[key]) return prev;
@@ -147,9 +171,10 @@ export function useScreener(
       return next;
     });
     setState((s) => (s === 'idle' ? 'answering' : s));
-  }, []);
+  }, [retire]);
 
   const submit = useCallback(() => {
+    if (pending.current || accepted.current) return;
     if (presentation.localeFinding) { setErrors({ $completion: presentation.localeFinding }); return; }
     const newErrors: Record<string, string> = {};
     const hasExplicitRequired = items.some((i) => isItemRequired(i, screenerDoc, answers));
@@ -185,17 +210,36 @@ export function useScreener(
         if (answers[item.key] === undefined || answers[item.key] === null) newErrors[item.key] = 'answerRequired';
       }
       if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
-      setState('answering');
+      if (!screenerDoc) { setErrors({ $completion: 'screener-unavailable' }); return; }
+      const controller = new AbortController();
+      pending.current = controller;
+      const current = () => pending.current === controller && !controller.signal.aborted
+        && live.current.document === screenerDoc && live.current.key === options.completionKey;
+      const settle = (disposition: import('./types').ScreenerCompletionDisposition) => {
+        if (!current()) return;
+        pending.current = null;
+        if (disposition.status === 'accepted') { accepted.current = true; act.current = null; setState('routed'); }
+        else {
+          if (disposition.retry === 'new-act') act.current = null;
+          setState('answering');
+          setErrors({ $completion: disposition.reason });
+        }
+      };
+      const fail = () => settle({ status: 'refused', reason: 'screener-evaluation-or-completion-failed' });
+      setState('completing');
       try {
-        if (!screenerDoc) { setErrors({ $completion: 'screener-unavailable' }); return; }
-        const evaluationTime = new Date().toISOString();
-        const record = wasmEvaluateScreenerDocument(screenerDoc, answers, { nowIso: evaluationTime });
-        const disposition = options.onDetermination(record, answers, evaluationTime);
-        if (disposition.status === 'accepted') setState('routed');
-        else setErrors({ $completion: disposition.reason });
-      } catch {
-        setErrors({ $completion: 'screener-evaluation-or-completion-failed' });
-      }
+        if (!act.current) {
+          const evaluationTime = new Date().toISOString();
+          const snapshot = structuredClone(answers);
+          act.current = { completionId: crypto.randomUUID(), evaluationTime, answers: snapshot,
+            record: wasmEvaluateScreenerDocument(screenerDoc, snapshot, { nowIso: evaluationTime }) };
+        }
+        const attempt = structuredClone(act.current);
+        const disposition = options.onDetermination(attempt.record, attempt.answers, attempt.evaluationTime,
+          { signal: controller.signal, completionId: attempt.completionId });
+        if ('then' in disposition) void Promise.resolve(disposition).then(settle, fail);
+        else settle(disposition);
+      } catch { fail(); }
       return;
     }
 
@@ -251,12 +295,13 @@ export function useScreener(
   }, [answers, items, routes, screenerDoc, options, presentation.localeFinding]);
 
   const restart = useCallback(() => {
+    retire();
     setAnswers(buildSeedAnswers(items, options.seedAnswers));
     setRouteResult(null);
     setErrors({});
     setState('idle');
     setSkipped(false);
-  }, [items, options.seedAnswers]);
+  }, [items, options.seedAnswers, retire]);
 
   const skip = useCallback(() => {
     if (!options.onDetermination) setSkipped(true);

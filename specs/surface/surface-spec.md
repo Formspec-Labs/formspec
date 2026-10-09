@@ -613,12 +613,29 @@ controls with a named finding. It MUST NOT run legacy route or skip completion.
 Before navigation the shell MUST check the live mounted composition and route
 visit, unique destination, path collisions, and required route parameters.
 
-This bounded slot is stateless and claims no retained-session or availability
-continuity. It inherits the route Theme grant. Definition Components and Locale
-2.0 Definition/App targets MUST NOT be redirected to a Screener. This first
-presentation is language-limited; bilingual qualification requires a deliberate
-native Screener Locale extension. No task, draft, provider, signing or agency
-verification authority follows from a successful Screener destination.
+The default bounded slot is stateless and claims no retained-session or
+availability continuity. A host MAY explicitly require awaited completion
+through a runtime capability. In that mode, missing host acceptance MUST refuse
+navigation. The renderer MUST pass an exact snapshot of answers, full native
+Determination, selected Screener and navigation context, invocation time, opaque
+host selection key, stable act identity, and abort signal. Browser observations
+MUST NOT establish host actor, publication, clock or storage authority.
+
+Host-required completion MUST await host acceptance before navigating, then
+recheck result validity and the live route visit. Pending completion MUST prevent
+duplicate submission. Refusal MUST preserve answers. Answer, document, selection,
+route-visit or session replacement MUST retire pending work; callback replacement
+MUST retire the pending port without clearing answers. Locale changes MUST
+preserve answers. Same-act retries MUST preserve the native invocation and act
+identity. Abort does not imply rollback of host storage; durable idempotency and
+reconciliation remain host responsibilities. A host accepting durable completion
+MUST independently qualify its selected native result and confirm the exact
+attempted destination; it MUST NOT substitute a different destination.
+
+The slot inherits the route Theme grant. Definition Components and Locale 2.0
+Definition/App targets MUST NOT be redirected to a Screener. Locale 2.1 may target
+the selected Screener. No task, draft, provider, signing or agency verification
+authority follows from a successful Screener destination.
 
 ## 6. The `surface:<route-id>` URI scheme
 

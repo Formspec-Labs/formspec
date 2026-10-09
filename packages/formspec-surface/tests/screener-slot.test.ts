@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { admitScreenerPresentation, resolveScreenerDetermination } from '../src/screener-slot.js';
 const document = { $formspecScreener: '1.0', url: 'urn:gate', version: '1.0.0', items: [{ type: 'field', key: 'eligible', dataType: 'boolean', label: 'Eligible' }], binds: [{path:'eligible',required:'true'}], evaluation: [{id:'main',strategy:'first-match',routes:[{condition:'$eligible',target:'surface:apply'},{condition:'true',target:'surface:paper'}]}] } as any;
-const record = () => ({$formspecDetermination:'1.0',screener:{url:'urn:gate',version:'1.0.0'},evaluationVersion:'1.0.0',timestamp:'2026-10-09T00:00:00Z',status:'completed',overrides:{matched:[],halted:false},phases:[{id:'main',status:'evaluated',matched:[{target:'surface:paper'}],eliminated:[],warnings:[]}],inputs:{eligible:{state:'answered',value:false}}}) as any;
+const record = () => ({$formspecDetermination:'1.0',screener:{url:'urn:gate',version:'1.0.0'},evaluationVersion:'1.0.0',timestamp:'2026-10-09T00:00:00Z',status:'completed',overrides:{matched:[],halted:false},phases:[{id:'main',status:'evaluated',strategy:'first-match',matched:[{target:'surface:paper'}],eliminated:[],warnings:[]}],inputs:{eligible:{state:'answered',value:false}}}) as any;
 const resolve = (r:any) => resolveScreenerDetermination({document,allowedTargets:['surface:apply','surface:paper'],determination:r,answers:{eligible:false},evaluationTime:'2026-10-09T00:00:00Z',nowIso:'2026-10-09T00:00:01Z'});
 describe('native Screener admission',()=>{
  it('admits canonical flat boolean fields and literal requiredness',()=>expect(admitScreenerPresentation(document).status).toBe('ready'));

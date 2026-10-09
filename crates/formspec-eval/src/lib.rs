@@ -32,6 +32,7 @@ pub mod rebuild;
 pub mod recalculate;
 pub mod revalidate;
 pub mod screener_eval;
+pub mod screener_qualification;
 pub mod types;
 
 mod eval_json;
@@ -42,9 +43,9 @@ mod runtime_seed;
 
 pub use convert::resolve_value_by_path;
 pub use eval_json::{
-    EvalHostContextBundle, eval_context_from_json_object, eval_host_context_from_json_map,
+    eval_context_from_json_object, eval_host_context_from_json_map,
     evaluation_result_to_json_value, evaluation_result_to_json_value_styled,
-    item_text_request_from_json_object,
+    item_text_request_from_json_object, EvalHostContextBundle,
 };
 pub use eval_options::EvalOptions;
 pub use host_context::HostFelContext;
@@ -56,9 +57,14 @@ pub use recalculate::{recalculate, topo_sort_variables};
 pub use registry_constraints::extension_constraints_from_registry_documents;
 pub use revalidate::revalidate;
 pub use screener_eval::evaluate_screener_document;
+#[doc(inline)]
+pub use screener_qualification::{
+    admit_screener_qualification_profile, qualify_screener_determination,
+    ScreenerDeterminationQualification, ScreenerQualificationRefusal,
+};
 pub use types::{
-    AnswerInput, AnswerState, DeterminationRecord, EvalContext, EvalDiagnostic, EvalTrigger,
-    EvaluationResult, ExtensionConstraint, InputEntry, ItemInfo, ItemText, ItemTextRequest,
-    NrbMode, OverrideBlock, PhaseResult, RouteResult, ScreenerRef, ValidationResult, ValidityBlock,
-    VariableDef, WhitespaceMode, parse_answer_state,
+    parse_answer_state, AnswerInput, AnswerState, DeterminationRecord, EvalContext, EvalDiagnostic,
+    EvalTrigger, EvaluationResult, ExtensionConstraint, InputEntry, ItemInfo, ItemText,
+    ItemTextRequest, NrbMode, OverrideBlock, PhaseResult, RouteResult, ScreenerRef,
+    ValidationResult, ValidityBlock, VariableDef, WhitespaceMode,
 };
