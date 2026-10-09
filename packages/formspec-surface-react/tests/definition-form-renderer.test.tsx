@@ -18,7 +18,7 @@ import { SurfaceApp } from '../src/SurfaceApp.js';
 import {
   createSurfaceSemanticOutputScopeResolver,
 } from '../src/semantic-output.js';
-import { createSurfaceSemanticControlScopeResolver } from '../src/SurfaceSlot.js';
+import { createSurfaceSemanticControlScopeResolver, renderDefaultDefinitionForm } from '../src/SurfaceSlot.js';
 import type {
   SurfaceDefinitionFormRenderer,
   SurfaceSemanticControlScopeRequest,
@@ -87,6 +87,44 @@ function fixture(): ResolvedBundle {
 }
 
 describe('renderDefinitionForm', () => {
+  it('reuses native Component and exact Definition Locale resources without resetting entered data', () => {
+    const bundle = fixture();
+    const definition = bundle.definitions.get(DEFINITION_REF)!;
+    definition.items = [{ type: 'field', key: 'name', dataType: 'string', label: 'Name' }];
+    const componentDocument = {
+      $formspecComponent: '1.2', version: '1.0.0', targetDefinition: { url: DEFINITION_REF },
+      tree: { component: 'Stack', children: [
+        { component: 'Text', text: 'Native Component layout' }, { component: 'TextInput', bind: 'name' },
+      ] },
+    };
+    const localeDocuments = [
+      { $formspecLocale: '2.0', version: '1.0.0', locale: 'es-US', target: { kind: 'definition', url: DEFINITION_REF }, strings: { 'name.label': 'Nombre' } },
+      { $formspecLocale: '2.0', version: '1.0.0', locale: 'en', target: { kind: 'definition', url: DEFINITION_REF }, strings: { 'name.label': 'Name' } },
+      { $formspecLocale: '2.0', version: '1.0.0', locale: 'es-US', target: { kind: 'definition', url: 'urn:other-definition' }, strings: { 'name.label': 'Wrong target' } },
+    ];
+    let activeLocale = 'es-US';
+    const renderer: SurfaceDefinitionFormRenderer = input => renderDefaultDefinitionForm({
+      ...input, componentDocument, localeDocuments, activeLocale,
+    } as any);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const show = () => root.render(<SurfaceApp bundle={bundle} location="/apply" onNavigate={() => {}}
+      renderDefinitionForm={renderer} setDocumentTitle={false} />);
+    act(show);
+    expect(container.textContent).toContain('Native Component layout');
+    expect(container.textContent).toContain('Nombre');
+    expect(container.textContent).not.toContain('Wrong target');
+    const input = container.querySelector('input')!;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'User entry');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    activeLocale = 'en';
+    act(show);
+    expect(container.textContent).toContain('Name');
+    expect(container.querySelector('input')!.value).toBe('User entry');
+  });
   it('publishes the default form slot only while its renderer is mounted', () => {
     const registry = createSurfaceSemanticOutputRegistry();
     const resolveSemanticOutputScope =

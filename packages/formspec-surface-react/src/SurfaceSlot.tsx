@@ -26,6 +26,7 @@ import { selectDataSourceRevisions, type DataSourceRevisionSelector } from './da
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -53,6 +54,8 @@ import {
   resolveFieldReferences,
   targetDefinitionMatches,
   type FormDefinition,
+  type ComponentDocument,
+  type LocaleDocument,
   type OntologyDocument,
   type ReferencesDocument,
   type ResponseActionsDocument as GeneratedResponseActionsDocument,
@@ -126,6 +129,11 @@ export interface SurfaceDefinitionFormRenderInput {
   responseActionsDocument: ReactResponseActionsDocument | undefined;
   referencesDocuments: readonly ReferencesDocument[];
   ontologyDocuments: readonly OntologyDocument[];
+  /** Host-admitted Component for this exact Definition and route/slot. */
+  componentDocument?: ComponentDocument | undefined;
+  /** Host-admitted Locale documents; only matching Definition targets apply. */
+  localeDocuments?: readonly LocaleDocument[] | undefined;
+  activeLocale?: string | undefined;
   /**
    * Data Source payload admitted before mount. Record identity, route/session
    * generation, and owner revision remain separate from Definition field data.
@@ -791,6 +799,9 @@ export function renderDefaultDefinitionForm({
   onDefinitionActionResult,
   onActionCompleted,
   responseActionInvoker,
+  componentDocument,
+  localeDocuments,
+  activeLocale,
 }: SurfaceDefinitionFormRenderInput): ReactNode {
   return (
     <DefaultSurfaceDefinitionForm
@@ -805,6 +816,9 @@ export function renderDefaultDefinitionForm({
       onDefinitionActionResult={onDefinitionActionResult}
       onActionCompleted={onActionCompleted}
       responseActionInvoker={responseActionInvoker}
+      componentDocument={componentDocument}
+      localeDocuments={localeDocuments}
+      activeLocale={activeLocale}
     />
   );
 }
@@ -1052,6 +1066,9 @@ function DefaultSurfaceDefinitionForm({
   onDefinitionActionResult,
   onActionCompleted,
   responseActionInvoker,
+  componentDocument,
+  localeDocuments,
+  activeLocale,
 }: SurfaceDefinitionFormRenderInput): ReactNode {
   const engine = useMemo(() => {
     const created = createFormEngine(plan.definition);
@@ -1064,6 +1081,14 @@ function DefaultSurfaceDefinitionForm({
     return created;
   }, [initialData?.data, plan.definition]);
   useEffect(() => () => engine.dispose(), [engine]);
+  useLayoutEffect(() => {
+    for (const locale of localeDocuments ?? []) {
+      if (locale.target.kind === 'definition' && targetDefinitionMatches(locale.target, plan.definition)) {
+        engine.loadLocale(locale);
+      }
+    }
+    if (activeLocale !== undefined) engine.setLocale(activeLocale);
+  }, [engine, localeDocuments, activeLocale, plan.definition]);
 
   // Human help is References-spec resolution alone: this form never renders
   // agent-audience entries or Ontology concepts.
@@ -1109,6 +1134,7 @@ function DefaultSurfaceDefinitionForm({
   return (
     <FormspecForm
       engine={engine}
+      componentDocument={componentDocument}
       themeDocument={grant.themeDocument}
       registryEntries={[...plan.registryEntries]}
       resolveFieldHelp={resolveFieldHelp}
