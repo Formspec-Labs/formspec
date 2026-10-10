@@ -66,6 +66,7 @@ export type {
     ResponseActionEffectOutcome,
     ResponseActionEffectStatus,
     ResponseActionEffectDispatchContext,
+    ResponseActionEffectExpressionContext,
     ResponseActionEffectClass,
     ResponseActionIdempotencyKeyContext,
     ResponseActionInvocationContext,

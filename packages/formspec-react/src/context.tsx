@@ -143,7 +143,7 @@ export interface FormspecContextValue {
     /** Callback invoked on form submission. Absent means no built-in submit button. */
     onSubmit?: (result: SubmitResult) => void;
     /** Callback invoked for every declared hostEvent effect. */
-    onHostEvent?: (eventName: string, result: SubmitResult, action: ResponseAction) => void;
+    onHostEvent?: (eventName: string, detail: unknown, action: ResponseAction) => void;
     /** Callback invoked when ActionButton actionRef resolution produces a finding. */
     onActionFinding?: (finding: ActionRefFinding) => void;
     /** Callback invoked after every ActionButton invocation terminal. */
@@ -155,6 +155,8 @@ export interface FormspecContextValue {
         precondition: Precondition,
         action: ResponseAction,
     ) => ResponseActionPreconditionResult;
+    /** Effect-time FEL evaluator; receives an immutable invocation snapshot. */
+    evaluateActionEffectExpression?: ResponseActionInvocationPorts<SubmitResult>['evaluateEffectExpression'];
     /** Host durable-effect adapter for non-hostEvent Response Action effects. */
     dispatchActionEffect?: (
         effect: EffectRequest,
@@ -383,7 +385,7 @@ export interface FormspecProviderProps {
      */
     showValidationSummary?: boolean;
     /** Callback invoked for every declared hostEvent effect. */
-    onHostEvent?: (eventName: string, result: SubmitResult, action: ResponseAction) => void;
+    onHostEvent?: (eventName: string, detail: unknown, action: ResponseAction) => void;
     /** Callback for ActionButton actionRef resolution findings. */
     onActionFinding?: (finding: ActionRefFinding) => void;
     /** Callback invoked after every ActionButton invocation terminal. */
@@ -395,6 +397,8 @@ export interface FormspecProviderProps {
         precondition: Precondition,
         action: ResponseAction,
     ) => ResponseActionPreconditionResult;
+    /** Effect-time FEL evaluator; receives an immutable invocation snapshot. */
+    evaluateActionEffectExpression?: ResponseActionInvocationPorts<SubmitResult>['evaluateEffectExpression'];
     /** Host durable-effect adapter for non-hostEvent Response Action effects. */
     dispatchActionEffect?: (
         effect: EffectRequest,
@@ -441,6 +445,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         onActionResult,
         responseActionInvoker,
         evaluateActionPrecondition,
+        evaluateActionEffectExpression,
         dispatchActionEffect,
         resolveActionIdempotencyKey,
         children,
@@ -712,6 +717,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             onActionResult,
             responseActionInvoker,
             evaluateActionPrecondition,
+            evaluateActionEffectExpression,
             dispatchActionEffect,
             resolveActionIdempotencyKey,
             resolveActionRef,

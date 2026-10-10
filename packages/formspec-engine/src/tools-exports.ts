@@ -85,3 +85,5 @@ export { createFormViewModel } from './form-view-model.js';
 export type { FormViewModel, FormViewModelDeps } from './form-view-model.js';
 
 export type { FormspecEnginePackage } from './package-interface.js';
+
+export { evaluateResponseActionEffectExpression } from './response-action-effect-expression.js';

@@ -140,6 +140,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         onActionResult,
         responseActionInvoker,
         evaluateActionPrecondition,
+        evaluateActionEffectExpression,
         dispatchActionEffect,
         resolveActionIdempotencyKey,
         responseActionsDocument,
@@ -191,6 +192,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     const invoke = useCallback(async (
         invocationContext?: ResponseActionInvocationContext,
     ): Promise<ResponseActionInvocationResult<SubmitResult>> => {
+        let submittedDetail: SubmitResult | null = null;
         const ports: ResponseActionInvocationPorts<SubmitResult> = {
             submit: ({ profile, validationTuple }) => {
                 const result = form.submit({
@@ -200,6 +202,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
                         ? { id: semanticControlScope.responseId }
                         : {}),
                 });
+                submittedDetail = result;
                 recordSubmit(result);
                 // Move focus to the first invalid field in this provider's form, as the webcomponent submit does.
                 const report = result.validationReport;
@@ -209,11 +212,12 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             },
             dispatchHostEvent: (eventName, detail, action) => {
                 onHostEvent?.(eventName, detail, action);
-                if (eventName === 'formspec-submit') {
-                    onSubmit?.(detail);
+                if (eventName === 'formspec-submit' && submittedDetail) {
+                    onSubmit?.(submittedDetail);
                 }
             },
             ...(evaluateActionPrecondition ? { evaluatePrecondition: evaluateActionPrecondition } : {}),
+            ...(evaluateActionEffectExpression ? { evaluateEffectExpression: evaluateActionEffectExpression } : {}),
             ...(dispatchActionEffect ? { dispatchEffect: dispatchActionEffect } : {}),
             ...(resolveActionIdempotencyKey ? { resolveIdempotencyKey: resolveActionIdempotencyKey } : {}),
         };
@@ -273,6 +277,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         actionRef,
         dispatchActionEffect,
         evaluateActionPrecondition,
+        evaluateActionEffectExpression,
         form,
         node.id,
         onActionFinding,

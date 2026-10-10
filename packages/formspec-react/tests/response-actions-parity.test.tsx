@@ -3,12 +3,13 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
-import { initFormspecEngine, invokeResponseAction, createFormEngine } from '@formspec-org/engine';
+import { initFormspecEngine, initFormspecEngineTools, invokeResponseAction, createFormEngine, evaluateResponseActionEffectExpression } from '@formspec-org/engine';
 import { FormspecForm } from '../src/renderer';
 import type { ResponseActionInvokerInput } from '../src/context';
 
 beforeAll(async () => {
     await initFormspecEngine();
+    await initFormspecEngineTools();
 });
 
 const definition = {
@@ -88,6 +89,27 @@ function deferred<T>() {
 }
 
 describe('React Response Actions parity', () => {
+
+    it('dispatches evaluated transient detail while onSubmit retains the original response', () => {
+        const submitted = vi.fn();
+        const hostEvent = vi.fn();
+        const document = { ...responseActionsDocument, actions: [{
+            ...responseActionsDocument.actions[0], effects: [{
+                type: 'hostEvent', eventName: 'formspec-submit', detailRef: "'neutral detail'",
+            }],
+        }] };
+        const { container, root } = renderInto(<FormspecForm definition={definition}
+            responseActionsDocument={document} onSubmit={submitted} onHostEvent={hostEvent}
+            evaluateActionEffectExpression={(expression, snapshot, action, context) =>
+                evaluateResponseActionEffectExpression(expression, { fields: snapshot.response.data,
+                    bindings: { response: snapshot.response, action, validation: { lastReport: snapshot.validationReport },
+                        invocation: context.invocation, effects: context.effects } })} />);
+        flushSync(() => container.querySelector<HTMLButtonElement>('button.formspec-submit')!.click());
+        expect(hostEvent).toHaveBeenCalledWith('formspec-submit', 'neutral detail', expect.any(Object));
+        expect(submitted).toHaveBeenCalledTimes(1);
+        expect(submitted.mock.calls[0]?.[0]).toHaveProperty('response.data', {});
+        root.unmount(); container.remove();
+    });
 
     it('auto-places reference-only labels and follows locale switching and explicit fallback', () => {
         const engine = createFormEngine(definition);

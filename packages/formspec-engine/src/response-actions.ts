@@ -24,6 +24,8 @@ import { ResponseActionsPreconditionCatalog } from './precondition-catalog.js';
  */
 const DEFAULT_PRECONDITION_CATALOG = new ResponseActionsPreconditionCatalog();
 
+
+
 export type {
     ResponseAction,
     ResponseActionsDocument,
@@ -122,6 +124,13 @@ export interface ResponseActionEffectDispatchContext {
     effectIndex: number;
     attempt: number;
     idempotencyKey?: string;
+}
+
+/** Effect-time inputs: only completed prior effects enter this snapshot. */
+export interface ResponseActionEffectExpressionContext {
+    readonly effectIndex: number;
+    readonly invocation: Readonly<{ id: string; attempt: number }>;
+    readonly effects: readonly ResponseActionEffectOutcome[];
 }
 
 export type ResponseActionEffectClass = 'transient' | 'browser-local' | 'durable';
@@ -239,7 +248,19 @@ export interface ResponseActionInvocationPorts<TDetail> {
      * input without manufacturing a Response.
      */
     prepareAppAction?: ((action: ResponseAction) => TDetail | null) | undefined;
-    dispatchHostEvent: (eventName: string, detail: TDetail, action: ResponseAction) => void;
+    dispatchHostEvent: (eventName: string, detail: unknown, action: ResponseAction) => void;
+    /**
+     * Evaluate authored transient FEL using the immutable invocation detail.
+     * The host must enforce the §6.4 binding catalog and throw on errors or
+     * unsupported expressions. evaluateResponseActionEffectExpression provides
+     * a native adapter for fields and object bindings.
+     */
+    evaluateEffectExpression?: (
+        expression: string,
+        detail: TDetail,
+        action: ResponseAction,
+        context: ResponseActionEffectExpressionContext,
+    ) => unknown;
     dispatchEffect?: (
         effect: EffectRequest,
         detail: TDetail,
@@ -271,6 +292,47 @@ export interface ResponseActionInvocationPorts<TDetail> {
         kind: ResponseActionLifecycleKind,
         payload: ResponseActionLifecyclePayload,
     ) => void;
+}
+
+function immutableSnapshot<T>(value: T): T {
+    const snapshot = structuredClone(value);
+    const seen = new WeakSet<object>();
+    const freeze = (item: unknown): void => {
+        if (!item || typeof item !== 'object' || seen.has(item)) return;
+        seen.add(item);
+        for (const child of Object.values(item)) freeze(child);
+        Object.freeze(item);
+    };
+    freeze(snapshot);
+    return snapshot;
+}
+
+/** Capture once, before preceding effects can mutate the invocation input. */
+function hostEventDetailResolver<TDetail>(
+    detail: TDetail,
+    action: ResponseAction,
+    ports: Pick<ResponseActionInvocationPorts<TDetail>, 'evaluateEffectExpression'>,
+    invocationId: string,
+) {
+    let snapshot: { detail: TDetail; action: ResponseAction } | undefined;
+    let snapshotError: unknown;
+    if (action.effects?.some(effect => effect.type === 'hostEvent' && effect.detailRef !== undefined)) {
+        try { snapshot = immutableSnapshot({ detail, action }); }
+        catch (error) { snapshotError = error; }
+    }
+    return (effect: Extract<EffectRequest, { type: 'hostEvent' }>, effectIndex: number,
+        attempt: number, effects: readonly ResponseActionEffectOutcome[]): unknown => {
+        if (effect.detailRef === undefined) return detail;
+        if (snapshotError) throw snapshotError;
+        if (!snapshot || !ports.evaluateEffectExpression) throw new Error('missing effect expression evaluator');
+        const value = ports.evaluateEffectExpression(effect.detailRef, snapshot.detail, snapshot.action,
+            immutableSnapshot({ effectIndex, invocation: { id: invocationId, attempt: attempt + 1 }, effects: effects.slice(0, effectIndex) }));
+        if (isPromiseLike(value)) {
+            void Promise.resolve(value).catch(() => undefined);
+            throw new Error('effect expression evaluator must be synchronous');
+        }
+        return value;
+    };
 }
 
 /** Async counterpart whose effect adapter may return a Promise. */
@@ -1013,6 +1075,7 @@ function invokeResponseActionInternal<TDetail>(
     }
 
     const effectTrace: ResponseActionEffectOutcome[] = [];
+    const resolveHostEventDetail = hostEventDetailResolver(detail, resolution.action, ports, invocationId);
     const transitionBindings: Record<string, string> = Object.create(null) as Record<string, string>;
     const frozenIdempotencyKeys = new Map<number, string>();
     const retriedEffects = new Set<number>();
@@ -1051,7 +1114,8 @@ function invokeResponseActionInternal<TDetail>(
                 }
 
                 if (effect.type === 'hostEvent' && typeof effect.eventName === 'string') {
-                    ports.dispatchHostEvent(effect.eventName, detail, resolution.action);
+                    ports.dispatchHostEvent(effect.eventName,
+                        resolveHostEventDetail(effect, effectIndex, attempt, effectTrace), resolution.action);
                     outcome = normalizeEffectDispatch(effect, undefined).outcome;
                 } else if (!ports.dispatchEffect) {
                     outcome = {
@@ -1207,6 +1271,7 @@ async function invokeResponseActionEffectsAsync<TDetail>(
 ): Promise<ResponseActionInvocationResult<TDetail>> {
     const effects = action.effects ?? [];
     const effectTrace: ResponseActionEffectOutcome[] = [];
+    const resolveHostEventDetail = hostEventDetailResolver(detail, action, ports, invocationFacts.invocationId);
     const transitionBindings: Record<string, string> = Object.create(null) as Record<string, string>;
     const frozenIdempotencyKeys = new Map<number, string>();
     const retriedEffects = new Set<number>();
@@ -1243,7 +1308,8 @@ async function invokeResponseActionEffectsAsync<TDetail>(
                 }
 
                 if (effect.type === 'hostEvent' && typeof effect.eventName === 'string') {
-                    ports.dispatchHostEvent(effect.eventName, detail, action);
+                    ports.dispatchHostEvent(effect.eventName,
+                        resolveHostEventDetail(effect, effectIndex, attempt, effectTrace), action);
                     outcome = normalizeEffectDispatch(effect, undefined).outcome;
                 } else if (!ports.dispatchEffect) {
                     outcome = {
