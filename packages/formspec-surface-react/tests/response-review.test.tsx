@@ -164,6 +164,24 @@ async function mount(
   };
 }
 describe("ResponseReview", () => {
+  it("keeps answers and language context ahead of a closed response identifier disclosure", async () => {
+    const p = await props();
+    const original = JSON.stringify(p.data);
+    const view = await mount(p);
+    const context = view.el.querySelector(".fs-response-review-context")!;
+    expect(context.textContent).toContain("Language");
+    expect(context.textContent).toContain("Signatures recorded");
+    expect(context.textContent).not.toContain("response-1");
+    const details = view.el.querySelector<HTMLDetailsElement>(".fs-response-review-record-details")!;
+    expect(details.open).toBe(false);
+    expect(details.querySelector("summary")?.textContent).toBe(copy.responseId);
+    expect(details.textContent).toContain("response-1");
+    const lastAnswer = [...view.el.querySelectorAll(".fs-response-review-row")].at(-1)!;
+    expect(lastAnswer.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(JSON.stringify(p.data)).toBe(original);
+    view.unmount();
+  });
+
   it("reviews the exact retained values, groups/repeats and additional data without editable controls", async () => {
     const p = await props();
     const original = JSON.stringify(p.data);

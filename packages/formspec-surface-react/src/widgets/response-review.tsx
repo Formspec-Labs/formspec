@@ -675,10 +675,6 @@ function ReviewBody({
           : p.phase === "before-sign" ? c.copy.beforeSign : c.copy.beforeSubmit}
       </p>
       <dl className="fs-response-review-context">
-        <div>
-          <dt>{c.copy.responseId}</dt>
-          <dd>{r.id}</dd>
-        </div>
         {p.phase !== "accepted-record" ? <div>
           <dt>{c.copy.draftVersion}</dt>
           <dd>{p.draft.version}</dd>
@@ -693,6 +689,10 @@ function ReviewBody({
         </div>
       </dl>
       {render(c.nodes, nextLevel(c.headingLevel))}
+      <details className="fs-response-review-record-details">
+        <summary>{c.copy.responseId}</summary>
+        <p>{r.id}</p>
+      </details>
     </section>
   );
 }
