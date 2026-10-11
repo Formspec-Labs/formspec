@@ -723,46 +723,74 @@ enum RequirednessUnknownReason {
     MixedSourcePaths,
 }
 
-// Static source-path analysis deliberately supports declared properties, array
-// items and local references only. Runtime validation uses the full compiler.
+// Static source-path analysis checks declarations, not requiredness or conditions.
+// A union path must resolve within one complete branch; runtime validation still
+// determines which branch admits the actual source document.
 fn resolve_schema_path(root: &Value, path: &str) -> Result<(), String> {
     let segments = parse_form_path(path, false)?;
-    let mut schema = root;
-    for segment in segments {
-        schema = resolve_local_schema(root, schema)?;
-        if [
-            "allOf",
-            "anyOf",
-            "oneOf",
-            "if",
-            "then",
-            "else",
-            "not",
-            "$dynamicRef",
-        ]
-        .iter()
-        .any(|keyword| schema.get(keyword).is_some())
+    if schema_declares_path(root, root, &segments, &mut HashSet::new())? {
+        Ok(())
+    } else {
+        Err("path is not statically declared in the source schema".into())
+    }
+}
+
+fn schema_declares_path(
+    root: &Value,
+    schema: &Value,
+    segments: &[StrictPathSegment],
+    visiting: &mut HashSet<(usize, usize)>,
+) -> Result<bool, String> {
+    let schema = resolve_local_schema(root, schema)?;
+    if segments.is_empty() {
+        return Ok(true);
+    }
+    // A recursive property consumes a segment and is finite. A union/reference
+    // cycle that consumes no segment cannot establish a declaration.
+    let key = (std::ptr::from_ref(schema) as usize, segments.len());
+    if !visiting.insert(key) {
+        return Err("cyclic schema union cannot resolve a static source path".into());
+    }
+    let result = (|| {
+        if ["allOf", "anyOf", "if", "then", "else", "not", "$dynamicRef"]
+            .iter()
+            .any(|keyword| schema.get(keyword).is_some())
         {
             return Err("schema construct is unsupported by static source-path analysis".into());
         }
-        schema = match segment {
+        if let Some(branches) = schema.get("oneOf") {
+            // Shape siblings intersect with every branch. Supporting those
+            // requires intersection analysis rather than union traversal.
+            if schema.get("properties").is_some() || schema.get("items").is_some() {
+                return Err("schema oneOf with shape siblings is unsupported by static source-path analysis".into());
+            }
+            let branches = branches
+                .as_array()
+                .ok_or_else(|| "schema oneOf must be an array".to_string())?;
+            let mut declared = false;
+            for branch in branches {
+                // Visit all alternatives even after a match so unsupported
+                // analysis cannot be hidden behind a supported alternative.
+                declared |= schema_declares_path(root, branch, segments, visiting)?;
+            }
+            return Ok(declared);
+        }
+        let child = match &segments[0] {
             StrictPathSegment::Exact(name) => schema
                 .get("properties")
-                .and_then(|properties| properties.get(&name))
-                .ok_or_else(|| {
-                    format!("property {name:?} is not statically declared in the source schema")
-                })?,
+                .and_then(|properties| properties.get(name)),
             StrictPathSegment::Wildcard | StrictPathSegment::Indexed(_) => schema
                 .get("items")
-                .filter(|items| items.is_object() || items.is_boolean())
-                .ok_or_else(|| {
-                    "array items are not statically declared in the source schema".to_string()
-                })?,
+                .filter(|items| items.is_object() || items.is_boolean()),
             _ => return Err("unsupported external source path segment".into()),
         };
-    }
-    resolve_local_schema(root, schema)?;
-    Ok(())
+        match child {
+            Some(child) => schema_declares_path(root, child, &segments[1..], visiting),
+            None => Ok(false),
+        }
+    })();
+    visiting.remove(&key);
+    result
 }
 
 fn resolve_local_schema<'a>(root: &'a Value, mut schema: &'a Value) -> Result<&'a Value, String> {
@@ -785,7 +813,10 @@ fn resolve_local_schema<'a>(root: &'a Value, mut schema: &'a Value) -> Result<&'
         if !visited.insert(reference) {
             return Err("cyclic schema reference cannot resolve a static source path".into());
         }
-        if schema.get("properties").is_some() || schema.get("items").is_some() {
+        if schema.get("properties").is_some()
+            || schema.get("items").is_some()
+            || schema.get("oneOf").is_some()
+        {
             return Err(
                 "schema $ref with shape siblings is unsupported by static source-path analysis"
                     .into(),

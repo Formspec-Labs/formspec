@@ -171,3 +171,114 @@ fn nested_resource_identifiers_are_explicitly_outside_static_path_analysis() {
         .is_ok()
     );
 }
+
+fn union_mapping(schema: Value, paths: &[&str]) -> Value {
+    let mut document = mapping();
+    document["sourceSchema"]["schema"] = schema;
+    document["rules"] = Value::Array(
+        paths
+            .iter()
+            .enumerate()
+            .map(|(i, path)| {
+                json!({"sourcePath":path, "targetPath":format!("out{i}"), "transform":"preserve",
+            "condition":"present($)"})
+            })
+            .collect(),
+    );
+    document
+}
+
+#[test]
+fn one_of_paths_resolve_inside_complete_alternatives_and_local_references() {
+    let schema = json!({"$defs":{"signed":{"properties":{"signed":{"properties":{
+        "response":{"type":"object"}}}}}}, "properties":{"latest":{"oneOf":[
+        {"properties":{"original":{"properties":{"response":{"type":"object"}}}}},
+        {"$ref":"#/$defs/signed"}
+    ]}}});
+    let document = union_mapping(
+        schema.clone(),
+        &["latest.original.response", "latest.signed.response"],
+    );
+    let result = formspec_lint::lint(&document);
+    assert!(result.valid, "{:?}", result.diagnostics);
+    let missing = union_mapping(
+        schema,
+        &["latest.original.absent", "latest.absent.response"],
+    );
+    let errors = analyze_mapping(&missing, None).diagnostics;
+    assert_eq!(
+        errors.iter().filter(|d| d.code == LintCode::E1110).count(),
+        2
+    );
+}
+
+#[test]
+fn one_of_never_combines_partial_paths_from_different_branches() {
+    let schema = json!({"oneOf":[
+        {"properties":{"record":{"properties":{"left":{"type":"string"}}}}},
+        {"properties":{"left":{"properties":{"right":{"type":"string"}}}}}
+    ]});
+    let result = analyze_mapping(&union_mapping(schema, &["record.left.right"]), None);
+    assert!(result.diagnostics.iter().any(|d| d.code == LintCode::E1110));
+}
+
+#[test]
+fn one_of_supports_nested_unions_and_array_items() {
+    let schema = json!({"properties":{"records":{"type":"array", "items":{"oneOf":[
+        {"properties":{"value":{"oneOf":[
+            {"properties":{"label":{"type":"string"}}}, {"type":"null"}]}}},
+        {"properties":{"other":{"type":"string"}}}
+    ]}}}});
+    let result = formspec_lint::lint(&union_mapping(
+        schema,
+        &["records[*].value.label", "records[0].other"],
+    ));
+    assert!(result.valid, "{:?}", result.diagnostics);
+}
+
+#[test]
+fn one_of_refuses_unsupported_or_cyclic_alternatives_even_after_a_match() {
+    for unsupported in [
+        json!({"anyOf":[{"properties":{"label":{}}}]}),
+        json!({"$id":"urn:neutral:nested", "properties":{"label":{}}}),
+        json!({"$ref":"#"}),
+        json!({"$ref":"#/missing"}),
+        json!({"$ref":"#/$defs/label", "oneOf":[{"properties":{"label":{}}}]}),
+    ] {
+        let schema = json!({"$defs":{"label":{"properties":{"label":{}}}}, "oneOf":[
+            {"properties":{"label":{}}}, unsupported]});
+        let result = analyze_mapping(&union_mapping(schema, &["label"]), None);
+        assert!(
+            result.diagnostics.iter().any(|d| d.code == LintCode::E1110),
+            "{:?}",
+            result.diagnostics
+        );
+    }
+    let schema = json!({"properties":{"label":{}}, "oneOf":[{"properties":{"label":{}}}]});
+    assert!(
+        analyze_mapping(&union_mapping(schema, &["label"]), None)
+            .diagnostics
+            .iter()
+            .any(|d| d.code == LintCode::E1110)
+    );
+}
+
+#[test]
+fn one_of_runtime_validation_still_rejects_invalid_or_ambiguous_sources() {
+    let schema = json!({"oneOf":[
+        {"type":"object", "required":["left"], "properties":{"left":{"type":"string"}}},
+        {"type":"object", "required":["right"], "properties":{"right":{"type":"number"}}}
+    ]});
+    let lint = formspec_lint::lint(&union_mapping(schema.clone(), &["left", "right"]));
+    assert!(lint.valid, "{:?}", lint.diagnostics);
+    for valid in [json!({"left":"value"}), json!({"right":3})] {
+        assert!(formspec_lint::validate_mapping_source(&schema, &valid).is_ok());
+    }
+    for invalid in [
+        json!({}),
+        json!({"left":5}),
+        json!({"left":"value", "right":3}),
+    ] {
+        assert!(formspec_lint::validate_mapping_source(&schema, &invalid).is_err());
+    }
+}
