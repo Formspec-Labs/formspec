@@ -170,7 +170,17 @@ fn build_validator(schema_text: &str) -> Validator {
 pub(crate) fn compile_schema(
     schema: &Value,
 ) -> Result<Validator, jsonschema::ValidationError<'static>> {
+    compile_schema_with_formats(schema, false)
+}
+
+fn compile_schema_with_formats(
+    schema: &Value,
+    validate_formats: bool,
+) -> Result<Validator, jsonschema::ValidationError<'static>> {
     let mut opts = jsonschema::options();
+    if validate_formats {
+        opts = opts.should_validate_formats(true);
+    }
     // Register all cross-referenced schemas so $ref resolution works.
     for &(ref_text, ref_id) in CROSS_REF_SCHEMAS {
         let ref_val: Value =
@@ -179,6 +189,39 @@ pub(crate) fn compile_schema(
         opts = opts.with_resource(ref_id, resource);
     }
     opts.build(schema)
+}
+
+/// Validate external Mapping input against its selected inline JSON Schema.
+///
+/// Uses the maintained local schema registry and asserts supported formats.
+/// It performs no network retrieval.
+///
+/// # Errors
+///
+/// Returns an error for malformed schemas, unresolved references or invalid input.
+pub fn validate_mapping_source(schema: &Value, instance: &Value) -> Result<(), String> {
+    let validator = compile_schema_with_formats(schema, true)
+        .map_err(|error| format!("invalid Mapping source schema: {error}"))?;
+    validator
+        .validate(instance)
+        .map_err(|error| format!("Mapping source validation failed: {error}"))
+}
+
+/// Validate an external Mapping association using the canonical association schema.
+///
+/// Supported formats are asserted only for this new association branch.
+///
+/// # Errors
+///
+/// Returns an error for malformed identities, unknown properties or missing fields.
+pub fn validate_mapping_source_association(association: &Value) -> Result<(), String> {
+    static ASSOCIATION_SCHEMA: OnceLock<Value> = OnceLock::new();
+    let schema = ASSOCIATION_SCHEMA.get_or_init(|| {
+        let document: Value =
+            serde_json::from_str(MAPPING_SCHEMA).expect("embedded Mapping schema is valid JSON");
+        document["properties"]["sourceSchema"].clone()
+    });
+    validate_mapping_source(schema, association)
 }
 
 // ── Per-node component validators ───────────────────────────────

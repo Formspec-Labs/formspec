@@ -341,7 +341,7 @@ conventions:
 
 A **Mapping Document** is a standalone JSON document that connects a Formspec
 Response to an external system by declaring field-level correspondences and
-transforms. It is not embedded in a Formspec Definition, nor does it modify
+transforms. An external JSON source MAY instead declare the explicit `sourceSchema` association defined in §3.1. It is not embedded in a Formspec Definition, nor does it modify
 the Definition or Response schemas. Instead, it sits alongside these artifacts
 as an independent, versionable configuration that a Mapping Engine interprets
 at runtime.
@@ -423,7 +423,7 @@ The lifecycle of a Mapping Document is as follows:
 
 1. **Authoring.** A Mapping Document is created by a form author, integration
    engineer, or automated tool. It declares which Formspec Definition (by
-   `definitionRef`) and which external schema it targets.
+   `definitionRef`) or external source schema (by `sourceSchema`) and which external schema it targets.
 
 2. **Association.** A Mapping Document is associated with a Formspec
    Definition by reference. The Definition document itself does not contain
@@ -643,7 +643,16 @@ All property names are case-sensitive. Implementations MUST reject documents con
 
 ### 3.1 Top-Level Structure
 
-The root of a Mapping Document is a JSON object. The following table enumerates all recognized properties.
+The root of a Mapping Document is a JSON object. It MUST declare exactly one source association:
+
+- `definitionRef` and `definitionVersion` identify a genuine Formspec Definition and its compatible versions. Existing Definition-associated documents retain their behavior.
+- `sourceSchema` identifies an external JSON source with `url`, an exact semantic `version`, and an inline JSON Schema object in `schema`. These documents MUST omit both Definition association properties. Repeated JSON property names at different depths remain valid; Definition item-key rules do not apply.
+
+For external sources, semantic lint MUST compile the inline schema and resolve declared source paths against its object properties and array items, including local fragment references. Static path analysis MUST refuse unsupported nested schema resource identities (`$id`) rather than resolve them against the wrong resource. Runtime document execution MUST validate forward input against that same schema before applying any rules. Reverse execution MUST validate the resulting source-side output against that schema before delivering it. Invalid schemas, unresolved references, invalid data, and unavailable validation MUST refuse delivery. Schema references resolve through local documents only; processors MUST NOT fetch external schemas during execution. Target serialization adapters apply to forward target output; external reverse output remains schema-validated source JSON. Raw rule-array execution makes no source-association validation claim.
+
+Source identity, version, and inline schema belong to the independently versioned Mapping document and round-trip through authoring unchanged. A processor MUST NOT invent a Definition association for an external source.
+
+The following table enumerates all recognized properties.
 
 <!-- schema-ref:start id=mapping-top-level schema=schemas/mapping.schema.json pointers=# -->
 <!-- generated:schema-ref id=mapping-top-level -->
@@ -655,14 +664,15 @@ The root of a Mapping Document is a JSON object. The following table enumerates 
 | `#/properties/autoMap` | `autoMap` | <code>boolean</code> | no | default: <code>false</code> | When true, the processor generates synthetic 'preserve' rules (at priority -1) for every source field not already covered by an explicit rule's sourcePath. Synthetic rules use identical source and target paths. Explicit rules always take precedence. When targetSchema.format is 'csv', auto-mapped paths containing dots are silently skipped. |
 | `#/properties/conformanceLevel` | `conformanceLevel` | <code>string</code> | no | enum: <code>"core"</code>, <code>"bidirectional"</code>, <code>"extended"</code> | Declares the minimum conformance level required to process this mapping document. 'core': forward JSON mapping only. 'bidirectional': adds reverse mapping with round-trip fidelity. 'extended': adds XML and CSV adapters. Each level is a strict superset of the preceding level. |
 | `#/properties/defaults` | `defaults` | <code>object</code> | no | — | Leaf values applied to the target document before any Field Rules execute. Keys are dot-notation target paths; values are literal JSON values. Any Field Rule that writes to the same path will overwrite the default. Defaults are applied only in the forward direction. |
-| `#/properties/definitionRef` | `definitionRef` | <code>string</code> | yes | critical | URI or stable identifier of the Formspec Definition this mapping targets. Corresponds to the Definition's 'url' property — the canonical identity that is stable across versions. |
-| `#/properties/definitionVersion` | `definitionVersion` | <code>string</code> | yes | critical | Semver range of compatible Formspec Definition versions per node-semver syntax. An implementation MUST refuse to execute a Mapping Document when the resolved Definition version does not satisfy this range. |
+| `#/properties/definitionRef` | `definitionRef` | <code>string</code> | no | critical | URI or stable identifier of the Formspec Definition this mapping targets. Corresponds to the Definition's 'url' property — the canonical identity that is stable across versions. |
+| `#/properties/definitionVersion` | `definitionVersion` | <code>string</code> | no | critical | Semver range of compatible Formspec Definition versions per node-semver syntax. An implementation MUST refuse to execute a Mapping Document when the resolved Definition version does not satisfy this range. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of this document's purpose and scope: which system's layout it targets and why the rules are what they are. Ignored during execution. |
 | `#/properties/direction` | `direction` | <code>string</code> | no | enum: <code>"forward"</code>, <code>"reverse"</code>, <code>"both"</code>; default: <code>"forward"</code>; critical | Execution direction. 'forward': Response→External (default), reverse execution MUST raise an error. 'reverse': External→Response only, forward execution MUST raise an error. 'both': rules are evaluated in either direction; each Field Rule MAY supply an explicit reverse override. |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Document-level extension properties. All keys MUST be prefixed with 'x-'. |
 | `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3. |
 | `#/properties/name` | `name` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9_\-]*&#36;</code> | Machine-readable short name for this Mapping Document. Pattern: letters, digits, hyphens, underscores; must start with a letter. |
 | `#/properties/rules` | `rules` | <code>array</code> | yes | critical | Ordered array of Field Rule objects. Rules are sorted by priority (descending, stable sort) before execution. Equal-priority rules retain document order. When two rules write to the same targetPath, last-write-wins. MUST contain at least one element. |
+| `#/properties/sourceSchema` | `sourceSchema` | <code>object</code> | no | — | Explicit external JSON source association, alternative to definitionRef and definitionVersion. The inline schema validates forward input and reverse output; it is never treated as a Formspec Definition. |
 | `#/properties/targetSchema` | `targetSchema` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/TargetSchema</code>; critical | Descriptor for the external system schema targeted by this mapping. Determines the adapter used for serialization and the path syntax rules for targetPath values. |
 | `#/properties/title` | `title` | <code>string</code> | no | — | Human-readable name for this Mapping Document. |
 | `#/properties/version` | `version` | <code>string</code> | yes | pattern: <code>^(0&#124;[1-9]\d*)\.(0&#124;[1-9]\d*)\.(0&#124;[1-9]\d*)&#36;</code>; critical | Semantic version of this Mapping Document. Independent of both the Formspec Definition version and the DSL specification version. Implementations SHOULD use this for cache invalidation and change detection. |

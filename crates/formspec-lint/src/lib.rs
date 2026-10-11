@@ -67,6 +67,7 @@ pub use app_graph_report::{
 };
 pub use generated::LintCode;
 pub use lint_json::lint_result_to_json_value;
+pub use schema_validation::{validate_mapping_source, validate_mapping_source_association};
 pub use types::{
     LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity, sort_diagnostics,
 };

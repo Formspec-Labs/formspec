@@ -7,8 +7,8 @@ use std::collections::{HashMap, HashSet};
 use serde_json::Value;
 
 use crate::semantic_helpers::{
-    error, json_path_member, normalized_segments, parse_form_path, parse_mapping_target_path,
-    resolve_item_path, warning,
+    StrictPathSegment, error, json_path_member, normalized_segments, parse_form_path,
+    parse_mapping_target_path, resolve_item_path, warning,
 };
 use crate::tree;
 use crate::types::LintDiagnostic;
@@ -49,8 +49,12 @@ pub fn lint_mapping(mapping: &Value, definition: Option<&Value>) -> Vec<LintDiag
 }
 
 pub fn analyze_mapping(mapping: &Value, definition: Option<&Value>) -> MappingStaticAnalysis {
+    let external = mapping.get("sourceSchema");
+    // External schemas are not Definitions, even when a caller supplies one.
+    let definition = if external.is_some() { None } else { definition };
     let mut analyzer = Analyzer {
         mapping,
+        source_schema: external.and_then(|source| source.get("schema")),
         definition_index: definition.map(tree::build_item_index),
         required_paths: definition
             .map(crate::semantic_helpers::required_item_paths)
@@ -66,6 +70,42 @@ pub fn analyze_mapping(mapping: &Value, definition: Option<&Value>) -> MappingSt
         target_writes: Vec::new(),
     };
 
+    if let Some(external) = external {
+        if let Err(reason) = crate::validate_mapping_source_association(external) {
+            analyzer.diagnostics.push(error(
+                crate::LintCode::E1100,
+                PASS,
+                "$.sourceSchema",
+                format!("Invalid external source association: {reason}"),
+            ));
+        }
+        if mapping.get("definitionRef").is_some() || mapping.get("definitionVersion").is_some() {
+            analyzer.diagnostics.push(error(
+                crate::LintCode::E1100,
+                PASS,
+                "$.sourceSchema",
+                "sourceSchema cannot be combined with Definition association",
+            ));
+        }
+        match external.get("schema") {
+            Some(schema) => {
+                if let Err(error_message) = crate::schema_validation::compile_schema(schema) {
+                    analyzer.diagnostics.push(error(
+                        crate::LintCode::E1100,
+                        PASS,
+                        "$.sourceSchema.schema",
+                        format!("Invalid external source schema: {error_message}"),
+                    ));
+                }
+            }
+            None => analyzer.diagnostics.push(error(
+                crate::LintCode::E1100,
+                PASS,
+                "$.sourceSchema.schema",
+                "External source association requires an inline schema",
+            )),
+        }
+    }
     analyzer.collect_default_writes();
     analyzer.analyze_rules();
     analyzer.check_target_write_conflicts();
@@ -78,6 +118,7 @@ pub fn analyze_mapping(mapping: &Value, definition: Option<&Value>) -> MappingSt
 
 struct Analyzer<'a> {
     mapping: &'a Value,
+    source_schema: Option<&'a Value>,
     definition_index: Option<tree::ItemTreeIndex>,
     required_paths: HashSet<String>,
     target_format: String,
@@ -157,6 +198,20 @@ impl<'a> Analyzer<'a> {
             match parse_form_path(source_path, false) {
                 Ok(segments) => {
                     normalized_source_segments = normalized_segments(&segments);
+                    if let Some(schema) = self.source_schema
+                        && let Err(reason) = resolve_schema_path(schema, &effective_path)
+                    {
+                        self.diagnostics.push(error(
+                            if source_scope.is_some() {
+                                crate::LintCode::E1111
+                            } else {
+                                crate::LintCode::E1110
+                            },
+                            PASS,
+                            format!("{base_path}.sourcePath"),
+                            format!("Mapping sourcePath {effective_path:?}: {reason}"),
+                        ));
+                    }
                     if let Some(index) = self.definition_index.as_ref() {
                         match resolve_item_path(&effective_path, index, false) {
                             Ok(Some(item)) => {
@@ -283,10 +338,16 @@ impl<'a> Analyzer<'a> {
             target_write_footprint,
         });
 
-        self.analyze_inner_rules(rule, rule_index, &base_path);
+        self.analyze_inner_rules(rule, rule_index, &base_path, source_scope);
     }
 
-    fn analyze_inner_rules(&mut self, rule: &Value, rule_index: usize, base_path: &str) {
+    fn analyze_inner_rules(
+        &mut self,
+        rule: &Value,
+        rule_index: usize,
+        base_path: &str,
+        parent_scope: Option<&str>,
+    ) {
         let Some(array) = rule.get("array") else {
             return;
         };
@@ -295,6 +356,9 @@ impl<'a> Analyzer<'a> {
             return;
         };
         let source_scope = source_scope.and_then(|source| {
+            if self.source_schema.is_some() {
+                return Some(format!("{}[*]", scoped_path(parent_scope, source)));
+            }
             self.definition_index.as_ref().and_then(|index| {
                 resolve_item_path(source, index, false)
                     .ok()
@@ -657,6 +721,86 @@ enum RequirednessUnknownReason {
     UnresolvedSourcePath,
     ConditionalOrNonStatic,
     MixedSourcePaths,
+}
+
+// Static source-path analysis deliberately supports declared properties, array
+// items and local references only. Runtime validation uses the full compiler.
+fn resolve_schema_path(root: &Value, path: &str) -> Result<(), String> {
+    let segments = parse_form_path(path, false)?;
+    let mut schema = root;
+    for segment in segments {
+        schema = resolve_local_schema(root, schema)?;
+        if [
+            "allOf",
+            "anyOf",
+            "oneOf",
+            "if",
+            "then",
+            "else",
+            "not",
+            "$dynamicRef",
+        ]
+        .iter()
+        .any(|keyword| schema.get(keyword).is_some())
+        {
+            return Err("schema construct is unsupported by static source-path analysis".into());
+        }
+        schema = match segment {
+            StrictPathSegment::Exact(name) => schema
+                .get("properties")
+                .and_then(|properties| properties.get(&name))
+                .ok_or_else(|| {
+                    format!("property {name:?} is not statically declared in the source schema")
+                })?,
+            StrictPathSegment::Wildcard | StrictPathSegment::Indexed(_) => schema
+                .get("items")
+                .filter(|items| items.is_object() || items.is_boolean())
+                .ok_or_else(|| {
+                    "array items are not statically declared in the source schema".to_string()
+                })?,
+            _ => return Err("unsupported external source path segment".into()),
+        };
+    }
+    resolve_local_schema(root, schema)?;
+    Ok(())
+}
+
+fn resolve_local_schema<'a>(root: &'a Value, mut schema: &'a Value) -> Result<&'a Value, String> {
+    let mut visited = HashSet::new();
+    loop {
+        // Nested resources change the base of fragment references. Static
+        // analysis supports the root resource only and must not guess.
+        if !std::ptr::eq(schema, root) && schema.get("$id").is_some() {
+            return Err(
+                "nested schema resource identifiers are unsupported by static source-path analysis"
+                    .into(),
+            );
+        }
+        let Some(reference) = schema.get("$ref") else {
+            return Ok(schema);
+        };
+        let reference = reference
+            .as_str()
+            .ok_or_else(|| "schema $ref must be a string".to_string())?;
+        if !visited.insert(reference) {
+            return Err("cyclic schema reference cannot resolve a static source path".into());
+        }
+        if schema.get("properties").is_some() || schema.get("items").is_some() {
+            return Err(
+                "schema $ref with shape siblings is unsupported by static source-path analysis"
+                    .into(),
+            );
+        }
+        let pointer = reference
+            .strip_prefix('#')
+            .ok_or_else(|| "static source paths require local schema references".to_string())?;
+        if !pointer.is_empty() && !pointer.starts_with('/') {
+            return Err("static source paths require JSON Pointer schema references".into());
+        }
+        schema = root
+            .pointer(pointer)
+            .ok_or_else(|| format!("unresolved local schema reference {reference:?}"))?;
+    }
 }
 
 fn scoped_path(source_scope: Option<&str>, path: &str) -> String {

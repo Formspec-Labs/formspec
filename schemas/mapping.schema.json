@@ -2,9 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/mapping/1.0",
   "title": "Formspec Mapping Document",
-  "description": "A Formspec Mapping DSL v1.0 document describing bidirectional data transformation between a Formspec Response and an external schema. A Mapping Document is a standalone JSON artifact — not embedded in a Definition — that declares field-level correspondences, structural reorganizations, type coercions, value translations, and conditional logic sufficient to convert a Response into an API payload, database record, CSV export, or XML document, and to reverse that transformation when importing. All computed transforms use the Formspec Expression Language (FEL). The DSL generalizes the version-migration fieldMap from §6.7 of the core specification.",
+  "description": "A Formspec Mapping DSL v1.0 document describing bidirectional data transformation between a Formspec Response or explicitly schema-associated external JSON source and an external schema. A Mapping Document is a standalone JSON artifact — not embedded in a Definition — that declares field-level correspondences, structural reorganizations, type coercions, value translations, and conditional logic sufficient to convert a Response into an API payload, database record, CSV export, or XML document, and to reverse that transformation when importing. All computed transforms use the Formspec Expression Language (FEL). The DSL generalizes the version-migration fieldMap from §6.7 of the core specification.",
   "type": "object",
-  "required": ["$formspecMapping", "version", "definitionRef", "definitionVersion", "targetSchema", "rules"],
+  "required": ["$formspecMapping", "version", "targetSchema", "rules"],
+  "oneOf": [
+    { "required": ["definitionRef", "definitionVersion"], "not": { "required": ["sourceSchema"] } },
+    { "required": ["sourceSchema"], "not": { "anyOf": [{ "required": ["definitionRef"] }, { "required": ["definitionVersion"] }] } }
+  ],
   "patternProperties": {
     "^x-": true
   },
@@ -60,6 +64,34 @@
     "description": {
       "type": "string",
       "description": "Human-readable description of this document's purpose and scope: which system's layout it targets and why the rules are what they are. Ignored during execution."
+    },
+    "sourceSchema": {
+      "type": "object",
+      "description": "Explicit external JSON source association, alternative to definitionRef and definitionVersion. The inline schema validates forward input and reverse output; it is never treated as a Formspec Definition.",
+      "required": [
+        "url",
+        "version",
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri",
+          "description": "Canonical identity of the external source schema."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+          "description": "Exact semantic version of the external source schema."
+        },
+        "schema": {
+          "type": "object",
+          "description": "Inline JSON Schema used by lint and document execution. References must resolve locally; execution never fetches external schemas.",
+          "additionalProperties": true
+        }
+      }
     },
     "definitionRef": {
       "type": "string",
