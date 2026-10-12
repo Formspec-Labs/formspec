@@ -2,7 +2,7 @@
 
 **Status:** complete — code-bearing chaos-test phase-1 probe of authoring-tool UI fit
 **Lives at:** [`formspec/spikes/wireframe-generator-v7/`](../../spikes/wireframe-generator-v7/) + this doc
-**Continues:** [`2026-05-26-wireframe-generator-spike-v6.md`](./2026-05-26-wireframe-generator-spike-v6.md) (doc-only revalidation); last code-bearing spike was [`2026-05-24-wireframe-generator-spike-v4.md`](./2026-05-24-wireframe-generator-spike-v4.md) + [`../../spikes/wireframe-generator-v4/`](../../spikes/wireframe-generator-v4/)
+**Continues:** [`2026-05-26-wireframe-generator-spike-v6.md`](./2026-05-26-wireframe-generator-spike-v6.md) (doc-only revalidation); last code-bearing spike was [`2026-05-24-wireframe-generator-spike-v4.md`](./2026-05-24-wireframe-generator-spike-v4.md) (implementation retired; source retained in Git history)
 **Authority:** stack-root [`thoughts/2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md) (ADR 0153/0154 substrate Closed 2026-05-26)
 
 ## Verdict

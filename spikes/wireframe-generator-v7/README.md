@@ -4,7 +4,7 @@ Code-bearing dogfood of the now-closed Formspec production substrate. Drives Wir
 
 **Tracker:** [`../../thoughts/spikes/2026-05-26-wireframe-generator-spike-v7.md`](../../thoughts/spikes/2026-05-26-wireframe-generator-spike-v7.md)
 
-**Continues:** [`2026-05-26-wireframe-generator-spike-v6.md`](../../thoughts/spikes/2026-05-26-wireframe-generator-spike-v6.md) (doc-only revalidation) — v4 was the last code-bearing spike at [`../wireframe-generator-v4/`](../wireframe-generator-v4/).
+**Continues:** [`2026-05-26-wireframe-generator-spike-v6.md`](../../thoughts/spikes/2026-05-26-wireframe-generator-spike-v6.md) (doc-only revalidation) — v4 was the last code-bearing spike; its implementation is retired, with findings retained in [`2026-05-24-wireframe-generator-spike-v4.md`](../../thoughts/spikes/2026-05-24-wireframe-generator-spike-v4.md) and source retained in Git history.
 
 ## Nugget
 

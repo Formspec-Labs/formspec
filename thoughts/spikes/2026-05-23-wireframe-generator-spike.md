@@ -1,5 +1,8 @@
 # Wireframe / Dynamic-UI Generator Spike
 
+Historical experiment: the v1–v4 implementations and runnable commands are retired. Findings remain below; source is retained in Git history.
+
+
 **Status:** spike — exploratory proof, not production infrastructure
 **Lives at:** `formspec/spikes/wireframe-generator/`
 **Related:** [`thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md`](../specs/2026-05-20-formspec-semantic-layers.md), [`specs/experience/experience-spec.md`](../../specs/experience/experience-spec.md), [`specs/response-actions/response-actions-spec.md`](../../specs/response-actions/response-actions-spec.md), [`specs/component/component-spec.md`](../../specs/component/component-spec.md)
@@ -159,7 +162,7 @@ After running end-to-end against LexAssist (8 routes, all Component docs schema-
 
 **Promotion direction:** add `extensions` (constrained to `^x-` keys) to `ComponentBase` OR define a new ComponentBase property like `metadata` with `additionalProperties: true` for renderer-ignored host metadata. Without this, any future Component-generation tooling will tunnel through `x-generation` the same way the spike did, which conflates provenance with payload.
 
-**Concrete pinch point:** [`src/generate.ts`](../../spikes/wireframe-generator/src/generate.ts) — see the `xgen(...)` helper. Every node carries `x-generation: { source, strategy, generatedBy, anchors, spike: {...} }`. The `spike:` key is purely host-data, not provenance. Reviewer should flag this when normalizing.
+**Concrete pinch point:** the retired `spikes/wireframe-generator/src/generate.ts` (retained in Git history) — see the `xgen(...)` helper. Every node carries `x-generation: { source, strategy, generatedBy, anchors, spike: {...} }`. The `spike:` key is purely host-data, not provenance. Reviewer should flag this when normalizing.
 
 ### F3. `unit.kind` enum is form-narrow
 
