@@ -689,6 +689,8 @@
   border-bottom: 1px solid var(--fs-surface-line);
   text-align: left;
   vertical-align: top;
+  /* Give short words room; long values wrap and narrow tables scroll locally. */
+  min-width: 6rem;
   overflow-wrap: anywhere;
 }
 
