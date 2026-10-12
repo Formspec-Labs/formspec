@@ -8,6 +8,113 @@
 /* eslint-disable */
 import type { ModuleRef } from './common.js';
 /**
+ * A Formspec Mapping DSL v1.0 document describing bidirectional data transformation between a Formspec Response or explicitly schema-associated external JSON source and an external schema. A Mapping Document is a standalone JSON artifact — not embedded in a Definition — that declares field-level correspondences, structural reorganizations, type coercions, value translations, and conditional logic sufficient to convert a Response into an API payload, database record, CSV export, or XML document, and to reverse that transformation when importing. All computed transforms use the Formspec Expression Language (FEL). The DSL generalizes the version-migration fieldMap from §6.7 of the core specification.
+ */
+export type MappingDocument = {
+  /**
+   * Mapping specification version. MUST be '1.0'.
+   */
+  $formspecMapping: '1.0';
+  /**
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.
+   */
+  modules?: ModuleRef[];
+  /**
+   * URI identifying the version of the Mapping DSL specification this document conforms to.
+   */
+  $schema?: string;
+  /**
+   * Semantic version of this Mapping Document. Independent of both the Formspec Definition version and the DSL specification version. Implementations SHOULD use this for cache invalidation and change detection.
+   */
+  version: string;
+  /**
+   * Machine-readable short name for this Mapping Document. Pattern: letters, digits, hyphens, underscores; must start with a letter.
+   */
+  name?: string;
+  /**
+   * Human-readable name for this Mapping Document.
+   */
+  title?: string;
+  /**
+   * Human-readable description of this document's purpose and scope: which system's layout it targets and why the rules are what they are. Ignored during execution.
+   */
+  description?: string;
+  /**
+   * URI or stable identifier of the Formspec Definition this mapping targets. Corresponds to the Definition's 'url' property — the canonical identity that is stable across versions.
+   */
+  definitionRef?: string;
+  /**
+   * Semver range of compatible Formspec Definition versions per node-semver syntax. An implementation MUST refuse to execute a Mapping Document when the resolved Definition version does not satisfy this range.
+   */
+  definitionVersion?: string;
+  targetSchema: TargetSchema;
+  /**
+   * Execution direction. 'forward': Response→External (default), reverse execution MUST raise an error. 'reverse': External→Response only, forward execution MUST raise an error. 'both': rules are evaluated in either direction; each Field Rule MAY supply an explicit reverse override.
+   */
+  direction?: 'forward' | 'reverse' | 'both';
+  /**
+   * Leaf values applied to the target document before any Field Rules execute. Keys are dot-notation target paths; values are literal JSON values. Any Field Rule that writes to the same path will overwrite the default. Defaults are applied only in the forward direction.
+   */
+  defaults?: {};
+  /**
+   * When true, the processor generates synthetic 'preserve' rules (at priority -1) for every source field not already covered by an explicit rule's sourcePath. Synthetic rules use identical source and target paths. Explicit rules always take precedence. When targetSchema.format is 'csv', auto-mapped paths containing dots are silently skipped.
+   */
+  autoMap?: boolean;
+  /**
+   * Declares the minimum conformance level required to process this mapping document. 'core': forward JSON mapping only. 'bidirectional': adds reverse mapping with round-trip fidelity. 'extended': adds XML and CSV adapters. Each level is a strict superset of the preceding level.
+   */
+  conformanceLevel?: 'core' | 'bidirectional' | 'extended';
+  /**
+   * Ordered array of Field Rule objects. Rules are sorted by priority (descending, stable sort) before execution. Equal-priority rules retain document order. When two rules write to the same targetPath, last-write-wins. MUST contain at least one element.
+   *
+   * @minItems 1
+   */
+  rules: [FieldRule, ...FieldRule[]];
+  /**
+   * Adapter-specific configuration keyed by adapter identifier. The active adapter is determined by targetSchema.format. Built-in adapters: 'json' (Mapping Core), 'xml' and 'csv' (Mapping Extended). Custom adapters use x- prefix.
+   */
+  adapters?: {
+    json?: JsonAdapter;
+    xml?: XmlAdapter;
+    csv?: CsvAdapter;
+    /**
+     * This interface was referenced by `undefined`'s JSON-Schema definition
+     * via the `patternProperty` "^x-".
+     */
+    [k: `x-${string}`]: unknown;
+  };
+  /**
+   * Document-level extension properties. All keys MUST be prefixed with 'x-'.
+   */
+  extensions?: {};
+  /**
+   * Explicit external JSON source association, alternative to definitionRef and definitionVersion. The inline schema validates forward input and reverse output; it is never treated as a Formspec Definition.
+   */
+  sourceSchema?: {
+    /**
+     * Canonical identity of the external source schema.
+     */
+    url: string;
+    /**
+     * Exact semantic version of the external source schema.
+     */
+    version: string;
+    /**
+     * Inline JSON Schema used by lint and document execution. References must resolve locally; execution never fetches external schemas.
+     */
+    schema: {
+      [k: string]: unknown;
+    };
+  };
+  /**
+   * This interface was referenced by `undefined`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: `x-${string}`]: unknown;
+} & {
+  [k: string]: unknown;
+};
+/**
  * Descriptor for the external system schema targeted by this mapping. Determines the adapter used for serialization and the path syntax rules for targetPath values.
  */
 export type TargetSchema = {
@@ -50,7 +157,7 @@ export type TargetSchema = {
 /**
  * A single field mapping rule — the atomic unit of a Mapping Document. Binds a source path to a target path and specifies how the value is transformed in transit. At least one of sourcePath or targetPath MUST be present. Rules are executed in priority-sorted order; when two rules target the same path, last-write-wins.
  *
- * This interface was referenced by `MappingDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "FieldRule".
  */
 export type FieldRule = {
@@ -137,7 +244,7 @@ export type FieldRule1 = {
 /**
  * A Field Rule used inside array.innerRules. Identical to FieldRule with an additional optional 'index' property for indexed mode. Paths resolve relative to the current array element, not the document root.
  *
- * This interface was referenced by `MappingDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "InnerRule".
  */
 export type InnerRule = {
@@ -226,99 +333,13 @@ export type InnerRule1 = {
   [k: string]: unknown;
 };
 /**
- * A Formspec Mapping DSL v1.0 document describing bidirectional data transformation between a Formspec Response and an external schema. A Mapping Document is a standalone JSON artifact — not embedded in a Definition — that declares field-level correspondences, structural reorganizations, type coercions, value translations, and conditional logic sufficient to convert a Response into an API payload, database record, CSV export, or XML document, and to reverse that transformation when importing. All computed transforms use the Formspec Expression Language (FEL). The DSL generalizes the version-migration fieldMap from §6.7 of the core specification.
- */
-export interface MappingDocument {
-  /**
-   * Mapping specification version. MUST be '1.0'.
-   */
-  $formspecMapping: '1.0';
-  /**
-   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.
-   */
-  modules?: ModuleRef[];
-  /**
-   * URI identifying the version of the Mapping DSL specification this document conforms to.
-   */
-  $schema?: string;
-  /**
-   * Semantic version of this Mapping Document. Independent of both the Formspec Definition version and the DSL specification version. Implementations SHOULD use this for cache invalidation and change detection.
-   */
-  version: string;
-  /**
-   * Machine-readable short name for this Mapping Document. Pattern: letters, digits, hyphens, underscores; must start with a letter.
-   */
-  name?: string;
-  /**
-   * Human-readable name for this Mapping Document.
-   */
-  title?: string;
-  /**
-   * Human-readable description of this document's purpose and scope: which system's layout it targets and why the rules are what they are. Ignored during execution.
-   */
-  description?: string;
-  /**
-   * URI or stable identifier of the Formspec Definition this mapping targets. Corresponds to the Definition's 'url' property — the canonical identity that is stable across versions.
-   */
-  definitionRef: string;
-  /**
-   * Semver range of compatible Formspec Definition versions per node-semver syntax. An implementation MUST refuse to execute a Mapping Document when the resolved Definition version does not satisfy this range.
-   */
-  definitionVersion: string;
-  targetSchema: TargetSchema;
-  /**
-   * Execution direction. 'forward': Response→External (default), reverse execution MUST raise an error. 'reverse': External→Response only, forward execution MUST raise an error. 'both': rules are evaluated in either direction; each Field Rule MAY supply an explicit reverse override.
-   */
-  direction?: 'forward' | 'reverse' | 'both';
-  /**
-   * Leaf values applied to the target document before any Field Rules execute. Keys are dot-notation target paths; values are literal JSON values. Any Field Rule that writes to the same path will overwrite the default. Defaults are applied only in the forward direction.
-   */
-  defaults?: {};
-  /**
-   * When true, the processor generates synthetic 'preserve' rules (at priority -1) for every source field not already covered by an explicit rule's sourcePath. Synthetic rules use identical source and target paths. Explicit rules always take precedence. When targetSchema.format is 'csv', auto-mapped paths containing dots are silently skipped.
-   */
-  autoMap?: boolean;
-  /**
-   * Declares the minimum conformance level required to process this mapping document. 'core': forward JSON mapping only. 'bidirectional': adds reverse mapping with round-trip fidelity. 'extended': adds XML and CSV adapters. Each level is a strict superset of the preceding level.
-   */
-  conformanceLevel?: 'core' | 'bidirectional' | 'extended';
-  /**
-   * Ordered array of Field Rule objects. Rules are sorted by priority (descending, stable sort) before execution. Equal-priority rules retain document order. When two rules write to the same targetPath, last-write-wins. MUST contain at least one element.
-   *
-   * @minItems 1
-   */
-  rules: [FieldRule, ...FieldRule[]];
-  /**
-   * Adapter-specific configuration keyed by adapter identifier. The active adapter is determined by targetSchema.format. Built-in adapters: 'json' (Mapping Core), 'xml' and 'csv' (Mapping Extended). Custom adapters use x- prefix.
-   */
-  adapters?: {
-    json?: JsonAdapter;
-    xml?: XmlAdapter;
-    csv?: CsvAdapter;
-    /**
-     * This interface was referenced by `undefined`'s JSON-Schema definition
-     * via the `patternProperty` "^x-".
-     */
-    [k: `x-${string}`]: unknown;
-  };
-  /**
-   * Document-level extension properties. All keys MUST be prefixed with 'x-'.
-   */
-  extensions?: {};
-  /**
-   * This interface was referenced by `MappingDocument`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: `x-${string}`]: unknown;
-}
-/**
  * Extension object whose keys must be prefixed with x-.
  */
 export interface Extensions {}
 /**
  * Type conversion descriptor specifying source type, target type, and optional format pattern. Supported conversions: string<->number, string<->integer, string<->boolean, string<->date, string<->datetime, number<->integer, number<->boolean, integer<->boolean, date<->datetime, money->string, money->number (lossy), money->integer (lossy). Unsupported pairs MUST be rejected at validation time.
  *
- * This interface was referenced by `MappingDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "Coerce".
  */
 export interface Coerce {
@@ -494,7 +515,7 @@ export interface ProjectionHint {
 /**
  * JSON format adapter configuration. The JSON adapter performs identity serialization — the engine's internal representation is already JSON. Target paths use dot-notation with bracket indexing (e.g. 'user.tags[0]'). Intermediate objects and arrays are created automatically.
  *
- * This interface was referenced by `MappingDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "JsonAdapter".
  */
 export interface JsonAdapter {
@@ -514,7 +535,7 @@ export interface JsonAdapter {
 /**
  * XML format adapter configuration (Mapping Extended conformance). Serializes internal JSON as an XML 1.0 document. Target paths use dot-notation for elements and '@' prefix for attributes (e.g. 'order.@id'). Namespace prefixes use colon notation in paths (e.g. 'xsi:type'). The targetSchema MUST declare rootElement and SHOULD declare namespaces.
  *
- * This interface was referenced by `MappingDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "XmlAdapter".
  */
 export interface XmlAdapter {
@@ -534,7 +555,7 @@ export interface XmlAdapter {
 /**
  * CSV format adapter configuration (Mapping Extended conformance). Serializes internal JSON as RFC 4180 delimited text. STRUCTURAL CONSTRAINT: all targetPath values MUST be simple identifiers (no dot-notation, no brackets). A nested targetPath MUST produce a validation error. Repeat groups emit one row per iteration; fields outside the repeat are duplicated across rows.
  *
- * This interface was referenced by `MappingDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "CsvAdapter".
  */
 export interface CsvAdapter {

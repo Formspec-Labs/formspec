@@ -74,8 +74,9 @@ pub use path_utils::{
 pub use response_migration::apply_migrations_to_response_data;
 pub use runtime_mapping::{
     ArrayDescriptor, ArrayMode, CoerceType, MappingDiagnostic, MappingDirection, MappingDocument,
-    MappingErrorCode, MappingResult, MappingRule, ReverseOverride, TransformType, UnmappedStrategy,
-    execute_mapping, execute_mapping_doc, mapping_direction_wire, mapping_result_to_json_value,
+    MappingErrorCode, MappingResult, MappingRule, MappingSourceSchema, ReverseOverride,
+    TransformType, UnmappedStrategy, execute_mapping, execute_mapping_doc,
+    execute_mapping_doc_with_validation, mapping_direction_wire, mapping_result_to_json_value,
     parse_coerce_type, parse_mapping_direction_field, parse_mapping_direction_wire,
     parse_mapping_document_from_value, parse_mapping_rules_from_value,
 };

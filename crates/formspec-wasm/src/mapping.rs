@@ -5,9 +5,8 @@
 //! * [`execute_mapping_document_wasm`] — full Mapping Document (rules + defaults + autoMap).
 
 use formspec_core::{
-    JsonWireStyle, execute_mapping, execute_mapping_doc, mapping_result_to_json_value,
-    parse_mapping_direction_wire, parse_mapping_document_from_value,
-    parse_mapping_rules_from_value,
+    JsonWireStyle, execute_mapping, mapping_result_to_json_value, parse_mapping_direction_wire,
+    parse_mapping_document_from_value, parse_mapping_rules_from_value,
 };
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -58,7 +57,80 @@ pub(crate) fn execute_mapping_document_inner(
     let source: Value = parse_value_str(source_json, "source JSON")?;
     let dir = parse_mapping_direction_wire(direction)?;
     let doc = parse_mapping_document_from_value(&doc_val)?;
-    let result = execute_mapping_doc(&doc, &source, dir);
+    #[cfg(feature = "lint")]
+    let result = formspec_core::execute_mapping_doc_with_validation(
+        &doc,
+        &source,
+        dir,
+        formspec_lint::validate_mapping_source,
+    );
+    #[cfg(not(feature = "lint"))]
+    let result = formspec_core::execute_mapping_doc(&doc, &source, dir);
     let json = mapping_result_to_json_value(&result, JsonWireStyle::JsCamel);
     to_json_string(&json)
+}
+
+#[cfg(test)]
+mod source_schema_tests {
+    use super::execute_mapping_document_inner;
+    use serde_json::{Value, json};
+
+    #[test]
+    fn binding_validates_external_source_or_refuses_without_backend() {
+        let document = json!({"sourceSchema":{"url":"urn:neutral:source", "version":"1.0.0",
+            "schema":{"type":"object", "required":["label"], "properties":{"label":{"type":"string"}}}},
+            "rules":[{"sourcePath":"label", "targetPath":"name", "transform":"preserve", "bidirectional":true}]});
+        for (direction, good, bad) in [
+            (
+                "forward",
+                json!({"label":"neutral"}),
+                json!({"label":false}),
+            ),
+            ("reverse", json!({"name":"neutral"}), json!({"name":false})),
+        ] {
+            let valid: Value = serde_json::from_str(
+                &execute_mapping_document_inner(
+                    &document.to_string(),
+                    &good.to_string(),
+                    direction,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            #[cfg(feature = "lint")]
+            assert!(valid["diagnostics"].as_array().unwrap().is_empty());
+            #[cfg(not(feature = "lint"))]
+            assert_eq!(valid["diagnostics"][0]["errorCode"], "INVALID_DOCUMENT");
+            let refused: Value = serde_json::from_str(
+                &execute_mapping_document_inner(&document.to_string(), &bad.to_string(), direction)
+                    .unwrap(),
+            )
+            .unwrap();
+            assert_eq!(refused["output"], json!({}));
+            assert_eq!(refused["diagnostics"][0]["errorCode"], "INVALID_DOCUMENT");
+        }
+    }
+
+    #[cfg(feature = "lint")]
+    #[test]
+    fn binding_refuses_invalid_source_identity_before_rules() {
+        for association in [
+            json!({"url":"not a uri", "version":"1.0.0", "schema":{}}),
+            json!({"url":"urn:neutral:source", "version":"banana", "schema":{}}),
+        ] {
+            let doc = json!({"sourceSchema":association,
+                "rules":[{"sourcePath":"label", "targetPath":"name", "transform":"preserve"}]});
+            let result: Value = serde_json::from_str(
+                &execute_mapping_document_inner(
+                    &doc.to_string(),
+                    r#"{"label":"neutral"}"#,
+                    "forward",
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            assert_eq!(result["output"], json!({}));
+            assert_eq!(result["diagnostics"][0]["errorCode"], "INVALID_DOCUMENT");
+        }
+    }
 }

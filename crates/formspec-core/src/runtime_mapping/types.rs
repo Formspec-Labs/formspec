@@ -168,6 +168,8 @@ pub struct MappingResult {
 #[allow(missing_docs)]
 #[derive(Debug, Clone)]
 pub struct MappingDocument {
+    /// External source association; execution requires an independent schema validator.
+    pub source_schema: Option<MappingSourceSchema>,
     pub rules: Vec<MappingRule>,
     /// Key-value defaults pre-populated into the output before rules execute (forward only).
     pub defaults: Option<serde_json::Map<String, Value>>,
@@ -175,4 +177,15 @@ pub struct MappingDocument {
     pub auto_map: bool,
     /// When set, [`execute_mapping_doc`](super::document::execute_mapping_doc) only permits this direction.
     pub direction_restriction: Option<MappingDirection>,
+}
+
+/// Versioned external source identity and its inline JSON Schema.
+#[derive(Debug, Clone)]
+pub struct MappingSourceSchema {
+    /// Canonical external schema identity.
+    pub url: String,
+    /// Exact external schema version.
+    pub version: String,
+    /// Inline schema validated by the binding's maintained JSON Schema implementation.
+    pub schema: Value,
 }

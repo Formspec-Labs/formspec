@@ -3,7 +3,7 @@
 use pyo3::prelude::*;
 
 use formspec_core::{
-    JsonWireStyle, execute_mapping_doc as run_mapping_document, mapping_result_to_json_value,
+    JsonWireStyle, execute_mapping_doc_with_validation, mapping_result_to_json_value,
     parse_mapping_direction_wire, parse_mapping_document_from_value,
 };
 
@@ -24,7 +24,12 @@ pub fn execute_mapping_doc(
     })?;
     let mapping_doc = parse_mapping_document_from_value(&doc_val)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
-    let result = run_mapping_document(&mapping_doc, &source, dir);
+    let result = execute_mapping_doc_with_validation(
+        &mapping_doc,
+        &source,
+        dir,
+        formspec_lint::validate_mapping_source,
+    );
     let json = mapping_result_to_json_value(&result, JsonWireStyle::PythonSnake);
     let normalized = normalize_wire_json_for_python(&json);
     json_to_python(py, &normalized)

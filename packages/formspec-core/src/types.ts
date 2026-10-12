@@ -69,6 +69,8 @@ export interface MappingState {
   targetSchema?: TargetSchema;
   definitionRef?: string;
   definitionVersion?: string;
+  /** Independent external source identity and exact inline input schema. */
+  sourceSchema?: { url: string; version: string; schema: Record<string, unknown> };
   direction?: 'forward' | 'reverse' | 'both';
   defaults?: Record<string, unknown>;
   autoMap?: boolean;

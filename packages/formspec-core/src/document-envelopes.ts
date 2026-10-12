@@ -58,8 +58,8 @@ export function withMappingEnvelope(body: MappingState, definitionUrl: string): 
   return {
     $formspecMapping: '1.0',
     ...(document.version === undefined ? { version: '0.1.0' } : {}),
-    ...(document.definitionRef === undefined ? { definitionRef: definitionUrl } : {}),
-    ...(document.definitionVersion === undefined ? { definitionVersion: '>=0.0.0' } : {}),
+    ...(document.sourceSchema === undefined && document.definitionRef === undefined ? { definitionRef: definitionUrl } : {}),
+    ...(document.sourceSchema === undefined && document.definitionVersion === undefined ? { definitionVersion: '>=0.0.0' } : {}),
     ...(document.targetSchema === undefined ? { targetSchema: { format: 'json' } } : {}),
     ...(document.rules === undefined ? { rules: [] } : {}),
     ...document,

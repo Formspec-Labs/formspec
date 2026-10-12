@@ -17,7 +17,8 @@ mod wire_json;
 #[cfg(test)]
 mod tests;
 
-pub use document::execute_mapping_doc;
+#[doc(inline)]
+pub use document::{execute_mapping_doc, execute_mapping_doc_with_validation};
 pub use engine::execute_mapping;
 pub use parse::{
     parse_coerce_type, parse_mapping_direction_field, parse_mapping_document_from_value,

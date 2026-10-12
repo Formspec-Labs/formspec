@@ -9,7 +9,7 @@ use serde_json::Value;
 
 use super::types::{
     ArrayDescriptor, ArrayMode, CoerceType, MappingDirection, MappingDocument, MappingRule,
-    ReverseOverride, TransformType, UnmappedStrategy,
+    MappingSourceSchema, ReverseOverride, TransformType, UnmappedStrategy,
 };
 
 /// Parse a coerce type from a mapping rule JSON `coerce` field.
@@ -72,7 +72,46 @@ pub fn parse_mapping_document_from_value(val: &Value) -> Result<MappingDocument,
 
     let direction_restriction = parse_mapping_direction_field(val);
 
+    let source_schema = obj
+        .get("sourceSchema")
+        .map(|value| {
+            if obj.contains_key("definitionRef") || obj.contains_key("definitionVersion") {
+                return Err(
+                    "sourceSchema and Definition association are mutually exclusive".to_string(),
+                );
+            }
+            let association = value
+                .as_object()
+                .ok_or_else(|| "sourceSchema must be an object".to_string())?;
+            if association
+                .keys()
+                .any(|key| !matches!(key.as_str(), "url" | "version" | "schema"))
+            {
+                return Err("sourceSchema contains an unsupported property".to_string());
+            }
+            let string = |key: &str| {
+                association
+                    .get(key)
+                    .and_then(Value::as_str)
+                    .filter(|value| !value.trim().is_empty())
+                    .map(str::to_owned)
+                    .ok_or_else(|| format!("sourceSchema.{key} must be a nonempty string"))
+            };
+            let schema = association
+                .get("schema")
+                .filter(|value| value.is_object())
+                .ok_or_else(|| "sourceSchema.schema must be an object".to_string())?
+                .clone();
+            Ok(MappingSourceSchema {
+                url: string("url")?,
+                version: string("version")?,
+                schema,
+            })
+        })
+        .transpose()?;
+
     Ok(MappingDocument {
+        source_schema,
         rules,
         defaults,
         auto_map,

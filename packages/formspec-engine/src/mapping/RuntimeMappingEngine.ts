@@ -123,11 +123,11 @@ export class RuntimeMappingEngine implements IRuntimeMappingEngine {
     }
 
     public forward(source: JsonValue | string): RuntimeMappingResult {
-        return this.execute('forward', source ?? {});
+        return this.execute('forward', this.doc.sourceSchema ? source : source ?? {});
     }
 
     public reverse(source: JsonValue | string): RuntimeMappingResult {
-        return this.execute('reverse', source ?? {});
+        return this.execute('reverse', this.doc.sourceSchema ? source : source ?? {});
     }
 
     private execute(direction: MappingDirection, source: JsonValue | string): RuntimeMappingResult {
@@ -173,6 +173,11 @@ export class RuntimeMappingEngine implements IRuntimeMappingEngine {
 
         // If direction was blocked, return early (WASM already set INVALID_DOCUMENT diagnostic)
         if (diagnostics.some(d => d.errorCode === 'INVALID_DOCUMENT')) {
+            return { direction, output, appliedRules, diagnostics };
+        }
+
+        // External reverse output is the schema-validated JSON source.
+        if (direction === 'reverse' && this.doc.sourceSchema) {
             return { direction, output, appliedRules, diagnostics };
         }
 

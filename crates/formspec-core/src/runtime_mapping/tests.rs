@@ -543,6 +543,7 @@ fn test_mapping_doc_defaults_prepopulate() {
     defaults.insert("version".to_string(), json!("1.0"));
     defaults.insert("type".to_string(), json!("form"));
     let doc = MappingDocument {
+        source_schema: None,
         rules: vec![rule(Some("name"), "name", TransformType::Preserve)],
         defaults: Some(defaults),
         auto_map: false,
@@ -558,6 +559,7 @@ fn test_mapping_doc_defaults_prepopulate() {
 #[test]
 fn test_mapping_doc_automap_copies_unmapped() {
     let doc = MappingDocument {
+        source_schema: None,
         rules: vec![rule(Some("name"), "fullName", TransformType::Preserve)],
         defaults: None,
         auto_map: true,
@@ -648,6 +650,7 @@ fn preserve_reverse_swaps_paths() {
 #[test]
 fn automap_skipped_in_reverse() {
     let doc = MappingDocument {
+        source_schema: None,
         rules: vec![rule(Some("name"), "fullName", TransformType::Preserve)],
         defaults: None,
         auto_map: true,
@@ -663,6 +666,7 @@ fn automap_skipped_in_reverse() {
 #[test]
 fn mapping_doc_direction_restriction_blocks_mismatched_execution() {
     let doc = MappingDocument {
+        source_schema: None,
         rules: vec![rule(Some("a"), "b", TransformType::Preserve)],
         defaults: None,
         auto_map: false,
@@ -886,6 +890,7 @@ fn defaults_do_not_override_rule_output() {
     let mut defaults = serde_json::Map::new();
     defaults.insert("name".to_string(), json!("default_name"));
     let doc = MappingDocument {
+        source_schema: None,
         rules: vec![rule(Some("name"), "name", TransformType::Preserve)],
         defaults: Some(defaults),
         auto_map: false,
@@ -902,6 +907,7 @@ fn defaults_do_not_override_rule_output() {
 #[test]
 fn test_automap_does_not_duplicate_explicit() {
     let doc = MappingDocument {
+        source_schema: None,
         rules: vec![rule(Some("name"), "fullName", TransformType::Preserve)],
         defaults: None,
         auto_map: true,
