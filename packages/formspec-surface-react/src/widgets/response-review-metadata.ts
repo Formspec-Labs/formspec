@@ -63,6 +63,7 @@ export interface AcceptedResponseReviewPresentation
   phase: "accepted-record";
   /** Actual qualified IntakeHandoff.handoffId, never a synthesized record revision. */
   handoffId: string;
+  taskSign?: never;
 }
 export interface AcceptedResponseReviewData extends Omit<ResponseReviewData, "presentation"> {
   presentation: AcceptedResponseReviewPresentation;
@@ -72,13 +73,42 @@ export interface AcceptedResponseReviewState
   extends Omit<ResponseReviewState, "actorRef" | "draft" | "phase"> {
   phase: "accepted-record";
   handoffId: string;
+  taskSign?: never;
 }
-export type ResponseReviewInput = ResponseReviewData | AcceptedResponseReviewData;
-export type ResponseReviewPresentationInput = ResponseReviewPresentation | AcceptedResponseReviewPresentation;
+/** Opaque retained task Sign identity, qualified by the authenticated host.
+ * recordHash hashes the Sign record, not the Response. recordRef names that exact hash. */
+export interface AcceptedTaskResponseReviewSign {
+  recordRef: string;
+  recordHash: string;
+}
+export interface AcceptedTaskResponseReviewPresentation
+  extends Omit<ResponseReviewPresentation, "actorRef" | "draft" | "phase"> {
+  phase: "accepted-record";
+  taskSign: AcceptedTaskResponseReviewSign;
+  handoffId?: never;
+}
+export interface AcceptedTaskResponseReviewData extends Omit<ResponseReviewData, "presentation"> {
+  presentation: AcceptedTaskResponseReviewPresentation;
+}
+export interface AcceptedTaskResponseReviewState
+  extends Omit<ResponseReviewState, "actorRef" | "draft" | "phase"> {
+  phase: "accepted-record";
+  taskSign: AcceptedTaskResponseReviewSign;
+  handoffId?: never;
+}
+export type AcceptedResponseReviewInput = AcceptedResponseReviewData | AcceptedTaskResponseReviewData;
+export type AcceptedResponseReviewStateInput = AcceptedResponseReviewState | AcceptedTaskResponseReviewState;
+export type ResponseReviewInput = ResponseReviewData | AcceptedResponseReviewInput;
+export type ResponseReviewPresentationInput = ResponseReviewPresentation | AcceptedResponseReviewPresentation | AcceptedTaskResponseReviewPresentation;
 export interface AcceptedResponseReviewAttachmentRequest extends AcceptedResponseReviewData {
   path: string;
   descriptor: FiniteJsonValue;
 }
+export interface AcceptedTaskResponseReviewAttachmentRequest extends AcceptedTaskResponseReviewData {
+  path: string;
+  descriptor: FiniteJsonValue;
+}
+export type AcceptedResponseReviewAttachmentInput = AcceptedResponseReviewAttachmentRequest | AcceptedTaskResponseReviewAttachmentRequest;
 export interface ResponseReviewAttachmentRequest extends ResponseReviewData {
   path: string;
   descriptor: FiniteJsonValue;
@@ -96,11 +126,11 @@ export interface ResponseReviewOptions {
   /** Host authorizes this accepted case and qualifies its opaque attachment association.
    * No fallback to the applicant reader. Host lifecycle replacement must revoke access. */
   readAcceptedAttachment?: (
-    request: AcceptedResponseReviewAttachmentRequest,
+    request: AcceptedResponseReviewAttachmentInput,
     options: { signal: AbortSignal }
   ) => Promise<Blob>;
   /** Accepted-record display availability only; never delivered to signing callbacks. */
-  onAcceptedReviewState?: (state: AcceptedResponseReviewState) => void;
+  onAcceptedReviewState?: (state: AcceptedResponseReviewStateInput) => void;
   /** Presentation availability only; does not establish human review or signing authority. */
   onReviewState?: (state: ResponseReviewState) => void;
 }
@@ -304,9 +334,51 @@ export const ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA = {
   },
   allOf: RESPONSE_REVIEW_STATE_SCHEMA.allOf,
 } as const;
+/** Closed task-origin branch. The host verifies Sign/task/artifact links and current access. */
+export const ACCEPTED_TASK_RESPONSE_REVIEW_SIGN_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["recordRef", "recordHash"],
+  properties: {
+    recordRef: { type: "string", pattern: "^urn:formspec:task-draft-sign:sha256:[a-f0-9]{64}$" },
+    recordHash: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
+  },
+} as const;
+export const ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA = {
+  ...ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA,
+  required: [...ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA.required.filter(key => key !== "handoffId"), "taskSign"],
+  properties: {
+    ...Object.fromEntries(Object.entries(ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA.properties)
+      .filter(([key]) => key !== "handoffId")) as Omit<typeof ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA.properties, "handoffId">,
+    taskSign: ACCEPTED_TASK_RESPONSE_REVIEW_SIGN_SCHEMA,
+  },
+} as const;
+export const ACCEPTED_TASK_RESPONSE_REVIEW_DATA_SCHEMA = {
+  ...ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA,
+  properties: { ...ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA.properties, presentation: ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA },
+} as const;
+export const ACCEPTED_TASK_RESPONSE_REVIEW_STATE_SCHEMA = {
+  ...ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA,
+  required: [...ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA.required.filter(key => key !== "handoffId"), "taskSign"],
+  properties: {
+    ...Object.fromEntries(Object.entries(ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA.properties)
+      .filter(([key]) => key !== "handoffId")) as Omit<typeof ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA.properties, "handoffId">,
+    taskSign: ACCEPTED_TASK_RESPONSE_REVIEW_SIGN_SCHEMA,
+  },
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_PRESENTATION_UNION_SCHEMA = {
+  oneOf: [ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA],
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_DATA_UNION_SCHEMA = {
+  ...ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA,
+  properties: { ...ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA.properties, presentation: ACCEPTED_RESPONSE_REVIEW_PRESENTATION_UNION_SCHEMA },
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_STATE_UNION_SCHEMA = {
+  oneOf: [ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA, ACCEPTED_TASK_RESPONSE_REVIEW_STATE_SCHEMA],
+} as const;
 export const RESPONSE_REVIEW_PRESENTATION_UNION_SCHEMA = {
-  oneOf: [RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA],
+  oneOf: [RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA],
 } as const;
 export const RESPONSE_REVIEW_STATE_UNION_SCHEMA = {
-  oneOf: [RESPONSE_REVIEW_STATE_SCHEMA, ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA],
+  oneOf: [RESPONSE_REVIEW_STATE_SCHEMA, ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA, ACCEPTED_TASK_RESPONSE_REVIEW_STATE_SCHEMA],
 } as const;

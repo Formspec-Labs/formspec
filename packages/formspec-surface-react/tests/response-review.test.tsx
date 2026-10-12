@@ -1086,3 +1086,124 @@ it("refuses accepted bytes with a descriptor hash mismatch", async () => {
   expect(view.el.textContent).toContain(copy.attachmentFailed);expect(create).not.toHaveBeenCalled();
   view.unmount();create.mockRestore();
 });
+
+
+async function acceptedTaskProps() {
+  const p = await acceptedProps(), d = p.data as any;
+  delete d.presentation.handoffId;
+  const recordHash = `sha256:${"b".repeat(64)}`;
+  d.presentation.taskSign = { recordHash, recordRef: `urn:formspec:task-draft-sign:${recordHash}` };
+  d.response.authoredSignatures = [{ id: "retained-task-signature" }];
+  d.presentation.responseHash = await handoffHash(d.response);
+  return p;
+}
+
+describe("accepted signed-task ResponseReview", () => {
+  it("admits a task origin without an intake handoff and preserves the canonical response hash domain", async () => {
+    const p = await acceptedTaskProps(), accepted = vi.fn(), signing = vi.fn();
+    const view = await mount(p, { onAcceptedReviewState: accepted, onReviewState: signing });
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe("ready"));
+    expect(accepted.mock.calls.at(-1)?.[0]).toMatchObject({ phase: "accepted-record", taskSign: (p.data as any).presentation.taskSign, contextIdentity: await responseReviewHash(p.data) });
+    expect(accepted.mock.calls.at(-1)?.[0]).not.toHaveProperty("handoffId");
+    expect(view.el.textContent).toContain("Retained Name");
+    expect(view.el.querySelector("input,select,textarea,button")).toBeNull();
+    expect(signing).not.toHaveBeenCalled(); view.unmount();
+    expect(accepted.mock.calls.at(-1)?.[0].status).toBe("unavailable");
+  });
+  it.each(["both", "missing", "hash", "ref", "unknown", "actor", "unsigned", "definition", "locale"])("refuses %s task-origin drift before ports", async kind => {
+    const p = await acceptedTaskProps(), d = p.data as any;
+    if (kind === "both") d.presentation.handoffId = "invented";
+    if (kind === "missing") delete d.presentation.taskSign;
+    if (kind === "hash") d.presentation.taskSign.recordHash = "b".repeat(64);
+    if (kind === "ref") d.presentation.taskSign.recordRef += "wrong";
+    if (kind === "unknown") d.presentation.taskSign.taskId = "caller-task";
+    if (kind === "actor") d.presentation.actorRef = "invented";
+    if (kind === "unsigned") d.response.authoredSignatures = [];
+    if (kind === "definition") d.presentation.definitionVersion = "other";
+    if (kind === "locale") d.presentation.locale = "es";
+    const producer = vi.fn(handoffBytes), accepted = vi.fn(), read = vi.fn();
+    const view = await mount(p, { canonicalResponseHandoffBytes: producer, onAcceptedReviewState: accepted, readAcceptedAttachment: read });
+    expect(producer).not.toHaveBeenCalled(); expect(read).not.toHaveBeenCalled(); expect(accepted).not.toHaveBeenCalled();
+    expect(view.el.querySelector(".fs-response-review")).toBeNull(); view.unmount();
+  });
+  it("refuses response tampering and substitution of the Sign record hash as the response digest", async () => {
+    for (const kind of ["tamper", "record-hash", "raw-jcs", "missing-producer"]) {
+      const p = await acceptedTaskProps(), d = p.data as any, accepted = vi.fn();
+      if (kind === "tamper") d.response.data.name = "changed";
+      if (kind === "record-hash") d.presentation.responseHash = d.presentation.taskSign.recordHash.slice(7);
+      if (kind === "raw-jcs") d.presentation.responseHash = await responseReviewHash(d.response);
+      const view = await mount(p, { onAcceptedReviewState: accepted, ...(kind === "missing-producer" ? { canonicalResponseHandoffBytes: undefined } : {}) });
+      await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe("unavailable"));
+      expect(accepted.mock.calls.some(([s]) => s.status === "ready")).toBe(false); view.unmount();
+    }
+  });
+  it("publishes exclusive closed task schemas while preserving the original intake schema", async () => {
+    const metadata = await import("../src/widget-metadata.js");
+    const { default: Ajv } = await import("ajv/dist/2020.js"); const ajv = new Ajv({ strict: false });
+    const p = (await acceptedTaskProps()).data as any;
+    const task = ajv.compile(metadata.ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA);
+    const union = ajv.compile(metadata.ACCEPTED_RESPONSE_REVIEW_PRESENTATION_UNION_SCHEMA);
+    expect(task(p.presentation)).toBe(true); expect(union(p.presentation)).toBe(true);
+    expect(task({ ...p.presentation, handoffId: "invented" })).toBe(false);
+    expect(union({ ...p.presentation, handoffId: "invented" })).toBe(false);
+    expect(task({ ...p.presentation, taskSign: { ...p.presentation.taskSign, extra: true } })).toBe(false);
+    expect(ajv.compile(metadata.ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA)(p.presentation)).toBe(false);
+    expect(union((await acceptedProps()).data.presentation)).toBe(true);
+    const state = { status: "ready", responseHash: p.presentation.responseHash, locale: "en", phase: "accepted-record", taskSign: p.presentation.taskSign };
+    const validateState = ajv.compile(metadata.ACCEPTED_TASK_RESPONSE_REVIEW_STATE_SCHEMA);
+    expect(validateState(state)).toBe(false); expect(validateState({ ...state, contextIdentity: "a".repeat(64) })).toBe(true);
+    expect(ajv.compile(metadata.SIGNING_CEREMONY_REVIEW_SCHEMA)({ contextIdentity: "a".repeat(64), state: { ...state, contextIdentity: "a".repeat(64) } })).toBe(false);
+  });
+  it("aborts task attachment reads when replaced by the initial intake and keeps origin-specific context identities", async () => {
+    const p = await acceptedTaskProps(), { blob } = await withPhoto(p), accepted = vi.fn(), applicant = vi.fn();
+    let finish!: (blob: Blob) => void;
+    const read = vi.fn(() => new Promise<Blob>(r => { finish = r; }));
+    const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:late-task");
+    const view = await mount(p, { readAcceptedAttachment: read, readAttachment: applicant, onAcceptedReviewState: accepted });
+    await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    expect(read.mock.calls[0]![0].presentation).toHaveProperty("taskSign");
+    expect(read.mock.calls[0]![0].presentation).not.toHaveProperty("handoffId");
+    const signal = read.mock.calls[0]![1].signal;
+    const initial = await acceptedProps(); await view.rerender(initial);
+    expect(signal.aborted).toBe(true);
+    await act(async () => { finish(blob); await new Promise(r => setTimeout(r, 5)); });
+    expect(create).not.toHaveBeenCalled(); expect(applicant).not.toHaveBeenCalled();
+    expect(accepted.mock.calls.at(-1)?.[0]).toMatchObject({ status: "ready", handoffId: "handoff-actual-1", contextIdentity: await responseReviewHash(initial.data) });
+    view.unmount(); create.mockRestore();
+  });
+  it("qualifies task attachment bytes and decoding before readiness through the accepted reader", async () => {
+    const p = await acceptedTaskProps(), { blob } = await withPhoto(p), accepted = vi.fn(), applicant = vi.fn();
+    const read = vi.fn(async () => blob);
+    const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:task-qualified");
+    const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const view = await mount(p, { readAcceptedAttachment: read, readAttachment: applicant, onAcceptedReviewState: accepted });
+    await vi.waitFor(() => expect(view.el.querySelector("img")).not.toBeNull());
+    expect(read.mock.calls[0]![0].presentation).toHaveProperty("taskSign");
+    expect(accepted.mock.calls.at(-1)?.[0].status).toBe("pending");
+    act(() => view.el.querySelector("img")!.dispatchEvent(new Event("load")));
+    expect(accepted.mock.calls.at(-1)?.[0].status).toBe("ready");
+    expect(applicant).not.toHaveBeenCalled(); view.unmount();
+    expect(revoke).toHaveBeenCalledWith("blob:task-qualified"); create.mockRestore(); revoke.mockRestore();
+  });
+  it.each(["missing-reader", "wrong-bytes"])("refuses %s for task media without applicant fallback", async kind => {
+    const p = await acceptedTaskProps(); await withPhoto(p);
+    const accepted = vi.fn(), applicant = vi.fn(), read = vi.fn(async () => new Blob(["wrong"], { type: "image/png" }));
+    const view = await mount(p, { onAcceptedReviewState: accepted, readAttachment: applicant, ...(kind === "wrong-bytes" ? { readAcceptedAttachment: read } : {}) });
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe("unavailable"));
+    expect(applicant).not.toHaveBeenCalled(); expect(view.el.querySelector("img")).toBeNull(); view.unmount();
+  });
+  it("replaces display identity when only the qualified Sign identity changes", async () => {
+    const p = await acceptedTaskProps(), accepted = vi.fn();
+    const view = await mount(p, { onAcceptedReviewState: accepted });
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe("ready"));
+    const old = accepted.mock.calls.at(-1)![0];
+    const next = { ...p, data: structuredClone(p.data) }, d = next.data as any, recordHash = `sha256:${"c".repeat(64)}`;
+    d.presentation.taskSign = { recordHash, recordRef: `urn:formspec:task-draft-sign:${recordHash}` };
+    await view.rerender(next);
+    const current = accepted.mock.calls.at(-1)![0];
+    expect(current.status).toBe("ready"); expect(current.responseHash).toBe(old.responseHash);
+    expect(current.contextIdentity).not.toBe(old.contextIdentity);
+    expect(current.contextIdentity).toBe(await responseReviewHash(next.data)); view.unmount();
+  });
+
+});

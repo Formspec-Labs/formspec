@@ -19,11 +19,12 @@ import { WidgetEmptyState } from "./empty-state.js";
 import {
   RESPONSE_REVIEW_COPY_KEYS,
   ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA,
+  ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA,
   type ResponseReviewCopy,
   type ResponseReviewPresentationInput as ResponseReviewPresentation,
   type ResponseReviewInput as ResponseReviewData,
   type ResponseReviewAttachmentRequest,
-  type AcceptedResponseReviewAttachmentRequest,
+  type AcceptedResponseReviewAttachmentInput,
   type ResponseReviewState,
   type ResponseReviewOptions,
   type ResponseReviewProps,
@@ -142,12 +143,18 @@ function capture(props: SurfaceWidgetProps): Capture | undefined {
     )
       return undefined;
     if (p.phase === "accepted-record") {
-      if (!text(p.handoffId) || Object.keys(p).some(
-        key => !own(ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA.properties, key)
-      )) return undefined;
+      const task = own(p, "taskSign");
+      const schema = task ? ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA : ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA;
+      if (Object.keys(p).some(key => !own(schema.properties, key))) return undefined;
+      if (task) {
+        if (!object(p.taskSign) || Object.keys(p.taskSign).some(key => key !== "recordRef" && key !== "recordHash") ||
+          typeof p.taskSign.recordHash !== "string" || !/^sha256:[a-f0-9]{64}$/.test(p.taskSign.recordHash) ||
+          p.taskSign.recordRef !== `urn:formspec:task-draft-sign:${p.taskSign.recordHash}` ||
+          !Array.isArray(r.authoredSignatures) || r.authoredSignatures.length === 0) return undefined;
+      } else if (!text(p.handoffId)) return undefined;
     } else if (
       !text(p.actorRef) || !object(p.draft) || !text(p.draft.id) ||
-      !Number.isSafeInteger(p.draft.version) || p.draft.version < 0 || own(p, "handoffId")
+      !Number.isSafeInteger(p.draft.version) || p.draft.version < 0 || (own(p, "handoffId") || own(p, "taskSign"))
     ) return undefined;
     for (const m of Object.values(p.fields)) {
       if (
@@ -412,9 +419,9 @@ async function verifiedPreview(blob: Blob, descriptor: unknown): Promise<void> {
   if (`sha256:${hex}` !== descriptor.hash) throw Error("Digest mismatch");
 }
 
-type ReviewAttachmentRequest = ResponseReviewAttachmentRequest | AcceptedResponseReviewAttachmentRequest;
+type ReviewAttachmentRequest = ResponseReviewAttachmentRequest | AcceptedResponseReviewAttachmentInput;
 type ReviewAttachmentReader = (request: ReviewAttachmentRequest, options: { signal: AbortSignal }) => Promise<Blob>;
-function acceptedAttachment(request: ReviewAttachmentRequest): request is AcceptedResponseReviewAttachmentRequest {
+function acceptedAttachment(request: ReviewAttachmentRequest): request is AcceptedResponseReviewAttachmentInput {
   return request.presentation.phase === "accepted-record";
 }
 
@@ -563,7 +570,9 @@ function ReviewBody({
       const common = { status, responseHash: p.responseHash, locale: p.locale,
         ...(contextIdentity ? { contextIdentity } : {}) };
       if (p.phase === "accepted-record") {
-        options.onAcceptedReviewState?.({ ...common, phase: p.phase, handoffId: p.handoffId });
+        options.onAcceptedReviewState?.(p.taskSign
+          ? { ...common, phase: p.phase, taskSign: p.taskSign }
+          : { ...common, phase: p.phase, handoffId: p.handoffId });
       } else {
         options.onReviewState?.({ ...common, phase: p.phase, actorRef: p.actorRef, draft: p.draft });
       }
