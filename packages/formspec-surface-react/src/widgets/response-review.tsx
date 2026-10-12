@@ -294,7 +294,10 @@ function walk(
           attachment: false,
         });
     } else {
-      const attachment = item.dataType === "attachment";
+      // Empty recorded values have no file to preview. Preserve their value
+      // display without introducing an attachment readiness requirement.
+      const empty = value === null || value === "" || (Array.isArray(value) && !value.length);
+      const attachment = item.dataType === "attachment" && !empty;
       if (attachment)
         attachments.push(
           ...(Array.isArray(value) && value.length

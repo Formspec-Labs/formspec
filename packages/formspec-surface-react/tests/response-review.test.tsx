@@ -244,6 +244,41 @@ async function withPhoto(p: SurfaceWidgetProps) {
 }
 describe("ResponseReview admission and preview lifecycle", () => {
   it.each([
+    [null, copy.nullValue],
+    ["", copy.emptyString],
+    [[], copy.emptyArray],
+  ])("renders empty attachment %j without reading or blocking review", async (value, label) => {
+    const p = await props();
+    const d = p.data as any;
+    d.definition.items.push({ key: "optionalFile", type: "field", dataType: "attachment" });
+    d.response.data.optionalFile = value;
+    d.presentation.fields.optionalFile = { label: "Optional file" };
+    d.presentation.responseHash = await handoffHash(d.response);
+    const read = vi.fn();
+    const report = vi.fn();
+    const view = await mount(p, { readAttachment: read, onReviewState: report });
+    expect(view.el.querySelector('[data-response-path="optionalFile"]')?.textContent).toContain(label);
+    expect(read).not.toHaveBeenCalled();
+    expect(view.el.querySelector("figure")).toBeNull();
+    expect(report.mock.calls.at(-1)?.[0].status).toBe("ready");
+    view.unmount();
+  });
+
+  it("keeps a populated malformed attachment unavailable", async () => {
+    const p = await props();
+    await withPhoto(p);
+    const d = p.data as any;
+    d.response.data.photo = {};
+    d.presentation.responseHash = await handoffHash(d.response);
+    const report = vi.fn();
+    const read = vi.fn(async () => { throw Error("invalid descriptor"); });
+    const view = await mount(p, { readAttachment: read, onReviewState: report });
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(view.el.textContent).toContain(copy.attachmentFailed);
+    expect(report.mock.calls.at(-1)?.[0].status).toBe("unavailable");
+    view.unmount();
+  });
+  it.each([
     "pins",
     "locale",
     "hash",
