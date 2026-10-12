@@ -9,34 +9,22 @@ use crate::path_utils::{Path, PathSegment};
 /// Get a value at a path in a JSON object.
 /// Supports `[*]` wildcard: when `*` is encountered on an array, returns the array itself.
 pub(crate) fn get_by_path<'a>(obj: &'a Value, path: &str) -> &'a Value {
+    lookup_by_path(obj, path).unwrap_or(&Value::Null)
+}
+
+/// Resolve a path while preserving the difference between absent and explicit null.
+pub(crate) fn lookup_by_path<'a>(obj: &'a Value, path: &str) -> Option<&'a Value> {
     let p = Path::parse(path);
     let mut current = obj;
     for seg in &p.segments {
-        match seg {
-            PathSegment::Wildcard => {
-                // Wildcard: return the current value if it's an array, else null
-                return if current.is_array() {
-                    current
-                } else {
-                    &Value::Null
-                };
-            }
-            PathSegment::Exact(key) => match current {
-                Value::Object(map) => {
-                    current = map.get(key).unwrap_or(&Value::Null);
-                }
-                _ => return &Value::Null,
-            },
-            PathSegment::Indexed(idx) => match current {
-                Value::Array(arr) => {
-                    current = arr.get(*idx).unwrap_or(&Value::Null);
-                }
-                _ => return &Value::Null,
-            },
-            _ => return &Value::Null,
-        }
+        current = match seg {
+            PathSegment::Wildcard => return current.is_array().then_some(current),
+            PathSegment::Exact(key) => current.as_object()?.get(key)?,
+            PathSegment::Indexed(idx) => current.as_array()?.get(*idx)?,
+            _ => return None,
+        };
     }
-    current
+    Some(current)
 }
 
 /// Write flat key/value entries into `output`, either at the root or under

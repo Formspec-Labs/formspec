@@ -4,7 +4,7 @@ use fel_core::{evaluate, fel_to_json, parse};
 use serde_json::Value;
 
 use super::env::build_mapping_env;
-use super::path::{get_by_path, merge_flat_into, set_by_path};
+use super::path::{get_by_path, lookup_by_path, merge_flat_into, set_by_path};
 use super::transforms::{
     apply_coerce, apply_value_map, eval_fel_with_dollar, value_to_flat_string,
 };
@@ -43,7 +43,37 @@ pub fn execute_mapping(
         }
 
         let (src_path, tgt_path) = direction_paths(rule, direction);
-        let source_value = resolve_source_value(rule, source, src_path);
+        let resolved = src_path
+            .filter(|path| !path.is_empty())
+            .and_then(|path| lookup_by_path(source, path));
+        let (active_transform, using_reverse_override) = active_transform(rule, direction);
+        // Section 7.3 defines these defaults as output values, not transform inputs.
+        // An array descriptor with inner rules has its own source processing.
+        if resolved.is_none()
+            && rule
+                .array
+                .as_ref()
+                .is_none_or(|array| array.inner_rules.is_empty())
+            && matches!(
+                active_transform,
+                TransformType::Preserve
+                    | TransformType::Expression(_)
+                    | TransformType::Coerce(_)
+                    | TransformType::ValueMap { .. }
+            )
+        {
+            if let Some(default) = &rule.default {
+                if !tgt_path.is_empty() {
+                    set_by_path(&mut output, tgt_path, default.clone());
+                    rules_applied += 1;
+                }
+                continue;
+            }
+            if !matches!(active_transform, TransformType::Expression(_)) {
+                continue;
+            }
+        }
+        let source_value = resolve_source_value(rule, resolved);
 
         if let Some(ref arr_desc) = rule.array
             && try_apply_array_descriptor(arr_desc, &source_value, direction, tgt_path, &mut output)
@@ -53,7 +83,6 @@ pub fn execute_mapping(
             continue;
         }
 
-        let (active_transform, using_reverse_override) = active_transform(rule, direction);
         match apply_rule_transform(
             active_transform,
             direction,
@@ -131,17 +160,10 @@ fn direction_paths<'a>(
     }
 }
 
-/// Read the rule source value, applying per-rule default when absent or null.
-fn resolve_source_value(rule: &MappingRule, source: &Value, src_path: Option<&str>) -> Value {
-    match src_path {
-        Some(p) if !p.is_empty() => {
-            let v = get_by_path(source, p).clone();
-            if v.is_null() {
-                rule.default.clone().unwrap_or(v)
-            } else {
-                v
-            }
-        }
+/// Preserve existing null and structural-transform fallback behavior.
+fn resolve_source_value(rule: &MappingRule, resolved: Option<&Value>) -> Value {
+    match resolved {
+        Some(value) if !value.is_null() => value.clone(),
         _ => rule.default.clone().unwrap_or(Value::Null),
     }
 }

@@ -849,7 +849,7 @@ test('Fix 2 — condition $ binds to sourcePath value (absent)', () => {
 // Bug Fix 3: expression transform should skip when default was applied
 // ---------------------------------------------------------------------------
 
-test('Fix 3 — expression with default: WASM evaluates expression with default as $', () => {
+test('Fix 3 — absent source emits default unchanged and skips expression', () => {
   const engine = new RuntimeMappingEngine({
     rules: [{
       sourcePath: 'missing',
@@ -860,9 +860,8 @@ test('Fix 3 — expression with default: WASM evaluates expression with default 
     }]
   });
   const result = engine.forward({});
-  // WASM: default 'fallback' is used as the source value ($), then expression evaluates
-  // upper('fallback') → 'FALLBACK'
-  assert.equal(result.output.out.val, 'FALLBACK');
+  // Mapping §7.3: an absent source emits its literal default before expression evaluation.
+  assert.equal(result.output.out.val, 'fallback');
 });
 
 // ---------------------------------------------------------------------------
@@ -888,7 +887,7 @@ test('Fix 4 — valueMap with null source: WASM passes through null', () => {
 // Bug Fix 5: coerce should omit target for absent source, not write null
 // ---------------------------------------------------------------------------
 
-test('Fix 5 — coerce with absent source: WASM writes null', () => {
+test('Fix 5 — absent source without a default omits coerced target', () => {
   const engine = new RuntimeMappingEngine({
     rules: [{
       sourcePath: 'missing',
@@ -898,8 +897,8 @@ test('Fix 5 — coerce with absent source: WASM writes null', () => {
     }]
   });
   const result = engine.forward({});
-  // WASM: Rust resolves absent source to null, then coerces null → null
-  assert.equal(result.output.out.count, null);
+  // Mapping §7.3: an absent source without a default leaves the target absent.
+  assert.deepEqual(result.output, {});
 });
 
 // ---------------------------------------------------------------------------
