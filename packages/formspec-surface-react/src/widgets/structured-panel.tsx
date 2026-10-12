@@ -1,3 +1,5 @@
+import { orderStructuredTableRows, type StructuredTableOrderKey } from './structured-table-ordering.js';
+export type { StructuredTableOrderKey } from './structured-table-ordering.js';
 /**
  * @filedesc A reusable, data-only panel for declarative application surfaces.
  *
@@ -93,6 +95,8 @@ export interface StructuredTableBlockConfig extends StructuredBlockBase {
   caption?: string;
   responsiveMode?: 'stack' | 'scroll';
   columns: readonly StructuredTableColumnConfig[];
+  /** Stable authored ordering; missing/invalid keys sort last. */
+  orderBy?: readonly StructuredTableOrderKey[];
   rowAction?: StructuredTableRowActionConfig;
 }
 
@@ -388,6 +392,11 @@ function StructuredActionButton({
   const actionButton = useRef<HTMLButtonElement>(null);
   const confirmButton = useRef<HTMLButtonElement>(null);
   const restoreActionFocus = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const [status, setStatus] = useState<
     'idle' | 'confirming' | 'pending' | 'completed' | 'failed'
   >('idle');
@@ -416,6 +425,7 @@ function StructuredActionButton({
     if (!emission) return;
     setStatus('pending');
     void emission.completion.then((feedback) => {
+      if (!mounted.current) return;
       setStatus(
         feedback.status === 'completed'
           ? 'completed'
@@ -423,7 +433,7 @@ function StructuredActionButton({
             ? 'idle'
             : 'failed',
       );
-    }).catch(() => setStatus('failed'));
+    }).catch(() => { if (mounted.current) setStatus('failed'); });
   };
 
   if (status === 'confirming' && confirmation) {
@@ -670,7 +680,7 @@ function renderedTableRows(
 ): UnknownRecord[] {
   const rawRows = readStructuredPanelPath(data, block.path);
   return Array.isArray(rawRows)
-    ? rawRows.filter((row): row is UnknownRecord => record(row) !== undefined)
+    ? orderStructuredTableRows(rawRows.filter((row): row is UnknownRecord => record(row) !== undefined), block.orderBy, readStructuredPanelPath)
     : [];
 }
 
@@ -809,6 +819,14 @@ function renderTable(
                       ? null
                       : (
                         <StructuredActionButton
+                          key={JSON.stringify([
+                            rowAction.action.outputName, rowAction.action.actionRef, rowAction.action.intent,
+                            selectedActionPayload(rowAction.config.payload, row),
+                            rowAction.label, rowAction.emphasis, rowAction.anchors, rowAction.confirmation,
+                            nonEmptyString(rowAction.config.pendingLabel),
+                            nonEmptyString(rowAction.config.successMessage),
+                            nonEmptyString(rowAction.config.failureMessage),
+                          ])}
                           action={rowAction.action}
                           label={rowAction.label}
                           emphasis={rowAction.emphasis}

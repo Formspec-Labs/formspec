@@ -156,6 +156,7 @@ export {
   type StructuredPanelBlockConfig,
   type StructuredPanelConfig,
   type StructuredProgressBlockConfig,
+  type StructuredTableOrderKey,
   type StructuredTableBlockConfig,
   type StructuredTableColumnConfig,
   type StructuredTableRowActionConfig,

@@ -65,6 +65,7 @@ export type {
   StructuredPanelBlockConfig,
   StructuredPanelConfig,
   StructuredProgressBlockConfig,
+  StructuredTableOrderKey,
   StructuredTableBlockConfig,
   StructuredTableColumnConfig,
   StructuredTableRowActionConfig,
@@ -139,18 +140,30 @@ export const CEREMONY_FRAME_RENDERED_CONFIG_NODES = [
   { pointerPattern: '', kind: 'ceremony-frame' },
 ] as const;
 
-export function starterWidgetModule(moduleId: string, options: { responseReview?: ResponseReviewOptions } = {}): SurfaceWidgetModule {
+export interface StarterWidgetModuleOptions {
+  responseReview?: ResponseReviewOptions;
+  /** Explicit deployment support for the maintained whole-panel props schema. */
+  structuredPanelRegistryEntryVersion?: '0.1.0' | '0.1.1' | '0.1.2';
+}
+
+export function starterWidgetModule(moduleId: string, options: StarterWidgetModuleOptions = {}): SurfaceWidgetModule {
+  const structuredPanelVersion = options.structuredPanelRegistryEntryVersion ?? '0.1.0';
+  if (structuredPanelVersion !== '0.1.0' && structuredPanelVersion !== '0.1.1' && structuredPanelVersion !== '0.1.2') {
+    throw new Error('Unsupported StructuredPanel Registry entry version');
+  }
   const contract = (
     deliveryContractId: string,
     renderedConfigNodes: readonly { pointerPattern: string; kind: string }[],
+    registryEntryVersion = '0.1.0',
   ) => ({
     deliveryContractId,
-    registryEntryVersion: '0.1.0',
+    registryEntryVersion,
     renderedConfigNodes,
   });
   const structuredPanelContract = contract(
     STRUCTURED_PANEL_DELIVERY_CONTRACT_ID,
     STRUCTURED_PANEL_RENDERED_CONFIG_NODES,
+    structuredPanelVersion,
   );
   const queueTableContract = contract(
     QUEUE_TABLE_DELIVERY_CONTRACT_ID,
