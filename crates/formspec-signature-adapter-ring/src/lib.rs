@@ -82,6 +82,25 @@ impl RingVerifier {
         }
     }
 
+    /// Builds a verifier with the supplied clock and key resolver.
+    ///
+    /// Receipts use `clock` for their verification time. Requests containing
+    /// a key identifier use `resolver`, retaining the Formspec method prefix,
+    /// adapter identity, and receipt payload domain.
+    #[must_use]
+    pub fn new_with_clock_and_key_resolver(
+        clock: ClockHandle,
+        resolver: KeyResolverHandle,
+    ) -> Self {
+        Self {
+            inner: integrity_signature_ring::RingVerifier::new_with_clock_config_and_key_resolver(
+                clock,
+                formspec_config(),
+                resolver,
+            ),
+        }
+    }
+
     #[must_use]
     pub fn new_with_receipt_signer(signer: ReceiptSignerHandle) -> Self {
         Self {
@@ -177,7 +196,68 @@ impl ReceiptSigner for InProcessReceiptSigner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use formspec_signature_port::{AdapterInfo, KeyInfo, KeyRef, VerificationResult};
+    use formspec_signature_port::{
+        AdapterInfo, FixedClock, KeyInfo, KeyRef, RegistryEntry, StaticKeyResolver,
+        VerificationResult,
+    };
+    use ring::signature::KeyPair;
+    use std::sync::Arc;
+
+    #[test]
+    fn injected_clock_and_resolver_verify_real_signature_and_reject_tampering() {
+        const METHOD: &str = "urn:formspec:sig-method:ed25519-cose-sign1@1";
+        const RECORDED_TIME: &str = "2001-02-03T04:05:06Z";
+        let kid = b"historical-response-key";
+        // Fixed test-only seed makes the signature fixture independent of system entropy.
+        let key_pair = signature::Ed25519KeyPair::from_seed_unchecked(&[7; 32]).expect("test key");
+        let signed_bytes = b"historical response".to_vec();
+        let protected = formspec_signature_cose::protected_header_bytes(-8, kid, METHOD);
+        let signature = key_pair.sign(&formspec_signature_cose::sig_structure_bytes(
+            &protected,
+            &signed_bytes,
+        ));
+        let mut resolver = StaticKeyResolver::empty();
+        resolver.insert(kid.to_vec(), key_pair.public_key().as_ref().to_vec());
+        let verifier = RingVerifier::new_with_clock_and_key_resolver(
+            Arc::new(FixedClock::at_rfc3339(RECORDED_TIME).expect("recorded clock")),
+            Arc::new(resolver),
+        );
+        let registry = SignatureMethodRegistry {
+            version: "1.0.0".into(),
+            entries: vec![RegistryEntry {
+                id: METHOD.into(),
+                suite: "Ed25519".into(),
+                wire: "COSE_Sign1 with alg = -8 (EdDSA)".into(),
+                alg: Some(-8),
+                status: "registered".into(),
+                deprecation_notice: None,
+            }],
+        };
+        let mut request = VerifyRequest {
+            signed_bytes,
+            signature_bytes: formspec_signature_cose::encode_cose_sign1(
+                &protected,
+                None,
+                signature.as_ref(),
+            ),
+            method_uri: METHOD.into(),
+            key_ref: KeyRef::Kid(kid.to_vec()),
+        };
+        let receipt = verifier
+            .verify(&request, &registry)
+            .expect("verify response");
+        assert!(receipt.is_verified());
+        assert_eq!(receipt.verified_at, RECORDED_TIME);
+        assert_eq!(receipt.adapter.id, ADAPTER_ID);
+        assert_eq!(receipt.adapter.version, ADAPTER_VERSION);
+
+        request.signed_bytes.push(0);
+        let receipt = verifier
+            .verify(&request, &registry)
+            .expect("tampered verdict");
+        assert_eq!(receipt.result, VerificationResult::Failed);
+        assert_eq!(receipt.verified_at, RECORDED_TIME);
+    }
 
     #[test]
     fn facade_uses_formspec_receipt_payload_domain() {
