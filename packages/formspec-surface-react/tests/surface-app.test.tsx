@@ -133,6 +133,27 @@ function mount(overrides: Record<string, unknown> = {}) {
 }
 
 describe("host navigation destinations", () => {
+  it("respects a click already cancelled by another handler", () => {
+    const onNavigate = vi.fn();
+    const { container } = mount({ onNavigate });
+    const anchor = container.querySelector<HTMLAnchorElement>('a[data-nav-route="noisy"]')!;
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+    event.preventDefault();
+    act(() => anchor.dispatchEvent(event));
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+  it.each(["ctrlKey", "metaKey", "shiftKey", "altKey"])("preserves native %s clicks on host destinations", modifier => {
+    const onNavigate = vi.fn();
+    const resolveNavigationHref = (href: string) => `${href}?retained=neutral`;
+    const { container } = mount({ onNavigate, resolveNavigationHref });
+    const anchor = container.querySelector<HTMLAnchorElement>('a[data-nav-route="noisy"]')!;
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0, [modifier]: true });
+    act(() => anchor.dispatchEvent(event));
+    expect(anchor.getAttribute("href")).toBe("/noisy?retained=neutral");
+    expect(event.defaultPrevented).toBe(false);
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
   it("keeps bare destinations when the host omits its resolver", () => {
     const onNavigate = vi.fn();
     const { container } = mount({ onNavigate });
