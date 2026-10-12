@@ -873,18 +873,27 @@ apply.</li>
 </ul>
 <p>For external sources, semantic lint MUST compile the inline schema
 and resolve declared source paths against its object properties and
-array items, including local fragment references. Static path analysis
-MUST refuse unsupported nested schema resource identities
-(<code>$id</code>) rather than resolve them against the wrong resource.
-Runtime document execution MUST validate forward input against that same
-schema before applying any rules. Reverse execution MUST validate the
-resulting source-side output against that schema before delivering it.
-Invalid schemas, unresolved references, invalid data, and unavailable
-validation MUST refuse delivery. Schema references resolve through local
-documents only; processors MUST NOT fetch external schemas during
-execution. Target serialization adapters apply to forward target output;
-external reverse output remains schema-validated source JSON. Raw
-rule-array execution makes no source-association validation claim.</p>
+array items, including local fragment references. For <code>oneOf</code>
+without <code>properties</code> or <code>items</code> siblings, a source
+path is statically declared when its complete remaining path resolves
+within at least one alternative. This does not establish requiredness or
+prove a rule condition; runtime source validation and rule conditions
+retain those responsibilities. Static analysis MUST reject paths absent
+from every alternative and MUST report unsupported constructs or
+unresolved references encountered while traversing alternatives. Other
+schema compositions and <code>oneOf</code> with shape siblings remain
+unsupported by static path analysis. Static path analysis MUST refuse
+unsupported nested schema resource identities (<code>$id</code>) rather
+than resolve them against the wrong resource. Runtime document execution
+MUST validate forward input against that same schema before applying any
+rules. Reverse execution MUST validate the resulting source-side output
+against that schema before delivering it. Invalid schemas, unresolved
+references, invalid data, and unavailable validation MUST refuse
+delivery. Schema references resolve through local documents only;
+processors MUST NOT fetch external schemas during execution. Target
+serialization adapters apply to forward target output; external reverse
+output remains schema-validated source JSON. Raw rule-array execution
+makes no source-association validation claim.</p>
 <p>Source identity, version, and inline schema belong to the
 independently versioned Mapping document and round-trip through
 authoring unchanged. A processor MUST NOT invent a Definition

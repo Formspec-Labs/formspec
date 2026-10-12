@@ -189,7 +189,7 @@ export type Instance = Instance1 & {
    */
   description?: string;
   /**
-   * URL from which to fetch the instance data at runtime. The response MUST be JSON. MAY contain {{paramName}} template variables resolved by the implementation at runtime. The processor MUST fetch the data before the first Rebuild phase; if the fetch fails and no 'data' fallback exists, @instance() returns null.
+   * URL from which to fetch the instance data at runtime. The response MUST be JSON. MAY contain {{paramName}} template variables resolved by the implementation at runtime. The processor MAY complete the first Rebuild before loading completes; on success it installs the data and applies pending creation-time seeding. If loading fails and no 'data' fallback exists, @instance() returns null.
    */
   source?: string;
   /**

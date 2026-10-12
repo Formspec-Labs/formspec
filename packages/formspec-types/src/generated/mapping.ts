@@ -40,6 +40,25 @@ export type MappingDocument = {
    */
   description?: string;
   /**
+   * Explicit external JSON source association, alternative to definitionRef and definitionVersion. The inline schema validates forward input and reverse output; it is never treated as a Formspec Definition.
+   */
+  sourceSchema?: {
+    /**
+     * Canonical identity of the external source schema.
+     */
+    url: string;
+    /**
+     * Exact semantic version of the external source schema.
+     */
+    version: string;
+    /**
+     * Inline JSON Schema used by lint and document execution. References must resolve locally; execution never fetches external schemas.
+     */
+    schema: {
+      [k: string]: unknown;
+    };
+  };
+  /**
    * URI or stable identifier of the Formspec Definition this mapping targets. Corresponds to the Definition's 'url' property — the canonical identity that is stable across versions.
    */
   definitionRef?: string;
@@ -87,25 +106,6 @@ export type MappingDocument = {
    * Document-level extension properties. All keys MUST be prefixed with 'x-'.
    */
   extensions?: {};
-  /**
-   * Explicit external JSON source association, alternative to definitionRef and definitionVersion. The inline schema validates forward input and reverse output; it is never treated as a Formspec Definition.
-   */
-  sourceSchema?: {
-    /**
-     * Canonical identity of the external source schema.
-     */
-    url: string;
-    /**
-     * Exact semantic version of the external source schema.
-     */
-    version: string;
-    /**
-     * Inline JSON Schema used by lint and document execution. References must resolve locally; execution never fetches external schemas.
-     */
-    schema: {
-      [k: string]: unknown;
-    };
-  };
   /**
    * This interface was referenced by `undefined`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
