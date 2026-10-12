@@ -132,6 +132,38 @@ function mount(overrides: Record<string, unknown> = {}) {
   };
 }
 
+describe("host navigation destinations", () => {
+  it("keeps bare destinations when the host omits its resolver", () => {
+    const onNavigate = vi.fn();
+    const { container } = mount({ onNavigate });
+    const anchor = container.querySelector<HTMLAnchorElement>('a[data-nav-route="noisy"]')!;
+    expect(anchor.getAttribute("href")).toBe("/noisy");
+    act(() => anchor.click());
+    expect(onNavigate).toHaveBeenCalledExactlyOnceWith("/noisy");
+  });
+  it("renders the host link destination and retains the admitted callback route", () => {
+    const navigationSurface = {
+      $formspecSurface: "0.2", id: "navigation", entry: "start",
+      routes: [
+        { id: "start", path: "/start", title: "Start", slots: [] },
+        { id: "review", path: "/review", title: "Review", slots: [] },
+      ],
+    } as unknown as SurfaceDocument;
+    const onNavigate = vi.fn();
+    const resolveNavigationHref = vi.fn((href: string) => `${href}?form=neutral&package=%2Fneutral.json`);
+    const { container } = mount({
+      bundle: { ...bundle, surfaces: [navigationSurface] }, location: "/start",
+      onNavigate, resolveNavigationHref,
+    });
+    const review = container.querySelector<HTMLAnchorElement>('a[data-nav-route="review"]')!;
+    expect(review.getAttribute("href")).toBe("/review?form=neutral&package=%2Fneutral.json");
+    expect(container.querySelector('a[data-nav-route="start"]')?.getAttribute("aria-current")).toBe("page");
+    expect(onNavigate).not.toHaveBeenCalled();
+    act(() => review.click());
+    expect(onNavigate).toHaveBeenCalledExactlyOnceWith("/review");
+  });
+});
+
 describe("generated Response Actions engine seam", () => {
   it("publishes host-owned current route state with a distinct route instance", () => {
     const firstDelivery = vi.fn();
@@ -1397,13 +1429,15 @@ describe("navigation", () => {
     } as unknown as SurfaceDocument;
     const parameterBundle = { ...bundle, surfaces: [parameterSurface] };
     const onNavigate = vi.fn();
-    const { container, codes } = mount({ bundle: parameterBundle, onNavigate });
+    const resolveNavigationHref = vi.fn((href: string) => href);
+    const { container, codes } = mount({ bundle: parameterBundle, onNavigate, resolveNavigationHref });
 
     expect(codes()).toContain("ROUTE-PARAM-UNSUPPLIED");
     expect(container.querySelector('a[href*="{caseRef}"]')).toBeNull();
     const unavailable = container.querySelector('[data-nav-route="receipt"]');
     expect(unavailable?.tagName).toBe("SPAN");
     expect(unavailable?.getAttribute("aria-disabled")).toBe("true");
+    expect(resolveNavigationHref).not.toHaveBeenCalledWith(expect.stringContaining("receipt"));
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
@@ -1448,10 +1482,12 @@ describe("navigation", () => {
       surfaces: [firstSurface, secondSurface],
     };
     const onNavigate = vi.fn();
+    const resolveNavigationHref = vi.fn((href: string) => href);
     const { container, last } = mount({
       bundle: collisionBundle,
       location: "/shared",
       onNavigate,
+      resolveNavigationHref,
     });
 
     expect(
@@ -1472,6 +1508,8 @@ describe("navigation", () => {
       expect(item.getAttribute("tabindex")).toBeNull();
     }
     expect(container.querySelector('a[href="/shared"]')).toBeNull();
+    expect(resolveNavigationHref).not.toHaveBeenCalledWith("/shared");
+    expect(resolveNavigationHref).toHaveBeenCalledWith("/unique");
 
     const unique =
       container.querySelector<HTMLAnchorElement>('a[href="/unique"]');
