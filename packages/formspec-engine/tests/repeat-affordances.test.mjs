@@ -58,6 +58,7 @@ test('an unknown repeat path reads as zero rows, relevant, nothing to remove', (
 test('a reactive caller tracks count and relevance', () => {
     const item = { maxRepeat: 3 };
     const engine = engineWith(item);
+    engine.setValue('show', false);
     const seen = [];
     const dispose = effect(() => { seen.push(readRepeatAffordances(engine, 'rows', item)); });
 

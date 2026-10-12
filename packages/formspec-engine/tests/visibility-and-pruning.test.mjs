@@ -39,6 +39,7 @@ test('should show subcontractors group when usesSubcontractors is true', () => {
 
 test('should hide subcontractors group when usesSubcontractors is false', () => {
   const engine = createGrantEngine();
+  engine.setValue('budget.usesSubcontractors', false);
 
   assert.equal(engine.relevantSignals.subcontractors?.value, false);
 });
