@@ -537,11 +537,12 @@ their ordinary English meaning.</li>
 <h3 id="overview">2.1 Overview</h3>
 <p>A <strong>Mapping Document</strong> is a standalone JSON document
 that connects a Formspec Response to an external system by declaring
-field-level correspondences and transforms. It is not embedded in a
-Formspec Definition, nor does it modify the Definition or Response
-schemas. Instead, it sits alongside these artifacts as an independent,
-versionable configuration that a Mapping Engine interprets at
-runtime.</p>
+field-level correspondences and transforms. An external JSON source MAY
+instead declare the explicit <code>sourceSchema</code> association
+defined in §3.1. It is not embedded in a Formspec Definition, nor does
+it modify the Definition or Response schemas. Instead, it sits alongside
+these artifacts as an independent, versionable configuration that a
+Mapping Engine interprets at runtime.</p>
 <p>A Mapping Document MAY also carry projection hints for offline tools
 that derive a target contract from declared mappings. These hints do not
 change runtime behavior. The Formspec Definition remains the
@@ -614,8 +615,9 @@ may change its schema while the form itself is unchanged.</p>
 <ol type="1">
 <li><p><strong>Authoring.</strong> A Mapping Document is created by a
 form author, integration engineer, or automated tool. It declares which
-Formspec Definition (by <code>definitionRef</code>) and which external
-schema it targets.</p></li>
+Formspec Definition (by <code>definitionRef</code>) or external source
+schema (by <code>sourceSchema</code>) and which external schema it
+targets.</p></li>
 <li><p><strong>Association.</strong> A Mapping Document is associated
 with a Formspec Definition by reference. The Definition document itself
 does not contain or reference Mapping Documents (the core specification
@@ -856,8 +858,38 @@ those properties begin with <code>x-</code> (vendor extension
 prefix).</p>
 <hr />
 <h3 id="top-level-structure">3.1 Top-Level Structure</h3>
-<p>The root of a Mapping Document is a JSON object. The following table
-enumerates all recognized properties.</p>
+<p>The root of a Mapping Document is a JSON object. It MUST declare
+exactly one source association:</p>
+<ul>
+<li><code>definitionRef</code> and <code>definitionVersion</code>
+identify a genuine Formspec Definition and its compatible versions.
+Existing Definition-associated documents retain their behavior.</li>
+<li><code>sourceSchema</code> identifies an external JSON source with
+<code>url</code>, an exact semantic <code>version</code>, and an inline
+JSON Schema object in <code>schema</code>. These documents MUST omit
+both Definition association properties. Repeated JSON property names at
+different depths remain valid; Definition item-key rules do not
+apply.</li>
+</ul>
+<p>For external sources, semantic lint MUST compile the inline schema
+and resolve declared source paths against its object properties and
+array items, including local fragment references. Static path analysis
+MUST refuse unsupported nested schema resource identities
+(<code>$id</code>) rather than resolve them against the wrong resource.
+Runtime document execution MUST validate forward input against that same
+schema before applying any rules. Reverse execution MUST validate the
+resulting source-side output against that schema before delivering it.
+Invalid schemas, unresolved references, invalid data, and unavailable
+validation MUST refuse delivery. Schema references resolve through local
+documents only; processors MUST NOT fetch external schemas during
+execution. Target serialization adapters apply to forward target output;
+external reverse output remains schema-validated source JSON. Raw
+rule-array execution makes no source-association validation claim.</p>
+<p>Source identity, version, and inline schema belong to the
+independently versioned Mapping document and round-trip through
+authoring unchanged. A processor MUST NOT invent a Definition
+association for an external source.</p>
+<p>The following table enumerates all recognized properties.</p>
 <!-- schema-ref:start id=mapping-top-level schema=schemas/mapping.schema.json pointers=# -->
 <!-- generated:schema-ref id=mapping-top-level -->
 <table style="width:100%;">
@@ -948,7 +980,7 @@ default. Defaults are applied only in the forward direction.</td>
 <td><code>#/properties/definitionRef</code></td>
 <td><code>definitionRef</code></td>
 <td><code>string</code></td>
-<td>yes</td>
+<td>no</td>
 <td>critical</td>
 <td>URI or stable identifier of the Formspec Definition this mapping
 targets. Corresponds to the Definition’s ‘url’ property — the canonical
@@ -958,7 +990,7 @@ identity that is stable across versions.</td>
 <td><code>#/properties/definitionVersion</code></td>
 <td><code>definitionVersion</code></td>
 <td><code>string</code></td>
-<td>yes</td>
+<td>no</td>
 <td>critical</td>
 <td>Semver range of compatible Formspec Definition versions per
 node-semver syntax. An implementation MUST refuse to execute a Mapping
@@ -1028,6 +1060,17 @@ letters, digits, hyphens, underscores; must start with a letter.</td>
 (descending, stable sort) before execution. Equal-priority rules retain
 document order. When two rules write to the same targetPath,
 last-write-wins. MUST contain at least one element.</td>
+</tr>
+<tr>
+<td><code>#/properties/sourceSchema</code></td>
+<td><code>sourceSchema</code></td>
+<td><code>object</code></td>
+<td>no</td>
+<td>—</td>
+<td>Explicit external JSON source association, alternative to
+definitionRef and definitionVersion. The inline schema validates forward
+input and reverse output; it is never treated as a Formspec
+Definition.</td>
 </tr>
 <tr>
 <td><code>#/properties/targetSchema</code></td>
