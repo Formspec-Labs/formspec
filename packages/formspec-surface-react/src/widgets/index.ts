@@ -23,7 +23,7 @@
  */
 import type { SurfaceWidget, SurfaceWidgetModule } from '../widget-api.js';
 import { MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES } from '../widget-state.js';
-import { ResponseReview, createResponseReviewWidget, RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, ACCEPTED_RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, RESPONSE_REVIEW_RENDERED_CONFIG_NODES, type ResponseReviewOptions } from './response-review.js';
+import { ResponseReview, createResponseReviewWidget, RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, ACCEPTED_RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, RESPONSE_REVIEW_RENDERED_CONFIG_NODES, ACCEPTED_RESPONSE_REVIEW_RENDERED_CONFIG_NODES_V011, type ResponseReviewOptions } from './response-review.js';
 import { IntakeBanner } from './intake-banner.js';
 import { SigningCeremony, SIGNING_CEREMONY_DELIVERY_CONTRACT_ID, SIGNING_CEREMONY_RENDERED_CONFIG_NODES } from './signing-ceremony.js';
 import { CeremonyFrame } from './ceremony-frame.js';
@@ -144,9 +144,17 @@ export interface StarterWidgetModuleOptions {
   responseReview?: ResponseReviewOptions;
   /** Explicit deployment support for the maintained whole-panel props schema. */
   structuredPanelRegistryEntryVersion?: '0.1.0' | '0.1.1' | '0.1.2';
+  /** Explicit support for authored accepted-record field selection. */
+  acceptedResponseReviewRegistryEntryVersion?: '0.1.0' | '0.1.1';
 }
 
 export function starterWidgetModule(moduleId: string, options: StarterWidgetModuleOptions = {}): SurfaceWidgetModule {
+  const acceptedReviewVersion = options.acceptedResponseReviewRegistryEntryVersion ?? '0.1.0';
+  if (acceptedReviewVersion !== '0.1.0' && acceptedReviewVersion !== '0.1.1') {
+    throw new Error('Unsupported AcceptedResponseReview Registry entry version');
+  }
+  const acceptedReviewNodes = acceptedReviewVersion === '0.1.1'
+    ? ACCEPTED_RESPONSE_REVIEW_RENDERED_CONFIG_NODES_V011 : RESPONSE_REVIEW_RENDERED_CONFIG_NODES;
   const structuredPanelVersion = options.structuredPanelRegistryEntryVersion ?? '0.1.0';
   if (structuredPanelVersion !== '0.1.0' && structuredPanelVersion !== '0.1.1' && structuredPanelVersion !== '0.1.2') {
     throw new Error('Unsupported StructuredPanel Registry entry version');
@@ -180,16 +188,16 @@ export function starterWidgetModule(moduleId: string, options: StarterWidgetModu
   );
   return {
     moduleId,
-    widgets: options.responseReview ? {
+    widgets: {
       ...STARTER_WIDGETS,
       ResponseReview: createResponseReviewWidget(options.responseReview),
       'x-response-review': createResponseReviewWidget(options.responseReview),
-      AcceptedResponseReview: createResponseReviewWidget(options.responseReview),
-      'x-accepted-response-review': createResponseReviewWidget(options.responseReview),
-    } : STARTER_WIDGETS,
+      AcceptedResponseReview: createResponseReviewWidget(options.responseReview, acceptedReviewVersion === '0.1.1' ? 'selected' : 'legacy'),
+      'x-accepted-response-review': createResponseReviewWidget(options.responseReview, acceptedReviewVersion === '0.1.1' ? 'selected' : 'legacy'),
+    },
     contracts: {
-      AcceptedResponseReview: contract(ACCEPTED_RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, RESPONSE_REVIEW_RENDERED_CONFIG_NODES),
-      'x-accepted-response-review': contract(ACCEPTED_RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, RESPONSE_REVIEW_RENDERED_CONFIG_NODES),
+      AcceptedResponseReview: contract(ACCEPTED_RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, acceptedReviewNodes, acceptedReviewVersion),
+      'x-accepted-response-review': contract(ACCEPTED_RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, acceptedReviewNodes, acceptedReviewVersion),
       ResponseReview: contract(RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, RESPONSE_REVIEW_RENDERED_CONFIG_NODES),
       'x-response-review': contract(RESPONSE_REVIEW_DELIVERY_CONTRACT_ID, RESPONSE_REVIEW_RENDERED_CONFIG_NODES),
       StructuredPanel: structuredPanelContract,

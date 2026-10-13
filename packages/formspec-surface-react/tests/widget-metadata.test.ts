@@ -56,7 +56,8 @@ describe('public widget metadata', () => {
     expect(metadata.RESPONSE_REVIEW_CONFIG_SCHEMA.properties.copy.additionalProperties.properties).not.toHaveProperty('acceptedRecord');
     const module = root.starterWidgetModule('x-qualified-test');
     for (const name of ['AcceptedResponseReview', 'x-accepted-response-review']) {
-      expect(module.widgets[name]).toBe(root.ResponseReview);
+      expect(module.widgets[name]).toBeTypeOf('function');
+      expect(module.widgets[name]).not.toBe(root.ResponseReview);
       expect(module.contracts?.[name]?.deliveryContractId).toBe(metadata.ACCEPTED_RESPONSE_REVIEW_DELIVERY_CONTRACT_ID);
       expect(module.contracts?.[name]?.registryEntryVersion).toBe('0.1.0');
     }
@@ -71,7 +72,7 @@ describe('public widget metadata', () => {
     expect(schema.properties.presentation).toBe(metadata.ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA);
   });
   it('preserves the exact objects exported by both existing public APIs', () => {
-    const oldNames = Object.keys(widgets).filter(name => /^(ACCEPTED_RESPONSE_REVIEW_|RESPONSE_REVIEW_|SIGNING_CEREMONY_|STRUCTURED_.*_CONFIG_SCHEMA$)/.test(name));
+    const oldNames = Object.keys(widgets).filter(name => /^(ACCEPTED_(?:TASK_)?RESPONSE_REVIEW_|RESPONSE_REVIEW_|SIGNING_CEREMONY_|STRUCTURED_.*_CONFIG_SCHEMA$|resolveAcceptedResponseReviewFieldSelection$)/.test(name));
     expect(Object.keys(metadata).sort()).toEqual(oldNames.sort());
     for (const [name, value] of Object.entries(metadata)) {
       expect((root as Record<string, unknown>)[name]).toBe(value);
@@ -94,20 +95,44 @@ describe('public widget metadata', () => {
     expect(manifest.exports['./formspec-surface.css']).toBe('./dist/formspec-surface.css');
   });
 
-  it('emits only pure metadata imports, with no renderer or external runtime graph', () => {
+  it('allows only pure metadata and the maintained native Path dependency, without renderer imports', () => {
     const visited = new Set<string>();
     function walk(url: URL) {
       if (visited.has(url.href)) return;
       visited.add(url.href);
       for (const specifier of runtimeImports(readFileSync(url, 'utf8'))) {
+        expect(specifier).not.toMatch(/react|renderer|fel|wasm/i);
+        if (specifier === '@formspec-org/types') {
+          expect(url.pathname).toBe(testFile('../src/widgets/response-review-selection.ts').pathname);
+          const compiled = ts.transpileModule(readFileSync(url, 'utf8'), {compilerOptions:{
+            module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022,
+          }}).outputText;
+          const source = ts.createSourceFile('selection.js', compiled, ts.ScriptTarget.ES2022, true);
+          const imports = source.statements.filter(ts.isImportDeclaration);
+          expect(imports).toHaveLength(1);
+          const clause = imports[0]!.importClause!;
+          expect(clause.name).toBeUndefined();
+          expect(clause.namedBindings && ts.isNamedImports(clause.namedBindings)
+            ? clause.namedBindings.elements.map(binding => binding.propertyName?.text ?? binding.name.text).sort()
+            : []).toEqual(['Path', 'PathSegmentKind']);
+          expect(runtimeImports(readFileSync(testFile('../../formspec-types/src/path-utils.ts'), 'utf8'))).toEqual([]);
+          continue;
+        }
         expect(specifier).toMatch(/^\./);
         const next = new URL(specifier.replace(/\.js$/, '.ts'), url);
-        expect(next.pathname).toMatch(/(?:metadata|signing-content-source-schema)\.ts$/);
+        expect(next.pathname).toMatch(/(?:metadata|signing-content-source-schema|response-review-selection)\.ts$/);
         walk(next);
       }
     }
     walk(testFile('../src/widget-metadata.ts'));
-    expect(visited.size).toBe(5);
+    expect([...visited].sort()).toEqual([
+      '../src/widget-metadata.ts',
+      '../src/widgets/response-review-metadata.ts',
+      '../src/widgets/response-review-selection.ts',
+      '../src/widgets/signing-ceremony-metadata.ts',
+      '../src/generated/signing-content-source-schema.ts',
+      '../src/widgets/structured-panel-metadata.ts',
+    ].map(path => testFile(path).href).sort());
   });
 
   it('keeps both metadata shapes accepted by the canonical complete Registry', () => {
