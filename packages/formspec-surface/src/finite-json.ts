@@ -88,7 +88,6 @@ function cloneFiniteJson(
   active.add(value);
   try {
     if (Array.isArray(value)) {
-      const descriptors = Object.getOwnPropertyDescriptors(value);
       const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
       if (
         !lengthDescriptor ||
@@ -98,7 +97,12 @@ function cloneFiniteJson(
         throw new FiniteJsonSnapshotError("invalid-json-shape", "Response data contains an invalid array length");
       }
       const arrayLength = lengthDescriptor.value;
-      const ownKeys = Reflect.ownKeys(descriptors);
+      // Every entry consumes at least one node. Refuse impossible arrays before
+      // allocating keys or descriptors, even when their shape is also invalid.
+      if (arrayLength > MAX_RESPONSE_DATA_NODES - state.nodes) {
+        throw new FiniteJsonSnapshotError("node-limit", "Response data exceeds the safe snapshot limit");
+      }
+      const ownKeys = Reflect.ownKeys(value);
       for (const key of ownKeys) {
         if (typeof key !== "string") {
           throw new FiniteJsonSnapshotError("invalid-json-shape", "Response data contains a symbol-keyed property");
@@ -113,7 +117,7 @@ function cloneFiniteJson(
       }
       const copy: FiniteJsonValue[] = [];
       for (let index = 0; index < arrayLength; index += 1) {
-        const descriptor = descriptors[String(index)];
+        const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
         if (
           !descriptor ||
           !descriptor.enumerable ||

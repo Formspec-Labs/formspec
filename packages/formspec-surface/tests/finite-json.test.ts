@@ -25,6 +25,21 @@ describe('finite JSON refusal diagnostics', () => {
     // Root + 99,871 leaves + 128 containers reaches both guards at the last leaf.
     refusal([...Array(99_871).fill(null), nested(128)], 'node-limit', 'Response data exceeds the safe snapshot limit');
   });
+  it('rejects arrays that cannot fit before bulk reflection or descriptor copying', () => {
+    let keyReads = 0;
+    let elementDescriptors = 0;
+    const oversized = new Proxy(Array(100_000).fill(null), {
+      ownKeys() { keyReads++; throw Error('bulk reflection must not run'); },
+      getOwnPropertyDescriptor(target, key) {
+        if (key !== 'length') elementDescriptors++;
+        return Reflect.getOwnPropertyDescriptor(target, key);
+      },
+    });
+    refusal(oversized, 'node-limit', 'Response data exceeds the safe snapshot limit');
+    expect(keyReads).toBe(0); expect(elementDescriptors).toBe(0);
+    // Budget refusal now precedes shape refusal for impossible arrays.
+    refusal(Object.assign(Array(100_000), { extra: true }), 'node-limit', 'Response data exceeds the safe snapshot limit');
+  });
   it.each([NaN, Infinity, -Infinity, JSON.parse('1e400')])('classifies non-finite numbers', value => {
     refusal(value, 'non-finite-number', 'Response data contains a non-finite number');
   });
