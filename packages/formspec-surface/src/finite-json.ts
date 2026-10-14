@@ -3,6 +3,35 @@
 const MAX_RESPONSE_DATA_DEPTH = 128;
 const MAX_RESPONSE_DATA_NODES = 100_000;
 
+/** Fixed diagnostic categories; never include response values, keys, or paths. */
+export type FiniteJsonSnapshotRefusalReason =
+  | "node-limit"
+  | "depth-limit"
+  | "non-finite-number"
+  | "invalid-json-shape";
+
+const snapshotRefusals = new WeakMap<object, FiniteJsonSnapshotRefusalReason>();
+
+/** A snapshot refusal remains a TypeError with its original message and name. */
+export class FiniteJsonSnapshotError extends TypeError {
+  declare readonly reason: FiniteJsonSnapshotRefusalReason;
+
+  constructor(reason: FiniteJsonSnapshotRefusalReason, message: string) {
+    super(message);
+    if (reason !== "node-limit" && reason !== "depth-limit"
+      && reason !== "non-finite-number" && reason !== "invalid-json-shape") {
+      throw new TypeError("Invalid finite JSON snapshot refusal reason");
+    }
+    Object.defineProperty(this, "reason", { value: reason, enumerable: false });
+    snapshotRefusals.set(this, reason);
+  }
+}
+
+/** Classify only owning helper errors; do not inspect arbitrary error properties. */
+export function finiteJsonSnapshotRefusalReason(error: unknown): FiniteJsonSnapshotRefusalReason | undefined {
+  return typeof error === "object" && error !== null ? snapshotRefusals.get(error) : undefined;
+}
+
 export type FiniteJsonValue =
   | null
   | boolean
@@ -23,7 +52,10 @@ function cloneFiniteJson(
     state.nodes > MAX_RESPONSE_DATA_NODES ||
     depth > MAX_RESPONSE_DATA_DEPTH
   ) {
-    throw new TypeError("Response data exceeds the safe snapshot limit");
+    throw new FiniteJsonSnapshotError(
+      state.nodes > MAX_RESPONSE_DATA_NODES ? "node-limit" : "depth-limit",
+      "Response data exceeds the safe snapshot limit"
+    );
   }
   if (
     value === null ||
@@ -34,15 +66,15 @@ function cloneFiniteJson(
   }
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
-      throw new TypeError("Response data contains a non-finite number");
+      throw new FiniteJsonSnapshotError("non-finite-number", "Response data contains a non-finite number");
     }
     return value;
   }
   if (typeof value !== "object") {
-    throw new TypeError("Response data contains a non-JSON value");
+    throw new FiniteJsonSnapshotError("invalid-json-shape", "Response data contains a non-JSON value");
   }
   if (active.has(value)) {
-    throw new TypeError("Response data contains a cycle");
+    throw new FiniteJsonSnapshotError("invalid-json-shape", "Response data contains a cycle");
   }
   const prototype = Object.getPrototypeOf(value);
   if (
@@ -50,7 +82,7 @@ function cloneFiniteJson(
     prototype !== Array.prototype &&
     prototype !== null
   ) {
-    throw new TypeError("Response data contains a non-JSON object");
+    throw new FiniteJsonSnapshotError("invalid-json-shape", "Response data contains a non-JSON object");
   }
 
   active.add(value);
@@ -63,17 +95,18 @@ function cloneFiniteJson(
         !Object.prototype.hasOwnProperty.call(lengthDescriptor, "value") ||
         typeof lengthDescriptor.value !== "number"
       ) {
-        throw new TypeError("Response data contains an invalid array length");
+        throw new FiniteJsonSnapshotError("invalid-json-shape", "Response data contains an invalid array length");
       }
       const arrayLength = lengthDescriptor.value;
       const ownKeys = Reflect.ownKeys(descriptors);
       for (const key of ownKeys) {
         if (typeof key !== "string") {
-          throw new TypeError("Response data contains a symbol-keyed property");
+          throw new FiniteJsonSnapshotError("invalid-json-shape", "Response data contains a symbol-keyed property");
         }
         if (key === "length") continue;
         if (!/^(0|[1-9][0-9]*)$/u.test(key) || Number(key) >= arrayLength) {
-          throw new TypeError(
+          throw new FiniteJsonSnapshotError(
+            "invalid-json-shape",
             "Response data contains a non-JSON array property"
           );
         }
@@ -86,7 +119,8 @@ function cloneFiniteJson(
           !descriptor.enumerable ||
           !Object.prototype.hasOwnProperty.call(descriptor, "value")
         ) {
-          throw new TypeError(
+          throw new FiniteJsonSnapshotError(
+            "invalid-json-shape",
             "Response data contains a sparse or accessor array"
           );
         }
@@ -99,7 +133,8 @@ function cloneFiniteJson(
 
     const keys = Object.keys(value);
     if (Reflect.ownKeys(value).length !== keys.length) {
-      throw new TypeError(
+      throw new FiniteJsonSnapshotError(
+        "invalid-json-shape",
         "Response data objects must contain enumerable string keys only"
       );
     }
@@ -113,7 +148,7 @@ function cloneFiniteJson(
         !descriptor ||
         !Object.prototype.hasOwnProperty.call(descriptor, "value")
       ) {
-        throw new TypeError("Response data contains an accessor property");
+        throw new FiniteJsonSnapshotError("invalid-json-shape", "Response data contains an accessor property");
       }
       const child = cloneFiniteJson(
         descriptor.value,
@@ -139,7 +174,7 @@ export function canonicalFiniteJson(value: FiniteJsonValue): string {
   if (value === null || typeof value !== "object") {
     const serialized = JSON.stringify(value);
     if (serialized === undefined) {
-      throw new TypeError("Response snapshot cannot be canonicalized");
+      throw new FiniteJsonSnapshotError("invalid-json-shape", "Response snapshot cannot be canonicalized");
     }
     return serialized;
   }

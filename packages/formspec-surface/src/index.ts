@@ -256,7 +256,7 @@ export {
   type ValidateSurfacePreviewScenarioInput,
 } from './preview-scenario.js';
 
-export { snapshotFiniteJson, canonicalFiniteJson, type FiniteJsonValue } from "./finite-json.js";
+export { snapshotFiniteJson, canonicalFiniteJson, FiniteJsonSnapshotError, finiteJsonSnapshotRefusalReason, type FiniteJsonSnapshotRefusalReason, type FiniteJsonValue } from "./finite-json.js";
 
 export {
   captureResponseFieldMetadata,
