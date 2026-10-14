@@ -120,6 +120,7 @@ function SigningCeremonyAct({ props, data, copy, requireResponseReview }: { prop
   const [name, setName] = useState(() => signed ? data.response.extensions!['x-formspec-signing-content']!.signerName : '');
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [outcomeUnknown, setOutcomeUnknown] = useState(false);
   useEffect(() => {
     alive.current = true;
     const area = scroll.current;
@@ -137,7 +138,7 @@ function SigningCeremonyAct({ props, data, copy, requireResponseReview }: { prop
   const submit = mapped('submit');
   const paper = mapped('paper');
   async function emit(output: 'sign' | 'submit' | 'paper') {
-    if (pending || !mapped(output)) return;
+    if (pending || output === 'submit' && outcomeUnknown || !mapped(output)) return;
     const checked = admit(props);
     if (!checked || checked.requireResponseReview !== requireResponseReview || !same(checked.data, data)) return;
     const isSigned = currentSigned(checked.data);
@@ -155,7 +156,11 @@ function SigningCeremonyAct({ props, data, copy, requireResponseReview }: { prop
     try {
       const emission = props.emitAction(output, input);
       const result = emission ? await emission.completion : undefined;
-      if (alive.current) setFailed(!result || result.status !== 'completed');
+      if (alive.current) {
+        if (output === 'submit' && result?.status === 'outcome-unknown') {
+          setOutcomeUnknown(true); setFailed(false);
+        } else setFailed(!result || result.status !== 'completed');
+      }
     } catch { if (alive.current) setFailed(true); }
     finally { if (alive.current) setPending(false); }
   }
@@ -176,10 +181,10 @@ function SigningCeremonyAct({ props, data, copy, requireResponseReview }: { prop
     <input id={`${id}-name`} autoComplete="name" value={name} disabled={pending || signed} onChange={(event) => setName(event.currentTarget.value)} />
     <div className="fs-surface-ceremony__actions">
       {sign && <button type="button" disabled={pending || !reviewed || signed || !atEnd || !read || !consent || !name.trim()} onClick={() => void emit('sign')}>{sign.label}</button>}
-      {submit && <button type="button" disabled={pending || !reviewed || !signed} onClick={() => void emit('submit')}>{submit.label}</button>}
+      {submit && <button type="button" disabled={pending || outcomeUnknown || !reviewed || !signed} onClick={() => void emit('submit')}>{submit.label}</button>}
       {paper && <button type="button" disabled={pending} onClick={() => void emit('paper')}>{paper.label}</button>}
     </div>
-    <p role="status" aria-live="polite">{pending ? copy.pending : failed ? copy.failed : !reviewed ? data.review?.state?.status === 'pending' ? copy.reviewPending : copy.reviewUnavailable : signed ? copy.signed : !sign || !submit ? copy.unavailable : ''}</p>
+    <p role="status" aria-live="polite">{outcomeUnknown ? 'Your signed response is saved. The submission outcome is unknown. Check application status.' : pending ? copy.pending : failed ? copy.failed : !reviewed ? data.review?.state?.status === 'pending' ? copy.reviewPending : copy.reviewUnavailable : signed ? copy.signed : !sign || !submit ? copy.unavailable : ''}</p>
   </section>;
 }
 

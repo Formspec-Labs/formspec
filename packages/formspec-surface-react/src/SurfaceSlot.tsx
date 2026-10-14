@@ -100,6 +100,7 @@ import {
   createWidgetActionCoordinator,
   responseActionsDocumentForAction,
   snapshotWidgetResponseContext,
+  normalizeWidgetActionResult,
   type WidgetActionCoordinator,
 } from './widget-action-runtime.js';
 import { WidgetEmptyState } from './widgets/empty-state.js';
@@ -1545,7 +1546,7 @@ function SurfaceWidgetSlot({
                   ? 'obsolete' as const
                   : completedWidgetAction(result, document)?.id === actionRef
                     ? 'completed' as const
-                    : 'failed' as const,
+                    : unknownCompletion(result) ? 'outcome-unknown' as const : 'failed' as const,
             }))
             .catch(() => ({ status: 'failed' as const })),
         };
@@ -1572,7 +1573,7 @@ function SurfaceWidgetSlot({
               result,
               navigation: 'none',
             });
-            return { status: 'failed' as const };
+            return { status: unknownCompletion(result) ? 'outcome-unknown' as const : 'failed' as const };
           }
 
           const eligible = transitions.filter(
@@ -1761,6 +1762,12 @@ function UnavailableSlot({ children }: { children: ReactNode }) {
       {children}
     </p>
   );
+}
+
+/** Forward one closed uncertainty classification; never expose arbitrary failure text. */
+function unknownCompletion(result: Parameters<typeof normalizeWidgetActionResult>[0]): boolean {
+  const invocation = normalizeWidgetActionResult(result);
+  return invocation.status === 'failed' && invocation.failureReason === 'completion-outcome-unknown';
 }
 
 export { nextLevel };

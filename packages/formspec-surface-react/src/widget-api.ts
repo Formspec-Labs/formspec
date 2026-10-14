@@ -97,6 +97,7 @@ export type SurfaceWidgetActionDetail =
 export type SurfaceWidgetActionFeedbackStatus =
   | 'completed'
   | 'failed'
+  | 'outcome-unknown'
   | 'refused'
   | 'obsolete';
 

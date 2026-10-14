@@ -34,6 +34,30 @@ function signed(p:SurfaceWidgetProps):SurfaceWidgetProps {
  return next;
 }
 describe('SigningCeremony',()=>{
+ it('shows an unknown Submit outcome, preserves signed data and fences forced clicks across rerender',async()=>{
+  const p=signed(props());p.emitAction=vi.fn(()=>({started:true,completion:Promise.resolve({status:'outcome-unknown' as const})}));
+  const original=structuredClone(p.data);const view=mount(p);
+  await act(async()=>button(view.el,'Submit').click());
+  expect(view.el.textContent).toContain('Your signed response is saved. The submission outcome is unknown. Check application status.');
+  expect(view.el.textContent).not.toContain(copy.failed);expect(view.el.textContent).not.toContain(copy.signed);
+  expect(button(view.el,'Submit').disabled).toBe(true);
+  view.rerender({...p});const submit=button(view.el,'Submit');submit.disabled=false;
+  await act(async()=>submit.click());expect(p.emitAction).toHaveBeenCalledOnce();expect(p.data).toEqual(original);submit.disabled=true;
+  await act(async()=>button(view.el,'Use paper').click());
+  expect(view.el.textContent).toContain('The submission outcome is unknown.');expect(button(view.el,'Submit').disabled).toBe(true);
+ });
+ it('keeps ordinary Submit failures retryable without claiming unknown or accepted',async()=>{
+  const p=signed(props());p.emitAction=vi.fn(()=>({started:true,completion:Promise.resolve({status:'failed' as const})}));
+  const view=mount(p);await act(async()=>button(view.el,'Submit').click());
+  expect(view.el.textContent).toContain(copy.failed);expect(view.el.textContent).not.toContain('The submission outcome is unknown.');
+  expect(button(view.el,'Submit').disabled).toBe(false);
+ });
+ it('does not classify a Sign failure as an unknown Submit outcome',async()=>{
+  const p=props();p.emitAction=vi.fn(()=>({started:true,completion:Promise.resolve({status:'outcome-unknown' as const})}));
+  const view=mount(p);assent(view.el);await act(async()=>button(view.el,'Sign').click());
+  expect(view.el.textContent).toContain(copy.failed);expect(view.el.textContent).not.toContain('The submission outcome is unknown.');
+  expect(button(view.el,'Submit').disabled).toBe(true);
+ });
  it('publishes exact delivery, required inputs, config schema and separate action outputs',()=>{
   const shape=SIGNING_CEREMONY_WIDGET_SHAPE;
   expect(shape.dataInputs.map(i=>i.name)).toEqual(['content','response','draft','actor','signingResult','actionLabels','review']);

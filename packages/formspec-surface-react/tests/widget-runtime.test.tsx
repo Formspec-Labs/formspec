@@ -275,6 +275,41 @@ function responseBundle(): ResolvedBundle {
 }
 
 describe('qualified widget data', () => {
+  it.each([['completed', 'completion-outcome-unknown', 'completed'], ['failed', 'private failure text', 'failed']])('classifies only the closed failed invocation: %s / %s', async (status, failureReason, expected) => {
+    const feedback: string[] = [];
+    const Widget: SurfaceWidget = ({ emitAction }) => <button data-probe="classification" onClick={() => {
+      void emitAction('accepted')?.completion.then(result => { feedback.push(result.status); });
+    }}>Submit</button>;
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(async () => ({ ...completed(), status, failureReason }));
+    const container = render(<SurfaceApp bundle={bundle()} location="/receipt" onNavigate={() => {}}
+      widgetModules={runtimeModule(Widget)} widgetActionExecutor={executor} setDocumentTitle={false} />);
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-probe="classification"]')!.click(); await Promise.resolve(); });
+    expect(feedback).toEqual([expected]);
+  });
+  it.each([[false, false], [true, false], [false, true], [true, true]])('preserves unknown action feedback without navigation for joined=%s obsolete=%s', async (joined, obsolete) => {
+    let finish!: (value: ReturnType<typeof completed>) => void;
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(() => new Promise(resolve => { finish = resolve; }));
+    const feedback: string[] = [];
+    const Widget: SurfaceWidget = ({ emitAction }) => <button data-probe="unknown" onClick={() => {
+      const emission = emitAction('accepted');
+      void emission?.completion.then(result => { feedback.push(result.status); });
+    }}>Submit</button>;
+    const onNavigate = vi.fn();
+    function Host() {
+      const [generation, setGeneration] = useState(1);
+      return <><button data-probe="rotate-unknown" onClick={() => setGeneration(value => value + 1)}>Rotate</button>
+        <SurfaceApp bundle={bundle()} location="/receipt" onNavigate={onNavigate} sessionGeneration={generation}
+          widgetModules={runtimeModule(Widget)} widgetActionExecutor={executor} setDocumentTitle={false} /></>;
+    }
+    const container = render(<Host />);
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-probe="unknown"]')!.click(); await Promise.resolve(); });
+    if (joined) await act(async () => { container.querySelector<HTMLButtonElement>('[data-probe="unknown"]')!.click(); await Promise.resolve(); });
+    if (obsolete) act(() => container.querySelector<HTMLButtonElement>('[data-probe="rotate-unknown"]')!.click());
+    await act(async () => { finish({ ...completed(), status: 'failed', failureReason: 'completion-outcome-unknown' }); await Promise.resolve(); });
+    const status = obsolete ? 'obsolete' : 'outcome-unknown';
+    expect(feedback).toEqual(joined ? [status, status] : [status]);
+    expect(executor).toHaveBeenCalledOnce(); expect(onNavigate).not.toHaveBeenCalled();
+  });
   it('captures the qualified Response before widget mutation and preserves response-scoped completion', async () => {
     const b = responseBundle();
     const saved = { $formspecResponse: '1.0', definitionUrl: 'urn:def', definitionVersion: '1.0.0',
