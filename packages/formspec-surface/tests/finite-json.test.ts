@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { snapshotFiniteJson, canonicalFiniteJson, FiniteJsonSnapshotError, finiteJsonSnapshotRefusalReason } from '../src/index.js';
+import { snapshotFiniteJson, canonicalFiniteJson, FiniteJsonSnapshotError, finiteJsonSnapshotRefusalReason, type FiniteJsonSnapshotPolicy } from '../src/index.js';
 
 function refusal(value: unknown, reason: string, message: string) {
   let caught: unknown;
@@ -101,5 +101,44 @@ describe('finite JSON refusal diagnostics', () => {
     const proxy = new Proxy({}, { getPrototypeOf() { throw nativeError; } });
     expect(() => snapshotFiniteJson(proxy)).toThrow(nativeError);
     expect(finiteJsonSnapshotRefusalReason(nativeError)).toBeUndefined(); expect(reads).toBe(0);
+  });
+});
+
+describe('explicit finite JSON traversal policy', () => {
+  it('admits only the selected capacity without changing the default', () => {
+    const input = Array(100_000).fill(null);
+    expect(() => snapshotFiniteJson(input)).toThrow('Response data exceeds the safe snapshot limit');
+    const policy: FiniteJsonSnapshotPolicy = Object.freeze({ maxNodes: 100_001 });
+    const copy = snapshotFiniteJson(input, true, policy);
+    expect(copy).toEqual(input); expect(copy).not.toBe(input); expect(Object.isFrozen(copy)).toBe(true);
+    expect(() => snapshotFiniteJson([...input, null], true, policy)).toThrow('Response data exceeds the safe snapshot limit');
+    expect(() => snapshotFiniteJson(input)).toThrow('Response data exceeds the safe snapshot limit');
+    expect(Object.isFrozen(snapshotFiniteJson(input, false, policy))).toBe(false);
+  });
+  it('counts nested values and aggregate repetitions under one selected budget', () => {
+    const shared = { values: [true, null] };
+    // Array root + twice (object + array + two leaves) = 9 visits.
+    expect(snapshotFiniteJson([shared, shared], true, { maxNodes: 9 })).toEqual([shared, shared]);
+    expect(() => snapshotFiniteJson([shared, shared], true, { maxNodes: 8 })).toThrow('Response data exceeds the safe snapshot limit');
+    expect(snapshotFiniteJson(null, true, { maxNodes: 1 })).toBeNull();
+  });
+  it.each([0, -1, 1.5, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER + 1, '100001', undefined])('refuses invalid explicit capacities', maxNodes => {
+    expect(() => snapshotFiniteJson(null, true, { maxNodes } as any)).toThrow('Finite JSON snapshot maxNodes must be a positive safe integer');
+  });
+  it('retains depth, finite number, accessor and cycle guards under a larger policy', () => {
+    const policy = { maxNodes: 200_000 };
+    const values: unknown[] = [nested(129), NaN, Object.defineProperty({}, 'secret', { enumerable: true, get() { throw Error('must not execute'); } })];
+    const cycle: any = {}; cycle.self = cycle; values.push(cycle);
+    const reasons = ['depth-limit', 'non-finite-number', 'invalid-json-shape', 'invalid-json-shape'];
+    values.forEach((value, index) => {
+      let error: unknown; try { snapshotFiniteJson(value, true, policy); } catch (caught) { error = caught; }
+      expect(error).toBeInstanceOf(TypeError); expect(finiteJsonSnapshotRefusalReason(error)).toBe(reasons[index]);
+    });
+  });
+  it('captures policy capacity once before traversal', () => {
+    let reads = 0;
+    const policy = { get maxNodes() { reads++; return 3; } };
+    expect(snapshotFiniteJson([null, null], true, policy)).toEqual([null, null]);
+    expect(reads).toBe(1);
   });
 });

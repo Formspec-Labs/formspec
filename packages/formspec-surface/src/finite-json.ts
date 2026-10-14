@@ -32,6 +32,11 @@ export function finiteJsonSnapshotRefusalReason(error: unknown): FiniteJsonSnaps
   return typeof error === "object" && error !== null ? snapshotRefusals.get(error) : undefined;
 }
 
+/** Explicit traversal capacity for a caller-owned record or aggregate boundary. */
+export interface FiniteJsonSnapshotPolicy {
+  readonly maxNodes: number;
+}
+
 export type FiniteJsonValue =
   | null
   | boolean
@@ -43,17 +48,17 @@ export type FiniteJsonValue =
 function cloneFiniteJson(
   value: unknown,
   active: WeakSet<object>,
-  state: { nodes: number },
+  state: { nodes: number; maxNodes: number },
   depth: number,
   immutable: boolean
 ): FiniteJsonValue {
   state.nodes += 1;
   if (
-    state.nodes > MAX_RESPONSE_DATA_NODES ||
+    state.nodes > state.maxNodes ||
     depth > MAX_RESPONSE_DATA_DEPTH
   ) {
     throw new FiniteJsonSnapshotError(
-      state.nodes > MAX_RESPONSE_DATA_NODES ? "node-limit" : "depth-limit",
+      state.nodes > state.maxNodes ? "node-limit" : "depth-limit",
       "Response data exceeds the safe snapshot limit"
     );
   }
@@ -99,7 +104,7 @@ function cloneFiniteJson(
       const arrayLength = lengthDescriptor.value;
       // Every entry consumes at least one node. Refuse impossible arrays before
       // allocating keys or descriptors, even when their shape is also invalid.
-      if (arrayLength > MAX_RESPONSE_DATA_NODES - state.nodes) {
+      if (arrayLength > state.maxNodes - state.nodes) {
         throw new FiniteJsonSnapshotError("node-limit", "Response data exceeds the safe snapshot limit");
       }
       const ownKeys = Reflect.ownKeys(value);
@@ -192,7 +197,19 @@ export function canonicalFiniteJson(value: FiniteJsonValue): string {
     .join(",")}}`;
 }
 
-/** Preserve JSON data and reject accessors without invoking them. Not schema validation. */
-export function snapshotFiniteJson(value: unknown, immutable = true): FiniteJsonValue {
-  return cloneFiniteJson(value, new WeakSet<object>(), { nodes: 0 }, 0, immutable);
+/**
+ * Preserve JSON data and reject accessors without invoking them. Not schema validation.
+ * Explicit policies change only traversal capacity; callers must budget complete
+ * records and aggregates independently. Depth and JSON-shape guards remain fixed.
+ */
+export function snapshotFiniteJson(
+  value: unknown,
+  immutable = true,
+  policy?: FiniteJsonSnapshotPolicy
+): FiniteJsonValue {
+  const maxNodes = policy === undefined ? MAX_RESPONSE_DATA_NODES : policy?.maxNodes;
+  if (typeof maxNodes !== "number" || !Number.isSafeInteger(maxNodes) || maxNodes < 1) {
+    throw new TypeError("Finite JSON snapshot maxNodes must be a positive safe integer");
+  }
+  return cloneFiniteJson(value, new WeakSet<object>(), { nodes: 0, maxNodes }, 0, immutable);
 }
