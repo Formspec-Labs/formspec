@@ -616,10 +616,12 @@ class TestMappingTopLevel:
     """mapping-spec.md §3.1 — Mapping Document."""
 
     def test_ms3_1__required_fields(self):
-        assert set(MAP_S["required"]) == {
-            "$formspecMapping", "version", "definitionRef", "definitionVersion",
-            "targetSchema", "rules",
-        }
+        # The source association is one of two, so it lives in the oneOf, not in `required` (§3.1).
+        assert set(MAP_S["required"]) == {"$formspecMapping", "version", "targetSchema", "rules"}
+        branches = MAP_S["oneOf"]
+        assert [set(b["required"]) for b in branches] == [
+            {"definitionRef", "definitionVersion"}, {"sourceSchema"},
+        ]
 
     def test_ms3_1__direction_enum_and_default(self):
         d = MAP_S["properties"]["direction"]
@@ -647,7 +649,7 @@ class TestMappingTopLevel:
         `modules: ModuleRef[]` carrier."""
         expected = {
             "$formspecMapping", "version", "$schema", "definitionRef", "definitionVersion",
-            "targetSchema", "direction", "autoMap", "defaults", "rules",
+            "sourceSchema", "targetSchema", "direction", "autoMap", "defaults", "rules",
             "adapters", "conformanceLevel", "extensions",
             "modules",
             # A sidecar says what it is, like every other: name / title / description (ignored during execution).
