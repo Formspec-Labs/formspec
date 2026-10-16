@@ -1,4 +1,5 @@
 /** @filedesc The reference-renderer accessibility check, in a real browser: a known violation fails, a clean form passes, a timeout and a browser failure are failures. */
+import { readFileSync } from 'node:fs';
 import { chromium, type Browser } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { renderHostPage } from '@formspec-org/webcomponent/host';
@@ -135,5 +136,27 @@ describe('failure is never a pass', () => {
     it('a request that is not documents is a 400, not a pass', async () => {
         const res = await post({ nothing: true });
         expect(res.status).toBe(400);
+    });
+});
+
+describe('forms the product ships pass the check', () => {
+    const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
+
+    it('the D1 passport-renewal form (with its file upload) has no violations', async () => {
+        const report = await server.check({
+            definition: read('./fixtures/d1-passport/passport-renewal.definition.json'),
+            locales: [read('./fixtures/d1-passport/passport-renewal.en.locale.json')],
+            locale: 'en',
+        });
+        expect(report.status).toBe('completed');
+        expect(report.violations.map((v) => `${v.state} ${v.rule}`)).toEqual([]);
+    });
+
+    it('the NJ kitchen-sink form (two pages, drop zones) has no violations', async () => {
+        const dir = '../../../tests/e2e/fixtures/kitchen-sink-holistic';
+        const report = await server.check({ definition: read(`${dir}/definition.v2.json`) });
+        expect(report.status).toBe('completed');
+        expect(report.states.length).toBeGreaterThanOrEqual(4);
+        expect(report.violations.map((v) => `${v.state} ${v.rule}`)).toEqual([]);
     });
 });

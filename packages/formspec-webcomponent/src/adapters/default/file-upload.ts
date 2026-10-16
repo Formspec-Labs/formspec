@@ -2,8 +2,6 @@
 import type { FileUploadBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
 import { createFieldDOM, finalizeFieldDOM } from './shared';
-import { uiText } from '../ui-text.js';
-import { watchText } from '../watch-text.js';
 import { formatBytes } from '../../format';
 
 export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
@@ -86,10 +84,6 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
     if (behavior.dragDrop) {
         const dropZone = document.createElement('div');
         dropZone.className = 'formspec-file-drop-zone formspec-focus-ring';
-        const dropZoneName = document.createElement('span');
-        dropZoneName.hidden = true; // referenced by aria-labelledby, not read as content
-        dropZone.appendChild(dropZoneName);
-
         const content = document.createElement('div');
         content.className = 'formspec-file-drop-content';
 
@@ -107,19 +101,12 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
         content.appendChild(browseBtn);
         dropZone.appendChild(content);
 
-        dropZone.setAttribute('tabindex', '0');
-        dropZone.setAttribute('role', 'button');
-        // Named "<label> <$ui.fileUpload.dropzone>": the first Tab stop says which field it belongs to.
+        // Not an interactive role: the Browse button inside is the one keyboard control (WCAG 4.1.2,
+        // axe nested-interactive). The zone is a named group; dropping stays for pointer users, and the
+        // visible "Drag & drop" text says so.
+        dropZone.setAttribute('role', 'group');
         fieldDOM.label.id ||= `${behavior.id}-label`;
-        dropZoneName.id = `${behavior.id}-dropzone-label`;
-        watchText(actx, uiText(actx.engine, 'fileUpload.dropzone'), (text) => { dropZoneName.textContent = text; });
-        dropZone.setAttribute('aria-labelledby', `${fieldDOM.label.id} ${dropZoneName.id}`);
-        dropZone.addEventListener('keydown', (e: KeyboardEvent) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                input.click();
-            }
-        });
+        dropZone.setAttribute('aria-labelledby', fieldDOM.label.id);
 
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();

@@ -1,0 +1,448 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:formspec:demo:d1:passport-renewal",
+  "version": "0.1.5",
+  "status": "draft",
+  "title": "Passport renewal",
+  "x-generation": {
+    "anchors": [
+      "need:review-and-sign-demo-response@2"
+    ]
+  },
+  "items": [
+    {
+      "key": "demoNotice",
+      "type": "display",
+      "label": "Demo application with fictional details. This sample is not an official DS-82 form.",
+      "presentation": {
+        "widgetHint": "Text"
+      },
+      "x-generation": {
+        "anchors": [
+          "need:recognize-demo-sample-limits@2"
+        ]
+      }
+    },
+    {
+      "key": "renewalEligible",
+      "type": "field",
+      "label": "Renewal eligibility confirmed",
+      "dataType": "boolean",
+      "hint": "Continue after the renewal eligibility check. This sample does not determine official eligibility.",
+      "presentation": {
+        "widgetHint": "Toggle"
+      },
+      "initialValue": true,
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "detailsHeading",
+      "type": "display",
+      "label": "Confirm your renewal details",
+      "presentation": {
+        "widgetHint": "Heading"
+      },
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "fullName",
+      "type": "field",
+      "label": "Full legal name",
+      "dataType": "string",
+      "initialValue": "Alex Rivera",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "dateOfBirth",
+      "type": "field",
+      "label": "Date of birth",
+      "dataType": "date",
+      "presentation": {
+        "widgetHint": "DatePicker"
+      },
+      "initialValue": "1988-04-12",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "placeOfBirth",
+      "type": "field",
+      "label": "Place of birth",
+      "dataType": "string",
+      "initialValue": "Sample City, United States",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "email",
+      "type": "field",
+      "label": "Email address",
+      "dataType": "string",
+      "initialValue": "alex.rivera@example.com",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "mailingAddress",
+      "type": "field",
+      "label": "Mailing address",
+      "dataType": "text",
+      "initialValue": "123 Example Street, Sample City, NJ 00000",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "priorPassportNumber",
+      "type": "field",
+      "label": "Prior passport number",
+      "dataType": "string",
+      "initialValue": "DEMO-PASSPORT-001",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "priorPassportIssueDate",
+      "type": "field",
+      "label": "Prior passport issue date",
+      "dataType": "date",
+      "presentation": {
+        "widgetHint": "DatePicker"
+      },
+      "initialValue": "2016-03-01",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "ssnIssued",
+      "type": "field",
+      "label": "Have you ever been issued a Social Security number?",
+      "dataType": "boolean",
+      "presentation": {
+        "widgetHint": "Toggle"
+      },
+      "initialValue": true,
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "socialSecurityNumber",
+      "type": "field",
+      "label": "Social Security number",
+      "dataType": "string",
+      "hint": "If issued, your number is required by law; omission can mean denial, according to the source snapshot. The zeros are fictional.",
+      "initialValue": "000000000",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "neverIssuedStatement",
+      "type": "field",
+      "label": "Sworn statement that you have never been issued a Social Security number",
+      "dataType": "text",
+      "hint": "Enter your sworn never-issued statement. Official wording remains to be qualified.",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "key": "photo",
+      "type": "field",
+      "label": "Passport photo",
+      "dataType": "attachment",
+      "hint": "Upload a JPEG or PNG photo. Passport-specific photo checks are not yet verified.",
+      "presentation": {
+        "widgetHint": "FileUpload"
+      },
+      "x-generation": {
+        "anchors": [
+          "need:attach-demo-renewal-photo@1"
+        ]
+      }
+    },
+    {
+      "key": "privacyNotice",
+      "type": "display",
+      "label": "Sample privacy notice: submitted answers and photo are visible to authorized demo reviewers. Official legal authority and permitted-sharing wording remain unqualified. Do not enter real personal data.",
+      "presentation": {
+        "widgetHint": "Text"
+      },
+      "x-generation": {
+        "anchors": [
+          "need:understand-demo-privacy@2"
+        ]
+      }
+    },
+    {
+      "key": "paperAlternative",
+      "type": "display",
+      "label": "Also available by mail (DS-82) or in person (DS-11).",
+      "presentation": {
+        "widgetHint": "Text"
+      },
+      "x-generation": {
+        "anchors": [
+          "need:review-demo-paper-option@1"
+        ]
+      }
+    },
+    {
+      "key": "declaration",
+      "type": "display",
+      "label": "I declare that my answers are true and complete to the best of my knowledge. Acknowledging this declaration does not sign the application.",
+      "presentation": {
+        "widgetHint": "Text"
+      },
+      "x-generation": {
+        "anchors": [
+          "need:review-and-sign-demo-response@2"
+        ]
+      }
+    },
+    {
+      "key": "declarationAcknowledged",
+      "type": "field",
+      "label": "I have read and acknowledge the declaration.",
+      "dataType": "boolean",
+      "presentation": {
+        "widgetHint": "Toggle"
+      },
+      "initialValue": false,
+      "x-generation": {
+        "anchors": [
+          "need:review-and-sign-demo-response@2"
+        ]
+      }
+    }
+  ],
+  "binds": [
+    {
+      "path": "renewalEligible",
+      "constraint": "$ = true",
+      "constraintMessage": "Complete the renewal eligibility check before continuing. This sample supports eligible applicants only.",
+      "required": "true",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "fullName",
+      "required": "true",
+      "relevant": "$renewalEligible = true",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "dateOfBirth",
+      "required": "true",
+      "relevant": "$renewalEligible = true",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "placeOfBirth",
+      "required": "true",
+      "relevant": "$renewalEligible = true",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "email",
+      "required": "true",
+      "relevant": "$renewalEligible = true",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "mailingAddress",
+      "required": "true",
+      "relevant": "$renewalEligible = true",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "priorPassportNumber",
+      "required": "true",
+      "relevant": "$renewalEligible = true",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "priorPassportIssueDate",
+      "required": "true",
+      "relevant": "$renewalEligible = true",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "ssnIssued",
+      "required": "true",
+      "relevant": "$renewalEligible = true",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "socialSecurityNumber",
+      "constraint": "matches($, '^[0-9]{9}$')",
+      "constraintMessage": "Enter nine digits without spaces or dashes.",
+      "required": "true",
+      "relevant": "$renewalEligible = true and $ssnIssued = true",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "neverIssuedStatement",
+      "constraint": "length(trim($)) > 0",
+      "constraintMessage": "Enter your sworn never-issued statement.",
+      "required": "true",
+      "relevant": "$renewalEligible = true and $ssnIssued = false",
+      "x-generation": {
+        "anchors": [
+          "need:complete-demo-renewal-response@2"
+        ]
+      }
+    },
+    {
+      "path": "photo",
+      "required": "true",
+      "relevant": "$renewalEligible = true",
+      "x-generation": {
+        "anchors": [
+          "need:attach-demo-renewal-photo@1"
+        ]
+      }
+    },
+    {
+      "path": "declarationAcknowledged",
+      "constraint": "$ = true",
+      "constraintMessage": "Read and acknowledge the declaration before signing and submitting.",
+      "required": "true",
+      "relevant": "$renewalEligible = true",
+      "x-generation": {
+        "anchors": [
+          "need:review-and-sign-demo-response@2"
+        ]
+      }
+    }
+  ],
+  "instances": {
+    "draftReadiness": {
+      "readonly": false,
+      "data": {
+        "ready": false,
+        "owned": false
+      }
+    }
+  },
+  "extensions": {
+    "x-formspec-signing-content": {
+      "version": "1.0",
+      "entries": {
+        "demoEn": {
+          "source": {
+            "ref": "urn:formspec:demo:d1:passport-renewal#/extensions/x-formspec-signing-content/entries/demoEn",
+            "version": "1.0.0"
+          },
+          "locale": "en",
+          "documentId": "passport-renewal-demo",
+          "signingIntent": "urn:formspec:demo:d1:attest-fictional-response",
+          "declaration": "Sample declaration for this local demonstration. I have reviewed the complete fictional answers and the attached photo shown in this demonstration. I confirm that these are the demo details I intend to record. My action applies to this complete saved version of the demo response. Changing the answers, photo, language or saved version requires another review and a new signing action. This is not an official passport declaration or an application to the U.S. Department of State.",
+          "electronicConsent": {
+            "textRef": "urn:formspec:demo:d1:passport-renewal#/extensions/x-formspec-signing-content/entries/demoEn/electronicConsent",
+            "version": "1.0.0",
+            "text": "Sample electronic consent for this demonstration only. I agree to record my name and my explicit signing action electronically for the fictional response I have reviewed. Selecting Sign demo response records this consent and my assent to the saved demo response. Signing is separate from submitting; I can review the signed response before selecting Submit demo response. I may choose the paper alternative instead. This demonstration does not submit an official passport application or establish the legal validity of an electronic signature.",
+            "controlLabel": "I consent to electronic signing for this demo response."
+          },
+          "paperAlternative": "Paper alternative for this demonstration: choose Review paper alternative to review the option of using paper for this demonstration. That action does not sign or submit the response. This demo does not produce or mail a paper document, file an official passport application, or replace an official passport application channel.",
+          "affirmationText": "For this demonstration, I affirm that I reviewed this complete fictional response and intend to record my assent to it.",
+          "delegatedSigningNotice": "Demo signing uses a service-owned signing key after my explicit assent. The service records my demo session identifier, name, consent and the exact saved response. It does not independently verify my real-world identity. This does not prove that I hold or control a personal private key, and the demo does not claim agency approval or legal signature validity."
+        },
+        "demoEs": {
+          "source": {
+            "ref": "urn:formspec:demo:d1:passport-renewal#/extensions/x-formspec-signing-content/entries/demoEs",
+            "version": "1.0.0"
+          },
+          "locale": "es-US",
+          "documentId": "passport-renewal-demo",
+          "signingIntent": "urn:formspec:demo:d1:attest-fictional-response",
+          "declaration": "Declaración de ejemplo para esta demostración local. He revisado todas las respuestas ficticias y la foto adjunta que se muestran en esta demostración. Confirmo que estos son los datos de ejemplo que deseo registrar. Mi acción se aplica a esta versión completa y guardada de la respuesta de demostración. Si cambian las respuestas, la foto, el idioma o la versión guardada, debo revisarlos y firmar de nuevo. Esta no es una declaración oficial para un pasaporte ni una solicitud al Departamento de Estado de los Estados Unidos.",
+          "electronicConsent": {
+            "textRef": "urn:formspec:demo:d1:passport-renewal#/extensions/x-formspec-signing-content/entries/demoEs/electronicConsent",
+            "version": "1.0.0",
+            "text": "Consentimiento electrónico de ejemplo, solo para esta demostración. Acepto registrar electrónicamente mi nombre y mi acción explícita de firma para la respuesta ficticia que he revisado. Al seleccionar Firmar respuesta de demostración, se registran este consentimiento y mi aceptación de la respuesta guardada. Firmar y enviar son acciones separadas; puedo revisar la respuesta firmada antes de seleccionar Enviar respuesta de demostración. Puedo elegir la alternativa en papel. Esta demostración no presenta una solicitud oficial de pasaporte ni establece la validez legal de una firma electrónica.",
+            "controlLabel": "Acepto firmar electrónicamente esta respuesta de demostración."
+          },
+          "paperAlternative": "Alternativa en papel para esta demostración: seleccione Revisar alternativa en papel para revisar la opción de usar papel en esta demostración. Esa acción no firma ni envía la respuesta. Esta demostración no produce ni envía documentos en papel por correo, no presenta una solicitud oficial de pasaporte ni sustituye un canal oficial para solicitarlo.",
+          "affirmationText": "Para esta demostración, afirmo que he revisado toda esta respuesta ficticia y que deseo registrar mi aceptación de ella.",
+          "delegatedSigningNotice": "La firma de demostración usa una clave de firma del servicio después de mi aceptación explícita. El servicio registra el identificador de mi sesión de demostración, mi nombre, mi consentimiento y la respuesta guardada exacta. No verifica de forma independiente mi identidad en el mundo real. Esto no demuestra que yo posea o controle una clave privada personal, y la demostración no afirma tener aprobación de la agencia ni validez legal de la firma."
+        }
+      }
+    }
+  }
+}
