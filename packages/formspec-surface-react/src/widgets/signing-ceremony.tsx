@@ -120,6 +120,7 @@ function SigningCeremonyAct({ props, data, copy, requireResponseReview }: { prop
   const [name, setName] = useState(() => signed ? data.response.extensions!['x-formspec-signing-content']!.signerName : '');
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  /** Submit timed out: stay disabled and silent; the host that reported the unknown outcome owns its localized message (no authored copy key exists in this sealed shape). */
   const [outcomeUnknown, setOutcomeUnknown] = useState(false);
   useEffect(() => {
     alive.current = true;
@@ -184,7 +185,7 @@ function SigningCeremonyAct({ props, data, copy, requireResponseReview }: { prop
       {submit && <button type="button" disabled={pending || outcomeUnknown || !reviewed || !signed} onClick={() => void emit('submit')}>{submit.label}</button>}
       {paper && <button type="button" disabled={pending} onClick={() => void emit('paper')}>{paper.label}</button>}
     </div>
-    <p role="status" aria-live="polite">{outcomeUnknown ? 'Your signed response is saved. The submission outcome is unknown. Check application status.' : pending ? copy.pending : failed ? copy.failed : !reviewed ? data.review?.state?.status === 'pending' ? copy.reviewPending : copy.reviewUnavailable : signed ? copy.signed : !sign || !submit ? copy.unavailable : ''}</p>
+    <p role="status" aria-live="polite">{outcomeUnknown ? '' : pending ? copy.pending : failed ? copy.failed : !reviewed ? data.review?.state?.status === 'pending' ? copy.reviewPending : copy.reviewUnavailable : signed ? copy.signed : !sign || !submit ? copy.unavailable : ''}</p>
   </section>;
 }
 
