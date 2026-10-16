@@ -551,8 +551,9 @@ authored pair whose token has no effective color value.
 
 `contrastPairs` is static-analysis data. It MUST NOT change token resolution,
 CSS emission, renderer output, or the Theme cascade. `formspec-lint` reports
-W714 when a determinable declared or inferred pair falls below its effective
-floor.
+E1903 (an error) when a determinable declared or inferred pair falls below its
+usage floor, and W714 (a warning) when it reaches the floor but not the pair's
+own stricter `minimumRatio`.
 
 ## 4. Widget Catalog
 

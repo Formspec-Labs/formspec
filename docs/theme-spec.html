@@ -1167,8 +1167,10 @@ space, or another unknown surface. It SHOULD diagnose an authored pair
 whose token has no effective color value.</p>
 <p><code>contrastPairs</code> is static-analysis data. It MUST NOT
 change token resolution, CSS emission, renderer output, or the Theme
-cascade. <code>formspec-lint</code> reports W714 when a determinable
-declared or inferred pair falls below its effective floor.</p>
+cascade. <code>formspec-lint</code> reports E1903 (an error) when a
+determinable declared or inferred pair falls below its usage floor, and
+W714 (a warning) when it reaches the floor but not the pair’s own
+stricter <code>minimumRatio</code>.</p>
 <h2 id="widget-catalog">4. Widget Catalog</h2>
 <h3 id="relationship-to-tier-1-widgethint">4.1 Relationship to Tier 1
 widgetHint</h3>

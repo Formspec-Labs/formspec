@@ -167,6 +167,7 @@ export {
     isFormspecEngineInitialized,
     isFormspecEngineToolsInitialized,
 } from './init-formspec-engine.js';
+export type { InitWasmOptions } from './wasm-bridge-runtime.js';
 
 export { attachAuthoredSignature, buildValidationReportEnvelope } from './engine/response-assembly.js';
 export { deepEqual, toValidationResults } from './engine/helpers.js';

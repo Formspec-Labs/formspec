@@ -1,0 +1,25 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.com/forms/w1901",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "w1901 fixture",
+  "items": [
+    {
+      "key": "size",
+      "type": "field",
+      "dataType": "choice",
+      "label": "Size",
+      "options": [
+        {
+          "value": "s",
+          "label": "Small"
+        },
+        {
+          "value": "m",
+          "label": "Small"
+        }
+      ]
+    }
+  ]
+}

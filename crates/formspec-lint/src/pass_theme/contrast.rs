@@ -1,4 +1,4 @@
-//! Effective Theme color-pair contrast checks (W714).
+//! Effective Theme color-pair contrast checks (E1903 below the WCAG AA floor, W714 below a Theme's own stricter minimum).
 #![expect(
     clippy::missing_docs_in_private_items,
     reason = "Small parsing helpers are described by their focused tests"
@@ -146,31 +146,41 @@ fn lint_pair(
     };
 
     let ratio = contrast_ratio(foreground_rgb, background_rgb);
+    let floor = usage_floor(&pair.usage);
     let minimum = minimum_ratio(&pair.usage, pair.minimum_ratio);
     if ratio + f64::EPSILON >= minimum {
         return;
     }
 
-    diags.push(metadata::with_metadata(LintDiagnostic::warning(
-        crate::LintCode::W714,
-        PASS,
-        path,
-        format!(
-            "Contrast pair '{}' resolves '{}' ({foreground}) against '{}' ({background}) at {ratio:.2}:1; {} requires at least {minimum:.2}:1",
-            pair.id,
-            pair.foreground_token,
-            pair.background_token,
-            pair.usage
-        ),
-    )));
+    // Below the WCAG AA floor is an accessibility error (E1903, ADR 0166 §3); between the floor
+    // and a Theme's own stricter `minimumRatio` it stays the advisory W714.
+    let message = format!(
+        "Contrast pair '{}' resolves '{}' ({foreground}) against '{}' ({background}) at {ratio:.2}:1; {} requires at least {minimum:.2}:1",
+        pair.id, pair.foreground_token, pair.background_token, pair.usage
+    );
+    let below_aa = ratio + f64::EPSILON < floor;
+    diags.push(if below_aa {
+        crate::pass_accessibility::diagnostic(crate::LintCode::E1903, path, message)
+    } else {
+        metadata::with_metadata(LintDiagnostic::warning(
+            crate::LintCode::W714,
+            PASS,
+            path,
+            message,
+        ))
+    });
+}
+
+/// The WCAG 2.2 AA floor for a usage; unknown usages are held to the text floor.
+fn usage_floor(usage: &str) -> f64 {
+    match usage {
+        "largeText" | "uiComponent" => LARGE_OR_NON_TEXT_MINIMUM,
+        _ => NORMAL_TEXT_MINIMUM,
+    }
 }
 
 fn minimum_ratio(usage: &str, declared: Option<f64>) -> f64 {
-    let standards_floor = match usage {
-        "normalText" => NORMAL_TEXT_MINIMUM,
-        "largeText" | "uiComponent" => LARGE_OR_NON_TEXT_MINIMUM,
-        _ => NORMAL_TEXT_MINIMUM,
-    };
+    let standards_floor = usage_floor(usage);
     declared.map_or(standards_floor, |value| value.max(standards_floor))
 }
 

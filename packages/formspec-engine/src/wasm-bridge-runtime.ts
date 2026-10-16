@@ -33,14 +33,24 @@ export function isWasmReady(): boolean {
     return _wasmReady;
 }
 
+/** How the host supplies the WASM module. */
+export interface InitWasmOptions {
+    /**
+     * The runtime `.wasm` bytes, for a host that cannot fetch the sibling asset (a self-contained page,
+     * a sandbox with no network). Used in place of the Node file read and the browser fetch.
+     */
+    wasmBytes?: BufferSource;
+}
+
 /**
  * Initialize the WASM module. Safe to call multiple times — subsequent calls
  * return the same promise. Resolves when WASM is ready; rejects on failure.
  *
- * In Node.js, uses `initSync()` with bytes read from disk.
- * In browsers, the generated wasm-bindgen loader fetches the sibling `.wasm` asset via URL.
+ * With `wasmBytes`, instantiates from those bytes.
+ * In Node.js, otherwise uses `initSync()` with bytes read from disk.
+ * In browsers, otherwise the generated wasm-bindgen loader fetches the sibling `.wasm` asset via URL.
  */
-export async function initWasm(): Promise<void> {
+export async function initWasm(options: InitWasmOptions = {}): Promise<void> {
     if (_wasmReady) return;
     if (_initPromise) return _initPromise;
 
@@ -49,9 +59,9 @@ export async function initWasm(): Promise<void> {
             const runtime = await import('../wasm-pkg-runtime/formspec_wasm_runtime.js');
             const runningInNode = typeof globalThis.process !== 'undefined'
                 && globalThis.process.versions?.node;
-            let wasmBytes: Uint8Array | null = null;
+            let wasmBytes: BufferSource | null = options.wasmBytes ?? null;
 
-            if (runningInNode && typeof runtime.initSync === 'function') {
+            if (!wasmBytes && runningInNode && typeof runtime.initSync === 'function') {
                 const { readFileSync } = await import(/* @vite-ignore */ nodeFsModuleName);
                 const wasmPath = await resolveWasmAssetPathForNode(
                     '../wasm-pkg-runtime/formspec_wasm_runtime_bg.wasm',

@@ -262,7 +262,7 @@
     },
     "AuthoredSignatureSignedPayload": {
       "type": "object",
-      "description": "Digest commitment for the Formspec Signed Response Payload. This Formspec profile shape omits authoredSignatures, applies the formspec.response.signed-payload.v1 domain tag, and consumes the shared integrity-canonical-json-v1 canonical-byte primitive. The digest remains stable when later co-signatures are appended.",
+      "description": "Digest commitment under the named Formspec signing profile. formspec-response-signing-v1 hashes the whole Response with authoredSignatures omitted; formspec-response-section-signing-v1 binds the party role, explicit covered paths and attested section values with Response/Definition pins, signing time and intent. Section bytes and vectors are owned by integrity-stack; accepting this schema is not cryptographic verification.",
       "required": [
         "canonicalization",
         "digestAlgorithm",
@@ -277,9 +277,9 @@
       "properties": {
         "canonicalization": {
           "type": "string",
-          "const": "formspec-response-signing-v1",
+          "enum": ["formspec-response-signing-v1", "formspec-response-section-signing-v1"],
           "description": "Formspec response-signing profile used to produce the signed-payload bytes. Keep this wire-visible profile name distinct from the shared integrity-canonical-json-v1 substrate primitive it consumes.",
-          "examples": ["formspec-response-signing-v1"]
+          "examples": ["formspec-response-signing-v1", "formspec-response-section-signing-v1"]
         },
         "digestAlgorithm": {
           "type": "string",
@@ -290,7 +290,7 @@
         "digest": {
           "type": "string",
           "pattern": "^[A-Fa-f0-9]{64,128}$",
-          "description": "Digest of the Formspec Signed Response Payload: the canonical Response envelope with authoredSignatures omitted.",
+          "description": "Digest of the payload selected by canonicalization: the whole Response with authoredSignatures omitted for the whole-response profile, or the bound role, coverage and attested section for the section profile. This is not IntakeHandoff.responseHash.",
           "examples": ["0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]
         },
         "responseId": {
@@ -327,9 +327,19 @@
         }
       }
     },
+    "ResolvedItemPath": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[(?:0|[1-9][0-9]*)\\])?(?:\\.[A-Za-z][A-Za-z0-9_]*(?:\\[(?:0|[1-9][0-9]*)\\])?)*$",
+      "description": "Canonical resolved Field item path relative to Response.data, using dot notation and concrete zero-based repeat indexes (Core §4.3.3). No wildcards, JSON Pointer aliases, group shorthand or metadata paths. Resolution to a Field in the pinned Definition and signed Response revision is a semantic check.",
+      "examples": [
+        "student.name",
+        "parents[0].income",
+        "photo"
+      ]
+    },
     "AuthoredSignature": {
       "type": "object",
-      "description": "Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act to the Formspec Signed Response Payload through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.",
+      "description": "Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act under signedPayload.canonicalization through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.",
       "required": [
         "signatureId",
         "documentId",
@@ -347,7 +357,37 @@
         "ceremonyId"
       ],
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": ["signedPayload"],
+            "properties": {
+              "signedPayload": {
+                "required": ["canonicalization"],
+                "properties": { "canonicalization": { "const": "formspec-response-section-signing-v1" } }
+              }
+            }
+          },
+          "then": { "required": ["partyRole", "coveredPaths"] },
+          "else": { "not": { "anyOf": [{ "required": ["partyRole"] }, { "required": ["coveredPaths"] }] } }
+        }
+      ],
       "properties": {
+        "partyRole": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "maxLength": 64,
+          "description": "Definition parties[].roleId bound by this section signature. Required only for formspec-response-section-signing-v1. Role existence, signer authority and current party policy are semantic checks.",
+          "examples": ["student", "parent"]
+        },
+        "coveredPaths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/ResolvedItemPath" },
+          "description": "Explicit set of concrete Field paths attested by this signature, stored on this signature and bound into its section payload. Array order carries no scope meaning. Required only for formspec-response-section-signing-v1. Coverage must match the signer role and the pinned Response revision; an attachment value is covered as one whole field.",
+          "examples": [["student.name"], ["parents[0].income", "parents[0].familySize"]]
+        },
         "signatureId": {
           "type": "string",
           "minLength": 1,
@@ -595,7 +635,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["url", "version"],
-      "description": "Submit-time pin of the resolved Issuer (post-cascade). Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer pinning is a v1 non-goal.",
+      "description": "Submit-time pin of the resolved Issuer (post-cascade). Inside the whole-response formspec-response-signing-v1 preimage by the authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer pinning is a v1 non-goal.",
       "properties": {
         "url": {
           "type": "string",
@@ -613,14 +653,14 @@
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Audit pin of the Issuer that actually rendered. Inside signed-payload digest by JCS canonicalization (no profile change)."
+        "intent": "Audit pin of the Issuer that actually rendered. Inside the formspec-response-signing-v1 whole-response digest by JCS canonicalization; section bytes are governed separately."
       }
     },
     "displayedLocale": {
       "type": "object",
       "additionalProperties": false,
       "required": ["version", "locale"],
-      "description": "Submit-time pin of the Locale document whose strings the respondent saw: its normalized locale tag and version — the document's identity within the pinned Definition (Locale §identity is target + locale) — and its url when it declares one. Omitted only when no Locale document was loaded: the Definition's inline wording was shown instead. Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload).",
+      "description": "Submit-time pin of the Locale document whose strings the respondent saw: its normalized locale tag and version — the document's identity within the pinned Definition (Locale §identity is target + locale) — and its url when it declares one. Omitted only when no Locale document was loaded: the Definition's inline wording was shown instead. Inside the whole-response formspec-response-signing-v1 preimage by the authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload).",
       "properties": {
         "url": {
           "type": "string",
@@ -643,7 +683,7 @@
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Audit pin of the wording the respondent certified to. Inside signed-payload digest by JCS canonicalization (no profile change)."
+        "intent": "Audit pin of the wording the respondent certified to. Inside the formspec-response-signing-v1 whole-response digest by JCS canonicalization; section bytes are governed separately."
       }
     },
     "id": {
@@ -742,7 +782,7 @@
     "authoredSignatures": {
       "type": "array",
       "minItems": 1,
-      "description": "Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act to the Formspec Signed Response Payload through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations.",
+      "description": "Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act under its named whole-response or section signing profile through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations.",
       "items": {
         "$ref": "#/$defs/AuthoredSignature"
       },

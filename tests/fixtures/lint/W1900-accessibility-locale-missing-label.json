@@ -1,0 +1,33 @@
+{
+  "$formspecLocale": "2.0",
+  "version": "1.0.0",
+  "locale": "fr",
+  "target": {
+    "kind": "definition",
+    "url": "https://example.com/forms/w1900"
+  },
+  "strings": {
+    "first.label": "Prénom"
+  },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/w1900",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "w1900 fixture",
+    "items": [
+      {
+        "key": "first",
+        "type": "field",
+        "dataType": "string",
+        "label": "First name"
+      },
+      {
+        "key": "last",
+        "type": "field",
+        "dataType": "string",
+        "label": "Last name"
+      }
+    ]
+  }
+}

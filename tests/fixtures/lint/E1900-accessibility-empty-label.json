@@ -1,0 +1,15 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.com/forms/e1900",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "e1900 fixture",
+  "items": [
+    {
+      "key": "name",
+      "type": "field",
+      "dataType": "string",
+      "label": "   "
+    }
+  ]
+}

@@ -21,13 +21,17 @@
     },
     "./default-theme": "./dist/default-theme.json",
     "./formspec-layout.css": "./dist/formspec-layout.css",
-    "./formspec-default.css": "./dist/formspec-default.css"
+    "./formspec-default.css": "./dist/formspec-default.css",
+    "./host": {
+      "types": "./dist/host-page.d.ts",
+      "default": "./dist/host-page.js"
+    }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc && node ../../scripts/copy-layout-css-assets.mjs src dist ../formspec-layout/src",
+    "build": "tsc && node ../../scripts/copy-layout-css-assets.mjs src dist ../formspec-layout/src && node scripts/build-host.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -37,6 +41,7 @@
     "@formspec-org/types": "^0.2.1"
   },
   "devDependencies": {
+    "esbuild": "^0.27.4",
     "happy-dom": "^17.6.1",
     "typescript": "^5.0.0"
   }

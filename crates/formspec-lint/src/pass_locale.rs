@@ -811,7 +811,7 @@ fn strip_context(part: &str) -> &str {
     part.split_once('@').map_or(part, |(base, _)| base)
 }
 
-fn split_locale_key(key: &str) -> Vec<String> {
+pub(crate) fn split_locale_key(key: &str) -> Vec<String> {
     let mut parts = Vec::new();
     let mut current = String::new();
     let mut escaped = false;
