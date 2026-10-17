@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
-import { AccessibilityServer, derivePlan, deriveRecipes, emitSpec } from '@formspec-org/walk';
+import { derivePlan, deriveRecipes, emitSpec } from '@formspec-org/walk';
 
 const USAGE = `usage: formspec-walk emit --docs <dir> --url <page url> [--locale <code>] [--out <file>] [--from <package>]
        formspec-walk a11y --docs <dir> [--locale <code>] [--timeout-ms <ms>] [--out <file>]
@@ -40,6 +40,9 @@ function readDocuments(dir, code) {
 }
 
 const timeoutMs = flag('timeout-ms') ? Number(flag('timeout-ms')) : undefined;
+
+/** The serve module loads the webcomponent and a browser driver; only the commands that need them pay for it. */
+const { AccessibilityServer } = command === 'emit' ? {} : await import('@formspec-org/walk/serve');
 
 if (command === 'serve') {
   const server = new AccessibilityServer({ timeoutMs });

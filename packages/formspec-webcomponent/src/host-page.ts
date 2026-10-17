@@ -30,6 +30,13 @@ function assets(): HostAssets {
     return cached;
 }
 
+/**
+ * The page's content security policy: nothing loads from anywhere. Scripts and styles are the inline ones above;
+ * `wasm-unsafe-eval` lets the engine's inline wasm start; `data:` images are the form's own (a drawn signature).
+ * A Theme stylesheet URL, a Definition's remote data source or remote options are refused by the browser itself.
+ */
+export const HOST_CSP = "default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'";
+
 /** JSON safe inside a `<script>` block: `<` can never open a tag or a comment. */
 function inlineJson(value: unknown): string {
     return JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
@@ -54,6 +61,7 @@ export function renderHostPage(documents: HostDocuments): string {
 <html lang="${lang}">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="${HOST_CSP}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${(documents.definition.title ?? 'Form').replace(/[<>&"]/g, (c) => `&#${c.charCodeAt(0)};`)}</title>
 <style data-formspec-layer="layout">${inlineSource(a.layoutCss, 'style')}</style>

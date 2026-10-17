@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs';
 import { chromium, type Browser } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { renderHostPage } from '@formspec-org/webcomponent/host';
-import { AccessibilityServer, checkAccessibility, MANUAL_REVIEW, type RendererCheckReport } from '../src/index.js';
+import { createServer } from 'node:http';
+import { checkAccessibility, expectedPages, MANUAL_REVIEW, type RendererCheckReport } from '../src/index.js';
+import { AccessibilityServer } from '../src/serve.js';
 
 const field = (key: string, label: string) => ({ key, type: 'field', dataType: 'string', label });
 
@@ -160,3 +162,145 @@ describe('forms the product ships pass the check', () => {
         expect(report.violations.map((v) => `${v.state} ${v.rule}`)).toEqual([]);
     });
 });
+
+describe('every page is visited, or the check fails', () => {
+    const unlabelled = (key: string) => ({ key, type: 'field', dataType: 'string', label: '' });
+    const group = (key: string, children: unknown[]) => ({ key, type: 'group', label: key, children });
+    const form = (pageMode: string, items: unknown[], extra: object = {}) => ({
+        $formspec: '1.0', url: `urn:test:${pageMode}`, version: '1.0.0', status: 'draft', title: pageMode,
+        formPresentation: { pageMode }, items, ...extra,
+    });
+
+    it('a violation on the second tab is found (hidden panels are shown one by one)', async () => {
+        const report = await server.check({ definition: form('tabs', [group('one', [field('a', 'A field')]), group('two', [unlabelled('b')])]) });
+        expect(report.status).toBe('completed');
+        expect(report.pages).toMatchObject({ kind: 'tabs', drawn: 2, visited: 2, expectedMin: 2 });
+        expect(report.violations.some((v) => v.rule === 'label' && v.state === 'page-2')).toBe(true);
+    });
+
+    it('a wizard under a fallback Locale is stepped by its buttons, not their translated names', async () => {
+        const target = { kind: 'definition', url: 'urn:test:wizard' };
+        const wizardWords = { '$ui.wizard.next': 'Étape suivante', '$ui.wizard.nextStep': 'Aller à l’étape suivante', '$ui.wizard.previous': 'Précédent', '$ui.wizard.previousStep': 'Étape précédente' };
+        const fr = { $formspecLocale: '2.0', version: '1.0.0', locale: 'fr', target, strings: wizardWords };
+        const frCA = { $formspecLocale: '2.0', version: '1.0.0', locale: 'fr-CA', fallback: 'fr', target, strings: { 'one.label': 'Un' } };
+        const report = await server.check({
+            definition: form('wizard', [group('one', [field('a', 'A field')]), group('two', [unlabelled('b')])]),
+            locales: [fr, frCA] as never, locale: 'fr-CA',
+        });
+        expect(report.status).toBe('completed');
+        expect(report.pages).toMatchObject({ kind: 'wizard', drawn: 2, visited: 2 });
+        expect(report.violations.some((v) => v.rule === 'label' && v.state === 'page-2')).toBe(true);
+    });
+
+    it('a form with more pages than the cap fails instead of ending as completed', async () => {
+        await withHostPage(form('wizard', [group('one', [field('a', 'A')]), group('two', [field('b', 'B')]), group('three', [field('c', 'C')])]), async (page, url) => {
+            const report = await checkAccessibility(page, { open: async (p) => { await p.goto(url); }, maxPages: 2 });
+            expect(report.status).toBe('failed');
+            expect(report.failure?.reason).toBe('pages');
+            expect(report.violations).toEqual([]);
+        });
+    });
+
+    it('fewer pages drawn than the Definition guarantees fails the check', async () => {
+        const definition = form('wizard', [group('one', [field('a', 'A')]), group('two', [field('b', 'B')])]);
+        await withHostPage(definition, async (page, url) => {
+            const report = await checkAccessibility(page, { open: async (p) => { await p.goto(url); }, expectedPages: 3 });
+            expect(report.status).toBe('failed');
+            expect(report.failure).toMatchObject({ reason: 'pages' });
+        });
+    });
+
+    it('counts the pages a Definition guarantees, leaving out conditional ones', () => {
+        const d = form('wizard', [group('one', []), group('two', []), field('loose', 'L')], { binds: [{ path: 'two', relevant: '$x = 1' }] });
+        expect(expectedPages(d)).toBe(2);
+        expect(expectedPages({ ...d, formPresentation: {} })).toBe(1);
+        expect(expectedPages(form('tabs', [group('one', []), group('two', [])]))).toBe(2);
+        const themed = { pages: [{ regions: [{ key: 'one' }] }, { regions: [{ key: 'two' }] }] };
+        expect(expectedPages(form('wizard', [group('one', []), group('two', [])]), themed)).toBe(2);
+    });
+
+    it('a field hidden by relevance is shown by the value that reveals it, and checked', async () => {
+        const definition = {
+            $formspec: '1.0', url: 'urn:test:reveal', version: '1.0.0', status: 'draft', title: 'reveal',
+            items: [
+                { key: 'kind', type: 'field', dataType: 'choice', label: 'Kind', options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] },
+                unlabelled('extra'),
+            ],
+            binds: [{ path: 'extra', relevant: "$kind = 'b'" }],
+        };
+        const report = await server.check({ definition });
+        expect(report.status).toBe('completed');
+        expect(report.pages?.revealedFields).toBe(1);
+        expect(report.violations.some((v) => v.rule === 'label' && v.state === 'reveal-extra')).toBe(true);
+        // It was put back: the base page states were checked with it hidden.
+        expect(report.states.map((s) => s.id)).toEqual(['page-1', 'errors-1', 'reveal-extra']);
+    });
+});
+
+describe('the page is fenced from the network', () => {
+    it('a Theme stylesheet and a Definition data source are never fetched and are listed for review', async () => {
+        const hits: string[] = [];
+        const listener = createServer((req, res) => { hits.push(req.url ?? ''); res.writeHead(200, { 'content-type': 'text/css' }); res.end('body{}'); });
+        await new Promise<void>((resolve) => listener.listen(0, '127.0.0.1', resolve));
+        const base = `http://127.0.0.1:${(listener.address() as { port: number }).port}`;
+        try {
+            const definition = {
+                ...CLEAN, formPresentation: {}, binds: [], url: 'urn:test:fence',
+                items: [field('name', 'Name')],
+                instances: { people: { source: `${base}/instance.json`, static: false } },
+            };
+            const theme = { $formspecTheme: '1.0', url: 'urn:test:fence-theme', version: '1.0.0', tokens: {}, stylesheets: [`${base}/theme.css`] };
+            const report = await server.check({ definition: definition as never, theme: theme as never });
+            expect(report.status).toBe('completed');
+            expect(hits).toEqual([]);
+            const refused = report.needsReview.filter((f) => f.rule === 'formspec-blocked-request').flatMap((f) => f.nodes.map((n) => n.target[0]));
+            expect(refused).toContain(`${base}/theme.css`);
+            expect(refused).toContain(`${base}/instance.json`);
+        } finally {
+            listener.close();
+        }
+    });
+
+    it('a Theme that names a render adapter the host does not have is refused, not drawn with another', async () => {
+        const theme = { $formspecTheme: '1.0', url: 'urn:test:uswds-theme', version: '1.0.0', tokens: {}, adapter: 'uswds' };
+        const report = await server.check({ definition: CLEAN, theme: theme as never });
+        expect(report.status).toBe('failed');
+        expect(report.failure?.reason).toBe('renderer');
+        expect(report.failure?.message).toContain("'uswds'");
+    });
+
+    it('the report says which adapter was tested', async () => {
+        expect((await server.check({ definition: CLEAN })).adapter).toBe('default');
+    });
+
+    it('a page that never answers is a timeout, not a browser failure', async () => {
+        const silent = createServer(() => undefined);
+        await new Promise<void>((resolve) => silent.listen(0, '127.0.0.1', resolve));
+        const browser = await chromium.launch();
+        try {
+            const page = await browser.newPage();
+            const url = `http://127.0.0.1:${(silent.address() as { port: number }).port}/`;
+            const report = await checkAccessibility(page, { open: async (p) => { await p.goto(url); }, timeoutMs: 1_500 });
+            expect(report.status).toBe('failed');
+            expect(report.failure?.reason).toBe('timeout');
+        } finally {
+            await browser.close();
+            silent.closeAllConnections();
+            silent.close();
+        }
+    });
+});
+
+/** Serve `definition`'s host page and give `fn` a browser page and its URL. */
+async function withHostPage(definition: object, fn: (page: import('@playwright/test').Page, url: string) => Promise<void>): Promise<void> {
+    const html = renderHostPage({ definition: definition as never });
+    const http = createServer((_, res) => { res.writeHead(200, { 'content-type': 'text/html' }); res.end(html); });
+    await new Promise<void>((resolve) => http.listen(0, '127.0.0.1', resolve));
+    const browser = await chromium.launch();
+    try {
+        await fn(await browser.newPage(), `http://127.0.0.1:${(http.address() as { port: number }).port}/`);
+    } finally {
+        await browser.close();
+        http.close();
+    }
+}

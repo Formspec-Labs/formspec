@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from 'node:net';
 import { chromium, type Browser } from '@playwright/test';
 import { renderHostPage, type HostDocuments } from '@formspec-org/webcomponent/host';
-import { checkAccessibility, CHECK_VERSION, DEFAULT_TIMEOUT_MS, MANUAL_REVIEW, WCAG_TAGS, type CheckFailure, type RendererCheckReport } from './axe.js';
+import { checkAccessibility, expectedPages, CHECK_VERSION, DEFAULT_TIMEOUT_MS, MANUAL_REVIEW, WCAG_TAGS, type CheckFailure, type RendererCheckReport } from './axe.js';
 
 /** Largest request body accepted: a Definition with its Theme and Locales. */
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
@@ -21,15 +21,9 @@ export interface AccessibilityServerOptions {
 /** A failed report for a check that never got as far as axe. */
 function failedReport(failure: CheckFailure, totalMs: number): RendererCheckReport {
     return {
-        checkVersion: CHECK_VERSION, axeVersion: null, tags: WCAG_TAGS, status: 'failed', failure,
+        checkVersion: CHECK_VERSION, axeVersion: null, adapter: null, pages: null, tags: WCAG_TAGS, status: 'failed', failure,
         states: [], violations: [], needsReview: [], manualReview: MANUAL_REVIEW, totalMs,
     };
-}
-
-/** The active Locale's `$ui.*` strings, which name the wizard's buttons. */
-function chromeStrings(documents: HostDocuments): Record<string, string> | undefined {
-    const active = documents.locales?.find((l) => l.locale === documents.locale);
-    return active?.strings as Record<string, string> | undefined;
 }
 
 /**
@@ -94,16 +88,19 @@ export class AccessibilityServer {
                 const message = error instanceof Error ? error.message : String(error);
                 return failedReport({ reason: /timeout/i.test(message) ? 'timeout' : 'browser', message }, elapsed());
             }
-            const context = await browser.newContext().catch(() => null);
+            // No service workers, and only the host page itself may be requested: the documents are untrusted.
+            const context = await browser.newContext({ serviceWorkers: 'block' }).catch(() => null);
             const page = await context?.newPage().catch(() => null);
             if (!context || !page) {
                 this.browser = null;
                 return failedReport({ reason: 'browser', message: 'the browser could not open a page' }, elapsed());
             }
             try {
+                const hostUrl = `${this.url}/host/${id}`;
                 const report = await checkAccessibility(page, {
-                    open: async (p) => { await p.goto(`${this.url}/host/${id}`); },
-                    chrome: chromeStrings(documents),
+                    open: async (p) => { await p.goto(hostUrl, { timeout: Math.max(1, this.timeoutMs - elapsed()) }); },
+                    allow: (url) => url === hostUrl,
+                    expectedPages: expectedPages(documents.definition, documents.theme),
                     timeoutMs: Math.max(1, this.timeoutMs - elapsed()),
                 });
                 return { ...report, totalMs: elapsed() };

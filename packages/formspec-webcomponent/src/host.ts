@@ -14,7 +14,7 @@ export interface HostRuntime {
 declare global {
     interface Window {
         /** The mounted renderer, or the failure, for whoever drives the page. */
-        __formspecHost?: { element?: FormspecRender; error?: string };
+        __formspecHost?: { element?: FormspecRender; error?: string; blocked?: string[] };
     }
 }
 
@@ -34,6 +34,9 @@ function drawn(element: FormspecRender, timeoutMs: number): Promise<void> {
     });
 }
 
+/** The render adapters the host registers. A Theme naming another is refused, not silently drawn with this one. */
+export const HOST_ADAPTERS: readonly string[] = ['default'];
+
 /**
  * Mount `<formspec-render>` in `container` from `documents` and resolve once it has drawn.
  *
@@ -46,6 +49,10 @@ export async function mountHost(
     container: HTMLElement = document.body,
     timeoutMs = 20_000,
 ): Promise<FormspecRender> {
+    const named = documents.theme?.adapter;
+    if (named && !HOST_ADAPTERS.includes(named)) {
+        throw new Error(`the Theme names the render adapter '${named}'; this host page renders only: ${HOST_ADAPTERS.join(', ')}`);
+    }
     await initFormspecEngine({ wasmBytes: runtime.wasmBytes });
     registerDefaultComponents();
     if (!customElements.get('formspec-render')) customElements.define('formspec-render', FormspecRender);
@@ -71,7 +78,12 @@ function fromBase64(text: string): Uint8Array<ArrayBuffer> {
 
 /** Read the page's inline config and `.wasm`, mount, and report on `<html>` and `window.__formspecHost`. */
 export async function bootHost(root: Document = document): Promise<void> {
-    const host: NonNullable<Window['__formspecHost']> = (window.__formspecHost = {});
+    const host: NonNullable<Window['__formspecHost']> = (window.__formspecHost = { blocked: [] });
+    // The page's policy refuses every request; what the form asked for is kept for the report.
+    root.addEventListener('securitypolicyviolation', (event) => {
+        const uri = (event as SecurityPolicyViolationEvent).blockedURI;
+        if (uri && !host.blocked!.includes(uri)) host.blocked!.push(uri);
+    });
     try {
         const config = JSON.parse(root.getElementById(HOST_CONFIG_ID)!.textContent!) as HostDocuments;
         const wasmBytes = fromBase64(root.getElementById(HOST_WASM_ID)!.textContent!);
