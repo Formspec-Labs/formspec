@@ -53,7 +53,7 @@ Tests the TypeScript reference implementation of the Formspec engine.
 - **FEL Semantics:** Core logic for null handling, type discipline, and complex value semantics.
 - **State Management:** Reactive calculation chains, validation triggers, and repeat group lifecycle.
 - **Data Binding:** Path resolution, value coercion, and response pruning.
-- **Conformance:** Shared-suite parity against Python via `tests/conformance/suite/*.json` and `shared-suite.test.mjs`.
+- **Conformance:** Shared-suite parity with the Rust evaluator via `tests/conformance/suite/*.json`: `shared-suite.test.mjs` here, `crates/formspec-eval/tests/integration/shared_suite.rs` there (every `ENGINE_PROCESSING` case's `expected.data` must survive a Rust re-evaluation unchanged).
 
 ### 🏗 `packages/formspec-webcomponent/tests/`
 
@@ -112,7 +112,7 @@ npm run test:e2e
 # Targeted runs:
 python3 -m pytest tests/unit/ -v
 python3 -m pytest tests/conformance/schemas/ -v
-python3 -m pytest tests/conformance/parity/test_shared_suite.py tests/conformance/fuzzing/test_cross_runtime_fuzzing.py -v
+python3 -m pytest tests/conformance/fuzzing/test_cross_runtime_fuzzing.py -v
 
 # With coverage (Python):
 python3 -m pytest tests/ --cov=src/formspec --cov-report=term

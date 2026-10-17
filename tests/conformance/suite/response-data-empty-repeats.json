@@ -1,0 +1,39 @@
+{
+  "id": "response-data.empty-repeats",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/response-data.definition.json",
+  "inputData": {
+    "show": true,
+    "g": {
+      "a": "x",
+      "b": 1
+    }
+  },
+  "mode": "continuous",
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "show": true,
+      "g": {
+        "a": "x",
+        "b": 1
+      },
+      "rows": [],
+      "household": {
+        "members": []
+      }
+    }
+  },
+  "legacyCoverage": [
+    {
+      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
+      "check": "engine_processing_data_is_the_response_and_round_trips"
+    }
+  ]
+}
