@@ -20,7 +20,8 @@ pub(crate) fn build_output_data(
 ) -> Value {
     let mut covered = HashSet::new();
     let mut root = Map::new();
-    emit(items, values, default_nrb, &mut covered, &mut root);
+    let inherited = NrbMode::from_str_lossy(default_nrb);
+    emit(items, values, inherited, &mut covered, &mut root);
     // Keys no Item names (additional properties the input carried) keep their place: dotted paths nest.
     let mut extras: Vec<&String> = values.keys().filter(|path| !covered.contains(path.as_str())).collect();
     extras.sort();
@@ -30,30 +31,35 @@ pub(crate) fn build_output_data(
     Value::Object(root)
 }
 
+/// `inherited` is the nearest enclosing `nonRelevantBehavior` (the Definition's at the root), the
+/// same resolution [`crate::nrb::apply_nrb`] used to shape `values`.
 fn emit(
     items: &[ItemInfo],
     values: &HashMap<String, Value>,
-    default_nrb: &str,
+    inherited: NrbMode,
     covered: &mut HashSet<String>,
     into: &mut Map<String, Value>,
 ) {
     for item in items {
+        let mode = item.nrb.unwrap_or(inherited);
         match (item.item_type.as_str(), item.repeatable) {
             ("display", _) => {}
             ("group", false) => {
+                // A group's own path is never an answer: `empty` nulls it in `values`, and that null
+                // must not replace the group's object.
+                covered.insert(item.path.clone());
                 let mut object = Map::new();
-                emit(&item.children, values, default_nrb, covered, &mut object);
+                emit(&item.children, values, mode, covered, &mut object);
                 if !object.is_empty() {
                     into.insert(item.key.clone(), Value::Object(object));
                 }
             }
             ("group", true) => {
-                let mode = item.nrb.unwrap_or_else(|| NrbMode::from_str_lossy(default_nrb));
-                if !item.relevant && mode != NrbMode::Keep {
+                covered.insert(item.path.clone());
+                // `remove` drops a non-relevant repeat with its rows. `empty` keeps every row with null
+                // leaves (apply_nrb nulled them) and `keep` keeps the rows as answered.
+                if !item.relevant && mode == NrbMode::Remove {
                     cover(&item.children, covered);
-                    if mode == NrbMode::Empty {
-                        into.insert(item.key.clone(), Value::Null);
-                    }
                     continue;
                 }
                 // Expanded rows are consecutive runs of children sharing a `parent_path` (`rows[i]`).
@@ -64,7 +70,7 @@ fn emit(
                         rows.push((row, Map::new()));
                     }
                     let (_, object) = rows.last_mut().expect("row pushed above");
-                    emit(std::slice::from_ref(child), values, default_nrb, covered, object);
+                    emit(std::slice::from_ref(child), values, mode, covered, object);
                 }
                 into.insert(
                     item.key.clone(),
