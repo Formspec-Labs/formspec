@@ -419,8 +419,8 @@ class TestItemRegistry:
             }]
         }
         result = evaluate_definition(defn, {'address': {'city': 'NYC', 'zip': '10001'}})
-        assert result.data['address']['city'] == 'NYC'
-        assert result.data['address']['zip'] == '10001'
+        assert result.data['address.city'] == 'NYC'
+        assert result.data['address.zip'] == '10001'
 
     def test_repeatable_group(self):
         defn = {
@@ -448,7 +448,7 @@ class TestItemRegistry:
             }]
         }
         result = evaluate_definition(defn, {'info': {'orgType': 'nonprofit', 'orgSubType': 'charity'}})
-        assert result.data['info']['orgType'] == 'nonprofit'
+        assert result.data['info.orgType'] == 'nonprofit'
 
     def test_display_item(self):
         defn = {

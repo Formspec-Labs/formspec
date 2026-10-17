@@ -25,9 +25,12 @@ pub fn evaluate(
     hydrate_inline_instances(definition, &mut options.instances);
     let options = &options;
     let context = &options.context;
-    let flat_data = rebuild::augment_nested_data(data);
-
     let mut items = rebuild_item_tree(definition);
+    let grouped = match rebuild::flatten_group_objects(&items, data) {
+        Ok(grouped) => grouped,
+        Err(conflicts) => return refuse_ambiguous_input(&conflicts),
+    };
+    let flat_data = rebuild::augment_nested_data(&grouped);
 
     let mut seeded_data = flat_data;
     if options.apply_creation_seeds {
@@ -122,5 +125,34 @@ pub fn evaluate(
         required,
         readonly,
         item_text,
+    }
+}
+
+/// The input gave a field twice (flat and nested). Nothing is evaluated: a Type error per path, no values.
+fn refuse_ambiguous_input(paths: &[String]) -> EvaluationResult {
+    EvaluationResult {
+        values: HashMap::new(),
+        validations: paths
+            .iter()
+            .map(|path| ValidationResult {
+                path: path.clone(),
+                severity: types::Severity::Error,
+                constraint_kind: types::ConstraintKind::Type,
+                code: types::ValidationCode::TypeMismatch,
+                message: format!(
+                    "`{path}` is supplied both as a flat dotted key and inside its group object; supply it once"
+                ),
+                constraint: None,
+                source: types::ValidationSource::Bind,
+                shape_id: None,
+                context: None,
+            })
+            .collect(),
+        diagnostics: Vec::new(),
+        non_relevant: Vec::new(),
+        variables: HashMap::new(),
+        required: HashMap::new(),
+        readonly: HashMap::new(),
+        item_text: None,
     }
 }
