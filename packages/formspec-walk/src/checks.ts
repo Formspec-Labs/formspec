@@ -383,7 +383,7 @@ export class Walk {
                 // Focus lands on an option, or on the one control a group wraps (an upload's Browse button),
                 // whose name extends the label like a composite widget's; the group's own name is checked in the reading order.
                 const options = (w.options ?? []).map(want);
-                if (!options.some((o) => matches(heardName, o)) && !asRegex(label).test(heardName) && !heardIs(heardName, label, true))
+                if (!options.some((o) => matches(heardName, o)) && !asRegex(label).test(heardName) && !(options.length === 0 && heardIs(heardName, label, true)))
                     this.found(`${f.path}: screen reader heard "${stop.phrase}", neither the label "${label.text}" nor one of its options`);
             } else {
                 if (!heardIs(heardName, label, composite)) this.found(`${f.path}: screen reader heard "${stop.phrase}", not the label "${label.text}"`);
