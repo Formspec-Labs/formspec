@@ -896,8 +896,6 @@ with the schema by test):
 | `select.remoteFallback` | `Remote options unavailable; using fallback options.` | none |
 | `select.remoteFailed` | `Failed to load options.` | none |
 | `modal.open` | `Open` | none |
-| `fileUpload.dropzone` | `Drop files here or click to browse` | none |
-| `fileUpload.dropzoneKeyboard` | `Drop files here or press Enter to browse` | none |
 | `fileUpload.browse` | `Upload a file` | none |
 | `fileUpload.attachedList` | `Files you have attached` | none |
 | `fileUpload.pendingList` | `Pending file activity` | none |
