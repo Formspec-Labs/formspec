@@ -960,6 +960,18 @@ with the schema by test):
 | `draft.saveUnconfirmed` | `Saving could not be confirmed. Keep this page open.` | none |
 | `screener.submit` | `Check Eligibility` | none |
 | `screener.answerOne` | `Please answer at least one question` | none |
+| `screener.yes` | `Yes` | none |
+| `screener.no` | `No` | none |
+| `screener.titleDefault` | `Eligibility Check` | none |
+| `screener.externalDefault` | `Not Eligible` | none |
+| `screener.restart` | `Start Over` | none |
+| `screener.noMatchTitle` | `No matching route` | none |
+| `screener.noMatchBody` | `No matching eligibility route was found.` | none |
+| `screener.requiredMessage` | `{{$label}} is required` | `$label` |
+| `screener.answerRequired` | `{{$label}} needs an answer` | `$label` |
+| `screener.completionFailed` | `We could not continue. Review your answers and try again.` | none |
+| `screener.localeFailed` | `The screening language could not be loaded.` | none |
+| `screener.translationWarning` | `Some screening text could not be translated.` | none |
 | `assist.filled` | `{{$label}} filled by your assistant` | `$label` |
 | `localPreview.preview` | `Local preview` | none |
 | `localPreview.draftRestored` | `Draft restored` | none |
