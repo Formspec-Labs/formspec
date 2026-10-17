@@ -38,6 +38,7 @@ pub fn evaluation_result_to_json_value_styled(
 
     let mut root = Map::new();
     root.insert("values".into(), json!(result.values));
+    root.insert("data".into(), result.data.clone());
     root.insert("validations".into(), Value::Array(validations));
     root.insert(
         "diagnostics".into(),

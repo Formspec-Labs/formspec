@@ -46,12 +46,13 @@ class TestPreserve:
         result = execute_mapping(doc, {'address': {'city': 'Portland'}}, "forward").output
         assert result['location']['city'] == 'Portland'
 
-    def test_missing_source_returns_none(self):
+    def test_missing_source_omits_target(self):
+        # Mapping spec §7.3: absent source, no default -> omit the target (explicit null writes null).
         doc = _make_doc([
             {'sourcePath': 'missing', 'targetPath': 'out', 'transform': 'preserve'},
         ])
         result = execute_mapping(doc, {'other': 'val'}, "forward").output
-        assert result['out'] is None
+        assert 'out' not in result
 
     def test_default_on_missing(self):
         doc = _make_doc([

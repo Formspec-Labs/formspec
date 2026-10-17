@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForWasm } from '../e2e/browser/helpers/harness';
+import { mountInRenderer, waitForWasm } from '../e2e/browser/helpers/harness';
 
 test.describe('Components: Core Props and Regression Fixes', () => {
     test.beforeEach(async ({ page }) => {
@@ -9,7 +9,7 @@ test.describe('Components: Core Props and Regression Fixes', () => {
     });
 
     test('should render subtitle and elevation styling when Card props are provided', async ({ page }) => {
-        await page.evaluate(() => {
+        await mountInRenderer(page, () => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0",
@@ -46,7 +46,7 @@ test.describe('Components: Core Props and Regression Fixes', () => {
     });
 
     test('should remove alert content when the dismissible Alert close button is clicked', async ({ page }) => {
-        await page.evaluate(() => {
+        await mountInRenderer(page, () => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0",
@@ -76,7 +76,7 @@ test.describe('Components: Core Props and Regression Fixes', () => {
     });
 
     test('should apply row-gap styling when Grid rowGap is provided', async ({ page }) => {
-        await page.evaluate(() => {
+        await mountInRenderer(page, () => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0",
@@ -113,7 +113,7 @@ test.describe('Components: Progressive Component Rendering', () => {
     });
 
     test('should render a grid with the configured column count when using Grid', async ({ page }) => {
-        await page.evaluate(() => {
+        await mountInRenderer(page, () => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0", "url": "http://example.org/test",
@@ -141,7 +141,7 @@ test.describe('Components: Progressive Component Rendering', () => {
     });
 
     test('should open and close modal content when trigger and close controls are used', async ({ page }) => {
-        await page.evaluate(() => {
+        await mountInRenderer(page, () => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0", "url": "http://example.org/test",
@@ -177,7 +177,7 @@ test.describe('Components: Progressive Component Rendering', () => {
     });
 
     test('should render popover content and support triggerBind-driven label updates', async ({ page }) => {
-        await page.evaluate(() => {
+        await mountInRenderer(page, () => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0", "url": "http://example.org/test",
@@ -215,7 +215,7 @@ test.describe('Components: Progressive Component Rendering', () => {
     });
 
     test('should update the bound numeric value when Slider input changes', async ({ page }) => {
-        await page.evaluate(() => {
+        await mountInRenderer(page, () => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0", "url": "http://example.org/test",
@@ -250,7 +250,7 @@ test.describe('Components: Progressive Component Rendering', () => {
     });
 
     test('should set rating value and star styling when a star is clicked', async ({ page }) => {
-        await page.evaluate(() => {
+        await mountInRenderer(page, () => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0", "url": "http://example.org/test",
@@ -285,7 +285,7 @@ test.describe('Components: Progressive Component Rendering', () => {
     });
 
     test('should support icon mapping and half-step selection when allowHalf is true', async ({ page }) => {
-        await page.evaluate(() => {
+        await mountInRenderer(page, () => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0", "url": "http://example.org/test",
@@ -319,7 +319,7 @@ test.describe('Components: Progressive Component Rendering', () => {
     });
 
     test('should update ProgressBar percentage when its bound field value changes', async ({ page }) => {
-        await page.evaluate(() => {
+        await mountInRenderer(page, () => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0", "url": "http://example.org/test",

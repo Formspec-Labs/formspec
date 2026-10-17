@@ -9,7 +9,6 @@ use serde_json::Value;
 use formspec_core::path_utils::{Path, PathSegment};
 
 use crate::fel_json::json_to_runtime_fel_typed;
-use crate::rebuild::is_repeat_group_array;
 use crate::recalculate::repeats::{ResponseIndex, data_type_of};
 use crate::types::ItemInfo;
 
@@ -21,16 +20,6 @@ pub(super) fn apply_excluded_values_to_env(items: &[ItemInfo], env: &mut Formspe
         }
         apply_excluded_values_to_env(&item.children, env);
     }
-}
-
-#[cfg(test)]
-pub(crate) fn build_validation_env(
-    values: &HashMap<String, Value>,
-    variables: &HashMap<String, EnvVal>,
-    now_iso: Option<&str>,
-    instances: &HashMap<String, Value>,
-) -> FormspecEnvironment {
-    build_validation_env_typed(values, variables, now_iso, instances, &HashMap::new())
 }
 
 pub(crate) fn build_validation_env_typed(
@@ -45,11 +34,7 @@ pub(crate) fn build_validation_env_typed(
         env.set_now_from_iso(now_iso);
     }
     for (k, v) in values {
-        // Skip repeat group arrays — flat indexed keys exist and FEL should
-        // use those instead (array path resolution uses 1-based indexing).
-        if !is_repeat_group_array(v) {
-            env.set_field(k, json_to_runtime_fel_typed(v, data_type_of(data_types, k)));
-        }
+        env.set_field(k, json_to_runtime_fel_typed(v, data_type_of(data_types, k)));
     }
     env.variables.clone_from(variables);
     for (name, value) in instances {

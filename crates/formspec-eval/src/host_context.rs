@@ -21,7 +21,6 @@ use serde_json::{Map, Value as JsonValue};
 use crate::fel_eval::Fel;
 use crate::fel_json::{json_to_runtime_fel, json_to_runtime_fel_typed, typed_json_leaf};
 use crate::interpolation::{Interpolated, interpolate_fel};
-use crate::rebuild::is_repeat_group_array;
 use crate::recalculate::repeats::set_nested_json_path;
 
 /// Form-scope FEL state a host loads once per evaluation and reads many times.
@@ -94,13 +93,22 @@ impl HostFelContext {
     /// path lists; unlisted paths are default), `repeatCounts`, `variables` (scope → name →
     /// value), `locale`, `meta`, and `instances`, which is replaced only when present.
     pub fn load(&mut self, snapshot: &Map<String, JsonValue>) -> Result<(), String> {
-        self.values = snapshot
+        let supplied = snapshot
             .get("values")
             .map(|values| values.as_object().ok_or("values must be a JSON object"))
-            .transpose()?
+            .transpose()?;
+        // A row array at a repeat's path repeats the rows that sit beside it at `path[i].leaf`; FEL
+        // reads those. A multi-valued field's array has no such rows and is kept. Every `[` in a key
+        // closes a repeat path with rows (`rows[0].tasks[1].x` → `rows`, `rows[0].tasks`): one pass.
+        let with_rows: HashSet<&str> = supplied
+            .into_iter()
+            .flat_map(|all| all.keys())
+            .flat_map(|key| key.match_indices('[').map(|(at, _)| &key[..at]))
+            .collect();
+        self.values = supplied
             .into_iter()
             .flatten()
-            .filter(|(_, value)| !is_repeat_group_array(value))
+            .filter(|(path, value)| !(value.is_array() && with_rows.contains(path.as_str())))
             .map(|(path, value)| (path.clone(), value.clone()))
             .collect();
         self.aliases = RepeatAliases::from_field_paths(self.values.keys().map(String::as_str));

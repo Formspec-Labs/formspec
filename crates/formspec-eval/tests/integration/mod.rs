@@ -4,6 +4,7 @@ mod datetime_values;
 mod evaluate_pipeline;
 mod evaluation_errors;
 mod extension_functions;
+mod nested_group_data;
 mod repeat_bind_paths;
 mod repeat_context;
 mod repeat_scaling;

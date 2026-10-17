@@ -1,0 +1,32 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:response-data",
+  "version": "1.0.0",
+  "title": "Response data shapes",
+  "items": [
+    { "key": "show", "type": "field", "dataType": "boolean", "label": "Show" },
+    { "key": "g", "type": "group", "label": "G", "children": [
+      { "key": "a", "type": "field", "dataType": "string", "label": "A" },
+      { "key": "b", "type": "field", "dataType": "integer", "label": "B" }
+    ] },
+    { "key": "rows", "type": "group", "label": "Rows", "repeatable": true, "children": [
+      { "key": "qty", "type": "field", "dataType": "integer", "label": "Qty" },
+      { "key": "note", "type": "field", "dataType": "string", "label": "Note" }
+    ] },
+    { "key": "household", "type": "group", "label": "Household", "children": [
+      { "key": "members", "type": "group", "label": "Members", "repeatable": true, "children": [
+        { "key": "age", "type": "field", "dataType": "integer", "label": "Age" }
+      ] }
+    ] },
+    { "key": "kept", "type": "group", "label": "Kept", "repeatable": true, "children": [
+      { "key": "a", "type": "field", "dataType": "string", "label": "A" },
+      { "key": "b", "type": "field", "dataType": "string", "label": "B" }
+    ] }
+  ],
+  "binds": [
+    { "path": "g", "relevant": "$show = true", "nonRelevantBehavior": "empty" },
+    { "path": "rows", "relevant": "$show = true", "nonRelevantBehavior": "empty" },
+    { "path": "kept", "relevant": "$show = true" },
+    { "path": "kept[*].a", "nonRelevantBehavior": "keep" }
+  ]
+}

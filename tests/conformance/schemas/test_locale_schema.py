@@ -158,8 +158,30 @@ class TestLocaleSchema:
         assert chrome_keys and len(chrome_keys) == len(set(chrome_keys))
         for key in chrome_keys:
             doc = _minimal_locale()
+            doc["$formspecLocale"] = "2.1"  # the dialect that admits the whole current inventory
             doc["strings"] = {key: "Texte {{$label}}"}
             _validate(doc)
+
+    def test_locale_2_0_branch_is_the_frozen_2_0_inventory(self) -> None:
+        """Locale spec 2.2.1: a 2.0 document keeps exactly the inventory locale-v2.0.schema.json froze."""
+        frozen = load_schema("locale-v2.0.schema.json")["$defs"]["ChromeStringKey"]["enum"]
+        branch = LOCALE_SCHEMA["allOf"][3]
+        assert branch["if"]["properties"]["$formspecLocale"]["const"] == "2.0"
+        inventory = branch["then"]["properties"]["strings"]["propertyNames"]["then"]["enum"]
+        assert sorted(inventory) == sorted(frozen)
+
+    def test_each_dialect_admits_its_own_chrome_keys_only(self) -> None:
+        retired = "$ui.fileUpload.dropzoneKeyboard"  # in the 2.0 inventory, retired from 2.1
+        added = "$ui.screener.yes"  # introduced with 2.1
+        for key, dialect, valid in ((retired, "2.0", True), (retired, "2.1", False), (added, "2.0", False), (added, "2.1", True)):
+            doc = _minimal_locale()
+            doc["$formspecLocale"] = dialect
+            doc["strings"] = {key: "Texte"}
+            if valid:
+                _validate(doc)
+            else:
+                with pytest.raises(ValidationError):
+                    _validate(doc)
 
 
 class TestLocaleFormats:

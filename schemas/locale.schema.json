@@ -301,6 +301,32 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "$formspecLocale": {
+            "const": "2.1"
+          }
+        },
+        "required": [
+          "$formspecLocale"
+        ]
+      },
+      "then": {
+        "properties": {
+          "strings": {
+            "propertyNames": {
+              "if": {
+                "pattern": "^\\$ui\\."
+              },
+              "then": {
+                "$ref": "#/$defs/ChromeStringKey"
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "properties": {
@@ -479,14 +505,6 @@
             },
             "then": {
               "$ref": "#/$defs/SurfaceShellStringKey"
-            }
-          },
-          {
-            "if": {
-              "pattern": "^\\$ui\\."
-            },
-            "then": {
-              "$ref": "#/$defs/ChromeStringKey"
             }
           }
         ],
@@ -670,7 +688,6 @@
         "$ui.select.remoteFailed",
         "$ui.modal.open",
         "$ui.fileUpload.dropzone",
-        "$ui.fileUpload.dropzoneKeyboard",
         "$ui.fileUpload.browse",
         "$ui.fileUpload.attachedList",
         "$ui.fileUpload.pendingList",

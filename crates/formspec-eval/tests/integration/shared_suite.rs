@@ -3,7 +3,8 @@
 //! The TypeScript engine runs every case in `shared-suite.test.mjs`. This runner covers
 //! the listed `VALIDATION_REPORT` cases, comparing what both runtimes must agree on
 //! (validity, severity counts, and each result's path, code, severity, and constraint
-//! kind), and the listed `ITEM_TEXT` cases, comparing resolved Item text exactly.
+//! kind), the listed `ITEM_TEXT` cases, comparing resolved Item text exactly, and every
+//! `ENGINE_PROCESSING` case's Response `data`.
 
 use formspec_eval::{
     EvalOptions, EvalTrigger, ItemTextRequest, evaluate, evaluation_result_to_json_value,
@@ -118,12 +119,53 @@ fn repeat_row_validation_context() {
 }
 
 fn input_data(case: &Value) -> HashMap<String, Value> {
-    case["inputData"]
+    object_map(&case["inputData"])
+}
+
+fn object_map(value: &Value) -> HashMap<String, Value> {
+    value
         .as_object()
-        .expect("inline inputData object")
+        .expect("an inline JSON object")
         .iter()
         .map(|(key, value)| (key.clone(), value.clone()))
         .collect()
+}
+
+/// Core §2.1.2 / §5.6: `expected.data` is `FormEngine.getResponse().data`, which the TypeScript
+/// runner checks. The evaluator's `data` equals it from the case input, and again from that
+/// Response data itself: a server re-evaluating a submitted Response (WOS compares the two)
+/// reproduces what the browser engine produced.
+#[test]
+fn engine_processing_data_is_the_response_and_round_trips() {
+    let suite = repo_root().join("tests/conformance/suite");
+    let mut files: Vec<String> = std::fs::read_dir(&suite)
+        .expect("suite directory")
+        .filter_map(|entry| entry.ok()?.file_name().into_string().ok())
+        .filter(|name| name.ends_with(".json"))
+        .collect();
+    files.sort();
+    let mut checked = 0;
+    for file in files {
+        let case = read_json(&format!("tests/conformance/suite/{file}"));
+        if case["kind"] != "ENGINE_PROCESSING" {
+            continue;
+        }
+        let definition = read_json(case["definitionPath"].as_str().expect("definitionPath"));
+        let expected = &case["expected"]["data"];
+        for (from, data) in [
+            ("inputData", input_data(&case)),
+            ("expected.data", object_map(expected)),
+        ] {
+            let result = evaluate(&definition, &data, &EvalOptions::default());
+            assert_eq!(&result.data, expected, "{file}: data evaluated from {from}");
+        }
+        checked += 1;
+    }
+    assert!(
+        checked > 0,
+        "no ENGINE_PROCESSING cases in {}",
+        suite.display()
+    );
 }
 
 fn run_item_text_case(case_file: &str) {

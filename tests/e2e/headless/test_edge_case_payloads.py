@@ -199,48 +199,68 @@ def test_tax_fixture_exercises_source_option_sets_and_cross_section_consistency(
     assert shape_by_id["tax-electronic-consent"]["constraint"] == "$review.agreeElectronic = true"
 
 
+MICROGRANT_NESTED = {
+    "applicant": {
+        "orgLegalName": "Neighborhood Arts Collective",
+        "orgEin": "123456789",
+        "applicantProgramArea": "arts",
+        "hasFiscalSponsor": False,
+    },
+    "project": {
+        "projectTitle": "Summer Murals",
+        "requestAmount": {"amount": "1000", "currency": "USD"},
+        "hasSubawards": True,
+        "subawardRows": [
+            {
+                "subawardName": "Community Partner",
+                "subawardAmount": {"amount": "800", "currency": "USD"},
+            }
+        ],
+        "indirectCostPolicy": "none",
+        "indirectRate": 12.5,
+        "indirectExplanation": "Should disappear",
+    },
+    "contact": {"contactEmail": "", "contactPhone": ""},
+    "certifications": {"attestationAccepted": False},
+}
+
+
 def test_microgrant_payload_evaluates_and_returns_shape_results(
     fixtures: dict[str, dict],
 ) -> None:
-    result = evaluate_definition(
-        fixtures["microgrant"],
-        {
-            "applicant": {
-                "orgLegalName": "Neighborhood Arts Collective",
-                "orgEin": "123456789",
-                "applicantProgramArea": "arts",
-                "hasFiscalSponsor": False,
-            },
-            "project": {
-                "projectTitle": "Summer Murals",
-                "requestAmount": {"amount": "1000", "currency": "USD"},
-                "hasSubawards": True,
-                "subawardRows": [
-                    {
-                        "subawardName": "Community Partner",
-                        "subawardAmount": {"amount": "800", "currency": "USD"},
-                    }
-                ],
-                "indirectCostPolicy": "none",
-                "indirectRate": 12.5,
-                "indirectExplanation": "Should disappear",
-            },
-            "contact": {
-                "contactEmail": "",
-                "contactPhone": "",
-            },
-            "certifications": {
-                "attestationAccepted": False,
-            },
-        },
-    )
+    result = evaluate_definition(fixtures["microgrant"], MICROGRANT_NESTED)
 
-    # Rust evaluator produces validation results
     assert isinstance(result.results, list)
     assert isinstance(result.data, dict)
-    # Shape results use constraintKind="shape" in the Rust backend
+    # Shape results use constraintKind="shape" in the Rust backend; subawards of 800 exceed 40% of 1000,
+    # and both contact channels are empty (the nested "" is the answer, not a reason to pre-populate).
     shape_results = [r for r in result.results if r.get("constraintKind") == "shape"]
-    assert len(shape_results) > 0, "Expected shape validation results"
+    assert {r["code"] for r in shape_results} >= {"SUBAWARD_CAP"}
+    assert "microgrant-contact-channel" in {r.get("shapeId") for r in shape_results}
+    # Nested in, nested out (data) and flat state (values), with no group echoed beside its leaves.
+    assert result.data["project"]["hasSubawards"] is True
+    assert result.values["project.hasSubawards"] is True
+    assert "project" not in result.values
+
+
+def test_microgrant_nested_and_flat_payloads_evaluate_identically(
+    fixtures: dict[str, dict],
+) -> None:
+    flat: dict = {}
+
+    def flatten(node: dict, prefix: str = "") -> None:
+        for key, value in node.items():
+            if isinstance(value, dict) and "currency" not in value:
+                flatten(value, f"{prefix}{key}.")
+            else:
+                flat[f"{prefix}{key}"] = value
+
+    flatten(MICROGRANT_NESTED)
+    nested = evaluate_definition(fixtures["microgrant"], MICROGRANT_NESTED)
+    flat_result = evaluate_definition(fixtures["microgrant"], flat)
+    assert nested.data == flat_result.data
+    assert nested.values == flat_result.values
+    assert nested.results == flat_result.results
 
 
 def test_clinical_payload_evaluates_and_returns_results(
@@ -376,8 +396,8 @@ def test_household_payload_evaluates_and_preserves_data(
 
     assert isinstance(result.results, list)
     assert isinstance(result.data, dict)
-    # Input data should be preserved in output
-    assert "household" in result.data
+    # Input data is preserved in the nested Response projection
+    assert result.data["household"]["renewalStreet"] == "100 Main Street"
 
 
 def test_vendor_payload_evaluates_and_returns_results(

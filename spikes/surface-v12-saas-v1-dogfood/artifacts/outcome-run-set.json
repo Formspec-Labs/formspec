@@ -6,25 +6,25 @@
   "cases": [
     {
       "path": "outcome-cases/organization-empty-is-blocked.case.json",
-      "digest": "sha256:31360d058412b7ad9319e2852afb4c6754aed50fa519b714468fb5a8c8a7dd93",
+      "digest": "sha256:40055803ee35065a63721dd7850e6716008dccdd18a37e21ca866aadd26e9953",
       "required": true,
       "claimRequired": true
     },
     {
       "path": "outcome-cases/organization-values-visible.case.json",
-      "digest": "sha256:f98bbb4aacf3ef0adf9ed882c37a60b2709bb6543a636932758c42fc05e9087d",
+      "digest": "sha256:64fe13869c4bf5b59cfbe765bb5195b3ce715318dc1b312f4ad0aab69fe37872",
       "required": true,
       "claimRequired": true
     },
     {
       "path": "outcome-cases/public-response-invalid-input.case.json",
-      "digest": "sha256:38f5e2473982dd660f5b34502a36b65539994a86a44fb257d6c77904a900b576",
+      "digest": "sha256:8f684806e44222da20972b88805595b66dd44cfd110b91b9c3deb29be80e7e66",
       "required": true,
       "claimRequired": true
     },
     {
       "path": "outcome-cases/unrelated-control-renders.case.json",
-      "digest": "sha256:ac9d96cd0919afa025c62e0e1383c8c39bc5264e0bef51784c0902fed0f175d2",
+      "digest": "sha256:cb43a3c18aa58f8093ba4bc6d91bf76b506980a40b5c1fa5f9664b19fabaf282",
       "required": true,
       "claimRequired": false
     }

@@ -1,0 +1,121 @@
+{
+  "id": "response-data.kitchen-sink",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/e2e/fixtures/kitchen-sink-holistic/definition.v1.json",
+  "inputData": {
+    "fullName": "  Shelley Agent  ",
+    "notes": "alpha    beta",
+    "website": "https://valid.example",
+    "agreed": true,
+    "profileMode": "basic",
+    "contactMethod": "sms",
+    "tags": [
+      "priority",
+      "followup"
+    ],
+    "startDate": "2026-01-01",
+    "endDate": "2026-01-15",
+    "visitTime": "09:30:00",
+    "visitDateTime": "2026-01-16T10:00:00",
+    "budget": 300,
+    "lineItems": [
+      {
+        "lineName": "Laptop",
+        "lineQty": 2,
+        "linePrice": 100
+      },
+      {
+        "lineName": "Monitor",
+        "lineQty": 1,
+        "linePrice": 50
+      }
+    ],
+    "vipEnabled": true,
+    "vipCode": "VIP-007",
+    "hiddenMirror": "secret",
+    "upload": {
+      "url": "https://example.org/doc.pdf",
+      "contentType": "application/pdf",
+      "size": 2048
+    },
+    "salary": {
+      "amount": 1234.56,
+      "currency": "USD"
+    }
+  },
+  "mode": "submit",
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 1,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "budget",
+        "severity": "warning",
+        "constraintKind": "shape",
+        "code": "SHAPE_FAILED",
+        "message": "Budget is close to grand total",
+        "source": "shape",
+        "constraint": "budget > grandTotal + 100",
+        "shapeId": "budget_warning",
+        "$formspecValidationResult": "1.0"
+      }
+    ],
+    "data": {
+      "fullName": "Shelley Agent",
+      "notes": "alpha beta",
+      "website": "https://valid.example",
+      "agreed": true,
+      "profileMode": "basic",
+      "tags": [
+        "priority",
+        "followup"
+      ],
+      "startDate": "2026-01-01",
+      "endDate": "2026-01-15",
+      "visitTime": "09:30:00",
+      "visitDateTime": "2026-01-16T10:00:00",
+      "budget": 300,
+      "lineItems": [
+        {
+          "lineName": "Laptop",
+          "lineQty": 2,
+          "linePrice": 100,
+          "lineSubtotal": 200
+        },
+        {
+          "lineName": "Monitor",
+          "lineQty": 1,
+          "linePrice": 50,
+          "lineSubtotal": 50
+        }
+      ],
+      "grandTotal": 250,
+      "vipEnabled": true,
+      "vipCode": "VIP-007",
+      "hiddenMirror": null,
+      "upload": {
+        "url": "https://example.org/doc.pdf",
+        "contentType": "application/pdf",
+        "size": 2048
+      },
+      "salary": {
+        "amount": 1234.56,
+        "currency": "USD"
+      }
+    }
+  },
+  "legacyCoverage": [
+    {
+      "path": "packages/formspec-engine/tests/kitchen-sink-runtime-rehomed.test.mjs",
+      "check": "kitchen-sink runtime: non-relevant behavior in submit response"
+    },
+    {
+      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
+      "check": "engine_processing_data_is_the_response_and_round_trips"
+    }
+  ]
+}

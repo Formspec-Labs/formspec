@@ -63,7 +63,6 @@ export const UI_STRINGS = {
     'select.remoteFailed': 'Failed to load options.',
     'modal.open': 'Open',
     'fileUpload.dropzone': 'Drop files here or click to browse',
-    'fileUpload.dropzoneKeyboard': 'Drop files here or press Enter to browse',
     'fileUpload.browse': 'Upload a file',
     'fileUpload.attachedList': "Files you have attached",
     'fileUpload.pendingList': "Pending file activity",

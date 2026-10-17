@@ -838,6 +838,16 @@ export class FormEngine implements IFormEngine {
         const profile = meta?.profile ?? 'live';
         const trigger = this._validationProfileResolver.resolve(profile);
         const defaultBehavior = this.definition.nonRelevantBehavior ?? 'remove';
+        // A node's behavior is its own Bind's, else its nearest ancestor's, else the Definition's.
+        const behaviorOf = (path: string) => {
+            for (const ancestor of getAncestorBasePaths(path)) {
+                const behavior = this._bindConfigs[ancestor]?.nonRelevantBehavior;
+                if (behavior) {
+                    return behavior;
+                }
+            }
+            return defaultBehavior;
+        };
 
         for (const [path, signalRef] of Object.entries(this.signals)) {
             if (this._displaySignalPaths.has(path)) {
@@ -845,23 +855,29 @@ export class FormEngine implements IFormEngine {
             }
 
             const relevant = this.isPathRelevant(path);
-            let behavior = defaultBehavior;
-            for (const ancestor of getAncestorBasePaths(path)) {
-                const bind = this._bindConfigs[ancestor];
-                if (bind?.nonRelevantBehavior) {
-                    behavior = bind.nonRelevantBehavior;
-                    break;
-                }
-            }
-
-            if (!relevant && behavior === 'remove') {
+            const behavior = relevant ? null : behaviorOf(path);
+            if (behavior === 'remove') {
                 continue;
             }
 
-            const value = !relevant && behavior === 'empty'
-                ? null
-                : cloneValue(signalRef.value);
+            const value = behavior === 'empty' ? null : cloneValue(signalRef.value);
             setResponsePathValue(data, path, value);
+        }
+
+        // Core §2.1.2: a repeatable group is an array of row objects, so a repeat the Response keeps
+        // is an array even with no rows, and a row whose every field was removed is still `{}`.
+        for (const [path, count] of Object.entries(this.repeats)) {
+            if (!this.isPathRelevant(path) && behaviorOf(path) === 'remove') {
+                continue;
+            }
+            const existing = getNestedValue(data, path);
+            const rows = Array.isArray(existing) ? existing : [];
+            for (let index = 0; index < count.value; index += 1) {
+                rows[index] ??= {};
+            }
+            if (rows !== existing) {
+                setResponsePathValue(data, path, rows);
+            }
         }
 
         const report = trigger === 'disabled' ? null : this.produceValidation(trigger).report;

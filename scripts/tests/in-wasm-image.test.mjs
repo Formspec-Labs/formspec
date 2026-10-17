@@ -1,7 +1,7 @@
 /** @filedesc node:test coverage for scripts/in-wasm-image.mjs: each checkout gets its own build, never a cached sibling's; a sibling builds in an extended image. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -69,5 +69,16 @@ describe('in-wasm-image', { skip: !hasDocker && 'docker is not available' }, () 
     const command = 'cat /extended /src/fel-core/lib.txt in.txt > out.txt && test ! -e /src/formspec/pkg';
     assert.equal(run(join(other, 'pkg'), ['../../formspec/scripts/in-wasm-image.mjs', '--image', '../ext',
       '--source', 'other', '--source', 'fel-core', command, 'out.txt']), 'extended\nfel-corefrom-other');
+  });
+
+  it('exits 128 plus the signal number when terminated, so SIGTERM reads as 143', async () => {
+    const pkg = checkout('c', 'from-c', Date.now() / 1000);
+    const child = spawn('node', ['../scripts/in-wasm-image.mjs', 'echo ready; sleep 60', 'out.txt'], {
+      cwd: pkg, env: { ...process.env, FORMSPEC_WASM_CACHE_VOLUME: volume }, stdio: ['ignore', 'pipe', 'inherit'],
+    });
+    await new Promise((ready) => child.stdout.on('data', (chunk) => { if (String(chunk).includes('ready')) ready(); }));
+    const exited = new Promise((done) => child.on('exit', (code, signal) => done({ code, signal })));
+    child.kill('SIGTERM');
+    assert.deepEqual(await exited, { code: 143, signal: null });
   });
 });

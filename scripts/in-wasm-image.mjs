@@ -9,7 +9,7 @@
  */
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import os, { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import process from 'node:process';
 import { spawn, spawnSync } from 'node:child_process';
@@ -93,7 +93,7 @@ const container = docker(
 ).stdout.trim();
 const stop = () => { docker(['rm', '-f', container], { stdio: 'ignore', allowFailure: true }); };
 for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.on(signal, () => { stop(); process.exit(130); });
+  process.on(signal, () => { stop(); process.exit(128 + os.constants.signals[signal]); });
 }
 const empty = mkdtempSync(join(tmpdir(), 'in-wasm-image-'));
 try {

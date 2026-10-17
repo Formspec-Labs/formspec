@@ -171,7 +171,6 @@ export type ChromeStringKey =
   | '$ui.select.remoteFailed'
   | '$ui.modal.open'
   | '$ui.fileUpload.dropzone'
-  | '$ui.fileUpload.dropzoneKeyboard'
   | '$ui.fileUpload.browse'
   | '$ui.fileUpload.attachedList'
   | '$ui.fileUpload.pendingList'

@@ -7,7 +7,7 @@ use serde_json::json;
 use crate::types::find_item_by_path;
 
 use super::{
-    augment_nested_data, detect_repeat_count, expand_repeat_instances, expand_wildcard_path,
+    detect_repeat_count, flatten_response_data, expand_repeat_instances, expand_wildcard_path,
     instantiate_wildcard_expr, parse_variables, rebuild_item_tree,
 };
 
@@ -259,13 +259,17 @@ fn instantiate_wildcard_expr_no_match() {
     assert_eq!(result, "$other[*].x");
 }
 
-// ── augment_nested_data ──────────────────────────────────────
+// ── flatten_response_data ────────────────────────────────────
 
 #[test]
-fn augment_nested_data_skips_primitive_arrays() {
+fn flatten_response_data_leaves_field_arrays_whole() {
+    let items = rebuild_item_tree(&json!({
+        "items": [{ "key": "tags", "type": "field", "dataType": "multiChoice" }]
+    }));
     let mut data = HashMap::new();
     data.insert("tags".to_string(), json!(["a", "b", "c"]));
-    let flat = augment_nested_data(&data);
-    assert!(!flat.contains_key("tags[0]"));
-    assert_eq!(flat.get("tags"), Some(&json!(["a", "b", "c"])));
+    let flat = flatten_response_data(&items, &data).unwrap();
+    assert!(!flat.values.contains_key("tags[0]"));
+    assert_eq!(flat.values.get("tags"), Some(&json!(["a", "b", "c"])));
+    assert!(flat.repeat_counts.is_empty());
 }

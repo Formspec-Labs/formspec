@@ -95,6 +95,10 @@ fn seed_items(
                 }
             }
         }
-        seed_items(&item.children, data, fel, env);
+        // A repeat's children are templates (`rows.addr.flag`) until rows expand; seeding one would
+        // write a path no row owns.
+        if !item.repeatable {
+            seed_items(&item.children, data, fel, env);
+        }
     }
 }

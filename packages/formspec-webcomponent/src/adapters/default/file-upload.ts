@@ -2,6 +2,8 @@
 import type { FileUploadBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
 import { createFieldDOM, finalizeFieldDOM } from './shared';
+import { uiText } from '../ui-text.js';
+import { watchText } from '../watch-text.js';
 import { formatBytes } from '../../format';
 
 export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
@@ -22,7 +24,11 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
     const browseBtn = document.createElement('button');
     browseBtn.type = 'button';
     browseBtn.className = 'formspec-file-browse-btn formspec-focus-ring formspec-button-secondary';
-    browseBtn.textContent = 'Browse';
+    watchText(actx, uiText(actx.engine, 'fileUpload.browse', undefined, 'Browse'), (text) => { browseBtn.textContent = text; });
+    // The button is the one keyboard stop, so it must say which field it belongs to: "<label> Browse".
+    fieldDOM.label.id ||= `${behavior.id}-label`;
+    browseBtn.id = `${behavior.id}-browse`;
+    browseBtn.setAttribute('aria-labelledby', `${fieldDOM.label.id} ${browseBtn.id}`);
     browseBtn.addEventListener('click', () => input.click());
 
     // File list container — rebuilt by the behavior on each change
@@ -105,7 +111,6 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
         // axe nested-interactive). The zone is a named group; dropping stays for pointer users, and the
         // visible "Drag & drop" text says so.
         dropZone.setAttribute('role', 'group');
-        fieldDOM.label.id ||= `${behavior.id}-label`;
         dropZone.setAttribute('aria-labelledby', fieldDOM.label.id);
 
         dropZone.addEventListener('dragover', (e) => {
