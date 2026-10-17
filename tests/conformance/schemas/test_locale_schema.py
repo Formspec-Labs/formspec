@@ -171,7 +171,7 @@ class TestLocaleSchema:
         assert sorted(inventory) == sorted(frozen)
 
     def test_each_dialect_admits_its_own_chrome_keys_only(self) -> None:
-        retired = "$ui.fileUpload.dropzone"  # in the 2.0 inventory, retired from 2.1
+        retired = "$ui.fileUpload.dropzoneKeyboard"  # in the 2.0 inventory, retired from 2.1
         added = "$ui.screener.yes"  # introduced with 2.1
         for key, dialect, valid in ((retired, "2.0", True), (retired, "2.1", False), (added, "2.0", False), (added, "2.1", True)):
             doc = _minimal_locale()

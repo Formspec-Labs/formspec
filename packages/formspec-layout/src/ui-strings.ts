@@ -62,6 +62,7 @@ export const UI_STRINGS = {
     'select.remoteFallback': 'Remote options unavailable; using fallback options.',
     'select.remoteFailed': 'Failed to load options.',
     'modal.open': 'Open',
+    'fileUpload.dropzone': 'Drop files here or click to browse',
     'fileUpload.browse': 'Upload a file',
     'fileUpload.attachedList': "Files you have attached",
     'fileUpload.pendingList': "Pending file activity",
