@@ -45,13 +45,21 @@ pub fn resolve_nrb(path: &str, items: &[ItemInfo], definition_default: &str) -> 
 }
 
 /// Apply NRB to non-relevant fields.
+///
+/// A node's mode is its own Bind's `nonRelevantBehavior`, else its nearest ancestor's, else the
+/// Definition's: a group bound `empty` nulls its descendants, as the TypeScript engine's
+/// `getResponse` does and as [`resolve_nrb`] resolves a path.
 pub fn apply_nrb(
     values: &mut HashMap<String, Value>,
     items: &[ItemInfo],
     definition_default: &str,
 ) {
-    let non_relevant: Vec<(String, NrbMode)> =
-        collect_non_relevant_with_nrb(items, definition_default);
+    let mut non_relevant = Vec::new();
+    collect_non_relevant_with_nrb(
+        items,
+        NrbMode::from_str_lossy(definition_default),
+        &mut non_relevant,
+    );
 
     for (path, mode) in non_relevant {
         match mode {
@@ -70,22 +78,16 @@ pub fn apply_nrb(
 
 fn collect_non_relevant_with_nrb(
     items: &[ItemInfo],
-    definition_default: &str,
-) -> Vec<(String, NrbMode)> {
-    let mut result = Vec::new();
+    inherited: NrbMode,
+    out: &mut Vec<(String, NrbMode)>,
+) {
     for item in items {
+        let mode = item.nrb.unwrap_or(inherited);
         if !item.relevant && item.item_type != "display" {
-            let mode = item
-                .nrb
-                .unwrap_or_else(|| NrbMode::from_str_lossy(definition_default));
-            result.push((item.path.clone(), mode));
+            out.push((item.path.clone(), mode));
         }
-        result.extend(collect_non_relevant_with_nrb(
-            &item.children,
-            definition_default,
-        ));
+        collect_non_relevant_with_nrb(&item.children, mode, out);
     }
-    result
 }
 
 #[cfg(test)]
