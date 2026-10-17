@@ -176,7 +176,7 @@ export function FileUploadControl({ field, node, common, isReadonly }: CommonInp
                 className={`formspec-file-drop-zone formspec-focus-ring${isDragOver ? ' formspec-file-drop-zone--active' : ''}`}
                 // Not an interactive role: the Browse button inside is the one keyboard control (WCAG 4.1.2).
                 role="group"
-                aria-label={chrome('fileUpload.dropzone')}
+                aria-labelledby={`${field.id}-label`}
                 onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                 onDragLeave={() => setIsDragOver(false)}
                 onDrop={(e) => {
