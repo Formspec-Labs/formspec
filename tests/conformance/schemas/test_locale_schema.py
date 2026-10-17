@@ -158,8 +158,20 @@ class TestLocaleSchema:
         assert chrome_keys and len(chrome_keys) == len(set(chrome_keys))
         for key in chrome_keys:
             doc = _minimal_locale()
+            doc["$formspecLocale"] = "2.1"  # the dialect that admits the whole current inventory
             doc["strings"] = {key: "Texte {{$label}}"}
             _validate(doc)
+
+    def test_locale_2_0_keeps_its_original_chrome_inventory(self) -> None:
+        """Locale spec §2.2.1: the Screener chrome keys introduced with 2.1 are not valid in a 2.0 document."""
+        doc = _minimal_locale()
+        doc["strings"] = {"$ui.screener.yes": "Oui"}
+
+        with pytest.raises(ValidationError):
+            _validate(doc)
+
+        doc["$formspecLocale"] = "2.1"
+        _validate(doc)
 
 
 class TestLocaleFormats:

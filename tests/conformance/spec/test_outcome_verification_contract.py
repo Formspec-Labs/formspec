@@ -28,10 +28,10 @@ RULE_CATALOG = (
         "1.0.0-draft.1",
         "rendered-node.direct-need-trace",
     ),
-    ("surface/surface-spec.md", "0.2.0-draft.1", "rendering.semantic-output"),
+    ("surface/surface-spec.md", "0.3.0-draft.1", "rendering.semantic-output"),
     (
         "surface/surface-spec.md",
-        "0.2.0-draft.1",
+        "0.3.0-draft.1",
         "routing.current-route-state",
     ),
     (
