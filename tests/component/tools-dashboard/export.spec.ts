@@ -8,7 +8,9 @@ test.describe('Download & Export Tab', () => {
     await page.waitForSelector('html[data-formspec-wasm-ready="1"]', { timeout: 30_000 });
     await expect(page.locator('.export-card')).toHaveCount(3);
     await page.locator('.tools-tab[data-tab="export"]').click();
-    await page.locator('#export-input-data').fill('{"orgName":"Community Health Partners"}');
+    // The grant-application mappings read applicantInfo.orgName; a rule whose source is absent emits nothing
+    // (Mapping spec 7.3), so a flat {"orgName"} leaves the CSV with no column at all.
+    await page.locator('#export-input-data').fill('{"applicantInfo":{"orgName":"Community Health Partners"}}');
   });
 
   test('shows three export format cards', async ({ page }) => {
@@ -38,6 +40,7 @@ test.describe('Download & Export Tab', () => {
     expect(content).toBeTruthy();
     const lines = content!.trim().split('\n');
     expect(lines.length).toBeGreaterThanOrEqual(2);
+    expect(content).toContain('Community Health Partners');
   });
 
   test('clicking XML export runs mapping and shows output', async ({ page }) => {
