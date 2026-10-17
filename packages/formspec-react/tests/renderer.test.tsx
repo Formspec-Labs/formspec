@@ -1242,6 +1242,8 @@ describe('disabledDisplay protected mode', () => {
         };
 
         const engine = createFormEngine(protectedDef);
+        // An unanswered boolean is null and null relevance counts as true (core spec), so say false.
+        engine.setValue('toggle', false);
         // toggle=false → secret is irrelevant but should still render disabled
 
         const plan: LayoutNode = {
@@ -1308,7 +1310,9 @@ describe('group-level relevance', () => {
         };
 
         const engine = createFormEngine(groupRelDef);
-        // showGroup defaults to false → group should be hidden
+        // An unanswered boolean is null and null relevance counts as true (core spec), so say false.
+        engine.setValue('showGroup', false);
+        // showGroup=false → group should be hidden
 
         const plan: LayoutNode = {
             id: 'root', component: 'Stack', category: 'layout',
