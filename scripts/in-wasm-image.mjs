@@ -8,17 +8,19 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import process from 'node:process';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const felCore = resolve(repo, '../fel-core'); // crates depend on it as `../../../fel-core`
 const context = join(repo, 'docker/wasm-build');
 // One pinned platform so published and vendored bytes are the same on every host. arm64 is the
-// platform that was measured; an x86_64 host runs it under emulation (slow), and a job that only
-// needs a working build, not the pinned bytes, can set FORMSPEC_WASM_PLATFORM=linux/amd64.
+// platform that was measured; an x86_64 host runs it under emulation (slow). Developers on x86 who
+// only need a working build, not the pinned bytes, can set FORMSPEC_WASM_PLATFORM=linux/amd64.
 const platform = process.env.FORMSPEC_WASM_PLATFORM ?? 'linux/arm64';
 const tag = `formspec-wasm-build:${createHash('sha256').update(readFileSync(join(context, 'Dockerfile'))).digest('hex').slice(0, 12)}-${platform.split('/')[1]}`;
+// Test seam: the cache volume holds cargo's registry and target dir, shared by every checkout.
+const cacheVolume = process.env.FORMSPEC_WASM_CACHE_VOLUME ?? `formspec-wasm-cache-${platform.replace('/', '-')}`;
 const [command, ...outputs] = process.argv.slice(2);
 if (!command || outputs.length === 0) {
   console.error("usage: in-wasm-image.mjs '<command>' <output path>...");
@@ -50,19 +52,29 @@ function copyIn(source, container, destination) {
 if (docker(['image', 'inspect', tag], { stdio: 'ignore', allowFailure: true }).status !== 0) {
   docker(['build', '--platform', platform, '-t', tag, context]);
 }
+// `docker cp` keeps host mtimes, and cargo rebuilds only sources newer than the shared target dir's
+// last build: without this, a checkout older than another checkout's build gets that build's output.
+const freshen = 'find /src -type f -exec touch {} + &&';
 const workdir = join('/src/formspec', relative(repo, process.cwd()));
 const container = docker(
-  ['create', '--platform', platform, '-v', `formspec-wasm-cache-${platform.replace('/', '-')}:/cache`, '-w', workdir, tag, 'sh', '-c', command],
+  ['create', '--platform', platform, '-v', `${cacheVolume}:/cache`, '-w', workdir, tag, 'sh', '-c', `${freshen} ${command}`],
   { stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8' },
 ).stdout.trim();
+const stop = () => { docker(['rm', '-f', container], { stdio: 'ignore', allowFailure: true }); };
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => { stop(); process.exit(130); });
+}
 try {
   copyIn(repo, container, '/src/formspec');
   copyIn(felCore, container, '/src/fel-core');
-  docker(['start', '-a', container]);
+  const status = await new Promise((done) => {
+    spawn('docker', ['start', '-a', container], { stdio: 'inherit' }).on('exit', (code) => done(code ?? 1));
+  });
+  if (status !== 0) throw new Error(`build exited ${status}.`);
   for (const output of outputs) {
     rmSync(resolve(output), { recursive: true, force: true });
     docker(['cp', `${container}:${join(workdir, output)}`, '.']);
   }
 } finally {
-  docker(['rm', '-f', container], { stdio: 'ignore', allowFailure: true });
+  stop();
 }
