@@ -11,7 +11,7 @@ jobs:
   build:
     if: github.repository == 'Formspec-Labs/formspec'
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     defaults:
       run:
         working-directory: formspec
@@ -31,13 +31,6 @@ jobs:
       # Trusted publishing (OIDC) requires npm CLI >= 11.5.1; Node 22 images still ship npm 10.x.
       - name: Install npm for Trusted Publishing
         run: npm install -g npm@^11.5.1
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-      - name: Install wasm-pack and wasm-opt
-        run: |
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-          sudo apt-get install -y binaryen
       - run: npm install
       - run: npm run build
 
@@ -52,7 +45,7 @@ jobs:
     needs: build
     if: github.repository == 'Formspec-Labs/formspec'
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: write
       pull-requests: write
@@ -78,13 +71,6 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - name: Install npm for Trusted Publishing
         run: npm install -g npm@^11.5.1
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-      - name: Install wasm-pack and wasm-opt
-        run: |
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-          sudo apt-get install -y binaryen
       - run: npm install
       - run: npm run build
 
