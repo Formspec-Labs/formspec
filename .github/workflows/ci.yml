@@ -14,10 +14,8 @@ on:
 jobs:
   unit-tests:
     name: Unit Tests (TS)
-    runs-on: ubuntu-latest
-    # These jobs need a working build, not the pinned bytes: build natively, not under emulation.
-    env:
-      FORMSPEC_WASM_PLATFORM: linux/amd64
+    # The WASM is built in its pinned arm64 image; an arm64 runner runs it natively.
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 90
     defaults:
       run:
@@ -87,10 +85,8 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
-    runs-on: ubuntu-latest
-    # These jobs need a working build, not the pinned bytes: build natively, not under emulation.
-    env:
-      FORMSPEC_WASM_PLATFORM: linux/amd64
+    # The WASM is built in its pinned arm64 image; an arm64 runner runs it natively.
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 120
     defaults:
       run:
