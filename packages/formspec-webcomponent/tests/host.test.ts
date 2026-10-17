@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-import { HOST_CONFIG_ID, HOST_STATE_ATTRIBUTE, HOST_WASM_ID, bootHost, mountHost } from '../src/host';
+import { HOST_CONFIG_ID, HOST_STATE_ATTRIBUTE, HOST_WASM_ID, bootHost, freezeControls, mountHost } from '../src/host';
 
 const wasmBytes = readFileSync(createRequire(import.meta.url).resolve('@formspec-org/engine/wasm-runtime'));
 
@@ -57,5 +57,18 @@ describe('bootHost', () => {
         await bootHost(doc);
         expect(doc.documentElement.getAttribute(HOST_STATE_ATTRIBUTE)).toBe('error');
         expect((window as any).__formspecHost.error).toBeTruthy();
+    });
+});
+
+describe('print mode', () => {
+    it('keeps every answer visible and makes none of them editable', () => {
+        const root = document.createElement('div');
+        root.innerHTML = '<input type="text" value="Ada"><textarea>note</textarea><input type="checkbox" checked><select><option>a</option></select><input type="file">';
+        freezeControls(root);
+        const [text, area, check, select, file] = Array.from(root.querySelectorAll('input, textarea, select')) as HTMLInputElement[];
+        expect([text.readOnly, area.readOnly]).toEqual([true, true]);
+        expect(text.getAttribute('aria-readonly')).toBe('true');
+        expect([check.disabled, select.disabled, file.disabled]).toEqual([true, true, true]);
+        expect(check.checked).toBe(true);
     });
 });

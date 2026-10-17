@@ -349,3 +349,23 @@ async function withHostPage(definition: object, fn: (page: import('@playwright/t
         http.close();
     }
 }
+
+describe('POST /print', () => {
+    const receipt = { heading: 'Submission receipt', facts: [{ label: 'Hash', value: 'sha256:abc' }], verify: 'Compute the SHA-256.' };
+    const printed = (body: unknown) => fetch(`${server.url}/print`, { method: 'POST', body: JSON.stringify(body) });
+
+    it('answers with the self-contained read-only page the receipt PDF is printed from', async () => {
+        const response = await printed({ documents: { definition: CLEAN, initialData: { name: 'Ada' } }, receipt });
+        expect(response.status).toBe(200);
+        expect(response.headers.get('content-type')).toContain('text/html');
+        const html = await response.text();
+        expect(html).toContain('"readOnly":true');
+        expect(html).toContain('"name":"Ada"');
+        expect(html).toContain('formspec-receipt-heading');
+    });
+
+    it('refuses a request with no receipt or no definition', async () => {
+        expect((await printed({ documents: { definition: CLEAN } })).status).toBe(400);
+        expect((await printed({ documents: {}, receipt })).status).toBe(400);
+    });
+});

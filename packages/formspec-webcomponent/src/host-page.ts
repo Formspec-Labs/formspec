@@ -37,6 +37,37 @@ function assets(): HostAssets {
  */
 export const HOST_CSP = "default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'";
 
+/** Text safe inside element content and quoted attributes. */
+function escapeHtml(text: string): string {
+    return text.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/** Print mode: all pages at once, no navigation, the receipt on its own page. Pages are `.formspec-hidden` panels, so only panels are overridden: fields hidden by relevance stay hidden. */
+const PRINT_CSS = `
+.formspec-wizard-panel.formspec-hidden, .formspec-tab-panel.formspec-hidden { display: block !important; }
+.formspec-wizard-nav, .formspec-wizard-steps, .formspec-wizard-sidenav, .formspec-wizard-step-indicator, .formspec-tab-bar, [role="tablist"], button[type="submit"] { display: none !important; }
+/* PDF/UA: every painted shape must be tagged content or an artifact, and Chromium tags neither a box's background, its pseudo-elements nor a border it draws around a container. Text, and the controls' own chrome, stay. */
+formspec-render *, formspec-render *::before, formspec-render *::after { background: none !important; box-shadow: none !important; }
+formspec-render :not(input):not(select):not(textarea) { border: 0 !important; }
+:root { color-scheme: light; }
+.formspec-receipt { break-before: page; font-family: system-ui, sans-serif; margin: 0 auto; max-width: 40rem; }
+.formspec-receipt dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; }
+.formspec-receipt dt { font-weight: 600; }
+.formspec-receipt dd { margin: 0; overflow-wrap: anywhere; }
+`;
+
+/** The receipt page: a labelled section whose facts are a definition list. */
+function receiptSection(receipt: NonNullable<HostDocuments['receipt']>): string {
+    const facts = receipt.facts
+        .map((fact) => `<dt>${escapeHtml(fact.label)}</dt><dd>${escapeHtml(fact.value)}</dd>`)
+        .join('');
+    return `<section class="formspec-receipt" aria-labelledby="formspec-receipt-heading">
+<h1 id="formspec-receipt-heading">${escapeHtml(receipt.heading)}</h1>
+<dl>${facts}</dl>
+<p>${escapeHtml(receipt.verify)}</p>
+</section>`;
+}
+
 /** JSON safe inside a `<script>` block: `<` can never open a tag or a comment. */
 function inlineJson(value: unknown): string {
     return JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
@@ -65,10 +96,10 @@ export function renderHostPage(documents: HostDocuments): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${(documents.definition.title ?? 'Form').replace(/[<>&"]/g, (c) => `&#${c.charCodeAt(0)};`)}</title>
 <style data-formspec-layer="layout">${inlineSource(a.layoutCss, 'style')}</style>
-<style data-formspec-layer="default-skin">${inlineSource(a.skinCss, 'style')}</style>
+<style data-formspec-layer="default-skin">${inlineSource(a.skinCss, 'style')}</style>${documents.readOnly ? `\n<style data-formspec-layer="print">${PRINT_CSS}</style>` : ''}
 </head>
 <body>
-<main id="formspec-host-root"></main>
+<main id="formspec-host-root"></main>${documents.readOnly && documents.receipt ? `\n${receiptSection(documents.receipt)}` : ''}
 <script type="application/json" id="${HOST_CONFIG_ID}">${inlineJson(documents)}</script>
 <script type="application/octet-stream" id="${HOST_WASM_ID}">${a.wasmBase64}</script>
 <script type="module">${inlineSource(a.bundle, 'script')}</script>

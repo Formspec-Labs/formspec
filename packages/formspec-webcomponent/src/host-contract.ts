@@ -4,6 +4,15 @@ import type { FormDefinition } from '@formspec-org/types';
 import type { ThemeDocument } from '@formspec-org/layout';
 import type { FormDataRecord } from './hub-types';
 
+/** The receipt page printed after the form (ADR 0166 §2): what was accepted, and how to check this document. */
+export interface HostReceipt {
+    heading: string;
+    /** Label and value pairs, shown as a definition list. */
+    facts: Array<{ label: string; value: string }>;
+    /** Plain-language instructions for checking the printed document. */
+    verify: string;
+}
+
 /** The pinned documents a page is built from (ADR 0166 §1). Nothing else shapes the render. */
 export interface HostDocuments {
     definition: FormDefinition;
@@ -14,6 +23,12 @@ export interface HostDocuments {
     locale?: string;
     /** A Response's `data` to show filled in. */
     initialData?: FormDataRecord | null;
+    /**
+     * Print mode: every page of the form shown at once, controls read-only, navigation hidden, and the
+     * `receipt` page after the form. The page Gotenberg turns into the receipt PDF.
+     */
+    readOnly?: boolean;
+    receipt?: HostReceipt | null;
 }
 
 /** Ids of the two inline `<script>` blocks the page builder writes and {@link bootHost} reads. */

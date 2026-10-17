@@ -143,6 +143,19 @@ export class AccessibilityServer {
                 const html = this.pages.get(path.slice('/host/'.length));
                 return html ? send(200, html, 'text/html; charset=utf-8') : send(404, { error: 'unknown page' });
             }
+            if (req.method === 'POST' && path === '/print') {
+                // The print page for the receipt PDF: the same host page, read-only, with the receipt after the form.
+                // No browser is started here; Gotenberg loads the returned document.
+                const body = await readJson(req);
+                if (typeof body === 'string') return send(body.startsWith('too large') ? 413 : 400, { error: body });
+                const { documents, receipt } = body as { documents?: unknown; receipt?: HostDocuments['receipt'] };
+                const shaped = shapeDocuments(documents);
+                if (typeof shaped === 'string') return send(400, { error: shaped });
+                if (!receipt || typeof receipt.heading !== 'string' || !Array.isArray(receipt.facts) || typeof receipt.verify !== 'string') {
+                    return send(400, { error: 'body needs a `receipt` with heading, facts and verify' });
+                }
+                return send(200, renderHostPage({ ...shaped, theme: shaped.theme ?? null, readOnly: true, receipt }), 'text/html; charset=utf-8');
+            }
             if (req.method === 'POST' && path === '/check') {
                 const documents = await readDocuments(req);
                 if (typeof documents === 'string') return send(documents.startsWith('too large') ? 413 : 400, { error: documents });
@@ -159,8 +172,8 @@ export class AccessibilityServer {
     }
 }
 
-/** Read and shape-check a `POST /check` body; a string is the reason it was refused. */
-async function readDocuments(req: IncomingMessage): Promise<HostDocuments | string> {
+/** Read a request body as JSON; a string is the reason it was refused. */
+async function readJson(req: IncomingMessage): Promise<unknown | string> {
     const chunks: Buffer[] = [];
     let size = 0;
     for await (const chunk of req) {
@@ -168,10 +181,19 @@ async function readDocuments(req: IncomingMessage): Promise<HostDocuments | stri
         if (size > MAX_BODY_BYTES) return `too large: more than ${MAX_BODY_BYTES} bytes`;
         chunks.push(chunk as Buffer);
     }
-    let body: unknown;
-    try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return 'body is not JSON'; }
+    try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return 'body is not JSON'; }
+}
+
+/** Shape-check pinned documents; a string is the reason they were refused. */
+function shapeDocuments(body: unknown): HostDocuments | string {
     const d = body as Partial<HostDocuments> | null;
     if (!d || typeof d !== 'object' || !d.definition || typeof d.definition !== 'object') return 'body needs a `definition` object';
     if (d.locales !== undefined && !Array.isArray(d.locales)) return '`locales` must be an array';
     return d as HostDocuments;
+}
+
+/** Read and shape-check a `POST /check` body; a string is the reason it was refused. */
+async function readDocuments(req: IncomingMessage): Promise<HostDocuments | string> {
+    const body = await readJson(req);
+    return typeof body === 'string' ? body : shapeDocuments(body);
 }

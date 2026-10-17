@@ -31,6 +31,21 @@ describe('host page', () => {
     });
 });
 
+describe('print page', () => {
+    const receipt = { heading: 'Submission <receipt>', facts: [{ label: 'Hash', value: 'sha256:"x"' }], verify: 'Compute the SHA-256.' };
+
+    it('shows the receipt after the form, escaped, and only in print mode', () => {
+        const printed = renderHostPage({ definition: definition('Plain'), readOnly: true, receipt });
+        expect(printed).toContain('<h1 id="formspec-receipt-heading">Submission &#60;receipt&#62;</h1>');
+        expect(printed).toContain('<dt>Hash</dt><dd>sha256:&#34;x&#34;</dd>');
+        expect(printed.indexOf('formspec-host-root')).toBeLessThan(printed.indexOf('formspec-receipt-heading'));
+        expect(printed).toContain('data-formspec-layer="print"');
+        const plain = renderHostPage({ definition: definition('Plain'), receipt });
+        expect(plain).not.toContain('formspec-receipt-heading');
+        expect(plain).not.toContain('data-formspec-layer="print"');
+    });
+});
+
 describe('host page in a browser', () => {
     it('draws the form from the pinned documents and requests nothing but itself', async () => {
         const { chromium } = await import('@playwright/test');
