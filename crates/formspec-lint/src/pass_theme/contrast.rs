@@ -123,15 +123,14 @@ fn lint_pair(
 
     let (Some(foreground), Some(background)) = (foreground, background) else {
         if report_missing {
-            diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                crate::LintCode::W714,
-                PASS,
+            diags.push(crate::pass_accessibility::diagnostic(
+                crate::LintCode::W1905,
                 path,
                 format!(
                     "Contrast pair '{}' cannot be evaluated because '{}' or '{}' has no effective string color value",
                     pair.id, pair.foreground_token, pair.background_token
                 ),
-            )));
+            ));
         }
         return;
     };
@@ -141,7 +140,16 @@ fn lint_pair(
         parse_opaque_srgb(&background),
     ) else {
         // CSS colors that depend on another surface, a color space, or alpha
-        // compositing do not have enough local evidence for a truthful ratio.
+        // compositing do not have enough local evidence for a truthful ratio: say so, so the pair
+        // goes to review instead of passing silently.
+        diags.push(crate::pass_accessibility::diagnostic(
+            crate::LintCode::W1905,
+            path,
+            format!(
+                "Contrast pair '{}' cannot be evaluated: '{foreground}' or '{background}' is not an opaque sRGB color",
+                pair.id
+            ),
+        ));
         return;
     };
 

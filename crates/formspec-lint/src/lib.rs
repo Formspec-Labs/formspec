@@ -15,7 +15,7 @@
 //! cross-field invariants (ADR 0150 §6)
 //! Registry-only E611 is emitted by the TypeScript AppGraphValidator, not this crate.
 //! Pass 9 (E1100-E1805/W1100-W1802): Companion document semantic lint
-//! Pass 10 (E1900-E1903/W1900-W1904): Accessibility document rules, WCAG-tagged (`check_accessibility`)
+//! Pass 10 (E1900-E1904/W1900-W1905): Accessibility document rules, WCAG-tagged (`check_accessibility`)
 //!
 //! ## Documentation
 //!
@@ -71,7 +71,7 @@ pub use generated::LintCode;
 pub use lint_json::lint_result_to_json_value;
 pub use metadata::wcag_criteria;
 pub use pass_accessibility::{
-    AccessibilityChecks, AccessibilityFinding, AccessibilityRuleResult, check_accessibility,
+    AccessibilityChecks, AccessibilityFinding, AccessibilityOutcome, AccessibilityRuleResult, check_accessibility,
 };
 pub use schema_validation::{validate_mapping_source, validate_mapping_source_association};
 pub use types::{

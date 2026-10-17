@@ -442,7 +442,6 @@
       "title": "Effective Theme color pair meets WCAG AA but not the Theme's own stricter contrast minimum",
       "specRef": "specs/theme/theme-spec.md#38-effective-contrast-pairs",
       "suggestedFix": "adjust either effective color token so the pair meets its declared minimumRatio, or lower minimumRatio toward the WCAG floor",
-      "wcag": ["1.4.3", "1.4.11"],
       "fixtures": [
         "tests/fixtures/lint/W714-theme-contrast-stricter-minimum.json"
       ],
@@ -1466,9 +1465,9 @@
       "code": "E1900",
       "pass": 10,
       "severity": "error",
-      "title": "Field or group has an empty label",
+      "title": "Field has an empty label",
       "specRef": "specs/accessibility/document-checks.md#e1900-empty-label",
-      "suggestedFix": "give the field or group a non-empty label; it is its accessible name",
+      "suggestedFix": "give the field a non-empty label; it is its accessible name",
       "wcag": ["1.3.1", "3.3.2", "4.1.2"],
       "fixtures": [
         "tests/fixtures/lint/E1900-accessibility-empty-label.json"
@@ -1576,6 +1575,32 @@
       "wcag": ["1.1.1"],
       "fixtures": [
         "tests/fixtures/lint/W1904-accessibility-image-syntax.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E1904",
+      "pass": 10,
+      "severity": "error",
+      "title": "Group has an empty label",
+      "specRef": "specs/accessibility/document-checks.md#e1904-empty-group-label",
+      "suggestedFix": "give the group a non-empty label; it names its fieldset",
+      "wcag": ["1.3.1"],
+      "fixtures": [
+        "tests/fixtures/lint/E1904-accessibility-empty-group-label.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1905",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Theme color pair could not be evaluated for contrast",
+      "specRef": "specs/accessibility/document-checks.md#w1905-contrast-not-evaluable",
+      "suggestedFix": "use opaque sRGB colors for both tokens of the pair, or review its contrast by hand",
+      "wcag": ["1.4.3", "1.4.11"],
+      "fixtures": [
+        "tests/fixtures/lint/W1905-accessibility-contrast-not-evaluable.json"
       ],
       "state": "tested"
     }

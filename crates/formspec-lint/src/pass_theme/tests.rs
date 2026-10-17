@@ -865,7 +865,9 @@ fn all_diagnostics_are_pass_6() {
     let diags = lint_theme(&theme, None);
     assert!(!diags.is_empty());
     for d in &diags {
-        assert_eq!(d.pass, 6, "Diagnostic {} should be pass 6", d.code);
+        // The contrast findings (E1903, W1905) belong to the accessibility pass, 10.
+        let expected = if matches!(d.code, crate::LintCode::E1903 | crate::LintCode::W1905) { 10 } else { 6 };
+        assert_eq!(d.pass, expected, "Diagnostic {} should be pass {expected}", d.code);
     }
 }
 
@@ -1275,7 +1277,6 @@ fn explicit_pair_cannot_lower_usage_floor() {
 }
 
 #[test]
-#[test]
 fn pair_above_aa_but_under_its_own_minimum_is_w714_not_e1903() {
     let theme = json!({
         "tokens": {
@@ -1297,7 +1298,8 @@ fn pair_above_aa_but_under_its_own_minimum_is_w714_not_e1903() {
     assert!(advisory[0].message.contains("requires at least 9.00:1"));
 }
 
-fn explicit_pair_with_missing_token_emits_w714() {
+#[test]
+fn explicit_pair_with_missing_token_emits_w1905() {
     let theme = json!({
         "tokens": {
             "x-agency.text": "#000000"
@@ -1310,10 +1312,10 @@ fn explicit_pair_with_missing_token_emits_w714() {
         }]
     });
     let diags = lint_theme(&theme, None);
-    let w714 = with_code(&diags, "W714");
-    assert_eq!(w714.len(), 1);
+    let found = with_code(&diags, "W1905");
+    assert_eq!(found.len(), 1);
     assert!(
-        w714[0]
+        found[0]
             .message
             .contains("has no effective string color value")
     );

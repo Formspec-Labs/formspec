@@ -10,7 +10,11 @@ The check claims only that these rules found nothing in these documents. It is n
 
 ## E1900 empty label
 
-A field or group whose `label` is empty or whitespace has no accessible name (1.3.1, 3.3.2, 4.1.2).
+A field whose `label` is empty or whitespace has no accessible name (1.3.1, 3.3.2, 4.1.2).
+
+## E1904 empty group label
+
+A group whose `label` is empty or whitespace leaves its fieldset or heading without a name (1.3.1).
 
 ## E1901 locale empty label
 
@@ -22,7 +26,7 @@ An option, in an item's inline `options`, in an `optionSets` entry, or in a Loca
 
 ## E1903 contrast below AA
 
-An effective Theme colour pair (declared in `contrastPairs`, or a platform pair a Theme token override touches) whose WCAG 2.2 contrast ratio is below the usage floor: 4.5:1 for `normalText`, 3:1 for `largeText` and `uiComponent` (1.4.3, 1.4.11). A pair that reaches the floor but not the Theme's own stricter `minimumRatio` is the advisory W714, not an error. A pair that cannot be reduced to opaque sRGB is not judged.
+An effective Theme colour pair (declared in `contrastPairs`, or a platform pair a Theme token override touches) whose WCAG 2.2 contrast ratio is below the usage floor: 4.5:1 for `normalText`, 3:1 for `largeText` and `uiComponent` (1.4.3, 1.4.11). A pair that reaches the floor but not the Theme's own stricter `minimumRatio` is the advisory W714, which is a Theme's own bar and not an accessibility finding. A pair that cannot be reduced to opaque sRGB is W1905 and E1903 reports `needs-review`.
 
 ## W1900 locale missing label
 
@@ -47,3 +51,7 @@ Markdown image syntax in a label, hint or description. The rich-text subset (cor
 ## Not decided from the documents
 
 Locale `locale` is required and pattern-checked by the Locale schema, so a missing or malformed language tag is already E101. No document property names an input purpose (1.3.5), so that criterion is for human review.
+
+## W1905 contrast not evaluable
+
+A contrast pair whose tokens have no effective colour, or whose colour depends on alpha, another surface or a colour space, has no truthful ratio. It is not judged; the pair goes to human review and E1903 reports `needs-review` rather than `passed`.

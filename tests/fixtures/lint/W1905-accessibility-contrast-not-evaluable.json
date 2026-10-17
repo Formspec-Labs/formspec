@@ -1,0 +1,17 @@
+{
+  "$formspecTheme": "1.0",
+  "url": "https://example.com/themes/w1905",
+  "version": "1.0.0",
+  "tokens": {
+    "x-agency.text": "rgba(0, 0, 0, 0.5)",
+    "x-agency.surface": "#ffffff"
+  },
+  "contrastPairs": [
+    {
+      "id": "agency-copy",
+      "foregroundToken": "x-agency.text",
+      "backgroundToken": "x-agency.surface",
+      "usage": "normalText"
+    }
+  ]
+}

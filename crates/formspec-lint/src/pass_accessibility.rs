@@ -248,14 +248,22 @@ pub(crate) fn lint_definition(def: &Value) -> Vec<LintDiagnostic> {
     let mut out = Vec::new();
     let nodes = item_nodes(def);
     for node in &nodes {
-        if is_input_or_group(node.item) {
+        let kind = node.item.get("type").and_then(Value::as_str);
+        if matches!(kind, Some("field" | "group")) {
             let label = node.item.get("label").and_then(Value::as_str).unwrap_or("");
             if is_blank(label) {
-                out.push(diagnostic(
-                    LintCode::E1900,
-                    format!("{}.label", node.path),
-                    "Field or group has an empty label, so it has no accessible name",
-                ));
+                let (code, what) = if kind == Some("group") {
+                    (
+                        LintCode::E1904,
+                        "Group has an empty label, so its fieldset or heading has no name",
+                    )
+                } else {
+                    (
+                        LintCode::E1900,
+                        "Field has an empty label, so it has no accessible name",
+                    )
+                };
+                out.push(diagnostic(code, format!("{}.label", node.path), what));
             }
         }
         if let Some(options) = node.item.get("options").and_then(Value::as_array) {
@@ -400,7 +408,7 @@ pub(crate) fn lint_locale(
             if label_in_chain(locale, key, peers, &mut seen).is_none() {
                 out.push(diagnostic(
                     LintCode::W1900,
-                    "$.strings",
+                    node.path.clone(),
                     format!("Locale has no label for {key:?}; it falls back to the Definition's wording, which may be in another language"),
                 ));
             }
@@ -420,6 +428,28 @@ pub struct AccessibilityFinding {
     pub diagnostic: LintDiagnostic,
 }
 
+/// A rule's result over the pinned documents.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AccessibilityOutcome {
+    /// The rule looked and found nothing.
+    Passed,
+    /// The rule found something.
+    Failed,
+    /// The rule found nothing but could not judge everything (a contrast pair it could not evaluate), so a person reviews.
+    NeedsReview,
+}
+
+impl AccessibilityOutcome {
+    /// Wire string: `passed`, `failed` or `needs-review`.
+    pub fn as_wire_str(self) -> &'static str {
+        match self {
+            Self::Passed => "passed",
+            Self::Failed => "failed",
+            Self::NeedsReview => "needs-review",
+        }
+    }
+}
+
 /// One accessibility rule's outcome across the pinned documents.
 #[derive(Debug, Clone)]
 pub struct AccessibilityRuleResult {
@@ -429,8 +459,8 @@ pub struct AccessibilityRuleResult {
     pub severity: LintSeverity,
     /// WCAG success criteria the rule is tagged with.
     pub wcag: Vec<String>,
-    /// `false` when the rule found something.
-    pub passed: bool,
+    /// What the rule found; see [`AccessibilityOutcome`].
+    pub outcome: AccessibilityOutcome,
     /// `<document>#<path>` of every finding.
     pub paths: Vec<String>,
 }
@@ -462,7 +492,7 @@ impl AccessibilityChecks {
                 "rule": r.rule.as_wire_str(),
                 "severity": r.severity.as_wire_str(),
                 "wcag": r.wcag,
-                "outcome": if r.passed { "passed" } else { "failed" },
+                "outcome": r.outcome.as_wire_str(),
                 "paths": r.paths,
             })).collect::<Vec<_>>(),
         })
@@ -501,6 +531,13 @@ pub fn check_accessibility(
         );
     }
 
+    // W714 is a Theme's own stricter bar, not an accessibility failure: it stays out of the report.
+    let tagged: HashSet<LintCode> = metadata::accessibility_codes().collect();
+    findings.retain(|f| tagged.contains(&f.diagnostic.code));
+    let unevaluated = findings
+        .iter()
+        .any(|f| f.diagnostic.code == LintCode::W1905);
+
     let results = metadata::accessibility_codes()
         .map(|rule| {
             let paths: Vec<String> = findings
@@ -512,7 +549,13 @@ pub fn check_accessibility(
                 rule,
                 severity: metadata::registry_severity(rule),
                 wcag: metadata::wcag_criteria(rule).to_vec(),
-                passed: paths.is_empty(),
+                outcome: if !paths.is_empty() {
+                    AccessibilityOutcome::Failed
+                } else if rule == LintCode::E1903 && unevaluated {
+                    AccessibilityOutcome::NeedsReview
+                } else {
+                    AccessibilityOutcome::Passed
+                },
                 paths,
             }
         })

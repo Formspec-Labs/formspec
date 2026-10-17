@@ -1,7 +1,9 @@
 //! Accessibility document rules (ADR 0166 §3): one test per rule, each showing a failing and a passing form.
 //! The rules run over a form version's pinned Definition, Theme and Locale documents via `check_accessibility`.
 
-use formspec_lint::{AccessibilityChecks, LintCode, check_accessibility, wcag_criteria};
+use formspec_lint::{
+    AccessibilityChecks, AccessibilityOutcome, LintCode, check_accessibility, wcag_criteria,
+};
 use serde_json::{Value, json};
 
 fn definition(items: Value) -> Value {
@@ -45,12 +47,13 @@ fn check(def: &Value, theme: Option<&Value>, locales: &[Value]) -> Accessibility
 }
 
 fn failed(checks: &AccessibilityChecks, rule: LintCode) -> bool {
-    !checks
+    checks
         .results
         .iter()
         .find(|r| r.rule == rule)
         .unwrap_or_else(|| panic!("{rule} is not an accessibility rule"))
-        .passed
+        .outcome
+        == AccessibilityOutcome::Failed
 }
 
 #[test]
@@ -64,11 +67,14 @@ fn field_without_a_label_fails_and_a_labelled_field_passes() {
 }
 
 #[test]
-fn group_without_a_label_fails() {
+fn group_without_a_label_fails_as_its_own_rule_with_one_criterion() {
     let def = definition(
         json!([{ "key": "contact", "type": "group", "label": "", "children": [field("name", "Name")] }]),
     );
-    assert!(failed(&check(&def, None, &[]), LintCode::E1900));
+    let checks = check(&def, None, &[]);
+    assert!(failed(&checks, LintCode::E1904));
+    assert!(!failed(&checks, LintCode::E1900));
+    assert_eq!(wcag_criteria(LintCode::E1904), ["1.3.1"]);
 }
 
 #[test]
@@ -157,8 +163,62 @@ fn theme_pair_between_aa_and_its_own_stricter_minimum_warns_without_blocking() {
     t["contrastPairs"] = stricter["contrastPairs"].clone();
     let checks = check(&def, Some(&t), &[]);
     assert!(!failed(&checks, LintCode::E1903));
-    assert!(failed(&checks, LintCode::W714));
+    assert!(
+        checks.findings.is_empty(),
+        "a Theme's own stricter bar is not an accessibility finding"
+    );
     assert!(!checks.blocks_publish());
+}
+
+#[test]
+fn contrast_pair_that_cannot_be_evaluated_is_needs_review_not_passed() {
+    let def = definition(json!([field("name", "Name")]));
+    let mut t =
+        theme(json!({ "x-agency.text": "rgba(0, 0, 0, 0.5)", "x-agency.surface": "#ffffff" }));
+    t["contrastPairs"] = json!([{ "id": "copy", "foregroundToken": "x-agency.text", "backgroundToken": "x-agency.surface", "usage": "normalText" }]);
+    let checks = check(&def, Some(&t), &[]);
+    let e1903 = checks
+        .results
+        .iter()
+        .find(|r| r.rule == LintCode::E1903)
+        .unwrap();
+    assert_eq!(e1903.outcome, AccessibilityOutcome::NeedsReview);
+    assert!(failed(&checks, LintCode::W1905));
+    assert!(!checks.blocks_publish());
+    assert_eq!(
+        checks.to_json_value()["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["rule"] == "E1903")
+            .unwrap()["outcome"],
+        "needs-review"
+    );
+
+    let missing = theme(json!({}));
+    let mut missing = missing;
+    missing["contrastPairs"] = json!([{ "id": "copy", "foregroundToken": "x-no.text", "backgroundToken": "x-no.surface", "usage": "normalText" }]);
+    let checks = check(&def, Some(&missing), &[]);
+    assert!(failed(&checks, LintCode::W1905));
+}
+
+#[test]
+fn locale_missing_label_names_the_item_it_is_missing_for() {
+    let def = definition(json!([
+        field("first", "First name"),
+        field("last", "Last name")
+    ]));
+    let checks = check(
+        &def,
+        None,
+        &[locale("fr", json!({ "first.label": "Prénom" }))],
+    );
+    let w = checks
+        .results
+        .iter()
+        .find(|r| r.rule == LintCode::W1900)
+        .unwrap();
+    assert_eq!(w.paths, ["locale:fr#$.items[1]"]);
 }
 
 #[test]
@@ -317,7 +377,12 @@ fn a_clean_form_has_no_findings_and_does_not_block() {
     );
     assert!(checks.findings.is_empty(), "{:?}", checks.findings);
     assert!(!checks.blocks_publish());
-    assert!(checks.results.iter().all(|r| r.passed));
+    assert!(
+        checks
+            .results
+            .iter()
+            .all(|r| r.outcome == AccessibilityOutcome::Passed)
+    );
 }
 
 #[test]
