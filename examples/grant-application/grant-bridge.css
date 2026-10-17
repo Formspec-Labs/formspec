@@ -295,7 +295,7 @@ h3.formspec-heading {
 .formspec-datatable-remove {
   padding: 0.25rem 0.625rem;
   background: transparent;
-  color: #e52207;
+  color: #b50909;
   border: 1px solid #dfe1e2;
   border-radius: 0.25rem;
   font-size: 0.75rem;
@@ -307,9 +307,9 @@ h3.formspec-heading {
 }
 
 .formspec-datatable-remove:hover {
-  background: #e52207;
+  background: #b50909;
   color: #fff;
-  border-color: #e52207;
+  border-color: #b50909;
 }
 
 .formspec-datatable-remove:focus {
