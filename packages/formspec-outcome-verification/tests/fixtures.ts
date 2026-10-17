@@ -79,7 +79,7 @@ export const surfaceFieldNode = {
 const rule = {
   kind: "specification-rule",
   specRef: "https://formspec.org/specs/surface",
-  specVersion: "0.2.0-draft.1",
+  specVersion: "0.3.0-draft.1",
   ruleId: "rendering.semantic-output",
 } as const;
 
@@ -286,7 +286,7 @@ export const caseDocument: OutcomeVerificationCase = {
         {
           kind: "specification-rule",
           specRef: "https://formspec.org/specs/surface",
-          specVersion: "0.2.0-draft.1",
+          specVersion: "0.3.0-draft.1",
           ruleId: "routing.current-route-state",
         },
       ],
