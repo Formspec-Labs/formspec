@@ -189,6 +189,29 @@ mod tests {
         assert_eq!(multiply["result"], json!(20));
     }
 
+    /// `values` is flat state by path; `data` is the nested Response projection of it.
+    #[test]
+    fn evaluate_definition_inner_data_is_nested_and_values_flat() {
+        let def = json!({
+            "$formspec": "1.0", "url": "urn:t", "version": "1.0.0", "title": "T",
+            "items": [
+                { "key": "g", "type": "group", "label": "G", "children": [
+                    { "key": "a", "type": "field", "dataType": "string", "label": "A" }
+                ] },
+                { "key": "rows", "type": "group", "label": "R", "repeatable": true, "children": [
+                    { "key": "n", "type": "field", "dataType": "string", "label": "N" }
+                ] }
+            ]
+        })
+        .to_string();
+        let data = json!({"g": {"a": "x"}, "rows": [{"n": "p"}, {"n": "q"}]}).to_string();
+        let result = evaluate_definition_inner(&def, &data, None, None).unwrap();
+        let val: Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(val["data"], json!({"g": {"a": "x"}, "rows": [{"n": "p"}, {"n": "q"}]}));
+        assert_eq!(val["values"]["g.a"], json!("x"));
+        assert_eq!(val["values"]["rows[1].n"], json!("q"));
+    }
+
     // ── Finding 68: evaluate_definition_inner output shape ──────
 
     /// Spec: specs/core/spec.md §5.4 — ValidationReport output shape contract.
@@ -202,6 +225,7 @@ mod tests {
 
         // Top-level keys
         assert!(val.get("values").is_some(), "missing 'values' key");
+        assert!(val.get("data").is_some(), "missing 'data' key");
         assert!(
             val.get("validations").is_some(),
             "missing 'validations' key"
