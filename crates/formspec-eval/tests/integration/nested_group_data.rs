@@ -120,6 +120,12 @@ fn a_repeat_row_with_no_answered_field_still_counts() {
 }
 
 #[test]
+fn a_flat_repeat_seeds_no_template_path() {
+    let flat = eval(json!({ "rows[0].name": "a" }));
+    assert!(flat.values.keys().all(|k| !k.starts_with("rows.")), "no template-path seed: {:?}", flat.values.keys());
+}
+
+#[test]
 fn money_and_attachments_stay_whole_and_unknown_keys_survive() {
     let attachment = json!([{ "kind": "attachment-ref", "name": "a.pdf" }]);
     let nested = eval(json!({
