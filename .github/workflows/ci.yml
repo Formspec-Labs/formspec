@@ -14,7 +14,8 @@ on:
 jobs:
   unit-tests:
     name: Unit Tests (TS)
-    runs-on: ubuntu-latest
+    # The WASM is built in its pinned arm64 image; an arm64 runner runs it natively.
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 90
     defaults:
       run:
@@ -43,10 +44,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: formspec
-      - name: Install wasm-pack and wasm-opt
-        run: |
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-          sudo apt-get install -y binaryen
       - run: pip install maturin
       - run: pip install -e ".[test]"
       - run: pip install --no-build-isolation ./crates/formspec-py
@@ -88,7 +85,8 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
-    runs-on: ubuntu-latest
+    # The WASM is built in its pinned arm64 image; an arm64 runner runs it natively.
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 120
     defaults:
       run:
@@ -117,10 +115,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: formspec
-      - name: Install wasm-pack and wasm-opt
-        run: |
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-          sudo apt-get install -y binaryen
       - run: pip install maturin
       - run: pip install -e ".[test]" fastapi "uvicorn[standard]" pydantic
       - run: pip install --no-build-isolation ./crates/formspec-py

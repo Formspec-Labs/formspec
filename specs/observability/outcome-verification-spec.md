@@ -245,8 +245,8 @@ Version 0.1 recognizes this closed rule index:
 | `specRef`                                        | `specVersion`   | `ruleId`                          | Meaning                                           |
 | ------------------------------------------------ | --------------- | --------------------------------- | ------------------------------------------------- |
 | `https://formspec.org/specs/app-graph-validator` | `1.0.0-draft.1` | `rendered-node.direct-need-trace` | Static direct Need trace plus resolved mounting   |
-| `https://formspec.org/specs/surface`             | `0.2.0-draft.1` | `rendering.semantic-output`       | Qualified renderer-produced semantic output       |
-| `https://formspec.org/specs/surface`             | `0.2.0-draft.1` | `routing.current-route-state`     | Authoritative host/router current Surface route    |
+| `https://formspec.org/specs/surface`             | `0.3.0-draft.1` | `rendering.semantic-output`       | Qualified renderer-produced semantic output       |
+| `https://formspec.org/specs/surface`             | `0.3.0-draft.1` | `routing.current-route-state`     | Authoritative host/router current Surface route    |
 | `https://formspec.org/specs/data-sources`        | `1.0.0-draft.1` | `loader.qualified-result`         | Qualified load state and owner-reported freshness |
 | `https://formspec.org/specs/core`                | `1.0.0-draft.1` | `response.snapshot-status`        | Complete Response snapshot and stored status      |
 | `https://formspec.org/specs/core`                | `1.0.0-draft.1` | `validation.constraint-result`    | False Bind constraint emits `CONSTRAINT_FAILED`   |

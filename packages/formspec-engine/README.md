@@ -6,7 +6,7 @@ Core form state engine for Formspec. Manages field values, relevance, required s
 
 **Runtime dependencies:** `@preact/signals-core ^1.6.0`, `formspec-types` (workspace)
 **Module format:** ESM (`dist/index.js`)
-**Build:** `npm run build` (two `wasm-pack` outputs under `wasm-pkg-runtime/` / `wasm-pkg-tools/`, then `tsc` → `dist/`)
+**Build:** `npm run build` (two `wasm-pack` outputs under `wasm-pkg-runtime/` / `wasm-pkg-tools/`, built in the pinned Docker image `docker/wasm-build` so every host and the publish workflow produce the same bytes; then `tsc` → `dist/`). Docker is required; the native commands are `build:wasm:runtime` / `build:wasm:tools`.
 
 ---
 

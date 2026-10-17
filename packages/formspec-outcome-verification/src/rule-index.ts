@@ -31,12 +31,12 @@ export const OUTCOME_V01_SPECIFICATION_RULE_INDEX = Object.freeze([
   },
   {
     specRef: "https://formspec.org/specs/surface",
-    specVersion: "0.2.0-draft.1",
+    specVersion: "0.3.0-draft.1",
     ruleId: "routing.current-route-state",
   },
   {
     specRef: "https://formspec.org/specs/surface",
-    specVersion: "0.2.0-draft.1",
+    specVersion: "0.3.0-draft.1",
     ruleId: "rendering.semantic-output",
   },
 ] satisfies readonly SpecificationRule[]);
