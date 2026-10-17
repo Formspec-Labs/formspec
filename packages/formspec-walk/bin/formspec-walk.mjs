@@ -19,7 +19,8 @@ const USAGE = `usage: formspec-walk emit --docs <dir> --url <page url> [--locale
          reference web renderer, and prints the report as JSON. Exit 0: axe ran and found nothing; 1: it
          found violations; 3: it could not finish (timeout, browser failure) — never a pass.
   serve  POST /check with {definition, theme?, locales?, locale?} answers with the same report: 200 when
-         axe ran, 503 when it could not finish. GET /health for liveness. Needs @axe-core/playwright.
+         axe ran, 503 when it could not finish and a retry may (timeout, browser), 422 when it never can
+         (the form does not draw, a page cannot be reached, a Theme names an adapter the host lacks). GET /health for liveness. Needs @axe-core/playwright.
   --timeout-ms  hard cap on one check, browser start to report (default 60000)`;
 
 const args = process.argv.slice(2);

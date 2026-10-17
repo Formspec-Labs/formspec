@@ -278,8 +278,8 @@ const TAB = '[role="tab"]';
 
 /**
  * Run axe on `page`, which already shows a `<formspec-render>`: on every page of a wizard or tabs form,
- * once more on every page after the form is submitted empty (each field's validation error), and on
- * each field that relevance hides, shown by the values that reveal it. Fails (throws) when the pages
+ * once more on every page after the form is submitted empty (each field's validation error), with one row
+ * in every empty repeatable group, and on each field that relevance hides, shown by the values that reveal it. Fails (throws) when the pages
  * axe visited are fewer than the form has.
  */
 export async function runAxePass(page: Page, options: AxePassOptions = {}): Promise<AxePassResult> {
@@ -334,6 +334,35 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         throw new RendererError(`page ${index + 1} was not reached`);
     };
 
+    // A repeatable group with no rows draws none of its fields, so add one row to each (and to any repeat
+    // inside a new row) before looking, and take them out again after. One that cannot take a row is listed.
+    const added: Array<{ path: string; index: number }> = [];
+    const stuck = new Set<string>();
+    for (let round = 0; round < 6; round += 1) {
+        const step: { added: Array<{ path: string; index: number }>; stuck: string[] } = await page.evaluate((sel) => {
+            const engine = (document.querySelector(sel) as any).engine;
+            const out = { added: [] as Array<{ path: string; index: number }>, stuck: [] as string[] };
+            for (const [path, count] of Object.entries(engine.repeats as Record<string, { value: number }>)) {
+                if (count.value > 0) continue;
+                const index = engine.addRepeatInstance(path);
+                if (index === undefined) out.stuck.push(path);
+                else out.added.push({ path, index });
+            }
+            return out;
+        }, rootSelector);
+        added.push(...step.added);
+        step.stuck.forEach((p) => stuck.add(p));
+        if (!step.added.length) break;
+        await page.waitForTimeout(100);
+    }
+    for (const path of stuck) {
+        result.needsReview.push(reviewFinding('page-load', 'formspec-unreached-repeat', `Repeatable group ${path} has no rows and cannot take one, so the fields inside it were not checked`, path));
+    }
+    const removeAdded = () => page.evaluate(({ sel, rows }) => {
+        const engine = (document.querySelector(sel) as any).engine;
+        for (const { path, index } of [...rows].reverse()) engine.removeRepeatInstance(path, index);
+    }, { sel: rootSelector, rows: added });
+
     const analyse = async (id: string, kind: AxeState['kind'], step: number) => {
         const started = performance.now();
         const axe: AxeResultsLike = await new AxeBuilder({ page }).withTags([...WCAG_TAGS]).analyze();
@@ -343,67 +372,71 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         result.needsReview.push(...axe.incomplete.map((r) => toFinding(id, r)));
     };
 
-    for (let i = 0; i < drawn; i += 1) {
-        await goTo(i);
-        await analyse(`page-${i + 1}`, 'page', i + 1);
-        result.pages.visited += 1;
-    }
-    await goTo(0);
-    // Submitting shows every field's error, and a wizard may move to a page that has one: start over from the first.
-    await page.evaluate((selector) => (document.querySelector(selector) as any).submit({ emitEvent: false }), rootSelector);
-    await page.waitForTimeout(100);
-    await goTo(0);
-    for (let i = 0; i < drawn; i += 1) {
-        await goTo(i);
-        await analyse(`errors-${i + 1}`, 'validation-errors', i + 1);
-    }
+    try {
+        for (let i = 0; i < drawn; i += 1) {
+            await goTo(i);
+            await analyse(`page-${i + 1}`, 'page', i + 1);
+            result.pages.visited += 1;
+        }
+        await goTo(0);
+        // Submitting shows every field's error, and a wizard may move to a page that has one: start over from the first.
+        await page.evaluate((selector) => (document.querySelector(selector) as any).submit({ emitEvent: false }), rootSelector);
+        await page.waitForTimeout(100);
+        await goTo(0);
+        for (let i = 0; i < drawn; i += 1) {
+            await goTo(i);
+            await analyse(`errors-${i + 1}`, 'validation-errors', i + 1);
+        }
 
-    // Fields relevance hides: show each by the values that reveal it, check its page, put the values back.
-    const hidden: string[] = await page.evaluate((sel) => {
-        const engine = (document.querySelector(sel) as any).engine;
-        const base = (p: string) => p.replace(/\[\d+\]/g, '');
-        return [...new Set((engine.getFieldPaths() as string[]).filter((p) => !engine.isPathRelevant(p)).map(base))];
-    }, rootSelector);
-    for (const [n, path] of hidden.entries()) {
-        const id = `reveal-${path}`;
-        if (n >= maxReveals) {
-            result.needsReview.push(reviewFinding(id, 'formspec-unreached-field', `Field ${path} is hidden by a relevance rule and was not checked: more than ${maxReveals} such fields`, path));
-            continue;
-        }
-        const recipe: RecipeStep[] | null = await page.evaluate(({ sel, src, p }) => {
+        // Fields relevance hides: show each by the values that reveal it, check its page, put the values back.
+        const hidden: string[] = await page.evaluate((sel) => {
             const engine = (document.querySelector(sel) as any).engine;
-            const search = new Function(`return ${src}`)();
-            return search(engine, p, {}) as RecipeStep[] | null;
-        }, { sel: rootSelector, src: revealSearch.toString(), p: path });
-        if (!recipe) {
-            result.needsReview.push(reviewFinding(id, 'formspec-unreached-field', `Field ${path} is hidden by a relevance rule that no value the documents name can satisfy, so it was not checked`, path));
-            continue;
-        }
-        try {
-            await page.waitForTimeout(100);
-            const pageIndex: number = await page.evaluate(({ sel, ps, p }) => {
-                const root = document.querySelector(sel)!;
-                const field = root.querySelector(`[data-name="${p}"]`);
-                if (!field || !ps) return 0;
-                return [...root.querySelectorAll(ps)].findIndex((panel) => panel.contains(field));
-            }, { sel: rootSelector, ps: panelSelector, p: path });
-            if (pageIndex < 0) throw new RendererError(`field ${path} was revealed but sits on no page`);
-            await goTo(pageIndex);
-            await analyse(id, 'page', pageIndex + 1);
-            result.pages.revealedFields += 1;
-        } finally {
-            await page.evaluate(({ sel, steps }) => {
+            const base = (p: string) => p.replace(/\[\d+\]/g, '');
+            return [...new Set((engine.getFieldPaths() as string[]).filter((p) => !engine.isPathRelevant(p)).map(base))];
+        }, rootSelector);
+        for (const [n, path] of hidden.entries()) {
+            const id = `reveal-${path}`;
+            if (n >= maxReveals) {
+                result.needsReview.push(reviewFinding(id, 'formspec-unreached-field', `Field ${path} is hidden by a relevance rule and was not checked: more than ${maxReveals} such fields`, path));
+                continue;
+            }
+            const recipe: RecipeStep[] | null = await page.evaluate(({ sel, src, p }) => {
                 const engine = (document.querySelector(sel) as any).engine;
-                for (const { path, previous } of [...steps].reverse()) engine.setValue(path, previous);
-            }, { sel: rootSelector, steps: recipe });
+                const search = new Function(`return ${src}`)();
+                return search(engine, p, {}) as RecipeStep[] | null;
+            }, { sel: rootSelector, src: revealSearch.toString(), p: path });
+            if (!recipe) {
+                result.needsReview.push(reviewFinding(id, 'formspec-unreached-field', `Field ${path} is hidden by a relevance rule that no value the documents name can satisfy, so it was not checked`, path));
+                continue;
+            }
+            try {
+                await page.waitForTimeout(100);
+                const pageIndex: number = await page.evaluate(({ sel, ps, p }) => {
+                    const root = document.querySelector(sel)!;
+                    const field = root.querySelector(`[data-name="${p}"]`);
+                    if (!field || !ps) return 0;
+                    return [...root.querySelectorAll(ps)].findIndex((panel) => panel.contains(field));
+                }, { sel: rootSelector, ps: panelSelector, p: path });
+                if (pageIndex < 0) throw new RendererError(`field ${path} was revealed but sits on no page`);
+                await goTo(pageIndex);
+                await analyse(id, 'page', pageIndex + 1);
+                result.pages.revealedFields += 1;
+            } finally {
+                await page.evaluate(({ sel, steps }) => {
+                    const engine = (document.querySelector(sel) as any).engine;
+                    for (const { path, previous } of [...steps].reverse()) engine.setValue(path, previous);
+                }, { sel: rootSelector, steps: recipe });
+            }
         }
+    } finally {
+        await removeAdded().catch(() => undefined);
     }
     return result;
 }
 
 /** The page after `open`: drawn, or a renderer failure with its reason. */
 async function waitForForm(page: Page, rootSelector: string): Promise<void> {
-    await page.waitForSelector(`${rootSelector} [data-name], html[data-formspec-host="error"]`, { state: 'attached' });
+    await page.waitForSelector(`${rootSelector} [data-formspec-form], html[data-formspec-host="error"]`, { state: 'attached' });
     const error = await page.evaluate(() => (window as { __formspecHost?: { error?: string } }).__formspecHost?.error);
     if (error) throw new RendererError(error);
 }

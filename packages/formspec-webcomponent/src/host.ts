@@ -18,10 +18,10 @@ declare global {
     }
 }
 
-/** Wait until the renderer has drawn at least one field, or give up after `timeoutMs`. */
+/** Wait until the renderer has drawn the form (a form whose only content is an empty repeat has no field yet), or give up after `timeoutMs`. */
 function drawn(element: FormspecRender, timeoutMs: number): Promise<void> {
     return new Promise((resolve, reject) => {
-        const found = () => element.querySelector('[data-name]') !== null;
+        const found = () => element.querySelector('[data-formspec-form]') !== null;
         if (found()) { resolve(); return; }
         const timer = setTimeout(() => { observer.disconnect(); reject(new Error(`form not drawn within ${timeoutMs} ms`)); }, timeoutMs);
         const observer = new MutationObserver(() => {

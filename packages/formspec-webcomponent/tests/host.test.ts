@@ -31,9 +31,15 @@ describe('mountHost', () => {
         expect(el.querySelector('[data-name="name"] label')?.textContent).toContain('Name');
     });
 
-    it('rejects when nothing is drawn within the time allowed', async () => {
-        const empty = { ...(definition as object), items: [] } as never;
-        await expect(mountHost({ definition: empty }, { wasmBytes }, document.body, 100)).rejects.toThrow(/not drawn within 100 ms/);
+    it('draws a form whose only content is an empty repeat', async () => {
+        const repeat = { ...(definition as object), items: [{ key: 'people', type: 'group', label: 'People', repeatable: true, children: [{ key: 'n', type: 'field', dataType: 'string', label: 'N' }] }] } as never;
+        const el = await mountHost({ definition: repeat }, { wasmBytes }, document.body, 2000);
+        expect(el.querySelector('[data-formspec-form]')).not.toBeNull();
+    });
+
+    it('refuses a Theme that names a render adapter the host does not have', async () => {
+        const theme = { $formspecTheme: '1.0', url: 'urn:test:t', version: '1.0.0', tokens: {}, adapter: 'uswds' } as never;
+        await expect(mountHost({ definition, theme }, { wasmBytes })).rejects.toThrow(/adapter 'uswds'.*only: default/);
     });
 });
 

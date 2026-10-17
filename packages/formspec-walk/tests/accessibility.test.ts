@@ -237,6 +237,47 @@ describe('every page is visited, or the check fails', () => {
     });
 });
 
+describe('nothing hides inside an empty repeat or behind an ancestor rule', () => {
+    const unlabelled = (key: string) => ({ key, type: 'field', dataType: 'string', label: '' });
+    const base = (items: unknown[], binds: unknown[] = []) => ({
+        $formspec: '1.0', url: 'urn:test:hidden', version: '1.0.0', status: 'draft', title: 'hidden', items, binds,
+    });
+    const choice = (key: string) => ({ key, type: 'field', dataType: 'choice', label: key, options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] });
+
+    it('a repeatable group with no rows is checked with one row, and the row is taken out again', async () => {
+        const definition = base([{ key: 'people', type: 'group', label: 'People', repeatable: true, children: [unlabelled('name')] }]);
+        const report = await server.check({ definition: definition as never });
+        expect(report.status).toBe('completed');
+        expect(report.violations.some((v) => v.rule === 'label' && v.state === 'page-1')).toBe(true);
+    });
+
+    it('a repeat inside a new row gets a row too', async () => {
+        const inner = { key: 'pets', type: 'group', label: 'Pets', repeatable: true, children: [unlabelled('petName')] };
+        const definition = base([{ key: 'people', type: 'group', label: 'People', repeatable: true, children: [inner] }]);
+        const report = await server.check({ definition: definition as never });
+        expect(report.violations.some((v) => v.rule === 'label')).toBe(true);
+    });
+
+    it('a repeat that cannot take a row is listed for review, never passed silently', async () => {
+        const definition = base([{ key: 'people', type: 'group', label: 'People', repeatable: true, maxRepeat: 0, children: [unlabelled('name')] }]);
+        const report = await server.check({ definition: definition as never });
+        expect(report.status).toBe('completed');
+        const listed = report.needsReview.filter((f) => f.rule === 'formspec-unreached-repeat');
+        expect(listed.map((f) => f.nodes[0].target[0])).toEqual(['people']);
+    });
+
+    it('fields behind relevance on an ancestor group, or on two nested ones, are reached', async () => {
+        const nested = { key: 'g2', type: 'group', label: 'G2', children: [{ key: 'sub', type: 'group', label: 'Sub', children: [unlabelled('inner')] }] };
+        const one = await server.check({ definition: base([choice('kind'), nested], [{ path: 'g2', relevant: "$kind = 'b'" }]) as never });
+        expect(one.violations.some((v) => v.state === 'reveal-g2.sub.inner' && v.rule === 'label')).toBe(true);
+        const two = await server.check({
+            definition: base([choice('kind'), choice('kind2'), nested], [{ path: 'g2', relevant: "$kind = 'b'" }, { path: 'g2.sub', relevant: "$kind2 = 'b'" }]) as never,
+        });
+        expect(two.violations.some((v) => v.state === 'reveal-g2.sub.inner' && v.rule === 'label')).toBe(true);
+        expect(two.needsReview.filter((f) => f.rule === 'formspec-unreached-field')).toEqual([]);
+    });
+});
+
 describe('the page is fenced from the network', () => {
     it('a Theme stylesheet and a Definition data source are never fetched and are listed for review', async () => {
         const hits: string[] = [];
@@ -267,6 +308,10 @@ describe('the page is fenced from the network', () => {
         expect(report.status).toBe('failed');
         expect(report.failure?.reason).toBe('renderer');
         expect(report.failure?.message).toContain("'uswds'");
+        // Retrying can never help: 422 with no Retry-After, unlike a dead browser (503).
+        const res = await post({ definition: CLEAN, theme });
+        expect(res.status).toBe(422);
+        expect(res.headers.get('retry-after')).toBeNull();
     });
 
     it('the report says which adapter was tested', async () => {

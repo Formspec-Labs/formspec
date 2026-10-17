@@ -113,7 +113,7 @@ export class AccessibilityServer {
         }
     }
 
-    /** Start listening. `POST /check` takes the documents and answers 200 with the report, or 503 when the check could not finish. */
+    /** Start listening. `POST /check` takes the documents and answers 200 with the report, 503 (with `Retry-After`) when the check could not finish and a retry may, or 422 when this form can never be checked (it does not draw, a page cannot be reached, its Theme names a missing adapter). */
     async listen(port = 0, host = '127.0.0.1'): Promise<void> {
         this.server = createServer((req, res) => void this.handle(req, res));
         await new Promise<void>((resolve, reject) => {
@@ -147,7 +147,10 @@ export class AccessibilityServer {
                 const documents = await readDocuments(req);
                 if (typeof documents === 'string') return send(documents.startsWith('too large') ? 413 : 400, { error: documents });
                 const report = await this.check(documents);
-                return send(report.status === 'completed' ? 200 : 503, report);
+                // A form the renderer cannot draw, or whose pages cannot all be reached, fails the same way every
+                // time: 422, no Retry-After. A browser that died or ran out of time may succeed later: 503.
+                const retryable = report.failure && report.failure.reason !== 'renderer' && report.failure.reason !== 'pages';
+                return send(report.status === 'completed' ? 200 : retryable ? 503 : 422, report);
             }
             return send(404, { error: 'not found' });
         } catch (error) {
