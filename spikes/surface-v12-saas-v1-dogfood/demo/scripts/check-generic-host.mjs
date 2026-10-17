@@ -299,7 +299,8 @@ const sampleValues = new Set();
 // These authored values also name stable generic Formspec concepts. Their
 // spelling alone cannot distinguish product leakage from framework behavior,
 // so the guard admits them and continues to reject the more specific IDs,
-// references, copy, and samples around them.
+// references, copy, and samples around them. `responseId` is the ResponseReview copy slot
+// (RESPONSE_REVIEW_COPY_KEYS) as well as a tenant table column.
 const genericIdentifierCollisions = new Set([
   "/app",
   "/receipt",
@@ -311,6 +312,7 @@ const genericIdentifierCollisions = new Set([
   "label",
   "name",
   "organization",
+  "responseId",
   "role",
   "status",
   "submittedAt",
