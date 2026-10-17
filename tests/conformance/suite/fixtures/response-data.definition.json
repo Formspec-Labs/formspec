@@ -17,10 +17,16 @@
       { "key": "members", "type": "group", "label": "Members", "repeatable": true, "children": [
         { "key": "age", "type": "field", "dataType": "integer", "label": "Age" }
       ] }
+    ] },
+    { "key": "kept", "type": "group", "label": "Kept", "repeatable": true, "children": [
+      { "key": "a", "type": "field", "dataType": "string", "label": "A" },
+      { "key": "b", "type": "field", "dataType": "string", "label": "B" }
     ] }
   ],
   "binds": [
     { "path": "g", "relevant": "$show = true", "nonRelevantBehavior": "empty" },
-    { "path": "rows", "relevant": "$show = true", "nonRelevantBehavior": "empty" }
+    { "path": "rows", "relevant": "$show = true", "nonRelevantBehavior": "empty" },
+    { "path": "kept", "relevant": "$show = true" },
+    { "path": "kept[*].a", "nonRelevantBehavior": "keep" }
   ]
 }

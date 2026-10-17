@@ -56,12 +56,8 @@ fn emit(
             }
             ("group", true) => {
                 covered.insert(item.path.clone());
-                // `remove` drops a non-relevant repeat with its rows. `empty` keeps every row with null
-                // leaves (apply_nrb nulled them) and `keep` keeps the rows as answered.
-                if !item.relevant && mode == NrbMode::Remove {
-                    cover(&item.children, covered);
-                    continue;
-                }
+                // Rows come from the post-NRB `values`, so each leaf's most specific behavior already
+                // applied: `empty` left null leaves, `keep` the answers, `remove` nothing.
                 // Expanded rows are consecutive runs of children sharing a `parent_path` (`rows[i]`).
                 let mut rows: Vec<(&str, Map<String, Value>)> = Vec::new();
                 for child in &item.children {
@@ -71,6 +67,12 @@ fn emit(
                     }
                     let (_, object) = rows.last_mut().expect("row pushed above");
                     emit(std::slice::from_ref(child), values, mode, covered, object);
+                }
+                // A repeat removed as non-relevant survives only through a descendant whose own
+                // `keep` or `empty` outranks it, the rule the group branch applies to its object.
+                let removed = !item.relevant && mode == NrbMode::Remove;
+                if removed && rows.iter().all(|(_, row)| row.is_empty()) {
+                    continue;
                 }
                 into.insert(
                     item.key.clone(),
@@ -84,14 +86,6 @@ fn emit(
                 }
             }
         }
-    }
-}
-
-/// Mark every path under `items` as accounted for, so an omitted subtree is not re-emitted as extras.
-fn cover(items: &[ItemInfo], covered: &mut HashSet<String>) {
-    for item in items {
-        covered.insert(item.path.clone());
-        cover(&item.children, covered);
     }
 }
 

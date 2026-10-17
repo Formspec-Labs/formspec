@@ -27,7 +27,8 @@
       "rows": [],
       "household": {
         "members": []
-      }
+      },
+      "kept": []
     }
   },
   "legacyCoverage": [
