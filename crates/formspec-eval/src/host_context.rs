@@ -98,15 +98,17 @@ impl HostFelContext {
             .map(|values| values.as_object().ok_or("values must be a JSON object"))
             .transpose()?;
         // A row array at a repeat's path repeats the rows that sit beside it at `path[i].leaf`; FEL
-        // reads those. A multi-valued field's array has no such rows and is kept.
-        let has_rows = |path: &str| {
-            let prefix = format!("{path}[");
-            supplied.is_some_and(|all| all.keys().any(|key| key.starts_with(&prefix)))
-        };
+        // reads those. A multi-valued field's array has no such rows and is kept. Every `[` in a key
+        // closes a repeat path with rows (`rows[0].tasks[1].x` → `rows`, `rows[0].tasks`): one pass.
+        let with_rows: HashSet<&str> = supplied
+            .into_iter()
+            .flat_map(|all| all.keys())
+            .flat_map(|key| key.match_indices('[').map(|(at, _)| &key[..at]))
+            .collect();
         self.values = supplied
             .into_iter()
             .flatten()
-            .filter(|(path, value)| !(value.is_array() && has_rows(path)))
+            .filter(|(path, value)| !(value.is_array() && with_rows.contains(path.as_str())))
             .map(|(path, value)| (path.clone(), value.clone()))
             .collect();
         self.aliases = RepeatAliases::from_field_paths(self.values.keys().map(String::as_str));
