@@ -5,6 +5,7 @@ import { FormspecRender } from './element';
 import { HOST_CONFIG_ID, HOST_STATE_ATTRIBUTE, HOST_WASM_ID, type HostDocuments } from './host-contract';
 
 export { HOST_CONFIG_ID, HOST_STATE_ATTRIBUTE, HOST_WASM_ID, type HostDocuments };
+export type { HostReceipt } from './host-contract';
 
 /** What the page supplies because it has no network: the engine's runtime `.wasm` bytes. */
 export interface HostRuntime {
@@ -68,6 +69,25 @@ export async function mountHost(
     return element;
 }
 
+/**
+ * Print mode (`readOnly`): the respondent's answers stay visible but nothing can change. Text-like
+ * controls become read-only and announce it; choices, selects and file controls, which have no read-only
+ * state, are disabled. The page's print stylesheet shows every page and hides navigation.
+ */
+export function freezeControls(root: ParentNode): void {
+    for (const control of Array.from(root.querySelectorAll('input, select, textarea'))) {
+        const input = control as HTMLInputElement;
+        const textLike = control instanceof HTMLTextAreaElement
+            || (control instanceof HTMLInputElement && !['checkbox', 'radio', 'file', 'range', 'color', 'button', 'submit', 'reset', 'image'].includes(input.type));
+        if (textLike) {
+            input.readOnly = true;
+            control.setAttribute('aria-readonly', 'true');
+        } else {
+            input.disabled = true;
+        }
+    }
+}
+
 /** Decode standard base64 into bytes. */
 function fromBase64(text: string): Uint8Array<ArrayBuffer> {
     const binary = atob(text.trim());
@@ -88,6 +108,7 @@ export async function bootHost(root: Document = document): Promise<void> {
         const config = JSON.parse(root.getElementById(HOST_CONFIG_ID)!.textContent!) as HostDocuments;
         const wasmBytes = fromBase64(root.getElementById(HOST_WASM_ID)!.textContent!);
         host.element = await mountHost(config, { wasmBytes }, root.getElementById('formspec-host-root') ?? root.body);
+        if (config.readOnly) freezeControls(host.element);
         root.documentElement.setAttribute(HOST_STATE_ATTRIBUTE, 'ready');
     } catch (error) {
         host.error = error instanceof Error ? error.message : String(error);
