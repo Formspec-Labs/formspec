@@ -14,7 +14,9 @@
       "info": 0
     },
     "results": [],
-    "data": {}
+    "data": {
+      "employersOnRecord": []
+    }
   },
   "legacyCoverage": [
     {
