@@ -202,45 +202,40 @@ def test_tax_fixture_exercises_source_option_sets_and_cross_section_consistency(
 def test_microgrant_payload_evaluates_and_returns_shape_results(
     fixtures: dict[str, dict],
 ) -> None:
+    # The evaluator reads flat dotted-path data (formspec-eval README). Group-nested input is not
+    # looked up by path when seeding, so `contact.contactEmail` would be pre-populated and
+    # `project.hasSubawards` reset to its initialValue over what the payload says.
     result = evaluate_definition(
         fixtures["microgrant"],
         {
-            "applicant": {
-                "orgLegalName": "Neighborhood Arts Collective",
-                "orgEin": "123456789",
-                "applicantProgramArea": "arts",
-                "hasFiscalSponsor": False,
-            },
-            "project": {
-                "projectTitle": "Summer Murals",
-                "requestAmount": {"amount": "1000", "currency": "USD"},
-                "hasSubawards": True,
-                "subawardRows": [
-                    {
-                        "subawardName": "Community Partner",
-                        "subawardAmount": {"amount": "800", "currency": "USD"},
-                    }
-                ],
-                "indirectCostPolicy": "none",
-                "indirectRate": 12.5,
-                "indirectExplanation": "Should disappear",
-            },
-            "contact": {
-                "contactEmail": "",
-                "contactPhone": "",
-            },
-            "certifications": {
-                "attestationAccepted": False,
-            },
+            "applicant.orgLegalName": "Neighborhood Arts Collective",
+            "applicant.orgEin": "123456789",
+            "applicant.applicantProgramArea": "arts",
+            "applicant.hasFiscalSponsor": False,
+            "project.projectTitle": "Summer Murals",
+            "project.requestAmount": {"amount": "1000", "currency": "USD"},
+            "project.hasSubawards": True,
+            "project.subawardRows": [
+                {
+                    "subawardName": "Community Partner",
+                    "subawardAmount": {"amount": "800", "currency": "USD"},
+                }
+            ],
+            "project.indirectCostPolicy": "none",
+            "project.indirectRate": 12.5,
+            "project.indirectExplanation": "Should disappear",
+            "contact.contactEmail": "",
+            "contact.contactPhone": "",
+            "certifications.attestationAccepted": False,
         },
     )
 
-    # Rust evaluator produces validation results
     assert isinstance(result.results, list)
     assert isinstance(result.data, dict)
-    # Shape results use constraintKind="shape" in the Rust backend
+    # Shape results use constraintKind="shape" in the Rust backend; subawards of 800 exceed 40% of 1000.
     shape_results = [r for r in result.results if r.get("constraintKind") == "shape"]
-    assert len(shape_results) > 0, "Expected shape validation results"
+    assert {r["code"] for r in shape_results} >= {"SUBAWARD_CAP"}
+    assert "microgrant-contact-channel" in {r.get("shapeId") for r in shape_results}
 
 
 def test_clinical_payload_evaluates_and_returns_results(
