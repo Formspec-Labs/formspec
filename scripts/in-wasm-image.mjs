@@ -7,6 +7,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
+import os from 'node:os';
 import process from 'node:process';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -62,7 +63,7 @@ const container = docker(
 ).stdout.trim();
 const stop = () => { docker(['rm', '-f', container], { stdio: 'ignore', allowFailure: true }); };
 for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.on(signal, () => { stop(); process.exit(130); });
+  process.on(signal, () => { stop(); process.exit(128 + os.constants.signals[signal]); });
 }
 try {
   copyIn(repo, container, '/src/formspec');
