@@ -298,8 +298,20 @@ pub(crate) fn definition_version(definition: &Value) -> Option<&str> {
     definition.get("version").and_then(Value::as_str)
 }
 
-/// Match Node-style SemVer ranges using the same prerelease posture as JS artifact admission.
-pub(crate) fn compatible_version_satisfied(range: &str, version: &str) -> Option<bool> {
+/// Whether `version` satisfies the Node-style SemVer `range`, prereleases included.
+///
+/// This is how a companion document's `compatibleVersions` matches a Definition `version`, with the
+/// same prerelease posture as JS artifact admission. Returns `None` when either string does not parse.
+///
+/// # Examples
+///
+/// ```
+/// use formspec_lint::compatible_version_satisfied;
+///
+/// assert_eq!(compatible_version_satisfied(">=1.0.0 <2.0.0", "1.4.0"), Some(true));
+/// assert_eq!(compatible_version_satisfied("2.0.0", "1.0.0"), Some(false));
+/// ```
+pub fn compatible_version_satisfied(range: &str, version: &str) -> Option<bool> {
     let options = semver_rs::Options::builder()
         .include_prerelease(true)
         .build();
