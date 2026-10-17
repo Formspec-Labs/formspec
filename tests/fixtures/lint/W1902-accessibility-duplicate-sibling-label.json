@@ -1,0 +1,21 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.com/forms/w1902",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "w1902 fixture",
+  "items": [
+    {
+      "key": "home",
+      "type": "field",
+      "dataType": "string",
+      "label": "Phone"
+    },
+    {
+      "key": "work",
+      "type": "field",
+      "dataType": "string",
+      "label": "Phone"
+    }
+  ]
+}

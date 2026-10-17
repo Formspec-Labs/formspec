@@ -1,0 +1,27 @@
+{
+  "$formspecLocale": "2.0",
+  "version": "1.0.0",
+  "locale": "fr",
+  "target": {
+    "kind": "definition",
+    "url": "https://example.com/forms/e1901"
+  },
+  "strings": {
+    "name.label": "  "
+  },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/e1901",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "e1901 fixture",
+    "items": [
+      {
+        "key": "name",
+        "type": "field",
+        "dataType": "string",
+        "label": "Name"
+      }
+    ]
+  }
+}

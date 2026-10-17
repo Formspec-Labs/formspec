@@ -39,6 +39,7 @@
       "types": "./dist/demo-submit-response-actions.d.ts",
       "default": "./dist/demo-submit-response-actions.js"
     },
+    "./wasm-runtime": "./wasm-pkg-runtime/formspec_wasm_runtime_bg.wasm",
     "./static-presentation": {
       "types": "./dist/static-presentation-entry.d.ts",
       "default": "./dist/static-presentation-entry.js"

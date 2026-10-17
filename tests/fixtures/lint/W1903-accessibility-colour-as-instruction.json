@@ -1,0 +1,16 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.com/forms/w1903",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "w1903 fixture",
+  "items": [
+    {
+      "key": "name",
+      "type": "field",
+      "dataType": "string",
+      "label": "Name",
+      "hint": "Fields marked in red are required"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 /** @filedesc Public `initFormspecEngine` / `isFormspecEngineInitialized` — runtime WASM only until tools APIs run (ADR 0050). */
 
-import { initWasm, isWasmReady } from './wasm-bridge-runtime.js';
+import { initWasm, isWasmReady, type InitWasmOptions } from './wasm-bridge-runtime.js';
 import { initWasmTools, isWasmToolsReady } from './wasm-bridge-tools.js';
 
 /**
@@ -10,9 +10,11 @@ import { initWasmTools, isWasmToolsReady } from './wasm-bridge-tools.js';
  * Safe to call multiple times; concurrent calls share one load.
  *
  * Not required for `formspec-webcomponent` only: importing that package starts WASM load automatically.
+ * A host with no way to fetch the `.wasm` asset passes its bytes as `wasmBytes`; they win over the
+ * default load, but only if this is the first call to start one.
  */
-export async function initFormspecEngine(): Promise<void> {
-    return initWasm();
+export async function initFormspecEngine(options?: InitWasmOptions): Promise<void> {
+    return initWasm(options);
 }
 
 /**

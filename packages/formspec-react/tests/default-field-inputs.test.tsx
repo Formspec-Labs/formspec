@@ -1795,3 +1795,25 @@ describe('Select — clear button icon aria-hidden', () => {
         expect(hiddenSpan!.textContent).toBe('×');
     });
 });
+
+// ── FileUpload drop zone accessibility ─────────────────────────────
+
+describe('FileUpload — drop zone accessibility (axe, WCAG A/AA)', () => {
+    it('the drop zone is a group around one Browse button, with no violations', async () => {
+        const axe = (await import('axe-core')).default;
+        const def = baseDef([{ key: 'doc', type: 'field', dataType: 'string', label: 'Doc' }]);
+        const node: LayoutNode = {
+            id: 'doc-field', component: 'FileUpload', category: 'field',
+            props: { dragDrop: true }, cssClasses: [], children: [], bindPath: 'doc',
+        };
+        const container = renderField(def, node);
+        document.body.appendChild(container);
+        const zone = container.querySelector('.formspec-file-drop-zone')!;
+        expect(zone.getAttribute('role')).toBe('group');
+        expect(zone.hasAttribute('tabindex')).toBe(false);
+        expect(zone.querySelectorAll('button')).toHaveLength(1);
+
+        const results = await axe.run(container, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'], rules: { 'color-contrast': { enabled: false } } });
+        expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(' ')}`)).toEqual([]);
+    });
+});

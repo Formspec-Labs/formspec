@@ -11,7 +11,8 @@ use std::sync::LazyLock;
 
 use serde_json::Value;
 
-use crate::types::LintDiagnostic;
+use crate::generated::LintCode;
+use crate::types::{LintDiagnostic, LintSeverity};
 
 /// Embedded contents of the canonical registry. The file is read at compile
 /// time so a typo or missing entry becomes a build-time failure rather than a
@@ -74,6 +75,84 @@ fn load_registry() -> HashMap<String, RuleMetadata> {
         );
     }
     map
+}
+
+/// What the registry says about a rule regardless of its graduation state: its severity and the
+/// WCAG success criteria it is tagged with (`wcag`, empty for rules that are not accessibility rules).
+#[derive(Debug)]
+struct RuleClass {
+    /// Registry severity; the single source for rules that ask for it.
+    severity: LintSeverity,
+    /// WCAG 2.2 success criteria, e.g. `1.4.3`.
+    wcag: Vec<String>,
+}
+
+/// Every registry rule's class, with the codes in registry order.
+static CLASSES: LazyLock<(Vec<LintCode>, HashMap<LintCode, RuleClass>)> = LazyLock::new(|| {
+    let parsed: Value =
+        serde_json::from_str(REGISTRY_JSON).expect("specs/lint-codes.json must be valid JSON");
+    let rules = parsed
+        .get("rules")
+        .and_then(Value::as_array)
+        .expect("specs/lint-codes.json must have a top-level `rules` array");
+    let classes: Vec<(LintCode, RuleClass)> = rules
+        .iter()
+        .map(|rule| {
+            let code = rule
+                .get("code")
+                .and_then(Value::as_str)
+                .and_then(LintCode::parse_wire)
+                .expect("registry rule has a known `code`");
+            let severity = match rule.get("severity").and_then(Value::as_str) {
+                Some("error") => LintSeverity::Error,
+                Some("warning") => LintSeverity::Warning,
+                Some("info") => LintSeverity::Info,
+                other => panic!("registry rule {code} has invalid severity {other:?}"),
+            };
+            let wcag = rule
+                .get("wcag")
+                .and_then(Value::as_array)
+                .map(|criteria| {
+                    criteria
+                        .iter()
+                        .filter_map(|c| c.as_str().map(str::to_owned))
+                        .collect()
+                })
+                .unwrap_or_default();
+            (code, RuleClass { severity, wcag })
+        })
+        .collect();
+    (
+        classes.iter().map(|(code, _)| *code).collect(),
+        classes.into_iter().collect(),
+    )
+});
+
+/// The registry class of a code; every generated `LintCode` has one.
+fn class_of(code: LintCode) -> &'static RuleClass {
+    CLASSES
+        .1
+        .get(&code)
+        .expect("every LintCode is generated from the registry")
+}
+
+/// The severity `specs/lint-codes.json` gives a rule.
+pub(crate) fn registry_severity(code: LintCode) -> LintSeverity {
+    class_of(code).severity
+}
+
+/// The WCAG success criteria a rule is tagged with in `specs/lint-codes.json`; empty when untagged.
+pub fn wcag_criteria(code: LintCode) -> &'static [String] {
+    &class_of(code).wcag
+}
+
+/// Every rule tagged with at least one WCAG success criterion, in registry order.
+pub(crate) fn accessibility_codes() -> impl Iterator<Item = LintCode> {
+    CLASSES
+        .0
+        .iter()
+        .copied()
+        .filter(|code| !class_of(*code).wcag.is_empty())
 }
 
 /// Look up the authoring-loop metadata for a diagnostic code.

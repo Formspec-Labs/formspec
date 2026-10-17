@@ -56,6 +56,13 @@ pub fn lint_theme(theme: &Value, definition: Option<&Value>) -> Vec<LintDiagnost
     diags
 }
 
+/// Only the contrast diagnostics (E1903, W714): the Theme's part of the accessibility document check.
+pub(crate) fn lint_contrast(theme: &Value) -> Vec<LintDiagnostic> {
+    let mut diags = Vec::new();
+    contrast::lint_contrast_pairs(theme, token_registry::token_registry(), &mut diags);
+    diags
+}
+
 fn lint_pages(theme: &Value, diags: &mut Vec<LintDiagnostic>) {
     let Some(pages) = theme.get("pages").and_then(|v| v.as_array()) else {
         return;

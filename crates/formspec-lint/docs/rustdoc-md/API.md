@@ -43,6 +43,7 @@ Pass 8 (E606-E607/E610, E900-E902): Surface route graph and Response
 cross-field invariants (ADR 0150 §6)
 Registry-only E611 is emitted by the TypeScript AppGraphValidator, not this crate.
 Pass 9 (E1100-E1805/W1100-W1802): Companion document semantic lint
+Pass 10 (E1900-E1904/W1900-W1905): Accessibility document rules, WCAG-tagged (`check_accessibility`)
 
 ## Documentation
 
@@ -84,6 +85,14 @@ Pass 9 (E1100-E1805/W1100-W1802): Companion document semantic lint
 
 *1 function*
 
+### [`metadata`](metadata.md)
+
+*1 function*
+
+### [`pass_accessibility`](pass_accessibility.md)
+
+*1 enum, 1 function, 3 structs*
+
 ### [`pass_component`](pass_component.md)
 
 *1 function*
@@ -115,6 +124,10 @@ Pass 9 (E1100-E1805/W1100-W1802): Companion document semantic lint
 ### [`references`](references.md)
 
 *1 function*
+
+### [`schema_validation`](schema_validation.md)
+
+*2 functions*
 
 ### [`tree`](tree.md)
 
@@ -447,10 +460,10 @@ An app-graph diagnostic preserved for lint consumers.
 
 - **PartialEq**
   - `fn eq(self: &Self, other: &AppGraphLintDiagnostic) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> AppGraphLintDiagnostic`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> AppGraphLintDiagnostic`
 
 
 
@@ -484,16 +497,16 @@ Schema validation errors for an app-graph report bridge input.
 **Fields:**
 - `errors: Vec<String>` - Schema-validation error messages.
 
-**Traits:** Error, Eq
+**Traits:** Eq, Error
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> AppGraphReportSchemaError`
 - **PartialEq**
   - `fn eq(self: &Self, other: &AppGraphReportSchemaError) -> bool`
 - **Display**
   - `fn fmt(self: &Self, formatter: & mut std::fmt::Formatter) -> std::fmt::Result`
-- **Clone**
-  - `fn clone(self: &Self) -> AppGraphReportSchemaError`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
@@ -569,12 +582,12 @@ Result of checking a component against a dataType.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> Compatibility`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &Compatibility) -> bool`
+- **Clone**
+  - `fn clone(self: &Self) -> Compatibility`
 
 
 
@@ -879,6 +892,13 @@ Canonical lint diagnostic code (registry-driven).
 - `W1204` - Registry code `W1204`.
 - `W1205` - Registry code `W1205`.
 - `W1206` - Registry code `W1206`.
+- `W1207` - Registry code `W1207`.
+- `W1208` - Registry code `W1208`.
+- `W1209` - Registry code `W1209`.
+- `W1210` - Registry code `W1210`.
+- `W1211` - Registry code `W1211`.
+- `W1212` - Registry code `W1212`.
+- `W1213` - Registry code `W1213`.
 - `E1300` - Registry code `E1300`.
 - `E1301` - Registry code `E1301`.
 - `E1302` - Registry code `E1302`.
@@ -925,6 +945,17 @@ Canonical lint diagnostic code (registry-driven).
 - `E1804` - Registry code `E1804`.
 - `E1805` - Registry code `E1805`.
 - `W1802` - Registry code `W1802`.
+- `E1900` - Registry code `E1900`.
+- `E1901` - Registry code `E1901`.
+- `E1902` - Registry code `E1902`.
+- `E1903` - Registry code `E1903`.
+- `W1900` - Registry code `W1900`.
+- `W1901` - Registry code `W1901`.
+- `W1902` - Registry code `W1902`.
+- `W1903` - Registry code `W1903`.
+- `W1904` - Registry code `W1904`.
+- `E1904` - Registry code `E1904`.
+- `W1905` - Registry code `W1905`.
 
 **Methods:**
 
@@ -936,26 +967,26 @@ Canonical lint diagnostic code (registry-driven).
 
 **Trait Implementations:**
 
-- **Deserialize**
-  - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
-- **Serialize**
-  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
-- **Hash**
-  - `fn hash<__H>(self: &Self, state: & mut __H)`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &LintCode) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> LintCode`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Display**
   - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &&str) -> bool`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &str) -> bool`
 - **FromStr**
   - `fn from_str(s: &str) -> Result<Self, <Self as >::Err>`
+- **Deserialize**
+  - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
+- **Serialize**
+  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &str) -> bool`
+- **Hash**
+  - `fn hash<__H>(self: &Self, state: & mut __H)`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &LintCode) -> bool`
 
 ---
 
@@ -981,6 +1012,165 @@ Serialize a [`LintResult`] for host bindings.
 
 ```rust
 fn lint_result_to_json_value(result: &crate::LintResult, style: formspec_core::JsonWireStyle) -> serde_json::Value
+```
+
+---
+
+## Source: formspec_lint/metadata.md
+
+**formspec_lint > metadata**
+
+# Module: metadata
+
+## Contents
+
+**Functions**
+
+- [`wcag_criteria`](#wcag_criteria) - The WCAG success criteria a rule is tagged with in `specs/lint-codes.json`; empty when untagged.
+
+---
+
+## formspec_lint::metadata::wcag_criteria
+
+*Function*
+
+The WCAG success criteria a rule is tagged with in `specs/lint-codes.json`; empty when untagged.
+
+```rust
+fn wcag_criteria(code: crate::generated::LintCode) -> &'static [String]
+```
+
+---
+
+## Source: formspec_lint/pass_accessibility.md
+
+**formspec_lint > pass_accessibility**
+
+# Module: pass_accessibility
+
+## Contents
+
+**Structs**
+
+- [`AccessibilityChecks`](#accessibilitychecks) - The document half of the accessibility report (ADR 0166 §3 `documentChecks`).
+- [`AccessibilityFinding`](#accessibilityfinding) - One diagnostic and the pinned document it came from (`definition`, `theme` or `locale:<tag>`).
+- [`AccessibilityRuleResult`](#accessibilityruleresult) - One accessibility rule's outcome across the pinned documents.
+
+**Enums**
+
+- [`AccessibilityOutcome`](#accessibilityoutcome) - A rule's result over the pinned documents.
+
+**Functions**
+
+- [`check_accessibility`](#check_accessibility) - Run every accessibility document rule over a form version's pinned documents.
+
+---
+
+## formspec_lint::pass_accessibility::AccessibilityChecks
+
+*Struct*
+
+The document half of the accessibility report (ADR 0166 §3 `documentChecks`).
+
+**Fields:**
+- `linter_version: &'static str` - Version of this linter; changes when a rule is added or changed.
+- `results: Vec<AccessibilityRuleResult>` - Every accessibility rule, passed or not, in registry order.
+- `findings: Vec<AccessibilityFinding>` - Every finding.
+
+**Methods:**
+
+- `fn blocks_publish(self: &Self) -> bool` - Whether any finding is an error; errors block publish, warnings are only reported.
+- `fn to_json_value(self: &Self) -> Value` - The `documentChecks` object of the accessibility report.
+
+**Trait Implementations:**
+
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> AccessibilityChecks`
+
+
+
+## formspec_lint::pass_accessibility::AccessibilityFinding
+
+*Struct*
+
+One diagnostic and the pinned document it came from (`definition`, `theme` or `locale:<tag>`).
+
+**Fields:**
+- `document: String` - Which pinned document the finding is in.
+- `diagnostic: crate::types::LintDiagnostic` - The lint diagnostic; its severity is the registry's.
+
+**Trait Implementations:**
+
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> AccessibilityFinding`
+
+
+
+## formspec_lint::pass_accessibility::AccessibilityOutcome
+
+*Enum*
+
+A rule's result over the pinned documents.
+
+**Variants:**
+- `Passed` - The rule looked and found nothing.
+- `Failed` - The rule found something.
+- `NeedsReview` - The rule found nothing but could not judge everything (a contrast pair it could not evaluate), so a person reviews.
+
+**Methods:**
+
+- `fn as_wire_str(self: Self) -> &'static str` - Wire string: `passed`, `failed` or `needs-review`.
+
+**Traits:** Eq, Copy
+
+**Trait Implementations:**
+
+- **PartialEq**
+  - `fn eq(self: &Self, other: &AccessibilityOutcome) -> bool`
+- **Clone**
+  - `fn clone(self: &Self) -> AccessibilityOutcome`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+
+
+
+## formspec_lint::pass_accessibility::AccessibilityRuleResult
+
+*Struct*
+
+One accessibility rule's outcome across the pinned documents.
+
+**Fields:**
+- `rule: crate::generated::LintCode` - The rule.
+- `severity: crate::types::LintSeverity` - The registry severity.
+- `wcag: Vec<String>` - WCAG success criteria the rule is tagged with.
+- `outcome: AccessibilityOutcome` - What the rule found; see [`AccessibilityOutcome`].
+- `paths: Vec<String>` - `<document>#<path>` of every finding.
+
+**Trait Implementations:**
+
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> AccessibilityRuleResult`
+
+
+
+## formspec_lint::pass_accessibility::check_accessibility
+
+*Function*
+
+Run every accessibility document rule over a form version's pinned documents.
+
+`theme` is the pinned Theme, if the version has one; `locales` are its pinned Locales. Pure and
+in-process; O(items x locales).
+
+```rust
+fn check_accessibility(definition: &serde_json::Value, theme: Option<&serde_json::Value>, locales: &[serde_json::Value]) -> AccessibilityChecks
 ```
 
 ---
@@ -1095,10 +1285,10 @@ fn lint_component(component: &serde_json::Value, definition: Option<&serde_json:
 
 - **Clone**
   - `fn clone(self: &Self) -> TransformClass`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &TransformClass) -> bool`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1203,10 +1393,10 @@ fn check_module_contributions(doc: &serde_json::Value, doc_type_name: &str, regi
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> OntologyConceptSystemFact`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> OntologyConceptSystemFact`
 
 
 
@@ -1238,6 +1428,7 @@ fn check_module_contributions(doc: &serde_json::Value, doc_type_name: &str, regi
 - `alignment_paths: Vec<OntologyPathFact>`
 - `concept_systems: Vec<OntologyConceptSystemFact>`
 - `vocabularies: Vec<OntologyVocabularyFact>`
+- `derived_context: Option<formspec_core::JsonLdDerivation>` - JSON-LD context derived from the bindings (Ontology §6.2); `None` without a paired Definition.
 - `diagnostics: Vec<crate::types::LintDiagnostic>`
 
 **Trait Implementations:**
@@ -1391,10 +1582,10 @@ Why a document module failed posture admission.
 
 - **Clone**
   - `fn clone(self: &Self) -> ModulePostureAdmissionFailure`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &ModulePostureAdmissionFailure) -> bool`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1416,10 +1607,10 @@ Parsed module reference fields used by posture admission.
 
 - **PartialEq**
   - `fn eq(self: &Self, other: &ModuleRefFields) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> ModuleRefFields`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> ModuleRefFields`
 
 
 
@@ -1507,6 +1698,58 @@ Run pass 3 reference checks against an already-built item tree index.
 
 ```rust
 fn check_references(document: &serde_json::Value, index: &crate::tree::ItemTreeIndex) -> Vec<crate::types::LintDiagnostic>
+```
+
+---
+
+## Source: formspec_lint/schema_validation.md
+
+**formspec_lint > schema_validation**
+
+# Module: schema_validation
+
+## Contents
+
+**Functions**
+
+- [`validate_mapping_source`](#validate_mapping_source) - Validate external Mapping input against its selected inline JSON Schema.
+- [`validate_mapping_source_association`](#validate_mapping_source_association) - Validate an external Mapping association using the canonical association schema.
+
+---
+
+## formspec_lint::schema_validation::validate_mapping_source
+
+*Function*
+
+Validate external Mapping input against its selected inline JSON Schema.
+
+Uses the maintained local schema registry and asserts supported formats.
+It performs no network retrieval.
+
+# Errors
+
+Returns an error for malformed schemas, unresolved references or invalid input.
+
+```rust
+fn validate_mapping_source(schema: &serde_json::Value, instance: &serde_json::Value) -> Result<(), String>
+```
+
+
+
+## formspec_lint::schema_validation::validate_mapping_source_association
+
+*Function*
+
+Validate an external Mapping association using the canonical association schema.
+
+Supported formats are asserted only for this new association branch.
+
+# Errors
+
+Returns an error for malformed identities, unknown properties or missing fields.
+
+```rust
+fn validate_mapping_source_association(association: &serde_json::Value) -> Result<(), String>
 ```
 
 ---
@@ -1662,16 +1905,16 @@ Controls which diagnostics are emitted.
 - `fn is_authoring(self: Self) -> bool` - Whether this mode is the relaxed authoring mode.
 - `fn from_host_option_str(mode: Option<&str>) -> Self` - Map host option strings (`authoring` / `strict` / default) to a lint mode.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
-- **Default**
-  - `fn default() -> LintMode`
 - **PartialEq**
   - `fn eq(self: &Self, other: &LintMode) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> LintMode`
+- **Default**
+  - `fn default() -> LintMode`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
@@ -1687,6 +1930,7 @@ Options for the lint pipeline.
 - `mode: LintMode` - Lint mode (Runtime, Authoring, or Strict).
 - `registry_documents: Vec<serde_json::Value>` - Optional registry documents for extension resolution (E600).
 - `definition_document: Option<serde_json::Value>` - Optional paired definition document for cross-artifact validation.
+- `screener_document: Option<serde_json::Value>` - Optional paired Screener for target-qualified Locale presentation checks.
 - `theme_document: Option<serde_json::Value>` - Optional paired Theme document for Locale `$page.*` string-key checks.
 - `component_documents: Vec<serde_json::Value>` - Optional paired Component documents for Locale `$component.*` string-key checks.
 - `locale_documents: Vec<serde_json::Value>` - Optional peer Locale documents for fallback-chain checks.
@@ -1698,10 +1942,10 @@ Options for the lint pipeline.
 
 **Trait Implementations:**
 
-- **Default**
-  - `fn default() -> LintOptions`
 - **Clone**
   - `fn clone(self: &Self) -> LintOptions`
+- **Default**
+  - `fn default() -> LintOptions`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
@@ -1721,10 +1965,10 @@ Result of linting.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> LintResult`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> LintResult`
 
 
 
@@ -1743,18 +1987,18 @@ Severity of a lint diagnostic (sorting, validity, and JSON wire values).
 
 - `fn as_wire_str(self: Self) -> &'static str` - Wire string for JSON diagnostics (`error` / `warning` / `info`).
 
-**Traits:** Copy, Eq
+**Traits:** Eq, Copy
 
 **Trait Implementations:**
 
 - **Ord**
   - `fn cmp(self: &Self, other: &Self) -> Ordering`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &LintSeverity) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> LintSeverity`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialOrd**
   - `fn partial_cmp(self: &Self, other: &Self) -> Option<Ordering>`
 

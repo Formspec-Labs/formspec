@@ -71,6 +71,11 @@ export class ComponentRegistry {
         this.activeAdapter = name;
     }
 
+    /** Names of every registered adapter. */
+    get adapterNames(): string[] {
+        return [...this.adapters.keys()];
+    }
+
     /** Look up a registered adapter by name. */
     getAdapter(name: string): RenderAdapter | undefined {
         return this.adapters.get(name);

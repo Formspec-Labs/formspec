@@ -1,5 +1,5 @@
 /** @filedesc USWDS v3 adapter for FileUpload — usa-file-input with drag-drop target. */
-import { uiText, watchText, type FileUploadBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
+import { type FileUploadBehavior, type AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
 import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
@@ -10,27 +10,15 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
 
     // USWDS file input wrapper
     const fileInput = el('div', { class: 'usa-file-input' });
-    const target = el('div', {
-        class: 'usa-file-input__target',
-        tabindex: '0',
-        role: 'button',
-    });
-    // Named "<label> <$ui.fileUpload.dropzoneKeyboard>": the first Tab stop says which field it belongs to.
-    label.id ||= `${behavior.id}-label`;
-    const targetName = el('span', { hidden: '', id: `${behavior.id}-dropzone-label` }); // named by reference, not read as content
-    watchText(actx, uiText(actx.engine, 'fileUpload.dropzoneKeyboard'), (text) => { targetName.textContent = text; });
-    target.appendChild(targetName);
-    target.setAttribute('aria-labelledby', `${label.id} ${targetName.id}`);
-    target.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            input.click();
-        }
-    });
+    // The target is not an interactive role: the native file input overlaying it is the one keyboard control
+    // (WCAG 4.1.2, axe nested-interactive), as in USWDS's own markup. Its label names it; the instructions
+    // describe it, and dropping stays for pointer users.
+    const target = el('div', { class: 'usa-file-input__target' });
 
     const instructions = el('div', { class: 'usa-file-input__instructions' });
     const chooseSpan = el('span', { class: 'usa-file-input__choose' });
     chooseSpan.textContent = 'choose from folder';
+    instructions.id = `${behavior.id}-instructions`;
     instructions.appendChild(document.createTextNode('Drag file here or '));
     instructions.appendChild(chooseSpan);
     target.appendChild(instructions);
@@ -45,6 +33,7 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
     input.type = 'file';
     if (behavior.accept) input.accept = behavior.accept;
     if (behavior.multiple) input.multiple = true;
+    input.setAttribute('aria-describedby', instructions.id);
     target.appendChild(input);
 
     // Drag-drop handlers on the target div

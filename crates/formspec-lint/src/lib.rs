@@ -15,6 +15,7 @@
 //! cross-field invariants (ADR 0150 §6)
 //! Registry-only E611 is emitted by the TypeScript AppGraphValidator, not this crate.
 //! Pass 9 (E1100-E1805/W1100-W1802): Companion document semantic lint
+//! Pass 10 (E1900-E1904/W1900-W1905): Accessibility document rules, WCAG-tagged (`check_accessibility`)
 //!
 //! ## Documentation
 //!
@@ -28,9 +29,10 @@ pub mod app_graph_report;
 mod generated;
 mod lint_json;
 mod metadata;
+pub(crate) mod pass_accessibility;
 mod pass_experience;
 mod pass_issuer;
-mod pass_locale;
+pub(crate) mod pass_locale;
 pub mod pass_mapping;
 pub mod pass_modules;
 pub mod pass_ontology;
@@ -67,6 +69,10 @@ pub use app_graph_report::{
 };
 pub use generated::LintCode;
 pub use lint_json::lint_result_to_json_value;
+pub use metadata::wcag_criteria;
+pub use pass_accessibility::{
+    AccessibilityChecks, AccessibilityFinding, AccessibilityOutcome, AccessibilityRuleResult, check_accessibility,
+};
 pub use schema_validation::{validate_mapping_source, validate_mapping_source_association};
 pub use types::{
     LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity, sort_diagnostics,
@@ -161,6 +167,11 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
         }
         DocumentType::Locale => {
             diagnostics.extend(pass_locale::lint_locale(doc, options));
+            diagnostics.extend(pass_accessibility::lint_locale(
+                doc,
+                options.definition_document.as_ref(),
+                &options.locale_documents,
+            ));
         }
         DocumentType::Experience => {
             diagnostics.extend(pass_experience::lint_experience(
@@ -217,6 +228,8 @@ fn lint_definition(
         doc,
         &options.registry_documents,
     ));
+
+    diagnostics.extend(pass_accessibility::lint_definition(doc));
 
     if !options.no_fel {
         let compilation = expressions::compile_expressions(doc);

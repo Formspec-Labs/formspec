@@ -1,0 +1,16 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.com/forms/w1904",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "w1904 fixture",
+  "items": [
+    {
+      "key": "name",
+      "type": "field",
+      "dataType": "string",
+      "label": "Name",
+      "hint": "See ![the form layout](https://example.com/layout.png)"
+    }
+  ]
+}

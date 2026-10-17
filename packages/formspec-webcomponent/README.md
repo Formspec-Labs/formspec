@@ -134,6 +134,18 @@ A field written with `setValue(value, { source: 'assist' })` — every Assist pr
 - It counts as touched, so its validation shows immediately — nobody will blur it.
 - A polite live region beside the render root says "{label} filled by your assistant", one message per frame (a bulk write reads as one sentence). The wording is the chrome string `$ui.assist.filled` when a Locale authors it, else English.
 
+## Host page (`@formspec-org/webcomponent/host`)
+
+One self-contained HTML page that draws `<formspec-render>` from pinned Definition, Theme and Locale documents. It makes no request: the renderer, both stylesheets, the engine's `.wasm` and the documents are inline, so the same page serves `formspec-walk serve` (the accessibility check) and any print path that loads HTML offline.
+
+```ts
+import { renderHostPage } from '@formspec-org/webcomponent/host';
+
+const html = renderHostPage({ definition, theme, locales: [fr], locale: 'fr', initialData });
+```
+
+`<html data-formspec-host>` becomes `ready` once a field is drawn, or `error` with the reason in `window.__formspecHost.error`. The page's `lang` is the chosen Locale, else `en`. Needs the package built (`npm run build` writes `dist/host/formspec-host.js`).
+
 ## Component Registry
 
 All 33 built-in components register automatically on import. Add custom components by registering a plugin on the global registry singleton.

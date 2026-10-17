@@ -441,13 +441,16 @@ Validators MAY additionally use the platform registry to:
 - Warn on token values that do not match their declared type.
 - Report tokens present in the registry but missing from the theme
   (potential incomplete themes).
-- Check effective `contrastPairs` after Theme overrides and emit W714 when a
-  determinable pair falls below its usage floor.
+- Check effective `contrastPairs` after Theme overrides and emit E1903 when a
+  determinable pair falls below its usage floor (W714 when it reaches the
+  floor but not the pair's own stricter `minimumRatio`).
 
 Validators MUST NOT reject a theme document based on registry
 validation. Registry-based checks are advisory diagnostics only: the
 required diagnostic above is a warning, not an error, because a theme
-carrying an unregistered token is still a renderable theme.
+carrying an unregistered token is still a renderable theme. E1903 is the
+exception to "advisory": a lint error that gates publishing (ADR 0166), never
+a reason for a renderer to refuse the theme.
 
 Conforming implementations of the required diagnostic:
 `formspec-lint` W708 (`pass_theme`) and `@formspec-org/app-graph`

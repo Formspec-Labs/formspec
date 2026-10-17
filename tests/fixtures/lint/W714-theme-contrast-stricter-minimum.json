@@ -1,0 +1,18 @@
+{
+  "$formspecTheme": "1.0",
+  "url": "https://example.com/themes/w714",
+  "version": "1.0.0",
+  "tokens": {
+    "x-agency.badge-text": "#595959",
+    "x-agency.badge-fill": "#ffffff"
+  },
+  "contrastPairs": [
+    {
+      "id": "agency-badge-label",
+      "foregroundToken": "x-agency.badge-text",
+      "backgroundToken": "x-agency.badge-fill",
+      "usage": "normalText",
+      "minimumRatio": 9
+    }
+  ]
+}

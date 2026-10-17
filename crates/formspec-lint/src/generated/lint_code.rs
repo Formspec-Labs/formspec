@@ -275,6 +275,28 @@ pub enum LintCode {
     E1805,
     /// Registry code `W1802`.
     W1802,
+    /// Registry code `E1900`.
+    E1900,
+    /// Registry code `E1901`.
+    E1901,
+    /// Registry code `E1902`.
+    E1902,
+    /// Registry code `E1903`.
+    E1903,
+    /// Registry code `W1900`.
+    W1900,
+    /// Registry code `W1901`.
+    W1901,
+    /// Registry code `W1902`.
+    W1902,
+    /// Registry code `W1903`.
+    W1903,
+    /// Registry code `W1904`.
+    W1904,
+    /// Registry code `E1904`.
+    E1904,
+    /// Registry code `W1905`.
+    W1905,
 }
 
 impl LintCode {
@@ -414,6 +436,17 @@ impl LintCode {
             LintCode::E1804 => "E1804",
             LintCode::E1805 => "E1805",
             LintCode::W1802 => "W1802",
+            LintCode::E1900 => "E1900",
+            LintCode::E1901 => "E1901",
+            LintCode::E1902 => "E1902",
+            LintCode::E1903 => "E1903",
+            LintCode::W1900 => "W1900",
+            LintCode::W1901 => "W1901",
+            LintCode::W1902 => "W1902",
+            LintCode::W1903 => "W1903",
+            LintCode::W1904 => "W1904",
+            LintCode::E1904 => "E1904",
+            LintCode::W1905 => "W1905",
         }
     }
 
@@ -553,6 +586,17 @@ impl LintCode {
             LintCode::E1804 => 9,
             LintCode::E1805 => 9,
             LintCode::W1802 => 9,
+            LintCode::E1900 => 10,
+            LintCode::E1901 => 10,
+            LintCode::E1902 => 10,
+            LintCode::E1903 => 10,
+            LintCode::W1900 => 10,
+            LintCode::W1901 => 10,
+            LintCode::W1902 => 10,
+            LintCode::W1903 => 10,
+            LintCode::W1904 => 10,
+            LintCode::E1904 => 10,
+            LintCode::W1905 => 10,
         }
     }
 
@@ -692,6 +736,17 @@ impl LintCode {
             "E1804" => Some(LintCode::E1804),
             "E1805" => Some(LintCode::E1805),
             "W1802" => Some(LintCode::W1802),
+            "E1900" => Some(LintCode::E1900),
+            "E1901" => Some(LintCode::E1901),
+            "E1902" => Some(LintCode::E1902),
+            "E1903" => Some(LintCode::E1903),
+            "W1900" => Some(LintCode::W1900),
+            "W1901" => Some(LintCode::W1901),
+            "W1902" => Some(LintCode::W1902),
+            "W1903" => Some(LintCode::W1903),
+            "W1904" => Some(LintCode::W1904),
+            "E1904" => Some(LintCode::E1904),
+            "W1905" => Some(LintCode::W1905),
             _ => None,
         }
     }
@@ -831,6 +886,17 @@ impl LintCode {
         LintCode::E1804,
         LintCode::E1805,
         LintCode::W1802,
+        LintCode::E1900,
+        LintCode::E1901,
+        LintCode::E1902,
+        LintCode::E1903,
+        LintCode::W1900,
+        LintCode::W1901,
+        LintCode::W1902,
+        LintCode::W1903,
+        LintCode::W1904,
+        LintCode::E1904,
+        LintCode::W1905,
     ];
 }
 
@@ -890,6 +956,6 @@ mod tests {
 
     #[test]
     fn registry_variant_count_matches_json() {
-        assert_eq!(LintCode::ALL.len(), 133);
+        assert_eq!(LintCode::ALL.len(), 144);
     }
 }

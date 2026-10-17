@@ -865,7 +865,9 @@ fn all_diagnostics_are_pass_6() {
     let diags = lint_theme(&theme, None);
     assert!(!diags.is_empty());
     for d in &diags {
-        assert_eq!(d.pass, 6, "Diagnostic {} should be pass 6", d.code);
+        // The contrast findings (E1903, W1905) belong to the accessibility pass, 10.
+        let expected = if matches!(d.code, crate::LintCode::E1903 | crate::LintCode::W1905) { 10 } else { 6 };
+        assert_eq!(d.pass, expected, "Diagnostic {} should be pass {expected}", d.code);
     }
 }
 
@@ -1175,40 +1177,41 @@ fn token_ref_in_numeric_value_not_checked() {
     );
 }
 
-// ── W714: Effective Theme contrast ──────────────────────────
+// ── E1903 / W714: Effective Theme contrast ──────────────────────────
 
 #[test]
-fn inferred_input_boundary_regression_emits_w714() {
+fn inferred_input_boundary_regression_emits_e1903() {
     let theme = json!({
         "tokens": {
             "color.input": "#fdfaf4"
         }
     });
     let diags = lint_theme(&theme, None);
-    let w714 = with_code(&diags, "W714");
-    assert_eq!(w714.len(), 2);
+    let found = with_code(&diags, "E1903");
+    assert_eq!(found.len(), 2);
     assert!(
-        w714.iter()
+        found.iter()
             .all(|diagnostic| diagnostic.path == "$.tokens.color.input")
     );
     assert!(
-        w714.iter()
+        found.iter()
             .any(|diagnostic| diagnostic.message.contains("input-boundary-on-page"))
     );
     assert!(
-        w714.iter()
+        found.iter()
             .any(|diagnostic| diagnostic.message.contains("input-boundary-on-card"))
     );
 }
 
 #[test]
-fn accessible_input_boundary_override_has_no_w714() {
+fn accessible_input_boundary_override_has_no_contrast_finding() {
     let theme = json!({
         "tokens": {
             "color.input": "#5f574e"
         }
     });
     let diags = lint_theme(&theme, None);
+    assert!(with_code(&diags, "E1903").is_empty());
     assert!(with_code(&diags, "W714").is_empty());
 }
 
@@ -1220,13 +1223,13 @@ fn primary_override_also_checks_derived_focus_indicator() {
         }
     });
     let diags = lint_theme(&theme, None);
-    let w714 = with_code(&diags, "W714");
+    let found = with_code(&diags, "E1903");
     assert!(
-        w714.iter()
+        found.iter()
             .any(|diagnostic| diagnostic.message.contains("primary-label-on-primary"))
     );
     assert!(
-        w714.iter()
+        found.iter()
             .any(|diagnostic| diagnostic.message.contains("focus-indicator-on-card"))
     );
 }
@@ -1246,10 +1249,10 @@ fn explicit_custom_contrast_pair_is_evaluated() {
         }]
     });
     let diags = lint_theme(&theme, None);
-    let w714 = with_code(&diags, "W714");
-    assert_eq!(w714.len(), 1);
-    assert_eq!(w714[0].path, "$.contrastPairs[0]");
-    assert!(w714[0].message.contains("4.48:1"));
+    let found = with_code(&diags, "E1903");
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].path, "$.contrastPairs[0]");
+    assert!(found[0].message.contains("4.48:1"));
 }
 
 #[test]
@@ -1268,13 +1271,35 @@ fn explicit_pair_cannot_lower_usage_floor() {
         }]
     });
     let diags = lint_theme(&theme, None);
-    let w714 = with_code(&diags, "W714");
-    assert_eq!(w714.len(), 1);
-    assert!(w714[0].message.contains("requires at least 4.50:1"));
+    let found = with_code(&diags, "E1903");
+    assert_eq!(found.len(), 1);
+    assert!(found[0].message.contains("requires at least 4.50:1"));
 }
 
 #[test]
-fn explicit_pair_with_missing_token_emits_w714() {
+fn pair_above_aa_but_under_its_own_minimum_is_w714_not_e1903() {
+    let theme = json!({
+        "tokens": {
+            "x-agency.text": "#595959",
+            "x-agency.surface": "#ffffff"
+        },
+        "contrastPairs": [{
+            "id": "agency-copy",
+            "foregroundToken": "x-agency.text",
+            "backgroundToken": "x-agency.surface",
+            "usage": "normalText",
+            "minimumRatio": 9
+        }]
+    });
+    let diags = lint_theme(&theme, None);
+    assert!(with_code(&diags, "E1903").is_empty());
+    let advisory = with_code(&diags, "W714");
+    assert_eq!(advisory.len(), 1);
+    assert!(advisory[0].message.contains("requires at least 9.00:1"));
+}
+
+#[test]
+fn explicit_pair_with_missing_token_emits_w1905() {
     let theme = json!({
         "tokens": {
             "x-agency.text": "#000000"
@@ -1287,10 +1312,10 @@ fn explicit_pair_with_missing_token_emits_w714() {
         }]
     });
     let diags = lint_theme(&theme, None);
-    let w714 = with_code(&diags, "W714");
-    assert_eq!(w714.len(), 1);
+    let found = with_code(&diags, "W1905");
+    assert_eq!(found.len(), 1);
     assert!(
-        w714[0]
+        found[0]
             .message
             .contains("has no effective string color value")
     );

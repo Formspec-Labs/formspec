@@ -11,3 +11,5 @@ export { emitSpec, deriveRecipes } from './emit.js';
 export type { EmitOptions } from './emit.js';
 export { revealSearch, needsHostData } from './reveal.js';
 export type { RecipeStep, RevealEngine } from './reveal.js';
+export { checkAccessibility, runAxePass, expectedPages, reviewFinding, PageCoverageError, criteriaOf, WCAG_TAGS, CHECK_VERSION, DEFAULT_TIMEOUT_MS, MANUAL_REVIEW, AxeMissingError, RendererError } from './axe.js';
+export type { PageCoverage, AccessibilityCheckOptions, AxeFinding, AxeNodeFinding, AxePassOptions, AxePassResult, AxeState, CheckFailure, FailureReason, ManualReviewCriterion, RendererCheckReport } from './axe.js';

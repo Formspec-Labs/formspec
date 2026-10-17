@@ -439,11 +439,11 @@
       "code": "W714",
       "pass": 6,
       "severity": "warning",
-      "title": "Effective Theme color pair does not meet its contrast floor",
+      "title": "Effective Theme color pair meets WCAG AA but not the Theme's own stricter contrast minimum",
       "specRef": "specs/theme/theme-spec.md#38-effective-contrast-pairs",
-      "suggestedFix": "adjust either effective color token so the declared or inferred pair meets its usage contrast floor",
+      "suggestedFix": "adjust either effective color token so the pair meets its declared minimumRatio, or lower minimumRatio toward the WCAG floor",
       "fixtures": [
-        "tests/fixtures/lint/W714-theme-contrast-regression.json"
+        "tests/fixtures/lint/W714-theme-contrast-stricter-minimum.json"
       ],
       "state": "tested"
     },
@@ -1459,6 +1459,149 @@
       "specRef": "specs/response-actions/response-actions-spec.md#63-idempotency",
       "suggestedFix": "use a FEL expression that references at least one @-binding (e.g., \"@invocation.id & '/<effect-name>'\") so the key varies per invocation; literal-string keys silently defeat idempotency by producing the same value for every attempt",
       "fixtures": ["tests/fixtures/lint/W1802-response-actions-static-idempotency-key.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1900",
+      "pass": 10,
+      "severity": "error",
+      "title": "Field has an empty label",
+      "specRef": "specs/accessibility/document-checks.md#e1900-empty-label",
+      "suggestedFix": "give the field a non-empty label; it is its accessible name",
+      "wcag": ["1.3.1", "3.3.2", "4.1.2"],
+      "fixtures": [
+        "tests/fixtures/lint/E1900-accessibility-empty-label.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E1901",
+      "pass": 10,
+      "severity": "error",
+      "title": "Locale writes an empty item label",
+      "specRef": "specs/accessibility/document-checks.md#e1901-locale-empty-label",
+      "suggestedFix": "write the translated label in the Locale, or delete the key so the Definition's label shows",
+      "wcag": ["1.3.1", "3.3.2", "4.1.2"],
+      "fixtures": [
+        "tests/fixtures/lint/E1901-accessibility-locale-empty-label.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E1902",
+      "pass": 10,
+      "severity": "error",
+      "title": "Option has an empty label",
+      "specRef": "specs/accessibility/document-checks.md#e1902-empty-option-label",
+      "suggestedFix": "give the option a non-empty label in the Definition and in every Locale that writes one",
+      "wcag": ["1.3.1", "4.1.2"],
+      "fixtures": [
+        "tests/fixtures/lint/E1902-accessibility-empty-option-label.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E1903",
+      "pass": 10,
+      "severity": "error",
+      "title": "Effective Theme color pair is below the WCAG AA contrast floor",
+      "specRef": "specs/accessibility/document-checks.md#e1903-contrast-below-aa",
+      "suggestedFix": "adjust either effective color token so the pair reaches 4.5:1 for text or 3:1 for large text and interface components",
+      "wcag": ["1.4.3", "1.4.11"],
+      "fixtures": [
+        "tests/fixtures/lint/E1903-theme-contrast-below-aa.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1900",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Locale translates some item labels but not this one",
+      "specRef": "specs/accessibility/document-checks.md#w1900-locale-missing-label",
+      "suggestedFix": "add the missing label to the Locale or to a Locale in its fallback chain",
+      "wcag": ["3.1.2"],
+      "fixtures": [
+        "tests/fixtures/lint/W1900-accessibility-locale-missing-label.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1901",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Two options in one list share a label",
+      "specRef": "specs/accessibility/document-checks.md#w1901-duplicate-option-label",
+      "suggestedFix": "give each option in a list a label that tells it apart from the others",
+      "wcag": ["3.3.2"],
+      "fixtures": [
+        "tests/fixtures/lint/W1901-accessibility-duplicate-option-label.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1902",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Two sibling fields or groups share a label",
+      "specRef": "specs/accessibility/document-checks.md#w1902-duplicate-sibling-label",
+      "suggestedFix": "give sibling fields and groups distinct labels, or add the distinguishing detail to the label",
+      "wcag": ["2.4.6"],
+      "fixtures": [
+        "tests/fixtures/lint/W1902-accessibility-duplicate-sibling-label.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1903",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Text points at something by its colour alone",
+      "specRef": "specs/accessibility/document-checks.md#w1903-colour-as-instruction",
+      "suggestedFix": "say it in words or add a second cue such as text, an icon or a shape",
+      "wcag": ["1.4.1", "1.3.3"],
+      "fixtures": [
+        "tests/fixtures/lint/W1903-accessibility-colour-as-instruction.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1904",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Text uses Markdown image syntax the renderer does not draw",
+      "specRef": "specs/accessibility/document-checks.md#w1904-image-syntax",
+      "suggestedFix": "remove the image syntax and describe the image in words",
+      "wcag": ["1.1.1"],
+      "fixtures": [
+        "tests/fixtures/lint/W1904-accessibility-image-syntax.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E1904",
+      "pass": 10,
+      "severity": "error",
+      "title": "Group has an empty label",
+      "specRef": "specs/accessibility/document-checks.md#e1904-empty-group-label",
+      "suggestedFix": "give the group a non-empty label; it names its fieldset",
+      "wcag": ["1.3.1"],
+      "fixtures": [
+        "tests/fixtures/lint/E1904-accessibility-empty-group-label.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W1905",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Theme color pair could not be evaluated for contrast",
+      "specRef": "specs/accessibility/document-checks.md#w1905-contrast-not-evaluable",
+      "suggestedFix": "use opaque sRGB colors for both tokens of the pair, or review its contrast by hand",
+      "wcag": ["1.4.3", "1.4.11"],
+      "fixtures": [
+        "tests/fixtures/lint/W1905-accessibility-contrast-not-evaluable.json"
+      ],
       "state": "tested"
     }
   ]

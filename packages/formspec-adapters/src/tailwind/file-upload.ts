@@ -8,21 +8,10 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
 ) => {
     const { root, label, hint, error } = createTailwindFieldDOM(behavior);
 
-    // Drop zone
+    // Drop zone. Not an interactive role: the file input inside (visually hidden, still focusable) is the one
+    // keyboard control (WCAG 4.1.2, axe nested-interactive); dropping stays for pointer users.
     const dropZone = el('div', {
-        class: 'flex justify-center rounded-lg border-2 border-dashed border-[color:var(--formspec-tw-border)] px-6 py-10 transition-colors',
-        tabindex: '0',
-        role: 'button',
-    });
-    watchText(actx, uiText(actx.engine, 'fileUpload.dropzoneKeyboard'), (text) => {
-        dropZone.setAttribute('aria-label', text);
-    });
-
-    dropZone.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            input.click();
-        }
+        class: 'flex justify-center rounded-lg border-2 border-dashed border-[color:var(--formspec-tw-border)] px-6 py-10 transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-[color:var(--formspec-tw-accent)]',
     });
 
     const inner = el('div', { class: 'text-center' });
@@ -32,7 +21,7 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
     iconWrapper.innerHTML = '<svg class="h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>';
     inner.appendChild(iconWrapper);
 
-    const textRow = el('div', { class: 'mt-4 flex text-sm text-[var(--formspec-tw-muted)]' });
+    const textRow = el('div', { id: `${behavior.id}-instructions`, class: 'mt-4 flex text-sm text-[var(--formspec-tw-muted)]' });
     const browseLabel = el('span', {
         class: 'relative cursor-pointer rounded-md font-medium text-[var(--formspec-tw-accent)] hover:text-[var(--formspec-tw-accent)]',
     });
@@ -49,6 +38,7 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
 
     const input = document.createElement('input') as HTMLInputElement;
     input.className = 'sr-only';
+    input.setAttribute('aria-describedby', textRow.id);
     input.id = behavior.id;
     input.name = behavior.fieldPath;
     input.type = 'file';

@@ -4,6 +4,7 @@ import { UI_STRINGS } from '@formspec-org/layout';
 import { expected, matches, type ExpectedText } from './plan.js';
 import { needsHostData, revealSearch, type RecipeStep } from './reveal.js';
 import { virtualScreenReader, type ScreenReader } from './screen-reader.js';
+import { stepWizard } from './wizard.js';
 
 /** A string as the documents write it, or one already turned into an expectation. */
 export type Text = string | ExpectedText;
@@ -251,13 +252,13 @@ export class Walk {
         return this.step('next');
     }
 
-    private async step(direction: 'next' | 'previous'): Promise<boolean> {
-        const names = direction === 'next' ? ['wizard.next', 'wizard.nextStep'] : ['wizard.previous', 'wizard.previousStep'];
-        const button = this.root.getByRole('button', { name: new RegExp(`^(${names.map((k) => escapeRe(this.chrome(k as keyof typeof UI_STRINGS))).join('|')})$`, 'i') });
-        if (!(await button.count()) || (await button.first().isDisabled())) return false;
-        await button.first().click();
-        await this.page.waitForTimeout(100);
-        return true;
+    /** Back one wizard step; false when there is no enabled Previous. */
+    previousStep(): Promise<boolean> {
+        return this.step('previous');
+    }
+
+    private step(direction: 'next' | 'previous'): Promise<boolean> {
+        return stepWizard(this.page, this.root, direction, (key) => this.chrome(key));
     }
 
     // ── focus and what is heard ────────────────────────────────────

@@ -52,7 +52,6 @@ describe('the React renderer draws its own words from the shared inventory', () 
             'dataTable.removeRow',
             'draft.saveUnconfirmed',
             'fieldHelp.label',
-            'fileUpload.dropzone',
             'modal.close',
             'money.amount',
             'repeat.add',
