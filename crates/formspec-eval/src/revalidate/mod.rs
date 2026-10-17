@@ -171,7 +171,6 @@ struct Findings {
 #[cfg(test)]
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
-    use super::env::build_validation_env;
     use super::*;
     use serde_json::json;
 
@@ -330,19 +329,6 @@ mod tests {
         assert!(
             results.is_empty(),
             "constraint $age >= 18 should pass for 25"
-        );
-    }
-
-    #[test]
-    fn build_validation_env_skips_repeat_group_arrays() {
-        let mut data = HashMap::new();
-        data.insert("rows".to_string(), json!([{"a": 1}]));
-        data.insert("rows[0].a".to_string(), json!(1));
-
-        let env = build_validation_env(&data, &HashMap::new(), None, &HashMap::new());
-        assert!(
-            !env.data.contains_key("rows"),
-            "build_validation_env should skip repeat group arrays entirely"
         );
     }
 

@@ -26,12 +26,13 @@ pub(crate) fn seed_repeat_from_instances(
     definition: &Value,
     values: &mut HashMap<String, Value>,
     instances: &HashMap<String, Value>,
+    supplied_counts: &HashMap<String, u64>,
 ) {
     let Some(items) = definition.get("items").and_then(Value::as_array) else {
         return;
     };
     for item in items {
-        walk_seed_from(item, "", values, instances);
+        walk_seed_from(item, "", values, instances, supplied_counts);
     }
 }
 
@@ -40,6 +41,7 @@ fn walk_seed_from(
     prefix: &str,
     values: &mut HashMap<String, Value>,
     instances: &HashMap<String, Value>,
+    supplied_counts: &HashMap<String, u64>,
 ) {
     let Some(key) = item.get("key").and_then(Value::as_str) else {
         return;
@@ -53,14 +55,14 @@ fn walk_seed_from(
     let repeatable = item.get("repeatable").and_then(Value::as_bool) == Some(true);
     if repeatable {
         if let Some(seed_from) = item.get("seedFrom") {
-            apply_group_seed_from(item, &path, seed_from, values, instances);
+            apply_group_seed_from(item, &path, seed_from, values, instances, supplied_counts);
         }
         return;
     }
 
     if let Some(children) = item.get("children").and_then(Value::as_array) {
         for child in children {
-            walk_seed_from(child, &path, values, instances);
+            walk_seed_from(child, &path, values, instances, supplied_counts);
         }
     }
 }
@@ -71,9 +73,10 @@ fn apply_group_seed_from(
     seed_from: &Value,
     values: &mut HashMap<String, Value>,
     instances: &HashMap<String, Value>,
+    supplied_counts: &HashMap<String, u64>,
 ) {
     let min_repeat = group.get("minRepeat").and_then(Value::as_u64).unwrap_or(0) as usize;
-    if repeat_has_host_data(group_path, values, min_repeat) {
+    if repeat_has_host_data(group_path, values, min_repeat, supplied_counts) {
         return;
     }
     let Some(inst_name) = seed_from.get("instance").and_then(Value::as_str) else {
@@ -138,8 +141,14 @@ fn seed_row_children(
     }
 }
 
-fn repeat_has_host_data(group_path: &str, values: &HashMap<String, Value>, min_repeat: usize) -> bool {
-    if matches!(values.get(group_path), Some(Value::Array(_))) {
+/// The host sent this repeat: a row array (counted on entry, empty rows included) or any row value.
+fn repeat_has_host_data(
+    group_path: &str,
+    values: &HashMap<String, Value>,
+    min_repeat: usize,
+    supplied_counts: &HashMap<String, u64>,
+) -> bool {
+    if supplied_counts.contains_key(group_path) {
         return true;
     }
     let count = detect_repeat_count(group_path, values);
@@ -260,7 +269,7 @@ mod seed_from_tests {
         let definition = rows_seed_definition();
         let mut values = HashMap::new();
         let instances = record_items(json!([{ "name": "ACME" }, { "name": "Widget Co" }]));
-        seed_repeat_from_instances(&definition, &mut values, &instances);
+        seed_repeat_from_instances(&definition, &mut values, &instances, &HashMap::new());
         assert_eq!(values.get("rows[0].name"), Some(&json!("ACME")));
         assert_eq!(values.get("rows[1].name"), Some(&json!("Widget Co")));
     }
@@ -270,7 +279,7 @@ mod seed_from_tests {
         let definition = rows_seed_definition();
         let mut values = HashMap::from([("rows[0].name".to_string(), json!("Host"))]);
         let instances = record_items(json!([{ "name": "A" }, { "name": "B" }]));
-        seed_repeat_from_instances(&definition, &mut values, &instances);
+        seed_repeat_from_instances(&definition, &mut values, &instances, &HashMap::new());
         assert_eq!(values.get("rows[0].name"), Some(&json!("Host")));
         assert!(!values.contains_key("rows[1].name"));
     }

@@ -95,14 +95,9 @@ impl RepeatIndex {
             .map_or(&[], Vec::as_slice)
     }
 
-    /// Instance count from current `values` (same rule as `detect_repeat_count`).
-    ///
-    /// An array value at `group` gives its length; otherwise the highest instance
-    /// index that holds a value, plus one.
+    /// Instance count from current `values` (same rule as `detect_repeat_count`): the highest
+    /// instance index that holds a value, plus one.
     pub(crate) fn count(&self, group: &str, values: &HashMap<String, JsonValue>) -> usize {
-        if let Some(JsonValue::Array(rows)) = values.get(group) {
-            return rows.len();
-        }
         self.groups.get(group).map_or(0, |instances| {
             instances
                 .iter()

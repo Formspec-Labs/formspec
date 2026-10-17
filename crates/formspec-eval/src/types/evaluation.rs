@@ -123,8 +123,12 @@ pub struct ItemText {
 /// Result of the full evaluation cycle.
 #[derive(Debug, Clone)]
 pub struct EvaluationResult {
-    /// All field values after recalculation (post-NRB).
+    /// All field values after recalculation (post-NRB): flat state keyed by path
+    /// (`group.field`, `rows[0].name`), like [`Self::required`] and [`Self::readonly`].
     pub values: HashMap<String, Value>,
+    /// The Response projection of [`Self::values`]: groups are nested objects and repeats arrays of
+    /// row objects, after `nonRelevantBehavior`. What a Response stores as `data`.
+    pub data: Value,
     /// Validation results.
     pub validations: Vec<ValidationResult>,
     /// Author-facing evaluation errors from constraint and shape expressions.

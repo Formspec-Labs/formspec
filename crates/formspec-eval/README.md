@@ -1,6 +1,6 @@
 # formspec-eval
 
-Rust **batch evaluator** for Formspec definitions: given a JSON definition and response data (flat dotted paths, or nested by non-repeatable group as in Response `data`; nested groups are flattened once on entry, so both evaluate identically and `values` is always flat), produce computed values, relevance / required / readonly state, variables, and a structured validation report. Implements the same **processing-model phases** as the TypeScript `formspec-engine` reference (rebuild → recalculate → revalidate → NRB), using [`fel-core`](../fel-core/) for FEL parse/eval and [`formspec-core`](../formspec-core/) for definition walks and registry helpers.
+Rust **batch evaluator** for Formspec definitions: given a JSON definition and response data (nested as in a Response, or flat by path; one item-tree walk flattens and consumes groups and repeat rows on entry, so both evaluate identically), produce `values` (flat state by path) and `data` (the nested Response projection after `nonRelevantBehavior`), relevance / required / readonly state, variables, and a structured validation report. Implements the same **processing-model phases** as the TypeScript `formspec-engine` reference (rebuild → recalculate → revalidate → NRB), using [`fel-core`](../fel-core/) for FEL parse/eval and [`formspec-core`](../formspec-core/) for definition walks and registry helpers.
 
 ## When to use this crate
 

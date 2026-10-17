@@ -1,4 +1,4 @@
-//! Flat data augmentation for nested repeat groups and repeat-instance counting.
+//! Repeat-instance counting and wildcard expansion over flat indexed keys.
 #![allow(clippy::missing_docs_in_private_items)]
 
 use serde_json::Value;
@@ -35,57 +35,10 @@ pub fn expand_wildcard_path(pattern: &str, data: &HashMap<String, Value>) -> Vec
     expanded
 }
 
-/// Augment nested data with indexed paths for repeat groups.
-/// `{"rows": [{"a": 1}]}` adds `{"rows[0].a": 1}` while keeping the original `rows` key.
-/// This lets FEL resolve `$rows[0].a` via flat lookup while preserving nested output format.
-pub(crate) fn augment_nested_data(data: &HashMap<String, Value>) -> HashMap<String, Value> {
-    let mut augmented = data.clone();
-    for (key, value) in data {
-        augment_array_value(&mut augmented, key, value);
-    }
-    augmented
-}
-
-fn augment_array_value(out: &mut HashMap<String, Value>, prefix: &str, value: &Value) {
-    if !is_repeat_group_array(value) {
-        return;
-    }
-    // Array of objects = repeat group instances — add indexed paths
-    if let Value::Array(arr) = value {
-        for (i, elem) in arr.iter().enumerate() {
-            let indexed = format!("{prefix}[{i}]");
-            if let Value::Object(map) = elem {
-                for (k, v) in map {
-                    let path = format!("{indexed}.{k}");
-                    out.insert(path.clone(), v.clone());
-                    // Recurse for nested repeat groups
-                    augment_array_value(out, &path, v);
-                }
-            }
-        }
-    }
-}
-
-/// Check if a value is an array of objects (repeat group data).
-/// These should not be set in the FEL env to avoid 1-based array indexing conflicts.
-pub(crate) fn is_repeat_group_array(v: &Value) -> bool {
-    if let Value::Array(arr) = v {
-        !arr.is_empty() && arr.iter().all(|e| e.is_object())
-    } else {
-        false
-    }
-}
-
-/// Detect the repeat count for a given base path by looking at the data keys.
-/// Supports both indexed-key format (`base[0].field`, `base[1].field`) and
-/// array-valued format (`base` -> `[...]`).
+/// Detect the repeat count for a given base path from the flat indexed keys
+/// (`base[0].field`, `base[1].field`). Row arrays are flattened away on entry
+/// ([`super::flatten_response_data`]); rows with no answered field are counted there.
 pub(crate) fn detect_repeat_count(base: &str, data: &HashMap<String, Value>) -> usize {
-    // Check if data[base] is an array (flat data format)
-    if let Some(Value::Array(arr)) = data.get(base) {
-        return arr.len();
-    }
-
-    // Check indexed-key format (expanded data format)
     let mut max_index = 0usize;
     let prefix = format!("{}[", base);
     for key in data.keys() {

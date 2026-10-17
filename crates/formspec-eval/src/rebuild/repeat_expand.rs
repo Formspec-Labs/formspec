@@ -14,7 +14,17 @@ use super::repeat_data::detect_repeat_count;
 /// For each repeatable group, counts instances in data and clones the
 /// template children N times with indexed paths: `group[0].child`, `group[1].child`.
 pub fn expand_repeat_instances(items: &mut [ItemInfo], data: &HashMap<String, Value>) {
-    expand_repeat_instances_inner(items, data);
+    expand_repeat_instances_inner(items, data, &HashMap::new());
+}
+
+/// [`expand_repeat_instances`] with row counts supplied beside the data (a row with no answered
+/// field has no key in `data`); a repeat takes the larger of the two counts.
+pub(crate) fn expand_repeat_instances_counted(
+    items: &mut [ItemInfo],
+    data: &HashMap<String, Value>,
+    counts: &HashMap<String, u64>,
+) {
+    expand_repeat_instances_inner(items, data, counts);
 }
 
 fn rebase_item_paths(item: &mut ItemInfo, from: &str, to: &str) {
@@ -37,11 +47,16 @@ fn rebase_item_paths(item: &mut ItemInfo, from: &str, to: &str) {
     }
 }
 
-fn expand_repeat_instances_inner(items: &mut [ItemInfo], data: &HashMap<String, Value>) {
+fn expand_repeat_instances_inner(
+    items: &mut [ItemInfo],
+    data: &HashMap<String, Value>,
+    counts: &HashMap<String, u64>,
+) {
     for item in items.iter_mut() {
         if item.repeatable {
-            let count =
-                detect_repeat_count(&item.path, data).max(item.repeat_min.unwrap_or(0) as usize);
+            let count = detect_repeat_count(&item.path, data)
+                .max(counts.get(&item.path).copied().unwrap_or(0) as usize)
+                .max(item.repeat_min.unwrap_or(0) as usize);
             if count > 0 {
                 // Clone template children into concrete indexed instances
                 let template_children = item.children.clone();
@@ -54,7 +69,7 @@ fn expand_repeat_instances_inner(items: &mut [ItemInfo], data: &HashMap<String, 
                         rebase_item_paths(&mut concrete, &original_path, &indexed_path);
                         concrete.parent_path = Some(format!("{}[{}]", item.path, i));
                         // Recursively expand nested repeatables
-                        expand_repeat_instances_inner(std::slice::from_mut(&mut concrete), data);
+                        expand_repeat_instances_inner(std::slice::from_mut(&mut concrete), data, counts);
                         expanded.push(concrete);
                     }
                 }
@@ -68,7 +83,7 @@ fn expand_repeat_instances_inner(items: &mut [ItemInfo], data: &HashMap<String, 
             }
         } else {
             // Recurse into non-repeatable groups
-            expand_repeat_instances_inner(&mut item.children, data);
+            expand_repeat_instances_inner(&mut item.children, data, counts);
         }
     }
 }

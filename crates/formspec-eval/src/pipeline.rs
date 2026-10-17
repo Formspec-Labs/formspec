@@ -3,6 +3,7 @@
 use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
 use crate::nrb::apply_nrb;
+use crate::output_data::build_output_data;
 use crate::rebuild;
 use crate::recalculate::recalculate_phase;
 use crate::revalidate::revalidate;
@@ -11,7 +12,7 @@ use crate::runtime_seed::{
     seed_repeat_from_instances,
 };
 use crate::types::{self, EvaluationResult, ValidationResult};
-use crate::{expand_repeat_instances, rebuild_item_tree};
+use crate::rebuild_item_tree;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -23,18 +24,23 @@ pub fn evaluate(
 ) -> EvaluationResult {
     let mut options = options.clone();
     hydrate_inline_instances(definition, &mut options.instances);
-    let options = &options;
-    let context = &options.context;
     let mut items = rebuild_item_tree(definition);
-    let grouped = match rebuild::flatten_group_objects(&items, data) {
-        Ok(grouped) => grouped,
+    let flat = match rebuild::flatten_response_data(&items, data) {
+        Ok(flat) => flat,
         Err(conflicts) => return refuse_ambiguous_input(&conflicts),
     };
-    let flat_data = rebuild::augment_nested_data(&grouped);
+    // Row counts the host sent beside the data win over the ones read from the rows.
+    let mut counts = flat.repeat_counts;
+    if let Some(host) = &options.context.repeat_counts {
+        counts.extend(host.iter().map(|(path, n)| (path.clone(), *n)));
+    }
+    options.context.repeat_counts = Some(counts.clone());
+    let options = &options;
+    let context = &options.context;
 
-    let mut seeded_data = flat_data;
+    let mut seeded_data = flat.values;
     if options.apply_creation_seeds {
-        seed_repeat_from_instances(definition, &mut seeded_data, &options.instances);
+        seed_repeat_from_instances(definition, &mut seeded_data, &options.instances, &counts);
     }
     seed_prepopulate_tree(&items, &mut seeded_data, &options.instances);
 
@@ -45,7 +51,7 @@ pub fn evaluate(
         Fel::new(options.extensions),
     );
 
-    expand_repeat_instances(&mut items, &seeded_data);
+    rebuild::expand_repeat_instances_counted(&mut items, &seeded_data, &counts);
 
     let binds = definition.get("binds");
     rebuild::apply_wildcard_binds(&mut items, binds);
@@ -111,6 +117,8 @@ pub fn evaluate(
         .unwrap_or("remove");
     apply_nrb(&mut values, &items, default_nrb);
 
+    let data = build_output_data(&items, &values, default_nrb);
+
     let variables = var_values
         .iter()
         .map(|(name, value)| (name.clone(), fel_core::fel_to_json(value)))
@@ -118,6 +126,7 @@ pub fn evaluate(
 
     EvaluationResult {
         values,
+        data,
         validations,
         diagnostics,
         non_relevant,
@@ -132,6 +141,7 @@ pub fn evaluate(
 fn refuse_ambiguous_input(paths: &[String]) -> EvaluationResult {
     EvaluationResult {
         values: HashMap::new(),
+        data: Value::Object(Default::default()),
         validations: paths
             .iter()
             .map(|path| ValidationResult {

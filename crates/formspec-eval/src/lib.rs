@@ -37,6 +37,7 @@ pub mod types;
 
 mod eval_json;
 mod eval_options;
+mod output_data;
 mod pipeline;
 mod registry_constraints;
 mod runtime_seed;
