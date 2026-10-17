@@ -14,7 +14,8 @@ describe('FileUpload through every registered adapter (axe, WCAG A/AA)', () => {
         expect(globalRegistry.adapterNames).toEqual(expect.arrayContaining(['default', 'uswds', 'tailwind']));
     });
 
-    for (const name of ['default', 'uswds', 'tailwind']) {
+    // Every adapter the registry holds, so one added later cannot skip this check.
+    for (const name of globalRegistry.adapterNames) {
         it(`${name}: no violations, and no drop target holds a control inside an interactive role`, async () => {
             const render = globalRegistry.resolveAdapterFn('FileUpload', name)!;
             const parent = document.createElement('div');
