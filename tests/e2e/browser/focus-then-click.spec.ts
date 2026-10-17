@@ -29,9 +29,6 @@ async function mount(page: Page, adapter: 'default' | 'uswds') {
   await page.evaluate((name: string) => (window as any).globalRegistry.setAdapter(name), adapter);
   await mountDefinition(page, definition);
   await page.locator('input[name="choice"]').first().waitFor({ state: 'attached' });
-  // Switching adapter links its stylesheet at runtime, and the element stays visibility:hidden until it
-  // loads (7c32f8dc); Tab skips a hidden control, so wait for the form to be revealed.
-  await page.locator('input[name="lead"]').waitFor({ state: 'visible' });
 }
 
 const errorText = (page: Page, field: string) =>
