@@ -159,7 +159,7 @@ class TestEvaluateVariables:
         }
         result = evaluate_definition(defn, {'outer': {'inner': {'val': 0}}})
         # Nearest scope (inner) wins — multiplier = 10
-        assert result.data['outer.inner.val'] == 10
+        assert result.values['outer.inner.val'] == 10
 
     def test_scoped_variable_is_not_visible_outside_its_scope(self):
         """A variable scoped to a group is not visible to items outside that group."""
@@ -201,7 +201,7 @@ class TestEvaluateVariables:
             'binds': [{'path': 'rows[*].doubled', 'calculate': '$rows[*].amount * @factor'}],
         }
         result = evaluate_definition(defn, {'rows': [{'amount': 5, 'doubled': 0}]})
-        assert result.data['rows[0].doubled'] == 10
+        assert result.values['rows[0].doubled'] == 10
 
 
 # ── Shape evaluation ─────────────────────────────────────────────────────────
@@ -419,8 +419,8 @@ class TestItemRegistry:
             }]
         }
         result = evaluate_definition(defn, {'address': {'city': 'NYC', 'zip': '10001'}})
-        assert result.data['address.city'] == 'NYC'
-        assert result.data['address.zip'] == '10001'
+        assert result.data['address']['city'] == 'NYC'
+        assert result.data['address']['zip'] == '10001'
 
     def test_repeatable_group(self):
         defn = {
@@ -448,7 +448,7 @@ class TestItemRegistry:
             }]
         }
         result = evaluate_definition(defn, {'info': {'orgType': 'nonprofit', 'orgSubType': 'charity'}})
-        assert result.data['info.orgType'] == 'nonprofit'
+        assert result.data['info']['orgType'] == 'nonprofit'
 
     def test_display_item(self):
         defn = {
@@ -715,8 +715,8 @@ class TestCalculate:
             'items': [{'qty': 2, 'price': 10, 'total': 0}, {'qty': 5, 'price': 3, 'total': 0}]
         })
         # Check instance 0: 2 * 10 = 20, instance 1: 5 * 3 = 15
-        t0 = result.data.get('items[0].total')
-        t1 = result.data.get('items[1].total')
+        t0 = result.values.get('items[0].total')
+        t1 = result.values.get('items[1].total')
         assert t0 == pytest.approx(20)
         assert t1 == pytest.approx(15)
 
@@ -1308,19 +1308,19 @@ class TestCreationTimeInitializers:
     def test_seed_from_expands_repeat_with_relative_prepopulate(self):
         defn, instances = self._seed_from_rows()
         result = evaluate_definition(defn, {}, instances=instances)
-        assert result.data.get('rows[0].name') == 'ACME CORP'
-        assert result.data.get('rows[1].name') == 'WIDGETS INC'
+        assert result.values.get('rows[0].name') == 'ACME CORP'
+        assert result.values.get('rows[1].name') == 'WIDGETS INC'
 
     def test_seed_from_reads_inline_definition_instances_without_side_channel(self):
         result = evaluate_definition(self._seed_from_rows(inline=True), {})
-        assert result.data.get('rows[0].name') == 'ACME CORP'
-        assert result.data.get('rows[1].name') == 'WIDGETS INC'
+        assert result.values.get('rows[0].name') == 'ACME CORP'
+        assert result.values.get('rows[1].name') == 'WIDGETS INC'
 
     def test_seed_from_does_not_reopen_present_empty_array(self):
         defn, instances = self._seed_from_rows()
         result = evaluate_definition(defn, {'rows': []}, instances=instances)
-        assert result.data.get('rows[0].name') is None
-        assert result.data.get('rows[1].name') is None
+        assert result.values.get('rows[0].name') is None
+        assert result.values.get('rows[1].name') is None
 
 
 class TestDefaultRelevanceTransition:

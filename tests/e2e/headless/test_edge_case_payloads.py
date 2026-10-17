@@ -237,9 +237,10 @@ def test_microgrant_payload_evaluates_and_returns_shape_results(
     shape_results = [r for r in result.results if r.get("constraintKind") == "shape"]
     assert {r["code"] for r in shape_results} >= {"SUBAWARD_CAP"}
     assert "microgrant-contact-channel" in {r.get("shapeId") for r in shape_results}
-    # Nested input is flattened once at the door: the output is flat dotted paths, with no group echoed beside them.
-    assert result.data["project.hasSubawards"] is True
-    assert "project" not in result.data
+    # Nested in, nested out (data) and flat state (values), with no group echoed beside its leaves.
+    assert result.data["project"]["hasSubawards"] is True
+    assert result.values["project.hasSubawards"] is True
+    assert "project" not in result.values
 
 
 def test_microgrant_nested_and_flat_payloads_evaluate_identically(
@@ -258,6 +259,7 @@ def test_microgrant_nested_and_flat_payloads_evaluate_identically(
     nested = evaluate_definition(fixtures["microgrant"], MICROGRANT_NESTED)
     flat_result = evaluate_definition(fixtures["microgrant"], flat)
     assert nested.data == flat_result.data
+    assert nested.values == flat_result.values
     assert nested.results == flat_result.results
 
 
@@ -394,8 +396,8 @@ def test_household_payload_evaluates_and_preserves_data(
 
     assert isinstance(result.results, list)
     assert isinstance(result.data, dict)
-    # Input data is preserved in output, as flat dotted paths (nested groups are flattened at the door)
-    assert result.data["household.renewalStreet"] == "100 Main Street"
+    # Input data is preserved in the nested Response projection
+    assert result.data["household"]["renewalStreet"] == "100 Main Street"
 
 
 def test_vendor_payload_evaluates_and_returns_results(

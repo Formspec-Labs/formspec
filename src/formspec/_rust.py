@@ -143,6 +143,7 @@ class ProcessingResult(msgspec.Struct, frozen=True):
     """Output of evaluate_definition()."""
     valid: bool
     results: list[dict]
+    # The Response projection after nonRelevantBehavior: groups are nested objects, repeats arrays of rows.
     data: dict
     variables: dict
     non_relevant: list[str]
@@ -154,6 +155,8 @@ class ProcessingResult(msgspec.Struct, frozen=True):
     # labels / descriptions / hints (Locale §3.1.2). Empty unless the evaluation context
     # carried ``itemText``.
     item_text: dict[str, dict] = msgspec.field(default_factory=dict)
+    # Flat evaluation state keyed by path (``group.field``, ``rows[0].name``), like FormEngine's.
+    values: dict = msgspec.field(default_factory=dict)
 
 
 class MappingDiagnostic(msgspec.Struct, frozen=True):
@@ -568,7 +571,7 @@ def evaluate_definition(
 
     Args:
         definition: The Formspec definition dict.
-        data: Field values dict.
+        data: Response data, nested as a Response stores it or flat by path; both evaluate alike.
         mode: Shape timing mode — "continuous" (default), "submit", or "disabled".
         registry_documents: Optional list of registry document dicts for extension
             constraint enforcement. Pass an empty list to disable registry loading.
@@ -596,7 +599,8 @@ def evaluate_definition(
     return ProcessingResult(
         valid=is_valid,
         results=validations,
-        data=raw.get("values", {}),
+        data=raw.get("data", {}),
+        values=raw.get("values", {}),
         variables=raw.get("variables", {}),
         non_relevant=raw.get("nonRelevant", raw.get("non_relevant", [])),
         diagnostics=raw.get("diagnostics", []),

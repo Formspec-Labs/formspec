@@ -78,15 +78,15 @@ class TestGrantApplicationIntegration:
         data = _valid_grant_data()
         result = evaluate_definition(grant_def, data)
         # Calculated fields may appear as dotted flat keys
-        all_keys = set(result.data.keys())
+        all_keys = set(result.values.keys())
         assert 'applicantInfo.orgNameUpper' in all_keys
-        assert result.data['applicantInfo.orgNameUpper'] == 'TEST NONPROFIT'
+        assert result.values['applicantInfo.orgNameUpper'] == 'TEST NONPROFIT'
 
     def test_input_data_preserved(self, grant_def):
         data = _valid_grant_data()
         result = evaluate_definition(grant_def, data)
-        assert result.data['applicantInfo.orgName'] == 'Test Nonprofit'
-        assert result.data['applicantInfo.ein'] == '12-3456789'
+        assert result.data['applicantInfo']['orgName'] == 'Test Nonprofit'
+        assert result.data['applicantInfo']['ein'] == '12-3456789'
 
     def test_subcontractors_data_preserved(self, grant_def):
         """Input data for subcontractors is preserved in output."""
