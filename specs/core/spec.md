@@ -662,13 +662,23 @@ event type in this payload-preimage layer. `response_without_authoredSignatures`
 is the top-level Response object after deleting the `authoredSignatures` member
 entirely; all other emitted Response fields remain in scope. `JCS(...)` means
 RFC 8785 JSON Canonicalization Scheme bytes with one change to RFC 8785
-§3.2.2.3: a number is serialized from its exact decimal value, not from the
-nearest IEEE 754 double, using the same ECMAScript `Number::toString` digit
-layout. The bytes therefore equal RFC 8785 for every number a double holds
-exactly, and a `number` keeps all of its significant digits (§3.4.1). A number
-whose magnitude lies outside the double range MUST be refused, as RFC 8785
-refuses it. Implementations MUST compute these bytes from the Response JSON
-text or from a number representation that keeps every digit.
+§3.2.2.3. A number is serialized from its exact decimal value, not from the
+nearest IEEE 754 double: its significant digits, with leading and trailing
+zeros removed, and its decimal exponent, laid out by ECMAScript
+`Number::toString` (ECMA-262 §6.1.6.1.20) as RFC 8785 lays out a double's
+digits. The bytes equal RFC 8785 exactly when the number's text is the
+shortest decimal that round-trips to its nearest double, which is how
+ECMAScript prints every number. Longer text differs: a decimal beyond a
+double's precision keeps every digit, and `1152921504606846976` (2^60 written
+in full) stays as written where RFC 8785 writes `1152921504606847000`. A
+`number` therefore keeps all of its significant digits (§3.4.1). A nonzero
+number whose magnitude IEEE 754 binary64 round-to-nearest-even takes to ±0
+(magnitude ≤ 2^−1075) or to ±∞ (magnitude ≥ 2^1024 − 2^970) is out of range
+and MUST be refused, as RFC 8785 refuses non-finite values; zero is in range
+with any exponent. Implementations MUST decide range from the decimal digits
+and exponent rather than a platform float parser, and MUST compute these bytes
+from the Response JSON text or from a number representation that keeps every
+digit. Shared vectors live in integrity-stack `tests/fixtures/canonical-numbers/`.
 
 The bytes consumed by the cryptographic signing primitive are the RFC 9052
 `Sig_structure`, not the SHA-256 digest string. The authored-signature
@@ -1062,7 +1072,20 @@ tuple as `definitionRef.url` and `definitionRef.version` instead of top-level
 
 The `responseHash` binds the handoff to the canonical Response envelope
 referenced by `responseRef`. When that envelope carries `authoredSignatures`,
-`responseHash` covers the current signature array. This handoff digest is not
+`responseHash` covers the current signature array. For the `sha256` algorithm
+it is `sha256:` followed by the lowercase hexadecimal SHA-256 of
+
+```text
+handoff_preimage =
+  UTF8("formspec.response.handoff.v1") ||
+  0x00 ||
+  JCS(response)
+```
+
+where `response` is the complete Response object, including
+`authoredSignatures`, and `JCS(...)` is as defined for the Signed Response
+Payload preimage. The domain string differs from the signed-payload domain so
+that the two preimages can never coincide. This handoff digest is not
 the signer-assent digest: `authoredSignatures[*].signedPayload.digest` hashes
 the Formspec Signed Response Payload with `authoredSignatures` omitted. A
 conforming acceptor SHOULD verify `responseHash` before creating or updating
