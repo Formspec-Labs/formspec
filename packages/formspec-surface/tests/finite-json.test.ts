@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { snapshotFiniteJson } from '../src/index.js';
+import { canonicalFiniteJson, snapshotFiniteJson } from '../src/index.js';
 
 const LIMIT = 'Response data exceeds the safe snapshot limit';
 function nested(depth: number): unknown {
@@ -42,5 +42,20 @@ describe('finite JSON snapshot limits', () => {
     const array = [null]; Object.defineProperty(array, '0', { get() { calls++; return null; } });
     expect(() => snapshotFiniteJson(array)).toThrow('Response data contains a sparse or accessor array');
     expect(calls).toBe(0);
+  });
+});
+
+describe('exact JSON numbers', () => {
+  const rawJSON = (JSON as unknown as { rawJSON(text: string): unknown }).rawJSON;
+  it('keeps a JSON.rawJSON number through snapshots and writes its source digits', () => {
+    const exact = { amount: rawJSON('1234567890.123456789'), id: rawJSON('9007199254740993'), plain: 1.5 };
+    const snapshot = snapshotFiniteJson(exact) as Record<string, unknown>;
+    expect(snapshot.amount).toBe(exact.amount);
+    expect(canonicalFiniteJson(snapshot as never)).toBe('{"amount":1234567890.123456789,"id":9007199254740993,"plain":1.5}');
+    expect(JSON.stringify(snapshot)).toBe('{"amount":1234567890.123456789,"id":9007199254740993,"plain":1.5}');
+  });
+  it('treats a look-alike object as an object, not an exact number', () => {
+    const forged = Object.assign(Object.create(null), { rawJSON: '1' });
+    expect(canonicalFiniteJson(snapshotFiniteJson(forged))).toBe('{"rawJSON":"1"}');
   });
 });

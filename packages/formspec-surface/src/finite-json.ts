@@ -11,6 +11,17 @@ export type FiniteJsonValue =
   | readonly FiniteJsonValue[]
   | { [key: string]: FiniteJsonValue };
 
+/**
+ * A number read by `parseJsonExact` (integrity-canonical) whose source text a JS
+ * number cannot hold, such as a 19-digit decimal or an integer past 2^53. It is a
+ * frozen `JSON.rawJSON` value; snapshots keep it and canonical text writes its
+ * source digits, so a Response hash taken downstream still sees every digit.
+ */
+function isRawJson(value: unknown): value is { readonly rawJSON: string } {
+  const isRawJSON = (JSON as unknown as { isRawJSON?: (value: unknown) => boolean }).isRawJSON;
+  return typeof isRawJSON === "function" && isRawJSON(value);
+}
+
 function cloneFiniteJson(
   value: unknown,
   active: WeakSet<object>,
@@ -40,6 +51,9 @@ function cloneFiniteJson(
   }
   if (typeof value !== "object") {
     throw new TypeError("Response data contains a non-JSON value");
+  }
+  if (isRawJson(value)) {
+    return value as unknown as FiniteJsonValue;
   }
   if (active.has(value)) {
     throw new TypeError("Response data contains a cycle");
@@ -140,6 +154,9 @@ function cloneFiniteJson(
 }
 
 export function canonicalFiniteJson(value: FiniteJsonValue): string {
+  if (isRawJson(value)) {
+    return value.rawJSON;
+  }
   if (value === null || typeof value !== "object") {
     const serialized = JSON.stringify(value);
     if (serialized === undefined) {
