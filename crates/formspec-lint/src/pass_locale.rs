@@ -59,22 +59,39 @@ fn surface_shell_string_keys() -> &'static HashSet<String> {
     })
 }
 
-/// Locale §3.1.10 `ChromeStringKey` suffixes (renderer chrome, `packages/formspec-layout/src/ui-strings.ts`),
-/// read from the embedded Locale schema enum so the lint never carries a second copy of the closed set.
-fn chrome_string_keys() -> &'static HashSet<String> {
+/// Locale §3.1.10 `ChromeStringKey` suffixes (renderer chrome, `packages/formspec-layout/src/ui-strings.ts`)
+/// for one Locale dialect, read from the embedded Locale schema so the lint never carries a second copy
+/// of either closed set. Locale 2.1 uses `$defs.ChromeStringKey`; Locale 2.0 keeps the frozen inventory
+/// its dialect branch carries, so a retired 2.1 key such as `fileUpload.dropzoneKeyboard` stays valid there.
+fn chrome_string_keys(dialect_2_0: bool) -> &'static HashSet<String> {
     const UI_PREFIX: &str = "$ui.";
-    static KEYS: OnceLock<HashSet<String>> = OnceLock::new();
-    KEYS.get_or_init(|| {
+    static KEYS: OnceLock<[HashSet<String>; 2]> = OnceLock::new();
+    let keys = KEYS.get_or_init(|| {
         let schema: Value = serde_json::from_str(include_str!("../schemas/locale.schema.json"))
             .expect("embedded Locale schema is valid JSON");
-        schema["$defs"]["ChromeStringKey"]["enum"]
+        let suffixes = |values: &Value| -> HashSet<String> {
+            values
+                .as_array()
+                .expect("Locale schema declares a closed chrome key enum")
+                .iter()
+                .filter_map(|key| key.as_str()?.strip_prefix(UI_PREFIX))
+                .map(str::to_owned)
+                .collect()
+        };
+        let frozen = schema["allOf"]
             .as_array()
-            .expect("Locale schema declares the ChromeStringKey enum")
-            .iter()
-            .filter_map(|key| key.as_str()?.strip_prefix(UI_PREFIX))
-            .map(str::to_owned)
-            .collect()
-    })
+            .and_then(|branches| {
+                branches
+                    .iter()
+                    .find(|branch| branch["if"]["properties"]["$formspecLocale"]["const"] == "2.0")
+            })
+            .expect("Locale schema declares its 2.0 dialect branch");
+        [
+            suffixes(&schema["$defs"]["ChromeStringKey"]["enum"]),
+            suffixes(&frozen["then"]["properties"]["strings"]["propertyNames"]["then"]["enum"]),
+        ]
+    });
+    &keys[usize::from(dialect_2_0)]
 }
 
 pub(crate) fn lint_locale(locale: &Value, options: &LintOptions) -> Vec<LintDiagnostic> {
@@ -310,7 +327,8 @@ impl<'a> Analyzer<'a> {
     /// `{{$param}}` substitution.
     fn check_ui_key(&mut self, parts: &[String], json_path: &str) {
         let suffix = parts.join(".");
-        if parts.len() != 2 || !chrome_string_keys().contains(&suffix) {
+        let dialect_2_0 = self.locale["$formspecLocale"] == "2.0";
+        if parts.len() != 2 || !chrome_string_keys(dialect_2_0).contains(&suffix) {
             self.diagnostics.push(error(
                 crate::LintCode::E1401,
                 PASS,
@@ -1324,6 +1342,32 @@ mod tests {
         assert!(
             diagnostics.is_empty(),
             "repeat chrome keys must be localizable: {diagnostics:?}"
+        );
+    }
+
+    /// Locale 2.0 keeps its frozen chrome inventory; 2.1 retired `fileUpload.dropzoneKeyboard`.
+    #[test]
+    fn chrome_keys_close_to_the_document_dialect() {
+        let strings = json!({ "$ui.fileUpload.dropzoneKeyboard": "Press Enter to browse" });
+        assert!(
+            lint_strings(&strings, Some(nested_definition())).is_empty(),
+            "a 2.0 Locale keeps its frozen chrome inventory"
+        );
+        let mut locale =
+            locale_document("definition", "https://example.com/forms/nested", "fr", None);
+        locale["$formspecLocale"] = json!("2.1");
+        locale["strings"] = strings;
+        let diagnostics = lint_locale(
+            &locale,
+            &LintOptions {
+                definition_document: Some(nested_definition()),
+                no_fel: true,
+                ..Default::default()
+            },
+        );
+        assert_eq!(
+            codes_at(&diagnostics, "$ui.fileUpload.dropzoneKeyboard"),
+            vec![crate::LintCode::E1401]
         );
     }
 
