@@ -22,6 +22,7 @@
       "additionalProperties": false,
       "required": [
         "version",
+        "issuer",
         "draftId",
         "draftVersion",
         "actorRef",
@@ -35,6 +36,13 @@
       "properties": {
         "version": {
           "const": "1.0"
+        },
+        "issuer": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri",
+          "description": "Exact scope-derived issuer URI of the delegated signing service. It is covered by the whole-Response signature and MUST equal the relying party's independently configured expected issuer; it is not the respondent-facing Issuer branding document.",
+          "examples": ["https://source.example.org/tenant-a/workspace-a/production"]
         },
         "draftId": {
           "type": "string",
@@ -73,7 +81,7 @@
           "const": "sha-256"
         }
       },
-      "description": "Evidence of an explicit delegated signing act, retained inside the whole-Response signed bytes. draftVersion is the unsigned saved revision supplied to the producer; it is not rewritten after the signed save. Server admission independently resolves content, identity, hash, mirrored outer fields, current revision and cryptographic evidence."
+      "description": "Evidence of an explicit delegated signing act, retained inside the whole-Response signed bytes. issuer binds the signing service's scope and requires an independently configured expected issuer at admission. draftVersion is the unsigned saved revision supplied to the producer; it is not rewritten after the signed save. Server admission independently resolves content, identity, hash, mirrored outer fields, current revision and cryptographic evidence."
     },
     "ResponseStatus": {
       "type": "string",

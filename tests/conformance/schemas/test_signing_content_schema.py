@@ -22,7 +22,8 @@ def source_definition():
             'extensions':{'x-other':{'keep':True},'x-formspec-signing-content':{'version':'1.0','entries':{'certification-en':deepcopy(CONTENT)}}}}
 
 def commitment():
-    return {'version':'1.0','draftId':'draft-1','draftVersion':7,'actorRef':'owner-1','signerName':'Test Person',
+    return {'version':'1.0','issuer':'https://source.example.org/tenant-a/workspace-a/production',
+            'draftId':'draft-1','draftVersion':7,'actorRef':'owner-1','signerName':'Test Person',
             'signedAt':'2026-10-06T12:00:00Z','consentAccepted':True,'content':deepcopy(CONTENT),
             'documentHash':'a'*64,'documentHashAlgorithm':'sha-256'}
 
@@ -33,6 +34,25 @@ def response():
 def test_typed_extensions_allow_unrelated_x_data():
     validator(DEFINITION).validate(source_definition())
     validator(RESPONSE).validate(response())
+
+def test_signing_commitment_requires_issuer():
+    r = response()
+    del r['extensions']['x-formspec-signing-content']['issuer']
+    with pytest.raises(ValidationError):
+        validator(RESPONSE).validate(r)
+
+@pytest.mark.parametrize('issuer', ['', 'relative/path', 'https://source.example.org/has space', None, 42])
+def test_signing_commitment_requires_absolute_issuer_uri(issuer):
+    r = response()
+    r['extensions']['x-formspec-signing-content']['issuer'] = issuer
+    with pytest.raises(ValidationError):
+        validator(RESPONSE).validate(r)
+
+@pytest.mark.parametrize('issuer', ['https://source.example.org/tenant-a/workspace-a/production', 'urn:source:tenant-a:production'])
+def test_signing_commitment_accepts_absolute_issuer_uri(issuer):
+    r = response()
+    r['extensions']['x-formspec-signing-content']['issuer'] = issuer
+    validator(RESPONSE).validate(r)
 
 @pytest.mark.parametrize('field', list(CONTENT))
 def test_every_displayed_content_field_is_required_in_both_artifacts(field):

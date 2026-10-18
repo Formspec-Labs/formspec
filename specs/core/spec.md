@@ -5434,14 +5434,27 @@ canonicalization profile.
 
 After an explicit Sign act, `Response.extensions["x-formspec-signing-content"]`
 MAY retain the closed `SigningContentCommitment` defined in the Response schema.
-It contains format version, unsigned saved draft ID and revision, verified actor
-reference, signer name, signed-at time, accepted consent, resolved content, and
+It contains format version, the delegated service's scope-derived `issuer` URI,
+unsigned saved draft ID and revision, verified actor reference, signer name,
+signed-at time, accepted consent, resolved content, and
 content hash. `draftVersion` records the exact unsigned revision given to the
 producer and MUST NOT be rewritten when the signed Response is saved. Consent
 acceptance, signer name, and signed-at time MUST NOT be asserted during a
 pre-display preparation. A retry MUST retain the same logical act facts and
 unchanged candidate; an intervening answer, identity, content, language, or
 revision change requires a new explicit act.
+
+The host MUST obtain the expected issuer from trusted deployment configuration
+before constructing the commitment. The signing service MUST derive its issuer
+from its admitted scope and require exact equality with the commitment's
+`issuer` before signing. A relying party MUST independently select the expected
+issuer and trusted verification keys and require exact issuer equality when
+admitting either a new or a retained signed Response. It MUST NOT derive the
+expected issuer from the candidate Response, replace it after signing, or
+normalize either value for comparison. A missing issuer or a foreign-scope
+issuer MUST fail trusted admission even when the cryptographic signature is
+valid. This issuer identifies the signing service's scope; it is distinct from
+the respondent-facing Issuer branding sidecar and `displayedIssuer`.
 
 The existing whole-Response profile covers this extension. Admission MUST
 independently resolve the authoritative content and verify its hash, the actor,
