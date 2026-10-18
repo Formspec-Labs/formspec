@@ -612,8 +612,8 @@ that omits `authoredSignatures` and the domain separation string
 
 Whole-response authored-signature byte production under
 `formspec-response-signing-v1` is the normative composition of two
-substrate primitives: `integrity-canonical-json-v1` (RFC 8785 JCS bytes framed
-as `domain || NUL || canonical-json`, source of truth
+substrate primitives: `integrity-canonical-json-v1` (RFC 8785 JCS bytes with
+exact decimal numbers, framed as `domain || NUL || canonical-json`, source of truth
 `integrity-stack/crates/integrity-canonical/`) and `integrity-cose` (the
 RFC 9052 COSE_Sign1 envelope and `Sig_structure`, with the Formspec
 authored-signature method dispatched by protected-header label `-65540`
@@ -661,7 +661,14 @@ delimiter string, trailing NUL, `method_uri`, receipt-domain tag, or outer
 event type in this payload-preimage layer. `response_without_authoredSignatures`
 is the top-level Response object after deleting the `authoredSignatures` member
 entirely; all other emitted Response fields remain in scope. `JCS(...)` means
-RFC 8785 JSON Canonicalization Scheme bytes.
+RFC 8785 JSON Canonicalization Scheme bytes with one change to RFC 8785
+§3.2.2.3: a number is serialized from its exact decimal value, not from the
+nearest IEEE 754 double, using the same ECMAScript `Number::toString` digit
+layout. The bytes therefore equal RFC 8785 for every number a double holds
+exactly, and a `number` keeps all of its significant digits (§3.4.1). A number
+whose magnitude lies outside the double range MUST be refused, as RFC 8785
+refuses it. Implementations MUST compute these bytes from the Response JSON
+text or from a number representation that keeps every digit.
 
 The bytes consumed by the cryptographic signing primitive are the RFC 9052
 `Sig_structure`, not the SHA-256 digest string. The authored-signature
