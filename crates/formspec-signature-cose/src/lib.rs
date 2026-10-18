@@ -253,8 +253,10 @@ mod tests {
         let protected = [0xa2, 0x01, 0x27, 0x01, 0x26];
         let bytes = encode_cose_sign1(&protected, None, &[4, 5, 6]);
         let err = decode_cose_sign1(&bytes).expect_err("duplicate labels must reject");
+        // integrity-cbor's decoder refuses the repeated label 1 (canonical CBOR R4).
         assert!(
-            err.to_string().contains("duplicate protected-header label"),
+            err.to_string()
+                .contains("duplicate canonical CBOR map key `01`"),
             "unexpected error: {err}"
         );
     }
