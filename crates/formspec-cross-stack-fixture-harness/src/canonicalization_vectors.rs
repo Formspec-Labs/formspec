@@ -14,11 +14,8 @@
 //! verification (fs-7md4 regression coverage).
 
 use crate::paths::cross_stack_fixtures_root;
-use integrity_canonical::{
-    DigestAlgorithm, canonical_response_handoff_bytes, canonical_response_signed_payload_bytes,
-    compute_digest,
-};
-use serde_json::{Value, json};
+use integrity_canonical::{DigestAlgorithm, ResponseJson, compute_digest};
+use serde_json::json;
 
 /// One canonicalization vector covering both digest contracts for a Response.
 #[derive(Debug, Clone, PartialEq)]
@@ -26,8 +23,8 @@ pub struct CanonicalizationVector {
     /// Friendly name for diagnostics.
     pub name: &'static str,
 
-    /// Response JSON used as canonicalization input.
-    pub response: Value,
+    /// Response JSON text used as canonicalization input.
+    pub response: ResponseJson,
 
     /// Lowercase hex digest of the response-handoff preimage (authoredSignatures retained).
     pub expected_handoff_hex: &'static str,
@@ -56,7 +53,7 @@ pub struct CanonicalizationVector {
 pub fn vector_a_without_signatures() -> CanonicalizationVector {
     CanonicalizationVector {
         name: "vector-a-no-signatures",
-        response: json!({
+        response: in_process(json!({
             "$formspecResponse": "1.0",
             "definitionUrl": "https://example.org/forms/test",
             "definitionVersion": "1.0.0",
@@ -64,7 +61,7 @@ pub fn vector_a_without_signatures() -> CanonicalizationVector {
             "status": "completed",
             "data": { "name": "Ada" },
             "authored": "2026-05-08T12:00:00Z"
-        }),
+        })),
         expected_handoff_hex: "0912e0fdca5b0901ad0b24f7ff5a45af2f46685b6857222ff304730c590fffe5",
         expected_signed_payload_hex: "0580b4321a18d888907a5053f956b681404656bd5bd612348f69df1b026f0660",
     }
@@ -75,7 +72,7 @@ pub fn vector_a_without_signatures() -> CanonicalizationVector {
 pub fn vector_b_with_signatures() -> CanonicalizationVector {
     CanonicalizationVector {
         name: "vector-b-with-signatures",
-        response: json!({
+        response: in_process(json!({
             "$formspecResponse": "1.0",
             "definitionUrl": "https://example.org/forms/test",
             "definitionVersion": "1.0.0",
@@ -89,7 +86,7 @@ pub fn vector_b_with_signatures() -> CanonicalizationVector {
                     "signingIntent": "urn:example:signing-intent:test"
                 }
             ]
-        }),
+        })),
         expected_handoff_hex: "7c2d46794e7904e2bc3ec2bfce0cd076a3957bd1c33631c03933e87eca9c4d27",
         expected_signed_payload_hex: "f784073dbcdd2efe685fb900ec9cdedcd602daeb173b7188fa4a5387894e0422",
     }
@@ -113,17 +110,22 @@ pub fn vector_c_bundle_001() -> CanonicalizationVector {
     }
 }
 
-/// Loads bundle 001's `formspec-response.json` as a JSON value.
+/// Admits a Response built in this file; its numbers are exactly what it holds.
+fn in_process(response: serde_json::Value) -> ResponseJson {
+    ResponseJson::from_value(&response).expect("pinned vector Response")
+}
+
+/// Loads bundle 001's `formspec-response.json` as Response text.
 ///
 /// Resolves the path relative to this crate's manifest dir so the loader stays
 /// reproducible across workspaces.
-fn bundle_001_response() -> Value {
+fn bundle_001_response() -> ResponseJson {
     let path = cross_stack_fixtures_root()
         .join("001-standalone-formspec-verified")
         .join("formspec-response.json");
-    let bytes = std::fs::read(&path)
+    let text = std::fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("read bundle 001 response at {path:?}: {error}"));
-    serde_json::from_slice(&bytes)
+    ResponseJson::parse(text)
         .unwrap_or_else(|error| panic!("parse bundle 001 response at {path:?}: {error}"))
 }
 
@@ -144,11 +146,11 @@ pub fn all_vectors() -> Vec<CanonicalizationVector> {
 ///
 /// Returns an error when the response cannot be canonicalized.
 pub fn recompute_digests(vector: &CanonicalizationVector) -> Result<(String, String), String> {
-    let handoff_bytes = canonical_response_handoff_bytes(&vector.response)?;
-    let signed_bytes = canonical_response_signed_payload_bytes(&vector.response)?;
+    let handoff_bytes = vector.response.handoff_bytes()?;
+    let signed = vector.response.signed_payload(DigestAlgorithm::Sha256)?;
     Ok((
         compute_digest(&handoff_bytes, DigestAlgorithm::Sha256),
-        compute_digest(&signed_bytes, DigestAlgorithm::Sha256),
+        signed.digest,
     ))
 }
 
@@ -193,6 +195,7 @@ mod tests {
         let vector = vector_c_bundle_001();
         let in_file_digest = vector
             .response
+            .value()
             .get("authoredSignatures")
             .and_then(|s| s.get(0))
             .and_then(|s| s.get("signedPayload"))

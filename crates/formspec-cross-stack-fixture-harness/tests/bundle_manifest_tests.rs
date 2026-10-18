@@ -181,9 +181,9 @@ fn load_response_fixture(bundle_name: &str) -> ResponseFixture {
         "{bundle_name} posture declaration missing"
     );
 
+    let response_text = std::fs::read_to_string(&response_path).expect("read response");
     let response_json: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(&response_path).expect("read response"))
-            .expect("parse response");
+        serde_json::from_str(&response_text).expect("parse response");
     validate_response_schema(&response_json);
 
     let response: FixtureResponse =
@@ -215,7 +215,8 @@ fn load_response_fixture(bundle_name: &str) -> ResponseFixture {
 
     let algorithm = DigestAlgorithm::from_str(&signature.signed_payload.digest_algorithm)
         .expect("digest algorithm");
-    let signed_payload = build_signed_payload(&response_json, algorithm).expect("signed payload");
+    let signed_payload =
+        build_signed_payload(response_text.as_bytes(), algorithm).expect("signed payload");
     assert_eq!(signed_payload.digest, signature.signed_payload.digest);
     let method_uri = method_uri_from_signature_value(&signature.signature_value);
 
