@@ -90,6 +90,83 @@ function deferred<T>() {
 
 describe('React Response Actions parity', () => {
 
+    it.each([false, true])('places and dispatches owned actions without a generic submit callback, observer=%s', async observe => {
+        const onHostEvent = vi.fn();
+        const onActionResult = observe ? vi.fn() : undefined;
+        const responseActionInvoker = vi.fn((input: ResponseActionInvokerInput) => ({ invocation: invokeResponseAction(
+            input.document, input.actionRef, input.ports, input.nodeId, input.invocationContext,
+        ) }));
+        const { container, root } = renderInto(<FormspecForm definition={definition}
+            responseActionsDocument={multiActionDocument} responseActionInvoker={responseActionInvoker}
+            onHostEvent={onHostEvent} onActionResult={onActionResult} />);
+        const buttons = [...container.querySelectorAll<HTMLButtonElement>('button.formspec-submit')];
+        expect(buttons.map(button => button.textContent)).toEqual(['Save draft', 'Review form', 'Publish form']);
+        await act(async () => { buttons[0].click(); });
+        await act(async () => { buttons[1].click(); });
+        expect(responseActionInvoker.mock.calls.map(([input]) => input.actionRef)).toEqual(['save-form-draft', 'review-form']);
+        expect(onHostEvent.mock.calls.map(([event]) => event)).toEqual(['draft-saved', 'form-reviewed']);
+        if (onActionResult) expect(onActionResult).toHaveBeenCalledTimes(2);
+        root.unmount(); container.remove();
+    });
+
+    it('identifies distinct authored actions even when their visible labels match', async () => {
+        const document = structuredClone(multiActionDocument);
+        document.actions[1].label = { literal: 'Save draft' };
+        const invoker = vi.fn((input: ResponseActionInvokerInput) => ({ invocation: invokeResponseAction(
+            input.document, input.actionRef, input.ports, input.nodeId, input.invocationContext,
+        ) }));
+        const { container, root } = renderInto(<FormspecForm definition={definition}
+            responseActionsDocument={document} responseActionInvoker={invoker} />);
+        const buttons = [...container.querySelectorAll<HTMLButtonElement>('button[data-action-ref]')];
+        expect(buttons.map(button => button.dataset.actionRef)).toEqual(document.actions.map(action => action.id));
+        expect(buttons.filter(button => button.textContent === 'Save draft')).toHaveLength(2);
+        const owned = container.querySelector<HTMLButtonElement>('button[data-action-ref="review-form"]')!;
+        await act(async () => { owned.click(); });
+        expect(invoker.mock.calls.map(([input]) => input.actionRef)).toEqual(['review-form']);
+        root.unmount(); container.remove();
+    });
+
+    it('does not treat an action result observer as an execution capability', () => {
+        const observer = vi.fn();
+        const { container, root } = renderInto(<FormspecForm definition={definition}
+            responseActionsDocument={multiActionDocument} onActionResult={observer} />);
+        expect(container.querySelectorAll('button.formspec-submit')).toHaveLength(0);
+        expect(observer).not.toHaveBeenCalled();
+        root.unmount(); container.remove();
+    });
+
+    it.each(['foreign-target', 'duplicate-action', 'invalid-validation'] as const)('keeps invalid %s action documents out of invoker-only automatic controls', mode => {
+        const document = structuredClone(multiActionDocument);
+        if (mode === 'foreign-target') document.targetDefinition.url = 'urn:test:foreign';
+        if (mode === 'duplicate-action') document.actions.push(structuredClone(document.actions[0]));
+        if (mode === 'invalid-validation') Object.assign(document.actions[0], { validation: {
+            profile: 'off', blocking: 'block-on-error', persistence: 'draft-checkpoint',
+        } });
+        const invoker = vi.fn();
+        const { container, root } = renderInto(<FormspecForm definition={definition}
+            responseActionsDocument={document} responseActionInvoker={invoker} />);
+        expect(container.querySelectorAll('button.formspec-submit')).toHaveLength(0);
+        expect(invoker).not.toHaveBeenCalled();
+        root.unmount(); container.remove();
+    });
+
+    it('adds and removes automatic controls with the explicit invoker capability', () => {
+        const engine = createFormEngine(definition);
+        const invoker = vi.fn((input: ResponseActionInvokerInput) => ({ invocation: invokeResponseAction(
+            input.document, input.actionRef, input.ports, input.nodeId, input.invocationContext,
+        ) }));
+        const view = (responseActionInvoker?: typeof invoker) => <FormspecForm engine={engine}
+            responseActionsDocument={multiActionDocument} responseActionInvoker={responseActionInvoker} />;
+        const { container, root } = renderInto(view());
+        expect(container.querySelectorAll('button.formspec-submit')).toHaveLength(0);
+        flushSync(() => root.render(view(invoker)));
+        expect(container.querySelectorAll('button.formspec-submit')).toHaveLength(3);
+        flushSync(() => root.render(view()));
+        expect(container.querySelectorAll('button.formspec-submit')).toHaveLength(0);
+        expect(invoker).not.toHaveBeenCalled();
+        root.unmount(); container.remove(); engine.dispose();
+    });
+
     it('dispatches evaluated transient detail while onSubmit retains the original response', () => {
         const submitted = vi.fn();
         const hostEvent = vi.fn();

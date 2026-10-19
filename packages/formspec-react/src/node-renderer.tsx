@@ -392,6 +392,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
                 // Response Actions entirely. type="button" eliminates the
                 // foot-gun and keeps cross-renderer parity.
                 type="button"
+                data-action-ref={actionRef}
                 className={node.cssClasses?.join(' ') || 'formspec-action formspec-submit'}
                 disabled={!resolution.resolved}
                 aria-disabled={!resolution.resolved || pending}
