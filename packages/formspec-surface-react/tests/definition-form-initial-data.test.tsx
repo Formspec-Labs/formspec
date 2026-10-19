@@ -387,7 +387,11 @@ describe('definition-form initial data rendering', () => {
       />
     );
 
-    act(() => root.render(app(1)));
+    await act(async () => {
+      root.render(app(1));
+      await flush();
+    });
+    expect(loader).toHaveBeenCalledTimes(1);
     act(() => root.render(app(2)));
     await act(async () => {
       second.resolve(loaded('Current generation'));

@@ -855,6 +855,36 @@ export function renderDefaultDefinitionForm({
   );
 }
 
+type EffectDataSourcePorts = {
+  loader?: DataSourceLoader | undefined;
+  authorize?: DataSourceAuthorizer | undefined;
+  validatePayload?: DataSourcePayloadValidator | undefined;
+};
+
+/** Stop later owner phases when this effect retires; host authority stays in the ports. */
+function currentEffectDataSourcePorts(
+  isCurrent: () => boolean,
+  { loader, authorize, validatePayload }: EffectDataSourcePorts,
+): EffectDataSourcePorts {
+  const check = () => {
+    if (!isCurrent()) throw new Error('Surface data load effect retired');
+  };
+  const invoke = <T,>(dispatch: () => T | Promise<T>): T | Promise<T> => {
+    check();
+    const result = dispatch();
+    const complete = (value: T): T => { check(); return value; };
+    // Preserve synchronous ports; only asynchronous results need a continuation.
+    return typeof (result as Promise<T>)?.then === 'function'
+      ? Promise.resolve(result).then(complete)
+      : complete(result as T);
+  };
+  return {
+    loader: loader ? request => invoke(() => loader(request)) : undefined,
+    authorize: authorize ? request => invoke(() => authorize(request)) : undefined,
+    validatePayload: validatePayload ? request => invoke(() => validatePayload(request)) : undefined,
+  };
+}
+
 type ReadyDefinitionFormInitialDataPlan = Extract<
   DefinitionFormInitialDataPlan,
   { status: 'ready' }
@@ -965,9 +995,11 @@ function DefinitionFormDataSlot({
         params: input.route.params,
         sessionGeneration: requestedGeneration,
       },
-      loader: dataSourceLoader,
-      authorize: authorizeDataSource,
-      validatePayload: validateDataSourcePayload,
+      ...currentEffectDataSourcePorts(() => current, {
+        loader: dataSourceLoader,
+        authorize: authorizeDataSource,
+        validatePayload: validateDataSourcePayload,
+      }),
       map: executeDefinitionFormMapping,
       site: {
         surfaceId: input.route.surfaceId,
@@ -1305,9 +1337,11 @@ function SurfaceWidgetSlot({
         params: route.params,
         sessionGeneration: runtimeGeneration,
       },
-      loader: dataSourceLoader,
-      authorize: authorizeDataSource,
-      validatePayload: validateDataSourcePayload,
+      ...currentEffectDataSourcePorts(() => current, {
+        loader: dataSourceLoader,
+        authorize: authorizeDataSource,
+        validatePayload: validateDataSourcePayload,
+      }),
       site: {
         surfaceId: route.surfaceId,
         routeId: route.routeId,
