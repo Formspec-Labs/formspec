@@ -8,6 +8,9 @@ import { execSync } from 'node:child_process';
  * Rule: a package at layer N may only depend on packages at layer < N.
  */
 const LAYERS = {
+  '@formspec/signature-port': 0,
+  '@formspec/signature-cose': 0,
+  '@formspec/signature-adapter-webcrypto': 1,
   '@formspec-org/types':    0,
   '@formspec-org/outcome-verification': 1,
   '@formspec-org/app-graph': 1,

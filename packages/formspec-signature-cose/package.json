@@ -1,12 +1,14 @@
 {
   "name": "@formspec/signature-cose",
   "version": "0.1.0",
-  "private": true,
   "description": "Formspec COSE_Sign1 decode helpers for signature adapters",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -16,5 +18,25 @@
   "devDependencies": {
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
-  }
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Formspec-Labs/formspec.git",
+    "directory": "packages/formspec-signature-cose"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "LICENSE"
+  ]
 }

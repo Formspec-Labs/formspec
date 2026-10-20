@@ -1,10 +1,18 @@
 # `@formspec/signature-adapter-webcrypto`
 
-Thin Formspec-stamping facade (24 LOC) over `@formspec-org/integrity-signature-adapter-webcrypto`. Extends `IntegrityWebCryptoVerifier` and pins three Formspec-owned constants:
+Thin Formspec-stamping facade over `@formspec-org/integrity-signature-adapter-webcrypto`. Extends `IntegrityWebCryptoVerifier` and supplies Formspec-owned defaults:
 
 - `adapterId` — `urn:formspec:adapter:webcrypto@1` (surfaces in Formspec verifier-output records)
 - `adapterVersion` — `0.1.0`
 - `methodUriPrefix` — `urn:formspec:sig-method:` (the prefix `MethodRegistry` dispatches on; [ADR 0109](../../../thoughts/adr/0109-stack-protected-header-dispatch-consolidation.md))
+
+The response method prefix comes from `@formspec/signature-cose`; explicit constructor options can override the defaults.
+
+The package ships native ESM JavaScript and declarations from its root export.
+`npm run build:signatures` builds the family in dependency order; `npm run
+test:signature-packages` verifies actual tarballs in an isolated Node and NodeNext
+consumer. This is local distribution readiness, not registry publication or a
+new cryptographic conformance claim.
 
 A caller could construct the generic adapter with these inline. The facade exists so new callers don't duplicate the constants and silently drift.
 
