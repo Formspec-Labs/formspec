@@ -223,7 +223,7 @@ class TestDefinitionTopLevel:
             "items", "binds", "shapes", "instances", "variables",
             "nonRelevantBehavior", "optionSets", "migrations", "issuer",
             "metadata", "fees", "extensions", "formPresentation",
-            "modules",
+            "documents", "modules",
             "parties", "multiParty",
             "x-generation",
         }

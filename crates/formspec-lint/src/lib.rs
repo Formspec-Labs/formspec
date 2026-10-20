@@ -27,6 +27,7 @@
 
 pub mod app_graph_report;
 mod bind_consistency;
+mod document_declarations;
 mod generated;
 mod lint_json;
 mod metadata;
@@ -220,6 +221,7 @@ fn lint_definition(
     }
 
     diagnostics.extend(references::check_references(doc, &tree_index));
+    diagnostics.extend(document_declarations::lint_documents(doc));
     diagnostics.extend(extensions::check_extensions(
         doc,
         &options.registry_documents,

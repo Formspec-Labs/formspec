@@ -221,6 +221,8 @@ JSON document that contains:
 - **Data Sources** — declarations of secondary instances and external lookup
   tables (§2.1.2).
 - **Validation Shapes** — composable constraint rule sets (§2.1.5).
+- **Attestable Documents** — optional declarations of exact document bytes
+  and localized variants that Fields can reference through `attests` (§4.1.3).
 - **Metadata** — human-readable title, description, authoring timestamps,
   and status.
 
@@ -2700,6 +2702,7 @@ generated from `schemas/definition.schema.json`:
 | `#/properties/date` | `date` | <code>string</code> | no | — | Publication or last-modified date of this Definition version, in ISO 8601 date format (YYYY-MM-DD). |
 | `#/properties/derivedFrom` | `derivedFrom` | <code>composite</code> | no | — | Parent definition this form is derived from. Informational only — does NOT imply behavioral inheritance or runtime linkage. Enables change analysis, pre-population from parent Responses, and lineage tracking. A plain URI string indicates derivation from the logical form in general; an object with url+version pins to a specific version. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of the form's purpose and scope. |
+| `#/properties/documents` | `documents` | <code>object</code> | no | — | Attestable documents keyed by Definition-local id. Declares source bytes and locale variants, not a completed signing act or proof of URL byte integrity. |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip. |
 | `#/properties/fees` | `fees` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Fees</code> | FEL-calculated fee line items for respondent-facing cost disclosure. |
 | `#/properties/formPresentation` | `formPresentation` | <code>object</code> | no | — | Form-wide presentation defaults. All properties OPTIONAL and advisory — a conforming processor MAY ignore any or all. These are Tier 1 baseline hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. MUST NOT affect data capture, validation, or submission semantics. |
@@ -2844,6 +2847,80 @@ Page authority is resolved in this order:
 > validation errors are surfaced to the user, not *what* constitutes a
 > valid submission. A form's validation semantics (§5) are independent
 > of its presentation mode.
+
+#### 4.1.3 Attestable Documents
+
+The OPTIONAL top-level `documents` map declares documents that Fields can
+reference through `attests`. Its keys are case-sensitive document identifiers
+matching `^[A-Za-z][A-Za-z0-9_-]*$`, scoped to the containing Definition's
+`(url, version)`. This map is separate from the explanatory
+`metadata.preparation.documents` list.
+
+Each document has a REQUIRED `defaultLocale` and a nonempty `variants` map.
+Locale tags use the [Locale specification's tag grammar](../locale/locale-spec.md).
+Processors MUST compare these tags case-insensitively, MUST reject
+case-equivalent variant keys, and MUST require `defaultLocale` to match one
+declared variant. Validation MUST NOT substitute a different variant when that
+match is absent. Each variant contains exactly `source`, `mediaType`, and
+`documentHash`; `mediaType` declares the source media type, including parameters
+where needed.
+
+`source` has exactly one of these closed shapes:
+
+- `{ "kind": "url", "href": "<absolute URI>" }` identifies bytes for a host to
+  resolve and retain under its source-access policy.
+- `{ "kind": "inline", "data": "<standard Base64>" }` carries nonempty source
+  bytes. The encoding MUST use the standard Base64 alphabet, required padding
+  and zero unused padding bits, with no whitespace. UTF-8 text uses its exact
+  encoded bytes; processors MUST NOT normalize text, line endings or content.
+
+Inline input MUST contain at most 1,398,104 encoded characters and decode to at
+most 1,048,576 bytes (1 MiB) per variant. A validator MUST check the encoded
+bound before decoding and MUST reject invalid encoding, an oversized decoded
+value, or a digest mismatch. This inline limit does not set the host's limit
+for URL-backed documents.
+
+`documentHash` MUST be exactly 64 lowercase hexadecimal characters encoding
+SHA-256 of the exact source bytes: decoded inline bytes or the retained bytes
+resolved from `href`. It is not a digest of the URL string, Base64 text,
+ceremony JSON or rendered presentation. Offline Definition validation MUST
+check an inline source's digest, MUST NOT fetch URL sources, and MUST NOT claim
+to have verified unavailable URL bytes. A host that resolves a URL for signing
+must check the retained bytes against the declared digest before relying on
+them; successful declaration validation alone establishes no such check.
+
+For example, this declaration pins the five UTF-8 bytes `Hello`:
+
+```json
+{
+  "documents": {
+    "terms-v2": {
+      "defaultLocale": "en",
+      "variants": {
+        "en": {
+          "source": { "kind": "inline", "data": "SGVsbG8=" },
+          "mediaType": "text/plain; charset=utf-8",
+          "documentHash": "185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969"
+        }
+      }
+    }
+  }
+}
+```
+
+This is a Definition fragment. A Field can refer to it with
+`"attests": ["terms-v2"]`. When present, `attests` MUST be a nonempty array of
+unique document identifiers, each resolving in the same Definition's
+`documents` map. These rules apply to Fields at every nesting and repetition
+level. Processors MUST reject `attests` on Group or Display items and in
+standalone Screener documents, which do not declare this document catalog.
+No particular Field `dataType` or presentation `widgetHint` is required.
+
+`attests` declares scope; a captured value, document reference or successful
+validation does not itself establish assent, a signature, viewing evidence or
+governed admission. Authored signature evidence remains governed by §2.1.6.
+This declaration does not change existing signing-profile bytes or the
+separate `SigningContent` ceremony-wording model.
 
 ### 4.2 Item Schema
 
@@ -3077,6 +3154,7 @@ Field-specific properties:
 | `semanticType` | string | **0..1** (OPTIONAL) | Domain meaning annotation. Purely metadata — MUST NOT affect validation, calculation, or any behavioral semantics. The value MAY be a freeform namespaced identifier (e.g., `"us-gov:ein"`), a URI (e.g., `"https://schema.org/birthDate"`), or the name of a loaded registry entry with `category: "concept"` (e.g., `"x-onto-ein"`). When the value matches a loaded concept registry entry, processors SHOULD resolve it to the entry's concept metadata (URI, equivalents, display name). Unresolved values are not errors — `semanticType` remains a freeform string for processors that do not support concept resolution. Supports intelligent widget selection, data classification, cross-form alignment, and interoperability mapping. |
 | `prePopulate` | object | **0..1** (OPTIONAL) | Pre-population declaration (`instance`, `path`, `editable` default `true`; `editable: false` locks the field). Takes precedence over `initialValue`. Absolute `path` is instance-root (MAY be `initialValue: "=@instance('name').path"`). Relative `path` under matching `seedFrom` is element-relative and MUST NOT be rewritten as `initialValue` (§4.2.2.1). |
 | `children` | array of Item | **0..1** (OPTIONAL) | Child items. Fields MAY contain children to model dependent sub-questions. When present, the children are contextually tied to the Field's value. |
+| `attests` | array of string | **0..1** (OPTIONAL) | Nonempty, unique references to the containing Definition's declared documents (§4.1.3). Declares the Field's attestation scope; it does not establish a signing act. |
 
 **Core Data Types:**
 

@@ -171,6 +171,17 @@
       "$ref": "#/$defs/DefinitionMetadata",
       "description": "Form-level metadata that affects respondent-facing explanation and policy resolution without changing the item tree. Current core entries cover preparation guidance and form-level assurance requirements."
     },
+    "documents": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/$defs/DocumentId"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/AttestableDocument"
+      },
+      "description": "Attestable documents keyed by Definition-local id. Declares source bytes and locale variants, not a completed signing act or proof of URL byte integrity."
+    },
     "items": {
       "type": "array",
       "items": {
@@ -504,6 +515,122 @@
   },
   "additionalProperties": false,
   "$defs": {
+    "DocumentId": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "description": "Case-sensitive identifier of one declared document within this pinned Definition.",
+      "examples": [
+        "terms-v2"
+      ]
+    },
+    "DocumentLocale": {
+      "type": "string",
+      "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$",
+      "description": "Document-variant locale tag, using the Locale document grammar and case-insensitive comparison.",
+      "examples": [
+        "en-US",
+        "es-US"
+      ]
+    },
+    "DocumentSource": {
+      "description": "Exact document source declaration. URL bytes are resolved and pinned by the host; inline bytes use the existing standard-base64 attachment encoding. Lint never fetches a URL.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "href"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "url"
+            },
+            "href": {
+              "type": "string",
+              "format": "uri",
+              "minLength": 1,
+              "description": "Absolute URI from which the host resolves and pins exact source bytes under its access policy."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "inline"
+            },
+            "data": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1398104,
+              "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
+              "description": "Canonical padded standard base64 of exact bytes, at most 1 MiB decoded. Native semantic validation checks padding bits, decoded size and documentHash equality."
+            }
+          }
+        }
+      ]
+    },
+    "DocumentVariant": {
+      "type": "object",
+      "required": [
+        "source",
+        "mediaType",
+        "documentHash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/DocumentSource"
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Media type of the exact source bytes, including parameters when needed.",
+          "examples": [
+            "application/pdf",
+            "text/plain; charset=utf-8"
+          ]
+        },
+        "documentHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase SHA-256 hex of exact source bytes: strictly decoded inline bytes or host-resolved pinned URL bytes. Not a URL-string, ceremony-JSON or presentation hash.",
+          "examples": [
+            "185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969"
+          ]
+        }
+      }
+    },
+    "AttestableDocument": {
+      "type": "object",
+      "required": [
+        "defaultLocale",
+        "variants"
+      ],
+      "additionalProperties": false,
+      "description": "One attestable document with localized byte variants. Native validation requires a case-insensitive default match and refuses case-equivalent variant keys.",
+      "properties": {
+        "defaultLocale": {
+          "$ref": "#/$defs/DocumentLocale"
+        },
+        "variants": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "$ref": "#/$defs/DocumentLocale"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/DocumentVariant"
+          }
+        }
+      }
+    },
     "DefinitionMetadata": {
       "type": "object",
       "description": "Form-level metadata envelope. Metadata entries explain preparation and policy expectations; they do not create response data fields or override Bind, Shape, or access-control behavior.",
@@ -1052,6 +1179,20 @@
               "extensions": true,
               "partyPolicy": true,
               "x-generation": true,
+              "attests": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/DocumentId"
+                },
+                "description": "Declared document ids this Field may attest. Every id MUST exist in this Definition documents map. This declares scope; a value or widget alone is not signing consent or authored signature evidence.",
+                "examples": [
+                  [
+                    "terms-v2"
+                  ]
+                ]
+              },
               "dataType": {
                 "type": "string",
                 "description": "The value type of this Field. Determines JSON representation, FEL type, valid operations, and default widget. 'string': single-line text. 'text': multi-line text. 'integer': whole number (no fraction). 'decimal': number with optional fractional part (use 'precision' to control decimal places). 'boolean': true/false. 'date': ISO 8601 YYYY-MM-DD. 'dateTime': ISO 8601 date-time. 'time': ISO 8601 HH:MM:SS. 'uri': valid URI per RFC 3986. 'attachment': file reference object {contentType, url/data}. 'choice': single selection (stored as string value key). 'multiChoice': multiple selections (stored as array of string value keys). 'money': monetary value {amount: string, currency: string} — use money() FEL function to produce values.",

@@ -88,6 +88,18 @@
       "state": "tested"
     },
     {
+      "code": "E303",
+      "pass": 3,
+      "severity": "error",
+      "title": "Invalid document declaration or attestation reference",
+      "specRef": "specs/core/spec.md#413-attestable-documents",
+      "suggestedFix": "resolve document ids and locale variants, and match bounded canonical inline bytes to their declared hash",
+      "fixtures": [
+        "tests/fixtures/lint/E303-invalid-document-declaration.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W300",
       "pass": 3,
       "severity": "warning",
@@ -1309,6 +1321,18 @@
       "specRef": "specs/screener/screener-spec.md#static-semantics-and-lint",
       "suggestedFix": "fix the FEL expression inside the Screener route message {{ }} interpolation",
       "fixtures": ["tests/fixtures/lint/E1500-screener-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1508",
+      "pass": 9,
+      "severity": "error",
+      "title": "Standalone Screener cannot declare document attestation scope",
+      "specRef": "specs/core/spec.md#413-attestable-documents",
+      "suggestedFix": "remove attests from the standalone Screener; declare document attestation on a pinned Definition Field",
+      "fixtures": [
+        "tests/fixtures/lint/E1508-screener-attests.json"
+      ],
       "state": "tested"
     },
     {
