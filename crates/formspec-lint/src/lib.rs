@@ -28,6 +28,7 @@
 pub mod app_graph_report;
 mod bind_consistency;
 mod document_declarations;
+mod response_documents;
 mod generated;
 mod lint_json;
 mod metadata;
@@ -183,6 +184,10 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
         DocumentType::Component => lint_component_doc(doc, options, &mut diagnostics),
         DocumentType::Response => {
             diagnostics.extend(pass_response::lint_response(doc));
+            diagnostics.extend(response_documents::lint_document_attestations(
+                doc,
+                options.definition_document.as_ref(),
+            ));
         }
         DocumentType::ResponseActions => {
             diagnostics.extend(pass_response_actions::lint_response_actions(

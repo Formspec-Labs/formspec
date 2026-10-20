@@ -1,0 +1,64 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:document-attestation",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Immutable document signing gesture",
+  "documents": {
+    "terms-v2": {
+      "defaultLocale": "en-US",
+      "variants": {
+        "en-US": {
+          "source": {
+            "kind": "inline",
+            "data": "SGVsbG8="
+          },
+          "mediaType": "text/plain; charset=utf-8",
+          "documentHash": "185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969"
+        },
+        "es-US": {
+          "source": {
+            "kind": "inline",
+            "data": "wqFIb2xhIQ=="
+          },
+          "mediaType": "text/plain; charset=utf-8",
+          "documentHash": "ffb948556a252fec4aa0601da677fda38bb2ab0be63cc9c726bebfd1b3500d62"
+        }
+      }
+    },
+    "privacy-v1": {
+      "defaultLocale": "en",
+      "variants": {
+        "en": {
+          "source": {
+            "kind": "inline",
+            "data": "UHJpdmFjeSBub3RpY2U="
+          },
+          "mediaType": "text/plain",
+          "documentHash": "c385c344080699844442bf2dd893618a4702d5d3a3e11ed632dfad839fa2b8c4"
+        }
+      }
+    }
+  },
+  "items": [
+    {
+      "key": "signature",
+      "type": "field",
+      "label": "Signature",
+      "dataType": "attachment",
+      "attests": [
+        "terms-v2",
+        "privacy-v1"
+      ]
+    },
+    {
+      "key": "confirm",
+      "type": "field",
+      "label": "Confirm",
+      "dataType": "boolean",
+      "attests": [
+        "terms-v2"
+      ]
+    }
+  ]
+}

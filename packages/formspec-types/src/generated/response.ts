@@ -10,142 +10,12 @@ import type { SigningContent, ValueClass } from './common.js';
 import type { VerificationReceipt as FormspecVerificationReceipt } from './verification-receipt.js';
 import type { ValidationResult as FormspecValidationResult } from './validation-result.js';
 export type { FormspecVerificationReceipt, FormspecValidationResult };
-export type ResponseMetadataPathKey = {
-  [k: string]: unknown;
-};
-export type ResponseMetadataPathKey1 = string;
-/**
- * Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act under signedPayload.canonicalization through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.
- *
- * This interface was referenced by `FormResponse`'s JSON-Schema
- * via the `definition` "AuthoredSignature".
- */
-type AuthoredSignatureEvidence = {
-  /**
-   * Definition parties[].roleId bound by this section signature. Required only for formspec-response-section-signing-v1. Role existence, signer authority and current party policy are semantic checks.
-   */
-  partyRole?: string;
-  /**
-   * Explicit set of concrete Field paths attested by this signature, stored on this signature and bound into its section payload. Array order carries no scope meaning. Required only for formspec-response-section-signing-v1. Coverage must match the signer role and the pinned Response revision; an attachment value is covered as one whole field.
-   *
-   * @minItems 1
-   */
-  coveredPaths?: [ResolvedItemPath, ...ResolvedItemPath[]];
-  /**
-   * Stable identifier for this authored signature record within the Response.
-   */
-  signatureId: string;
-  /**
-   * Identifier of the document or signing surface this authored signature affirms.
-   */
-  documentId: string;
-  /**
-   * URI identifying the signing intent or certification profile the signer accepted. MUST equal signedPayload.signingIntent. Both are required — the top-level field enables quick lookup without payload inspection; the signed-payload copy is part of what the signer assented to.
-   */
-  signingIntent: string;
-  /**
-   * Base64-encoded COSE_Sign1 byte string (RFC 9052). Detached payload; canonical signed bytes live in signedPayload.digest. The signing method is read from the COSE protected-header `method_uri` label (COSE label -65540, per ADR 0109): the URI selects the cryptographic adapter and algorithm from the Formspec signature-method registry. The former JSON method selector is deleted — only the signed COSE-internal selector counts.
-   */
-  signatureValue: string;
-  /**
-   * Stable signer identifier when the signing ceremony supplies one.
-   */
-  signerId?: string;
-  /**
-   * Human-readable signer name shown during the signing ceremony.
-   */
-  signerName: string;
-  /**
-   * UX evidence record — drawn artifacts, typed tokens, provider-managed ceremony references. NOT cryptographic verification input.
-   */
-  signerEvidence?: {
-    /**
-     * The kind of UX evidence this is.
-     */
-    kind: 'drawn' | 'typed' | 'provider-receipt';
-    /**
-     * Opaque evidence value — data URL for drawn, token for typed, reference for provider-receipt.
-     */
-    value: string;
-  };
-  /**
-   * Optional verification receipt evidence. Legacy responses may carry base64 COSE bytes with an embedded payload. Production detached receipt signing carries a structured VerificationReceipt object with base64 COSE receiptBytes.
-   */
-  verificationReceipt?: string | FormspecVerificationReceipt;
-  /**
-   * Whether the signer explicitly accepted the declared consent text as part of the signing act.
-   */
-  consentAccepted: boolean;
-  /**
-   * URI reference to the consent text the signer accepted. This keeps signing intent bound to declared text rather than to the signature image alone.
-   */
-  consentTextRef: string;
-  /**
-   * Version of the consent text accepted by the signer.
-   */
-  consentVersion: string;
-  /**
-   * Affirmation text shown to and accepted by the signer at authoring time.
-   */
-  affirmationText: string;
-  signedPayload: AuthoredSignatureSignedPayload;
-  /**
-   * Digest of the document bytes, rendered view, certification page, or signing surface shown to the signer. This is not the normative response-byte assent binding; signedPayload.digest carries that commitment.
-   */
-  documentHash: string;
-  /**
-   * Digest algorithm used to compute documentHash.
-   */
-  documentHashAlgorithm: string;
-  /**
-   * URI reference to the identity-proofing artifact or proof bundle associated with this signing act, when one exists.
-   */
-  identityProofRef?: string;
-  identityBinding?: AuthoredSignatureIdentityBinding;
-  /**
-   * Provider or adapter that supplied the signing ceremony evidence.
-   */
-  signatureProvider: string;
-  /**
-   * Identifier for the signing ceremony or provider session that produced this authored signature evidence.
-   */
-  ceremonyId: string;
-};
-
-export type AuthoredSignature =
-  | (Omit<AuthoredSignatureEvidence, 'partyRole' | 'coveredPaths' | 'signedPayload'> & {
-      partyRole: string;
-      coveredPaths: [ResolvedItemPath, ...ResolvedItemPath[]];
-      signedPayload: AuthoredSignatureSignedPayload & {
-        canonicalization: 'formspec-response-section-signing-v1';
-      };
-    })
-  | (Omit<AuthoredSignatureEvidence, 'partyRole' | 'coveredPaths' | 'signedPayload'> & {
-      partyRole?: never;
-      coveredPaths?: never;
-      signedPayload: AuthoredSignatureSignedPayload & {
-        canonicalization: 'formspec-response-signing-v1';
-      };
-    });
-/**
- * Canonical resolved Field item path relative to Response.data, using dot notation and concrete zero-based repeat indexes (Core §4.3.3). No wildcards, JSON Pointer aliases, group shorthand or metadata paths. Resolution to a Field in the pinned Definition and signed Response revision is a semantic check.
- *
- * This interface was referenced by `FormResponse`'s JSON-Schema
- * via the `definition` "ResolvedItemPath".
- */
-export type ResolvedItemPath = string;
-/**
- * The current lifecycle status of a Response. A completed Response has no error-severity validation results; saving data remains allowed in every status.
- *
- * This interface was referenced by `FormResponse`'s JSON-Schema
- * via the `definition` "ResponseStatus".
- */
-export type ResponseStatus = 'in-progress' | 'completed' | 'amended' | 'stopped';
-
 /**
  * A Formspec Response document — a completed or in-progress Instance pinned to a specific Definition version (§2.1.6). A Response is the canonical record of captured form data: the filled-in form. It references exactly one Definition by the immutable tuple (definitionUrl, definitionVersion). A conformant processor MUST reject a Response whose definitionVersion does not match any known Definition at the given definitionUrl. Responses are always validated against their pinned Definition version, even if a newer version exists (Response Pinning Rule VP-01). The tuple (definitionUrl, definitionVersion) identifies the Definition pin this Response is bound to (Response Pinning Rule VP-01); the Response record itself is identified by its 'id' when present, and byte identity of any signed-payload commitment is carried by the relevant signedPayload.digest, not by the Definition pin. A Response MAY also carry authored signature evidence records that bind one or more signer/document acts to the canonical response envelope.
  */
-export interface FormResponse {
+export type FormResponse = {
+  [k: string]: unknown;
+} & {
   /**
    * Response specification version. MUST be '1.0'.
    */
@@ -223,6 +93,12 @@ export interface FormResponse {
    */
   validationResults?: FormspecValidationResult[];
   /**
+   * Exact document variants resolved from the pinned Definition. Duplicate document/locale identities refuse. Passive selections alone do not establish assent, fetching, viewing or reading; declared-document assent uses the typed signed root commitment.
+   *
+   * @minItems 1
+   */
+  resolvedDocuments?: [ResolvedDocument, ...ResolvedDocument[]];
+  /**
    * Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act under its named whole-response or section signing profile through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations.
    *
    * @minItems 1
@@ -233,13 +109,151 @@ export interface FormResponse {
    */
   extensions?: {
     'x-formspec-signing-content'?: SigningContentCommitment;
+    'x-formspec-document-attestations'?: DocumentAttestationCommitment;
     /**
      * This interface was referenced by `undefined`'s JSON-Schema definition
      * via the `patternProperty` "^x-".
      */
     [k: `x-${string}`]: unknown;
   };
-}
+};
+export type ResponseMetadataPathKey = {
+  [k: string]: unknown;
+};
+export type ResponseMetadataPathKey1 = string;
+/**
+ * Lowercase SHA-256 hex under the existing trellis-presentation-artifact-v1 framing over bytes selected by the declared P12 adapter; the default selects exact source bytes. The maintained Integrity owner frames a u32 big-endian tag length, UTF-8 tag, u32 big-endian component length and component bytes. This is neither plain source hashing nor proof of display or reading. Formspec binds the supplied value without adding a renderer or alternate hash rule.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "PresentationHash".
+ */
+export type PresentationHash = string;
+/**
+ * Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act under signedPayload.canonicalization through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "AuthoredSignature".
+ */
+type AuthoredSignatureEvidence = {
+  /**
+   * Identifier shared by every document record emitted atomically for the one committed signing gesture.
+   */
+  signingActId?: string;
+  documentRef?: DocumentReference;
+  presentationHash?: PresentationHash;
+  /**
+   * Explicit null for a non-witness act, otherwise the exact committed intrinsic Formspec principal selection.
+   */
+  witnessedSignatureRef?: null | WitnessedSignatureReference;
+  /**
+   * Definition parties[].roleId bound by this section signature. Required only for formspec-response-section-signing-v1. Role existence, signer authority and current party policy are semantic checks.
+   */
+  partyRole?: string;
+  /**
+   * Explicit set of concrete Field paths attested by this signature, stored on this signature and bound into its section payload. Array order carries no scope meaning. Required only for formspec-response-section-signing-v1. Coverage must match the signer role and the pinned Response revision; an attachment value is covered as one whole field.
+   *
+   * @minItems 1
+   */
+  coveredPaths?: [ResolvedItemPath, ...ResolvedItemPath[]];
+  /**
+   * Stable identifier for this authored signature record within the Response.
+   */
+  signatureId: string;
+  /**
+   * Identifier of the document or signing surface this authored signature affirms.
+   */
+  documentId: string;
+  /**
+   * URI identifying the signing intent or certification profile the signer accepted. MUST equal signedPayload.signingIntent. Both are required — the top-level field enables quick lookup without payload inspection; the signed-payload copy is part of what the signer assented to.
+   */
+  signingIntent: string;
+  /**
+   * Base64-encoded COSE_Sign1 byte string (RFC 9052). Detached payload; canonical signed bytes live in signedPayload.digest. The signing method is read from the COSE protected-header `method_uri` label (COSE label -65540, per ADR 0109): the URI selects the cryptographic adapter and algorithm from the Formspec signature-method registry. The former JSON method selector is deleted — only the signed COSE-internal selector counts.
+   */
+  signatureValue: string;
+  /**
+   * Stable signer identifier when the signing ceremony supplies one.
+   */
+  signerId?: string;
+  /**
+   * Human-readable signer name shown during the signing ceremony.
+   */
+  signerName: string;
+  signerEvidence?: SignerEvidence;
+  /**
+   * Optional verification receipt evidence. Legacy responses may carry base64 COSE bytes with an embedded payload. Production detached receipt signing carries a structured VerificationReceipt object with base64 COSE receiptBytes.
+   */
+  verificationReceipt?: string | FormspecVerificationReceipt;
+  /**
+   * Whether the signer explicitly accepted the declared consent text as part of the signing act.
+   */
+  consentAccepted: boolean;
+  /**
+   * URI reference to the consent text the signer accepted. This keeps signing intent bound to declared text rather than to the signature image alone.
+   */
+  consentTextRef: string;
+  /**
+   * Version of the consent text accepted by the signer.
+   */
+  consentVersion: string;
+  /**
+   * Affirmation text shown to and accepted by the signer at authoring time.
+   */
+  affirmationText: string;
+  signedPayload: AuthoredSignatureSignedPayload;
+  /**
+   * Digest of the document bytes, rendered view, certification page, or signing surface shown to the signer. This is not the normative response-byte assent binding; signedPayload.digest carries that commitment.
+   */
+  documentHash: string;
+  /**
+   * Digest algorithm used to compute documentHash.
+   */
+  documentHashAlgorithm: string;
+  /**
+   * URI reference to the identity-proofing artifact or proof bundle associated with this signing act, when one exists.
+   */
+  identityProofRef?: string;
+  identityBinding?: AuthoredSignatureIdentityBinding;
+  /**
+   * Provider or adapter that supplied the signing ceremony evidence.
+   */
+  signatureProvider: string;
+  /**
+   * Identifier for the signing ceremony or provider session that produced this authored signature evidence.
+   */
+  ceremonyId: string;
+};
+
+export type AuthoredSignature =
+  | (Omit<AuthoredSignatureEvidence, 'partyRole' | 'coveredPaths' | 'signedPayload'> & {
+      partyRole: string;
+      coveredPaths: [ResolvedItemPath, ...ResolvedItemPath[]];
+      signedPayload: AuthoredSignatureSignedPayload & {
+        canonicalization: 'formspec-response-section-signing-v1';
+      };
+    })
+  | (Omit<AuthoredSignatureEvidence, 'partyRole' | 'coveredPaths' | 'signedPayload'> & {
+      partyRole?: never;
+      coveredPaths?: never;
+      signedPayload: AuthoredSignatureSignedPayload & {
+        canonicalization: 'formspec-response-signing-v1';
+      };
+    });
+/**
+ * Canonical resolved Field item path relative to Response.data, using dot notation and concrete zero-based repeat indexes (Core §4.3.3). No wildcards, JSON Pointer aliases, group shorthand or metadata paths. Resolution to a Field in the pinned Definition and signed Response revision is a semantic check.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ResolvedItemPath".
+ */
+export type ResolvedItemPath = string;
+/**
+ * The current lifecycle status of a Response. A completed Response has no error-severity validation results; saving data remains allowed in every status.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ResponseStatus".
+ */
+export type ResponseStatus = 'in-progress' | 'completed' | 'amended' | 'stopped';
+
 /**
  * Optional response metadata envelope for per-field provenance, derivation traces, and disclosures shown.
  */
@@ -266,7 +280,7 @@ export interface ResponseMetadata {
 /**
  * Provenance for one response value. `class` uses the shared value-class vocabulary; `sourceRef` identifies the source or adapter, including `assistant-suggested` for BYO-assistant suggestions confirmed by the respondent.
  *
- * This interface was referenced by `FormResponse`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "ResponseProvenanceEntry".
  */
 export interface ResponseProvenanceEntry {
@@ -290,7 +304,7 @@ export interface ResponseProvenanceEntry {
 /**
  * Receipt-bindable derivation record for a calculated or otherwise derived value.
  *
- * This interface was referenced by `FormResponse`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "ResponseDerivationEntry".
  */
 export interface ResponseDerivationEntry {
@@ -321,7 +335,7 @@ export interface ResponseDerivationEntry {
 /**
  * Evidence that a respondent-visible disclosure was shown for a field, purpose, consequence, or consent moment.
  *
- * This interface was referenced by `FormResponse`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "ResponseDisclosureShownEntry".
  */
 export interface ResponseDisclosureShownEntry {
@@ -343,9 +357,105 @@ export interface ResponseDisclosureShownEntry {
   channel?: string;
 }
 /**
+ * One exact document variant selected from the Response-pinned Definition. Native validation checks the declaration/source/media/hash join and unique document/locale identity; URL validation never fetches content.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ResolvedDocument".
+ */
+export interface ResolvedDocument {
+  /**
+   * Case-sensitive identifier of one declared document within this pinned Definition.
+   */
+  documentId: string;
+  /**
+   * Document-variant locale tag, using the Locale document grammar and case-insensitive comparison.
+   */
+  locale: string;
+  /**
+   * Exact document source declaration. URL bytes are resolved and pinned by the host; inline bytes use the existing standard-base64 attachment encoding. Lint never fetches a URL.
+   */
+  source:
+    | {
+        kind: 'url';
+        /**
+         * Absolute URI from which the host resolves and pins exact source bytes under its access policy.
+         */
+        href: string;
+      }
+    | {
+        kind: 'inline';
+        /**
+         * Canonical padded standard base64 of exact bytes, at most 1 MiB decoded. Native semantic validation checks padding bits, decoded size and documentHash equality.
+         */
+        data: string;
+      };
+  /**
+   * Media type of the exact source bytes, including parameters when needed.
+   */
+  mediaType: string;
+  /**
+   * Lowercase SHA-256 hex of exact source bytes: strictly decoded inline bytes or host-resolved pinned URL bytes. Not a URL-string, ceremony-JSON or presentation hash.
+   */
+  documentHash: string;
+  /**
+   * RFC 3339 timestamp retained when this source-byte selection was pinned.
+   */
+  pinnedAt: string;
+  presentationHash?: PresentationHash;
+}
+/**
+ * One declared document variant in the Response-pinned Definition. Document identity is case-sensitive; locale identity is case-insensitive.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "DocumentReference".
+ */
+export interface DocumentReference {
+  /**
+   * Case-sensitive identifier of one declared document within this pinned Definition.
+   */
+  documentId: string;
+  /**
+   * Document-variant locale tag, using the Locale document grammar and case-insensitive comparison.
+   */
+  locale: string;
+}
+/**
+ * Intrinsic immutable Formspec witness target. Actual verification must resolve exactly one cryptographically verified committed-document signature in the explicitly supplied retained Response snapshots. This is not a WOS provenance record identifier.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "WitnessedSignatureReference".
+ */
+export interface WitnessedSignatureReference {
+  /**
+   * Identifier of the Response whose signed payload was hashed. It MUST equal the top-level Response id.
+   */
+  responseId: string;
+  /**
+   * Stable identifier for this authored signature record within the Response.
+   */
+  signatureId: string;
+  /**
+   * Exact lowercase SHA-256 digest of the selected principal's whole-Response signed payload.
+   */
+  signedPayloadDigest: string;
+}
+/**
+ * UX evidence record — drawn artifacts, typed tokens, provider-managed ceremony references. NOT cryptographic verification input.
+ */
+export interface SignerEvidence {
+  /**
+   * The kind of UX evidence this is.
+   */
+  kind: 'drawn' | 'typed' | 'provider-receipt';
+  /**
+   * Opaque evidence value — data URL for drawn, token for typed, reference for provider-receipt.
+   */
+  value: string;
+}
+/**
  * Digest commitment under the named Formspec signing profile. formspec-response-signing-v1 hashes the whole Response with authoredSignatures omitted; formspec-response-section-signing-v1 binds the party role, explicit covered paths and attested section values with Response/Definition pins, signing time and intent. Section bytes and vectors are owned by integrity-stack; accepting this schema is not cryptographic verification.
  *
- * This interface was referenced by `FormResponse`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "AuthoredSignatureSignedPayload".
  */
 export interface AuthoredSignatureSignedPayload {
@@ -385,7 +495,7 @@ export interface AuthoredSignatureSignedPayload {
 /**
  * Provider-neutral identity-binding evidence attached to an authored signature. This records how the signer identity was bound to the signing act without baking one provider or ceremony vendor into the Response contract.
  *
- * This interface was referenced by `FormResponse`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "AuthoredSignatureIdentityBinding".
  */
 export interface AuthoredSignatureIdentityBinding {
@@ -409,7 +519,7 @@ export interface AuthoredSignatureIdentityBinding {
 /**
  * Evidence of an explicit delegated signing act, retained inside the whole-Response signed bytes. draftVersion is the unsigned saved revision supplied to the producer; it is not rewritten after the signed save. Server admission independently resolves content, identity, hash, mirrored outer fields, current revision and cryptographic evidence.
  *
- * This interface was referenced by `FormResponse`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "SigningContentCommitment".
  */
 export interface SigningContentCommitment {
@@ -436,4 +546,87 @@ export interface SigningElectronicConsent {
   version: string;
   text: string;
   controlLabel: string;
+}
+/**
+ * One declared-document signing gesture retained inside unchanged whole-Response v1 signed bytes. Shared claims and exact selections are committed once; attached authored records must mirror them exactly. Without attached records this is prepared unsigned data, not verified evidence.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "DocumentAttestationCommitment".
+ */
+export interface DocumentAttestationCommitment {
+  version: '1.0';
+  /**
+   * Identifier shared by every document record emitted atomically for the one committed signing gesture.
+   */
+  signingActId: string;
+  fieldPath: ResolvedItemPath;
+  /**
+   * Stable signer identifier when the signing ceremony supplies one.
+   */
+  signerId: string;
+  /**
+   * Human-readable signer name shown during the signing ceremony.
+   */
+  signerName: string;
+  /**
+   * RFC 3339 timestamp when the signer completed the authored signing act. Part of the signed payload — a verifier MUST reject if this differs from the source-of-truth.
+   */
+  signedAt: string;
+  /**
+   * URI identifying the signing intent or certification profile the signer accepted. MUST equal signedPayload.signingIntent. Both are required — the top-level field enables quick lookup without payload inspection; the signed-payload copy is part of what the signer assented to.
+   */
+  signingIntent: string;
+  /**
+   * Whether the signer explicitly accepted the declared consent text as part of the signing act.
+   */
+  consentAccepted: true;
+  /**
+   * URI reference to the consent text the signer accepted. This keeps signing intent bound to declared text rather than to the signature image alone.
+   */
+  consentTextRef: string;
+  /**
+   * Version of the consent text accepted by the signer.
+   */
+  consentVersion: string;
+  /**
+   * Affirmation text shown to and accepted by the signer at authoring time.
+   */
+  affirmationText: string;
+  /**
+   * Provider or adapter that supplied the signing ceremony evidence.
+   */
+  signatureProvider: string;
+  /**
+   * Identifier for the signing ceremony or provider session that produced this authored signature evidence.
+   */
+  ceremonyId: string;
+  signerEvidence?: SignerEvidence;
+  /**
+   * URI reference to the identity-proofing artifact or proof bundle associated with this signing act, when one exists.
+   */
+  identityProofRef?: string;
+  identityBinding?: AuthoredSignatureIdentityBinding;
+  /**
+   * Exact per-document selections. Selected document IDs must equal the referenced Field.attests set; resolved documents need not all be attested.
+   *
+   * @minItems 1
+   */
+  attestations: [DocumentAttestationSelection, ...DocumentAttestationSelection[]];
+}
+/**
+ * One document/locale selected in a signing gesture. Signature IDs and document/locale pairs must be unique within the gesture; a non-witness selection explicitly carries null.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "DocumentAttestationSelection".
+ */
+export interface DocumentAttestationSelection {
+  /**
+   * Stable identifier for this authored signature record within the Response.
+   */
+  signatureId: string;
+  documentRef: DocumentReference;
+  /**
+   * Explicit null for a non-witness act, otherwise the exact committed intrinsic Formspec principal selection.
+   */
+  witnessedSignatureRef: null | WitnessedSignatureReference;
 }

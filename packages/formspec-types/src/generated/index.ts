@@ -23,7 +23,7 @@ export type { Need, Grounding, GroundingRole, NeedsDocument, Journey, Statement,
 export type { ChangelogDocument, Change } from './changelog.js';
 export type { ValidationResult } from './validation-result.js';
 export type { VerificationReceipt } from './verification-receipt.js';
-export type { ResponseMetadataPathKey, AuthoredSignature, ResolvedItemPath, ResponseStatus, FormResponse, ResponseMetadata, ResponseProvenanceEntry, ResponseDerivationEntry, ResponseDisclosureShownEntry, AuthoredSignatureSignedPayload, AuthoredSignatureIdentityBinding, SigningContentCommitment } from './response.js';
+export type { FormResponse, ResponseMetadataPathKey, PresentationHash, AuthoredSignature, ResolvedItemPath, ResponseStatus, ResponseMetadata, ResponseProvenanceEntry, ResponseDerivationEntry, ResponseDisclosureShownEntry, ResolvedDocument, DocumentReference, WitnessedSignatureReference, SignerEvidence, AuthoredSignatureSignedPayload, AuthoredSignatureIdentityBinding, SigningContentCommitment, DocumentAttestationCommitment, DocumentAttestationSelection } from './response.js';
 export type { IntakeHandoff, Ref, HashString, DefinitionRef } from './intake-handoff.js';
 export type { ValidationReport, FormspecValidationResult } from './validation-report.js';
 export type { LocaleDocument, SurfaceShellStringKey, ChromeStringKey, LocaleTarget } from './locale.js';

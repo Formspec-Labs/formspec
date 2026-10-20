@@ -34,6 +34,10 @@ const verificationReceiptSchema = JSON.parse(
 const ajv = new Ajv2020({ strict: false, allErrors: true });
 addFormats(ajv);
 ajv.addSchema(commonSchema);
+// Response document selections reuse the canonical Definition identifiers/source types.
+for (const name of ['issuer', 'definition']) {
+  ajv.addSchema(JSON.parse(readFileSync(new URL(`../../../schemas/${name}.schema.json`, import.meta.url), 'utf8')));
+}
 ajv.addSchema(validationResultSchema);
 ajv.addSchema(verificationReceiptSchema);
 const validateResponse = ajv.compile(responseSchema);

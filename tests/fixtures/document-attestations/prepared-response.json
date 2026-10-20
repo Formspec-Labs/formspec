@@ -1,0 +1,73 @@
+{
+  "$formspecResponse": "1.0",
+  "id": "response-gesture-1",
+  "definitionUrl": "urn:test:document-attestation",
+  "definitionVersion": "1.0.0",
+  "status": "completed",
+  "data": {},
+  "authored": "2026-10-20T19:00:00Z",
+  "resolvedDocuments": [
+    {
+      "documentId": "terms-v2",
+      "locale": "es-US",
+      "source": {
+        "kind": "inline",
+        "data": "wqFIb2xhIQ=="
+      },
+      "mediaType": "text/plain; charset=utf-8",
+      "documentHash": "ffb948556a252fec4aa0601da677fda38bb2ab0be63cc9c726bebfd1b3500d62",
+      "presentationHash": "fc83aa2143f9a128991a7d52ccf2e3abb1fd7dcbf76a63c281ce9e899c383a24",
+      "pinnedAt": "2026-10-20T19:00:00Z"
+    },
+    {
+      "documentId": "privacy-v1",
+      "locale": "en",
+      "source": {
+        "kind": "inline",
+        "data": "UHJpdmFjeSBub3RpY2U="
+      },
+      "mediaType": "text/plain",
+      "documentHash": "c385c344080699844442bf2dd893618a4702d5d3a3e11ed632dfad839fa2b8c4",
+      "presentationHash": "cb0dab8d5c424aac093d94df3d0a3d44e6fb8022ec3bc802f4678099f1c5210f",
+      "pinnedAt": "2026-10-20T19:00:00Z"
+    }
+  ],
+  "extensions": {
+    "x-other": {
+      "keep": true
+    },
+    "x-formspec-document-attestations": {
+      "version": "1.0",
+      "signingActId": "act-applicant-1",
+      "fieldPath": "signature",
+      "signerId": "applicant-1",
+      "signerName": "Ada Lovelace",
+      "signedAt": "2026-10-20T19:01:00Z",
+      "signingIntent": "urn:example:signing-intent:application",
+      "consentAccepted": true,
+      "consentTextRef": "urn:example:consent:esign:v1",
+      "consentVersion": "1.0",
+      "affirmationText": "I agree to the selected documents.",
+      "signatureProvider": "urn:example:signing-provider",
+      "ceremonyId": "ceremony-1",
+      "attestations": [
+        {
+          "signatureId": "sig-1",
+          "documentRef": {
+            "documentId": "terms-v2",
+            "locale": "es-US"
+          },
+          "witnessedSignatureRef": null
+        },
+        {
+          "signatureId": "sig-2",
+          "documentRef": {
+            "documentId": "privacy-v1",
+            "locale": "en"
+          },
+          "witnessedSignatureRef": null
+        }
+      ]
+    }
+  }
+}

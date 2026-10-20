@@ -26,6 +26,28 @@ Build before use:
 npm run build
 ```
 
+## Declared-document signing
+
+The tools-side exports `prepareDocumentAttestations`, `finalizeDocumentAttestations` and
+`verifyDocumentAttestations` bind one completed Response snapshot to the declared
+source/locale selections and signer-assented metadata. Initialize tools WASM first.
+Preparation returns the unchanged `formspec-response-signing-v1` bytes; the host signs
+those bytes with its provider. Finalization verifies the supplied COSE and expected
+key before returning all selected document records atomically. Verification accepts
+explicit retained witness snapshots and checks their committed document records.
+Receipts are returned separately; caller-selected keys and signed identity claims do
+not establish authentication, legal authority, display/readability or WOS admission.
+New section-signing claims refuse. Keep each later gesture in its own immutable snapshot.
+The legacy single-record attachment and `getResponse(authoredSignatures)` paths refuse
+these new claims rather than discard their required root data.
+
+This source cohort uses the maintained sibling package
+`file:../../../integrity-stack/packages/integrity-canonical`. Build that package first
+(`npm run build -w packages/integrity-canonical` in the sibling Integrity workspace),
+then build the Formspec signature facades (`npm run build:signatures`) and engine.
+The sibling path is intentional until the canonical package is published; a standalone
+registry installation of this new dependency is not qualified by the local tests.
+
 ---
 
 ## Quick Usage

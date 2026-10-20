@@ -1137,6 +1137,17 @@ signedPayload.responseId.</td>
 derivation traces, and disclosures shown.</td>
 </tr>
 <tr>
+<td><code>#/properties/resolvedDocuments</code></td>
+<td><code>resolvedDocuments</code></td>
+<td><code>array</code></td>
+<td>no</td>
+<td>—</td>
+<td>Exact document variants resolved from the pinned Definition.
+Duplicate document/locale identities refuse. Passive selections alone do
+not establish assent, fetching, viewing or reading; declared-document
+assent uses the typed signed root commitment.</td>
+</tr>
+<tr>
 <td><code>#/properties/status</code></td>
 <td><code>status</code></td>
 <td><code>$ref</code></td>
@@ -1596,6 +1607,126 @@ section profile below defines schema and scope first; it MUST NOT be
 treated as byte-level conformance until shared integrity-stack vectors
 and implementation are available. The canonicalization profile and
 protected-header method URI remain distinct selectors.</p>
+<h4 id="declared-document-attestations">Declared-Document
+Attestations</h4>
+<p><code>resolvedDocuments</code> MAY retain document variants selected
+from the Definition’s <a
+href="#413-attestable-documents"><code>documents</code>
+declarations</a>. Each entry records <code>documentId</code>,
+<code>locale</code>, <code>source</code>, <code>mediaType</code>,
+<code>documentHash</code> and <code>pinnedAt</code>. The Response’s
+exact Definition pin MUST resolve to a valid Definition; source, media
+type and source-byte hash MUST match its selected variant. Document IDs
+are case-sensitive and locale identity is case-insensitive. Duplicate
+document/locale identities MUST be rejected, including case-equivalent
+locales. Semantic validation without the pinned Definition MUST refuse
+these claims; schema-only validation checks their shape without
+resolving the Definition. URL validation MUST NOT fetch content or imply
+that content was viewed.</p>
+<p><code>documentHash</code> is lowercase SHA-256 hex of exact source
+bytes, using the Definition’s existing inline decoding and hash rules.
+An optional <code>presentationHash</code> retains the existing
+<code>trellis-presentation-artifact-v1</code> SHA-256 commitment over
+bytes selected by the declared P12 presentation adapter; the default
+adapter selects exact source bytes. Its maintained Integrity owner
+frames the UTF-8 tag and selected bytes with their respective unsigned
+32-bit big-endian lengths. This is distinct from plain source-byte
+hashing and the Response profile’s NUL framing. Formspec binds the
+supplied value without introducing another renderer or hashing
+implementation. Its presence is not proof of display or reading; absence
+makes no presentation-byte claim.</p>
+<p>Declared-document assent MUST use the typed root extension
+<code>extensions["x-formspec-document-attestations"]</code>, version
+<code>1.0</code>. One completed Response snapshot with a stable
+<code>id</code> represents one signing gesture. The extension commits
+<code>signingActId</code>, <code>fieldPath</code>, signer identity
+claims, signing time and intent, consent and affirmation text
+references, provider, ceremony, and the exact <code>attestations</code>
+selections. These are ordinary root data and therefore enter the
+<strong>unchanged</strong> <code>formspec-response-signing-v1</code>
+preimage. The separate <code>x-formspec-signing-content</code> ceremony
+assertions retain their existing meaning; they neither replace nor imply
+this document commitment.</p>
+<p><code>fieldPath</code> MUST be a concrete resolved Field path in the
+pinned Definition and Response data, including valid repeat containers
+and indexes when applicable. Group, display and wildcard paths MUST be
+rejected. The selected document-ID set MUST equal that Field’s
+<code>attests</code> set. Several actually selected locales of one
+document MAY be attested; other resolved documents MAY remain
+unattested. A Field value, a resolved entry or a prepared commitment
+without attached authored records is not evidence of assent.</p>
+<p>Each selection requires a unique <code>signatureId</code>, a closed
+<code>documentRef: {documentId, locale}</code> and an explicit nullable
+<code>witnessedSignatureRef</code>. Each selection MUST resolve to
+exactly one retained document variant; duplicate selection identities
+MUST be rejected. <code>consentAccepted</code> MUST be
+<code>true</code>. The optional shared <code>signerEvidence</code>,
+<code>identityProofRef</code> and <code>identityBinding</code> are
+signed claims, not independent proof that a host authenticated those
+claims.</p>
+<p>Finalization MUST emit all selected <code>authoredSignatures</code>
+records atomically. Every record MUST carry the committed
+<code>signingActId</code>, <code>documentRef</code>,
+<code>witnessedSignatureRef</code> and <code>signerId</code>; its
+<code>documentId</code> MUST equal the selected document ID.
+<code>documentHash</code> and optional <code>presentationHash</code>
+MUST mirror the resolved entry, including optional-field presence, with
+<code>documentHashAlgorithm</code> equal to <code>sha-256</code>. Shared
+signer, intent, consent, affirmation, provider and ceremony metadata
+MUST exactly mirror the root commitment, including absence versus
+presence of optional claims. The existing
+<code>signedPayload.signedAt</code> MUST equal the committed signing
+time; no additional outer signing-time field is introduced. Both
+existing intent copies and the Response/Definition pins MUST agree with
+their committed sources.</p>
+<p>All records for that gesture MUST contain the same genuine COSE
+signature and whole-Response digest. Their record IDs and selections
+MUST exactly match the committed list: missing, extra or duplicate
+records MUST be rejected. New document claims without their typed root
+commitment MUST be rejected. Declared-document production and
+verification MUST refuse the section-signing profile; this extension
+does not establish section-byte coverage.</p>
+<p>A producer or verifier MUST capture its supplied Response,
+Definition, selections, metadata, signature bytes and expected-key
+inputs before yielding to asynchronous work. It MUST derive checks and
+emitted records from that same captured snapshot. Preparing a snapshot
+does not complete the signing act. Finalization MUST reconstruct the
+maintained canonical bytes and digest and obtain a genuine verified
+result through the maintained method registry and verifier before
+attaching records. Unsupported, unavailable and failed verification
+remain distinct outcomes; none emits successful records. A later
+verification receipt remains separate from signer assent.</p>
+<p>A non-null <code>witnessedSignatureRef</code> is the intrinsic
+Formspec tuple
+<code>{responseId, signatureId, signedPayloadDigest}</code>, with a
+lowercase SHA-256 digest. It MUST identify exactly one genuinely
+verified <strong>declared-document</strong> record in explicitly
+supplied, separately retained Response snapshots with their pinned
+Definitions and expected keys. Generic legacy primitive signature
+success does not prove that its outer document and signer metadata were
+committed. Missing, ambiguous, digest-mismatched or unverified targets
+MUST be rejected. Verification is finite over supplied artifacts; it
+MUST NOT fetch external witnesses or infer workflow authority.
+Structural/native lint alone does not establish an external witness’s
+cryptographic validity.</p>
+<p>Each later gesture produces a separately retained immutable snapshot.
+Changing root claims invalidates earlier signatures on the changed
+snapshot; an unchanged earlier snapshot remains independently
+verifiable. Implementations MUST NOT paste earlier signatures into
+changed roots or relax Response-pin equality. Legacy authored records
+without these additions retain their existing behavior and acquire no
+declared-document assertion. Legacy emit/attach operations that cannot
+carry the committed root MUST reject new claims rather than drop
+them.</p>
+<p>Formspec authored evidence remains distinct from WOS-governed
+provenance. WOS resolves the intrinsic witness tuple through an accepted
+principal’s <code>sourceResponseRef</code>,
+<code>sourceSignatureId</code> and <code>signedPayloadDigest</code>,
+with its existing Definition, document, intent and identity policy
+checks. Its <code>witnessedSignatureRef</code> then names that
+principal’s existing outer provenance record <code>id</code>. Formspec
+does not invent a WOS affirmation identifier or claim that this schema
+addition implements downstream admission or Trellis verification.</p>
 <h4 id="section-signature-scope">Section-Signature Scope</h4>
 <p><code>formspec-response-section-signing-v1</code> is a separate
 authored-signature profile. It preserves the whole-response profile

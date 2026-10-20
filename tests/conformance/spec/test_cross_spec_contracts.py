@@ -577,7 +577,7 @@ class TestResponseSchema:
         expected = {
             "$formspecResponse", "definitionUrl", "definitionVersion", "status", "data",
             "authored", "displayedIssuer", "displayedLocale", "id", "author", "subject",
-            "authoredSignatures", "metadata", "validationResults", "extensions",
+            "authoredSignatures", "resolvedDocuments", "metadata", "validationResults", "extensions",
         }
         assert _prop_keys(RESP_S) == expected
 
