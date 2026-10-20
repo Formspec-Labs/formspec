@@ -1,6 +1,9 @@
 /** @filedesc Canonical ResponseReview metadata without renderer runtime imports. */
 import type { CapturedResponseFields, FiniteJsonValue } from '@formspec-org/surface';
 import type { FormDefinition, FormResponse } from '@formspec-org/types';
+import type { AcceptedResponseReviewFieldSelection } from './response-review-selection.js';
+export { resolveAcceptedResponseReviewFieldSelection } from './response-review-selection.js';
+export type { AcceptedResponseReviewFieldSelectionPolicy, AcceptedResponseReviewFieldSelection } from './response-review-selection.js';
 import type { SurfaceWidgetProps } from '../widget-api.js';
 
 export const RESPONSE_REVIEW_COPY_KEYS = [
@@ -96,10 +99,22 @@ export interface AcceptedTaskResponseReviewState
   taskSign: AcceptedTaskResponseReviewSign;
   handoffId?: never;
 }
-export type AcceptedResponseReviewInput = AcceptedResponseReviewData | AcceptedTaskResponseReviewData;
+export interface AcceptedResponseReviewPresentationV011 extends AcceptedResponseReviewPresentation {
+  fieldSelection: AcceptedResponseReviewFieldSelection;
+}
+export interface AcceptedTaskResponseReviewPresentationV011 extends AcceptedTaskResponseReviewPresentation {
+  fieldSelection: AcceptedResponseReviewFieldSelection;
+}
+export interface AcceptedResponseReviewDataV011 extends Omit<AcceptedResponseReviewData, 'presentation'> {
+  presentation: AcceptedResponseReviewPresentationV011;
+}
+export interface AcceptedTaskResponseReviewDataV011 extends Omit<AcceptedTaskResponseReviewData, 'presentation'> {
+  presentation: AcceptedTaskResponseReviewPresentationV011;
+}
+export type AcceptedResponseReviewInput = AcceptedResponseReviewData | AcceptedTaskResponseReviewData | AcceptedResponseReviewDataV011 | AcceptedTaskResponseReviewDataV011;
 export type AcceptedResponseReviewStateInput = AcceptedResponseReviewState | AcceptedTaskResponseReviewState;
 export type ResponseReviewInput = ResponseReviewData | AcceptedResponseReviewInput;
-export type ResponseReviewPresentationInput = ResponseReviewPresentation | AcceptedResponseReviewPresentation | AcceptedTaskResponseReviewPresentation;
+export type ResponseReviewPresentationInput = ResponseReviewPresentation | AcceptedResponseReviewPresentation | AcceptedTaskResponseReviewPresentation | AcceptedResponseReviewPresentationV011 | AcceptedTaskResponseReviewPresentationV011;
 export interface AcceptedResponseReviewAttachmentRequest extends AcceptedResponseReviewData {
   path: string;
   descriptor: FiniteJsonValue;
@@ -366,8 +381,66 @@ export const ACCEPTED_TASK_RESPONSE_REVIEW_STATE_SCHEMA = {
     taskSign: ACCEPTED_TASK_RESPONSE_REVIEW_SIGN_SCHEMA,
   },
 } as const;
+/** Successor authored display policy; original 0.1.0 widget props stay immutable. */
+const selectionText = { type: 'string', minLength: 1 } as const;
+const selectedPath = {
+  type: 'string',
+  pattern: '^[A-Za-z][A-Za-z0-9_]*(\\[(?:0|[1-9][0-9]*|\\*)\\])?(\\.[A-Za-z][A-Za-z0-9_]*(\\[(?:0|[1-9][0-9]*|\\*)\\])?)*$',
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_FIELD_SELECTION_POLICY_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['policyId', 'definitionUrl', 'definitionVersion', 'fieldPaths'],
+  properties: { policyId: selectionText, definitionUrl: selectionText, definitionVersion: selectionText,
+    fieldPaths: { type: 'array', minItems: 1, uniqueItems: true, items: selectedPath } },
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_FIELD_SELECTION_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['policyId', 'definitionUrl', 'definitionVersion', 'permittedPaths'],
+  properties: { policyId: selectionText, definitionUrl: selectionText, definitionVersion: selectionText,
+    permittedPaths: { type: 'array', uniqueItems: true, items: {
+      ...selectedPath, pattern: selectedPath.pattern.replaceAll('|\\*', ''),
+    } } },
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_CONFIG_SCHEMA_V011 = {
+  ...ACCEPTED_RESPONSE_REVIEW_CONFIG_SCHEMA,
+  required: [...ACCEPTED_RESPONSE_REVIEW_CONFIG_SCHEMA.required, 'fieldSelection'],
+  properties: { ...ACCEPTED_RESPONSE_REVIEW_CONFIG_SCHEMA.properties,
+    fieldSelection: ACCEPTED_RESPONSE_REVIEW_FIELD_SELECTION_POLICY_SCHEMA },
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_RENDERED_CONFIG_NODES_V011 = [
+  ...RESPONSE_REVIEW_RENDERED_CONFIG_NODES,
+  { pointerPattern: '/fieldSelection', kind: 'response-review-field-selection' },
+  { pointerPattern: '/fieldSelection/fieldPaths/*', kind: 'response-review-selected-field' },
+] as const;
+export const ACCEPTED_RESPONSE_REVIEW_WIDGET_SHAPE_V011 = {
+  ...ACCEPTED_RESPONSE_REVIEW_WIDGET_SHAPE,
+  props: ACCEPTED_RESPONSE_REVIEW_CONFIG_SCHEMA_V011,
+  renderedConfigNodes: ACCEPTED_RESPONSE_REVIEW_RENDERED_CONFIG_NODES_V011,
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011 = {
+  ...ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA,
+  required: [...ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA.required, 'fieldSelection'],
+  properties: { ...ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA.properties,
+    fieldSelection: ACCEPTED_RESPONSE_REVIEW_FIELD_SELECTION_SCHEMA },
+} as const;
+export const ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011 = {
+  ...ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA,
+  required: [...ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA.required, 'fieldSelection'],
+  properties: { ...ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA.properties,
+    fieldSelection: ACCEPTED_RESPONSE_REVIEW_FIELD_SELECTION_SCHEMA },
+} as const;
+export const ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA_V011 = {
+  ...ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA,
+  properties: { ...ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA.properties,
+    presentation: ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011 },
+} as const;
+export const ACCEPTED_TASK_RESPONSE_REVIEW_DATA_SCHEMA_V011 = {
+  ...ACCEPTED_TASK_RESPONSE_REVIEW_DATA_SCHEMA,
+  properties: { ...ACCEPTED_TASK_RESPONSE_REVIEW_DATA_SCHEMA.properties,
+    presentation: ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011 },
+} as const;
 export const ACCEPTED_RESPONSE_REVIEW_PRESENTATION_UNION_SCHEMA = {
-  oneOf: [ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA],
+  oneOf: [ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011, ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011],
 } as const;
 export const ACCEPTED_RESPONSE_REVIEW_DATA_UNION_SCHEMA = {
   ...ACCEPTED_RESPONSE_REVIEW_DATA_SCHEMA,
@@ -377,7 +450,7 @@ export const ACCEPTED_RESPONSE_REVIEW_STATE_UNION_SCHEMA = {
   oneOf: [ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA, ACCEPTED_TASK_RESPONSE_REVIEW_STATE_SCHEMA],
 } as const;
 export const RESPONSE_REVIEW_PRESENTATION_UNION_SCHEMA = {
-  oneOf: [RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA],
+  oneOf: [RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA, ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011, ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011],
 } as const;
 export const RESPONSE_REVIEW_STATE_UNION_SCHEMA = {
   oneOf: [RESPONSE_REVIEW_STATE_SCHEMA, ACCEPTED_RESPONSE_REVIEW_STATE_SCHEMA, ACCEPTED_TASK_RESPONSE_REVIEW_STATE_SCHEMA],

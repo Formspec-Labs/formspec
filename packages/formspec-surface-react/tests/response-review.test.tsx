@@ -8,6 +8,7 @@ import {
   createResponseReviewWidget,
   responseReviewHash,
   responseReviewHandoffHash,
+  resolveAcceptedResponseReviewFieldSelection,
 } from "../src/widgets/response-review.js";
 import type { SurfaceWidgetProps } from "../src/widget-api.js";
 
@@ -1241,4 +1242,172 @@ describe("accepted signed-task ResponseReview", () => {
     expect(current.contextIdentity).toBe(await responseReviewHash(next.data)); view.unmount();
   });
 
+});
+
+describe('authored accepted-record field selection', () => {
+  it('renders only selected declared leaves while retaining the full hash input', async () => {
+    const p = await acceptedProps();
+    selectAcceptedFields(p, ['people[*].answer']);
+    const original = JSON.stringify(p.data);
+    const produce = vi.fn(handoffBytes), accepted = vi.fn();
+    const view = await mount(p, { canonicalResponseHandoffBytes: produce, onAcceptedReviewState: accepted });
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe('ready'));
+    expect(view.el.querySelectorAll('[data-response-path]')).toHaveLength(2);
+    expect(view.el.textContent).not.toContain('Retained Name');
+    expect(view.el.textContent).not.toContain('retained extra');
+    expect(view.el.textContent).not.toContain('Additional answers');
+    expect(JSON.stringify(p.data)).toBe(original);
+    expect(produce.mock.calls[0]?.[0]).toEqual((p.data as any).response);
+    expect(accepted.mock.calls.at(-1)?.[0].contextIdentity).toBe(await responseReviewHash(p.data));
+    view.unmount();
+  });
+  it.each([[], ['name', 'name'], ['unknown'], ['people'], ['people.answer'], ['.name'], ['people[@index].answer'], ['people[*].answer', 'people[0].answer']].map(paths => [paths]))('refuses invalid selectors %j before hashing or reading attachments', async fieldPaths => {
+    const p = await acceptedProps(); p.config.fieldSelection = selectionPolicy(p, fieldPaths);
+    (p.data as any).presentation.fieldSelection = {policyId:"neutral-display",definitionUrl:"urn:review",definitionVersion:"1.0.0",permittedPaths:[]};
+    const produce = vi.fn(handoffBytes), read = vi.fn();
+    const view = await mount(p, { canonicalResponseHandoffBytes: produce, readAcceptedAttachment: read });
+    expect(view.el.textContent).toBe(copy.unavailable);
+    expect(produce).not.toHaveBeenCalled(); expect(read).not.toHaveBeenCalled();
+    view.unmount();
+  });
+  it.each(['before-sign', 'before-submit'])('refuses selection during %s', async phase => {
+    const p = await props(), data = p.data as any; data.presentation.phase = phase; p.config.fieldSelection = selectionPolicy(p, ['name']);
+    if (phase === 'before-submit') {
+      data.response.authoredSignatures = [{}];
+      data.presentation.responseHash = await handoffHash(data.response);
+    }
+    const produce = vi.fn(handoffBytes);
+    const view = await mount(p, { canonicalResponseHandoffBytes: produce });
+    expect(view.el.textContent).toBe(copy.unavailable); expect(produce).not.toHaveBeenCalled(); view.unmount();
+  });
+  it('admits a declared optional missing field and suppresses unselected attachments', async () => {
+    const p = await acceptedProps(), d = p.data as any;
+    d.definition.items.push({key:'optional',type:'field',dataType:'string'}, {key:'photo',type:'field',dataType:'attachment'});
+    d.response.data.photo = {private:'suppressed descriptor'};
+    d.presentation.responseHash = await handoffHash(d.response);
+    selectAcceptedFields(p, ['optional']);
+    const read = vi.fn(), accepted = vi.fn();
+    const view = await mount(p, {readAcceptedAttachment:read,onAcceptedReviewState:accepted});
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe('ready'));
+    expect(view.el.querySelectorAll('[data-response-path]')).toHaveLength(0);
+    expect(view.el.textContent).not.toContain('suppressed descriptor'); expect(read).not.toHaveBeenCalled(); view.unmount();
+  });
+});
+
+function selectionPolicy(p: SurfaceWidgetProps, fieldPaths: readonly string[]) {
+  const data = p.data as any;
+  return {policyId:'neutral-display',definitionUrl:data.definition.url,definitionVersion:data.definition.version,fieldPaths};
+}
+function selectAcceptedFields(p: SurfaceWidgetProps, fieldPaths: readonly string[]) {
+  const policy = selectionPolicy(p, fieldPaths), data = p.data as any;
+  p.config.fieldSelection = policy;
+  data.presentation.fieldSelection = resolveAcceptedResponseReviewFieldSelection(data.definition,data.response,policy);
+}
+
+describe('qualified accepted display policy admission', () => {
+  it.each(['policy', 'url', 'version', 'paths', 'missing', 'unsorted', 'extra'])('refuses qualified %s drift before ports', async drift => {
+    const p = await acceptedProps(); selectAcceptedFields(p, ['name','choice']);
+    const d = p.data as any;
+    const selected = d.presentation.fieldSelection = {...d.presentation.fieldSelection, permittedPaths:[...d.presentation.fieldSelection.permittedPaths]};
+    if (drift === 'policy') selected.policyId = 'another-policy';
+    if (drift === 'url') selected.definitionUrl = 'urn:another';
+    if (drift === 'version') selected.definitionVersion = '2.0.0';
+    if (drift === 'paths') selected.permittedPaths = ['name'];
+    if (drift === 'missing') delete d.presentation.fieldSelection;
+    if (drift === 'unsorted') selected.permittedPaths = ['name','choice'];
+    if (drift === 'extra') selected.unknown = true;
+    const produce = vi.fn(handoffBytes), read = vi.fn();
+    const view = await mount(p, {canonicalResponseHandoffBytes:produce,readAcceptedAttachment:read});
+    expect(view.el.textContent).toBe(copy.unavailable);
+    expect(produce).not.toHaveBeenCalled(); expect(read).not.toHaveBeenCalled(); view.unmount();
+  });
+  it('refuses hidden response tampering against the original full-response hash', async () => {
+    const p = await acceptedProps(); selectAcceptedFields(p,['name']);
+    (p.data as any).response.data.extra.zero = 99;
+    const accepted = vi.fn(), view = await mount(p,{onAcceptedReviewState:accepted});
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe('unavailable'));
+    expect(view.el.querySelector('.fs-response-review')).toBeNull(); view.unmount();
+  });
+  it('renders selected nested fields without whole-group fallback or unknown values', async () => {
+    const p = await acceptedProps(), d = p.data as any;
+    d.definition.items.push({key:'details',type:'group',children:[{key:'visible',type:'field'},{key:'optional',type:'field'}]});
+    d.response.data.details = {visible:'shown nested',private:'hidden nested'};
+    d.presentation.fields.details = {label:'Details'};d.presentation.fields['details.visible'] = {label:'Visible'};
+    d.presentation.responseHash = await handoffHash(d.response);
+    selectAcceptedFields(p,['details.visible','details.optional']);
+    const accepted = vi.fn(), view = await mount(p,{onAcceptedReviewState:accepted});
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe('ready'));
+    expect(view.el.textContent).toContain('shown nested');expect(view.el.textContent).not.toContain('hidden nested');
+    selectAcceptedFields(p,['details.optional']); await view.rerender(p);
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe('ready'));
+    expect(view.el.textContent).not.toContain('hidden nested');expect(view.el.textContent).not.toContain('shown nested');view.unmount();
+  });
+  it('uses selected signed-task paths and waits only for selected attachments', async () => {
+    const p = await acceptedTaskProps(), {blob} = await withPhoto(p), d = p.data as any;
+    d.definition.items.push({key:'hiddenPhoto',type:'field',dataType:'attachment'});
+    d.response.data.hiddenPhoto = {...d.response.data.photo,private:'hidden attachment'};
+    d.presentation.fields.hiddenPhoto = {label:'Hidden photo'};
+    d.presentation.responseHash = await handoffHash(d.response);
+    selectAcceptedFields(p,['photo']);
+    const read = vi.fn(async () => blob), accepted = vi.fn();
+    const create = vi.spyOn(URL,'createObjectURL').mockReturnValue('blob:selected'), revoke = vi.spyOn(URL,'revokeObjectURL').mockImplementation(() => {});
+    const view = await mount(p,{readAcceptedAttachment:read,onAcceptedReviewState:accepted});
+    await vi.waitFor(() => expect(view.el.querySelector('img')).not.toBeNull());
+    expect(read).toHaveBeenCalledTimes(1);expect(read.mock.calls[0]?.[0]).toMatchObject({path:'photo',response:d.response});
+    expect(accepted.mock.calls.at(-1)?.[0].status).toBe('pending');
+    expect(view.el.textContent).not.toContain('hidden attachment');
+    act(() => view.el.querySelector('img')!.dispatchEvent(new Event('load')));
+    expect(accepted.mock.calls.at(-1)?.[0].status).toBe('ready');view.unmount();create.mockRestore();revoke.mockRestore();
+  });
+  it('rejects qualified selection on an otherwise legacy config', async () => {
+    const p = await acceptedProps();selectAcceptedFields(p,['name']);delete p.config.fieldSelection;
+    const produce = vi.fn(handoffBytes), view = await mount(p,{canonicalResponseHandoffBytes:produce});
+    expect(view.el.textContent).toBe(copy.unavailable);expect(produce).not.toHaveBeenCalled();view.unmount();
+  });
+});
+
+it.each(['AcceptedResponseReview','x-accepted-response-review'])('refuses legacy input under the selected Registry module profile %s', async alias => {
+  const {starterWidgetModule} = await import('../src/widgets/index.js');
+  const p = await acceptedProps(); p.widgetName = alias;
+  const produce = vi.fn(handoffBytes), read = vi.fn();
+  const module = starterWidgetModule('x-starter',{acceptedResponseReviewRegistryEntryVersion:'0.1.1',responseReview:{canonicalResponseHandoffBytes:produce,readAcceptedAttachment:read}});
+  const Widget = module.widgets[alias]!;
+  const el = document.createElement('div'), root = createRoot(el);
+  await act(async () => {root.render(<Widget {...p}/>);await new Promise(resolve => setTimeout(resolve,5));});
+  expect(el.textContent).toBe(copy.unavailable);expect(el.querySelector('[data-response-path]')).toBeNull();
+  expect(produce).not.toHaveBeenCalled();expect(read).not.toHaveBeenCalled();
+  await act(async () => root.unmount());
+  const legacy = await mount(p);
+  expect(legacy.el.textContent).toContain('Retained Name');legacy.unmount();
+});
+
+it.each(['AcceptedResponseReview','x-accepted-response-review'])('refuses selected input under legacy module profile %s', async alias => {
+  const {starterWidgetModule} = await import('../src/widgets/index.js');
+  const p = await acceptedProps(); p.widgetName = alias;selectAcceptedFields(p,['name']);
+  const produce = vi.fn(handoffBytes), read = vi.fn();
+  const module = starterWidgetModule('x-starter',{responseReview:{canonicalResponseHandoffBytes:produce,readAcceptedAttachment:read}});
+  const Widget = module.widgets[alias]!;
+  const el = document.createElement('div'), root = createRoot(el);
+  await act(async () => {root.render(<Widget {...p}/>);await new Promise(resolve => setTimeout(resolve,5));});
+  expect(el.textContent).toBe(copy.unavailable);expect(el.querySelector('[data-response-path]')).toBeNull();
+  expect(produce).not.toHaveBeenCalled();expect(read).not.toHaveBeenCalled();
+  await act(async () => root.unmount());
+});
+
+// Integration control with independent authored and qualified display inputs.
+it('keeps authored accepted-record selection through host source composition', async () => {
+  const p = await acceptedProps(), data = p.data as any;
+  const identity = { policyId: 'neutral-display', definitionUrl: data.definition.url, definitionVersion: data.definition.version };
+  p.config.fieldSelection = {...identity, fieldPaths: ['people[*].answer']};
+  data.presentation.fieldSelection = {...identity, permittedPaths: ['people[0].answer', 'people[1].answer']};
+  const original = JSON.stringify(p.data), accepted = vi.fn(), produce = vi.fn(handoffBytes);
+  const view = await mount(p, { canonicalResponseHandoffBytes: produce, onAcceptedReviewState: accepted });
+  try {
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe('ready'));
+    expect(view.el.querySelectorAll('[data-response-path]')).toHaveLength(2);
+    expect(view.el.textContent).not.toContain('Retained Name');
+    expect(view.el.textContent).not.toContain('retained extra');
+    expect(JSON.stringify(p.data)).toBe(original);
+    expect(produce.mock.calls[0]?.[0]).toEqual(data.response);
+  } finally { view.unmount(); }
 });

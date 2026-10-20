@@ -20,6 +20,8 @@ import {
   RESPONSE_REVIEW_COPY_KEYS,
   ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA,
   ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA,
+  ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011,
+  ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011,
   type ResponseReviewCopy,
   type ResponseReviewPresentationInput as ResponseReviewPresentation,
   type ResponseReviewInput as ResponseReviewData,
@@ -30,6 +32,7 @@ import {
   type ResponseReviewProps,
 } from './response-review-metadata.js';
 export * from './response-review-metadata.js';
+import { createAcceptedReviewFieldSelection, resolveAcceptedResponseReviewFieldSelection, type AcceptedReviewFieldSelection, type AcceptedResponseReviewFieldSelectionPolicy } from './response-review-selection.js';
 
 type Obj = Record<string, unknown>;
 const object = (v: unknown): v is Obj =>
@@ -105,7 +108,7 @@ type Capture = {
   identity: string;
 };
 
-function capture(props: SurfaceWidgetProps): Capture | undefined {
+function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' | 'selected'): Capture | undefined {
   try {
     // Reject accessors/cycles before reading values; detach everything the display can consume.
     const data = snapshotFiniteJson(
@@ -142,9 +145,22 @@ function capture(props: SurfaceWidgetProps): Capture | undefined {
           r.authoredSignatures.length === 0))
     )
       return undefined;
+    const selected = own(config, 'fieldSelection');
+    if ((acceptedSelectionProfile === 'selected' && !selected) ||
+      (acceptedSelectionProfile === 'legacy' && selected)) return undefined;
+    let selection: AcceptedReviewFieldSelection | undefined;
+    if (selected) {
+      if (p.phase !== 'accepted-record' || !own(p, 'fieldSelection')) return undefined;
+      const policy = config.fieldSelection as unknown as AcceptedResponseReviewFieldSelectionPolicy;
+      const expected = resolveAcceptedResponseReviewFieldSelection(d, r, policy);
+      if (canonicalize(expected) !== canonicalize((p as unknown as Obj).fieldSelection)) return undefined;
+      selection = createAcceptedReviewFieldSelection(d.items, policy.fieldPaths);
+    } else if (own(p, 'fieldSelection')) return undefined;
     if (p.phase === "accepted-record") {
       const task = own(p, "taskSign");
-      const schema = task ? ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA : ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA;
+      const schema = selected
+        ? (task ? ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011 : ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA_V011)
+        : (task ? ACCEPTED_TASK_RESPONSE_REVIEW_PRESENTATION_SCHEMA : ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA);
       if (Object.keys(p).some(key => !own(schema.properties, key))) return undefined;
       if (task) {
         if (!object(p.taskSign) || Object.keys(p.taskSign).some(key => key !== "recordRef" && key !== "recordHash") ||
@@ -185,7 +201,8 @@ function capture(props: SurfaceWidgetProps): Capture | undefined {
       "",
       p,
       copy,
-      attachments
+      attachments,
+      selection
     );
     return {
       headingLevel: props.headingLevel,
@@ -210,7 +227,8 @@ function walk(
   prefix: string,
   p: ResponseReviewPresentation,
   copy: ResponseReviewCopy,
-  attachments: string[]
+  attachments: string[],
+  selection?: AcceptedReviewFieldSelection
 ): ReviewNode[] {
   const nodes: ReviewNode[] = [];
   const consumed = new Set<string>();
@@ -226,6 +244,8 @@ function walk(
     keys.add(item.key);
     if (!own(values, item.key)) continue;
     const path = prefix ? `${prefix}.${item.key}` : item.key;
+    if (selection && !(item.type === 'field' && selection.includes(path)) &&
+      !(item.type === 'group' && selection.contains(path))) continue;
     const value = values[item.key] as FiniteJsonValue;
     const metadata = own(p.fields as unknown as Obj, path)
       ? p.fields[path]
@@ -242,8 +262,8 @@ function walk(
           kind: "group",
           path,
           label: metadata.label,
-          children: value.map((row, i) => ({
-            kind: "group",
+          children: value.flatMap((row, i) => selection && !selection.contains(`${path}[${i}]`) ? [] : [{
+            kind: "group" as const,
             path: `${path}[${i}]`,
             label: `${metadata.label} ${i + 1}`,
             children: walk(
@@ -252,12 +272,13 @@ function walk(
               `${path}[${i}]`,
               p,
               copy,
-              attachments
+              attachments,
+              selection
             ),
-          })),
+          }]).filter(row => !selection || row.children.length > 0),
         });
         // An empty repeated group is still a recorded value.
-        if (!value.length)
+        if (!value.length && !selection)
           nodes.push({
             kind: "value",
             path: `${path}:empty`,
@@ -272,8 +293,10 @@ function walk(
           path,
           p,
           copy,
-          attachments
+          attachments,
+          selection
         );
+        if (selection && !children.length) continue;
         nodes.push(
           children.length
             ? { kind: "group", path, label: metadata.label, children }
@@ -285,7 +308,8 @@ function walk(
                 attachment: false,
               }
         );
-      } else
+      } else if (selection) throw Error("Invalid selected review group");
+      else
         nodes.push({
           kind: "value",
           path,
@@ -315,7 +339,7 @@ function walk(
     }
   }
   for (const key of Object.keys(values))
-    if (!consumed.has(key)) {
+    if (!selection && !consumed.has(key)) {
       const path = prefix ? `${prefix}.${key}` : key;
       nodes.push({
         kind: "value",
@@ -730,8 +754,8 @@ function unavailableCopy(props: SurfaceWidgetProps): string | undefined {
 }
 
 let nextReviewGeneration = 0;
-export function ResponseReview(props: ResponseReviewProps) {
-  const c = capture(props);
+function ProfiledResponseReview(props: ResponseReviewProps & { acceptedSelectionProfile: 'legacy' | 'selected' | undefined }) {
+  const c = capture(props, props.acceptedSelectionProfile);
   // Stable detached capture prevents a new snapshot object from restarting every preview render.
   const stable = useMemo(() => c, [c?.identity]);
   const generation = useMemo(
@@ -768,8 +792,13 @@ export function ResponseReview(props: ResponseReviewProps) {
     />
   );
 }
+export function ResponseReview(props: ResponseReviewProps) {
+  return <ProfiledResponseReview {...props} acceptedSelectionProfile={undefined} />;
+}
 export function createResponseReviewWidget(
-  options: ResponseReviewOptions = {}
+  options: ResponseReviewOptions = {},
+  /** Deployment profile admission; grants no access or signing authority. */
+  acceptedSelectionProfile?: 'legacy' | 'selected',
 ): SurfaceWidget {
-  return (props) => <ResponseReview {...props} {...options} />;
+  return (props) => <ProfiledResponseReview {...props} {...options} acceptedSelectionProfile={acceptedSelectionProfile} />;
 }
