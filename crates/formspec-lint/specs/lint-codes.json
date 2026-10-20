@@ -88,6 +88,18 @@
       "state": "tested"
     },
     {
+      "code": "E303",
+      "pass": 3,
+      "severity": "error",
+      "title": "Invalid document declaration or attestation reference",
+      "specRef": "specs/core/spec.md#413-attestable-documents",
+      "suggestedFix": "resolve document ids and locale variants, and match bounded canonical inline bytes to their declared hash",
+      "fixtures": [
+        "tests/fixtures/lint/E303-invalid-document-declaration.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W300",
       "pass": 3,
       "severity": "warning",
@@ -1312,6 +1324,18 @@
       "state": "tested"
     },
     {
+      "code": "E1508",
+      "pass": 9,
+      "severity": "error",
+      "title": "Standalone Screener cannot declare document attestation scope",
+      "specRef": "specs/core/spec.md#413-attestable-documents",
+      "suggestedFix": "remove attests from the standalone Screener; declare document attestation on a pinned Definition Field",
+      "fixtures": [
+        "tests/fixtures/lint/E1508-screener-attests.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W1500",
       "pass": 9,
       "severity": "warning",
@@ -1459,6 +1483,66 @@
       "specRef": "specs/response-actions/response-actions-spec.md#63-idempotency",
       "suggestedFix": "use a FEL expression that references at least one @-binding (e.g., \"@invocation.id & '/<effect-name>'\") so the key varies per invocation; literal-string keys silently defeat idempotency by producing the same value for every attempt",
       "fixtures": ["tests/fixtures/lint/W1802-response-actions-static-idempotency-key.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E903",
+      "pass": 8,
+      "severity": "error",
+      "title": "Invalid resolved document or paired Definition",
+      "specRef": "specs/core/spec.md#declared-document-attestations",
+      "suggestedFix": "supply the exact paired Definition and select unique declared document locale/source/hash pins",
+      "fixtures": [
+        "tests/fixtures/lint/E903-resolved-document-context.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E904",
+      "pass": 8,
+      "severity": "error",
+      "title": "Unbound or mismatched declared-document signature claim",
+      "specRef": "specs/core/spec.md#declared-document-attestations",
+      "suggestedFix": "preserve the committed gesture, exact document membership and metadata mirrors under whole-response signing",
+      "fixtures": [
+        "tests/fixtures/lint/E904-document-attestation-binding.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W900",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Required and read-only without a declared value source",
+      "specRef": "specs/core/spec.md#definition-advisories",
+      "suggestedFix": "review the declared value source or required/read-only combination; loaded or programmatically populated data may be intentional",
+      "fixtures": [
+        "tests/fixtures/lint/W900-bind-advisory.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W901",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Pre-population replaced by calculation",
+      "specRef": "specs/core/spec.md#definition-advisories",
+      "suggestedFix": "verify that prePopulate and calculate on this field are both intentional",
+      "fixtures": [
+        "tests/fixtures/lint/W901-bind-advisory.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W902",
+      "pass": 10,
+      "severity": "info",
+      "title": "Required on a calculated read-only field",
+      "specRef": "specs/core/spec.md#definition-advisories",
+      "suggestedFix": "verify that required is intentional when calculate yields an empty value; keep normal required validation",
+      "fixtures": [
+        "tests/fixtures/lint/W902-bind-advisory.json"
+      ],
       "state": "tested"
     },
     {

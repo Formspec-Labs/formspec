@@ -1,5 +1,7 @@
 /** @filedesc Formspec facade over the generic WebCrypto signature adapter. */
 
+import { FORMSPEC_SIG_METHOD_URI_PREFIX } from '@formspec/signature-cose';
+
 import {
   WebCryptoVerifier as IntegrityWebCryptoVerifier,
   type WebCryptoVerifierOptions,
@@ -10,14 +12,13 @@ export type { WebCryptoVerifierOptions } from '@formspec-org/integrity-signature
 
 const ADAPTER_ID = 'urn:formspec:adapter:webcrypto@1';
 const ADAPTER_VERSION = '0.1.0';
-const METHOD_URI_PREFIX = 'urn:formspec:sig-method:';
 
 export class WebCryptoVerifier extends IntegrityWebCryptoVerifier {
   constructor(options: WebCryptoVerifierOptions = {}) {
     super({
       adapterId: ADAPTER_ID,
       adapterVersion: ADAPTER_VERSION,
-      methodUriPrefix: METHOD_URI_PREFIX,
+      methodUriPrefix: FORMSPEC_SIG_METHOD_URI_PREFIX,
       ...options,
     });
   }

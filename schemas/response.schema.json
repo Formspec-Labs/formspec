@@ -16,6 +16,43 @@
   "dependentRequired": {
     "authoredSignatures": ["id"]
   },
+  "allOf": [
+    {
+      "if": {
+        "required": ["extensions"],
+        "properties": {
+          "extensions": { "required": ["x-formspec-document-attestations"] }
+        }
+      },
+      "then": {
+        "required": ["id", "resolvedDocuments"],
+        "properties": { "status": { "const": "completed" } }
+      }
+    },
+    {
+      "if": {
+        "required": ["authoredSignatures"],
+        "properties": {
+          "authoredSignatures": {
+            "contains": {
+              "anyOf": [
+                { "required": ["signingActId"] },
+                { "required": ["documentRef"] },
+                { "required": ["presentationHash"] },
+                { "required": ["witnessedSignatureRef"] }
+              ]
+            }
+          }
+        }
+      },
+      "then": {
+        "required": ["extensions"],
+        "properties": {
+          "extensions": { "required": ["x-formspec-document-attestations"] }
+        }
+      }
+    }
+  ],
   "$defs": {
     "SigningContentCommitment": {
       "type": "object",
@@ -345,6 +382,132 @@
         "photo"
       ]
     },
+    "DocumentReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["documentId", "locale"],
+      "description": "One declared document variant in the Response-pinned Definition. Document identity is case-sensitive; locale identity is case-insensitive.",
+      "properties": {
+        "documentId": { "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/DocumentId" },
+        "locale": { "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/DocumentLocale" }
+      },
+      "examples": [{ "documentId": "terms-v2", "locale": "en-US" }]
+    },
+    "PresentationHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase SHA-256 hex under the existing trellis-presentation-artifact-v1 framing over bytes selected by the declared P12 adapter; the default selects exact source bytes. The maintained Integrity owner frames a u32 big-endian tag length, UTF-8 tag, u32 big-endian component length and component bytes. This is neither plain source hashing nor proof of display or reading. Formspec binds the supplied value without adding a renderer or alternate hash rule.",
+      "examples": ["0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]
+    },
+    "ResolvedDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["documentId", "locale", "source", "mediaType", "documentHash", "pinnedAt"],
+      "description": "One exact document variant selected from the Response-pinned Definition. Native validation checks the declaration/source/media/hash join and unique document/locale identity; URL validation never fetches content.",
+      "properties": {
+        "documentId": { "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/DocumentId" },
+        "locale": { "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/DocumentLocale" },
+        "source": { "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/DocumentSource" },
+        "mediaType": { "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/DocumentVariant/properties/mediaType" },
+        "documentHash": { "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/DocumentVariant/properties/documentHash" },
+        "pinnedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp retained when this source-byte selection was pinned.",
+          "examples": ["2026-10-20T19:00:00Z"]
+        },
+        "presentationHash": { "$ref": "#/$defs/PresentationHash" }
+      },
+      "examples": [{
+        "documentId": "terms-v2", "locale": "en-US",
+        "source": { "kind": "inline", "data": "SGVsbG8=" },
+        "mediaType": "text/plain; charset=utf-8",
+        "documentHash": "185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969",
+        "pinnedAt": "2026-10-20T19:00:00Z"
+      }]
+    },
+    "WitnessedSignatureReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["responseId", "signatureId", "signedPayloadDigest"],
+      "description": "Intrinsic immutable Formspec witness target. Actual verification must resolve exactly one cryptographically verified committed-document signature in the explicitly supplied retained Response snapshots. This is not a WOS provenance record identifier.",
+      "properties": {
+        "responseId": { "$ref": "#/$defs/AuthoredSignatureSignedPayload/properties/responseId" },
+        "signatureId": { "$ref": "#/$defs/AuthoredSignature/properties/signatureId" },
+        "signedPayloadDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Exact lowercase SHA-256 digest of the selected principal's whole-Response signed payload.",
+          "examples": ["0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]
+        }
+      },
+      "examples": [{
+        "responseId": "principal-response-1", "signatureId": "principal-sig-terms",
+        "signedPayloadDigest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      }]
+    },
+    "DocumentAttestationSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signatureId", "documentRef", "witnessedSignatureRef"],
+      "description": "One document/locale selected in a signing gesture. Signature IDs and document/locale pairs must be unique within the gesture; a non-witness selection explicitly carries null.",
+      "properties": {
+        "signatureId": { "$ref": "#/$defs/AuthoredSignature/properties/signatureId" },
+        "documentRef": { "$ref": "#/$defs/DocumentReference" },
+        "witnessedSignatureRef": { "$ref": "#/$defs/AuthoredSignature/properties/witnessedSignatureRef" }
+      },
+      "examples": [{
+        "signatureId": "sig-terms", "documentRef": { "documentId": "terms-v2", "locale": "en-US" },
+        "witnessedSignatureRef": null
+      }]
+    },
+    "DocumentAttestationCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version", "signingActId", "fieldPath", "signerId", "signerName", "signedAt",
+        "signingIntent", "consentAccepted", "consentTextRef", "consentVersion",
+        "affirmationText", "signatureProvider", "ceremonyId", "attestations"
+      ],
+      "description": "One declared-document signing gesture retained inside unchanged whole-Response v1 signed bytes. Shared claims and exact selections are committed once; attached authored records must mirror them exactly. Without attached records this is prepared unsigned data, not verified evidence.",
+      "properties": {
+        "version": { "const": "1.0" },
+        "signingActId": { "$ref": "#/$defs/AuthoredSignature/properties/signingActId" },
+        "fieldPath": { "$ref": "#/$defs/ResolvedItemPath" },
+        "signerId": { "$ref": "#/$defs/AuthoredSignature/properties/signerId" },
+        "signerName": { "$ref": "#/$defs/AuthoredSignature/properties/signerName" },
+        "signedAt": { "$ref": "#/$defs/AuthoredSignatureSignedPayload/properties/signedAt" },
+        "signingIntent": { "$ref": "#/$defs/AuthoredSignature/properties/signingIntent" },
+        "consentAccepted": { "$ref": "#/$defs/AuthoredSignature/properties/consentAccepted", "const": true },
+        "consentTextRef": { "$ref": "#/$defs/AuthoredSignature/properties/consentTextRef" },
+        "consentVersion": { "$ref": "#/$defs/AuthoredSignature/properties/consentVersion" },
+        "affirmationText": { "$ref": "#/$defs/AuthoredSignature/properties/affirmationText" },
+        "signatureProvider": { "$ref": "#/$defs/AuthoredSignature/properties/signatureProvider" },
+        "ceremonyId": { "$ref": "#/$defs/AuthoredSignature/properties/ceremonyId" },
+        "signerEvidence": { "$ref": "#/$defs/AuthoredSignature/properties/signerEvidence" },
+        "identityProofRef": { "$ref": "#/$defs/AuthoredSignature/properties/identityProofRef" },
+        "identityBinding": { "$ref": "#/$defs/AuthoredSignature/properties/identityBinding" },
+        "attestations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/DocumentAttestationSelection" },
+          "description": "Exact per-document selections. Selected document IDs must equal the referenced Field.attests set; resolved documents need not all be attested."
+        }
+      },
+      "examples": [{
+        "version": "1.0", "signingActId": "act-applicant-1", "fieldPath": "applicantSignature",
+        "signerId": "applicant-1", "signerName": "Ada Lovelace", "signedAt": "2026-10-20T19:01:00Z",
+        "signingIntent": "urn:example:signing-intent:application", "consentAccepted": true,
+        "consentTextRef": "urn:example:consent:esign:v1", "consentVersion": "1.0",
+        "affirmationText": "I agree to the selected documents.",
+        "signatureProvider": "urn:example:signing-provider", "ceremonyId": "ceremony-1",
+        "attestations": [{
+          "signatureId": "sig-terms", "documentRef": { "documentId": "terms-v2", "locale": "en-US" },
+          "witnessedSignatureRef": null
+        }]
+      }]
+    },
     "AuthoredSignature": {
       "type": "object",
       "description": "Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act under signedPayload.canonicalization through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.",
@@ -378,9 +541,45 @@
           },
           "then": { "required": ["partyRole", "coveredPaths"] },
           "else": { "not": { "anyOf": [{ "required": ["partyRole"] }, { "required": ["coveredPaths"] }] } }
+        },
+        {
+          "if": {
+            "anyOf": [
+              { "required": ["signingActId"] },
+              { "required": ["documentRef"] },
+              { "required": ["presentationHash"] },
+              { "required": ["witnessedSignatureRef"] }
+            ]
+          },
+          "then": {
+            "required": ["signingActId", "documentRef", "witnessedSignatureRef", "signerId"],
+            "properties": {
+              "documentHash": { "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/DocumentVariant/properties/documentHash" },
+              "documentHashAlgorithm": { "const": "sha-256" },
+              "consentAccepted": { "const": true },
+              "signedPayload": {
+                "properties": {
+                  "canonicalization": { "const": "formspec-response-signing-v1" },
+                  "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+                }
+              }
+            }
+          }
         }
       ],
       "properties": {
+        "signingActId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier shared by every document record emitted atomically for the one committed signing gesture.",
+          "examples": ["act-applicant-1"]
+        },
+        "documentRef": { "$ref": "#/$defs/DocumentReference" },
+        "presentationHash": { "$ref": "#/$defs/PresentationHash" },
+        "witnessedSignatureRef": {
+          "description": "Explicit null for a non-witness act, otherwise the exact committed intrinsic Formspec principal selection.",
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/WitnessedSignatureReference" }]
+        },
         "partyRole": {
           "type": "string",
           "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
@@ -787,6 +986,13 @@
         ]
       ]
     },
+    "resolvedDocuments": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/ResolvedDocument" },
+      "description": "Exact document variants resolved from the pinned Definition. Duplicate document/locale identities refuse. Passive selections alone do not establish assent, fetching, viewing or reading; declared-document assent uses the typed signed root commitment."
+    },
     "authoredSignatures": {
       "type": "array",
       "minItems": 1,
@@ -838,7 +1044,8 @@
       "patternProperties": { "^x-": {} },
       "additionalProperties": false,
       "properties": {
-        "x-formspec-signing-content": { "$ref": "#/$defs/SigningContentCommitment" }
+        "x-formspec-signing-content": { "$ref": "#/$defs/SigningContentCommitment" },
+        "x-formspec-document-attestations": { "$ref": "#/$defs/DocumentAttestationCommitment" }
       },
       "examples": [
         {

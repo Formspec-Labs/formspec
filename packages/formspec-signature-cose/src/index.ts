@@ -1,4 +1,4 @@
-/** @filedesc Formspec COSE_Sign1 compatibility shim over integrity-stack. */
+/** @filedesc Formspec response/receipt COSE binding over integrity-stack primitives. */
 
 export type { CoseSign1 } from '@formspec-org/integrity-cose';
 export {

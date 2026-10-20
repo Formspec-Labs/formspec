@@ -16,6 +16,16 @@
   gap: 1.25rem 1.5rem;
 }
 
+/* Authored Theme pages each have one region. Unused column gutters must not
+   force that region wider than narrow content beside the wizard navigation.
+   These IDs belong to Theme pages; Component-owned sections keep their gaps. */
+.formspec-section:is(
+  #grant-web-applicant-info, #grant-web-project-narrative, #grant-web-budget,
+  #grant-web-project-phases, #grant-web-subcontractors, #grant-web-review-submit
+) > .formspec-grid {
+  column-gap: 0;
+}
+
 .formspec-field.usa-form-group {
   margin-bottom: 1.25rem;
   margin-top: 0;

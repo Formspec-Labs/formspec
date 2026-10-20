@@ -221,6 +221,8 @@ JSON document that contains:
 - **Data Sources** — declarations of secondary instances and external lookup
   tables (§2.1.2).
 - **Validation Shapes** — composable constraint rule sets (§2.1.5).
+- **Attestable Documents** — optional declarations of exact document bytes
+  and localized variants that Fields can reference through `attests` (§4.1.3).
 - **Metadata** — human-readable title, description, authoring timestamps,
   and status.
 
@@ -494,6 +496,7 @@ The canonical structural contract for Response properties is generated from
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Implementor-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions and MUST preserve them during round-tripping. Extensions MUST NOT alter core semantics (validation, calculation, relevance, required state). |
 | `#/properties/id` | `id` | <code>string</code> | no | — | A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId. |
 | `#/properties/metadata` | `metadata` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseMetadata</code> | Optional response metadata envelope for per-field provenance, derivation traces, and disclosures shown. |
+| `#/properties/resolvedDocuments` | `resolvedDocuments` | <code>array</code> | no | — | Exact document variants resolved from the pinned Definition. Duplicate document/locale identities refuse. Passive selections alone do not establish assent, fetching, viewing or reading; declared-document assent uses the typed signed root commitment. |
 | `#/properties/status` | `status` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseStatus</code>; critical | The current lifecycle status of this Response. 'in-progress': actively being edited, MAY contain validation errors. 'completed': all error-severity validation results resolved, form submitted — a Response with one or more error-severity results MUST NOT be marked completed. 'amended': previously completed, reopened for modification. 'stopped': abandoned before completion, data preserved for audit. Saving data MUST never be blocked by validation status (VE-05) — only the transition to 'completed' requires zero error-level results. |
 | `#/properties/subject` | `subject` | <code>object</code> | no | — | The entity this Response is about — the grant, patient, project, or other domain object the form data describes. Distinct from 'author' (who filled in the form). |
 | `#/properties/validationResults` | `validationResults` | <code>array</code> | no | — | The most recent set of ValidationResult entries for this Response. Includes results from all sources: bind constraints, validation shapes, required checks, type checks, and external validation. Only error-severity results block the transition to 'completed' status. Warning and info results are advisory. Non-relevant fields MUST NOT produce results. When persisted alongside the Response, this array represents a snapshot — it may be stale if the data has changed since the last validation run. |
@@ -872,6 +875,112 @@ Byte-identical enforcement of invariants 1–3 lives in Rust at `integrity-stack
 Items 1-5 are versioned by the `canonicalization` identifier in `signedPayload`; item 6 is versioned implicitly through the protected-header `method_uri` registration governed by ADR 0109 — distinct `Sig_structure` shapes ship under distinct `method_uri` values, never under the same one with a behavior fork.
 
 Conformant verifiers MUST reject any authored signature whose protected-header `method_uri` resolves to a profile not present in the verifier's registered profile set; method dispatch is closed-enum at the verifier (see ADR 0109). Profile additions require coordinated preimage definitions, fixture vectors and compatible method dispatch before cryptographic production or verification is enabled. The section profile below defines schema and scope first; it MUST NOT be treated as byte-level conformance until shared integrity-stack vectors and implementation are available. The canonicalization profile and protected-header method URI remain distinct selectors.
+
+#### Declared-Document Attestations
+
+`resolvedDocuments` MAY retain document variants selected from the Definition's
+[`documents` declarations](#413-attestable-documents). Each entry records
+`documentId`, `locale`, `source`, `mediaType`, `documentHash` and `pinnedAt`.
+The Response's exact Definition pin MUST resolve to a valid Definition; source,
+media type and source-byte hash MUST match its selected variant. Document IDs
+are case-sensitive and locale identity is case-insensitive. Duplicate
+document/locale identities MUST be rejected, including case-equivalent locales.
+Semantic validation without the pinned Definition MUST refuse these claims;
+schema-only validation checks their shape without resolving the Definition.
+URL validation MUST NOT fetch content or imply that content was viewed.
+
+`documentHash` is lowercase SHA-256 hex of exact source bytes, using the
+Definition's existing inline decoding and hash rules. An optional
+`presentationHash` retains the existing `trellis-presentation-artifact-v1`
+SHA-256 commitment over bytes selected by the declared P12 presentation adapter;
+the default adapter selects exact source bytes. Its maintained Integrity owner
+frames the UTF-8 tag and selected bytes with their respective unsigned
+32-bit big-endian lengths. This is distinct from plain source-byte hashing and
+the Response profile's NUL framing. Formspec binds the supplied value without
+introducing another renderer or hashing implementation. Its presence is not
+proof of display or reading; absence makes no presentation-byte claim.
+
+Declared-document assent MUST use the typed root extension
+`extensions["x-formspec-document-attestations"]`, version `1.0`. One completed
+Response snapshot with a stable `id` represents one signing gesture. The
+extension commits `signingActId`, `fieldPath`, signer identity claims, signing
+time and intent, consent and affirmation text references, provider, ceremony,
+and the exact `attestations` selections. These are ordinary root data and
+therefore enter the **unchanged** `formspec-response-signing-v1` preimage.
+The separate `x-formspec-signing-content` ceremony assertions retain their
+existing meaning; they neither replace nor imply this document commitment.
+
+`fieldPath` MUST be a concrete resolved Field path in the pinned Definition and
+Response data, including valid repeat containers and indexes when applicable.
+Group, display and wildcard paths MUST be rejected. The selected document-ID
+set MUST equal that Field's `attests` set. Several actually selected locales of
+one document MAY be attested; other resolved documents MAY remain unattested.
+A Field value, a resolved entry or a prepared commitment without attached
+authored records is not evidence of assent.
+
+Each selection requires a unique `signatureId`, a closed
+`documentRef: {documentId, locale}` and an explicit nullable
+`witnessedSignatureRef`. Each selection MUST resolve to exactly one retained
+document variant; duplicate selection identities MUST be rejected.
+`consentAccepted` MUST be `true`. The optional shared `signerEvidence`,
+`identityProofRef` and `identityBinding` are signed claims, not independent
+proof that a host authenticated those claims.
+
+Finalization MUST emit all selected `authoredSignatures` records atomically.
+Every record MUST carry the committed `signingActId`, `documentRef`,
+`witnessedSignatureRef` and `signerId`; its `documentId` MUST equal the selected
+document ID. `documentHash` and optional `presentationHash` MUST mirror the
+resolved entry, including optional-field presence, with `documentHashAlgorithm`
+equal to `sha-256`. Shared signer, intent, consent, affirmation, provider and
+ceremony metadata MUST exactly mirror the root commitment, including absence
+versus presence of optional claims. The existing `signedPayload.signedAt` MUST
+equal the committed signing time; no additional outer signing-time field is
+introduced. Both existing intent copies and the Response/Definition pins MUST
+agree with their committed sources.
+
+All records for that gesture MUST contain the same genuine COSE signature and
+whole-Response digest. Their record IDs and selections MUST exactly match the
+committed list: missing, extra or duplicate records MUST be rejected. New
+document claims without their typed root commitment MUST be rejected.
+Declared-document production and verification MUST refuse the section-signing
+profile; this extension does not establish section-byte coverage.
+
+A producer or verifier MUST capture its supplied Response, Definition,
+selections, metadata, signature bytes and expected-key inputs before yielding
+to asynchronous work. It MUST derive checks and emitted records from that same
+captured snapshot. Preparing a snapshot does not complete
+the signing act. Finalization MUST reconstruct the maintained canonical bytes
+and digest and obtain a genuine verified result through the maintained
+method registry and verifier before attaching records. Unsupported, unavailable
+and failed verification remain distinct outcomes; none emits successful records.
+A later verification receipt remains separate from signer assent.
+
+A non-null `witnessedSignatureRef` is the intrinsic Formspec tuple
+`{responseId, signatureId, signedPayloadDigest}`, with a lowercase SHA-256
+digest. It MUST identify exactly one genuinely verified **declared-document**
+record in explicitly supplied, separately retained Response snapshots with
+their pinned Definitions and expected keys. Generic legacy primitive signature
+success does not prove that its outer document and signer metadata were
+committed. Missing, ambiguous, digest-mismatched or unverified targets MUST be
+rejected. Verification is finite over supplied artifacts; it MUST NOT fetch
+external witnesses or infer workflow authority. Structural/native lint alone
+does not establish an external witness's cryptographic validity.
+
+Each later gesture produces a separately retained immutable snapshot. Changing
+root claims invalidates earlier signatures on the changed snapshot; an unchanged
+earlier snapshot remains independently verifiable. Implementations MUST NOT
+paste earlier signatures into changed roots or relax Response-pin equality.
+Legacy authored records without these additions retain their existing behavior
+and acquire no declared-document assertion. Legacy emit/attach operations that
+cannot carry the committed root MUST reject new claims rather than drop them.
+
+Formspec authored evidence remains distinct from WOS-governed provenance.
+WOS resolves the intrinsic witness tuple through an accepted principal's
+`sourceResponseRef`, `sourceSignatureId` and `signedPayloadDigest`, with its
+existing Definition, document, intent and identity policy checks. Its
+`witnessedSignatureRef` then names that principal's existing outer provenance
+record `id`. Formspec does not invent a WOS affirmation identifier or claim that
+this schema addition implements downstream admission or Trellis verification.
 
 #### Section-Signature Scope
 
@@ -2730,6 +2839,7 @@ generated from `schemas/definition.schema.json`:
 | `#/properties/date` | `date` | <code>string</code> | no | — | Publication or last-modified date of this Definition version, in ISO 8601 date format (YYYY-MM-DD). |
 | `#/properties/derivedFrom` | `derivedFrom` | <code>composite</code> | no | — | Parent definition this form is derived from. Informational only — does NOT imply behavioral inheritance or runtime linkage. Enables change analysis, pre-population from parent Responses, and lineage tracking. A plain URI string indicates derivation from the logical form in general; an object with url+version pins to a specific version. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of the form's purpose and scope. |
+| `#/properties/documents` | `documents` | <code>object</code> | no | — | Attestable documents keyed by Definition-local id. Declares source bytes and locale variants, not a completed signing act or proof of URL byte integrity. |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip. |
 | `#/properties/fees` | `fees` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Fees</code> | FEL-calculated fee line items for respondent-facing cost disclosure. |
 | `#/properties/formPresentation` | `formPresentation` | <code>object</code> | no | — | Form-wide presentation defaults. All properties OPTIONAL and advisory — a conforming processor MAY ignore any or all. These are Tier 1 baseline hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. MUST NOT affect data capture, validation, or submission semantics. |
@@ -2874,6 +2984,80 @@ Page authority is resolved in this order:
 > validation errors are surfaced to the user, not *what* constitutes a
 > valid submission. A form's validation semantics (§5) are independent
 > of its presentation mode.
+
+#### 4.1.3 Attestable Documents
+
+The OPTIONAL top-level `documents` map declares documents that Fields can
+reference through `attests`. Its keys are case-sensitive document identifiers
+matching `^[A-Za-z][A-Za-z0-9_-]*$`, scoped to the containing Definition's
+`(url, version)`. This map is separate from the explanatory
+`metadata.preparation.documents` list.
+
+Each document has a REQUIRED `defaultLocale` and a nonempty `variants` map.
+Locale tags use the [Locale specification's tag grammar](../locale/locale-spec.md).
+Processors MUST compare these tags case-insensitively, MUST reject
+case-equivalent variant keys, and MUST require `defaultLocale` to match one
+declared variant. Validation MUST NOT substitute a different variant when that
+match is absent. Each variant contains exactly `source`, `mediaType`, and
+`documentHash`; `mediaType` declares the source media type, including parameters
+where needed.
+
+`source` has exactly one of these closed shapes:
+
+- `{ "kind": "url", "href": "<absolute URI>" }` identifies bytes for a host to
+  resolve and retain under its source-access policy.
+- `{ "kind": "inline", "data": "<standard Base64>" }` carries nonempty source
+  bytes. The encoding MUST use the standard Base64 alphabet, required padding
+  and zero unused padding bits, with no whitespace. UTF-8 text uses its exact
+  encoded bytes; processors MUST NOT normalize text, line endings or content.
+
+Inline input MUST contain at most 1,398,104 encoded characters and decode to at
+most 1,048,576 bytes (1 MiB) per variant. A validator MUST check the encoded
+bound before decoding and MUST reject invalid encoding, an oversized decoded
+value, or a digest mismatch. This inline limit does not set the host's limit
+for URL-backed documents.
+
+`documentHash` MUST be exactly 64 lowercase hexadecimal characters encoding
+SHA-256 of the exact source bytes: decoded inline bytes or the retained bytes
+resolved from `href`. It is not a digest of the URL string, Base64 text,
+ceremony JSON or rendered presentation. Offline Definition validation MUST
+check an inline source's digest, MUST NOT fetch URL sources, and MUST NOT claim
+to have verified unavailable URL bytes. A host that resolves a URL for signing
+must check the retained bytes against the declared digest before relying on
+them; successful declaration validation alone establishes no such check.
+
+For example, this declaration pins the five UTF-8 bytes `Hello`:
+
+```json
+{
+  "documents": {
+    "terms-v2": {
+      "defaultLocale": "en",
+      "variants": {
+        "en": {
+          "source": { "kind": "inline", "data": "SGVsbG8=" },
+          "mediaType": "text/plain; charset=utf-8",
+          "documentHash": "185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969"
+        }
+      }
+    }
+  }
+}
+```
+
+This is a Definition fragment. A Field can refer to it with
+`"attests": ["terms-v2"]`. When present, `attests` MUST be a nonempty array of
+unique document identifiers, each resolving in the same Definition's
+`documents` map. These rules apply to Fields at every nesting and repetition
+level. Processors MUST reject `attests` on Group or Display items and in
+standalone Screener documents, which do not declare this document catalog.
+No particular Field `dataType` or presentation `widgetHint` is required.
+
+`attests` declares scope; a captured value, document reference or successful
+validation does not itself establish assent, a signature, viewing evidence or
+governed admission. Authored signature evidence remains governed by §2.1.6.
+This declaration does not change existing signing-profile bytes or the
+separate `SigningContent` ceremony-wording model.
 
 ### 4.2 Item Schema
 
@@ -3107,6 +3291,7 @@ Field-specific properties:
 | `semanticType` | string | **0..1** (OPTIONAL) | Domain meaning annotation. Purely metadata — MUST NOT affect validation, calculation, or any behavioral semantics. The value MAY be a freeform namespaced identifier (e.g., `"us-gov:ein"`), a URI (e.g., `"https://schema.org/birthDate"`), or the name of a loaded registry entry with `category: "concept"` (e.g., `"x-onto-ein"`). When the value matches a loaded concept registry entry, processors SHOULD resolve it to the entry's concept metadata (URI, equivalents, display name). Unresolved values are not errors — `semanticType` remains a freeform string for processors that do not support concept resolution. Supports intelligent widget selection, data classification, cross-form alignment, and interoperability mapping. |
 | `prePopulate` | object | **0..1** (OPTIONAL) | Pre-population declaration (`instance`, `path`, `editable` default `true`; `editable: false` locks the field). Takes precedence over `initialValue`. Absolute `path` is instance-root (MAY be `initialValue: "=@instance('name').path"`). Relative `path` under matching `seedFrom` is element-relative and MUST NOT be rewritten as `initialValue` (§4.2.2.1). |
 | `children` | array of Item | **0..1** (OPTIONAL) | Child items. Fields MAY contain children to model dependent sub-questions. When present, the children are contextually tied to the Field's value. |
+| `attests` | array of string | **0..1** (OPTIONAL) | Nonempty, unique references to the containing Definition's declared documents (§4.1.3). Declares the Field's attestation scope; it does not establish a signing act. |
 
 **Core Data Types:**
 

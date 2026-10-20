@@ -23,6 +23,8 @@ pub enum LintCode {
     E301,
     /// Registry code `E302`.
     E302,
+    /// Registry code `E303`.
+    E303,
     /// Registry code `W300`.
     W300,
     /// Registry code `E400`.
@@ -245,6 +247,8 @@ pub enum LintCode {
     E1506,
     /// Registry code `E1507`.
     E1507,
+    /// Registry code `E1508`.
+    E1508,
     /// Registry code `W1500`.
     W1500,
     /// Registry code `W1600`.
@@ -275,6 +279,16 @@ pub enum LintCode {
     E1805,
     /// Registry code `W1802`.
     W1802,
+    /// Registry code `E903`.
+    E903,
+    /// Registry code `E904`.
+    E904,
+    /// Registry code `W900`.
+    W900,
+    /// Registry code `W901`.
+    W901,
+    /// Registry code `W902`.
+    W902,
     /// Registry code `E1900`.
     E1900,
     /// Registry code `E1901`.
@@ -310,6 +324,7 @@ impl LintCode {
             LintCode::E300 => "E300",
             LintCode::E301 => "E301",
             LintCode::E302 => "E302",
+            LintCode::E303 => "E303",
             LintCode::W300 => "W300",
             LintCode::E400 => "E400",
             LintCode::E500 => "E500",
@@ -421,6 +436,7 @@ impl LintCode {
             LintCode::E1505 => "E1505",
             LintCode::E1506 => "E1506",
             LintCode::E1507 => "E1507",
+            LintCode::E1508 => "E1508",
             LintCode::W1500 => "W1500",
             LintCode::W1600 => "W1600",
             LintCode::E1700 => "E1700",
@@ -436,6 +452,11 @@ impl LintCode {
             LintCode::E1804 => "E1804",
             LintCode::E1805 => "E1805",
             LintCode::W1802 => "W1802",
+            LintCode::E903 => "E903",
+            LintCode::E904 => "E904",
+            LintCode::W900 => "W900",
+            LintCode::W901 => "W901",
+            LintCode::W902 => "W902",
             LintCode::E1900 => "E1900",
             LintCode::E1901 => "E1901",
             LintCode::E1902 => "E1902",
@@ -460,6 +481,7 @@ impl LintCode {
             LintCode::E300 => 3,
             LintCode::E301 => 3,
             LintCode::E302 => 3,
+            LintCode::E303 => 3,
             LintCode::W300 => 3,
             LintCode::E400 => 4,
             LintCode::E500 => 5,
@@ -571,6 +593,7 @@ impl LintCode {
             LintCode::E1505 => 9,
             LintCode::E1506 => 9,
             LintCode::E1507 => 9,
+            LintCode::E1508 => 9,
             LintCode::W1500 => 9,
             LintCode::W1600 => 9,
             LintCode::E1700 => 9,
@@ -586,6 +609,11 @@ impl LintCode {
             LintCode::E1804 => 9,
             LintCode::E1805 => 9,
             LintCode::W1802 => 9,
+            LintCode::E903 => 8,
+            LintCode::E904 => 8,
+            LintCode::W900 => 10,
+            LintCode::W901 => 10,
+            LintCode::W902 => 10,
             LintCode::E1900 => 10,
             LintCode::E1901 => 10,
             LintCode::E1902 => 10,
@@ -610,6 +638,7 @@ impl LintCode {
             "E300" => Some(LintCode::E300),
             "E301" => Some(LintCode::E301),
             "E302" => Some(LintCode::E302),
+            "E303" => Some(LintCode::E303),
             "W300" => Some(LintCode::W300),
             "E400" => Some(LintCode::E400),
             "E500" => Some(LintCode::E500),
@@ -721,6 +750,7 @@ impl LintCode {
             "E1505" => Some(LintCode::E1505),
             "E1506" => Some(LintCode::E1506),
             "E1507" => Some(LintCode::E1507),
+            "E1508" => Some(LintCode::E1508),
             "W1500" => Some(LintCode::W1500),
             "W1600" => Some(LintCode::W1600),
             "E1700" => Some(LintCode::E1700),
@@ -736,6 +766,11 @@ impl LintCode {
             "E1804" => Some(LintCode::E1804),
             "E1805" => Some(LintCode::E1805),
             "W1802" => Some(LintCode::W1802),
+            "E903" => Some(LintCode::E903),
+            "E904" => Some(LintCode::E904),
+            "W900" => Some(LintCode::W900),
+            "W901" => Some(LintCode::W901),
+            "W902" => Some(LintCode::W902),
             "E1900" => Some(LintCode::E1900),
             "E1901" => Some(LintCode::E1901),
             "E1902" => Some(LintCode::E1902),
@@ -760,6 +795,7 @@ impl LintCode {
         LintCode::E300,
         LintCode::E301,
         LintCode::E302,
+        LintCode::E303,
         LintCode::W300,
         LintCode::E400,
         LintCode::E500,
@@ -871,6 +907,7 @@ impl LintCode {
         LintCode::E1505,
         LintCode::E1506,
         LintCode::E1507,
+        LintCode::E1508,
         LintCode::W1500,
         LintCode::W1600,
         LintCode::E1700,
@@ -886,6 +923,11 @@ impl LintCode {
         LintCode::E1804,
         LintCode::E1805,
         LintCode::W1802,
+        LintCode::E903,
+        LintCode::E904,
+        LintCode::W900,
+        LintCode::W901,
+        LintCode::W902,
         LintCode::E1900,
         LintCode::E1901,
         LintCode::E1902,
@@ -956,6 +998,6 @@ mod tests {
 
     #[test]
     fn registry_variant_count_matches_json() {
-        assert_eq!(LintCode::ALL.len(), 144);
+        assert_eq!(LintCode::ALL.len(), 151);
     }
 }

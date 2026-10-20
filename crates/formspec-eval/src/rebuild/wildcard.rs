@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use crate::types::{ItemInfo, internal_path_to_fel_path, strip_indices};
 
-use super::bind_targets::BindTargets;
+use formspec_core::BindTargets;
 
 /// Check if a bind path is a wildcard path (contains `[*]`).
 pub(crate) fn is_wildcard_bind(path: &str) -> bool {

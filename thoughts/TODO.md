@@ -4,7 +4,7 @@ Formspec-level ADR, plan, spec, research, and review tracking. Code-validated 20
 
 Directories: [`adr/`](adr/), [`plans/`](plans/), [`specs/`](specs/), [`research/`](research/), [`reviews/`](reviews/), [`archive/`](archive/).
 
-**Ticket source-of-truth.** The eight marker blocks below regenerate from `tk` epics via `make todo-sync` (see [`../../scripts/TODO-SYNC.md`](../../scripts/TODO-SYNC.md)). Merge-group tickets (M1-M28), active specs/plans, immediate-extraction items, and P4 promotion candidates are tk-managed. The ADR status table, archive counts, swarm validation snapshot, and per-section scope-expansion / test-strategy commentary stay hand-edited — they're frozen analysis or editorial overlay, not action items. Underlying TODO.csv rows remain the authoritative ticket data; merge groups are the actionable shipping units derived from them.
+**Ticket source-of-truth.** The eight marker blocks below regenerate from `tk` epics via `make todo-sync` (see [`../../scripts/TODO-SYNC.md`](../../scripts/TODO-SYNC.md)). Merge-group tickets (M1-M28), active specs/plans, immediate-extraction items, and P4 promotion candidates are tk-managed. The ADR status table, archive counts, swarm validation snapshot, and per-section scope-expansion / test-strategy commentary stay hand-edited — they're frozen analysis or editorial overlay, not action items. Canonical `tk` tickets own current actionable status and acceptance. `TODO.csv` preserves extracted task identities, original descriptions and reviewed outcome notes; merge groups are the shipping units.
 
 ---
 
@@ -85,6 +85,7 @@ plan scope and status.
 **P2 — standard:**
 
 - **Plan — u1-u4-mcp-ux-fixes (6 tasks, PARTIAL)** · `fs-drlg` · P2
+   blocked-by M20 — PAGED_ROOT_NON_GROUP fix + tests (~2h) `fs-gdv2`
 
    Plan at formspec/thoughts/plans/2026-03-16-u1-u4-mcp-ux-fixes.md. 6 tasks: addWizardPage, PAGED_ROOT_NON_GROUP fix, tests. PLAN-001/002 in M3 (P0); PLAN-003/006 in M20 (P2).
 
@@ -93,6 +94,7 @@ plan scope and status.
 **P3 — sustaining:**
 
 - **Plan — layout-workspace-completion (6 tasks, PARTIAL)** · `fs-fgkr` · P3
+   blocked-by M21 — DataTable widget catalog + SubmitButton palette (~3h) `fs-9o4m`
 
    Plan at formspec/thoughts/plans/2026-04-01-layout-workspace-completion.md. PLAN-016 status change (DONE — SubmitButton fully specified). PLAN-012/014/015/017 in M21 (P2 DataTable widget catalog).
 
@@ -115,39 +117,15 @@ These items from swarm extraction complete in a single session each. Each one cl
 
 Items from the 2026-05-14 swarm extraction that complete in a single session each. ~2-4h apiece. Mix of ADR closure (0030 theme pages), plan completion (u1-u4 addWizardPage, USWDS ARIA), spec finalization (definition-advisories), and ADR feature wiring (0048 FEL functions, 0053 DOM annotations).
 
-- **Immediate — Plan u1-u4 addWizardPage (~1h)** · `fs-2npw` · P1
-
-   From swarm extraction 2026-05-14. ~1h. Add 'add_group' action to formspec_page in structure.ts:52-79, wire to project.addWizardPage(). Forms the kernel of P0 M3.
-
-   **Acceptance:** add_group action wired in structure.ts:52-79; project.addWizardPage() callable.
-
-- **Immediate — ADR 0030 Theme pages gap (~2h, closes only remaining ~90% ADR)** · `fs-qbci` · P1
-
-   From swarm extraction 2026-05-14. ~2h. Add pages + regions to main theme.json (exists only in theme-pdf.json). Closes the only remaining ~90% ADR. Companion to M2 (P0 Theme pages + regions + responsive).
-
-   **Acceptance:** theme.json gains pages + regions (currently only in theme-pdf.json); ADR 0030 closes to ~95%.
-
-- **Immediate — Spec definition-advisories Rust Pass 8 (~4h, closes TS duplication)** · `fs-qtw7` · P1
-
-   From swarm extraction 2026-05-14. ~4h. Forms kernel of P0 M8 (Rust Pass 8 + tests + Python). W900/W901/W902 in bind_consistency.rs.
-
-   **Acceptance:** crates/formspec-lint/src/bind_consistency.rs ships with W900/W901/W902; TS duplicate removed.
-
-- **Immediate — ADR 0053 data-formspec-* annotations (~3h)** · `fs-sd1s` · P1
-
-   From swarm extraction 2026-05-14. ~3h. P0 M6 is the shipping unit (0053-017 + 0053-018). Adds toolAnnotations to AdapterContext so all adapters pick it up.
-
-   **Acceptance:** Webcomponent emits assist annotations (data-formspec-path et al) on all rendered fields; Playwright E2E asserts count = field count.
-
-- **Immediate — Spec definition-advisories prose §3.10.3 (~1h)** · `fs-um82` · P1
-
-   From swarm extraction 2026-05-14. ~1h. P0 M7 is the shipping unit (SPEC-089 + SPEC-090).
-
-   **Acceptance:** §3.10.3 inserted; §3.10 retitled; docs:check passes.
 
 **Recently closed (kept for traceability; archive when stale):**
 
+- ~~**Immediate — Plan u1-u4 addWizardPage (~1h)**~~ `fs-2npw` · CLOSED — From swarm extraction 2026-05-14. ~1h.
 - ~~**Immediate — Plan uswds ARIA DescribedBy (~3h)**~~ `fs-6ezg` · CLOSED — **Merged into fs-pd72 (2026-05-17).** P0 M4 is the canonical shipping unit; do not execute this row separately.
+- ~~**Immediate — ADR 0030 Theme pages gap (~2h, closes only remaining ~90% ADR)**~~ `fs-qbci` · CLOSED — From swarm extraction 2026-05-14. ~2h.
+- ~~**Immediate — Spec definition-advisories Rust Pass 8 (~4h, closes TS duplication)**~~ `fs-qtw7` · CLOSED — From swarm extraction 2026-05-14. ~4h.
+- ~~**Immediate — ADR 0053 data-formspec-* annotations (~3h)**~~ `fs-sd1s` · CLOSED — From swarm extraction 2026-05-14. ~3h.
+- ~~**Immediate — Spec definition-advisories prose §3.10.3 (~1h)**~~ `fs-um82` · CLOSED — From swarm extraction 2026-05-14. ~1h.
 - ~~**Immediate — ADR 0048 formatNumber/formatDate FEL (~2h)**~~ `fs-wm71` · CLOSED — **Merged into fs-8vu5 (2026-05-17).** P0 M5 is the canonical shipping unit; do not execute this row separately.
 
 <!-- tk:end -->
@@ -202,7 +180,7 @@ All 346 tasks validated by 9 parallel formspec-scout agents. Each task's target 
 
 ## P0 deep-dive (2026-05-14) — 24 tickets, 3 scouts
 
-Scouts traced each P0 ticket from symptom → root domino → product impact, evaluating whether each change should be bigger (additional files, test strategy, cascade). Merge groups below are tk-managed; scope-expansion findings and test strategy are editorial overlay (stay hand-edit because they're per-group commentary).
+The historical extraction contains 24 P0 rows. Current acceptance reconciles them to 22 implemented outcomes and two superseded wizard API requests; the row identities and original descriptions remain intact in `TODO.csv`. Canonical [`fs-5a5s`](../../.tickets/fs-5a5s.md) and its group tickets own the dispositions. Generated ticket summaries below retain their source text; the editorial outcome and verification tables record current semantics.
 
 ### Merge groups (ship together)
 
@@ -211,73 +189,50 @@ Scouts traced each P0 ticket from symptom → root domino → product impact, ev
 
 P0 deep-dive 2026-05-14 grouped 24 individual tickets into 8 merge groups (M1-M8) + 1 standalone. Scouts traced symptom → root domino → product impact. Each merge group is a 'ship together' unit because constituent tickets touch the same file or share a prerequisite. Effort estimates 1-5h per group. See formspec/thoughts/TODO.md 'P0 deep-dive' section for ticket lists, scope-expansion findings, and test strategy per group.
 
-- **M8 — Rust Pass 8 + tests + Python + MCP (~5h)** · `fs-4edk` · P0
-
-   Full stack: pipeline integration + tests + Python bridge + MCP surface. Scope-expansion: SPEC-092 Rust Pass 8 should scan screener items AND shape paths (not just definition items), extending what TS buildAdvisories checks. Test: cargo nextest run -p formspec-lint — W900 fires for required+readonly; suppressed when calculate present.
-
-   **Acceptance:** Tickets SPEC-092, SPEC-093, SPEC-096, SPEC-097, SPEC-098 close. Pipeline integration + test coverage + Python bridge + MCP surface — full stack.
-
-- **M1 — Grant-app shape+uri convergence (~2h)** · `fs-880a` · P0
-
-   All four tickets touch definition.json; engine fixture is canonical source. Back-syncs share a single target. Scope-expansion: fix ALL THREE copies for convergence; verify engine fixture is canonical and propagate forward. Test: tests/conformance/suite/ + tests/unit/ — no regression on info: 0 in submit mode; uri valid dataType.
-
-   **Acceptance:** Tickets 0029-003, 0029-015, 0029-017, 0031-023 close. All three definition.json copies (example, benchmark reference, engine fixture) converge.
-
-- **M7 — Spec advisories prose §3.10.3 + §3.10 retitle (~1h)** · `fs-9nnv` · P0
-
-   Single spec edit. Test: npm run docs:check — generated artifacts pass freshness check.
-
-   **Acceptance:** Tickets SPEC-089, SPEC-090 close. §3.10.3 inserted, §3.10 retitled in single edit.
-
-- **M2 — Theme pages + regions + responsive (~2h)** · `fs-ffas` · P0
-
-   Pages need regions; regions need responsive — 3 serial PRs would conflict. One commit. theme-pdf.json already has pages/regions; web theme has orphaned breakpoints. Test: cargo nextest run -p formspec-lint + npm test — lint handles pages/regions; E2E doesn't break.
-
-   **Acceptance:** Tickets 0030-032, 0030-033, 0030-034 close together. Pages need regions; regions need responsive — ship as one commit.
-
-- **P0 Standalone — 0040-013 outputSchema (~3h)** · `fs-rls6` · P0
-
-   Independent of other P0 work. Test: packages/formspec-mcp/tests/ — every tool validates response against outputSchema.
-
-   **Acceptance:** Bulk mechanical change across 49 MCP tools; every tool validates response against outputSchema.
-
-- **M6 — Assist DOM annotations (~3h)** · `fs-sva6` · P0
-
-   Share AdapterContext injection; data-formspec-* prerequisite for toolparamdescription integration. Scope-expansion: add toolAnnotations to AdapterContext (shared type) so ALL adapters (default, USWDS, Tailwind) pick up data-formspec-* + toolparamdescription without per-adapter work. Test: Playwright E2E — [data-formspec-path] count = field count.
-
-   **Acceptance:** Tickets 0053-017, 0053-018 close. data-formspec-* + toolparamdescription emitted via AdapterContext.toolAnnotations.
 
 **Recently closed (kept for traceability; archive when stale):**
 
+- ~~**M8 — Rust Pass 8 + tests + Python + MCP (~5h)**~~ `fs-4edk` · CLOSED — Full stack: pipeline integration + tests + Python bridge + MCP surface.
+- ~~**M1 — Grant-app shape+uri convergence (~2h)**~~ `fs-880a` · CLOSED — All four tickets touch definition.json; engine fixture is canonical source.
 - ~~**M5 — formatNumber + formatDate FEL (~2h)**~~ `fs-8vu5` · CLOSED — **Canonical ticket.** Merged duplicate **fs-wm71**.
+- ~~**M7 — Spec advisories prose §3.10.3 + §3.10 retitle (~1h)**~~ `fs-9nnv` · CLOSED — Single spec edit.
+- ~~**M2 — Theme pages + regions + responsive (~2h)**~~ `fs-ffas` · CLOSED — Pages need regions; regions need responsive — 3 serial PRs would conflict.
 - ~~**M3 — MCP wizard authoring alignment (~1.5h) — RESHAPED**~~ `fs-mgdq` · CLOSED — **Architecture review (2026-05-17): RECONSIDER.** Did **not** restore `addWizardPage` / `add_group`; aligned docs with component-tree `Page` + `pageMode` wizard model.
 - ~~**M4 — ARIA describedBy cleanup (~1h)**~~ `fs-pd72` · CLOSED — **Canonical ticket.** Merged duplicate **fs-6ezg**.
+- ~~**P0 Standalone — 0040-013 outputSchema (~3h)**~~ `fs-rls6` · CLOSED — Independent of other P0 work.
+- ~~**M6 — Assist DOM annotations (~3h)**~~ `fs-sva6` · CLOSED — Share AdapterContext injection; data-formspec-* prerequisite for toolparamdescription integration.
 
 <!-- tk:end -->
 
-### Key scope-expansion findings
+### Current outcomes
 
-P0 tickets that scouts flagged as **too narrow as written:**
+| Group | Current disposition | Owning ticket |
+|-------|---------------------|---------------|
+| M1 | Three grant Definitions converge on native `uri`, demand timing, interpolated shape message and source/static fallback behavior; newer registry/default/FEL semantics preserved. | [`fs-880a`](../../.tickets/fs-880a.md) |
+| M2 | Web Theme Pages, regions and responsive overrides ship together; Definition data unchanged. | [`fs-ffas`](../../.tickets/fs-ffas.md) |
+| M3 | Local registry retained. Component-tree Page plus placement and `pageMode` is the current wizard model; PLAN-001/002 are **SUPERSEDED**, not implemented legacy APIs. | [`fs-mgdq`](../../.tickets/fs-mgdq.md) |
+| M4 | `bindSharedFieldEffects` owns reactive ARIA state for current controls/groups; default and USWDS behavior retained. | [`fs-pd72`](../../.tickets/fs-pd72.md) |
+| M5 | Maintained FEL `formatNumber`/`formatDate` and their supported deterministic locale subset retained. | [`fs-8vu5`](../../.tickets/fs-8vu5.md) |
+| M6 | Current Assist §8 identity, native descriptions and opt-in submission boundaries qualified across actual adapters; retired path/injection API not restored. | [`fs-sva6`](../../.tickets/fs-sva6.md) |
+| M7 | Core §3.10.3 nonblocking advisories and §3.10 retitle published in canonical/generated documentation. | [`fs-9nnv`](../../.tickets/fs-9nnv.md) |
+| M8 | One Rust advisory owner feeds Python, WASM, MCP and Studio. Advisory phase 10 preserves existing Surface/Response pass 8; duplicated TS policy removed. | [`fs-4edk`](../../.tickets/fs-4edk.md) |
+| 0040-013 | Current maintained MCP inventory advertises and checks success/typed-error outputs through one schema catalog; historical tool count/path replaced. | [`fs-rls6`](../../.tickets/fs-rls6.md) |
 
-- **0029-003, 0029-015, 0029-017**: The `benchmarks/tasks/grant-application/reference/definition.json` has the same drift. Fix ALL THREE copies (example, benchmark reference, engine fixture) for convergence — or at minimum verify the engine fixture is canonical and propagate forward.
-- **0030-032/033/034**: theme-pdf.json already has pages/regions. The web theme has orphaned breakpoints. These tickets should be merged into one commit that adds pages WITH regions WITH responsive — otherwise the intermediate state is broken (pages without regions).
-- **0031-005**: Zero independent value. 11 dependent tickets blocked on it. Either ship with the first dependent ticket (0031-006) or create a skeleton that passes schema validation and is immediately extended.
-- **0053-017/018**: Should add `toolAnnotations` to `AdapterContext` (a shared type) so ALL adapters (default, USWDS, Tailwind) pick up `data-formspec-*` and `toolparamdescription` without per-adapter work.
-- **SPEC-092**: The Rust Pass 8 should also scan screener items and shape paths (not just definition items), extending what the current TS `buildAdvisories` checks.
+### Verification and scope
 
-### Test strategy per group
+| Group | Current evidence | Boundary |
+|-------|------------------|----------|
+| M1 | Converged fixture hashes, native schema/Definition controls, actual demand/interpolation/source-cache execution and full maintained engine suite. | Source/fixture/runtime qualification; no live data-source reliability claim. |
+| M2 | Native Theme checks, layout tests and actual grant navigation/region browser controls on reviewed Theme bytes. | Current desktop/mobile layout; no unrelated visual certification. |
+| M3 | Current local Registry plus maintained studio-core Page/placement APIs and component commands agree with reshaped acceptance. | PLAN-001/002 superseded; no `add_group` or `addWizardPage` restoration. |
+| M4 | Current shared/group ARIA controls in 583 webcomponent and 301 adapter tests; actual browser labels/group behavior. | Maintained reactive owner and USWDS semantics, not obsolete first-input assumptions. |
+| M5 | Current exact engine: 51 locale tests plus six direct English/French formatting/null controls through native WASM. | Supported locale subset; no full ICU or separate Python parity certification. |
+| M6 | Nine actual default/USWDS/Tailwind Chromium controls; removal of the shared description writer fails, exact restoration passes; combined source rerun passes. | Configured registry autocomplete only; no ontology resolver, optional help synthesis or active WebMCP/provider claim. |
+| M7 | Actual `docs:check`, canonical Core/generated artifact parity and independent review. | Documentation and current spec semantics. |
+| M8 | Native rule/mode/value-source/inheritance tests, Python/WASM/MCP boundary controls and mounted Definition/Screener consumers. | One native policy owner; no independent Python mirror or shape-derived rule policy. |
+| 0040-013 | All maintained 25 tools (19 product, 6 Node) exercised through actual SDK success/typed-error/corruption controls; combined 575 runnable checks pass. | Separate Wireframes server excluded; four pre-existing absolute demo-import files remain excluded and tracked by [`fs-eqz0`](../../.tickets/fs-eqz0.md). |
 
-| Group | Test location | Key assertion |
-|-------|--------------|---------------|
-| M1 | `tests/conformance/suite/`, `tests/unit/` | No regression on `info: 0` in submit mode; `uri` is valid dataType |
-| M2 | `cargo nextest run -p formspec-lint`, `npm test` | Lint handles pages/regions; E2E doesn't break |
-| M3 | `packages/formspec-mcp/tests/structure.test.ts` | `add_group` creates definition group + sets wizard mode |
-| M4 | Playwright E2E | `aria-describedby` on inputs stays in sync with desc/hint changes |
-| M5 | `cargo nextest run -p fel-core` | `formatNumber(1234.5)` returns `"1,234.5"` |
-| M6 | Playwright E2E | `[data-formspec-path]` count = field count |
-| M7 | `npm run docs:check` | Generated artifacts pass freshness check |
-| M8 | `cargo nextest run -p formspec-lint` | W900 fires for required+readonly; suppressed when calculate present |
-| 0040-013 | `packages/formspec-mcp/tests/` | Every tool validates response against outputSchema |
+These are local reviewed source and execution outcomes, not deployment, registry publication or whole-platform readiness. Original extraction text remains historical; explicit current outcomes supersede its retired APIs, paths and pass numbering.
 
 ---
 
@@ -304,9 +259,9 @@ P1 deep-dive 2026-05-14: 20 tickets grouped into 8 merge groups M9-M16. Componen
 
    **Acceptance:** Ticket 0053-020 closes. formspec-assist-chat/ package created with interfaces + stubs. SPEC-042 marked duplicate-of:0053-020.
 
-- **M13 — Registry entries (~1.5h, blocked on 0031-005/P0)** · `fs-ga4b` · P1
+- **M13 — Complete registry example entries and lifecycle coverage** · `fs-ga4b` · P1
 
-   BLOCKED on 0031-005 (P0 M3). 6 entries on registry.json. Scope: 'retired' has zero coverage in any fixture across entire repo — schema permits it, nothing exercises it. Test gap, not just example gap. Test: cargo nextest run -p formspec-core — registry entries pass schema validation.
+
 
    **Acceptance:** Tickets 0031-006..0031-011 close. Six entries on registry.json mapping statuses across all 4 lifecycle states (incl. retired).
 
@@ -381,13 +336,8 @@ P1 deep-dive 2026-05-14: 20 tickets grouped into 8 merge groups M9-M16. Componen
 
 P2 deep-dive 2026-05-14: 20 tickets grouped. Component E2E tests, Registry Python facade, MCP tool consolidation 49→28, PAGED_ROOT_NON_GROUP fix, DataTable widget catalog, lint mode wiring. Status changes: 0031-001/002 WONTFIX (spec §1.3 supersession), PLAN-016 DONE.
 
-- **M19 — MCP tool consolidation 49→28 (~4h)** · `fs-0t9q` · P2
-
-   Test: packages/formspec-mcp/tests/integration.test.ts — pre-merge and post-merge flows identical for key authoring paths.
-
-   **Acceptance:** Ticket 0040-017 closes. 49 MCP tools merged to 28 per merge plan.
-
 - **P2 Stale — 0030-047 wontfix candidate (blocked on M2)** · `fs-80cy` · P2
+   blocked-by M2 — Theme pages + regions + responsive (~2h) `fs-ffas`
 
    Blocked on M2 (P0 Theme pages + regions + responsive). Close as wontfix if pages never land.
 
@@ -406,6 +356,7 @@ P2 deep-dive 2026-05-14: 20 tickets grouped. Component E2E tests, Registry Pytho
    **Acceptance:** Tickets PLAN-003, PLAN-006 close (PLAN-006 blocked on PLAN-003). themePlacedKeys set added; diagnostic message differentiated; test added.
 
 - **M22 — Lint mode wiring (~1h)** · `fs-isjp` · P2
+   blocked-by M8 — Rust Pass 8 + tests + Python + MCP (~5h) `fs-4edk`
 
    Add W9xx to Authoring suppressed set; add W9xx no-promotion guard + test. Test: cargo nextest run -p formspec-lint — W900 suppressed in Authoring; W900 NOT promoted in strict mode.
 
@@ -418,6 +369,7 @@ P2 deep-dive 2026-05-14: 20 tickets grouped. Component E2E tests, Registry Pytho
    **Acceptance:** Tickets 0029-075, 0030-046, 0031-037 close. Playwright tests for new component props, ref fragment resolution, writable instances.
 
 - **P2 Standalone — SPEC-091 cross-ref (~10min, blocked on SPEC-089/M7)** · `fs-oyd0` · P2
+   blocked-by M7 — Spec advisories prose §3.10.3 + §3.10 retitle (~1h) `fs-9nnv`
 
    Blocked on SPEC-089 (M7). Add one-sentence cross-ref once §3.10.3 exists.
 
@@ -425,6 +377,7 @@ P2 deep-dive 2026-05-14: 20 tickets grouped. Component E2E tests, Registry Pytho
 
 **Recently closed (kept for traceability; archive when stale):**
 
+- ~~**M19 — MCP tool consolidation 49→28 (~4h)**~~ `fs-0t9q` · CLOSED — Test: packages/formspec-mcp/tests/integration.test.ts — pre-merge and post-merge flows identical for key authoring paths.
 - ~~**M18 — Registry Python facade (~1h)**~~ `fs-fhly` · CLOSED — M18 — Registry Python facade (~1h)
 
 <!-- tk:end -->
@@ -469,15 +422,11 @@ P3 deep-dive 2026-05-14: 16 tickets grouped. Per-field currency, SummaryRow inst
 
    **Acceptance:** Ticket 0029-031 closes. Built-in Summary replaced with SummaryRow custom component.
 
-- **P3 NOOP — SPEC-099 + SPEC-100 (condition not met / future)** · `fs-cyne` · P3
+- **M27 — Registry enrichment** · `fs-euce` · P3
 
-   SPEC-099: condition not met — Rust Pass 8 hasn't shipped via WASM. SPEC-100: mapping-aware check not started. Both NOOP until prerequisites materialize.
+   The registry-creation prerequisite0031-005 is complete in closed fs-mgdq. Enrich the existing grant-application registry and verify the remaining acceptance below.
 
-   **Acceptance:** Closed as NOOP: SPEC-099 condition not met (Rust Pass 8 hasn't shipped via WASM); SPEC-100 future (mapping-aware check not started).
-
-- **M27 — Registry enrichment (~1h, blocked on 0031-005/P0)** · `fs-euce` · P3
-
-   BLOCKED on 0031-005 (P0 M3).
+   Historical blocker:0031-005/P0 M3 created the registry file; it no longer blocks this work.
 
    **Acceptance:** Tickets 0031-012..0031-016 close. deprecationNotice, specUrl/schemaUrl, examples, mappingDslVersion, extensions all on registry.json.
 
@@ -489,6 +438,7 @@ P3 deep-dive 2026-05-14: 16 tickets grouped. Per-field currency, SummaryRow inst
 
 **Recently closed (kept for traceability; archive when stale):**
 
+- ~~**P3 NOOP — SPEC-099 + SPEC-100 (condition not met / future)**~~ `fs-cyne` · CLOSED — SPEC-099: condition not met — Rust Pass 8 hasn't shipped via WASM.
 - ~~**M26 — ValidationReport metadata (~30min) — CLOSURE ONLY**~~ `fs-od7k` · CLOSED — **Architecture review (2026-05-17): RECONSIDER → reshape as test + ticket closure.** Engine wiring was **already done**; work was test + tracking only.
 - ~~**M28 — Locale lint foundation (~6h, bigger than tickets describe)**~~ `fs-x97v` · CLOSED — SIGNIFICANTLY LARGER than 1-line descriptions suggest.
 

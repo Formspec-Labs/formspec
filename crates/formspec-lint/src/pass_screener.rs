@@ -18,6 +18,16 @@ pub(crate) fn lint_screener_semantics(
     let mut diagnostics = Vec::new();
     let tree_index = tree::build_item_index(doc);
     diagnostics.extend(tree_index.diagnostics.clone());
+    formspec_core::visit_definition_items_from_document(doc, &mut |ctx| {
+        if ctx.item.get("attests").is_some() {
+            diagnostics.push(error(
+                crate::LintCode::E1508,
+                PASS,
+                format!("{}.attests", ctx.json_path),
+                "Standalone Screeners have no Definition document catalog and must not declare attests",
+            ));
+        }
+    });
     check_binds(doc, &tree_index, &mut diagnostics);
     check_lifecycle(doc, &mut diagnostics);
     check_evaluation(doc, parse_interpolations, &mut diagnostics);

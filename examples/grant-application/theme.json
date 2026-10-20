@@ -9,7 +9,6 @@
     "compatibleVersions": ">=1.0.0 <2.0.0"
   },
   "stylesheets": [
-    "/packages/formspec-webcomponent/examples/formspec-uswds-bridge.css",
     "/examples/grant-application/grant-bridge.css"
   ],
   "tokens": {
@@ -133,6 +132,116 @@
       }
     }
   },
+  "pages": [
+    {
+      "id": "grant-web-applicant-info",
+      "title": "Applicant Info",
+      "description": "Organization identity and primary contact information.",
+      "regions": [
+        {
+          "key": "applicantInfo",
+          "span": 12,
+          "start": 1,
+          "responsive": {
+            "sm": {
+              "span": 12,
+              "start": 1
+            },
+            "md": {
+              "span": 10,
+              "start": 2
+            },
+            "lg": {
+              "span": 8,
+              "start": 3
+            },
+            "xl": {
+              "span": 8,
+              "start": 3
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grant-web-project-narrative",
+      "title": "Project Narrative",
+      "description": "Describe the project, schedule, and expected outcomes.",
+      "regions": [
+        {
+          "key": "projectNarrative",
+          "span": 12,
+          "start": 1,
+          "responsive": {
+            "sm": {
+              "span": 12,
+              "start": 1
+            },
+            "md": {
+              "span": 10,
+              "start": 2
+            },
+            "lg": {
+              "span": 8,
+              "start": 3
+            },
+            "xl": {
+              "span": 8,
+              "start": 3
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grant-web-budget",
+      "title": "Budget",
+      "description": "Enter line items and requested funding.",
+      "regions": [
+        {
+          "key": "budget",
+          "span": 12,
+          "start": 1
+        }
+      ]
+    },
+    {
+      "id": "grant-web-project-phases",
+      "title": "Project Phases",
+      "description": "Plan project phases and their tasks.",
+      "regions": [
+        {
+          "key": "projectPhases",
+          "span": 12,
+          "start": 1
+        }
+      ]
+    },
+    {
+      "id": "grant-web-subcontractors",
+      "title": "Subcontractors",
+      "description": "Describe proposed subcontracted work.",
+      "regions": [
+        {
+          "key": "subcontractors",
+          "span": 12,
+          "start": 1
+        }
+      ]
+    },
+    {
+      "id": "grant-web-review-submit",
+      "title": "Review & Submit",
+      "description": "Attach supporting documents and review the application.",
+      "regions": [
+        {
+          "key": "attachments",
+          "span": 12,
+          "start": 1
+        }
+      ]
+    }
+  ],
   "breakpoints": {
     "sm": 480,
     "md": 768,

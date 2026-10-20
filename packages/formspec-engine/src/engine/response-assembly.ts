@@ -126,7 +126,7 @@ function normalizeSignedPayload(
 }
 
 /** Emit only JSON-Schema–declared AuthoredSignature properties (additionalProperties: false). */
-function toNormalizedAuthoredSignatureRecord(
+export function toNormalizedAuthoredSignatureRecord(
     signature: AuthoredSignatureInput,
     index: number,
     responseId: string,
@@ -173,7 +173,7 @@ function toNormalizedAuthoredSignatureRecord(
         documentId: signature.documentId,
         signingIntent,
         signatureValue: signature.signatureValue,
-        signerName: signerName.trim(),
+        signerName: signature.signingActId === undefined ? signerName.trim() : signerName,
         consentAccepted: signature.consentAccepted,
         consentTextRef: signature.consentTextRef,
         consentVersion: signature.consentVersion,
@@ -200,7 +200,17 @@ function toNormalizedAuthoredSignatureRecord(
     if (identityBinding) {
         record.identityBinding = identityBinding;
     }
+    for (const field of ['signingActId', 'documentRef', 'presentationHash', 'witnessedSignatureRef'] as const) {
+        if (signature[field] !== undefined) record[field] = cloneValue(signature[field]);
+    }
     return record;
+}
+
+/** Refuse new claims on legacy paths that cannot carry the committed root data. */
+function requireLegacySignature(signature: AuthoredSignatureInput): void {
+    if (['signingActId', 'documentRef', 'presentationHash', 'witnessedSignatureRef'].some(field => field in signature)) {
+        throw new Error('Declared-document evidence requires finalizeDocumentAttestations');
+    }
 }
 
 /**
@@ -223,6 +233,10 @@ export function attachAuthoredSignature<T extends object>(
     const definitionVersion = requireNonEmptyString(snapshot.definitionVersion as string, 'Response.definitionVersion');
     if (!signature || 'partyRole' in signature || 'coveredPaths' in signature) {
         throw new Error('attachAuthoredSignature accepts whole-response evidence only');
+    }
+    requireLegacySignature(signature);
+    if ((snapshot.extensions as Record<string, unknown> | undefined)?.['x-formspec-document-attestations'] !== undefined) {
+        throw new Error('Declared-document evidence requires finalizeDocumentAttestations');
     }
     const prior = snapshot.authoredSignatures;
     if (prior !== undefined && !Array.isArray(prior)) {
@@ -289,6 +303,7 @@ function prepareAuthoredSignaturesSection(meta: {
     if (!signatures || signatures.length === 0) {
         return { authoredSignatures: undefined, envelopeResponseId: meta?.id };
     }
+    signatures.forEach(requireLegacySignature);
     const responseId = resolveResponseId(meta?.id, signatures);
     if (!responseId) {
         throw new Error('authoredSignatures require a stable response id');

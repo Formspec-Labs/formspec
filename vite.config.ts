@@ -29,7 +29,7 @@ export default defineConfig({
     {
       name: 'serve-examples',
       configureServer(server) {
-        const MIME: Record<string, string> = { '.json': 'application/json', '.csv': 'text/csv', '.xml': 'application/xml' };
+        const MIME: Record<string, string> = { '.json': 'application/json', '.csv': 'text/csv', '.xml': 'application/xml', '.css': 'text/css' };
         const repoRoot = path.resolve(__dirname);
         server.middlewares.use((req, res, next) => {
           if (!req.url?.startsWith('/examples/')) return next();

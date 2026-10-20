@@ -3,10 +3,12 @@ name = "formspec-lint"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Formspec Linter — 8-pass static analysis pipeline"
+description = "Formspec static analysis and validation pipeline"
 repository = "https://github.com/Formspec-Labs/formspec"
 
 [dependencies]
+base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
+sha2 = { version = "0.10.9", default-features = false }
 csscolorparser = "0.8.3"
 fel-core = { version = "0.3.0", path = "../../../fel-core" }
 formspec-core = { version = "0.2.0", path = "../formspec-core" }

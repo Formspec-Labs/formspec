@@ -7,7 +7,7 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 const ajv = new Ajv2020({ strict: false });
 addFormats(ajv);
-for (const name of ['common', 'validation-result', 'verification-receipt']) {
+for (const name of ['common', 'issuer', 'definition', 'validation-result', 'verification-receipt']) {
   ajv.addSchema(
     JSON.parse(
       readFileSync(
@@ -179,4 +179,16 @@ test('signer evidence strips unsupported provider properties', () => {
     value: 'Ada',
   });
   assert.equal(validate(result), true, JSON.stringify(validate.errors));
+});
+
+for (const [field, value] of Object.entries({ signingActId: 'act-1', documentRef: { documentId: 'terms-v2', locale: 'en' }, presentationHash: 'a'.repeat(64), witnessedSignatureRef: null })) {
+  test(`legacy attachment refuses declared-document ${field} instead of dropping it`, () => {
+    const { response, signature } = inputs();
+    assert.throws(() => attachAuthoredSignature(response, { ...signature, [field]: value }), /finalizeDocumentAttestations/);
+  });
+}
+test('legacy attachment refuses a prepared committed root', () => {
+  const { response, signature } = inputs();
+  response.extensions = { 'x-formspec-document-attestations': {} };
+  assert.throws(() => attachAuthoredSignature(response, signature), /finalizeDocumentAttestations/);
 });

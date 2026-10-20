@@ -29,7 +29,7 @@
     "policy:check": "node scripts/generate-ui-policy.mjs --check",
     "types:generate": "node scripts/generate-types.mjs",
     "build": "npm run types:generate && npm run policy:generate && tsc && npm run typecheck:wire",
-    "typecheck:wire": "tsc --noEmit --strict --skipLibCheck --target es2022 --module nodenext tests/typecheck/section-signatures.ts",
+    "typecheck:wire": "tsc --noEmit --strict --skipLibCheck --target es2022 --module nodenext tests/typecheck/section-signatures.ts tests/typecheck/document-declarations.ts tests/typecheck/document-attestations.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

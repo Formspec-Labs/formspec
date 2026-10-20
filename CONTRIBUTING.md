@@ -13,6 +13,12 @@ By submitting a pull request, you agree to license your contribution under the s
 
 You also acknowledge that the maintainers may offer the project (including your contributions) under commercial license terms to third parties. If you are not comfortable with this, please do not submit a contribution.
 
+## Contributor agreement
+
+We use an **Individual Contributor License Agreement (ICLA)**, not a Developer Certificate of Origin sign-off. The [Formspec ICLA](CLA.md) names TealWolf Consulting, LLC as recipient and provides the explicit additional rights needed for the commercial relicensing policy above, including contributions to BSL-licensed authoring code. You retain ownership of your contribution.
+
+Before merge, follow the agreement's acceptance procedure for its exact version and your contribution commit. Disclose third-party material and obtain any required employer authorization. The maintainer records the acceptance in the pull request; earlier contributions are not presumed to have accepted this agreement.
+
 ## Getting started
 
 1. Fork the repository

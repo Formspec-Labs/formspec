@@ -10,6 +10,34 @@ import type { ModuleRef, Generation, SigningContentCatalog, WidgetName, Extensio
 import type { IssuerDocument as FormspecIssuerDocument } from './issuer.js';
 export type { FormspecIssuerDocument };
 /**
+ * Document-variant locale tag, using the Locale document grammar and case-insensitive comparison.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "DocumentLocale".
+ */
+export type DocumentLocale = string;
+/**
+ * Exact document source declaration. URL bytes are resolved and pinned by the host; inline bytes use the existing standard-base64 attachment encoding. Lint never fetches a URL.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "DocumentSource".
+ */
+export type DocumentSource =
+  | {
+      kind: 'url';
+      /**
+       * Absolute URI from which the host resolves and pins exact source bytes under its access policy.
+       */
+      href: string;
+    }
+  | {
+      kind: 'inline';
+      /**
+       * Canonical padded standard base64 of exact bytes, at most 1 MiB decoded. Native semantic validation checks padding bits, decoded size and documentHash equality.
+       */
+      data: string;
+    };
+/**
  * A node in the form's structural tree. Every Item has a key (stable machine identifier unique across the entire Definition), a type ('field', 'group', or 'display'), and a label (human-readable). The type determines which additional properties apply. Items form a tree via the 'children' property on groups. The item tree determines the shape of the Instance (form data): fields produce values, groups produce JSON objects (or arrays if repeatable), display items produce nothing.
  *
  * This interface was referenced by `FormDefinition`'s JSON-Schema
@@ -256,6 +284,13 @@ export type OptionSet1 = {
  */
 export type AssuranceLevel = 'L1' | 'L2' | 'L3' | 'L4';
 /**
+ * Case-sensitive identifier of one declared document within this pinned Definition.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "DocumentId".
+ */
+export type DocumentId = string;
+/**
  * Closed role-class taxonomy per ADR-0155 §4. `coEqual`: parties sign on their own behalf with equal downstream obligations. `asymmetricPrimary`: primary party with obligations or visibility distinct from secondary parties. `asymmetricSecondary`: secondary party with obligations or visibility distinct from primary. `guardianFor`: party signs or acts for a protected subject; capacity/governance checks apply. Inventing new classes (e.g., `witness`, `notary`) is a definition error — use `extensions` for domain-specific party metadata.
  *
  * This interface was referenced by `FormDefinition`'s JSON-Schema
@@ -332,6 +367,12 @@ export interface FormDefinition {
    */
   date?: string;
   metadata?: DefinitionMetadata;
+  /**
+   * Attestable documents keyed by Definition-local id. Declares source bytes and locale variants, not a completed signing act or proof of URL byte integrity.
+   */
+  documents?: {
+    [k: string]: AttestableDocument;
+  };
   /**
    * Root item tree defining the form's structural content. Items form a tree: each Item may have 'children' (groups) creating nested hierarchy. Three item types exist: 'field' (captures data), 'group' (structural container, optionally repeatable), 'display' (read-only presentational content). The item tree determines the shape of the Instance (form data).
    */
@@ -620,6 +661,33 @@ export interface AssuranceRequirement {
    * Jurisdiction or policy namespace in which this assurance requirement applies.
    */
   jurisdiction?: string;
+}
+/**
+ * One attestable document with localized byte variants. Native validation requires a case-insensitive default match and refuses case-equivalent variant keys.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "AttestableDocument".
+ */
+export interface AttestableDocument {
+  defaultLocale: DocumentLocale;
+  variants: {
+    [k: string]: DocumentVariant;
+  };
+}
+/**
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "DocumentVariant".
+ */
+export interface DocumentVariant {
+  source: DocumentSource;
+  /**
+   * Media type of the exact source bytes, including parameters when needed.
+   */
+  mediaType: string;
+  /**
+   * Lowercase SHA-256 hex of exact source bytes: strictly decoded inline bytes or host-resolved pinned URL bytes. Not a URL-string, ceremony-JSON or presentation hash.
+   */
+  documentHash: string;
 }
 /**
  * Respondent-facing consequences associated with this item, including triggered deadlines, lock-in effects, and external actions such as referrals.

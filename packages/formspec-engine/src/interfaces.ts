@@ -370,6 +370,11 @@ export interface VerificationReceiptInput {
 }
 
 export interface AuthoredSignatureInput {
+    /** Declared-document claims require the atomic tools-side signing route. */
+    signingActId?: string;
+    documentRef?: import('@formspec-org/types').DocumentReference;
+    presentationHash?: string;
+    witnessedSignatureRef?: import('@formspec-org/types').WitnessedSignatureReference | null;
     signatureId: string;
     documentId: string;
     signingIntent: string;

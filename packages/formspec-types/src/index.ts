@@ -112,6 +112,9 @@ export type FormItem = Item & {
   prePopulate?: { instance: string; path: string; editable?: boolean };
   seedFrom?: { instance: string; path: string };
 
+  /** Definition-local documents this Field declares as its attestation scope. */
+  attests?: import('./generated/definition.js').DocumentId[];
+
   // Shared conditional
   presentation?: Presentation;
 
@@ -146,6 +149,7 @@ type FormDefinitionKnownFields = Pick<
   | 'name'
   | 'title'
   | 'description'
+  | 'documents'
   | 'date'
   | 'metadata'
   | 'shapes'

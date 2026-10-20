@@ -1,0 +1,22 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.org/advisory",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Bind advisory",
+  "items": [
+    {
+      "key": "value",
+      "type": "field",
+      "label": "Value",
+      "dataType": "string"
+    }
+  ],
+  "binds": [
+    {
+      "path": "value",
+      "required": "true",
+      "readonly": "true"
+    }
+  ]
+}
